@@ -45,6 +45,8 @@ pub mod field {
     pub const SSH_HOST: Id = Id::root("tablepro.connections.form.ssh-host");
     /// Startup command field.
     pub const STARTUP: Id = Id::root("tablepro.connections.form.startup");
+    /// Form tabs selector.
+    pub const TABS: Id = Id::root("tablepro.connections.form.tabs");
 }
 
 /// Test action.

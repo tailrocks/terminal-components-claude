@@ -337,6 +337,7 @@ impl HistoryTab {
 
 /// Product tab union.
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum Tab {
     Table(TableTab),
     Query(QueryTab),

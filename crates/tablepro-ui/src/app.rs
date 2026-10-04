@@ -381,16 +381,8 @@ fn keymap() -> KeyMap {
             Chord::key(KeyCode::Char('E')),
             EDIT_CONNECTION,
         )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Left),
-            FORM_TAB_PREV,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Right),
-            FORM_TAB_NEXT,
-        )
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Left), FORM_TAB_PREV)
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Right), FORM_TAB_NEXT)
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
@@ -537,6 +529,7 @@ pub struct TableProApp {
     form_open: bool,
     form_is_edit: bool,
     form_tab: usize,
+    form_editing: bool,
 }
 
 impl core::fmt::Debug for TableProApp {
@@ -632,6 +625,7 @@ impl TableProApp {
             form_open: false,
             form_is_edit: false,
             form_tab: 0,
+            form_editing: false,
         };
         app.workbench.new_query(
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
@@ -689,6 +683,7 @@ impl TableProApp {
         self.form_open = false;
         self.form_is_edit = false;
         self.form_tab = 0;
+        self.form_editing = false;
         self.draft = None;
 
         match surface {
@@ -921,10 +916,7 @@ impl TableProApp {
         );
         self.open_destructive(
             cx,
-            DestructiveIntent::DeleteConnection {
-                index: i,
-                question,
-            },
+            DestructiveIntent::DeleteConnection { index: i, question },
         );
     }
 
@@ -975,6 +967,7 @@ impl TableProApp {
         self.draft = Some(ConnectionDraft::default_new());
         self.form_is_edit = false;
         self.form_tab = 0;
+        self.form_editing = false;
         self.form_state = FormState::default();
         self.form_open = true;
         self.surface = Surface::Connections;
@@ -989,6 +982,7 @@ impl TableProApp {
         self.draft = Some(draft);
         self.form_is_edit = true;
         self.form_tab = 0;
+        self.form_editing = false;
         self.form_state = FormState::default();
         self.form_open = true;
         self.surface = Surface::Connections;
@@ -997,6 +991,7 @@ impl TableProApp {
         self.form_open = false;
         self.form_is_edit = false;
         self.form_tab = 0;
+        self.form_editing = false;
         self.form_state.zeroize();
         // Retain a scrubbed owner until late focus transitions are drained.
         self.draft = Some(ConnectionDraft::from_connection(&self.connection));
@@ -1975,6 +1970,9 @@ impl TableProApp {
 
     fn draw_connection_form(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         let (card_area, list_area) = if area.width < 80 {
+            if self.form_tab == 0 {
+                self.draw_connections_list(ui, area, false, true);
+            }
             (
                 termrock::Rect {
                     x: area.x,
@@ -1987,7 +1985,11 @@ impl TableProApp {
         } else {
             let list_width = (area.width / 3).clamp(26, 40).min(area.width);
             let right_x = area.x.saturating_add(list_width).saturating_add(2);
-            let card_width = area.width.saturating_sub(list_width).saturating_sub(2).min(84);
+            let card_width = area
+                .width
+                .saturating_sub(list_width)
+                .saturating_sub(2)
+                .min(84);
             (
                 termrock::Rect {
                     x: right_x,
@@ -2004,10 +2006,10 @@ impl TableProApp {
             )
         };
 
-        if self.form_tab == 0 {
-            if let Some(list_area) = list_area {
-                self.draw_connections_list(ui, list_area, false, false);
-            }
+        if self.form_tab == 0
+            && let Some(list_area) = list_area
+        {
+            self.draw_connections_list(ui, list_area, false, false);
         }
 
         self.draw_connection_form_card(ui, card_area);
@@ -2018,9 +2020,8 @@ impl TableProApp {
             return;
         };
 
-        let card_bg = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface))));
+        let card_bg =
+            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)));
         ui.fill(card_area, card_bg);
 
         let title = if self.form_is_edit {
@@ -2028,7 +2029,8 @@ impl TableProApp {
         } else {
             "New connection"
         };
-        let title_style = card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+        let title_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
         ui.paint_str(
             termrock::Rect {
                 x: card_area.x.saturating_add(2),
@@ -2041,7 +2043,8 @@ impl TableProApp {
         );
 
         let meta = "Ctrl+S Save";
-        let meta_style = card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+        let meta_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
         ui.paint_str(
             termrock::Rect {
                 x: card_area.right().saturating_sub(2 + 11),
@@ -2061,9 +2064,19 @@ impl TableProApp {
         };
 
         let tab0_active = self.form_tab == 0;
-        let raised_bg = ui.surface_style().patch(
+        let is_16_color = ui.theme_ref().capability.color == termrock::ColorLevel::Ansi16;
+        let raised_bg =
+            if is_16_color {
+                card_bg
+            } else {
+                ui.surface_style().patch(ui.paint_patch(
+                    &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Overlay)),
+                ))
+            };
+        let button_bg = ui.surface_style().patch(
             ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Overlay))),
         );
+        ui.register_focus_only(connections::field::TABS, Focusability::Focusable);
         let tab0_style = if tab0_active {
             raised_bg.patch(
                 ui.paint_patch(
@@ -2107,12 +2120,9 @@ impl TableProApp {
         ui.paint_str(tab1_rect, " Advanced  ", tab1_style);
 
         let underline_y = inner.y.saturating_add(1);
-        let rule_subtle = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::BorderSubtle)),
-        );
-        let rule_accent = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)),
-        );
+        let rule_subtle =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderSubtle)));
+        let rule_accent = card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
 
         for xx in inner.left()..inner.right() {
             ui.paint_str(
@@ -2200,15 +2210,20 @@ impl TableProApp {
             2,
         );
 
-        if let Some(&r) = rects.get(0) {
-            let btn_sec_style = raised_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
-            );
-            let btn_gutter = raised_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Overlay))),
-            );
+        if let Some(&r) = rects.first() {
+            let btn_sec_style = button_bg
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+            let btn_gutter =
+                button_bg.patch(ui.paint_patch(
+                    &StylePatch::new().set_fg(Role::Surface(termrock::Surface::Overlay)),
+                ));
             ui.paint_str(
-                termrock::Rect { x: r.x, y: r.y, width: 1, height: 1 },
+                termrock::Rect {
+                    x: r.x,
+                    y: r.y,
+                    width: 1,
+                    height: 1,
+                },
                 " ",
                 btn_gutter,
             );
@@ -2223,21 +2238,31 @@ impl TableProApp {
                 btn_sec_style,
             );
             ui.paint_str(
-                termrock::Rect { x: r.right().saturating_sub(1), y: r.y, width: 1, height: 1 },
+                termrock::Rect {
+                    x: r.right().saturating_sub(1),
+                    y: r.y,
+                    width: 1,
+                    height: 1,
+                },
                 " ",
                 btn_sec_style,
             );
         }
 
         if let Some(&r) = rects.get(1) {
-            let btn_subtle_style = card_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-            );
-            let btn_gutter = card_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
-            );
+            let btn_subtle_style = card_bg
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+            let btn_gutter =
+                card_bg.patch(ui.paint_patch(
+                    &StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface)),
+                ));
             ui.paint_str(
-                termrock::Rect { x: r.x, y: r.y, width: 1, height: 1 },
+                termrock::Rect {
+                    x: r.x,
+                    y: r.y,
+                    width: 1,
+                    height: 1,
+                },
                 " ",
                 btn_gutter,
             );
@@ -2252,21 +2277,31 @@ impl TableProApp {
                 btn_subtle_style,
             );
             ui.paint_str(
-                termrock::Rect { x: r.right().saturating_sub(1), y: r.y, width: 1, height: 1 },
+                termrock::Rect {
+                    x: r.right().saturating_sub(1),
+                    y: r.y,
+                    width: 1,
+                    height: 1,
+                },
                 " ",
                 btn_subtle_style,
             );
         }
 
         if let Some(&r) = rects.get(2) {
-            let btn_sec_style = raised_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
-            );
-            let btn_gutter = raised_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Overlay))),
-            );
+            let btn_sec_style = button_bg
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+            let btn_gutter =
+                button_bg.patch(ui.paint_patch(
+                    &StylePatch::new().set_fg(Role::Surface(termrock::Surface::Overlay)),
+                ));
             ui.paint_str(
-                termrock::Rect { x: r.x, y: r.y, width: 1, height: 1 },
+                termrock::Rect {
+                    x: r.x,
+                    y: r.y,
+                    width: 1,
+                    height: 1,
+                },
                 " ",
                 btn_gutter,
             );
@@ -2281,28 +2316,33 @@ impl TableProApp {
                 btn_sec_style,
             );
             ui.paint_str(
-                termrock::Rect { x: r.right().saturating_sub(1), y: r.y, width: 1, height: 1 },
+                termrock::Rect {
+                    x: r.right().saturating_sub(1),
+                    y: r.y,
+                    width: 1,
+                    height: 1,
+                },
                 " ",
                 btn_sec_style,
             );
         }
 
         if let Some(&r) = rects.get(3) {
-            let accent_bg = ui.surface_style().patch(
-                ui.paint_patch(&StylePatch::new().set_bg(Role::Accent)),
-            );
+            let accent_bg = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Accent)));
             let btn_pri_style = accent_bg.patch(
-                ui.paint_patch(
-                    &StylePatch::new()
-                        .set_fg(Role::OnAccent)
-                        .add(Modifier::BOLD),
-                ),
+                ui.paint_patch(&StylePatch::new().set_fg(Role::OnAccent).add(Modifier::BOLD)),
             );
-            let btn_gutter = accent_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)),
-            );
+            let btn_gutter =
+                accent_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
             ui.paint_str(
-                termrock::Rect { x: r.x, y: r.y, width: 1, height: 1 },
+                termrock::Rect {
+                    x: r.x,
+                    y: r.y,
+                    width: 1,
+                    height: 1,
+                },
                 " ",
                 btn_gutter,
             );
@@ -2317,7 +2357,12 @@ impl TableProApp {
                 btn_pri_style,
             );
             ui.paint_str(
-                termrock::Rect { x: r.right().saturating_sub(1), y: r.y, width: 1, height: 1 },
+                termrock::Rect {
+                    x: r.right().saturating_sub(1),
+                    y: r.y,
+                    width: 1,
+                    height: 1,
+                },
                 " ",
                 btn_pri_style,
             );
@@ -2346,6 +2391,7 @@ impl TableProApp {
         format!("{t}{}", " ".repeat(pad))
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_form_input(
         ui: &mut Ui<'_>,
         area: termrock::Rect,
@@ -2363,7 +2409,8 @@ impl TableProApp {
             return;
         }
         let name_w = termrock::width(label) as u16;
-        let show_optional = !required && !label.is_empty() && name_w.saturating_add(12) <= area.width;
+        let show_optional =
+            !required && !label.is_empty() && name_w.saturating_add(12) <= area.width;
         let mut full_label = label.to_owned();
         if required {
             full_label.push_str(" *");
@@ -2397,9 +2444,7 @@ impl TableProApp {
             label_style,
         );
         if required && !disabled && name_w.saturating_add(4) <= area.width {
-            let req_style = card_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)),
-            );
+            let req_style = card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
             ui.paint_str(
                 termrock::Rect {
                     x: label_x.saturating_add(name_w).saturating_add(1),
@@ -2411,9 +2456,8 @@ impl TableProApp {
                 req_style,
             );
         } else if show_optional {
-            let opt_style = card_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
-            );
+            let opt_style =
+                card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
             ui.paint_str(
                 termrock::Rect {
                     x: label_x.saturating_add(name_w).saturating_add(2),
@@ -2433,8 +2477,20 @@ impl TableProApp {
                 width: area.width,
                 height: 1,
             };
+            let mut field_flags = termrock::StateFlags::empty();
+            if disabled {
+                field_flags |= termrock::StateFlags::DISABLED;
+            }
+            let resolved = ui.style(
+                termrock::Family::INPUT,
+                termrock::Variant::DEFAULT,
+                termrock::Part::FIELD,
+                field_flags,
+            );
             let field_style = if disabled {
-                field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))))
+                field_bg
+                    .patch(resolved.style)
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))))
             } else {
                 field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))))
             };
@@ -2443,7 +2499,9 @@ impl TableProApp {
             let gutter_style = if focused {
                 field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
             } else {
-                field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Field))))
+                field_style.patch(ui.paint_patch(
+                    &StylePatch::new().set_fg(Role::Surface(termrock::Surface::Field)),
+                ))
             };
             ui.paint_str(
                 termrock::Rect {
@@ -2460,12 +2518,13 @@ impl TableProApp {
             let inner_w = area.width.saturating_sub(3);
             if value.is_empty() {
                 if !placeholder.is_empty() && inner_w > 0 {
-                    let ph_fg = if disabled {
-                        Role::Fg(FgStep::Faint)
+                    let ph_style = if disabled {
+                        field_style
                     } else {
-                        Role::Fg(FgStep::Muted)
+                        field_bg.patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+                        )
                     };
-                    let ph_style = field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(ph_fg)));
                     let ph = truncate(placeholder, inner_w);
                     ui.paint_str(
                         termrock::Rect {
@@ -2479,12 +2538,12 @@ impl TableProApp {
                     );
                 }
             } else if inner_w > 0 {
-                let val_fg = if disabled {
-                    Role::Fg(FgStep::Faint)
+                let val_style = if disabled {
+                    field_style
                 } else {
-                    Role::Fg(FgStep::Primary)
+                    field_bg
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))))
                 };
-                let val_style = field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(val_fg)));
                 let val = truncate(value, inner_w);
                 ui.paint_str(
                     termrock::Rect {
@@ -2500,9 +2559,8 @@ impl TableProApp {
         }
 
         if area.height >= 3 && !help.is_empty() {
-            let help_style = card_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-            );
+            let help_style =
+                card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
             let h = truncate(help, area.width.saturating_sub(2));
             ui.paint_str(
                 termrock::Rect {
@@ -2528,9 +2586,8 @@ impl TableProApp {
         if area.is_empty() {
             return;
         }
-        let label_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-        );
+        let label_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
         let label_x = area.x.saturating_add(2.min(area.width));
         ui.paint_str(
             termrock::Rect {
@@ -2550,7 +2607,8 @@ impl TableProApp {
                 width: area.width,
                 height: 1,
             };
-            let fs = field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+            let fs = field_bg
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
             ui.fill(field_rect, fs);
 
             let gutter_style = field_bg.patch(
@@ -2570,9 +2628,8 @@ impl TableProApp {
             let inner_x = area.x.saturating_add(2.min(area.width));
             let inner_w = area.width.saturating_sub(5);
             if inner_w > 0 {
-                let val_style = field_bg.patch(
-                    ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
-                );
+                let val_style = field_bg
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
                 let val = truncate(value, inner_w);
                 ui.paint_str(
                     termrock::Rect {
@@ -2586,9 +2643,8 @@ impl TableProApp {
                 );
             }
             if area.width >= 2 {
-                let arrow_style = field_bg.patch(
-                    ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-                );
+                let arrow_style = field_bg
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
                 ui.paint_str(
                     termrock::Rect {
                         x: area.right().saturating_sub(2),
@@ -2614,9 +2670,8 @@ impl TableProApp {
         if area.is_empty() {
             return;
         }
-        let label_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-        );
+        let label_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
         let label_x = area.x.saturating_add(2.min(area.width));
         ui.paint_str(
             termrock::Rect {
@@ -2632,15 +2687,11 @@ impl TableProApp {
         let gutter_style = card_bg.patch(
             ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
         );
-        let accent_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)),
-        );
-        let muted_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-        );
-        let text_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
-        );
+        let accent_style = card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+        let muted_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        let text_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
 
         for (i, opt) in options
             .iter()
@@ -2648,6 +2699,15 @@ impl TableProApp {
             .enumerate()
         {
             let y = area.y.saturating_add(1).saturating_add(i as u16);
+            let row_rect = termrock::Rect {
+                x: area.x,
+                y,
+                width: area.width,
+                height: 1,
+            };
+            let row_style =
+                card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+            ui.fill(row_rect, row_style);
             ui.paint_str(
                 termrock::Rect {
                     x: area.x,
@@ -2704,6 +2764,15 @@ impl TableProApp {
         if area.is_empty() {
             return;
         }
+        let row_rect = termrock::Rect {
+            x: area.x,
+            y: area.y,
+            width: area.width,
+            height: 1,
+        };
+        let row_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+        ui.fill(row_rect, row_style);
         let gutter_style = card_bg.patch(
             ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
         );
@@ -2717,15 +2786,11 @@ impl TableProApp {
             " ",
             gutter_style,
         );
-        let accent_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)),
-        );
-        let muted_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-        );
-        let faint_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
-        );
+        let accent_style = card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+        let muted_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        let faint_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
         let text_style = if disabled {
             faint_style
         } else {
@@ -2793,6 +2858,15 @@ impl TableProApp {
         if area.is_empty() {
             return;
         }
+        let row_rect = termrock::Rect {
+            x: area.x,
+            y: area.y,
+            width: area.width,
+            height: 1,
+        };
+        let row_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+        ui.fill(row_rect, row_style);
         let gutter_style = card_bg.patch(
             ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
         );
@@ -2813,9 +2887,8 @@ impl TableProApp {
         } else {
             ("[ ]", 3u16)
         };
-        let mark_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-        );
+        let mark_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
         ui.paint_str(
             termrock::Rect {
                 x: area.x.saturating_add(1),
@@ -2827,10 +2900,9 @@ impl TableProApp {
             mark_style,
         );
         if area.width > 5 {
-            let text_style = card_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
-            );
-            let text = truncate(label, area.width.saturating_sub(5));
+            let text_style =
+                card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+            let text = truncate(label, area.width.saturating_sub(6));
             ui.paint_str(
                 termrock::Rect {
                     x: area.x.saturating_add(5),
@@ -2852,9 +2924,10 @@ impl TableProApp {
         draft: &ConnectionDraft,
         card_bg: PaintStyle,
     ) {
-        let field_bg = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field))));
+        ui.register_focus_only(connections::field::NAME, Focusability::Focusable);
+        let field_bg = ui.surface_style().patch(
+            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field))),
+        );
 
         let fh = 3u16;
 
@@ -2943,17 +3016,7 @@ impl TableProApp {
             &draft.port
         };
         Self::draw_form_input(
-            ui,
-            hr,
-            "Port",
-            port_val,
-            "",
-            "",
-            false,
-            false,
-            false,
-            card_bg,
-            field_bg,
+            ui, hr, "Port", port_val, "", "", false, false, false, card_bg, field_bg,
         );
         y = y.saturating_add(fh);
 
@@ -3099,20 +3162,22 @@ impl TableProApp {
         // Safe mode description (up to 2 wrapped lines)
         let desc = SafeMode::ALL[draft.safe_mode.min(5)].description();
         let wrap_w = rc.width.saturating_sub(2);
-        let muted_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-        );
+        let muted_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
         for (i, line) in wrap(desc, wrap_w).iter().take(2).enumerate() {
-            ui.paint_str(
-                termrock::Rect {
-                    x: rc.x.saturating_add(2),
-                    y: ry.saturating_add(i as u16),
-                    width: rc.width.saturating_sub(2),
-                    height: 1,
-                },
-                line,
-                muted_style,
-            );
+            let row_y = ry.saturating_add(i as u16);
+            if row_y < rc.bottom() {
+                ui.paint_str(
+                    termrock::Rect {
+                        x: rc.x.saturating_add(2),
+                        y: row_y,
+                        width: rc.width.saturating_sub(2),
+                        height: 1,
+                    },
+                    line,
+                    muted_style,
+                );
+            }
         }
     }
 
@@ -3124,9 +3189,9 @@ impl TableProApp {
         draft: &ConnectionDraft,
         card_bg: PaintStyle,
     ) {
-        let field_bg = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field))));
+        let field_bg = ui.surface_style().patch(
+            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field))),
+        );
 
         let fh = 3u16;
 
@@ -3229,9 +3294,8 @@ impl TableProApp {
         );
 
         // Right column
-        let label_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-        );
+        let label_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
         let label_x = rc.x.saturating_add(2.min(rc.width));
         ui.paint_str(
             termrock::Rect {
@@ -3250,7 +3314,8 @@ impl TableProApp {
             width: rc.width,
             height: 3,
         };
-        let fs = field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+        let fs =
+            field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
         ui.fill(body_rect, fs);
 
         let gutter_style = field_bg.patch(
@@ -3269,9 +3334,8 @@ impl TableProApp {
             );
         }
 
-        let ph_style = field_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-        );
+        let ph_style =
+            field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
         let ph_text = truncate("SET statement_timeout = '60s';", rc.width.saturating_sub(4));
         ui.paint_str(
             termrock::Rect {
@@ -3284,9 +3348,8 @@ impl TableProApp {
             ph_style,
         );
 
-        let help_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-        );
+        let help_style =
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
         let help_text = truncate(
             "Run after every connect, one per line",
             rc.width.saturating_sub(2),
@@ -3302,18 +3365,14 @@ impl TableProApp {
             help_style,
         );
 
-        let note_text = truncate(
-            "External clients: read only",
-            rc.width.saturating_sub(2),
-        );
         ui.paint_str(
             termrock::Rect {
                 x: label_x,
                 y: rc.y.saturating_add(6),
-                width: rc.width.saturating_sub(2),
+                width: 27,
                 height: 1,
             },
-            &note_text,
+            "External clients: read only",
             help_style,
         );
     }
@@ -3971,7 +4030,8 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str, focuse
         );
 
         if area.width > 2 {
-            let label = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+            let label =
+                field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
             ui.paint_str(
                 termrock::Rect {
                     x: area.x.saturating_add(2),
@@ -4364,11 +4424,12 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
                 width,
                 ..area
             };
-            ui.paint_str(
-                right,
-                &app.status,
-                base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),
-            );
+            let status_style = if app.form_open {
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))
+            } else {
+                base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+            };
+            ui.paint_str(right, &app.status, status_style);
             right_w = width.saturating_add(3);
         }
     }
@@ -4398,17 +4459,29 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         );
         x = x.saturating_add(badge_w).saturating_add(2);
     }
-    let key_style = base.patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
-        ),
-    );
-    let action_style =
-        base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-    let faint_style =
-        base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+    let (key_style, action_style, faint_style) = if app.form_open {
+        (
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .add(Modifier::BOLD),
+            ),
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
+        )
+    } else {
+        (
+            base.patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD),
+                ),
+            ),
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)))),
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)))),
+        )
+    };
 
     let hints = footer_hints(app);
     let mut drawn = 0usize;
@@ -4826,8 +4899,50 @@ impl App for TableProApp {
                 _ => {}
             }
         }
+        if self.form_open {
+            for intent in cx.intents(connections::field::NAME) {
+                if let Intent::Key(key) = intent {
+                    match key.code {
+                        KeyCode::Enter | KeyCode::F(2) => {
+                            self.form_editing = true;
+                            response |= Response::changed();
+                        }
+                        KeyCode::Esc => {
+                            if self.form_editing {
+                                self.form_editing = false;
+                                response |= Response::changed();
+                            } else {
+                                self.close_connection_form();
+                                response |= Response::changed();
+                            }
+                        }
+                        KeyCode::Char('e') if !self.form_editing => {
+                            self.begin_edit_connection_form(self.connections_screen.selected);
+                            cx.focus(connections::field::NAME);
+                            response |= Response::changed();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            for intent in cx.intents(connections::field::TABS) {
+                if let Intent::Key(key) = intent {
+                    match key.code {
+                        KeyCode::Right => {
+                            self.form_tab = 1;
+                            response |= Response::changed();
+                        }
+                        KeyCode::Left => {
+                            self.form_tab = 0;
+                            response |= Response::changed();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
         let form_was_open = self.form_open;
-        if self.draft.is_some() {
+        if self.draft.is_some() && (!form_was_open || self.form_editing) {
             let fields = &self.form_fields;
             let actions = &self.form_actions;
             if let Some(draft) = self.draft.as_mut() {
@@ -4909,11 +5024,9 @@ impl App for TableProApp {
                             response |= Response::changed();
                         }
                     }
-                    Intent::FocusOut { .. } => {
-                        if self.connections_screen.filter_active {
-                            self.connections_screen.filter_active = false;
-                            response |= Response::changed();
-                        }
+                    Intent::FocusOut { .. } if self.connections_screen.filter_active => {
+                        self.connections_screen.filter_active = false;
+                        response |= Response::changed();
                     }
                     _ => {}
                 }
