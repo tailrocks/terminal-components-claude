@@ -18,7 +18,7 @@ use crate::text::Span;
 use crate::text::clusters::ClusterFeed;
 use crate::text::measure::graphemes;
 use crate::theme::builder::{FadeOutcome, fade_mix};
-use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
+use crate::theme::{ColorLevel, FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
 
 impl Ui<'_> {
     /// Paint graphemes at `pos`, refusing any grapheme wider than the clip.
@@ -502,6 +502,39 @@ impl Ui<'_> {
                     })
             {
                 FadeResult::Fg(bg)
+            } else if theme.capability.color == ColorLevel::Mono {
+                let cell_fg = self.page().cell(pos).and_then(|c| c.style().fg);
+                match cell_fg {
+                    Some(c) if Some(c) == cell_bg => FadeResult::Fg(bg),
+                    Some(c)
+                        if c == theme.bg(Surface::Canvas)
+                            || c == theme.bg(Surface::Surface)
+                            || c == theme.color.surfaces[0]
+                            || c == theme.color.surfaces[1]
+                            || matches!(c, Color::Black | Color::Indexed(0)) =>
+                    {
+                        FadeResult::Fg(bg)
+                    }
+                    Some(c)
+                        if c == theme.color.fg[0]
+                            || c == theme.color.accent
+                            || c == theme.color.danger
+                            || c == theme.color.warning
+                            || matches!(
+                                c,
+                                Color::White | Color::Indexed(15) | Color::Gray | Color::Indexed(7)
+                            ) =>
+                    {
+                        FadeResult::Fg(Some(theme.color.fg[2]))
+                    }
+                    Some(c)
+                        if c == theme.color.fg[1]
+                            || c == theme.color.on_accent =>
+                    {
+                        FadeResult::Fg(Some(theme.color.fg[3]))
+                    }
+                    _ => FadeResult::Fg(Some(theme.color.fg[4])),
+                }
             } else {
                 match roles.fg {
                     Some(Role::CurrentSurface | Role::RaisedSurface | Role::Surface(_)) => {
@@ -591,7 +624,7 @@ mod tests {
     use super::super::cx::LastFrame;
     use super::super::{FrameState, Ui, UiCore};
     use crate::scroll::ScrollState;
-    use crate::theme::{FgStep, Role, Surface, Theme};
+    use crate::theme::{ColorLevel, FgStep, Role, Surface, Theme};
 
     const SCREEN: Rect = Rect {
         x: 0,
@@ -805,6 +838,24 @@ mod tests {
             // never from the cell's colour
             let c = dimmed_cell(&theme, Role::Fg(FgStep::Primary), "x", Modifier::empty(), 1);
             assert_eq!(c.bg, theme.bg(Surface::Canvas));
+        }
+    }
+
+    #[test]
+    fn dim_layer_mono_preserves_baseline_backdrop_fg_resolution() {
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        for role in [
+            Role::Fg(FgStep::Primary),
+            Role::Fg(FgStep::Secondary),
+            Role::Fg(FgStep::Muted),
+            Role::Accent,
+            Role::Success,
+            Role::Warning,
+            Role::Danger,
+        ] {
+            let c = dimmed_cell(&theme, role, "x", Modifier::empty(), 2);
+            assert_eq!(c.fg, Color::Gray, "{role:?} must dim to Gray under Mono");
+            assert_eq!(c.symbol(), "x");
         }
     }
 }
