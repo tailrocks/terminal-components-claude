@@ -451,40 +451,43 @@ fn draw_principles(ui: &mut Ui<'_>, area: Rect) {
 
 fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
     let inner = state_language_panel().draw(ui, state_area, |_, inner| inner);
-    for (index, (glyph, label)) in STATE_LEGEND.iter().enumerate() {
-        let Ok(offset) = u16::try_from(index) else {
-            break;
-        };
-        let Some(y) = inner.y.checked_add(offset) else {
-            break;
-        };
-        if y >= inner.bottom() {
-            break;
+    let raised = ui.theme_ref().raise(ui.surface());
+    ui.with_surface(raised, |ui| {
+        for (index, (glyph, label)) in STATE_LEGEND.iter().enumerate() {
+            let Ok(offset) = u16::try_from(index) else {
+                break;
+            };
+            let Some(y) = inner.y.checked_add(offset) else {
+                break;
+            };
+            if y >= inner.bottom() {
+                break;
+            }
+            let marker_color = match index {
+                0 | 2 | 3 => Role::Accent,
+                1 => Role::Fg(FgStep::Secondary),
+                4 => Role::Danger,
+                5 => Role::Fg(FgStep::Primary),
+                _ => Role::Fg(FgStep::Faint),
+            };
+            ui.paint_str(
+                Rect::new(inner.x, y, 1, 1),
+                glyph,
+                ui.surface_style()
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(marker_color))),
+            );
+            let text_x = inner.x.saturating_add(3);
+            ui.paint_str(
+                Rect::new(
+                    text_x,
+                    y,
+                    state_area.right().saturating_sub(text_x),
+                    1,
+                ),
+                label,
+                ui.surface_style()
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),
+            );
         }
-        let marker_color = match index {
-            0 | 2 | 3 => Role::Accent,
-            1 => Role::Fg(FgStep::Secondary),
-            4 => Role::Danger,
-            5 => Role::Fg(FgStep::Primary),
-            _ => Role::Fg(FgStep::Faint),
-        };
-        ui.paint_str(
-            Rect::new(inner.x, y, 1, 1),
-            glyph,
-            ui.surface_style()
-                .patch(ui.paint_patch(&StylePatch::new().set_fg(marker_color))),
-        );
-        let text_x = inner.x.saturating_add(3);
-        ui.paint_str(
-            Rect::new(
-                text_x,
-                y,
-                state_area.right().saturating_sub(text_x),
-                1,
-            ),
-            label,
-            ui.surface_style()
-                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),
-        );
-    }
+    });
 }

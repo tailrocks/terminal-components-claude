@@ -240,7 +240,9 @@ fn field_like(m: &mut PartMap<PartRecipe>) {
         Part::THUMB,
         p().set_fg(Role::Fg(FgStep::Muted))
             .set_glyph(GlyphRole::ScrollThumb),
-    );
+    )
+    .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Secondary)))
+    .when(StateFlags::FOCUSED, p().set_fg(Role::Fg(FgStep::Primary)));
     part(m, Part::ROW, p()).when(
         StateFlags::SELECTED,
         p().set_bg(Role::SelectionBg).set_fg(Role::SelectionFg),

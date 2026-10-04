@@ -353,7 +353,7 @@ impl<'a> ScrollRegion<'a> {
         let track_len = usize::from(track_rect.height);
         let (start, len) = view.thumb(track_len);
         let ov = self.ov;
-        let part_live = StateFlags::empty();
+        let part_live = ui.state(self.id) & StateFlags::FOCUSED;
         let track = ov.style(
             ui,
             self.id,
@@ -362,11 +362,13 @@ impl<'a> ScrollRegion<'a> {
             Part::TRACK,
             part_live,
         );
-        let thumb_live = if ui.pressed_part(self.id) == Some(PartRef::of(Part::THUMB)) {
-            part_live | StateFlags::PRESSED
-        } else {
-            part_live
-        };
+        let mut thumb_live = part_live;
+        if ui.hovered_part(self.id) == Some(PartRef::of(Part::THUMB)) {
+            thumb_live |= StateFlags::HOVERED;
+        }
+        if ui.pressed_part(self.id) == Some(PartRef::of(Part::THUMB)) {
+            thumb_live |= StateFlags::PRESSED;
+        }
         let thumb = ov.style(
             ui,
             self.id,

@@ -1023,6 +1023,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         let limit = offset.saturating_add(usize::from(content.height));
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
+        let mut keep = Vec::new();
         for (i, visual_row, header) in self.rows(items, compact) {
             if let Some((row, text)) = header
                 && (offset..limit).contains(&row)
@@ -1067,6 +1068,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             if st.current == Some(key) {
                 flags |= StateFlags::SELECTED;
             }
+            if is_cursor || st.current == Some(key) {
+                keep.push(y);
+            }
             if self.is_disabled(item) {
                 flags |= StateFlags::DISABLED;
                 flags = flags.difference(StateFlags::PRESSED | StateFlags::HOVERED);
@@ -1080,6 +1084,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             if !ui.is_inert() && !self.is_disabled(item) {
                 ui.register_part(self.id, PartRef::item(Part::ROW, key), rect);
             }
+        }
+        if self.scrollable {
+            ui.scroll_edges_except(content, &view, &keep);
         }
         area
     }
