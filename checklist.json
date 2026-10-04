@@ -1,0 +1,2396 @@
+{
+  "schema": "termrock-finalization-checklist/v1",
+  "artifact_status": "Specification starter only. No implementation or verification completion is claimed.",
+  "repository": "tailrocks/terminal-components-claude",
+  "branch": "termrock-implementation",
+  "execution_model": {
+    "name": "Gemini 3.8 Flash",
+    "reasoning": "high",
+    "fallback": false
+  },
+  "visual_oracle": {
+    "ref": "refs/tags/visual-baseline",
+    "peeled_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+  },
+  "completion_rule": "All mandatory items must have status verified and current machine/human review evidence. pending/in_progress/blocked or missing/stale/invalid receipts cause nonzero completion status. This file is not an approval authority.",
+  "items": [
+    {
+      "id": "G00-01",
+      "gate": "G00",
+      "category": "Authority and audit",
+      "title": "Lock working branch and execution model",
+      "requirement": "Record actual termrock-implementation tip, clean-work ownership and verified Gemini 3.8 Flash/high runtime configuration; no fallback.",
+      "mandatory": true,
+      "status": "verified",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [],
+      "evidence": [
+        "Working branch: termrock-implementation",
+        "Analysis SHA: 99554cfa49a8c951fb0aebdde61f7fc857f73f9a",
+        "Commit author: Alexey Zhokhov <alexey@zhokhov.com>",
+        "Sign-off verified: Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+        "Model verified: Gemini 3.8 Flash · reasoning: high, fallback: prohibited"
+      ],
+      "review": {
+        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "verdict": "passed",
+        "notes": "Locked branch termrock-implementation at 99554cfa49a8c951fb0aebdde61f7fc857f73f9a. Clean-work ownership and model runtime verified."
+      }
+    },
+    {
+      "id": "G00-02",
+      "gate": "G00",
+      "category": "Authority and audit",
+      "title": "Freeze visual-baseline tag identity",
+      "requirement": "Verify annotated tag and peeled 4a79c0a2 commit; keep all other visual sources subordinate to proven tag lineage.",
+      "mandatory": true,
+      "status": "verified",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [],
+      "evidence": [
+        "Annotated tag: refs/tags/visual-baseline (object 1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5)",
+        "Peeled commit: 4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+        "Tag oracle verified frozen and immutable; read-only invariant confirmed."
+      ],
+      "review": {
+        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "verdict": "passed",
+        "notes": "Verified git show-ref and rev-parse for visual-baseline tag object and peeled commit. Unchanged oracle."
+      }
+    },
+    {
+      "id": "G00-03",
+      "gate": "G00",
+      "category": "Authority and audit",
+      "title": "Pin main as structure-only reference",
+      "requirement": "Read workspace/public facade/module architecture at a full main SHA; produce keep/adapt/reject comparison without using its frames as expected output.",
+      "mandatory": true,
+      "status": "verified",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [
+        "G00-01"
+      ],
+      "evidence": [
+        "Main reference SHA: 84482d066c5f0bc531f875f7f9d7716929c1b9c6",
+        "Document authored: docs/verification/main-comparison.md",
+        "Keep/adapt/reject decisions recorded for workspace (resolver=3, lints), library (19 crates vs 1 monolithic), and apps (4 apps decomposed into 22 crates)."
+      ],
+      "review": {
+        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "verdict": "passed",
+        "notes": "Structural comparison completed against main SHA 84482d06. No main visual output or images used as expected frames."
+      }
+    },
+    {
+      "id": "G00-04",
+      "gate": "G00",
+      "category": "Authority and audit",
+      "title": "Census every implementation and consumer",
+      "requirement": "Inventory all Rust files, targets, namespaces, imports, rendering paths, types, tests, manifests and feature variants; classify legacy/new/duplicate/mixed.",
+      "mandatory": true,
+      "status": "verified",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [
+        "G00-01"
+      ],
+      "evidence": [
+        "Document authored: docs/verification/source-census.md",
+        "185+ first-party Rust files inventoried across src/ and tests/",
+        "Full taxonomy applied: LEGACY (src/core, src/ui, src/widgets, src/theme.rs, src/runtime.rs), NEW (src/termrock/*), APP (src/bin/*), TEST (tests/*)"
+      ],
+      "review": {
+        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "verdict": "passed",
+        "notes": "Full file census and import/removal condition mapping verified."
+      }
+    },
+    {
+      "id": "G00-05",
+      "gate": "G00",
+      "category": "Authority and audit",
+      "title": "Recheck existing completion claims",
+      "requirement": "Audit synthetic parity/review packet tests, driver dispatch and latest CI logs; do not assume phase/task status proves completion.",
+      "mandatory": true,
+      "status": "verified",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [
+        "G00-01",
+        "G00-04"
+      ],
+      "evidence": [
+        "Document authored: docs/verification/audit-findings-g00.md",
+        "Audited 841 passing tests in junie-tui monolithic crate",
+        "Identified unfinished gaps: monolithic Cargo.toml, dual exports in src/lib.rs, legacy imports in apps, synthetic vs tag parity disconnect, Velnor publication failure"
+      ],
+      "review": {
+        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "verdict": "passed",
+        "notes": "Premature completion claims audited and concrete architectural gaps documented."
+      }
+    },
+    {
+      "id": "G00-06",
+      "gate": "G00",
+      "category": "Authority and audit",
+      "title": "Freeze target package ownership and DAG",
+      "requirement": "Reconcile the proposed crate map against source; assign every production module and public type one owner, including real multi-crate app splits.",
+      "mandatory": true,
+      "status": "verified",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [
+        "G00-03",
+        "G00-04"
+      ],
+      "evidence": [
+        "Artifact authored: crate-map.json (44 crates, strict downward DAG)",
+        "Specification aligned: CRATES.md and component-ownership.json (45 components)",
+        "Zero cycles, no UI dependency from domain/sim crates, tablepro-domain independent of Grid CellValue"
+      ],
+      "review": {
+        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "verdict": "passed",
+        "notes": "Target crate ownership and DAG frozen across 44 packages without collapsing decomposition."
+      }
+    },
+    {
+      "id": "G00-07",
+      "gate": "G00",
+      "category": "Authority and audit",
+      "title": "Establish authoritative completion ledger",
+      "requirement": "Create stable required IDs and evidence requirements; Markdown checkboxes are a view of verified receipts, not mutable proof.",
+      "mandatory": true,
+      "status": "verified",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [
+        "G00-01",
+        "G00-02",
+        "G00-03",
+        "G00-04",
+        "G00-05",
+        "G00-06"
+      ],
+      "evidence": [
+        "Authoritative completion ledger maintained in checklist.json (160 mandatory rows)",
+        "Derived readable view synchronized in CHECKLIST.md",
+        "Gate G00 (G00-01 through G00-07) fully verified with machine-checkable evidence and review records"
+      ],
+      "review": {
+        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "verdict": "passed",
+        "notes": "Completion ledger established and validated; G00 gate successfully closed."
+      }
+    },
+    {
+      "id": "G01-01",
+      "gate": "G01",
+      "category": "Independent baseline and coverage preparation",
+      "title": "Recover immutable tag oracle outside candidate",
+      "requirement": "Build/capture visual-baseline in a separate pinned checkout; no legacy package/path dependency or old renderer in candidate graph.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G01-02",
+      "gate": "G01",
+      "category": "Independent baseline and coverage preparation",
+      "title": "Qualify Tuiscotti and render profile",
+      "requirement": "Verify toolkit APIs, exact source pin, fonts/profile digests, terminal normalization and original-tool/new-tool differences before captures.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G01-03",
+      "gate": "G01",
+      "category": "Independent baseline and coverage preparation",
+      "title": "Audit current baseline lineage",
+      "requirement": "Distinguish imported ANSI replay from live tag captures; synthetic cursor/default state is not evidence of original interaction.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G01-04",
+      "gate": "G01",
+      "category": "Independent baseline and coverage preparation",
+      "title": "Reconcile all declared requirements",
+      "requirement": "Account for 45 component surfaces, 12 foundations, 54 families, prior 222 cases/302 roots and newly discovered states; counts are floors, not execution proof.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G01-05",
+      "gate": "G01",
+      "category": "Independent baseline and coverage preparation",
+      "title": "Bind real executable case drivers",
+      "requirement": "Every current behavior has a source-backed event/time program, expected semantic observations and concrete checkpoint IDs; remove boot-only placeholder claims.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G01-06",
+      "gate": "G01",
+      "category": "Independent baseline and coverage preparation",
+      "title": "Capture missing original behavior",
+      "requirement": "Add component and four-app captures from the unchanged tag, including transients and failures; classify genuine extensions without waiving them at final implementation.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G01-07",
+      "gate": "G01",
+      "category": "Independent baseline and coverage preparation",
+      "title": "Seal six-format and semantic bundles",
+      "requirement": "Verify ANSI/HTML/PNG/ASCII/TXT/frame JSON plus loss/fidelity/observations; all from one observation with complete hash manifests.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G01-08",
+      "gate": "G01",
+      "category": "Independent baseline and coverage preparation",
+      "title": "Separate capture from admission",
+      "requirement": "Ordinary tests and CI cannot approve; use explicit reviewed staged admission with corpus index hash and external trust anchor.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G01-09",
+      "gate": "G01",
+      "category": "Independent baseline and coverage preparation",
+      "title": "Validate all states and transitions",
+      "requirement": "Cover applicable focus/hover/gesture/edit/selection/data/scroll/layers/time/resize/color/Unicode axes and cross-axis boundaries.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G01-10",
+      "gate": "G01",
+      "category": "Independent baseline and coverage preparation",
+      "title": "Run oracle requalification twice",
+      "requirement": "Fresh independent runs with zero unexplained differences; native Linux/macOS requirements declared and executed, not inferred.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G02-01",
+      "gate": "G02",
+      "category": "Workspace conversion",
+      "title": "Use root virtual workspace only",
+      "requirement": "Root Cargo.toml has workspace/shared config and no package/lib/bin target; all first-party Cargo packages and Rust implementation/tests/tools reside under crates/.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G02-02",
+      "gate": "G02",
+      "category": "Workspace conversion",
+      "title": "Use explicit resolver and shared versions",
+      "requirement": "Pin appropriate resolver/toolchain, workspace dependencies/lints/profiles and one Cargo.lock; avoid uncontrolled dependency upgrades during source movement.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G02-03",
+      "gate": "G02",
+      "category": "Workspace conversion",
+      "title": "Create real functionality packages",
+      "requirement": "Each package in the accepted map owns meaningful implementation and tests; only intentional facades/binary entry points are thin.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G02-04",
+      "gate": "G02",
+      "category": "Workspace conversion",
+      "title": "Enforce one-way dependency graph",
+      "requirement": "No UI or Termrock dependency from plain app domain/simulation packages; no lower crate depends on facade; no core dependency on test/raster/PTY tools.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G02-05",
+      "gate": "G02",
+      "category": "Workspace conversion",
+      "title": "Eliminate cross-package source inclusion",
+      "requirement": "No #[path]/include! to old src/bin or sibling implementation; public typed interfaces replace private-source compilation tricks.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G02-06",
+      "gate": "G02",
+      "category": "Workspace conversion",
+      "title": "Resolve binary paths after package split",
+      "requirement": "Build actual four binaries and record paths/digests from Cargo output; conformance does not use stale binaries or assume cross-package CARGO_BIN_EXE availability.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G02-07",
+      "gate": "G02",
+      "category": "Workspace conversion",
+      "title": "Preserve runtime assets and execution environment",
+      "requirement": "Move assets safely, fix repo-relative lookup/CWD assumptions, preserve CLI options/scenario names and deterministic startup.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G02-08",
+      "gate": "G02",
+      "category": "Workspace conversion",
+      "title": "Run whole-workspace membership verification",
+      "requirement": "Cargo metadata matches accepted package inventory; no unlisted/excluded production package, detached nested workspace or dead feature retains old code.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G03-01",
+      "gate": "G03",
+      "category": "Shared architecture and public API",
+      "title": "Implement canonical identity and response types",
+      "requirement": "Each Id/ItemKey/Revision/Input/Response/Moment has one real owner; remove new-to-old core type coupling.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G03-02",
+      "gate": "G03",
+      "category": "Shared architecture and public API",
+      "title": "Unify runtime interaction ownership",
+      "requirement": "One focus/hit/hover/capture/layer/cursor/time owner; applications keep product routing but not competing generic widget runtime mechanisms.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G03-03",
+      "gate": "G03",
+      "category": "Shared architecture and public API",
+      "title": "Preserve update draw measure separation",
+      "requirement": "Update owns semantics; immutable draw/measure tests detect hidden mutation and IO; runtime geometry publication remains fresh.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G03-04",
+      "gate": "G03",
+      "category": "Shared architecture and public API",
+      "title": "Unify Unicode and protected editing",
+      "requirement": "Shared grapheme/source mapping, editing history and secret storage; preserve component-specific Escape/paste behavior without cloning engines.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G03-05",
+      "gate": "G03",
+      "category": "Shared architecture and public API",
+      "title": "Unify collections and scrolling",
+      "requirement": "One stable-key reconciliation, selection, scroll bounds/thumb/fade mechanism; no parallel table/list copies.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G03-06",
+      "gate": "G03",
+      "category": "Shared architecture and public API",
+      "title": "Preserve recipes and customization",
+      "requirement": "Exact baseline glyphs/colors/geometry plus theme/subtree/instance/part overrides affecting real painted cells.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G03-07",
+      "gate": "G03",
+      "category": "Shared architecture and public API",
+      "title": "Enforce capability-based editing",
+      "requirement": "Read-only models cannot mutate; editable adapters receive explicit capability; domain persistence and SQL remain outside widgets.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G03-08",
+      "gate": "G03",
+      "category": "Shared architecture and public API",
+      "title": "Compile external public consumers",
+      "requirement": "Consumers depend on termrock package from outside its private modules; exports are implemented, documented and exercise real library paths.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G03-09",
+      "gate": "G03",
+      "category": "Shared architecture and public API",
+      "title": "Validate minimal/backend feature lanes",
+      "requirement": "Core/facade without session features excludes terminal side effects and Tuiscotti dependencies; test optional backend separately.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G04-01",
+      "gate": "G04",
+      "category": "Consumer migration and legacy deletion",
+      "title": "Migrate Showcase production compositions",
+      "requirement": "All pages, shell, forms, inspector and interactions consume public Termrock APIs; app data and UI/demo packages are genuine.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G04-02",
+      "gate": "G04",
+      "category": "Consumer migration and legacy deletion",
+      "title": "Migrate Jackin Preview production compositions",
+      "requirement": "Host and Capsule/inspect views use Termrock; domain/sim/presentation/app packages preserve all existing fixture worlds and routes.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G04-03",
+      "gate": "G04",
+      "category": "Consumer migration and legacy deletion",
+      "title": "Migrate Holla production compositions",
+      "requirement": "Finder, plans, activities/resources and overlays use Termrock; catalog/plan/domain/sim/UI boundaries preserve model/effect behavior.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G04-04",
+      "gate": "G04",
+      "category": "Consumer migration and legacy deletion",
+      "title": "Migrate TablePro production compositions",
+      "requirement": "Connection/workbench/grid/editor/safety screens use Termrock; domain/SQL/demo/UI split preserves sealed SQL preview and safety vectors.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G04-05",
+      "gate": "G04",
+      "category": "Consumer migration and legacy deletion",
+      "title": "Prove each shared component has real consumers",
+      "requirement": "Use call-path/ownership evidence and targeted paint/action mutations in disposable builds; unchanged old apps or toy surrogate scenes do not count.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G04-06",
+      "gate": "G04",
+      "category": "Consumer migration and legacy deletion",
+      "title": "Remove all executable Junie implementation",
+      "requirement": "Delete legacy packages/modules/imports/aliases/feature fallbacks and old bridge code from all candidate targets/dependency paths.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G04-07",
+      "gate": "G04",
+      "category": "Consumer migration and legacy deletion",
+      "title": "Preserve literal oracle strings and notices",
+      "requirement": "Only precise baseline-visible titles, immutable provenance and license attribution may retain Junie wording; no blanket exemption for code namespaces.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G04-08",
+      "gate": "G04",
+      "category": "Consumer migration and legacy deletion",
+      "title": "Remove obsolete root trees",
+      "requirement": "No root src/, apps/ or Rust tests/tools remain; no tests assert preservation of deleted directories or compile them via #[path].",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G04-09",
+      "gate": "G04",
+      "category": "Consumer migration and legacy deletion",
+      "title": "Retire temporary bridges and duplicate painters",
+      "requirement": "Every migration bridge has been removed; no private legacy renderer, copied UI engine or hidden variant switch remains.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-01",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Run actual Termrock component parity",
+      "requirement": "Separate unchanged tag-side and candidate-side drivers render independent implementations; cloned/synthetic buffers only qualify the comparator.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-02",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Run actual Showcase full-frame parity",
+      "requirement": "Every declared page/variant and required journey checkpoint compares candidate production frame/action state to tag reference.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-03",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Run actual Jackin Preview full-frame parity",
+      "requirement": "Every scenario/route and required host/Capsule/ritual/overlay checkpoint compares production candidate to tag.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-04",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Run actual Holla full-frame parity",
+      "requirement": "Every source-derived scenario/parity slice and activity/resource/gate checkpoint compares production candidate to tag.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-05",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Run actual TablePro full-frame parity",
+      "requirement": "Every connection/workbench/query/table/history/safety/overlay checkpoint compares production candidate to tag.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-06",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Verify canonical cells pixels and semantics exactly",
+      "requirement": "Structural cell/cursor/action comparisons and exact decoded PNG equality; no trim, perceptual threshold, ignored region or short-digest-only pass.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-07",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Verify temporal and geometry trajectories",
+      "requirement": "Finite animation cycles, 140ms edges, input down/up/cancel, scroll/resize/reorder and recovery sequences have exact observations.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-08",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Keep all concrete cases accountable",
+      "requirement": "Final expected set equals actual successful checkpoint/shard union; zero missing, duplicate, stale, cancelled or required-skipped items.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-09",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Exercise complete negative mutation matrix",
+      "requirement": "Color-only, pixel-only, cursor, target, artifact, hash, case/shard omission, write failure and approval-mutation probes fail the production gate.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-10",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Finish genuine extensions",
+      "requirement": "New API/backend/theme/TerminalView contracts without original equivalents have independent explicit tests; none remain planned as a final-release loophole.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G05-11",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Preserve all prior correctness obligations",
+      "requirement": "Old unit/domain/safety assertions mapped to candidate equivalents, not dropped or replaced by existence/count-only tests.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G06-01",
+      "gate": "G06",
+      "category": "Generated CI and performance",
+      "title": "Regenerate Velnor workflows for new workspace",
+      "requirement": "Use verified generator/configuration; inspect generated package/test tasks and prove generation is reproducible.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G06-02",
+      "gate": "G06",
+      "category": "Generated CI and performance",
+      "title": "Fix unprotected-ref publication safely",
+      "requirement": "Resolve Velnor publish_refused:unprotected_ref through supported eligibility/configuration/upstream fix; do not weaken protection or falsely approve visual snapshots.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G06-03",
+      "gate": "G06",
+      "category": "Generated CI and performance",
+      "title": "Select actual visual tests explicitly",
+      "requirement": "Required CI covers both ordinary and ignored visual population through Nextest; report-only and approval writers are not selected as verification.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G06-04",
+      "gate": "G06",
+      "category": "Generated CI and performance",
+      "title": "Gate complete results and failure artifacts",
+      "requirement": "Final Required/visual aggregator validates exact IDs plus runtime manifest/receipt hashes and publishes current-run reports on failure.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G06-05",
+      "gate": "G06",
+      "category": "Generated CI and performance",
+      "title": "Honor Nextest-only test policy",
+      "requirement": "No cargo test invocation or successful fake doctest task; move doc-example checks to real Nextest-compatible targets.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G06-06",
+      "gate": "G06",
+      "category": "Generated CI and performance",
+      "title": "Measure workspace compile and change scope",
+      "requirement": "Record clean/warm and representative leaf-crate edit rebuilds; verify crate split avoids irrelevant app recompiles rather than asserting speed from crate count.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G06-07",
+      "gate": "G06",
+      "category": "Generated CI and performance",
+      "title": "Repair cache path and fingerprint coherence",
+      "requirement": "Mise/Cargo caches restore actual used homes; source/test/oracle/profile fingerprints distinguish safe reuse from stale evidence.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G06-08",
+      "gate": "G06",
+      "category": "Generated CI and performance",
+      "title": "Measure end-to-end CI including corpus IO",
+      "requirement": "Include checkout/download/materialization/build/capture/upload; optimize toward two minutes without dropping required snapshots or hiding costs.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G06-09",
+      "gate": "G06",
+      "category": "Generated CI and performance",
+      "title": "Verify native supported platforms",
+      "requirement": "Actual native Linux and macOS candidate suites/PTY behavior execute with evidence and bounded resources; missing platform execution is not green.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G07-01",
+      "gate": "G07",
+      "category": "Final independent acceptance",
+      "title": "Complete structural comparison with main",
+      "requirement": "Every relevant main architecture pattern has keep/adapt/reject rationale; no main-generated expected screenshot or main merge was used.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G07-02",
+      "gate": "G07",
+      "category": "Final independent acceptance",
+      "title": "Independent API crate review",
+      "requirement": "Fresh reviewer verifies public contracts, implementation owners, app decomposition, dependency isolation and absence of fake crates/bridges.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G07-03",
+      "gate": "G07",
+      "category": "Final independent acceptance",
+      "title": "Independent visual and coverage review",
+      "requirement": "Fresh reviewers inspect actual images/traces and coverage mappings for each app and component; unit tests named review are not reviewer approval.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G07-04",
+      "gate": "G07",
+      "category": "Final independent acceptance",
+      "title": "Independent verifier and CI review",
+      "requirement": "Fresh reviewer attacks self-approval, stale receipts, mutable denominator, skip/filter holes, source identity and generated workflows.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G07-05",
+      "gate": "G07",
+      "category": "Final independent acceptance",
+      "title": "Final clean checkout run",
+      "requirement": "Build all packages and actual binaries; run complete default/feature/visual/negative/integrity verification from a clean checkout without legacy candidate source.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G07-06",
+      "gate": "G07",
+      "category": "Final independent acceptance",
+      "title": "Final pushed commit fully green",
+      "requirement": "Inspect all required jobs and downloadable evidence at actual final subject SHA; no in-progress/failed mandatory job or stale earlier commit certificate.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G07-07",
+      "gate": "G07",
+      "category": "Final independent acceptance",
+      "title": "Publish factual completed ledger",
+      "requirement": "All mandatory rows and expanded per-crate/per-component rows have valid receipts; unchecked/blocked items prevent success. Record result hashes outside self-reference loops.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "G07-08",
+      "gate": "G07",
+      "category": "Final independent acceptance",
+      "title": "Retain one branch and signed commits",
+      "requirement": "All product work on termrock-implementation; frequent logical commits signed off correctly; clean final working tree, no unauthorized merge/release/repository rename.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-01",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-core",
+      "requirement": "crates/termrock-core owns: Stable control/item/column identities, revisions, normalized input/intents, typed responses, invalidation and explicit time vocabulary. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-02",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-layout",
+      "requirement": "crates/termrock-layout owns: Pure constraints, tracks, measurement, clipping and split geometry. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-03",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-theme",
+      "requirement": "crates/termrock-theme owns: Semantic colors, surfaces, glyphs, motion/design tokens, recipes and override resolution. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-04",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-text",
+      "requirement": "crates/termrock-text owns: Unicode measurement, grapheme editing, revisioned text sources, selection/copy mapping, protected text storage and bounded edit history. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-05",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-render",
+      "requirement": "crates/termrock-render owns: Constrained cell painting, clipping, surface/style application and paint/layout fact primitives. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-06",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-collections",
+      "requirement": "crates/termrock-collections owns: Keyed borrowed models, reconciliation, selection and shared ScrollState/scrollbar geometry. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-07",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-runtime",
+      "requirement": "crates/termrock-runtime owns: Frame publication, Cx/Ui, focus, hit regions, pointer capture, layers, cursor arbitration and interaction timing. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-08",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-controls",
+      "requirement": "crates/termrock-controls owns: Basic actionable/decorative controls: Button, Brand, choices, Panel, SplitPane, Props, Empty and TooSmall. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-09",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-fields",
+      "requirement": "crates/termrock-fields owns: Field chrome, TextInput and TextArea behavior, drafts, editing policy, generic validation and protected input adapters. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-10",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-feedback",
+      "requirement": "crates/termrock-feedback owns: Spinner, ProgressBar, Meter, StatusBar, HintBar and KeyHint using shared motion and style contracts. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-11",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-navigation",
+      "requirement": "crates/termrock-navigation owns: List, NavList, Tree, Tabs, ChipBar, Steps, PropsList and filtered-list composition over shared collections. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-12",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-viewport",
+      "requirement": "crates/termrock-viewport owns: Revisioned TextViewport, read/selection/follow state, shared ScrollRegion and edge fades. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-13",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-overlays",
+      "requirement": "crates/termrock-overlays owns: Dialog, Menu/ContextMenu/MenuBar, Select, Picker/CommandPalette/PickerChain, Completion and HelpOverlay. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-14",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-grid",
+      "requirement": "crates/termrock-grid owns: One tabular engine for row-table and editable cell-grid presentation with separate read and edit contracts. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-15",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-editors",
+      "requirement": "crates/termrock-editors owns: CodeEditor and DiffView presentation, selections, completion/highlighting contracts and responsive diff modes. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-16",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-forms",
+      "requirement": "crates/termrock-forms owns: Form and Wizard orchestration, field order/eligibility, generic validation and typed submit/navigation requests. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-17",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-terminal",
+      "requirement": "crates/termrock-terminal owns: TerminalView for caller-prepared terminal cells, cursor, continuation, selection and typed input/link/copy requests. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-18",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-session",
+      "requirement": "crates/termrock-session owns: Optional platform session/backend edge: terminal enter/leave, input conversion, presentation and restoration/suspend-resume. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-19",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock",
+      "requirement": "crates/termrock owns: Curated ergonomic public facade and author/theme/layout APIs, re-exporting the actual owning crates and exact shared types. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-20",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "showcase-data",
+      "requirement": "crates/showcase-data owns: Deterministic demo records and scenario values independent of TUI widgets. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-21",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "showcase-demos",
+      "requirement": "crates/showcase-demos owns: Component demonstration pages and their page-local state/update/draw compositions. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-22",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "showcase-ui",
+      "requirement": "crates/showcase-ui owns: Showcase shell, navigation, inspector, help and page composition controller. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-23",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "showcase",
+      "requirement": "crates/showcase owns: Thin existing showcase CLI binary: parse options, initialize data/session and run the UI. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-24",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "jackin-preview-domain",
+      "requirement": "crates/jackin-preview-domain owns: Preview-only account/agent/workspace/instance/usage/configuration values and rules. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-25",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "jackin-preview-sim",
+      "requirement": "crates/jackin-preview-sim owns: Deterministic worlds, jobs, launch, credentials, changes and simulated terminal/process output. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-26",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "jackin-preview-presentation",
+      "requirement": "crates/jackin-preview-presentation owns: Shared presentation contracts, view projections, generic chrome compositions and product art/animation. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-27",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "jackin-preview-host-ui",
+      "requirement": "crates/jackin-preview-host-ui owns: Manager/prelude/editor/settings/accounts/usage/cockpit screen compositions and host overlays. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-28",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "jackin-preview-capsule-ui",
+      "requirement": "crates/jackin-preview-capsule-ui owns: Capsule tab/pane compositions, inspect/exit/export overlays and product input-prefix coordination. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-29",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "jackin-preview-app",
+      "requirement": "crates/jackin-preview-app owns: Top-level preview routing, arbiter and effect dispatch joining sim and presentation packages. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-30",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "jackin-preview",
+      "requirement": "crates/jackin-preview owns: Thin existing jackin-preview binary and CLI/session bootstrap. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-31",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "holla-domain",
+      "requirement": "crates/holla-domain owns: Actions, context, typed effects, resources, policy/trust and plain domain state. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-32",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "holla-catalog",
+      "requirement": "crates/holla-catalog owns: Catalog construction/discovery projections, manifests, ranking and usage learning rules. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-33",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "holla-plan",
+      "requirement": "crates/holla-plan owns: Plan dependency rules, activity/output lifecycle, cancellation and target-bound safety decisions. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-34",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "holla-sim",
+      "requirement": "crates/holla-sim owns: Deterministic worlds, virtual filesystem and existing fixture service outcomes. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-35",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "holla-ui",
+      "requirement": "crates/holla-ui owns: Finder, plan/activity/resource views, app navigation and typed effect-port coordination. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-36",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "holla",
+      "requirement": "crates/holla owns: Thin holla binary wiring CLI options, simulated effect provider and terminal session. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-37",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "tablepro-domain",
+      "requirement": "crates/tablepro-domain owns: Connection/schema/query/result/history/safety and pending-change domain values. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-38",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "tablepro-sql",
+      "requirement": "crates/tablepro-sql owns: Existing SQL parsing/classification/completion analysis and deterministic pending-change SQL generation. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-39",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "tablepro-demo",
+      "requirement": "crates/tablepro-demo owns: In-memory demo database/catalog, deterministic query outcomes and scenario data. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-40",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "tablepro-ui",
+      "requirement": "crates/tablepro-ui owns: Connection/workbench/editor/result/table/history/safety presentation and controller interfaces. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-41",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "tablepro",
+      "requirement": "crates/tablepro owns: Thin tablepro binary wiring CLI, demo provider and session. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-42",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-test-support",
+      "requirement": "crates/termrock-test-support owns: Test-only stable case/checkpoint contracts, synthetic fixture helpers and semantic observation projections. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-43",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-conformance",
+      "requirement": "crates/termrock-conformance owns: Actual public-component and real-app integration/PTY parity tests, artifact verification and negative tests. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "PKG-44",
+      "gate": "G02",
+      "category": "Per-crate ownership and extraction",
+      "title": "termrock-xtask",
+      "requirement": "crates/termrock-xtask owns: Small Rust repository gate/coverage/bundle/checklist utilities and explicit reference-capture orchestration. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G00-06"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W01",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Brand",
+      "requirement": "Brand is implemented in termrock-controls, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W02",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Button",
+      "requirement": "Button is implemented in termrock-controls, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W03",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Checkbox",
+      "requirement": "Checkbox is implemented in termrock-controls, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W04",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Toggle",
+      "requirement": "Toggle is implemented in termrock-controls, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W05",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "RadioGroup",
+      "requirement": "RadioGroup is implemented in termrock-controls, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W06",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "ChipBar",
+      "requirement": "ChipBar is implemented in termrock-navigation, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W07",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Field",
+      "requirement": "Field is implemented in termrock-fields, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W08",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "TextInput",
+      "requirement": "TextInput is implemented in termrock-fields, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W09",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "TextArea",
+      "requirement": "TextArea is implemented in termrock-fields, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W10",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Select",
+      "requirement": "Select is implemented in termrock-overlays, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W11",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Form",
+      "requirement": "Form is implemented in termrock-forms, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W12",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "List",
+      "requirement": "List is implemented in termrock-navigation, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W13",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "FilterList",
+      "requirement": "FilterList is implemented in termrock-navigation, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W14",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "NavList",
+      "requirement": "NavList is implemented in termrock-navigation, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W15",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Tree",
+      "requirement": "Tree is implemented in termrock-navigation, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W16",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Steps",
+      "requirement": "Steps is implemented in termrock-navigation, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W17",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Tabs",
+      "requirement": "Tabs is implemented in termrock-navigation, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W18",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Picker",
+      "requirement": "Picker is implemented in termrock-overlays, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W19",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "CommandPalette",
+      "requirement": "CommandPalette is implemented in termrock-overlays, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W20",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "PickerChain",
+      "requirement": "PickerChain is implemented in termrock-overlays, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W21",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Completion",
+      "requirement": "Completion is implemented in termrock-overlays, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W22",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Dialog",
+      "requirement": "Dialog is implemented in termrock-overlays, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W23",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Menu",
+      "requirement": "Menu is implemented in termrock-overlays, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W24",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "ContextMenu",
+      "requirement": "ContextMenu is implemented in termrock-overlays, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W25",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "MenuBar",
+      "requirement": "MenuBar is implemented in termrock-overlays, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W26",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "HelpOverlay",
+      "requirement": "HelpOverlay is implemented in termrock-overlays, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W27",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Wizard",
+      "requirement": "Wizard is implemented in termrock-forms, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W28",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Grid",
+      "requirement": "Grid is implemented in termrock-grid, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W29",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "CodeEditor",
+      "requirement": "CodeEditor is implemented in termrock-editors, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W30",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "DiffView",
+      "requirement": "DiffView is implemented in termrock-editors, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W31",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "TextViewport",
+      "requirement": "TextViewport is implemented in termrock-viewport, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W32",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Panel",
+      "requirement": "Panel is implemented in termrock-controls, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W33",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "SplitPane",
+      "requirement": "SplitPane is implemented in termrock-controls, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W34",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Props",
+      "requirement": "Props is implemented in termrock-controls, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W35",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "PropsList",
+      "requirement": "PropsList is implemented in termrock-navigation, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W36",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Empty",
+      "requirement": "Empty is implemented in termrock-controls, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W37",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "ProgressBar",
+      "requirement": "ProgressBar is implemented in termrock-feedback, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W38",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Spinner",
+      "requirement": "Spinner is implemented in termrock-feedback, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W39",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "Meter",
+      "requirement": "Meter is implemented in termrock-feedback, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W40",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "StatusBar",
+      "requirement": "StatusBar is implemented in termrock-feedback, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W41",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "HintBar",
+      "requirement": "HintBar is implemented in termrock-feedback, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W42",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "KeyHint",
+      "requirement": "KeyHint is implemented in termrock-feedback, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W43",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "TooSmall",
+      "requirement": "TooSmall is implemented in termrock-controls, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W44",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "TerminalView",
+      "requirement": "TerminalView is implemented in termrock-terminal, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    },
+    {
+      "id": "W45",
+      "gate": "G05",
+      "category": "Per-component implementation and parity",
+      "title": "ScrollRegion",
+      "requirement": "ScrollRegion is implemented in termrock-viewport, re-exported through termrock, used by all relevant real consumer paths, and compared via independent tag/candidate drivers for every applicable variant/state/part/transition. Require behavioral assertions, all capture formats and a paint/action ownership mutation. New-only contracts need extension evidence, not a fabricated tag screenshot.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "G01-05",
+        "G03-08"
+      ],
+      "evidence": [],
+      "review": null
+    }
+  ]
+}
