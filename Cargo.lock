@@ -1026,6 +1026,11 @@ dependencies = [
 [[package]]
 name = "holla-domain"
 version = "0.1.0"
+dependencies = [
+ "ratatui 0.30.2",
+ "termrock-core",
+ "unicode-segmentation",
+]
 
 [[package]]
 name = "holla-plan"
@@ -2812,8 +2817,6 @@ dependencies = [
 name = "termrock-conformance"
 version = "0.1.0"
 dependencies = [
- "holla-sim",
- "holla-ui",
  "image",
  "jackin-preview-app",
  "ratatui 0.30.2",

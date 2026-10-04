@@ -1,28 +1,28 @@
-//! Typed fixture model for the simulated world: hosts, places, projects,
-//! tools, containers, activities. Plain data; nothing here spawns a process.
+//! Typed model of everything Holla knows: context, results, plans,
+//! activities, the stack fixtures, search and ranking, and the scenario
+//! worlds.
 
-pub mod accounting;
 pub mod action;
+pub mod activity;
 pub mod clock;
-pub mod debian;
-pub mod disk;
-pub mod docker;
+pub mod context;
+pub mod custom;
+pub mod digest;
 pub mod effect;
-pub mod git;
-pub mod github;
-pub mod host;
-pub mod mise;
-pub mod pg;
+pub mod exec;
+pub mod manifest;
+pub mod plan;
+pub mod ranking;
 pub mod scenario;
-pub mod ssh;
+pub mod scripts;
+pub mod stack;
+pub mod usage;
 
-pub use clock::Clock;
-pub use host::Environment;
+pub use clock::{Clock, EPOCH_SECS};
 pub use scenario::{Motion, Scenario};
 
-/// Fixture home directory. Display paths use `~`; typed confirmation
-/// phrases expand through this, e.g. `~/work/scratch` -> `/home/dev/work/scratch`.
-pub const HOME: &str = "/home/dev";
+/// Fixture home directory matching visual baseline oracle.
+pub const HOME: &str = "/Users/alex";
 
 pub fn expand_home(path: &str) -> String {
     path.replacen('~', HOME, 1)
@@ -42,6 +42,26 @@ pub fn human_bytes(bytes: u64) -> String {
     } else {
         format!("{bytes} B")
     }
+}
+
+pub fn plural(n: usize, one: &str, many: &str) -> String {
+    if n == 1 {
+        format!("{n} {one}")
+    } else {
+        format!("{n} {many}")
+    }
+}
+
+pub fn thousands(n: usize) -> String {
+    let s = n.to_string();
+    let mut out = String::new();
+    for (i, ch) in s.chars().enumerate() {
+        if i > 0 && (s.len() - i).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(ch);
+    }
+    out
 }
 
 #[cfg(test)]

@@ -6,3 +6,6 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
+ratatui.workspace = true
+termrock-core.workspace = true
+unicode-segmentation.workspace = true
