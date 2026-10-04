@@ -604,6 +604,7 @@ impl TableProApp {
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
         );
         let _ = app.execute_query();
+        app.status.clear();
         app
     }
     /// Active safe-mode policy.

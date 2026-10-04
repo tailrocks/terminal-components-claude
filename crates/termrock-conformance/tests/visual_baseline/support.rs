@@ -688,6 +688,9 @@ pub fn boot(session: &mut Session, needle: &str) {
 }
 
 fn normalize_chord(step: &str) -> String {
+    if step.eq_ignore_ascii_case("backtab") {
+        return "shift+tab".to_string();
+    }
     let parts: Vec<&str> = step.split('-').collect();
     if parts.len() > 1 {
         let modifiers = [
