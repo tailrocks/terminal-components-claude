@@ -193,6 +193,26 @@ pub struct ConnectionDraft {
 }
 
 impl ConnectionDraft {
+    pub fn default_new() -> Self {
+        Self {
+            name: String::new(),
+            engine: 0,
+            host: "localhost".into(),
+            port: "5432".into(),
+            database: String::new(),
+            user: String::new(),
+            password: Secret::default(),
+            ask_password: false,
+            environment: 0,
+            group: 0,
+            safe_mode: 0,
+            ssl: false,
+            ssh: false,
+            ssh_host: String::new(),
+            startup: String::new(),
+        }
+    }
+
     pub fn from_connection(connection: &Connection) -> Self {
         Self {
             name: connection.name.clone(),
@@ -398,6 +418,7 @@ pub struct ConnectionsScreen {
     pub connections: Vec<Connection>,
     pub selected: usize,
     pub filter: String,
+    pub filter_active: bool,
     pub error: Option<String>,
 }
 
@@ -407,6 +428,7 @@ impl ConnectionsScreen {
             connections,
             selected: 0,
             filter: String::new(),
+            filter_active: false,
             error: None,
         }
     }

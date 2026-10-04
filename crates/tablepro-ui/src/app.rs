@@ -28,6 +28,7 @@ pub const MIN_WIDTH: u16 = 72;
 pub const MIN_HEIGHT: u16 = 20;
 const CONNECTIONS: Id = Id::root("tablepro.connections.list");
 const CONNECTIONS_PANEL: Id = Id::root("tablepro.connections.panel");
+const CONNECTION_FILTER: Id = Id::root("tablepro.connections.filter");
 const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
 const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
@@ -40,6 +41,9 @@ const DISCARD_ROWS: ActionKey = ActionKey::application("tablepro.discard-rows");
 const QUIT: ActionKey = ActionKey::application("tablepro.quit");
 const CANCEL_OR_QUIT: ActionKey = ActionKey::application("tablepro.cancel-or-quit");
 const DELETE_CONNECTION: ActionKey = ActionKey::application("tablepro.delete-connection");
+const EDIT_CONNECTION: ActionKey = ActionKey::application("tablepro.edit-connection");
+const FORM_TAB_PREV: ActionKey = ActionKey::application("tablepro.form-tab-prev");
+const FORM_TAB_NEXT: ActionKey = ActionKey::application("tablepro.form-tab-next");
 const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
@@ -369,6 +373,26 @@ fn keymap() -> KeyMap {
         )
         .bind(
             KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('e')),
+            EDIT_CONNECTION,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('E')),
+            EDIT_CONNECTION,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Left),
+            FORM_TAB_PREV,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Right),
+            FORM_TAB_NEXT,
+        )
+        .bind(
+            KeyPhase::Bubble,
             Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
             RUN,
         )
@@ -450,6 +474,11 @@ fn keymap() -> KeyMap {
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('f'), KeyModifiers::NONE),
+            FILTER,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('/'), KeyModifiers::NONE),
             FILTER,
         )
 }
@@ -565,7 +594,7 @@ impl TableProApp {
             .first()
             .cloned()
             .unwrap_or_else(|| fallback_connection(&catalog));
-        let connection_nodes = build_connection_nodes(&connections);
+        let connection_nodes = build_connection_nodes(&connections, "");
         let connection_tree_state = initial_connection_tree_state(&connection_nodes);
         let connection_visual_tree_state = initial_connection_visual_tree_state(&connection_nodes);
         let explorer_nodes = build_explorer_nodes(&catalog);
@@ -828,10 +857,21 @@ impl TableProApp {
     }
 
     fn rebuild_connection_nodes(&mut self) {
-        self.connection_nodes = build_connection_nodes(&self.connections);
-        self.connection_tree_state = initial_connection_tree_state(&self.connection_nodes);
-        self.connection_visual_tree_state =
-            initial_connection_visual_tree_state(&self.connection_nodes);
+        let filter = self.connections_screen.filter.clone();
+        self.connection_nodes = build_connection_nodes(&self.connections, &filter);
+        if self.connections_screen.filter_active || !filter.is_empty() {
+            let mut state = TreeState::default();
+            state.expand_all();
+            if let Some(first) = self.connection_nodes.first() {
+                state.set_cursor(0, connection_node_key(first));
+            }
+            self.connection_tree_state = state.clone();
+            self.connection_visual_tree_state = state;
+        } else {
+            self.connection_tree_state = initial_connection_tree_state(&self.connection_nodes);
+            self.connection_visual_tree_state =
+                initial_connection_visual_tree_state(&self.connection_nodes);
+        }
     }
 
     fn duplicate_connection(&mut self) {
@@ -843,7 +883,8 @@ impl TableProApp {
             self.connections.insert(i + 1, c.clone());
             self.connections_screen.connections.insert(i + 1, c);
             let prev_cursor = self.connection_tree_state.cursor();
-            self.connection_nodes = build_connection_nodes(&self.connections);
+            self.connection_nodes =
+                build_connection_nodes(&self.connections, &self.connections_screen.filter);
             if let Some(cursor) = prev_cursor
                 && let Some((idx, _)) = self
                     .connection_nodes
@@ -1812,7 +1853,31 @@ impl TableProApp {
                 width: body.width,
                 height: 1.min(inner.height),
             };
-            paint_legacy_filter(ui, filter, "Filter connections");
+            if !ui.is_inert() {
+                ui.register_editor(
+                    CONNECTION_FILTER,
+                    filter,
+                    Focusability::Focusable,
+                    if self.connections_screen.filter_active {
+                        termrock::StateFlags::EDITING
+                    } else {
+                        termrock::StateFlags::empty()
+                    },
+                );
+            }
+            let filter_text = if self.connections_screen.filter_active {
+                &self.connections_screen.filter
+            } else if self.connections_screen.filter.is_empty() {
+                "Filter connections"
+            } else {
+                &self.connections_screen.filter
+            };
+            paint_legacy_filter(
+                ui,
+                filter,
+                filter_text,
+                self.connections_screen.filter_active,
+            );
             let tree_area = termrock::Rect {
                 y: body.y.saturating_add(2),
                 height: inner.height.saturating_sub(2),
@@ -1841,12 +1906,19 @@ impl TableProApp {
                 &self.connection_nodes,
                 connection_node,
                 connection_node_key,
-                focused,
+                focused && !self.connections_screen.filter_active,
             );
         });
-        let blank = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+        let blank_fg = if self.connections_screen.filter_active {
+            Role::Fg(FgStep::Primary)
+        } else {
+            Role::Fg(FgStep::Secondary)
+        };
+        let mut patch = StylePatch::new().set_fg(blank_fg);
+        if self.connections_screen.filter_active {
+            patch = patch.add(Modifier::BOLD);
+        }
+        let blank = ui.surface_style().patch(ui.paint_patch(&patch));
         ui.fill(
             termrock::Rect {
                 x: body.x.saturating_add(2),
@@ -1881,7 +1953,7 @@ impl TableProApp {
                 width: body.width,
                 height: 1.min(inner.height),
             };
-            paint_legacy_filter(ui, filter, "Filter objects");
+            paint_legacy_filter(ui, filter, "Filter objects", false);
             let tree_area = termrock::Rect {
                 y: body.y.saturating_add(2),
                 height: inner.height.saturating_sub(2),
@@ -2064,7 +2136,8 @@ fn stable_key(parts: &[&str]) -> ItemKey {
     ItemKey::pair(hash, 0)
 }
 
-fn build_connection_nodes(connections: &[Connection]) -> Vec<ConnectionNode> {
+fn build_connection_nodes(connections: &[Connection], filter: &str) -> Vec<ConnectionNode> {
+    let q = filter.trim().to_lowercase();
     let mut nodes = Vec::with_capacity(connections.len().saturating_mul(2));
     let mut groups: Vec<&str> = Vec::new();
     for connection in connections {
@@ -2073,11 +2146,22 @@ fn build_connection_nodes(connections: &[Connection]) -> Vec<ConnectionNode> {
         }
     }
     for group in groups {
-        nodes.push(ConnectionNode::Group {
-            name: group.to_string(),
-        });
-        for (index, connection) in connections.iter().enumerate() {
-            if connection.group == group {
+        let group_matches = !q.is_empty() && group.to_lowercase().contains(&q);
+        let matching_conns: Vec<(usize, &Connection)> = connections
+            .iter()
+            .enumerate()
+            .filter(|(_, connection)| {
+                connection.group == group
+                    && (q.is_empty()
+                        || group_matches
+                        || connection.name.to_lowercase().contains(&q))
+            })
+            .collect();
+        if q.is_empty() || group_matches || !matching_conns.is_empty() {
+            nodes.push(ConnectionNode::Group {
+                name: group.to_string(),
+            });
+            for (index, connection) in matching_conns {
                 nodes.push(ConnectionNode::Connection {
                     index,
                     connection: connection.clone(),
@@ -2458,7 +2542,7 @@ fn shell_parts(area: termrock::Rect) -> [termrock::Rect; 3] {
 
 fn preserve_frame_gutter(_: &mut Ui<'_>, _: termrock::Rect) {}
 
-fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str) {
+fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str, focused: bool) {
     if area.is_empty() {
         return;
     }
@@ -2467,27 +2551,58 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str) {
         .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field))));
     ui.fill(area, field);
 
-    let gutter = field.with_fg_from_bg(field);
-    ui.paint_str(
-        termrock::Rect {
-            width: 1.min(area.width),
-            ..area
-        },
-        " ",
-        gutter,
-    );
-
-    if area.width > 2 {
-        let label = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    if focused {
+        let accent_style = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
         ui.paint_str(
             termrock::Rect {
-                x: area.x.saturating_add(2),
-                width: area.width.saturating_sub(2),
+                width: 1.min(area.width),
                 ..area
             },
-            text,
-            label,
+            "▎",
+            accent_style,
         );
+
+        if area.width > 2 {
+            let label = field.patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::UNDERLINED),
+                ),
+            );
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x.saturating_add(2),
+                    width: area.width.saturating_sub(2),
+                    ..area
+                },
+                text,
+                label,
+            );
+        }
+    } else {
+        let gutter = field.with_fg_from_bg(field);
+        ui.paint_str(
+            termrock::Rect {
+                width: 1.min(area.width),
+                ..area
+            },
+            " ",
+            gutter,
+        );
+
+        if area.width > 2 {
+            let label = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x.saturating_add(2),
+                    width: area.width.saturating_sub(2),
+                    ..area
+                },
+                text,
+                label,
+            );
+        }
     }
 }
 
@@ -2664,6 +2779,22 @@ fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
         ];
     }
     if app.screen == Screen::Connections {
+        if app.connections_screen.filter_active {
+            return &[
+                KeyHint {
+                    key: "Type",
+                    action: "Filter",
+                },
+                KeyHint {
+                    key: "↓",
+                    action: "Into list",
+                },
+                KeyHint {
+                    key: "Esc",
+                    action: "Clear",
+                },
+            ];
+        }
         &[
             KeyHint {
                 key: "↑ ↓",
@@ -2843,6 +2974,29 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
 
     let limit = area.right().saturating_sub(right_w);
     let mut x = area.x.saturating_add(1);
+    if app.screen == Screen::Connections && app.connections_screen.filter_active {
+        let badge = " EDIT ";
+        let badge_w = termrock::width(badge);
+        let badge_style = base.patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::OnAccent)
+                    .set_bg(Role::Accent)
+                    .add(Modifier::BOLD),
+            ),
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: area.y,
+                width: badge_w,
+                height: 1,
+            },
+            badge,
+            badge_style,
+        );
+        x = x.saturating_add(badge_w).saturating_add(2);
+    }
     let key_style = base.patch(
         ui.paint_patch(
             &StylePatch::new()
@@ -3110,11 +3264,12 @@ impl App for TableProApp {
         reason = "update keeps public component routing and product command arbitration in one phase"
     )]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if cx.update_cause() == UpdateCause::Bootstrap
-            && self.screen == Screen::Workbench
-            && self.surface == Surface::QuickSwitcher
-        {
-            self.open_switcher(cx);
+        if cx.update_cause() == UpdateCause::Bootstrap {
+            if self.screen == Screen::Workbench && self.surface == Surface::QuickSwitcher {
+                self.open_switcher(cx);
+            } else if self.screen == Screen::Connections {
+                cx.focus(CONNECTIONS);
+            }
         }
         let switcher_was_open = cx.is_open(quick_switcher::ID);
         let modal_was_open = self.destructive_intent.is_some();
@@ -3125,6 +3280,7 @@ impl App for TableProApp {
                 .update(cx, &mut self.connection_tree_state, &self.connection_nodes)
                 .erase();
             for _ in cx.intents(CONNECTION_DETAILS) {}
+            for _ in cx.intents(CONNECTION_FILTER) {}
         }
         if self.form_open || self.screen != Screen::Workbench {
             response |= workbench_split().update(cx, &mut self.split_state).erase();
@@ -3229,6 +3385,13 @@ impl App for TableProApp {
                     self.begin_connection_form();
                     response |= Response::changed();
                 }
+                c if c == FILTER => {
+                    if self.screen == Screen::Connections && !self.form_open {
+                        self.connections_screen.filter_active = true;
+                        cx.focus(CONNECTION_FILTER);
+                        response |= Response::changed();
+                    }
+                }
                 c if c == HELP => {
                     self.surface = Surface::HelpDialog;
                     response |= Response::changed();
@@ -3275,6 +3438,59 @@ impl App for TableProApp {
             return response;
         }
         if self.screen == Screen::Connections {
+            for intent in cx.intents(CONNECTION_FILTER) {
+                match intent {
+                    Intent::Key(key) => match key.code {
+                        KeyCode::Down => {
+                            self.connections_screen.filter_active = false;
+                            cx.focus(CONNECTIONS);
+                            response |= Response::changed();
+                        }
+                        KeyCode::Esc => {
+                            self.connections_screen.filter.clear();
+                            self.connections_screen.filter_active = false;
+                            self.rebuild_connection_nodes();
+                            cx.focus(CONNECTIONS);
+                            response |= Response::changed();
+                        }
+                        KeyCode::Backspace => {
+                            self.connections_screen.filter.pop();
+                            self.rebuild_connection_nodes();
+                            response |= Response::changed();
+                        }
+                        _ => {
+                            if let Some(c) = key.bare_char() {
+                                self.connections_screen.filter.push(c);
+                                self.rebuild_connection_nodes();
+                                response |= Response::changed();
+                            }
+                        }
+                    },
+                    Intent::Pointer {
+                        phase: Phase::Click | Phase::Press,
+                        ..
+                    } => {
+                        if !self.connections_screen.filter_active {
+                            self.connections_screen.filter_active = true;
+                            cx.focus(CONNECTION_FILTER);
+                            response |= Response::changed();
+                        }
+                    }
+                    Intent::FocusIn { .. } => {
+                        if !self.connections_screen.filter_active {
+                            self.connections_screen.filter_active = true;
+                            response |= Response::changed();
+                        }
+                    }
+                    Intent::FocusOut { .. } => {
+                        if self.connections_screen.filter_active {
+                            self.connections_screen.filter_active = false;
+                            response |= Response::changed();
+                        }
+                    }
+                    _ => {}
+                }
+            }
             let details_clicked = cx.intents(CONNECTION_DETAILS).any(|intent| {
                 matches!(
                     intent,
@@ -3293,9 +3509,11 @@ impl App for TableProApp {
                 &mut self.connection_tree_state,
                 &self.connection_nodes,
             );
-            self.sync_connection_selection();
-            if tree_response.action_ref().is_some() {
-                self.connection_visual_tree_state = self.connection_tree_state.clone();
+            if !self.connections_screen.filter_active {
+                self.sync_connection_selection();
+                if tree_response.action_ref().is_some() {
+                    self.connection_visual_tree_state = self.connection_tree_state.clone();
+                }
             }
             if let Some(action) = tree_response.action_ref()
                 && let TreeAction::Activated(key) | TreeAction::Chose(key) = action
