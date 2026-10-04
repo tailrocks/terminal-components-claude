@@ -9,3 +9,7 @@ license.workspace = true
 showcase-data.workspace = true
 termrock.workspace = true
 ratatui.workspace = true
+
+[dev-dependencies]
+termrock-test-support.workspace = true
+
