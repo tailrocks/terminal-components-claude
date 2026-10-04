@@ -811,11 +811,9 @@ pub fn visible(
 )]
 mod tests {
     use super::*;
+    use crate::fixtures;
+    use holla_catalog::ranking::{Pin, Usage};
     use holla_domain::scenario::Scenario;
-    use holla_domain::{
-        fixtures,
-        ranking::{Pin, Usage},
-    };
 
     fn settled(scenario: Scenario) -> World {
         let mut world = fixtures::world_for(scenario);

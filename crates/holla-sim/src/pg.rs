@@ -152,7 +152,8 @@ impl Review {
 )]
 mod tests {
     use super::*;
-    use crate::{domain::fixtures, scenario::Scenario};
+    use crate::fixtures;
+    use holla_domain::scenario::Scenario;
     fn world() -> World {
         let mut world = fixtures::world_for(Scenario::RemoteHost);
         world.pg = Some(vec![
