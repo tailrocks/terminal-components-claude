@@ -72,6 +72,7 @@ pub struct CleanupPage {
     drawer: bool,
     seeded: bool,
     last_tick: u64,
+    job_running: bool,
     /// The last built plan revision, to show drift.
     pub reviewed: Option<u64>,
 }
@@ -95,6 +96,7 @@ impl CleanupPage {
             drawer: false,
             seeded: false,
             last_tick: u64::MAX,
+            job_running: false,
             reviewed: None,
         }
     }
@@ -1100,10 +1102,14 @@ impl Screen for CleanupPage {
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
-        if w.tick != self.last_tick {
-            self.last_tick = w.tick;
-            self.rebuild(w);
-            return Outcome::Changed;
+        let running = w.cleanup_job.is_some();
+        if running || self.job_running {
+            self.job_running = running;
+            if w.tick != self.last_tick {
+                self.last_tick = w.tick;
+                self.rebuild(w);
+                return Outcome::Changed;
+            }
         }
         Outcome::Ignored
     }
