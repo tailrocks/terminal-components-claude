@@ -763,42 +763,41 @@ impl<'a, Mode: TextMode> TextArea<'a, Mode> {
             let body_h = child_area.height.saturating_sub(1); // reserve bottom line for footer info
 
             let text = state.core.text();
-            let lines: Vec<&str> = text.split('\n').collect();
-            let total_lines = lines.len().max(1);
+            let total_lines = text.as_bytes().iter().filter(|&&b| b == b'\n').count() + 1;
+            let total_lines = total_lines.max(1);
 
             let (caret_line, caret_col) = self.caret_to_line_col(state);
 
             // Draw visible lines
-            for row in 0..body_h {
-                let line_idx = state.scroll_top + (row as usize);
-                let row_y = child_area.y.saturating_add(row);
-                if line_idx < lines.len() {
-                    let l = lines[line_idx];
-                    let text_style = if self.disabled {
-                        Style::new().fg(theme.tokens.text_muted).bg(bg_color)
-                    } else if has_focus
-                        && state.phase == EditPhase::Editing
-                        && line_idx == caret_line
-                    {
-                        Style::new()
-                            .fg(theme.tokens.text_primary)
-                            .bg(bg_color)
-                            .underlined()
-                    } else {
-                        Style::new().fg(theme.tokens.text_primary).bg(bg_color)
-                    };
+            for (row, l) in text
+                .split('\n')
+                .skip(state.scroll_top)
+                .take(body_h as usize)
+                .enumerate()
+            {
+                let line_idx = state.scroll_top + row;
+                let row_y = child_area.y.saturating_add(row as u16);
+                let text_style = if self.disabled {
+                    Style::new().fg(theme.tokens.text_muted).bg(bg_color)
+                } else if has_focus && state.phase == EditPhase::Editing && line_idx == caret_line {
+                    Style::new()
+                        .fg(theme.tokens.text_primary)
+                        .bg(bg_color)
+                        .underlined()
+                } else {
+                    Style::new().fg(theme.tokens.text_primary).bg(bg_color)
+                };
 
-                    let line_display = if state.scroll_left > 0 {
-                        if width(l) > state.scroll_left {
-                            &l[state.scroll_left..]
-                        } else {
-                            ""
-                        }
+                let line_display = if state.scroll_left > 0 {
+                    if width(l) > state.scroll_left {
+                        &l[state.scroll_left..]
                     } else {
-                        l
-                    };
-                    ui.set_string(text_x, row_y, line_display, text_style);
-                }
+                        ""
+                    }
+                } else {
+                    l
+                };
+                ui.set_string(text_x, row_y, line_display, text_style);
             }
 
             // Scrollbar on the right if needed
