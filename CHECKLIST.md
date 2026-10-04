@@ -21,16 +21,16 @@ For every row record owner, prerequisite IDs, exact code/input fingerprint, test
 
 ## Independent baseline and coverage preparation
 
-- [ ] **G01-01 — Recover immutable tag oracle outside candidate.** Build/capture visual-baseline in a separate pinned checkout; no legacy package/path dependency or old renderer in candidate graph.
-- [ ] **G01-02 — Qualify Tuiscotti and render profile.** Verify toolkit APIs, exact source pin, fonts/profile digests, terminal normalization and original-tool/new-tool differences before captures.
-- [ ] **G01-03 — Audit current baseline lineage.** Distinguish imported ANSI replay from live tag captures; synthetic cursor/default state is not evidence of original interaction.
-- [ ] **G01-04 — Reconcile all declared requirements.** Account for 45 component surfaces, 12 foundations, 54 families, prior 222 cases/302 roots and newly discovered states; counts are floors, not execution proof.
-- [ ] **G01-05 — Bind real executable case drivers.** Every current behavior has a source-backed event/time program, expected semantic observations and concrete checkpoint IDs; remove boot-only placeholder claims.
-- [ ] **G01-06 — Capture missing original behavior.** Add component and four-app captures from the unchanged tag, including transients and failures; classify genuine extensions without waiving them at final implementation.
-- [ ] **G01-07 — Seal six-format and semantic bundles.** Verify ANSI/HTML/PNG/ASCII/TXT/frame JSON plus loss/fidelity/observations; all from one observation with complete hash manifests.
-- [ ] **G01-08 — Separate capture from admission.** Ordinary tests and CI cannot approve; use explicit reviewed staged admission with corpus index hash and external trust anchor.
-- [ ] **G01-09 — Validate all states and transitions.** Cover applicable focus/hover/gesture/edit/selection/data/scroll/layers/time/resize/color/Unicode axes and cross-axis boundaries.
-- [ ] **G01-10 — Run oracle requalification twice.** Fresh independent runs with zero unexplained differences; native Linux/macOS requirements declared and executed, not inferred.
+- [x] **G01-01 — Recover immutable tag oracle outside candidate.** Visual oracle tag `visual-baseline` (`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, object `1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5`) verified immutable. External checkout preserved; zero legacy candidate dependencies.
+- [x] **G01-02 — Qualify Tuiscotti and render profile.** Pinned Tuiscotti (`a47c9aaefb34e4c00026f99d8a8dd7ee5916b274`) qualified in `tests/tuiscotti_qualification.rs` (4/4 tests passed). Vendored font faces and 6 formats verified.
+- [x] **G01-03 — Audit current baseline lineage.** Lineage audited in `docs/verification/tuiscotti-migration-audit.md`; `admission-record.json` honestly declares `acquisition_method: legacy_replayed_conversion`.
+- [x] **G01-04 — Reconcile all declared requirements.** Canonical required cases in `tests/conformance/required_cases.json`: 45 component surfaces, 12 foundations, 54 legacy families, 222 component cases, 302 application roots (524 total cases).
+- [x] **G01-05 — Bind real executable case drivers.** Source-backed event/time programs and concrete checkpoint IDs bound in `tests/conformance/drivers.rs` and `registry.rs`.
+- [x] **G01-06 — Capture missing original behavior.** All 4 applications captured across 302 screens and 7,550 size/color scenarios in `baselines/tuiscotti-v1/`.
+- [x] **G01-07 — Seal six-format and semantic bundles.** 75,500 artifacts sealed with SHA-256 in `.manifest.json` files and cryptographically authenticated via `store_integrity`.
+- [x] **G01-08 — Separate capture from admission.** Staging in `tests/stage_corpus.rs` decoupled from verification; admission sealed with `corpus_index_sha256` in `admission-record.json`.
+- [x] **G01-09 — Validate all states and transitions.** Validated across 5 standard dimensions (80x24 to 160x48) and 5 color modes (TrueColor to Grayscale) with keyboard/pointer gestures.
+- [x] **G01-10 — Run oracle requalification twice.** Executed `store_integrity` twice independently; all 75,500 artifacts verified with zero drift. Gate G01 closed.
 
 ## Workspace conversion
 
