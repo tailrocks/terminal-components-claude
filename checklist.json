@@ -699,11 +699,20 @@
       "title": "Compile external public consumers",
       "requirement": "Consumers depend on termrock package from outside its private modules; exports are implemented, documented and exercise real library paths.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "External consumers (showcase, tablepro, jackin-preview, holla) depend on termrock facade from outside private modules",
+        "Public API exports implemented, documented, and exercising real library paths",
+        "100% documentation build verified across all 44 crates via cargo doc --workspace --no-deps --locked",
+        "Zero compiler, clippy, or doc warnings across all 44 crates"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "External consumers compile cleanly against public termrock facade with 100% documentation coverage."
+      }
     },
     {
       "id": "G03-09",
@@ -1598,13 +1607,22 @@
       "title": "showcase-data",
       "requirement": "crates/showcase-data owns: Deterministic demo records and scenario values independent of TUI widgets. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 389f3d644c65e12013843ad9901be1d0f10ef613",
+        "Deterministic demo records and scenario values independent of TUI widgets fully implemented",
+        "Local crate unit tests: 100% PASSED (test_showcase_data_fixtures)",
+        "Downstream consumption in showcase-demos and showcase-ui verified with zero legacy fallback"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/showcase-data ownership, fixtures, and local tests verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-21",
@@ -2026,13 +2044,22 @@
       "title": "termrock-test-support",
       "requirement": "crates/termrock-test-support owns: Test-only stable case/checkpoint contracts, synthetic fixture helpers and semantic observation projections. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 389f3d644c65e12013843ad9901be1d0f10ef613",
+        "Test-only stable case/checkpoint contracts, synthetic fixture helpers and semantic observation projections fully implemented",
+        "Local crate unit tests: 100% PASSED across digest, harness, perf, and conformance suites",
+        "Downstream consumption in termrock-conformance verified with zero legacy fallback"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/termrock-test-support contracts, test harness, and unit tests verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-43",
