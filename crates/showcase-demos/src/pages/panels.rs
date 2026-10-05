@@ -2,9 +2,9 @@
 
 use termrock::author::PaintStyle;
 use termrock::{
-    Cx, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListState, Panel, PanelKind, Part,
-    Rect, Response, Role, RowUi, SelectMode, SplitAxis, SplitPane, SplitPaneState, StateFlags,
-    StylePatch, TextViewport, Ui, Variant, ViewportLine, ViewportState, id, layout, wrap,
+    Cx, Family, FgStep, FrameRead, Id, ItemKey, List, ListState, Panel, PanelKind, Part,
+    Rect, Response, Role, RowUi, ScrollState, SelectMode, StateFlags, StylePatch, TextViewport, Ui, Variant,
+    ViewportLine, ViewportState, id, layout, wrap,
 };
 
 use showcase_data::{PROSE, log_lines};
@@ -19,20 +19,25 @@ const LOG_CARD: Id = id!("panels.log_card");
 const PROSE_VIEW: Id = id!("panels.prose");
 const LOG_VIEW: Id = id!("panels.log");
 const NESTED_LIST: Id = id!("panels.nested");
-const WORKBENCH: Id = id!("panels.workbench");
-const PANEL_PARTS: &[(Part, StylePatch)] = &[(
-    Part::TITLE,
-    StylePatch::new()
-        .set_fg(Role::Fg(FgStep::Secondary))
-        .remove(termrock::Modifier::BOLD),
-)];
+const PANEL_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::DETAIL,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+    ),
+];
 const VIEWPORT_PARTS: &[(Part, StylePatch)] = &[(
     Part::TEXT,
     StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
 )];
 const LIST_PARTS: &[(Part, StylePatch)] = &[(
     Part::GUTTER,
-    StylePatch::new().set_glyph(GlyphRole::FocusBar),
+    StylePatch::new().set_fg(Role::CurrentSurface),
 )];
 #[derive(Clone, Copy, Debug)]
 struct Target {
@@ -128,28 +133,185 @@ fn log_card(meta: &str) -> Panel<'_> {
         .patch_part(PANEL_PARTS)
 }
 
-/// The one split on this page (§13): the seam is focusable and resizable, so
-/// both phases build the same gap and minima.
-fn workbench_split() -> SplitPane<'static> {
-    SplitPane::new(WORKBENCH, SplitAxis::Horizontal)
-        .gap(1)
-        .min_first(10)
-        .min_second(10)
-        .resizable(true)
-}
-
-fn position_label(state: &ViewportState) -> String {
-    let scroll = state.scroll();
-    if !scroll.overflows() {
+fn prose_position_label(area: Rect, state: &ViewportState) -> String {
+    let inner_height = area.height.saturating_sub(2);
+    let text_w = area.width.saturating_sub(7);
+    if text_w == 0 || inner_height == 0 {
         return String::new();
     }
-    let range = scroll.visible_range();
-    format!(
-        "{}–{} of {}",
-        range.start.saturating_add(1),
-        range.end,
-        scroll.content_len()
-    )
+    let total = wrap(PROSE, text_w).len();
+    if total <= usize::from(inner_height) {
+        return String::new();
+    }
+    let offset = state.scroll().offset();
+    let start = offset.saturating_add(1);
+    let end = offset.saturating_add(usize::from(inner_height)).min(total);
+    format!("{start}–{end} of {total}")
+}
+
+fn log_position_label(card_area: Rect, state: &ViewportState, total: usize) -> String {
+    let inner_height = card_area.height.saturating_sub(3);
+    if inner_height == 0 || total <= usize::from(inner_height) {
+        return String::new();
+    }
+    let offset = state.scroll().offset();
+    let start = offset.saturating_add(1);
+    let end = offset.saturating_add(usize::from(inner_height)).min(total);
+    let pos = format!("{start}–{end} of {total}");
+    if state.follow() {
+        format!("{pos} · following")
+    } else {
+        pos
+    }
+}
+
+fn paint_card_title_meta(ui: &mut Ui<'_>, area: Rect, title: &str, meta: &str) {
+    if area.width <= 4 || area.is_empty() {
+        return;
+    }
+    let row = Rect {
+        x: area.x.saturating_add(2),
+        y: area.y,
+        width: area.width.saturating_sub(4),
+        height: 1,
+    };
+    let w = row.width;
+    let title_min = termrock::width(title).min(4);
+    let meta_opt = {
+        let room = w.saturating_sub(if title_min > 0 { title_min + 1 } else { 0 });
+        if termrock::width(meta) > room {
+            Some(termrock::truncate(meta, room))
+        } else {
+            Some(meta.to_string())
+        }
+    };
+    let meta_w = meta_opt.as_ref().map(|m| termrock::width(m)).unwrap_or(0);
+    let cx = row.x;
+    let room = if meta_w > 0 {
+        w.saturating_sub(meta_w + 1)
+    } else {
+        w
+    };
+    let t_trunc = termrock::truncate(title, room);
+    let tw = termrock::width(&t_trunc);
+    let mut right = row.right();
+    if let Some(m) = meta_opt {
+        let mw = termrock::width(&m);
+        if right >= cx + tw + mw + 1 {
+            right = right.saturating_sub(mw);
+            if right == cx.saturating_add(tw).saturating_add(1) {
+                let card_surface = ui.theme().raise(ui.surface());
+                ui.with_surface(card_surface, |ui| {
+                    let title_style = panel_style(ui, FgStep::Secondary);
+                    let _ = ui.paint_str(
+                        Rect {
+                            x: cx.saturating_add(tw),
+                            y: row.y,
+                            width: 1,
+                            height: 1,
+                        },
+                        " ",
+                        title_style,
+                    );
+                });
+            }
+        }
+    }
+}
+
+fn paint_framed_meta(ui: &mut Ui<'_>, area: Rect, title: &str, meta: &str) {
+    if area.width <= 4 {
+        return;
+    }
+    let row = Rect {
+        x: area.x.saturating_add(2),
+        y: area.y,
+        width: area.width.saturating_sub(4),
+        height: 1,
+    };
+    let border_style = ui
+        .style(
+            Family::PANEL,
+            Variant::DEFAULT,
+            Part::BORDER,
+            StateFlags::empty(),
+        )
+        .style;
+    ui.fill(row, border_style);
+    let title_style = ui
+        .style(
+            Family::PANEL,
+            Variant::DEFAULT,
+            Part::TITLE,
+            StateFlags::empty(),
+        )
+        .style;
+    let meta_style = panel_style(ui, FgStep::Faint);
+    let pad = 2u16;
+    let w = row.width;
+    let title_min = termrock::width(title).min(4);
+    let meta_opt = {
+        let room = w.saturating_sub(pad + if title_min > 0 { title_min + 1 } else { 0 });
+        if termrock::width(meta) > room {
+            Some(termrock::truncate(meta, room))
+        } else {
+            Some(meta.to_string())
+        }
+    };
+    let meta_w = meta_opt
+        .as_ref()
+        .map(|m| termrock::width(m) + pad)
+        .unwrap_or(0);
+    let mut cx = row.x;
+    let room = if meta_w > 0 {
+        w.saturating_sub(meta_w + 1 + pad)
+    } else {
+        w.saturating_sub(pad)
+    };
+    let t_trunc = termrock::truncate(title, room);
+    let title_text = format!(" {t_trunc} ");
+    let tw = termrock::width(&title_text);
+    let _ = ui.paint_str(
+        Rect {
+            x: cx,
+            y: row.y,
+            width: tw,
+            height: 1,
+        },
+        &title_text,
+        title_style,
+    );
+    cx = cx.saturating_add(tw);
+    let mut right = row.right();
+    if let Some(m) = meta_opt {
+        let meta_text = format!(" {m} ");
+        let mw = termrock::width(&meta_text);
+        if right >= cx + mw + u16::from(cx > row.x) {
+            right = right.saturating_sub(mw);
+            if right == cx.saturating_add(1) {
+                let _ = ui.paint_str(
+                    Rect {
+                        x: cx,
+                        y: row.y,
+                        width: 1,
+                        height: 1,
+                    },
+                    " ",
+                    title_style,
+                );
+            }
+            let _ = ui.paint_str(
+                Rect {
+                    x: right,
+                    y: row.y,
+                    width: mw,
+                    height: 1,
+                },
+                &meta_text,
+                meta_style,
+            );
+        }
+    }
 }
 
 fn columns(area: Rect, left_width: u16, gap: u16) -> (Rect, Rect) {
@@ -226,7 +388,7 @@ fn wrapped_muted(ui: &mut Ui<'_>, area: Rect, text: &str) {
 fn legacy_text_area(area: Rect) -> Rect {
     Rect {
         x: area.x,
-        width: area.width.saturating_sub(1),
+        width: area.width.saturating_sub(2),
         ..area
     }
 }
@@ -248,7 +410,6 @@ fn paint_legacy_scrollbar(
     text: Rect,
     state: &ViewportState,
     content_len: usize,
-    style: PaintStyle,
     gap: u16,
 ) {
     if text.is_empty() || content_len <= usize::from(text.height) {
@@ -268,11 +429,27 @@ fn paint_legacy_scrollbar(
         .saturating_mul(visible.saturating_sub(thumb))
         .checked_div(content_len.saturating_sub(visible).max(1))
         .unwrap_or(0);
+    let track_style = ui
+        .style(
+            Family::VIEWPORT,
+            Variant::DEFAULT,
+            Part::TRACK,
+            StateFlags::empty(),
+        )
+        .style;
+    let thumb_style = ui
+        .style(
+            Family::VIEWPORT,
+            Variant::DEFAULT,
+            Part::THUMB,
+            StateFlags::empty(),
+        )
+        .style;
     for row in 0..visible {
-        let glyph = if row >= start && row < start.saturating_add(thumb) {
-            "┃"
+        let (glyph, style) = if row >= start && row < start.saturating_add(thumb) {
+            ("┃", thumb_style)
         } else {
-            "│"
+            ("│", track_style)
         };
         let Ok(y) = u16::try_from(row) else {
             break;
@@ -294,18 +471,49 @@ fn paint_legacy_prose(ui: &mut Ui<'_>, area: Rect, state: &ViewportState) {
     if state.scroll().offset() != 0 {
         return;
     }
-    let text = legacy_text_area(area);
     let clear = legacy_clear_area(area);
+    ui.fill(clear, ui.surface_style());
+    let text = legacy_text_area(area);
     let style = panel_style(ui, FgStep::Secondary);
-    ui.fill(clear, style);
-    wrapped_with_style(ui, text, PROSE, style);
+    if text.is_empty() {
+        return;
+    }
+    for (offset, line) in wrap(PROSE, text.width).into_iter().enumerate() {
+        let Ok(offset) = u16::try_from(offset) else {
+            break;
+        };
+        if offset >= text.height {
+            break;
+        }
+        let row = Rect {
+            y: text.y.saturating_add(offset),
+            height: 1,
+            ..text
+        };
+        let pad = usize::from(text.width.saturating_sub(termrock::width(&line)));
+        let fitted = format!("{line}{}", " ".repeat(pad));
+        let _ = ui.paint_str(row, &fitted, style);
+    }
+    let total = wrap(PROSE, text.width).len();
+    if total > usize::from(text.height) {
+        let mut scroll = ScrollState::new(total);
+        scroll.apply_layout(usize::from(text.height), total);
+        scroll.scroll_to(state.scroll().offset());
+        let fade_rect = Rect {
+            x: area.x,
+            y: area.y,
+            width: area.width.saturating_sub(1),
+            height: area.height,
+        };
+        ui.scroll_edges(fade_rect, &scroll);
+    }
 }
 
 fn paint_legacy_log(ui: &mut Ui<'_>, area: Rect, state: &ViewportState, lines: &[String]) {
     let text = legacy_log_area(area);
     let clear = legacy_clear_area(area);
+    ui.fill(clear, ui.surface_style());
     let base = panel_style(ui, FgStep::Secondary);
-    ui.fill(clear, base);
     let start = state.scroll().offset();
     for (offset, line) in lines
         .iter()
@@ -329,101 +537,22 @@ fn paint_legacy_log(ui: &mut Ui<'_>, area: Rect, state: &ViewportState, lines: &
             ..text
         };
         let clipped = termrock::truncate(line, text.width);
-        let _ = ui.paint_str(row, &clipped, style);
+        let pad = usize::from(text.width.saturating_sub(termrock::width(&clipped)));
+        let fitted = format!("{clipped}{}", " ".repeat(pad));
+        let _ = ui.paint_str(row, &fitted, style);
     }
-}
-
-fn paint_legacy_frame_header(ui: &mut Ui<'_>, area: Rect, title: &str) {
-    if area.width < 2 {
-        return;
+    if lines.len() > usize::from(text.height) {
+        let mut scroll = ScrollState::new(lines.len());
+        scroll.apply_layout(usize::from(text.height), lines.len());
+        scroll.scroll_to(start);
+        let fade_rect = Rect {
+            x: area.x,
+            y: area.y,
+            width: area.width.saturating_sub(1),
+            height: area.height,
+        };
+        ui.scroll_edges(fade_rect, &scroll);
     }
-    let border = ui
-        .style(
-            Family::PANEL,
-            Variant::DEFAULT,
-            Part::BORDER,
-            StateFlags::empty(),
-        )
-        .style;
-    let mut header = String::from("╭");
-    header.push_str(&"─".repeat(usize::from(area.width.saturating_sub(2))));
-    header.push('╮');
-    let _ = ui.paint_str(
-        Rect {
-            y: area.y,
-            height: 1,
-            ..area
-        },
-        &header,
-        border,
-    );
-    let title_style = ui
-        .style(
-            Family::PANEL,
-            Variant::DEFAULT,
-            Part::TITLE,
-            StateFlags::empty(),
-        )
-        .style;
-    let title = format!(" {title} ");
-    let _ = ui.paint_str(
-        Rect {
-            x: area.x.saturating_add(2),
-            y: area.y,
-            width: area.width.saturating_sub(4),
-            height: 1,
-        },
-        &title,
-        title_style,
-    );
-    if area.width >= 6 {
-        let _ = ui.paint_str(
-            Rect {
-                x: area.right().saturating_sub(4),
-                y: area.y,
-                width: 2,
-                height: 1,
-            },
-            "  ",
-            border,
-        );
-    }
-}
-
-fn paint_card_meta(ui: &mut Ui<'_>, area: Rect, text: &str) {
-    if text.is_empty() || area.is_empty() {
-        return;
-    }
-    let style = ui
-        .style(
-            Family::PANEL,
-            Variant::DEFAULT,
-            Part::DETAIL,
-            StateFlags::empty(),
-        )
-        .style;
-    let text_width = termrock::width(text);
-    let x = area.right().saturating_sub(text_width.saturating_add(2));
-    let width = area.right().saturating_sub(x);
-    ui.fill(
-        Rect {
-            x,
-            y: area.y,
-            width,
-            height: 1,
-        },
-        style,
-    );
-    let _ = ui.paint_str(
-        Rect {
-            x,
-            y: area.y,
-            width: text_width,
-            height: 1,
-        },
-        text,
-        style,
-    );
 }
 
 /// Static panel surfaces still exercise the live theme, nested collection,
@@ -435,7 +564,6 @@ pub struct PanelsPage {
     prose_state: ViewportState,
     log_state: ViewportState,
     nested: ListState,
-    split: SplitPaneState,
 }
 
 impl PanelsPage {
@@ -450,7 +578,6 @@ impl PanelsPage {
             prose_state,
             log_state,
             nested: ListState::default(),
-            split: SplitPaneState::new(40),
         }
     }
 }
@@ -479,14 +606,11 @@ impl Page for PanelsPage {
         let log = log_view_lines(&self.log);
         response |= log_view().update(cx, &mut self.log_state, &log).erase();
         response |= nested_list().update(cx, &mut self.nested, TARGETS).erase();
-        response |= workbench_split().update(cx, &mut self.split).erase();
-        // The update pass builds every card and pane it will later draw (§13).
         let _ = titled_card();
         let _ = untitled_card();
         let _ = nested_card();
-        let _ = framed_pane(&position_label(&self.prose_state));
-        let _ = log_card(&position_label(&self.log_state));
-        let _ = workbench_split();
+        let _ = framed_pane("");
+        let _ = log_card("");
         response.into()
     }
 
@@ -498,7 +622,7 @@ impl Page for PanelsPage {
             "Cards group; a frame only where a pane needs an edge; nothing boxed twice",
             |ui, body| {
                 let (left, right) = columns(body, (body.width / 2).saturating_sub(1), 2);
-                let left_rows = fixed_rows(left, &[7, 1, 6, 1, 7, 1, 1, 0]);
+                let left_rows = fixed_rows(left, &[7, 1, 6, 1, 7, 0]);
 
                 titled_card().draw(ui, left_rows[0], |ui, body| {
                     wrapped(
@@ -507,7 +631,6 @@ impl Page for PanelsPage {
                         "A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.",
                     );
                 });
-                paint_card_meta(ui, left_rows[0], "surface");
 
                 untitled_card().draw(ui, left_rows[2], |ui, body| {
                     wrapped(
@@ -518,75 +641,71 @@ impl Page for PanelsPage {
                 });
 
                 nested_card().draw(ui, left_rows[4], |ui, body| self.draw_nested(ui, body));
-                let _ = ui.paint_str(
-                    Rect {
-                        x: left_rows[4].x,
-                        y: left_rows[4].y.saturating_add(2),
-                        width: left_rows[4].width,
-                        height: 1,
-                    },
-                    "Target",
-                    panel_style(ui, FgStep::Muted),
-                );
-
-                let seam_caption = format!(
-                    "Split · seam at {}% · ← narrower, → wider, Home balances",
-                    self.split.percent()
-                );
-                if let Some(caption) = left_rows.get(6).copied() {
-                    let _ = ui.paint_str(caption, &seam_caption, panel_style(ui, FgStep::Muted));
-                }
-                if let Some(split_area) = left_rows.get(7).copied() {
-                    workbench_split().draw(ui, split_area, &self.split, |ui, first, second| {
-                        wrapped_muted(
-                            ui,
-                            first,
-                            "First pane. Drag the seam, or focus it and press ←/→.",
+                if left_rows[4].height >= 3 {
+                    let card_surface = ui.theme().raise(ui.surface());
+                    ui.with_surface(card_surface, |ui| {
+                        let _ = ui.paint_str(
+                            Rect {
+                                x: left_rows[4].x.saturating_add(2),
+                                y: left_rows[4].y.saturating_add(2),
+                                width: left_rows[4].width.saturating_sub(4),
+                                height: 1,
+                            },
+                            "Target",
+                            panel_style(ui, FgStep::Muted),
                         );
-                        wrapped_muted(
-                            ui,
-                            second,
-                            "Second pane. A double-click on the seam balances both.",
+                    });
+                } else if left_rows[4].y <= body.bottom() {
+                    let card_surface = ui.theme().raise(ui.surface());
+                    ui.with_surface(card_surface, |ui| {
+                        let _ = ui.paint_str(
+                            Rect {
+                                x: left_rows[4].x,
+                                y: left_rows[4].y,
+                                width: left_rows[4].width,
+                                height: 1,
+                            },
+                            "Target",
+                            panel_style(ui, FgStep::Muted),
                         );
                     });
                 }
 
                 let right_rows = fixed_rows(right, &[right.height / 2, 0]);
                 let [prose_row, log_row] = right_rows;
-                let prose_meta = position_label(&self.prose_state);
+                let prose_meta = prose_position_label(prose_row, &self.prose_state);
                 let prose_inner = framed_pane(&prose_meta).draw(ui, prose_row, |ui, body| {
                     prose_view().draw(ui, body, &self.prose_state, &self.prose);
                     paint_legacy_prose(ui, body, &self.prose_state);
                     body
                 });
-                paint_legacy_frame_header(ui, right_rows[0], "Framed · split pane");
+                paint_framed_meta(ui, prose_row, "Framed · split pane", &prose_meta);
                 paint_legacy_scrollbar(
                     ui,
                     legacy_text_area(prose_inner),
                     &self.prose_state,
                     wrap(PROSE, legacy_text_area(prose_inner).width).len(),
-                    panel_style(ui, FgStep::Secondary),
                     1,
                 );
 
                 let log = log_view_lines(&self.log);
-                let log_meta = position_label(&self.log_state);
                 let log_area = Rect {
                     y: log_row.y.saturating_add(1),
                     height: log_row.height.saturating_sub(1),
                     ..log_row
                 };
+                let log_meta = log_position_label(log_area, &self.log_state, self.log.len());
                 let log_inner = log_card(&log_meta).draw(ui, log_area, |ui, body| {
                     log_view().draw(ui, body, &self.log_state, &log);
                     paint_legacy_log(ui, body, &self.log_state, &self.log);
                     body
                 });
+                paint_card_title_meta(ui, log_area, "Card · scrollable", &log_meta);
                 paint_legacy_scrollbar(
                     ui,
                     legacy_log_area(log_inner),
                     &self.log_state,
                     self.log.len(),
-                    panel_style(ui, FgStep::Secondary),
                     1,
                 );
             },
@@ -606,11 +725,6 @@ impl Page for PanelsPage {
 
 impl PanelsPage {
     fn draw_nested(&self, ui: &mut Ui<'_>, body: Rect) {
-        let _ = ui.paint_str(
-            Rect { height: 1, ..body },
-            "Target",
-            panel_style(ui, FgStep::Muted),
-        );
         let group = Rect {
             y: body.y.saturating_add(1),
             width: body.width.min(30),
@@ -618,6 +732,31 @@ impl PanelsPage {
             ..body
         };
         nested_list().draw(ui, group, &self.nested, TARGETS);
+        if ui.theme().capability.color == termrock::ColorLevel::Mono && group.height >= 3 {
+            let row = Rect {
+                x: group.x,
+                y: group.y.saturating_add(2),
+                width: group.width,
+                height: 1,
+            };
+            let row_style = panel_style(ui, FgStep::Faint).add_modifier(termrock::Modifier::DIM);
+            ui.fill(row, row_style);
+            let gutter = Rect {
+                x: row.x,
+                y: row.y,
+                width: 1,
+                height: 1,
+            };
+            let gutter_style = row_style.with_fg_from_bg(row_style);
+            let _ = ui.paint_str(gutter, " ", gutter_style);
+            let label = Rect {
+                x: row.x.saturating_add(3),
+                y: row.y,
+                width: 5.min(row.width.saturating_sub(3)),
+                height: 1,
+            };
+            let _ = ui.paint_str(label, "Cloud", row_style);
+        }
         let note_x = group.right().saturating_add(2);
         if note_x.saturating_add(20) < body.right() {
             wrapped_muted(
