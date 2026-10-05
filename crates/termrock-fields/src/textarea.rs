@@ -25,7 +25,7 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::measure::graphemes;
 use crate::text::{EditAction, EditOutcome, Extend, Motion, width};
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
 
@@ -849,8 +849,12 @@ impl<'a> TextArea<'a> {
         value: &mut T,
         inherited_disabled: bool,
     ) -> Response<TextAction> {
-        self.with_inherited_disabled(inherited_disabled)
-            .update_target(cx, st, value)
+        let field = self.with_inherited_disabled(inherited_disabled);
+        let focused = cx.state(field.id).contains(StateFlags::FOCUSED);
+        if focused && field.editable() {
+            st.begin(value.expose());
+        }
+        field.update_target(cx, st, value)
     }
 
     pub fn commit_in_form<T: TextTarget + ?Sized>(
@@ -1212,10 +1216,13 @@ impl<'a> TextArea<'a> {
                         ui.paint_str(run, line.get(from..).unwrap_or(""), ts.style);
                     }
                     if overflow {
+                        let ellipsis_style = ts.style.patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+                        );
                         ui.glyph(
                             cell_at(row, row.right().saturating_sub(1)),
                             GlyphRole::Ellipsis,
-                            ts.style,
+                            ellipsis_style,
                         );
                     }
                     if let Some(r) = &sel
@@ -1295,6 +1302,13 @@ impl<'a> TextArea<'a> {
                 ui.paint_str(trailing, frame, is.style);
             }
         }
+        ui.scroll_edges(
+            Rect {
+                width: (body.right() - 1).saturating_sub(body.x),
+                ..body
+            },
+            &st.scroll,
+        );
         body
     }
 

@@ -119,8 +119,8 @@ pub enum TextAction {
 ///
 /// [`Newline`](TextCmd::Newline), [`PageUp`](TextCmd::PageUp) and
 /// [`PageDown`](TextCmd::PageDown) belong to the multi-line flavour of the
-/// table ([`TextArea`](crate::TextArea)); a single-line
-/// [`TextInput`](crate::TextInput) never binds them, exactly as the legacy
+/// table ([`TextArea`](crate::textarea::TextArea)); a single-line
+/// [`TextInput`] never binds them, exactly as the legacy
 /// table selected its arms on a `multiline` flag.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TextCmd {
@@ -1152,8 +1152,12 @@ impl<'a> TextInput<'a> {
         value: &mut T,
         inherited_disabled: bool,
     ) -> Response<TextAction> {
-        self.with_inherited_disabled(inherited_disabled)
-            .update_target(cx, st, value)
+        let field = self.with_inherited_disabled(inherited_disabled);
+        let focused = cx.state(field.id).contains(StateFlags::FOCUSED);
+        if focused && field.editable() {
+            st.begin(value.expose());
+        }
+        field.update_target(cx, st, value)
     }
 
     pub fn commit_in_form<T: TextTarget + ?Sized>(

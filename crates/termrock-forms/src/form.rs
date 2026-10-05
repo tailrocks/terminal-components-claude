@@ -95,7 +95,7 @@ impl fmt::Debug for FieldKind<'_> {
 pub struct FieldSpec<'a> {
     /// Control identity.
     pub id: Id,
-    /// Label painted by [`Field`](crate::components::Field).
+    /// Label painted by `Field`.
     pub label: &'a str,
     /// Configured control.
     pub kind: FieldKind<'a>,
@@ -1139,14 +1139,18 @@ impl<'a> Form<'a> {
 
     fn commit_focused<D: FormData + ?Sized>(&self, cx: &Cx<'_>, st: &mut FormState, data: &mut D) {
         for (index, field) in self.fields.iter().enumerate() {
-            if !self.shown(data, field) || !cx.state(field.id).contains(StateFlags::FOCUSED) {
+            if !self.shown(data, field) {
                 continue;
             }
+            let is_focused = cx.state(field.id).contains(StateFlags::FOCUSED);
             let disabled = data.disabled(field.id);
             let (value, _) = data.value_and_options(field.id);
             let Some(slot) = st.slots.get_mut(index) else {
-                return;
+                continue;
             };
+            if !is_focused && !slot.input.is_editing() && !slot.area.is_editing() {
+                continue;
+            }
             let committed = match (&field.kind, value) {
                 (FieldKind::Text(control), FieldMut::Text(value)) => {
                     control.commit_in_form(&mut slot.input, value)
@@ -1165,7 +1169,6 @@ impl<'a> Form<'a> {
             if committed && !disabled {
                 st.dirty = true;
             }
-            return;
         }
     }
 
