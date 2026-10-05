@@ -162,9 +162,12 @@ fn static_field(
         return;
     }
     let field = Rect::new(x.saturating_add(16), y, w, 1);
-    let fs = ui
+    let mut fs = ui
         .style(Family::FIELD, Variant::DEFAULT, Part::FIELD, flags)
         .style;
+    if !editing {
+        fs = fs.remove_modifier(Modifier::UNDERLINED);
+    }
     ui.fill(field, fs);
     if flags.contains(StateFlags::FOCUSED) && !flags.contains(StateFlags::DISABLED) {
         let gutter_style = ui
