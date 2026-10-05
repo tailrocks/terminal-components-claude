@@ -282,7 +282,7 @@ pub const LANGUAGES: &[&str] = &[
 /// explicit domain identities, never derived from depth or display position,
 /// so expansion cannot alias a sibling or move a selection.
 ///
-/// Label and metadata for each tree key, in the same order as [`TREE`].
+/// Label and metadata for each tree key.
 pub const TREE_LABELS: &[(&str, &str)] = &[
     ("src", "directory"),
     ("api", "directory"),

@@ -2,9 +2,9 @@
 
 use termrock::author::PaintStyle;
 use termrock::{
-    Cx, Family, FgStep, FrameRead, Id, ItemKey, List, ListState, Panel, PanelKind, Part,
-    Rect, Response, Role, RowUi, ScrollState, SelectMode, StateFlags, StylePatch, TextViewport, Ui, Variant,
-    ViewportLine, ViewportState, id, layout, wrap,
+    Cx, Family, FgStep, FrameRead, Id, ItemKey, List, ListState, Panel, PanelKind, Part, Rect,
+    Response, Role, RowUi, ScrollState, SelectMode, StateFlags, StylePatch, TextViewport, Ui,
+    Variant, ViewportLine, ViewportState, id, layout, wrap,
 };
 
 use showcase_data::{PROSE, log_lines};
@@ -35,10 +35,8 @@ const VIEWPORT_PARTS: &[(Part, StylePatch)] = &[(
     Part::TEXT,
     StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
 )];
-const LIST_PARTS: &[(Part, StylePatch)] = &[(
-    Part::GUTTER,
-    StylePatch::new().set_fg(Role::CurrentSurface),
-)];
+const LIST_PARTS: &[(Part, StylePatch)] =
+    &[(Part::GUTTER, StylePatch::new().set_fg(Role::CurrentSurface))];
 #[derive(Clone, Copy, Debug)]
 struct Target {
     label: &'static str,

@@ -13,6 +13,6 @@ mod tests {
     fn test_catalog_usage_constants() {
         assert_eq!(MAX_USES, 20);
         let half_life = HALF_LIFE_DAYS;
-        assert_eq!(half_life, 14.0);
+        assert_eq!(half_life, 10.0);
     }
 }

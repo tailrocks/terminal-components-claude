@@ -271,7 +271,11 @@ fn render_spinner(
     }
     let accent_st = Style::new().fg(colors.accent).bg(bg);
     let sec_st = Style::new().fg(colors.text_secondary).bg(bg);
-    let _ = ui.paint_str(Rect::new(area.x, area.y, 1, 1), spinner_frame(tick), accent_st);
+    let _ = ui.paint_str(
+        Rect::new(area.x, area.y, 1, 1),
+        spinner_frame(tick),
+        accent_st,
+    );
     let _ = ui.paint_str(
         Rect::new(area.x + 2, area.y, termrock::width(label), 1),
         label,
@@ -304,17 +308,23 @@ fn render_meter(
             } else {
                 colors.error
             };
-            let text = if l <= 59 {
-                colors.text_primary
-            } else {
-                c
-            };
+            let text = if l <= 59 { colors.text_primary } else { c };
             (c, text, "  ", used_pct.is_some())
         }
         MeterTone::Warning => (colors.warning, colors.warning, " ▲", used_pct.is_some()),
         MeterTone::Exhausted => (colors.error, colors.error, " !", true),
-        MeterTone::Stale => (colors.text_faint, colors.text_muted, "  ", used_pct.is_some()),
-        MeterTone::Refreshing => (colors.text_muted, colors.text_muted, "  ", used_pct.is_some()),
+        MeterTone::Stale => (
+            colors.text_faint,
+            colors.text_muted,
+            "  ",
+            used_pct.is_some(),
+        ),
+        MeterTone::Refreshing => (
+            colors.text_muted,
+            colors.text_muted,
+            "  ",
+            used_pct.is_some(),
+        ),
         MeterTone::Error => (colors.error, colors.error, " !", false),
         MeterTone::Unknown => (colors.text_faint, colors.text_faint, "  ", false),
     };
@@ -406,7 +416,11 @@ fn render_meter(
                     st,
                 );
             }
-            let _ = ui.paint_str(Rect::new(area.x + bar_w, area.y, 2, 1), suffix, suffix_style);
+            let _ = ui.paint_str(
+                Rect::new(area.x + bar_w, area.y, 2, 1),
+                suffix,
+                suffix_style,
+            );
         }
     }
 }
@@ -559,11 +573,8 @@ impl Page for ProgressPage {
                             .preferred
                             .0,
                     ];
-                    let rects = row_layout(
-                        Rect::new(inner.x, inner.y + 7, inner.width, 1),
-                        &widths,
-                        2,
-                    );
+                    let rects =
+                        row_layout(Rect::new(inner.x, inner.y + 7, inner.width, 1), &widths, 2);
                     if let Some(r) = rects.first().copied() {
                         restart.draw(ui, r);
                     }
