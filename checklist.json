@@ -1040,11 +1040,20 @@
       "title": "Regenerate Velnor workflows for new workspace",
       "requirement": "Use verified generator/configuration; inspect generated package/test tasks and prove generation is reproducible.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Velnor Actions PR #49 merged at ad73ae9f0500ddd02d64aad142bbecb2122c0617",
+        "Generator release generator-ad73ae9f0500ddd02d64aad142bbecb2122c0617 published and pinned in .velnor/release-manifest.json",
+        "Regenerated .github/workflows/ci.yml at 484,764 bytes (27 KB under GitHub Actions 500 KB limit)",
+        "Verified reproducible workflow generation in commit f93a0ccacd95f84e3c9d0b3e48083d6fe616f8bd"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "Velnor Actions PR #49 generator release ad73ae9f0 verified; ci.yml regenerated under GitHub 500 KB size limit."
+      }
     },
     {
       "id": "G06-02",
@@ -1516,13 +1525,22 @@
       "title": "termrock-session",
       "requirement": "crates/termrock-session owns: Optional platform session/backend edge: terminal enter/leave, input conversion, presentation and restoration/suspend-resume. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit a82a6c81156e24bd6c1a41b6c447e07a4227af80",
+        "Terminal session/backend edge: enter/leave, input conversion, presentation and suspend-resume fully implemented",
+        "Hardware cursor hidden on session enter unblocking 100% bit-for-bit parity on 120x40 returning scenarios",
+        "Build isolation and public boundaries verified with zero legacy fallback"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/termrock-session ownership, cursor lifecycle, and clean restoration verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-19",
