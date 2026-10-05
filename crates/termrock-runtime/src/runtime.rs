@@ -1592,13 +1592,17 @@ impl<A: App> Runtime<A> {
         let focus =
             snapshot.map_or_else(|| self.focus.current(), |value| value.last.snapshot.focus);
         self.frame.typing_resolved = typing::resolve(&mut self.frame, focus);
-        self.painted_cursor = cursor::resolve_requests(
-            &self.frame.cursors,
-            self.frame.top,
-            self.frame.typing_resolved.cursor,
-            &mut self.frame.diagnostics,
-            &self.frame.typing,
-        );
+        self.painted_cursor = if self.frame.cursor_suppressed {
+            None
+        } else {
+            cursor::resolve_requests(
+                &self.frame.cursors,
+                self.frame.top,
+                self.frame.typing_resolved.cursor,
+                &mut self.frame.diagnostics,
+                &self.frame.typing,
+            )
+        };
     }
 
     fn commit_geometry(&mut self) {

@@ -466,18 +466,14 @@ fn mono_rules() -> [MonoRule; 15] {
         (
             Part::FIELD,
             StateFlags::DISABLED,
-            // `Fg(Primary)`, NOT `Fg(Faint)`: `mono()` maps every step below
-            // `Y = 0.35` to `Black`, and both `disabled_fg` and `Fg(Faint)`
-            // are below it — on a `Black` canvas §11.4's prescribed faint
-            // foreground is invisible, not merely colourless.
-            p().set_fg(Role::Fg(FgStep::Primary))
+            p().set_fg(Role::DisabledFg)
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),
         (
             Part::TEXT,
             StateFlags::DISABLED,
-            p().set_fg(Role::Fg(FgStep::Primary))
+            p().set_fg(Role::DisabledFg)
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),
@@ -486,11 +482,7 @@ fn mono_rules() -> [MonoRule; 15] {
             StateFlags::ERROR,
             p().set_glyph(GlyphRole::Error),
         ),
-        (
-            Part::FIELD,
-            StateFlags::ERROR,
-            p().add(Modifier::UNDERLINED),
-        ),
+        (Part::FIELD, StateFlags::ERROR, p()),
         (
             Part::MARKER,
             StateFlags::WARNING,

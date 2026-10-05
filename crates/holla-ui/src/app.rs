@@ -31,11 +31,6 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 
-use holla_domain::action::{Confirmation, Item, Launch, Risk};
-use holla_domain::activity::{ActivityKind, ActivityState};
-use holla_domain::context::{HostRole, Scope};
-use holla_domain::plan::PlanPhase;
-use holla_domain::scenario::{Motion, Scenario};
 use crate::screens::activity::ActivityTab;
 use crate::screens::cleanup::CleanupPage;
 use crate::screens::disk::DiskPage;
@@ -46,6 +41,11 @@ use crate::screens::plan::{PlanReviewPage, PlanTab};
 use crate::screens::review::{ArgsPage, GatePage, TrustPage};
 use crate::screens::snapshot::SnapshotPage;
 use crate::screens::{Cx, GateTarget, Go, Modal, ModalResult, ModalTag, Page, Request, Screen};
+use holla_domain::action::{Confirmation, Item, Launch, Risk};
+use holla_domain::activity::{ActivityKind, ActivityState};
+use holla_domain::context::{HostRole, Scope};
+use holla_domain::plan::PlanPhase;
+use holla_domain::scenario::{Motion, Scenario};
 use holla_sim::world::{Msg, World};
 
 pub const MIN_WIDTH: u16 = 72;

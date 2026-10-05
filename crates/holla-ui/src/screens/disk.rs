@@ -27,11 +27,11 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
-use holla_sim::cleanup::{DeleteItem, DeletePlan, Mode, NOISE_NAMES};
-use holla_domain::stack::Spotlight;
 use crate::screens::{
     Cx, Go, Page, Screen, StatusBits, heading, plural, scroll_drag, scroll_press,
 };
+use holla_domain::stack::Spotlight;
+use holla_sim::cleanup::{DeleteItem, DeletePlan, Mode, NOISE_NAMES};
 use holla_sim::fs::{ScanNode, human};
 use holla_sim::world::World;
 
@@ -543,7 +543,10 @@ impl DiskPage {
                     }
                 }
                 if let Some(f) = fs_node {
-                    v.push(Prop::new("Modified", holla_domain::clock::Clock::stamp(f.mtime)));
+                    v.push(Prop::new(
+                        "Modified",
+                        holla_domain::clock::Clock::stamp(f.mtime),
+                    ));
                     if f.dataless {
                         v.push(
                             Prop::new(

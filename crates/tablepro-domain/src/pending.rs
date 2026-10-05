@@ -232,6 +232,16 @@ impl PendingEdits {
         }
     }
 
+    /// Commit pending changes into the clean baseline.
+    pub fn commit(&mut self) {
+        self.rows.retain(|record| !record.deleted);
+        for record in &mut self.rows {
+            record.original = None;
+            record.inserted = false;
+            record.deleted = false;
+        }
+    }
+
     /// Reorder whole records; invalid permutations leave the result unchanged.
     pub fn reorder(&mut self, order: &[usize]) {
         let mut seen = vec![false; self.rows.len()];

@@ -626,7 +626,10 @@ impl TreeView {
             buf.set_string(
                 lx,
                 y,
-                crate::tui::ui::text::fit(&row.label, (lw as usize).saturating_sub((lx - x) as usize)),
+                crate::tui::ui::text::fit(
+                    &row.label,
+                    (lw as usize).saturating_sub((lx - x) as usize),
+                ),
                 label_style,
             );
             if let Some(m) = &row.meta

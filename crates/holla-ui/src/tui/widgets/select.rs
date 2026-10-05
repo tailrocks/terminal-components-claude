@@ -188,7 +188,8 @@ impl Select {
             t.gutter_symbol(s),
             t.gutter(s, fs.bg.unwrap_or(bg), false),
         );
-        let value = crate::tui::ui::text::truncate(self.value(), field.width.saturating_sub(5) as usize);
+        let value =
+            crate::tui::ui::text::truncate(self.value(), field.width.saturating_sub(5) as usize);
         buf.set_string(field.x + 2, field.y, &value, fs);
         buf.set_string(
             field.right().saturating_sub(2),

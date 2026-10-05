@@ -25,3 +25,19 @@ pub use safety::{
 pub use tokenizer::{
     FUNCTIONS, KEYWORDS, TokKind, Token, is_keyword, split_statements, statement_at, tokenize,
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sql_keywords_and_tokenize() {
+        assert!(is_keyword("SELECT"));
+        assert!(is_keyword("from"));
+        assert!(!is_keyword("my_custom_table"));
+
+        let tokens = tokenize("SELECT 1;");
+        assert!(!tokens.is_empty());
+        assert_eq!(tokens[0].kind, TokKind::Keyword);
+    }
+}

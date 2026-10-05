@@ -477,9 +477,7 @@ impl Ui<'_> {
                 {
                     Some(c)
                 }
-                Some(c)
-                    if c == theme.bg(Surface::Field) || c == theme.bg(Surface::FieldHover) =>
-                {
+                Some(c) if c == theme.bg(Surface::Field) || c == theme.bg(Surface::FieldHover) => {
                     Some(theme.bg(Surface::Elevated))
                 }
                 Some(_) => match roles.bg {
@@ -491,16 +489,12 @@ impl Ui<'_> {
                 None => backdrop_fill,
             };
             let fg = if (roles.fg.is_some() && roles.fg == roles.bg)
-                || self
-                    .page()
-                    .cell(pos)
-                    .is_some_and(|c| {
-                        (roles.fg.is_some() || roles.bg.is_some())
-                            && c.style().fg.is_some()
-                            && c.style().fg != Some(Color::Reset)
-                            && c.style().fg == c.style().bg
-                    })
-            {
+                || self.page().cell(pos).is_some_and(|c| {
+                    (roles.fg.is_some() || roles.bg.is_some())
+                        && c.style().fg.is_some()
+                        && c.style().fg != Some(Color::Reset)
+                        && c.style().fg == c.style().bg
+                }) {
                 FadeResult::Fg(bg)
             } else if theme.capability.color == ColorLevel::Mono {
                 let cell_fg = self.page().cell(pos).and_then(|c| c.style().fg);
@@ -527,10 +521,7 @@ impl Ui<'_> {
                     {
                         FadeResult::Fg(Some(theme.color.fg[2]))
                     }
-                    Some(c)
-                        if c == theme.color.fg[1]
-                            || c == theme.color.on_accent =>
-                    {
+                    Some(c) if c == theme.color.fg[1] || c == theme.color.on_accent => {
                         FadeResult::Fg(Some(theme.color.fg[3]))
                     }
                     _ => FadeResult::Fg(Some(theme.color.fg[4])),
@@ -603,7 +594,6 @@ fn ladder(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult
         _ => FadeResult::Erase,
     }
 }
-
 
 const fn index_to_step(i: usize) -> FgStep {
     match i {

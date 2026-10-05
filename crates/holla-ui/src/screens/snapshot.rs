@@ -796,8 +796,7 @@ impl SnapshotPage {
                     };
                     let freed = if matches!(
                         r.outcome,
-                        holla_sim::cleanup::Outcome::Removed
-                            | holla_sim::cleanup::Outcome::Trashed
+                        holla_sim::cleanup::Outcome::Removed | holla_sim::cleanup::Outcome::Trashed
                     ) {
                         holla_sim::fs::human(r.size)
                     } else {

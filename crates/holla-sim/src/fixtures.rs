@@ -4,15 +4,15 @@
 
 use std::collections::BTreeMap;
 
-use holla_domain::clock::Clock;
-use holla_domain::activity::ActivityKind;
-use holla_domain::context::{Host, HostRole, Location, Os, Project, ProjectKind, ScopeTag};
-use holla_domain::plan::{Plan, Step};
-use holla_domain::scripts;
-use holla_domain::stack::*;
-use holla_domain::scenario::{Motion, Scenario};
 use crate::fs::{BLOCK, Fs};
 use crate::world::{Persisted, Source, World};
+use holla_domain::activity::ActivityKind;
+use holla_domain::clock::Clock;
+use holla_domain::context::{Host, HostRole, Location, Os, Project, ProjectKind, ScopeTag};
+use holla_domain::plan::{Plan, Step};
+use holla_domain::scenario::{Motion, Scenario};
+use holla_domain::scripts;
+use holla_domain::stack::*;
 use std::collections::BTreeSet;
 
 const HOME: &str = "/Users/alex";

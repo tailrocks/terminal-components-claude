@@ -83,7 +83,6 @@ pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
     Some((60 + (matched.last().copied().unwrap_or(0) as u32), matched))
 }
 
-
 use crate::action::{Item, Signal};
 use crate::context::Scope;
 
@@ -345,8 +344,7 @@ pub fn search_with(
         }
         if item.frecency > 0.0 {
             // bounded: at most a quarter of one match-quality step
-            score += (item.frecency.clamp(0.0, 1.0) * crate::usage::BOOST_CAP * 100_000.0)
-                as i64;
+            score += (item.frecency.clamp(0.0, 1.0) * crate::usage::BOOST_CAP * 100_000.0) as i64;
         }
         score += tier * 5_000;
         score += (item.used_here.min(50) as i64) * 100;

@@ -751,7 +751,11 @@ impl Activity {
 }
 
 /// Map raw key code and modifiers to the bytes a terminal would forward (E34).
-pub fn key_bytes_raw(code: ratatui::crossterm::event::KeyCode, ctrl: bool, alt: bool) -> Option<Vec<u8>> {
+pub fn key_bytes_raw(
+    code: ratatui::crossterm::event::KeyCode,
+    ctrl: bool,
+    alt: bool,
+) -> Option<Vec<u8>> {
     use ratatui::crossterm::event::KeyCode;
     Some(match code {
         KeyCode::Enter => vec![b'\r'],
@@ -790,7 +794,6 @@ pub fn key_bytes(key: &termrock_core::event::Key) -> Option<Vec<u8>> {
     };
     key_bytes_raw(crossterm_code, ctrl, alt)
 }
-
 
 #[cfg(test)]
 mod tests {

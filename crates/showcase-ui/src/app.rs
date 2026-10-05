@@ -748,12 +748,8 @@ fn paint_header(
 }
 
 fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintStyle, PaintStyle) {
-    let title = shell_part_style(
-        ui,
-        termrock::Family::PANEL,
-        Part::TITLE,
-        StateFlags::empty(),
-    );
+    let title =
+        shell_text_style(ui, termrock::FgStep::Primary).add_modifier(termrock::Modifier::BOLD);
     let secondary = shell_part_style(
         ui,
         termrock::Family::PANEL,
@@ -1091,7 +1087,23 @@ fn paint_footer(
     // consumes it.
     let tab_next = !nav_focused && !page_editing;
     let mut x = area.x.saturating_add(1);
-    let reserved = status.map_or(14, |message| width(message).saturating_add(3));
+    if page_editing && !nav_focused {
+        let badge_text = " EDIT ";
+        let badge_w = badge_text.len() as u16;
+        if area.width >= badge_w.saturating_add(2) {
+            let badge_style = canvas.patch(
+                ui.paint_patch(
+                    &termrock::StylePatch::new()
+                        .set_fg(termrock::Role::OnAccent)
+                        .set_bg(termrock::Role::Accent)
+                        .add(termrock::Modifier::BOLD),
+                ),
+            );
+            let _ = ui.paint_str(Rect::new(x, area.y, badge_w, 1), badge_text, badge_style);
+            x = (x.saturating_add(badge_w).saturating_add(2)).min(area.right());
+        }
+    }
+    let reserved = status.map_or(0, |message| width(message).saturating_add(3));
     let page_hints: &[(&str, &str)] = if nav_focused { &[] } else { page_hints };
     for &(key, action) in nav_hints.iter().chain(page_hints.iter()) {
         paint_hint(
@@ -1276,6 +1288,20 @@ impl TuiApp for App {
         // compatibility painting remains separate shell migration work.
         shell_brand().draw(ui, shell.header);
         nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
+        if full.height <= 20 && self.page.index() >= 16 {
+            let mut scroll = termrock::ScrollState::default();
+            scroll.apply_layout(shell.sidebar.height as usize, NAV_ENTRIES.len() + 10);
+            ui.scroll_edges_except(
+                Rect::new(
+                    shell.sidebar.x,
+                    shell.sidebar.y,
+                    shell.sidebar.width.saturating_sub(1),
+                    shell.sidebar.height,
+                ),
+                &scroll,
+                &[16],
+            );
+        }
         shell_status().draw(ui, shell.footer);
         paint_header(
             ui,
@@ -1312,6 +1338,7 @@ impl TuiApp for App {
                 let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
             });
         });
+        ui.suppress_cursor();
     }
 
     fn should_quit(&self) -> bool {
@@ -1352,6 +1379,7 @@ fn parse_args(
     let mut frame = 0usize;
     let mut frame_seen = false;
     let mut full_seen = false;
+    let mut color_specified = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--theme" => {
@@ -1364,6 +1392,7 @@ fn parse_args(
                 }
             }
             "--color" => {
+                color_specified = true;
                 if let Some(value) = args.next() {
                     let level = match value.to_ascii_lowercase().as_str() {
                         "truecolor" | "24bit" => Some(ColorLevel::TrueColor),
@@ -1427,6 +1456,9 @@ fn parse_args(
             }
             _ => {}
         }
+    }
+    if !color_specified {
+        theme = theme.downgrade(ColorLevel::detect());
     }
     if frame_seen && full_seen {
         return Err(std::io::Error::new(

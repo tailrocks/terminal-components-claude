@@ -659,7 +659,10 @@ impl DataTable {
             let ind_w = crate::tui::ui::text::width(ind);
             let title = format!(
                 "{}{}",
-                crate::tui::ui::text::truncate(&col.title, (r.width as usize).saturating_sub(ind_w)),
+                crate::tui::ui::text::truncate(
+                    &col.title,
+                    (r.width as usize).saturating_sub(ind_w)
+                ),
                 ind
             );
             let text = match col.align {
@@ -802,7 +805,9 @@ impl DataTable {
                     }
                     let text = match col.align {
                         Align::Left => crate::tui::ui::text::fit(&cell.text, r.width as usize),
-                        Align::Right => crate::tui::ui::text::fit_right(&cell.text, r.width as usize),
+                        Align::Right => {
+                            crate::tui::ui::text::fit_right(&cell.text, r.width as usize)
+                        }
                     };
                     buf.set_string(r.x, y, &text, st);
                     if cell.error.is_some() && !is_cursor_cell {

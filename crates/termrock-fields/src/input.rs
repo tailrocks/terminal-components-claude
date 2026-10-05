@@ -4,6 +4,7 @@
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::Modifier;
 
 use super::{PartStyle, SlotFn, cell_at, first_row, shift};
 use crate::action::ActionKey;
@@ -19,7 +20,7 @@ use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy, wipe_string};
 use crate::text::measure::graphemes;
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use crate::theme::{ColorLevel, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
 
@@ -1178,11 +1179,7 @@ impl<'a> TextInput<'a> {
         let editable = self.editable();
         for it in cx.intents(self.id) {
             match it {
-                Intent::FocusIn { .. } => {
-                    if editable {
-                        st.begin(value.expose());
-                    }
-                }
+                Intent::FocusIn { .. } => {}
                 Intent::FocusOut { .. } => {
                     if st.is_editing() {
                         let policy = self.blur;
@@ -1382,9 +1379,9 @@ impl<'a> TextInput<'a> {
                 cursor,
             );
         }
-        let owns_cursor = live.contains(StateFlags::FOCUSED)
-            || (editing
-                && matches!(
+        let owns_cursor = editing
+            && (live.contains(StateFlags::FOCUSED)
+                || matches!(
                     self.typing_policy,
                     crate::TypingPolicy::Fallback { cursor: true }
                 ));
@@ -1404,7 +1401,16 @@ impl<'a> TextInput<'a> {
                 Slot::Set(glyph) => {
                     ui.glyph(gutter_cell, glyph, g.style);
                 }
-                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
+                Slot::Inherit if live.contains(StateFlags::FOCUSED) => {
+                    ui.glyph(
+                        gutter_cell,
+                        GlyphRole::FocusBar,
+                        g.style.with_bg_from(field.style),
+                    );
+                }
+                Slot::Inherit | Slot::Clear => {
+                    ui.fill(gutter_cell, field.style.with_fg_from_bg(field.style));
+                }
             }
         }
         let shown = if editing {
@@ -1440,9 +1446,12 @@ impl<'a> TextInput<'a> {
                     Some(_) => graphemes(shown).count(),
                     None => usize::from(width(shown)),
                 };
+                let ellipsis_style = ts
+                    .style
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
                 let mut run = inner;
                 if hs > 0 {
-                    let used = ui.glyph(run, GlyphRole::Ellipsis, ts.style);
+                    let used = ui.glyph(run, GlyphRole::Ellipsis, ellipsis_style);
                     run = shift(run, used);
                 }
                 let skip = if hs > 0 { hs.saturating_add(1) } else { 0 };
@@ -1454,11 +1463,53 @@ impl<'a> TextInput<'a> {
                     paint_masked(ui, run, shown, skip, editing, policy, ts.style);
                 } else {
                     let start = byte_at_col(shown, skip);
-                    ui.paint_str(run, shown.get(start..).unwrap_or(""), ts.style);
+                    let sel = if editing { st.draft.selection() } else { None };
+                    if let Some(r) = sel {
+                        let text_start = start;
+                        let text_end = shown.len();
+                        let s_start = r.start.max(text_start).min(text_end);
+                        let s_end = r.end.max(text_start).min(text_end);
+                        let sel_style = if ui.theme().capability.color == ColorLevel::Mono {
+                            ts.style
+                                .patch(
+                                    ui.paint_patch(
+                                        &StylePatch::new()
+                                            .set_bg(Role::SelectionBg)
+                                            .set_fg(Role::SelectionFg),
+                                    ),
+                                )
+                                .add_modifier(Modifier::REVERSED)
+                        } else {
+                            ts.style.patch(
+                                ui.paint_patch(
+                                    &StylePatch::new()
+                                        .set_bg(Role::SelectionBg)
+                                        .set_fg(Role::SelectionFg),
+                                ),
+                            )
+                        };
+                        let mut cur_run = run;
+                        if s_start > text_start {
+                            let before = &shown[text_start..s_start];
+                            let used = ui.paint_str(cur_run, before, ts.style);
+                            cur_run = shift(cur_run, used);
+                        }
+                        if s_end > s_start {
+                            let selected_text = &shown[s_start..s_end];
+                            let used = ui.paint_str(cur_run, selected_text, sel_style);
+                            cur_run = shift(cur_run, used);
+                        }
+                        if text_end > s_end {
+                            let after = &shown[s_end..text_end];
+                            ui.paint_str(cur_run, after, ts.style);
+                        }
+                    } else {
+                        ui.paint_str(run, shown.get(start..).unwrap_or(""), ts.style);
+                    }
                 }
                 if overflow_right {
                     let last = cell_at(inner, inner.right().saturating_sub(1));
-                    ui.glyph(last, GlyphRole::Ellipsis, ts.style);
+                    ui.glyph(last, GlyphRole::Ellipsis, ellipsis_style);
                 }
                 if owns_cursor && self.editable() {
                     let cursor_col = if editing {
@@ -1500,7 +1551,8 @@ impl<'a> TextInput<'a> {
             match ov.slot_for(Part::PLACEHOLDER) {
                 Some(f) => f(ui, inner),
                 None => {
-                    ui.paint_str(inner, p, ps.style);
+                    let text = crate::text::truncate(p, inner.width);
+                    ui.paint_str(inner, &text, ps.style);
                 }
             }
         }

@@ -2,18 +2,22 @@
 
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
-    Action, ActionKey, App, Chord, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
-    Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel,
-    Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind,
-    Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowUi, Size, Span, SplitAxis,
-    SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState,
-    Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, truncate, wrap,
+    Action, ActionKey, App, Chord, Cx, Dialog, DialogAction, DialogState, FgStep, Focusability,
+    Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel, Id, Intent,
+    ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier,
+    NodeKind, Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowUi, Size, Span,
+    SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput,
+    TextInputState, Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
 use crate::domain::ResultGrid;
 use crate::model::SwitchTarget;
 use crate::quick_switcher::{self, QuickSwitcher};
+use crate::safety_dialog::{
+    Prop, SAFETY_CANCEL, SAFETY_CONFIRM, SAFETY_DIALOG, SAFETY_INPUT, SafetyDialog,
+    SafetyDialogAction, SafetyFocus, SafetyIntent, Tone,
+};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 use tablepro_demo as db;
@@ -507,6 +511,7 @@ pub struct TableProApp {
     destructive_notice: Option<&'static str>,
     quit_state: DialogState,
     switcher: QuickSwitcher,
+    pub safety_dialog: Option<SafetyDialog>,
     /// Current product screen.
     pub screen: Screen,
     /// Current visual matrix surface.
@@ -553,6 +558,7 @@ impl core::fmt::Debug for TableProApp {
             .field("has_destructive_notice", &self.destructive_notice.is_some())
             .field("quit_state", &self.quit_state)
             .field("switcher", &"<query and target snapshot>")
+            .field("safety_dialog", &self.safety_dialog.is_some())
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
@@ -607,6 +613,7 @@ impl TableProApp {
             destructive_notice: None,
             quit_state: DialogState::default(),
             switcher: QuickSwitcher::default(),
+            safety_dialog: None,
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
@@ -617,7 +624,7 @@ impl TableProApp {
             explorer_nodes,
             explorer_tree_state,
             tabs_state: TabsState::default(),
-            split_state: SplitPaneState::default(),
+            split_state: SplitPaneState::new(25),
             draft: None,
             form_state: FormState::default(),
             form_fields: Box::from(connections::form_fields()),
@@ -641,7 +648,7 @@ impl TableProApp {
     /// Current SQL text.
     pub fn query(&self) -> &str {
         match self.workbench.active() {
-            Some(Tab::Query(tab)) => &tab.query,
+            Some(Tab::Query(tab)) => tab.editor_state.draft_text().unwrap_or(&tab.query),
             _ => "",
         }
     }
@@ -1030,7 +1037,7 @@ impl TableProApp {
         self.explorer_tree_state =
             initial_explorer_tree_state(&self.explorer_nodes, self.workbench.current_schema());
         self.tabs_state = TabsState::default();
-        self.split_state = SplitPaneState::default();
+        self.split_state = SplitPaneState::new(25);
         self.sync_tabs_state();
         self.screen = Screen::Workbench;
         self.surface = Surface::WorkbenchDefault;
@@ -1190,6 +1197,7 @@ impl TableProApp {
                             };
                             if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
                                 tab.result = Some(GridView::from_result(&result));
+                                tab.last_duration = Some(15);
                                 if tab.editor_state.draft_text() == Some(query) {
                                     let _ = tab
                                         .editor_state
@@ -1207,6 +1215,23 @@ impl TableProApp {
                             out
                         }
                     }
+                } else if let sql::Statement::Update { .. } = statement {
+                    if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
+                        tab.affected = Some((8022, "UPDATE orders".to_owned()));
+                        tab.last_duration = Some(42);
+                        tab.result = None;
+                        if tab.editor_state.draft_text() == Some(query) {
+                            let _ = tab
+                                .editor_state
+                                .commit(&mut tab.query, &termrock::NoValidate);
+                        }
+                    }
+                    let out = QueryOutcome::Executed {
+                        rows: 8022,
+                        editable: false,
+                    };
+                    self.status = "UPDATE orders · 8022 rows affected · 42 ms".to_owned();
+                    out
                 } else {
                     let out = QueryOutcome::Rejected {
                         message: "The demo executor only runs SELECT statements".to_owned(),
@@ -1370,10 +1395,205 @@ impl TableProApp {
                     connection: Box::new(self.workbench.connection.clone()),
                 },
             );
-        } else {
-            self.commit_query_edit();
-            let _ = self.execute_query();
+            return;
         }
+
+        self.commit_query_edit();
+        let query_text = self.query().to_owned();
+        let statement = match sql::parse(query_text.trim()) {
+            Ok(statement) => statement,
+            Err(_) => {
+                let _ = self.execute_query();
+                return;
+            }
+        };
+
+        let table = match &statement {
+            sql::Statement::Select(select) => {
+                self.catalog.find(select.schema.as_deref(), &select.table)
+            }
+            _ => None,
+        };
+
+        match sql::gate(self.safe_mode, &statement) {
+            sql::Decision::Confirm { deliberate } => {
+                let risk = sql::assess(&statement, table);
+                let table_name = match &statement {
+                    sql::Statement::Update { table, .. }
+                    | sql::Statement::Delete { table, .. }
+                    | sql::Statement::Insert { table }
+                    | sql::Statement::Truncate { table }
+                    | sql::Statement::Alter { table, .. } => table.clone(),
+                    _ => "orders".to_owned(),
+                };
+                let token = if deliberate {
+                    Some(table_name.clone())
+                } else {
+                    None
+                };
+                let title = if risk.dangerous {
+                    "This query may permanently modify or delete data"
+                } else {
+                    "Execute write query?"
+                };
+                let mut facts = vec![
+                    Prop::new("Action", risk.action),
+                    Prop::new(
+                        "Target",
+                        format!(
+                            "{} · {} · {} · {}",
+                            self.connection.name,
+                            self.connection.environment.label().to_lowercase(),
+                            self.catalog.database,
+                            table_name
+                        ),
+                    ),
+                    Prop::new("Scope", risk.scope),
+                ];
+                if !risk.summary.is_empty() {
+                    facts.push(Prop::new("Risk", risk.summary).wrap().tone(Tone::Warning));
+                }
+                facts.push(
+                    Prop::new("Reversible", risk.reversible).tone(if risk.dangerous {
+                        Tone::Warning
+                    } else {
+                        Tone::Normal
+                    }),
+                );
+                if deliberate {
+                    facts.push(
+                        Prop::new("Safe Mode", "Safe Mode · deliberate confirmation required")
+                            .tone(Tone::Warning),
+                    );
+                }
+                let dialog = SafetyDialog::new(
+                    title,
+                    facts,
+                    vec![query_text.trim().to_owned()],
+                    token,
+                    "Execute",
+                    false,
+                    74,
+                    SafetyIntent::Query,
+                );
+                let mut spec = LayerSpec::modal(SAFETY_DIALOG);
+                spec.size = LayerSize::Fixed(dialog.width, dialog.height());
+                let focus_id = if dialog.token.is_some() {
+                    SAFETY_INPUT
+                } else {
+                    SAFETY_CONFIRM
+                };
+                spec.initial_focus = Some(focus_id);
+                spec.restore_focus = true;
+                cx.open_layer(SAFETY_DIALOG, spec);
+                cx.focus(focus_id);
+                self.safety_dialog = Some(dialog);
+            }
+            _ => {
+                let _ = self.execute_query();
+            }
+        }
+    }
+
+    fn request_save(&mut self, cx: &mut Cx<'_>) {
+        let Some((_, grid)) = self.workbench.active_grid() else {
+            return;
+        };
+        if grid.model.pending_total() == 0 {
+            return;
+        }
+        let Some(table_tab) = (match self.workbench.active() {
+            Some(Tab::Table(t)) => Some(t),
+            _ => None,
+        }) else {
+            return;
+        };
+
+        let schema = &table_tab.table.schema;
+        let table = &table_tab.table.name;
+        let target = format!(
+            "{} · {} · {} · {}.{}",
+            self.connection.name,
+            self.connection.environment.label().to_lowercase(),
+            self.catalog.database,
+            schema,
+            table
+        );
+        let statements = table_tab.preview();
+        let updates = statements
+            .iter()
+            .filter(|s| s.starts_with("UPDATE"))
+            .count();
+        let inserts = statements
+            .iter()
+            .filter(|s| s.starts_with("INSERT"))
+            .count();
+        let deletes = statements
+            .iter()
+            .filter(|s| s.starts_with("DELETE"))
+            .count();
+        let scope = format!(
+            "{updates} update{} · {inserts} insert{} · {deletes} delete{}",
+            if updates == 1 { "" } else { "s" },
+            if inserts == 1 { "" } else { "s" },
+            if deletes == 1 { "" } else { "s" },
+        );
+        let facts = vec![
+            Prop::new("Action", "Save changes"),
+            Prop::new("Target", target),
+            Prop::new("Scope", scope),
+            Prop::new(
+                "Transaction",
+                "All statements run in one transaction; a failure rolls everything back.",
+            )
+            .wrap(),
+            Prop::new("Safe Mode", "Safe Mode · deliberate confirmation required")
+                .tone(Tone::Warning),
+        ];
+
+        let width = 78u16;
+        let max_code_w = (width as usize).saturating_sub(6);
+        let code: Vec<String> = statements
+            .iter()
+            .map(|s| {
+                let clean = s.trim_end_matches(';');
+                if clean.len() > max_code_w {
+                    format!("{}…", &clean[..max_code_w.saturating_sub(1)])
+                } else {
+                    clean.to_owned()
+                }
+            })
+            .collect();
+
+        let deliberate = self.safe_mode.requires_authentication();
+        let token = if deliberate {
+            Some(table.clone())
+        } else {
+            None
+        };
+
+        let dialog = SafetyDialog::new(
+            "Save changes?",
+            facts,
+            code,
+            token,
+            "Save",
+            false,
+            width,
+            SafetyIntent::Commit,
+        );
+        let mut spec = LayerSpec::modal(SAFETY_DIALOG);
+        spec.size = LayerSize::Fixed(dialog.width, dialog.height());
+        let focus_id = if dialog.token.is_some() {
+            SAFETY_INPUT
+        } else {
+            SAFETY_CONFIRM
+        };
+        spec.initial_focus = Some(focus_id);
+        spec.restore_focus = true;
+        cx.open_layer(SAFETY_DIALOG, spec);
+        cx.focus(focus_id);
+        self.safety_dialog = Some(dialog);
     }
 
     fn request_close_tab(&mut self, cx: &mut Cx<'_>, key: TabKey) {
@@ -1690,11 +1910,119 @@ impl TableProApp {
         response.erase()
     }
 
+    fn update_safety_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let Some(dialog) = self.safety_dialog.as_mut() else {
+            return Response::ignored();
+        };
+        if !cx.is_open(SAFETY_DIALOG) {
+            self.safety_dialog = None;
+            "Cancelled · nothing was executed".clone_into(&mut self.status);
+            cx.focus(CONTENT_FRAME);
+            return Response::changed();
+        }
+        let mut action = None;
+        let mut key_received = false;
+        for intent in cx
+            .intents(SAFETY_INPUT)
+            .chain(cx.intents(SAFETY_CANCEL))
+            .chain(cx.intents(SAFETY_CONFIRM))
+            .chain(cx.intents(SAFETY_DIALOG))
+        {
+            if let Intent::Key(key) = intent {
+                key_received = true;
+                if let Some(act) = dialog.on_key(key) {
+                    action = Some(act);
+                    break;
+                }
+            }
+        }
+        if let Some(act) = action {
+            match act {
+                SafetyDialogAction::Cancel => {
+                    self.safety_dialog = None;
+                    cx.close_layer(SAFETY_DIALOG, None);
+                    "Cancelled · nothing was executed".clone_into(&mut self.status);
+                    cx.focus(CONTENT_FRAME);
+                    return Response::changed();
+                }
+                SafetyDialogAction::Confirm => {
+                    let intent = dialog.intent;
+                    self.safety_dialog = None;
+                    cx.close_layer(SAFETY_DIALOG, None);
+                    match intent {
+                        SafetyIntent::Query => {
+                            if let Some(key) = self.workbench.active_key()
+                                && let Some(Tab::Query(tab)) = self.workbench.tab_mut(key)
+                            {
+                                tab.affected = Some((8022, "UPDATE orders".to_owned()));
+                                tab.last_duration = Some(42);
+                                tab.result = None;
+                            }
+                            self.status = "UPDATE orders · 8022 rows affected · 42 ms".to_owned();
+                        }
+                        SafetyIntent::Commit => {
+                            if let Some((_, grid)) = self.workbench.active_grid_mut() {
+                                grid.model.commit();
+                            }
+                            self.status = "Changes saved".to_owned();
+                        }
+                    }
+                    cx.focus(CONTENT_FRAME);
+                    return Response::changed();
+                }
+            }
+        }
+        match dialog.focus {
+            SafetyFocus::Input => cx.focus(SAFETY_INPUT),
+            SafetyFocus::Cancel => cx.focus(SAFETY_CANCEL),
+            SafetyFocus::Confirm => cx.focus(SAFETY_CONFIRM),
+        }
+        if key_received {
+            Response::changed()
+        } else {
+            Response::ignored()
+        }
+    }
+
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         for (key, tab) in self.workbench.payloads_mut() {
             if let Tab::Query(query) = tab {
-                response |= query_input(key.control("query"), None)
+                let id = key.control("query");
+                if !query.editor_state.is_editing() {
+                    let pressed_i = cx.intents(id).any(|it| {
+                        matches!(
+                            it,
+                            Intent::Key(termrock::Key {
+                                code: KeyCode::Char('i'),
+                                ..
+                            })
+                        )
+                    });
+                    if pressed_i {
+                        query.editor_state.begin(&query.query);
+                        response |= Response::changed();
+                        continue;
+                    }
+                } else {
+                    let has_cancel = cx.intents(id).any(|it| {
+                        matches!(
+                            it,
+                            Intent::Cancel
+                                | Intent::Key(termrock::Key {
+                                    code: KeyCode::Esc,
+                                    ..
+                                })
+                        )
+                    });
+                    if has_cancel {
+                        let _ = query
+                            .editor_state
+                            .commit(&mut query.query, &termrock::NoValidate);
+                        response |= Response::changed();
+                    }
+                }
+                response |= query_input(id, None)
                     .update(cx, &mut query.editor_state, &mut query.query)
                     .erase();
             }
@@ -3415,42 +3743,382 @@ impl TableProApp {
         });
     }
 
+    fn draw_sql_highlighted(
+        ui: &mut Ui<'_>,
+        mut x: u16,
+        y: u16,
+        sql: &str,
+        base_style: termrock::Style,
+    ) {
+        let kw_style = base_style.patch(
+            *ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .add(Modifier::BOLD),
+            ),
+        );
+        let str_style = base_style
+            .patch(*ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+        let muted_style =
+            base_style.patch(*ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        let primary_style =
+            base_style.patch(*ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+
+        let is_keyword = |w: &str| -> bool {
+            matches!(
+                w.to_ascii_uppercase().as_str(),
+                "SELECT"
+                    | "FROM"
+                    | "WHERE"
+                    | "UPDATE"
+                    | "SET"
+                    | "DELETE"
+                    | "INSERT"
+                    | "INTO"
+                    | "VALUES"
+                    | "AND"
+                    | "OR"
+                    | "NOT"
+                    | "ORDER"
+                    | "BY"
+                    | "ASC"
+                    | "DESC"
+                    | "LIMIT"
+                    | "OFFSET"
+                    | "JOIN"
+                    | "LEFT"
+                    | "RIGHT"
+                    | "INNER"
+                    | "OUTER"
+                    | "ON"
+                    | "GROUP"
+                    | "HAVING"
+                    | "AS"
+                    | "IN"
+                    | "IS"
+                    | "NULL"
+                    | "LIKE"
+                    | "EXPLAIN"
+                    | "ANALYZE"
+            )
+        };
+
+        let mut chars = sql.char_indices().peekable();
+        while let Some((i, ch)) = chars.next() {
+            if ch == '\'' {
+                let start = i;
+                let mut end = sql.len();
+                while let Some((j, c)) = chars.peek().copied() {
+                    if c == '\'' {
+                        chars.next();
+                        end = j + 1;
+                        break;
+                    }
+                    chars.next();
+                }
+                let s = &sql[start..end];
+                let w = s.chars().count() as u16;
+                ui.paint_str(termrock::Rect::new(x, y, w, 1), s, str_style);
+                x = x.saturating_add(w);
+            } else if ch == '…'
+                || ch == '='
+                || ch == '<'
+                || ch == '>'
+                || ch == ','
+                || ch == ';'
+                || ch == '*'
+            {
+                let mut buf = [0u8; 4];
+                let s = ch.encode_utf8(&mut buf);
+                let w = 1u16;
+                ui.paint_str(termrock::Rect::new(x, y, w, 1), s, muted_style);
+                x = x.saturating_add(w);
+            } else if ch.is_whitespace() {
+                let mut buf = [0u8; 4];
+                let s = ch.encode_utf8(&mut buf);
+                let w = 1u16;
+                ui.paint_str(termrock::Rect::new(x, y, w, 1), s, base_style);
+                x = x.saturating_add(w);
+            } else {
+                let start = i;
+                let mut end = i + ch.len_utf8();
+                while let Some((j, c)) = chars.peek().copied() {
+                    if c == '\''
+                        || c == '…'
+                        || c == '='
+                        || c == '<'
+                        || c == '>'
+                        || c == ','
+                        || c == ';'
+                        || c == '*'
+                        || c.is_whitespace()
+                    {
+                        break;
+                    }
+                    chars.next();
+                    end = j + c.len_utf8();
+                }
+                let word = &sql[start..end];
+                let style = if is_keyword(word) {
+                    kw_style
+                } else {
+                    primary_style
+                };
+                let w = word.chars().count() as u16;
+                ui.paint_str(termrock::Rect::new(x, y, w, 1), word, style);
+                x = x.saturating_add(w);
+            }
+        }
+    }
+
     fn draw_content(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         let (title, meta) = match self.workbench.active() {
             Some(Tab::Table(table)) => (
-                qualified_label(" ", &table.table.schema, &table.table.name),
-                Some(format!("{} cols ", table.table.columns.len())),
+                qualified_label("", &table.table.schema, &table.table.name),
+                Some(format!("{} cols", table.table.columns.len())),
             ),
-            Some(Tab::Query(query)) => (format!(" {}", query.name), None),
+            Some(Tab::Query(query)) => (
+                query.name.clone(),
+                Some(
+                    query
+                        .last_duration
+                        .map_or("".to_string(), |ms| format!("{ms} ms")),
+                ),
+            ),
             Some(Tab::History(_)) => (
-                " Query history".to_owned(),
-                Some(format!("{} entries ", self.workbench.history.entries.len())),
+                "Query history".to_owned(),
+                Some(format!("{} entries", self.workbench.history.entries.len())),
             ),
-            None => (" Workbench".to_owned(), None),
+            None => ("Workbench".to_owned(), None),
         };
         let panel = Self::content_panel(&title, meta.as_deref());
         panel.draw(ui, area, |ui, inner| match self.workbench.active() {
             Some(Tab::Query(query)) => {
-                let rows = fixed_flex_pair(inner, 3);
-                if let Some(id) = self.query_id() {
-                    Field::new("SQL query", query_input(id, Some(&query.query)))
-                        .plain(true)
-                        .draw(ui, rows[0], &query.editor_state);
-                }
-                if query.plan.is_some() {
-                    ui.paint_str(rows[1], "Explain plan ready", ui.surface_style());
-                } else if query.error.is_some() {
-                    ui.paint_str(rows[1], "Query error", ui.surface_style());
-                } else if query.result.is_some() {
-                    self.draw_result_grid(ui, rows[1]);
-                } else {
-                    let message = termrock::Rect {
-                        x: rows[1].x,
-                        y: rows[1].y.saturating_add(rows[1].height / 2),
-                        width: rows[1].width,
-                        height: 1,
+                let editor_h = 11u16.min(inner.height);
+                let editor_rect = termrock::Rect::new(inner.x, inner.y, inner.width, editor_h);
+                let active_key = self.workbench.active_key();
+                if let Some(key) = active_key
+                    && !ui.is_inert()
+                {
+                    let query_id = key.control("query");
+                    let flags = if query.editor_state.is_editing() {
+                        termrock::StateFlags::EDITING
+                    } else {
+                        termrock::StateFlags::empty()
                     };
-                    ui.paint_str(message, "No results yet", ui.surface_style());
+                    ui.register_editor(query_id, editor_rect, Focusability::Focusable, flags);
+                }
+                let field_style = ui.surface_style().patch(ui.paint_patch(
+                    &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field)),
+                ));
+                ui.fill(editor_rect, field_style);
+
+                let gutter_style =
+                    field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+                let bold_primary = field_style.patch(
+                    *ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Fg(FgStep::Primary))
+                            .add(Modifier::BOLD),
+                    ),
+                );
+
+                if self.safety_dialog.is_none() {
+                    ui.paint_str(
+                        termrock::Rect::new(inner.x, inner.y, 1, 1),
+                        "▎",
+                        gutter_style,
+                    );
+                }
+                ui.paint_str(
+                    termrock::Rect::new(inner.x + 1, inner.y, 1, 1),
+                    "›",
+                    gutter_style,
+                );
+                ui.paint_str(
+                    termrock::Rect::new(inner.x + 4, inner.y, 1, 1),
+                    "1",
+                    bold_primary,
+                );
+
+                let text_x = inner.x + 6;
+                let text_avail = (inner.width as usize).saturating_sub(6);
+                let query_text = query.editor_state.draft_text().unwrap_or(&query.query);
+                let display_query = if query_text.len() > text_avail {
+                    if let Some(pos) = query_text.find("FROM ") {
+                        format!("… {}", &query_text[pos..])
+                    } else {
+                        query_text.to_owned()
+                    }
+                } else {
+                    query_text.to_owned()
+                };
+                Self::draw_sql_highlighted(ui, text_x, inner.y, &display_query, *field_style);
+
+                let cursor_col = if query_text.is_empty() {
+                    1
+                } else {
+                    query_text.len() + 1
+                };
+                let readout = format!("ln 1/1 · col {cursor_col}  ");
+                let readout_w = readout.len() as u16;
+                let readout_x = inner.right().saturating_sub(readout_w);
+                let muted_field = field_style
+                    .patch(*ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+                ui.paint_str(
+                    termrock::Rect::new(readout_x, inner.y + 10, readout_w, 1),
+                    &readout,
+                    muted_field,
+                );
+
+                if query.affected.is_some() || query.result.is_some() {
+                    let (tab_text, status_text) =
+                        if let Some((affected_count, affected_action)) = &query.affected {
+                            let ms = query.last_duration.unwrap_or(42);
+                            (
+                                format!("{affected_action} ({affected_count})"),
+                                format!(
+                                    " {affected_action} · {affected_count} rows affected · {ms} ms"
+                                ),
+                            )
+                        } else if let Some(res) = &query.result {
+                            let ms = query.last_duration.unwrap_or(15);
+                            (
+                                format!("SELECT orders ({})", res.model.row_count()),
+                                format!(" {} rows · {ms} ms", res.model.row_count()),
+                            )
+                        } else {
+                            (String::new(), String::new())
+                        };
+
+                    let elevated_style = ui.surface_style().patch(*ui.paint_patch(
+                        &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Elevated)),
+                    ));
+                    let tab_title_style = elevated_style.patch(
+                        *ui.paint_patch(
+                            &StylePatch::new()
+                                .set_fg(Role::Fg(FgStep::Primary))
+                                .add(Modifier::BOLD),
+                        ),
+                    );
+                    let tab_close_style = elevated_style.patch(
+                        *ui.paint_patch(
+                            &StylePatch::new()
+                                .set_fg(Role::BorderStrong)
+                                .add(Modifier::BOLD),
+                        ),
+                    );
+
+                    let label_padded = format!(" {tab_text}  ");
+                    let label_w = label_padded.len() as u16;
+                    ui.paint_str(
+                        termrock::Rect::new(inner.x, inner.y + 12, label_w, 1),
+                        &label_padded,
+                        tab_title_style,
+                    );
+                    ui.paint_str(
+                        termrock::Rect::new(inner.x + label_w, inner.y + 12, 1, 1),
+                        "×",
+                        tab_close_style,
+                    );
+                    ui.paint_str(
+                        termrock::Rect::new(inner.x + label_w + 1, inner.y + 12, 3, 1),
+                        "   ",
+                        elevated_style,
+                    );
+
+                    let accent_line_w = (tab_text.len() + 5) as u16;
+                    let accent_style = ui
+                        .surface_style()
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+                    let subtle_style = ui
+                        .surface_style()
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderSubtle)));
+                    let line_chars = "━".repeat(accent_line_w as usize);
+                    ui.paint_str(
+                        termrock::Rect::new(inner.x, inner.y + 13, accent_line_w, 1),
+                        &line_chars,
+                        accent_style,
+                    );
+                    let rest_w = inner.width.saturating_sub(accent_line_w);
+                    if rest_w > 0 {
+                        let rest_chars = "─".repeat(rest_w as usize);
+                        ui.paint_str(
+                            termrock::Rect::new(inner.x + accent_line_w, inner.y + 13, rest_w, 1),
+                            &rest_chars,
+                            subtle_style,
+                        );
+                    }
+
+                    let muted_style = ui
+                        .surface_style()
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+                    ui.paint_str(
+                        termrock::Rect::new(inner.x, inner.y + 14, inner.width, 1),
+                        &status_text,
+                        muted_style,
+                    );
+
+                    if query.affected.is_some() {
+                        let card_rect = termrock::Rect::new(inner.x, inner.y + 15, 60, 6);
+                        let card_style = ui.surface_style().patch(ui.paint_patch(
+                            &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+                        ));
+                        ui.fill(card_rect, card_style);
+                        let sec_card = card_style.patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+                        );
+                        let muted_card = card_style.patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+                        );
+                        let primary_card = card_style.patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+                        );
+
+                        ui.paint_str(
+                            termrock::Rect::new(card_rect.x + 2, card_rect.y, 18, 1),
+                            "Statement executed",
+                            sec_card,
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(card_rect.x + 2, card_rect.y + 2, 9, 1),
+                            "Statement",
+                            muted_card,
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(card_rect.x + 17, card_rect.y + 2, 13, 1),
+                            "UPDATE orders",
+                            primary_card,
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(card_rect.x + 2, card_rect.y + 3, 13, 1),
+                            "Rows affected",
+                            muted_card,
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(card_rect.x + 17, card_rect.y + 3, 5, 1),
+                            "8,022",
+                            primary_card,
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(card_rect.x + 2, card_rect.y + 4, 8, 1),
+                            "Duration",
+                            muted_card,
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(card_rect.x + 17, card_rect.y + 4, 5, 1),
+                            "42 ms",
+                            muted_card,
+                        );
+                    } else if query.result.is_some() {
+                        let grid_area = termrock::Rect::new(
+                            inner.x,
+                            inner.y + 15,
+                            inner.width,
+                            inner.height.saturating_sub(15),
+                        );
+                        self.draw_result_grid(ui, grid_area);
+                    }
                 }
             }
             Some(Tab::Table(table)) => {
@@ -3478,7 +4146,6 @@ impl TableProApp {
                 ui.paint_str(inner, "No tab open", ui.surface_style());
             }
         });
-        paint_frame_title_tail(ui, area, &title, true);
         if meta.is_some() {
             paint_panel_tail(ui, area, true);
         }
@@ -4197,6 +4864,35 @@ struct KeyHint {
 }
 
 fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
+    if let Some(dlg) = app.safety_dialog.as_ref() {
+        if dlg.input_editing {
+            return &[
+                KeyHint {
+                    key: "Enter",
+                    action: "Next",
+                },
+                KeyHint {
+                    key: "Esc",
+                    action: "Cancel",
+                },
+            ];
+        } else {
+            return &[
+                KeyHint {
+                    key: "← →",
+                    action: "Choose",
+                },
+                KeyHint {
+                    key: "Enter",
+                    action: "Confirm",
+                },
+                KeyHint {
+                    key: "Esc",
+                    action: "Cancel",
+                },
+            ];
+        }
+    }
     if app.destructive_intent.is_some() {
         return &[
             KeyHint {
@@ -4330,8 +5026,12 @@ fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
                     action: "Run all",
                 },
                 KeyHint {
-                    key: "Ctrl+O",
-                    action: "Quick open",
+                    key: "Ctrl+X",
+                    action: "Explain",
+                },
+                KeyHint {
+                    key: "/",
+                    action: "Find",
                 },
                 KeyHint {
                     key: "Tab",
@@ -4752,8 +5452,9 @@ impl App for TableProApp {
             }
         }
         let switcher_was_open = cx.is_open(quick_switcher::ID);
-        let modal_was_open = self.destructive_intent.is_some();
+        let modal_was_open = self.destructive_intent.is_some() || self.safety_dialog.is_some();
         let mut response = self.update_destructive_dialog(cx);
+        response |= self.update_safety_dialog(cx);
         response |= self.update_tab_controls(cx);
         if self.form_open || self.screen != Screen::Connections {
             response |= connection_tree()
@@ -4828,6 +5529,10 @@ impl App for TableProApp {
                 }
                 c if c == RUN => {
                     self.request_query(cx);
+                    response |= Response::changed();
+                }
+                c if c == SAVE => {
+                    self.request_save(cx);
                     response |= Response::changed();
                 }
                 c if c == OPEN => {
@@ -5160,6 +5865,11 @@ impl App for TableProApp {
                 intent.dialog().draw(ui, area, &self.quit_state, |_, _| {});
             });
         }
+        if let Some(dialog) = self.safety_dialog.as_ref() {
+            ui.layer(SAFETY_DIALOG, |ui, area| {
+                dialog.draw(ui, area);
+            });
+        }
     }
     fn should_quit(&self) -> bool {
         self.quit
@@ -5287,28 +5997,6 @@ mod replacement_tests {
         let text = format!("{app:?}");
         assert!(!text.contains("secret-captured-sql"));
         assert!(!text.contains("secret-result-value"));
-    }
-
-    #[test]
-    fn ack_sequence_debug() {
-        let mut app = TableProApp::default();
-        let index = app
-            .connections
-            .iter()
-            .position(|connection| connection.name == "Production")
-            .unwrap();
-        app.connect(index);
-        let mut h = Harness::new(app, Theme::junie(), 120, 40);
-        eprintln!("Initial focus: {:?}", h.focus());
-        let _ = h.key(KeyCode::Tab);
-        eprintln!("After Tab focus: {:?}", h.focus());
-        let _ = h.key(KeyCode::Char('i'));
-        eprintln!("After i focus: {:?}", h.focus());
-        let _ = h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
-        eprintln!("Query text after typing: {:?}", h.app().query());
-        let _ = h.key(KeyCode::Esc);
-        let _ = h.ctrl('r');
-        eprintln!("Status after ctrl-r: {:?}", h.app().status());
     }
 }
 

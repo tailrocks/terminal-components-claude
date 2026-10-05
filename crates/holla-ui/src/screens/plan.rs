@@ -23,11 +23,11 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
-use holla_domain::plan::{Plan, PlanPhase, StepState};
 use crate::screens::{
     Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, plural, scroll_drag,
     scroll_press, ticks_label, truncate_sep,
 };
+use holla_domain::plan::{Plan, PlanPhase, StepState};
 use holla_sim::world::World;
 
 pub const OUTLINE: WidgetId = WidgetId::of("plan.outline");

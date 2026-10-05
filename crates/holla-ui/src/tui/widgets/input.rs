@@ -461,7 +461,10 @@ impl TextInput {
                 buf.set_string(
                     label_x,
                     msg_y,
-                    crate::tui::ui::text::truncate(&self.help, area.width.saturating_sub(2) as usize),
+                    crate::tui::ui::text::truncate(
+                        &self.help,
+                        area.width.saturating_sub(2) as usize,
+                    ),
                     t.muted().bg(bg),
                 );
             }

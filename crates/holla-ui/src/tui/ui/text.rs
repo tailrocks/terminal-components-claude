@@ -50,7 +50,7 @@ pub fn truncate(s: &str, max: usize) -> String {
 /// rendering and mouse placement. A window past the text returns an empty string.
 ///
 /// ```
-/// use junie_tui::ui::text::slice_cells;
+/// use holla_ui::tui::ui::text::slice_cells;
 /// assert_eq!(slice_cells("ab日本cd", 3, 5), "…本cd");
 /// assert_eq!(slice_cells("日本語", 0, 5), "日本…");
 /// ```

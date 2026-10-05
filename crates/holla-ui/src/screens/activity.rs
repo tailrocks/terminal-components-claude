@@ -21,11 +21,11 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
+use crate::screens::{Cx, Go, Screen, StatusBits, ticks_label};
 use holla_domain::activity::{
     ActivityKind, ActivityState, InputError, KILL_AFTER_TICKS, LineTone, RETAIN_LINES,
     key_bytes_raw,
 };
-use crate::screens::{Cx, Go, Screen, StatusBits, ticks_label};
 use holla_sim::world::World;
 
 pub const VIEW: WidgetId = WidgetId::of("activity.view");

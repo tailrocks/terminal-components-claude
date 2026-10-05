@@ -23,3 +23,16 @@ fn main() -> std::io::Result<()> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_jackin_cli_help() {
+        let parsed = jackin_preview_app::cli::parse(
+            vec![std::ffi::OsString::from("--help")],
+            None,
+            termrock::ColorLevel::detect(),
+        );
+        assert!(matches!(parsed, Ok(jackin_preview_app::cli::Parsed::Help)));
+    }
+}

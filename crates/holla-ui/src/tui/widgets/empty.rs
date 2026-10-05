@@ -64,7 +64,11 @@ pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color
             return;
         }
         let s = crate::tui::ui::text::truncate(s, area.width as usize);
-        let x = area.x + area.width.saturating_sub(crate::tui::ui::text::width(&s) as u16) / 2;
+        let x = area.x
+            + area
+                .width
+                .saturating_sub(crate::tui::ui::text::width(&s) as u16)
+                / 2;
         buf.set_string(x, y, &s, style.bg(bg));
     };
     match e.kind {
@@ -74,7 +78,11 @@ pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color
             put(buf, y0, &title, t.error_fg());
             // the `!` is bold on its own
             let s = crate::tui::ui::text::truncate(&title, area.width as usize);
-            let x = area.x + area.width.saturating_sub(crate::tui::ui::text::width(&s) as u16) / 2;
+            let x = area.x
+                + area
+                    .width
+                    .saturating_sub(crate::tui::ui::text::width(&s) as u16)
+                    / 2;
             if y0 < area.bottom() {
                 buf.set_string(
                     x,

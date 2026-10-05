@@ -1,8 +1,9 @@
 //! Diff viewer page showing unified, review and empty states.
 
 use termrock::{
-    Button, Cx, DiffLineKind, DiffMode, DiffRow, DiffSource, DiffView, DiffViewState, FrameRead,
-    Id, Panel, Rect, Response, StateFlags, Ui, Variant, id,
+    Button, Cx, DiffLineKind, DiffMode, DiffRow, DiffSource, DiffView, DiffViewState, Family,
+    FgStep, FrameRead, Id, Panel, PanelKind, Part, Rect, Response, Role, StateFlags, StylePatch,
+    Ui, Variant, id,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -15,6 +16,11 @@ const PANEL: Id = id!("diff.panel");
 const HUNKS: usize = 5;
 const ROWS_PER_HUNK: usize = 9;
 const TOTAL_ROWS: usize = HUNKS * ROWS_PER_HUNK;
+
+const DIFF_PARTS: &[(Part, StylePatch)] = &[(
+    Part::GUTTER,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+)];
 
 #[derive(Debug, Default)]
 struct SampleSource {
@@ -36,6 +42,10 @@ impl DiffSource for SampleSource {
 
     fn status_label(&self) -> &str {
         "modified"
+    }
+
+    fn status_role(&self) -> Role {
+        Role::Warning
     }
 
     fn row_count(&self) -> usize {
@@ -185,6 +195,9 @@ impl Page for DiffPage {
                 let review_btn = self.review_button();
                 let empty_btn = self.empty_button();
                 let r_review = review_btn.draw(ui, controls);
+                draw_toggle_marker(ui, r_review, self.review, ui.state(REVIEW));
+                legacy_gutter(ui, r_review, Variant::TOGGLE, ui.state(REVIEW));
+
                 let empty_rect = Rect {
                     x: r_review.right().saturating_add(2),
                     width: controls
@@ -192,7 +205,9 @@ impl Page for DiffPage {
                         .saturating_sub(r_review.right().saturating_add(2)),
                     ..controls
                 };
-                empty_btn.draw(ui, empty_rect);
+                let r_empty = empty_btn.draw(ui, empty_rect);
+                draw_toggle_marker(ui, r_empty, self.empty, ui.state(EMPTY));
+                legacy_gutter(ui, r_empty, Variant::TOGGLE, ui.state(EMPTY));
 
                 let panel_area = Rect::new(
                     body.x,
@@ -201,16 +216,36 @@ impl Page for DiffPage {
                     body.height.saturating_sub(2),
                 );
                 Panel::new(PANEL)
-                    .title("Diff")
-                    .draw(ui, panel_area, |ui, inner| {
-                        let source = if self.empty {
-                            None
-                        } else {
-                            Some(&self.source as &dyn DiffSource)
-                        };
-                        let view = DiffView::new(DIFF, source);
-                        view.draw(ui, inner, &self.diff_state);
-                    });
+                    .kind(PanelKind::Framed)
+                    .slot(Part::GUTTER, &paint_diff_head)
+                    .focused(ui.state(DIFF).contains(StateFlags::FOCUSED))
+                    .draw(ui, panel_area, |_, _| ());
+
+                let source = if self.empty {
+                    None
+                } else {
+                    Some(&self.source as &dyn DiffSource)
+                };
+                let view = DiffView::new(DIFF, source).patch_part(DIFF_PARTS);
+                let view_area = Rect {
+                    x: panel_area.x.saturating_add(2),
+                    y: panel_area.y.saturating_add(1),
+                    width: panel_area.width.saturating_sub(4),
+                    height: panel_area.height.saturating_sub(2),
+                };
+                view.draw(ui, view_area, &self.diff_state);
+                if !self.empty {
+                    let mut scroll = *self.diff_state.viewport().scroll();
+                    scroll.apply_layout(usize::from(view_area.height), TOTAL_ROWS + 1);
+                    ui.scroll_edges(
+                        Rect {
+                            x: view_area.x.saturating_add(1),
+                            width: view_area.width.saturating_sub(2),
+                            ..view_area
+                        },
+                        &scroll,
+                    );
+                }
             },
         );
     }
@@ -228,4 +263,97 @@ impl Page for DiffPage {
             &[("Enter", "Toggle"), ("Tab", "Next control")]
         }
     }
+}
+
+fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlags) {
+    if area.is_empty() {
+        return;
+    }
+    if flags.contains(StateFlags::FOCUSED) && !flags.contains(StateFlags::DISABLED) {
+        let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
+        let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
+        gutter = gutter.with_bg_from(container.style);
+        if flags.contains(StateFlags::PRESSED) {
+            match variant {
+                Variant::PRIMARY => {
+                    gutter = gutter
+                        .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::AccentPressed)));
+                }
+                Variant::DEFAULT | Variant::SECONDARY | Variant::SUBTLE => {
+                    gutter = gutter.patch(
+                        ui.paint_patch(&StylePatch::new().set_bg(Role::Fg(FgStep::Primary))),
+                    );
+                }
+                Variant::DANGER => {
+                    gutter = gutter
+                        .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Danger)))
+                        .remove_modifier(termrock::Modifier::BOLD);
+                }
+                _ => {}
+            }
+        } else if variant == Variant::SUBTLE
+            && flags.contains(StateFlags::HOVERED)
+            && ui.theme_ref().capability.color != termrock::ColorLevel::Ansi16
+        {
+            gutter = gutter.patch(ui.paint_patch(&StylePatch::new().set_bg(Role::HoverSurface)));
+        }
+        let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
+    } else if variant == Variant::PRIMARY && !flags.contains(StateFlags::DISABLED) {
+        let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
+        let mut gutter = container.style.remove_modifier(termrock::Modifier::BOLD);
+        if let Some(bg) = container.style.bg {
+            gutter = gutter.fg(bg);
+        }
+        let _ = ui.paint_str(Rect { width: 1, ..area }, " ", gutter);
+    }
+}
+
+fn draw_toggle_marker(ui: &mut Ui<'_>, area: Rect, on: bool, flags: StateFlags) {
+    let role = if on {
+        Role::Accent
+    } else {
+        Role::Fg(FgStep::Muted)
+    };
+    let mut marker = ui
+        .style(Family::BUTTON, Variant::TOGGLE, Part::MARKER, flags)
+        .style;
+    if !flags.contains(StateFlags::PRESSED) && !flags.contains(StateFlags::DISABLED) {
+        marker = marker.patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
+    }
+    let _ = ui.paint_str(
+        Rect {
+            x: area.x.saturating_add(1),
+            y: area.y,
+            width: 1,
+            height: 1,
+        },
+        if on { "●" } else { "○" },
+        marker,
+    );
+}
+
+fn paint_diff_head(ui: &mut Ui<'_>, rect: Rect) {
+    let focused = ui.state(DIFF).contains(StateFlags::FOCUSED);
+    let flags = if focused {
+        StateFlags::FOCUSED
+    } else {
+        StateFlags::empty()
+    };
+    let border_style = ui
+        .style(Family::PANEL, Variant::DEFAULT, Part::BORDER, flags)
+        .style;
+    let _ = ui.paint_str(rect, "─", border_style);
+    let title_style = ui
+        .style(Family::PANEL, Variant::DEFAULT, Part::TITLE, flags)
+        .style;
+    let _ = ui.paint_str(
+        Rect {
+            x: rect.x.saturating_add(1),
+            y: rect.y,
+            width: 6,
+            height: 1,
+        },
+        " Diff ",
+        title_style,
+    );
 }

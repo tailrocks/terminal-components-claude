@@ -11,7 +11,7 @@ use crate::id::{Part, PartRef};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// Label, required / optional marker, help and error rows around a control.
@@ -201,16 +201,27 @@ impl<'a, C: FieldControl> Field<'a, C> {
             ..label_row
         };
         let ls = style(ui, Part::LABEL);
-        let used = ui.paint_str(text, self.label, ls.style);
         let name_w = width(self.label);
         let show_optional = !self.required
             && !self.label.is_empty()
             && !self.plain
             && self.optional_suffix
             && name_w.saturating_add(12) <= area.width;
+        ui.fill(text, ls.style);
+        let used = ui.paint_str(text, self.label, ls.style);
         if self.required && !self.label.is_empty() {
             let cell = cell_at(text, text.x.saturating_add(used).saturating_add(1));
-            let ms = style(ui, Part::MARKER);
+            let mut ms = ov.style(
+                ui,
+                id,
+                Family::FIELD,
+                Variant::DEFAULT,
+                Part::MARKER,
+                live.difference(StateFlags::ERROR),
+            );
+            if live.contains(StateFlags::FOCUSED) {
+                ms.style = ms.style.add_modifier(ratatui_core::style::Modifier::BOLD);
+            }
             match ms.glyph {
                 Slot::Set(g) => {
                     ui.glyph(cell, g, ms.style);
@@ -226,8 +237,10 @@ impl<'a, C: FieldControl> Field<'a, C> {
                 width: text.width.saturating_sub(used).saturating_sub(2),
                 ..text
             };
-            let hs = style(ui, Part::HELP);
-            ui.paint_str(rest, "optional", hs.style);
+            let opt_style = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+            ui.paint_str(rest, "optional", opt_style);
         }
         ui.register_decor(id, PartRef::of(Part::LABEL), label_row);
         if area.height < 2 {
@@ -274,12 +287,16 @@ impl<'a, C: FieldControl> Field<'a, C> {
             if self.error.is_some() {
                 if let Slot::Set(g) = hs.glyph {
                     let used = ui.glyph(msg_row, g, hs.style);
-                    ui.paint_str(super::shift(msg_row, used.saturating_add(1)), m, hs.style);
+                    let row = super::shift(msg_row, used.saturating_add(1));
+                    let fitted = crate::text::truncate(m, row.width);
+                    ui.paint_str(row, &fitted, hs.style);
                 } else {
-                    ui.paint_str(msg_row, m, hs.style);
+                    let fitted = crate::text::truncate(m, msg_row.width);
+                    ui.paint_str(msg_row, &fitted, hs.style);
                 }
             } else {
-                ui.paint_str(msg_row, m, hs.style);
+                let fitted = crate::text::truncate(m, msg_row.width);
+                ui.paint_str(msg_row, &fitted, hs.style);
             }
             let _ = GlyphRole::Error;
         }

@@ -2,14 +2,14 @@
 //! (HP01–HP23). Each names the exact states its acceptance contract lists;
 //! nothing here reaches a real process or filesystem.
 
-use holla_domain::clock::EPOCH_SECS;
-use holla_domain::activity::{Branch, LineTone, Script, line, prompt, toned};
-use holla_domain::context::{Host, HostRole, Location, Os, Project, ProjectKind};
-use holla_domain::custom::{Origin, TrustStore, parse_config};
-use holla_domain::stack::*;
-use holla_domain::scenario::{Motion, Scenario};
 use crate::fs::BLOCK;
 use crate::world::{Source, World};
+use holla_domain::activity::{Branch, LineTone, Script, line, prompt, toned};
+use holla_domain::clock::EPOCH_SECS;
+use holla_domain::context::{Host, HostRole, Location, Os, Project, ProjectKind};
+use holla_domain::custom::{Origin, TrustStore, parse_config};
+use holla_domain::scenario::{Motion, Scenario};
+use holla_domain::stack::*;
 use std::collections::BTreeSet;
 
 const HOME: &str = "/Users/alex";
@@ -1005,8 +1005,7 @@ fn disk_scan(motion: Motion) -> World {
         recorded_secs: EPOCH_SECS - 9 * 86_400,
     });
     w.persisted.sizes = Some(cache.serialize());
-    w.size_cache =
-        crate::cleanup::SizeCache::load(w.persisted.sizes.as_deref(), EPOCH_SECS);
+    w.size_cache = crate::cleanup::SizeCache::load(w.persisted.sizes.as_deref(), EPOCH_SECS);
     w.sources = vec![src("filesystem", 2, motion), src("system", 3, motion)];
     w
 }

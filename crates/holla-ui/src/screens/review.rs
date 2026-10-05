@@ -20,11 +20,11 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
-use holla_domain::action::{ArgSpec, Item, Risk};
 use crate::screens::finder::item_facts;
 use crate::screens::{
     Cx, GateTarget, Go, Screen, StatusBits, heading, plural, risk_tone, scroll_drag, scroll_press,
 };
+use holla_domain::action::{ArgSpec, Item, Risk};
 use holla_sim::world::World;
 
 pub const SEQUENCE: WidgetId = WidgetId::of("gate.sequence");
@@ -216,9 +216,7 @@ impl GatePage {
                             (holla_sim::cleanup::Mode::Trash, _) => {
                                 "yes · until the Trash is emptied".to_owned()
                             }
-                            (holla_sim::cleanup::Mode::Permanent, _) => {
-                                "no · permanent".to_owned()
-                            }
+                            (holla_sim::cleanup::Mode::Permanent, _) => "no · permanent".to_owned(),
                         },
                     )
                     .tone(

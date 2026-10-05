@@ -5,7 +5,7 @@
 //! application package a consumer of the public `junie-tui` facade rather than
 //! a second component implementation.
 
-use termrock::{Family, Part, Rect, Response, StateFlags, Ui, Variant, width};
+use termrock::{FgStep, Modifier, Rect, Response, Role, StylePatch, Ui, width};
 
 /// Product intent returned to the shell, which owns its display lifetime.
 pub struct PageStatus(pub String);
@@ -71,21 +71,12 @@ pub fn frame(
     }
     ui.fill(area, ui.surface_style());
     let title_style = ui
-        .style(
-            Family::PANEL,
-            Variant::DEFAULT,
-            Part::TITLE,
-            StateFlags::empty(),
-        )
-        .style;
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))))
+        .add_modifier(Modifier::BOLD);
     let meta_style = ui
-        .style(
-            Family::LIST,
-            Variant::DEFAULT,
-            Part::META,
-            StateFlags::empty(),
-        )
-        .style;
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
     let title_area = Rect { height: 1, ..area };
     let title_width = width(title).min(area.width);
     ui.paint_str(title_area, title, title_style);

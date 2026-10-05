@@ -12,3 +12,15 @@ pub use query::{ExecError, PlanNode, ROW_CAP, cmp_values, explain, plan_text, ru
 
 // Re-export domain types commonly used with demo database
 pub use tablepro_domain::{Catalog, ColType, Connection, SafeMode, Table, Value};
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_demo_connections() {
+        let conns = connections();
+        assert!(!conns.is_empty());
+        assert_eq!(conns[0].name, "Local PostgreSQL");
+    }
+}

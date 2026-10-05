@@ -203,6 +203,13 @@ impl ResultGrid {
         true
     }
 
+    /// Commit pending edits to baseline, clearing undo history.
+    pub fn commit(&mut self) {
+        self.pending.commit();
+        self.undo.clear();
+        self.rebuild_display();
+    }
+
     /// Expose a deterministic position label for app status bars.
     pub fn position_label(&self, first_row: usize, visible_rows: usize) -> String {
         if self.row_count() == 0 {

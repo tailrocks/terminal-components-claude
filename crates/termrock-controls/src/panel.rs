@@ -450,7 +450,9 @@ impl<'a> Panel<'a> {
         }
         let text_x = area.x.saturating_add(2);
         // The head span never touches the gutter or either frame corner.
-        let span_w = area.width.saturating_sub(3);
+        let span_w = area
+            .width
+            .saturating_sub(if self.kind == PanelKind::Framed { 3 } else { 4 });
 
         // Preserve the established title/meta geometry whenever the badge
         // lane is absent or does not fit: the lane appears only at the width
@@ -535,60 +537,88 @@ impl<'a> Panel<'a> {
     ) {
         let head = first_row(area);
         let text_x = area.x.saturating_add(2);
-        let span_w = area.width.saturating_sub(3);
+        let span_w = area
+            .width
+            .saturating_sub(if self.kind == PanelKind::Framed { 3 } else { 4 });
         let pad = u16::from(self.kind == PanelKind::Framed);
         let ov = self.ov;
         let id = self.id;
-        let meta_block = self.meta.map_or(0, |m| {
-            let want = crate::text::width(m).saturating_add(pad.saturating_mul(2));
-            if want < span_w { want } else { 0 }
+
+        let title_min = self
+            .title
+            .map(|t| (crate::text::width(t)).min(4))
+            .unwrap_or(0);
+        let meta_trunc = self.meta.and_then(|m| {
+            let room = span_w.saturating_sub(
+                pad.saturating_mul(2) + if title_min > 0 { title_min + 1 } else { 0 },
+            );
+            if room == 0 {
+                None
+            } else if crate::text::width(m) > room {
+                Some(crate::text::truncate(m, room))
+            } else {
+                Some(m.to_owned())
+            }
         });
-        let title_room = span_w.saturating_sub(meta_block);
+        let meta_w = meta_trunc
+            .as_ref()
+            .map(|m| crate::text::width(m).saturating_add(pad.saturating_mul(2)))
+            .unwrap_or(0);
+        let mut cx = text_x;
         if let Some(t) = self.title {
-            let avail = title_room.saturating_sub(pad);
+            let room = if meta_w > 0 {
+                span_w.saturating_sub(meta_w + 1 + pad.saturating_mul(2))
+            } else {
+                span_w.saturating_sub(pad.saturating_mul(2))
+            };
+            let t_trunc = crate::text::truncate(t, room);
+            let tw = crate::text::width(&t_trunc);
             let rect = Rect {
-                x: text_x,
+                x: text_x.saturating_add(pad),
                 y: head.y,
-                width: avail,
+                width: tw,
                 height: 1,
             };
-            let used = if let Some(f) = ov.slot_for(Part::TITLE) {
+            if let Some(f) = ov.slot_for(Part::TITLE) {
                 f(ui, rect);
-                avail
             } else {
                 let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::TITLE, live);
-                ui.paint_str(rect, t, s.style)
-            };
-            if pad == 1 && used > 0 {
-                ui.fill(cell_at(head, text_x.saturating_add(used)), fill);
-            }
-        }
-        if let (Some(m), true) = (self.meta, meta_block > 0) {
-            let x = text_x.saturating_add(title_room).saturating_add(pad);
-            let rect = Rect {
-                x,
-                y: head.y,
-                width: meta_block.saturating_sub(pad.saturating_mul(2)),
-                height: 1,
-            };
-            let used = if let Some(f) = ov.slot_for(Part::DETAIL) {
-                f(ui, rect);
-                rect.width
-            } else {
-                let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
-                // Framed metadata sits on the border rule. Keeping its
-                // padding in the detail style preserves the historical ANSI
-                // span; container-style padding inserts a visible reset.
                 if pad == 1 {
-                    ui.fill(cell_at(head, x.saturating_sub(1)), s.style);
+                    ui.fill(cell_at(head, text_x), fill);
                 }
-                ui.paint_str(rect, m, s.style)
-            };
-            if pad == 1 && used > 0 {
-                let style = ov
-                    .style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live)
-                    .style;
-                ui.fill(cell_at(head, x.saturating_add(used)), style);
+                ui.paint_str(rect, &t_trunc, s.style);
+                if pad == 1 {
+                    ui.fill(cell_at(head, rect.right()), fill);
+                }
+            }
+            cx = text_x
+                .saturating_add(tw)
+                .saturating_add(pad.saturating_mul(2));
+        }
+        let mut right = text_x.saturating_add(span_w);
+        if let Some(m) = meta_trunc {
+            let tw = crate::text::width(&m);
+            let needed = tw.saturating_add(pad.saturating_mul(2));
+            if right >= cx + needed + u16::from(cx > text_x) {
+                right = right.saturating_sub(needed);
+                let rect = Rect {
+                    x: right.saturating_add(pad),
+                    y: head.y,
+                    width: tw,
+                    height: 1,
+                };
+                if let Some(f) = ov.slot_for(Part::DETAIL) {
+                    f(ui, rect);
+                } else {
+                    let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
+                    if pad == 1 {
+                        ui.fill(cell_at(head, right), s.style);
+                    }
+                    ui.paint_str(rect, &m, s.style);
+                    if pad == 1 {
+                        ui.fill(cell_at(head, rect.right()), s.style);
+                    }
+                }
             }
         }
     }

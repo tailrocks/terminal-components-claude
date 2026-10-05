@@ -238,7 +238,8 @@ impl Meter {
         }
         if !has_run {
             // no track: the message and the marker only
-            let text = crate::tui::ui::text::truncate(&value, area.width.saturating_sub(2) as usize);
+            let text =
+                crate::tui::ui::text::truncate(&value, area.width.saturating_sub(2) as usize);
             buf.set_string(area.x, area.y, &text, text_style);
             let sx = area.x + width(&text) as u16;
             if sx + 2 <= area.right() {

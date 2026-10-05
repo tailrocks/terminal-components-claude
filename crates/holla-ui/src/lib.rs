@@ -161,7 +161,10 @@ pub fn run() -> std::process::ExitCode {
 }
 
 impl crate::tui::runtime::Application for App {
-    fn handle(&mut self, input: crate::tui::core::event::Input) -> crate::tui::core::event::Outcome {
+    fn handle(
+        &mut self,
+        input: crate::tui::core::event::Input,
+    ) -> crate::tui::core::event::Outcome {
         App::handle(self, input)
     }
     fn render(&mut self, frame: &mut ratatui::Frame) {

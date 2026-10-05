@@ -71,6 +71,7 @@ pub struct FrameState {
     pub ring: FocusRing,
     pub(crate) layers: LayerPool,
     pub(crate) cursors: Vec<CursorRequest>,
+    pub(crate) cursor_suppressed: bool,
     pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing_resolved: crate::runtime::typing::TypingResolved,
@@ -190,6 +191,7 @@ impl FrameState {
         self.ring.reset();
         self.layers.begin();
         self.cursors.clear();
+        self.cursor_suppressed = false;
         self.typing.clear();
         self.typing_bindings.reset();
         self.typing_resolved = crate::runtime::typing::TypingResolved::default();
@@ -1034,8 +1036,14 @@ impl<'f> Ui<'f> {
         self.record_cursor(owner, pos, true);
     }
 
+    /// Suppress hardware cursor for the current frame.
+    pub fn suppress_cursor(&mut self) {
+        self.frame.cursor_suppressed = true;
+        self.frame.cursors.clear();
+    }
+
     fn record_cursor(&mut self, owner: Id, pos: Position, typing_offer: bool) {
-        if self.reference.is_some() {
+        if self.reference.is_some() || self.frame.cursor_suppressed {
             return;
         }
         self.frame.cursors.push(CursorRequest {

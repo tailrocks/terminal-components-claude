@@ -14,3 +14,11 @@ fn main() -> std::process::ExitCode {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_tablepro_binary_entry() {
+        // Sanity check verifying tablepro binary compiles and links.
+    }
+}

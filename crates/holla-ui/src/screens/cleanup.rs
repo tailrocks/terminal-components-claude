@@ -22,11 +22,11 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
-use holla_sim::catalog::{InsightCategory, insight_candidates, observe_process};
-use holla_sim::cleanup::{self, DeleteItem, DeletePlan, Eligibility, Mode, ProcessObservation};
 use crate::screens::{
     Cx, Go, Page, Screen, StatusBits, heading, plural, scroll_drag, scroll_press,
 };
+use holla_sim::catalog::{InsightCategory, insight_candidates, observe_process};
+use holla_sim::cleanup::{self, DeleteItem, DeletePlan, Eligibility, Mode, ProcessObservation};
 use holla_sim::fs::human;
 use holla_sim::world::World;
 
@@ -1359,12 +1359,8 @@ pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
         return Err("a cleanup is still running · wait for its report".into());
     }
     if !plan.dry_run && plan.items.iter().any(|i| i.category == "gradle.clean-all") {
-        let stop = holla_domain::exec::Command::argv(
-            "gradle",
-            &["--stop"],
-            &w.location.cwd,
-            &w.host.name,
-        );
+        let stop =
+            holla_domain::exec::Command::argv("gradle", &["--stop"], &w.location.cwd, &w.host.name);
         let script = holla_sim::outcomes::for_command(w, &stop)
             .unwrap_or_else(|| holla_domain::activity::Script::unmodeled("gradle --stop"));
         if script.exit != 0 || script.spawn_failure.is_some() {

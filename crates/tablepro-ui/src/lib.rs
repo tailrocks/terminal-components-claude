@@ -13,6 +13,7 @@ pub mod filter_editor;
 pub mod grid_model;
 pub mod model;
 pub mod quick_switcher;
+pub mod safety_dialog;
 pub mod tabs;
 pub mod workbench;
 
@@ -25,6 +26,10 @@ pub use domain::ResultGrid;
 pub use filter_editor::{Filter, FilterOp};
 pub use grid_model::{ResultGridModel, StructureModel, TableGridModel, preview_for};
 pub use model::{SwitchItem, SwitchTarget, SwitcherIndex};
+pub use safety_dialog::{
+    Prop, SAFETY_CANCEL, SAFETY_CONFIRM, SAFETY_DIALOG, SAFETY_INPUT, SafetyDialog,
+    SafetyDialogAction, SafetyFocus, SafetyIntent, Tone,
+};
 pub use tablepro_domain::{
     Catalog, ColType, Connection, History, PendingEdits, PendingRow, ResultSet, SafeMode, Table,
     Value,

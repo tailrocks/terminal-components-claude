@@ -20,8 +20,8 @@
 
 use std::collections::BTreeSet;
 
-use holla_domain::context::Os;
 use crate::fs::{Fs, NodeKind};
+use holla_domain::context::Os;
 
 pub const CACHE_SCHEMA: u32 = 3;
 pub const CACHE_TTL_SECS: i64 = 7 * 86_400;
@@ -708,9 +708,7 @@ pub fn validate(path: &str, home: &str, os: Os, fs: &Fs) -> Result<String, Deny>
     // lexically and the commit reports the leaf as not found
     let (parent, links) = match fs.canonical_parent(path) {
         Ok(v) => v,
-        Err(crate::fs::FsError::NotFound(_)) => {
-            (Fs::parent(path).unwrap_or("/".into()), vec![])
-        }
+        Err(crate::fs::FsError::NotFound(_)) => (Fs::parent(path).unwrap_or("/".into()), vec![]),
         Err(e) => return Err(Deny(e.message())),
     };
     for l in &links {
@@ -1475,8 +1473,8 @@ impl SizeCache {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use holla_domain::clock::EPOCH_SECS;
     use crate::fs::BLOCK;
+    use holla_domain::clock::EPOCH_SECS;
 
     #[test]
     fn log_records_round_trip_through_jsonl() {

@@ -103,3 +103,20 @@ pub trait TerminalSource {
     fn cell(&self, position: Position) -> Option<TerminalCell<'_>>;
     fn cursor(&self) -> Option<TerminalCursor>;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part_style_and_terminal_cell() {
+        let ps = PartStyle::new();
+        assert!(ps.patch.is_none());
+        assert!(ps.parts.is_empty());
+
+        let cell = TerminalCell::empty();
+        assert_eq!(cell.symbol, " ");
+        assert_eq!(cell.width, 1);
+        assert!(!cell.continuation);
+    }
+}

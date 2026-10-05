@@ -5,22 +5,22 @@
 
 use std::collections::BTreeMap;
 
-use holla_domain::clock::Clock;
+use crate::cleanup::{OpsLog, SizeCache};
+use crate::fs::Fs;
 use holla_domain::action::Item;
 use holla_domain::activity::{Activity, ActivityKind, ActivityState, Script};
-use crate::cleanup::{OpsLog, SizeCache};
+use holla_domain::clock::Clock;
 use holla_domain::context::{Host, Location, ScopeTag};
 use holla_domain::custom::{CustomConfig, TrustStore};
 use holla_domain::effect::Effect;
 use holla_domain::exec::Command;
 use holla_domain::plan::{Plan, PlanPhase, StepState};
+use holla_domain::scenario::Scenario;
 use holla_domain::stack::{
     AptState, BrewState, CargoState, CleanupRecord, Container, DiskState, DockerState, GitState,
     GithubState, GradleState, MiseState, PgState, Platform, RankingMemory, SshState,
     SystemSnapshot, ToolOutputs, UpgradeState,
 };
-use holla_domain::scenario::Scenario;
-use crate::fs::Fs;
 use std::collections::BTreeSet;
 
 /// Virtual milliseconds per tick.

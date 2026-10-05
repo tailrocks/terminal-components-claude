@@ -465,6 +465,22 @@ pub fn resolve_bin(name: &str) -> PathBuf {
     if release.exists() {
         return release;
     }
+    static BUILD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    if let Ok(_guard) = BUILD_LOCK.lock()
+        && !debug.exists()
+        && !release.exists()
+    {
+        let _ = std::process::Command::new("cargo")
+            .args(["build", "--bin", name])
+            .current_dir(root)
+            .status();
+    }
+    if debug.exists() {
+        return debug;
+    }
+    if release.exists() {
+        return release;
+    }
     PathBuf::from(name)
 }
 
@@ -722,18 +738,20 @@ pub fn drive_with_timeout(session: &mut Session, steps: &[&str], timeout_ms: u64
         } else if let Some(needle) = step.strip_prefix("wait:") {
             let deadline = std::time::Instant::now() + Duration::from_millis(timeout_ms.max(8_000));
             let cancel = CancelToken::new();
+            let last_text = std::cell::RefCell::new(String::new());
             session
                 .inner
                 .wait_predicate(
                     |obs| {
-                        frame_from_screen(&obs.screen, "default")
-                            .text()
-                            .contains(needle)
+                        let t = frame_from_screen(&obs.screen, "default").text();
+                        let found = t.contains(needle);
+                        *last_text.borrow_mut() = t;
+                        found
                     },
                     deadline,
                     &cancel,
                 )
-                .unwrap_or_else(|e| panic!("`wait:{needle}` timed out: {e:#}"));
+                .unwrap_or_else(|e| panic!("`wait:{needle}` timed out: {e:#}\n--- LAST SCREEN TEXT ---\n{}\n--- END SCREEN TEXT ---", last_text.borrow()));
         } else if let Some(text) = step.strip_prefix("type:") {
             session.inner.send_text(text).expect("type_text");
             std::thread::sleep(Duration::from_millis(120));

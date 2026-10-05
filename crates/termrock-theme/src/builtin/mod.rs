@@ -200,7 +200,7 @@ fn field_like(m: &mut PartMap<PartRecipe>) {
     )
     .when(StateFlags::READ_ONLY, p().set_fg(Role::ReadOnlyFg))
     .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
-    part(m, Part::TEXT, p());
+    part(m, Part::TEXT, p()).when(StateFlags::EDITING, p().add(Modifier::UNDERLINED));
     part(m, Part::PLACEHOLDER, p().set_fg(Role::Fg(FgStep::Muted)))
         .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
     part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Secondary)))
@@ -246,19 +246,10 @@ fn field_like(m: &mut PartMap<PartRecipe>) {
 }
 
 fn container_like(m: &mut PartMap<PartRecipe>) {
-    part(
-        m,
-        Part::CONTAINER,
-        p().set_bg(Role::CurrentSurface),
-    );
+    part(m, Part::CONTAINER, p().set_bg(Role::CurrentSurface));
     part(m, Part::BORDER, p().set_fg(Role::BorderSubtle))
         .when(StateFlags::FOCUSED, p().set_fg(Role::BorderStrong));
-    part(
-        m,
-        Part::TITLE,
-        p().set_fg(Role::Fg(FgStep::Secondary)),
-    )
-    .when(
+    part(m, Part::TITLE, p().set_fg(Role::Fg(FgStep::Secondary))).when(
         StateFlags::FOCUSED,
         p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
     );

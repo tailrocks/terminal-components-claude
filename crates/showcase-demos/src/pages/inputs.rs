@@ -1,9 +1,9 @@
 //! Single-line controlled editing with commit, cancel and validation feedback.
 
 use termrock::{
-    BlurPolicy, Cx, Family, Field, FieldError, FrameRead, Id, Panel, PanelKind, Part, Rect,
-    Response, StateFlags, Status, TextAction, TextInput, TextInputState, Track, Ui, Variant, id,
-    layout, truncate,
+    BlurPolicy, Cx, Family, FgStep, Field, FieldError, FrameRead, Id, Modifier, Panel, PanelKind,
+    Part, Rect, Response, Role, StateFlags, StylePatch, TextAction, TextInput, TextInputState,
+    Track, Ui, Variant, id, layout,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -16,6 +16,17 @@ const TOKEN: Id = id!("inputs.token");
 const SEARCH: Id = id!("inputs.search");
 const API_KEY: Id = id!("inputs.api_key");
 const STATE_REFERENCE: Id = id!("inputs.state_reference");
+
+const FIELD_PATCH: &[(Part, StylePatch)] =
+    &[(Part::MARKER, StylePatch::new().set_fg(Role::Accent))];
+const DETAIL_PATCH: &[(Part, StylePatch)] = &[(
+    Part::DETAIL,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+)];
+const TOKEN_PATCH: &[(Part, StylePatch)] = &[(
+    Part::LABEL,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+)];
 
 fn email(value: &str) -> Result<(), FieldError> {
     if value.contains('@') && value.contains('.') {
@@ -38,7 +49,9 @@ fn branch_input<'a>() -> TextInput<'a> {
 /// The one card constructor for this page (§13): both phase paths build the
 /// same `Panel::new(CARD)` props and vary only the heading text on top.
 fn card_panel() -> Panel<'static> {
-    Panel::new(CARD).kind(PanelKind::Card)
+    Panel::new(CARD)
+        .kind(PanelKind::Card)
+        .patch_part(DETAIL_PATCH)
 }
 
 fn fields_panel() -> Panel<'static> {
@@ -48,19 +61,21 @@ fn fields_panel() -> Panel<'static> {
 fn playground_panel() -> Panel<'static> {
     card_panel()
         .title("Playground")
-        .meta("Enter Edit · Esc Cancel · Tab Commit + next ")
+        .meta("Enter Edit · Esc Cancel · Tab Commit + next")
 }
 
 fn state_reference_panel() -> Panel<'static> {
     Panel::new(STATE_REFERENCE)
         .kind(PanelKind::Card)
         .title("State reference")
-        .meta("static ")
+        .meta("static")
+        .patch_part(DETAIL_PATCH)
 }
 
 fn project_field(value: &str) -> Field<'_, TextInput<'_>> {
     Field::new("Project name", name_input().value(value))
         .required(true)
+        .patch_part(FIELD_PATCH)
         .help("Used as the working directory name")
 }
 
@@ -75,7 +90,8 @@ fn owner_field() -> Field<'static, TextInput<'static>> {
         TextInput::new(OWNER).value("mira@example").validate(&email),
     )
     .required(true)
-    .help("Enter a valid email address")
+    .patch_part(FIELD_PATCH)
+    .error(Some("Enter a valid email address"))
 }
 
 fn token_field() -> Field<'static, TextInput<'static>> {
@@ -85,6 +101,7 @@ fn token_field() -> Field<'static, TextInput<'static>> {
             .value("jb_live_••••••••••••")
             .disabled(true),
     )
+    .patch_part(TOKEN_PATCH)
     .help("Managed by the organization")
 }
 
@@ -104,59 +121,101 @@ fn api_key_field() -> Field<'static, TextInput<'static>> {
     .help("Masked while typing; the last four characters show once committed")
 }
 
-fn legacy_field_gutter(ui: &mut Ui<'_>, area: Rect, flags: StateFlags) {
-    if area.is_empty() {
-        return;
+fn columns(area: Rect, left_w: u16, gap: u16) -> (Rect, Rect) {
+    if area.width < left_w.saturating_add(gap).saturating_add(20) {
+        let h = area.height / 2;
+        return (
+            Rect::new(area.x, area.y, area.width, h),
+            Rect::new(
+                area.x,
+                area.y.saturating_add(h),
+                area.width,
+                area.height.saturating_sub(h),
+            ),
+        );
     }
-    let field = ui.style(Family::FIELD, Variant::DEFAULT, Part::FIELD, flags);
-    let mut gutter = ui
-        .style(Family::FIELD, Variant::DEFAULT, Part::GUTTER, flags)
-        .style;
-    gutter = gutter.with_bg_from(field.style);
-    if !flags.contains(StateFlags::FOCUSED) {
-        gutter = gutter.with_fg_from_bg(field.style);
-    }
-    let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
+    (
+        Rect::new(area.x, area.y, left_w, area.height),
+        Rect::new(
+            area.x.saturating_add(left_w).saturating_add(gap),
+            area.y,
+            area.width.saturating_sub(left_w).saturating_sub(gap),
+            area.height,
+        ),
+    )
 }
 
-fn legacy_field_help(
+fn static_field(
     ui: &mut Ui<'_>,
-    area: Rect,
+    at: Rect,
+    label: &str,
+    text: &str,
     flags: StateFlags,
-    message: &str,
-    width_delta: i16,
+    editing: bool,
 ) {
-    let clear_row = Rect {
-        x: area.x.saturating_add(2),
-        y: area.y.saturating_add(2),
-        width: area.width.saturating_sub(2),
-        height: 1,
-    };
-    let row = Rect {
-        width: if width_delta < 0 {
-            area.width
-                .saturating_sub(2)
-                .saturating_sub(width_delta.unsigned_abs())
-        } else {
-            area.width
-                .saturating_sub(2)
-                .saturating_add(width_delta as u16)
-        },
-        ..clear_row
-    };
-    if clear_row.is_empty() || row.is_empty() {
+    let (x, y, w) = (at.x, at.y, at.width);
+    let label_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+    let _ = ui.paint_str(Rect::new(x, y, 16.min(at.width), 1), label, label_style);
+    if at.width <= 16 {
         return;
     }
-    let style = ui
-        .style(Family::FIELD, Variant::DEFAULT, Part::HELP, flags)
+    let field = Rect::new(x.saturating_add(16), y, w, 1);
+    let fs = ui
+        .style(Family::FIELD, Variant::DEFAULT, Part::FIELD, flags)
         .style;
-    let mut fitted = truncate(message, row.width);
-    while fitted.ends_with(' ') {
-        fitted.pop();
+    ui.fill(field, fs);
+    if flags.contains(StateFlags::FOCUSED) && !flags.contains(StateFlags::DISABLED) {
+        let gutter_style = ui
+            .style(Family::FIELD, Variant::DEFAULT, Part::GUTTER, flags)
+            .style;
+        let _ = ui.paint_str(
+            Rect::new(field.x, y, 1, 1),
+            "▎",
+            gutter_style.with_bg_from(fs),
+        );
+    } else {
+        let _ = ui.paint_str(Rect::new(field.x, y, 1, 1), " ", fs.with_fg_from_bg(fs));
     }
-    let blank = " ".repeat(usize::from(clear_row.width));
-    let _ = ui.paint_str(clear_row, &blank, style);
-    let _ = ui.paint_str(row, &fitted, style);
+    let style = if text.starts_with('(') {
+        ui.style(Family::FIELD, Variant::DEFAULT, Part::PLACEHOLDER, flags)
+            .style
+    } else {
+        fs
+    };
+    let style = if editing {
+        style.add_modifier(Modifier::UNDERLINED)
+    } else {
+        style
+    };
+    let text_area = Rect::new(
+        field.x.saturating_add(2),
+        y,
+        field.width.saturating_sub(2),
+        1,
+    );
+    let _ = ui.paint_str(text_area, text, style);
+    if editing {
+        let cx = field
+            .x
+            .saturating_add(2)
+            .saturating_add(termrock::width(text) as u16);
+        let cursor_style = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Fg(FgStep::Primary))));
+        let _ = ui.paint_str(Rect::new(cx, y, 1, 1), " ", cursor_style);
+    }
+    if flags.contains(StateFlags::ERROR) && field.width >= 2 {
+        let err_style = fs
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Danger)))
+            .add_modifier(Modifier::BOLD);
+        let _ = ui.paint_str(
+            Rect::new(field.right().saturating_sub(2), y, 1, 1),
+            "!",
+            err_style,
+        );
+    }
 }
 
 /// A pair of independent controlled fields, matching the legacy input page.
@@ -231,65 +290,24 @@ impl Page for InputsPage {
         frame(ui, area, self.title(), meta, |ui, body| {
             let regions = layout::rows(body, &[Track::Fixed(17), Track::Fixed(1), Track::Flex(1)]);
             let fields = regions.first().copied().unwrap_or(body);
-            let small = body.width < 70;
             playground_panel().draw(ui, fields, |ui, inner| {
-                let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
-                let left = columns.first().copied().unwrap_or(inner);
-                let right = columns.get(1).copied().unwrap_or(inner);
-                let (left, right) = if small {
-                    (
-                        Rect {
-                            width: left.width.saturating_sub(1),
-                            ..left
-                        },
-                        Rect {
-                            x: right.x.saturating_sub(1),
-                            width: right.width.saturating_add(1),
-                            ..right
-                        },
-                    )
-                } else {
-                    (left, right)
-                };
-                let left_rows =
-                    layout::rows(left, &[Track::Fixed(3), Track::Fixed(3), Track::Flex(1)]);
-                let right_rows =
-                    layout::rows(right, &[Track::Fixed(3), Track::Fixed(3), Track::Flex(1)]);
-                let project_area = left_rows.first().copied().unwrap_or(inner);
-                project_field(&self.name).draw(ui, project_area, &self.name_state);
-                legacy_field_gutter(
-                    ui,
-                    Rect {
-                        y: project_area.y.saturating_add(1),
-                        ..project_area
-                    },
-                    ui.state(NAME),
-                );
-                legacy_field_help(
-                    ui,
-                    project_area,
-                    ui.state(NAME),
-                    "Used as the working directory name",
-                    -1,
-                );
-                let branch_area = right_rows.first().copied().unwrap_or(inner);
-                branch_field(&self.branch).draw(ui, branch_area, &self.branch_state);
-                legacy_field_gutter(
-                    ui,
-                    Rect {
-                        y: branch_area.y.saturating_add(1),
-                        ..branch_area
-                    },
-                    ui.state(BRANCH),
-                );
-                legacy_field_help(
-                    ui,
-                    branch_area,
-                    ui.state(BRANCH),
-                    "Leave empty to work on a detached checkout",
-                    i16::from(body.width < 70),
-                );
-                Self::draw_reference_fields(ui, inner, &left_rows, &right_rows, body);
+                let (l, r) = columns(inner, inner.width / 2 - 2, 4);
+                let fh = 3;
+                let slots = [
+                    Rect::new(l.x, l.y, l.width, fh),
+                    Rect::new(r.x, r.y, r.width, fh),
+                    Rect::new(l.x, l.y.saturating_add(fh), l.width, fh),
+                    Rect::new(r.x, r.y.saturating_add(fh), r.width, fh),
+                    Rect::new(l.x, l.y.saturating_add(fh * 2), l.width, fh),
+                    Rect::new(r.x, r.y.saturating_add(fh * 2), r.width, fh),
+                ];
+                if slots[0].bottom() <= inner.bottom() {
+                    project_field(&self.name).draw(ui, slots[0], &self.name_state);
+                }
+                if slots[1].bottom() <= inner.bottom() {
+                    branch_field(&self.branch).draw(ui, slots[1], &self.branch_state);
+                }
+                Self::draw_reference_fields(ui, inner, &slots);
             });
             if let Some(reference_area) = regions.get(2).copied() {
                 state_reference_panel().draw(ui, reference_area, |ui, inner| {
@@ -325,138 +343,66 @@ impl Page for InputsPage {
 }
 
 impl InputsPage {
-    fn draw_reference_fields(
-        ui: &mut Ui<'_>,
-        inner: Rect,
-        left_rows: &[Rect],
-        right_rows: &[Rect],
-        body: Rect,
-    ) {
+    fn draw_reference_fields(ui: &mut Ui<'_>, inner: Rect, slots: &[Rect; 6]) {
         ui.reference(None, |ui| {
-            let mut owner_state = TextInputState::default();
-            owner_state.set_error(Some(FieldError::new("Enter a valid email address")));
-            let owner_area = {
-                let area = left_rows.get(1).copied().unwrap_or(inner);
-                Rect {
-                    width: area.width.saturating_sub(2),
-                    ..area
+            if slots[2].bottom() <= inner.bottom() {
+                owner_field().draw(ui, slots[2], &TextInputState::default());
+                if slots[2].width >= 2 {
+                    let field_style = ui
+                        .style(
+                            Family::FIELD,
+                            Variant::DEFAULT,
+                            Part::FIELD,
+                            StateFlags::empty(),
+                        )
+                        .style;
+                    let _ = ui.paint_str(
+                        Rect::new(slots[2].right().saturating_sub(2), slots[2].y + 1, 1, 1),
+                        "!",
+                        field_style
+                            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Danger)))
+                            .add_modifier(Modifier::BOLD),
+                    );
                 }
-            };
-            owner_field().draw(ui, owner_area, &owner_state);
-            legacy_field_gutter(
-                ui,
-                Rect {
-                    y: owner_area.y.saturating_add(1),
-                    ..owner_area
-                },
-                StateFlags::ERROR,
-            );
-            legacy_field_help(
-                ui,
-                owner_area,
-                StateFlags::ERROR,
-                "Enter a valid email address",
-                1,
-            );
-            let token_area = right_rows.get(1).copied().unwrap_or(inner);
-            token_field().draw(ui, token_area, &TextInputState::default());
-            legacy_field_gutter(
-                ui,
-                Rect {
-                    y: token_area.y.saturating_add(1),
-                    ..token_area
-                },
-                StateFlags::DISABLED,
-            );
-            legacy_field_help(
-                ui,
-                token_area,
-                StateFlags::DISABLED,
-                "Managed by the organization",
-                i16::from(body.width < 70),
-            );
-            let search_area = left_rows.get(2).copied().unwrap_or(inner);
-            search_field().draw(ui, search_area, &TextInputState::default());
-            legacy_field_gutter(
-                ui,
-                Rect {
-                    y: search_area.y.saturating_add(1),
-                    ..search_area
-                },
-                StateFlags::empty(),
-            );
-            legacy_field_help(
-                ui,
-                search_area,
-                StateFlags::empty(),
-                "Selection: Shift+← →  ·  words: Ctrl+← →  ·  clear: Ctrl+U",
-                -1,
-            );
-            let api_key_area = right_rows.get(2).copied().unwrap_or(inner);
-            api_key_field().draw(ui, api_key_area, &TextInputState::default());
-            legacy_field_gutter(
-                ui,
-                Rect {
-                    y: api_key_area.y.saturating_add(1),
-                    ..api_key_area
-                },
-                StateFlags::empty(),
-            );
-            legacy_field_help(
-                ui,
-                api_key_area,
-                StateFlags::empty(),
-                "Masked while typing; the last four characters show once committed",
-                i16::from(body.width < 70),
-            );
+            }
+            if slots[3].bottom() <= inner.bottom() {
+                token_field().draw(ui, slots[3], &TextInputState::default());
+            }
+            if slots[4].bottom() <= inner.bottom() {
+                search_field().draw(ui, slots[4], &TextInputState::default());
+            }
+            if slots[5].bottom() <= inner.bottom() {
+                api_key_field().draw(ui, slots[5], &TextInputState::default());
+            }
         });
     }
-}
 
-impl InputsPage {
     fn draw_state_reference(ui: &mut Ui<'_>, inner: Rect) {
+        let w = inner.width.saturating_sub(18).min(34);
         let states = [
-            ("default", "payments-gateway", Status::Ready),
-            ("placeholder", "(feat/…)", Status::Ready),
-            ("hover", "payments-gateway", Status::Ready),
-            ("focused", "payments-gateway", Status::Ready),
-            ("editing", "payments-gateway", Status::Ready),
-            ("error", "mira@example", Status::Error),
-            ("error + focus", "mira@example", Status::Error),
-            ("disabled", "jb_live_••••", Status::Ready),
+            ("default", "payments-gateway", StateFlags::empty(), false),
+            ("placeholder", "(feat/…)", StateFlags::empty(), false),
+            ("hover", "payments-gateway", StateFlags::HOVERED, false),
+            ("focused", "payments-gateway", StateFlags::FOCUSED, false),
+            ("editing", "payments-gateway", StateFlags::FOCUSED, true),
+            ("error", "mira@example", StateFlags::ERROR, false),
+            (
+                "error + focus",
+                "mira@example",
+                StateFlags::ERROR | StateFlags::FOCUSED,
+                false,
+            ),
+            ("disabled", "jb_live_••••", StateFlags::DISABLED, false),
         ];
-        for (index, (label, value, status)) in states.iter().enumerate() {
-            let Ok(offset) = u16::try_from(index) else {
+        for (i, (name, text, flags, editing)) in states.into_iter().enumerate() {
+            let Ok(offset) = u16::try_from(i) else {
                 break;
             };
-            if offset >= inner.height {
+            let y = inner.y.saturating_add(offset);
+            if y >= inner.bottom() {
                 break;
             }
-            let row = Rect {
-                y: inner.y.saturating_add(offset),
-                height: 1,
-                ..inner
-            };
-            let _ = ui.paint_str(row, label, ui.surface_style());
-            let field_area = Rect {
-                x: row.x.saturating_add(16),
-                width: row.width.saturating_sub(16).min(33),
-                ..row
-            };
-            let mut flags = StateFlags::empty();
-            if matches!(*status, Status::Error) {
-                flags |= StateFlags::ERROR;
-            }
-            if matches!(index, 3 | 4 | 6) {
-                flags |= StateFlags::FOCUSED;
-            }
-            ui.reference(None, |ui| {
-                TextInput::new(STATE_REFERENCE.index(index))
-                    .value(value)
-                    .status(*status)
-                    .draw(ui, field_area, &TextInputState::default());
-                legacy_field_gutter(ui, field_area, flags);
-            });
+            static_field(ui, Rect::new(inner.x, y, w, 1), name, text, flags, editing);
         }
     }
 }

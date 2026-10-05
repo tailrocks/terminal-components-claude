@@ -19,13 +19,13 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
-use holla_domain::action::{Confirmation, Item, Kind, Launch, Risk};
-use holla_domain::context::Scope;
-use holla_domain::ranking::{Ranked, search};
 use crate::screens::{
     Cx, Go, Page, Screen, StatusBits, heading, plural, risk_tone, scroll_drag, scroll_press,
     truncate_sep,
 };
+use holla_domain::action::{Confirmation, Item, Kind, Launch, Risk};
+use holla_domain::context::Scope;
+use holla_domain::ranking::{Ranked, search};
 use holla_sim::world::World;
 
 pub const FINDER: WidgetId = WidgetId::of("here.finder");

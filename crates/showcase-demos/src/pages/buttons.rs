@@ -7,9 +7,9 @@
 use std::time::Duration;
 
 use termrock::{
-    Button, Constraints, Cx, Family, FrameRead, Id, Moment, Panel, PanelKind, Part, PartRef, Rect,
-    ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant, id,
-    layout,
+    Button, Constraints, Cx, Family, FgStep, FrameRead, Id, Moment, Panel, PanelKind, Part,
+    PartRef, Rect, ReferenceState, ReferenceTarget, Response, Role, RowAlign, StateFlags, Status,
+    StylePatch, Ui, Variant, id, layout,
 };
 
 use super::{Page, PageStatus, PageUpdate, frame};
@@ -19,18 +19,148 @@ const PLAYGROUND_PANEL: Id = id!("buttons.playground");
 const MATRIX: Id = id!("buttons.matrix");
 const MATRIX_PANEL: Id = id!("buttons.matrix.panel");
 
+const PANEL_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::DETAIL,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+    ),
+];
+
+const SUBTLE_HOVER_PARTS: &[(Part, StylePatch)] = &[(
+    Part::CONTAINER,
+    StylePatch::new().set_bg(Role::HoverSurface),
+)];
+
+const PRESSED_PRIMARY_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new()
+            .set_fg(Role::OnAccent)
+            .set_bg(Role::AccentPressed),
+    ),
+    (
+        Part::LABEL,
+        StylePatch {
+            glyph: termrock::Slot::Clear,
+            ..StylePatch::new()
+        },
+    ),
+];
+
+const PRESSED_NEUTRAL_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new()
+            .set_fg(Role::Surface(termrock::Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .remove(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::LABEL,
+        StylePatch {
+            glyph: termrock::Slot::Clear,
+            ..StylePatch::new()
+                .set_fg(Role::Surface(termrock::Surface::Canvas))
+                .set_bg(Role::Fg(FgStep::Primary))
+                .remove(termrock::Modifier::BOLD)
+        },
+    ),
+];
+
+const PRESSED_DANGER_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Danger)
+            .remove(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::LABEL,
+        StylePatch {
+            glyph: termrock::Slot::Clear,
+            ..StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Danger)
+                .remove(termrock::Modifier::BOLD)
+        },
+    ),
+];
+
+const SUBTLE_DISABLED_PARTS: &[(Part, StylePatch)] = &[(
+    Part::CONTAINER,
+    StylePatch::new().set_bg(Role::CurrentSurface),
+)];
+
+const DISABLED_CONTAINER_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new()
+            .set_bg(Role::Surface(termrock::Surface::Canvas))
+            .set_fg(Role::DisabledFg),
+    ),
+    (
+        Part::LABEL,
+        StylePatch::new()
+            .set_fg(Role::DisabledFg)
+            .remove(termrock::Modifier::BOLD),
+    ),
+];
+
+fn paint_playground_meta(ui: &mut Ui<'_>, rect: Rect) {
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+    let _ = ui.paint_str(
+        Rect {
+            x: rect.x.saturating_sub(1),
+            y: rect.y,
+            width: rect.width,
+            height: 1,
+        },
+        "hover · click · Tab · Enter / Space",
+        style,
+    );
+}
+
+fn paint_matrix_meta(ui: &mut Ui<'_>, rect: Rect) {
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+    let _ = ui.paint_str(
+        Rect {
+            x: rect.x.saturating_sub(1),
+            y: rect.y,
+            width: rect.width,
+            height: 1,
+        },
+        "reference rendering",
+        style,
+    );
+}
+
 fn playground_panel() -> Panel<'static> {
     Panel::new(PLAYGROUND_PANEL)
         .kind(PanelKind::Card)
         .title("Playground")
-        .meta("hover · click · Tab · Enter / Space ")
+        .meta("hover · click · Tab · Enter / Space")
+        .patch_part(PANEL_PARTS)
+        .slot(Part::DETAIL, &paint_playground_meta)
 }
 
 fn matrix_panel() -> Panel<'static> {
     Panel::new(MATRIX_PANEL)
         .kind(PanelKind::Card)
         .title("State matrix")
-        .meta("reference rendering ")
+        .meta("reference rendering")
+        .patch_part(PANEL_PARTS)
+        .slot(Part::DETAIL, &paint_matrix_meta)
 }
 
 /// The nine playground buttons, in the legacy declaration order.
@@ -84,16 +214,43 @@ fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlag
     if area.is_empty() {
         return;
     }
-    let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
-    let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
-    // The old showcase painted a gutter glyph for every button. The modern
-    // Button only binds that glyph to focus, so preserve the old picture at
-    // this page seam without changing the shared component contract.
-    gutter = gutter.with_bg_from(container.style);
-    if !flags.contains(StateFlags::FOCUSED) {
-        gutter = gutter.with_fg_from_bg(container.style);
+    if flags.contains(StateFlags::FOCUSED) && !flags.contains(StateFlags::DISABLED) {
+        let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
+        let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
+        gutter = gutter.with_bg_from(container.style);
+        if flags.contains(StateFlags::PRESSED) {
+            match variant {
+                Variant::PRIMARY => {
+                    gutter = gutter
+                        .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::AccentPressed)));
+                }
+                Variant::DEFAULT | Variant::SECONDARY | Variant::SUBTLE => {
+                    gutter = gutter.patch(
+                        ui.paint_patch(&StylePatch::new().set_bg(Role::Fg(FgStep::Primary))),
+                    );
+                }
+                Variant::DANGER => {
+                    gutter = gutter
+                        .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Danger)))
+                        .remove_modifier(termrock::Modifier::BOLD);
+                }
+                _ => {}
+            }
+        } else if variant == Variant::SUBTLE
+            && flags.contains(StateFlags::HOVERED)
+            && ui.theme_ref().capability.color != termrock::ColorLevel::Ansi16
+        {
+            gutter = gutter.patch(ui.paint_patch(&StylePatch::new().set_bg(Role::HoverSurface)));
+        }
+        let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
+    } else if variant == Variant::PRIMARY && !flags.contains(StateFlags::DISABLED) {
+        let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
+        let mut gutter = container.style.remove_modifier(termrock::Modifier::BOLD);
+        if let Some(bg) = container.style.bg {
+            gutter = gutter.fg(bg);
+        }
+        let _ = ui.paint_str(Rect { width: 1, ..area }, " ", gutter);
     }
-    let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
 }
 
 fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
@@ -227,7 +384,6 @@ impl Page for ButtonsPage {
                     &[
                         termrock::Track::Fixed(15),
                         termrock::Track::Fixed(1),
-                        termrock::Track::Fixed(11),
                         termrock::Track::Flex(1),
                     ],
                 );
@@ -237,7 +393,15 @@ impl Page for ButtonsPage {
                     |ui, inner| self.draw_playground(ui, inner),
                 );
                 let matrix_area = regions.get(2).copied().unwrap_or(body);
-                if matrix_area.width < 70 && !matrix_area.is_empty() {
+                if matrix_area.is_empty() {
+                    Self::draw_matrix(
+                        ui,
+                        Rect {
+                            height: 1,
+                            ..matrix_area
+                        },
+                    );
+                } else if matrix_area.width < 70 {
                     matrix_panel().draw(ui, matrix_area, |_, _| ());
                     Self::draw_matrix(
                         ui,
@@ -255,10 +419,18 @@ impl Page for ButtonsPage {
                     && let Some(last) = &self.last
                 {
                     let text = format!("last: {last} · {} activations", self.clicks);
-                    let _ = ui.paint_str(status, &text, ui.surface_style());
+                    let status_style =
+                        ui.surface_style().patch(ui.paint_patch(
+                            &StylePatch::new().set_fg(Role::Fg(termrock::FgStep::Faint)),
+                        ));
+                    let _ = ui.paint_str(status, &text, status_style);
                 }
             },
         );
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[("Enter / Space", "Activate")]
     }
 }
 
@@ -270,6 +442,9 @@ impl ButtonsPage {
             if y.saturating_add(1) >= area.bottom() {
                 break;
             }
+            let caption_style = ui.surface_style().patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(termrock::FgStep::Muted))),
+            );
             let _ = ui.paint_str(
                 Rect {
                     y,
@@ -277,7 +452,7 @@ impl ButtonsPage {
                     ..area
                 },
                 caption,
-                ui.surface_style(),
+                caption_style,
             );
             let widths: Vec<u16> = indices
                 .iter()
@@ -300,8 +475,8 @@ impl ButtonsPage {
                     .iter()
                     .zip(layout::action_row(line, &widths, gap, RowAlign::Start))
             {
-                if let Some(button) = self.button(index)
-                    && let Some(&(_, variant, disabled, _)) = SPECS.get(index)
+                if let Some(mut button) = self.button(index)
+                    && let Some(&(label, variant, disabled, _)) = SPECS.get(index)
                 {
                     let mut flags = ui.state(button.id());
                     if disabled {
@@ -313,10 +488,58 @@ impl ButtonsPage {
                     if self.busy_until.is_some() && index == LONG_JOB {
                         flags |= StateFlags::BUSY;
                     }
+                    let max_text_width = button_area.width.saturating_sub(2);
+                    let truncated_label;
+                    if (termrock::width(label) as u16) > max_text_width {
+                        truncated_label = termrock::truncate(label, max_text_width);
+                        button = Button::new(button.id(), &truncated_label)
+                            .variant(variant)
+                            .disabled(disabled);
+                        if let Some(checked) = self.checked.get(index).copied().flatten() {
+                            button = button.checked(checked);
+                        }
+                        if index == LONG_JOB && self.busy_until.is_some() {
+                            button = button.status(Status::Busy);
+                        }
+                    }
+                    if disabled {
+                        let color_level = ui.theme_ref().capability.color;
+                        if color_level == termrock::ColorLevel::Ansi16
+                            || color_level == termrock::ColorLevel::Mono
+                        {
+                            button = button.patch_part(DISABLED_CONTAINER_PARTS);
+                        }
+                    }
                     button.draw(ui, button_area);
                     legacy_gutter(ui, button_area, variant, flags);
+                    if disabled {
+                        let trailing_cell = Rect {
+                            x: button_area.right().saturating_sub(1),
+                            y: button_area.y,
+                            width: 1,
+                            height: 1,
+                        };
+                        let mut style = ui.style(Family::BUTTON, variant, Part::LABEL, flags).style;
+                        let color_level = ui.theme_ref().capability.color;
+                        if color_level == termrock::ColorLevel::Mono
+                            || color_level == termrock::ColorLevel::Ansi16
+                        {
+                            style = style
+                                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::DisabledFg)));
+                        }
+                        let _ = ui.paint_str(trailing_cell, " ", style);
+                    }
                     if let Some(checked) = self.checked.get(index).copied().flatten() {
-                        let marker = ui.style(Family::BUTTON, variant, Part::MARKER, flags).style;
+                        let role = if checked {
+                            Role::Accent
+                        } else {
+                            Role::Fg(FgStep::Muted)
+                        };
+                        let mut marker =
+                            ui.style(Family::BUTTON, variant, Part::MARKER, flags).style;
+                        if !flags.contains(StateFlags::PRESSED) && !disabled {
+                            marker = marker.patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
+                        }
                         let _ = ui.paint_str(
                             Rect {
                                 x: button_area.x.saturating_add(1),
@@ -342,11 +565,17 @@ impl ButtonsPage {
                 label_width.saturating_add(column_width.saturating_mul(index as u16)),
             )
         };
+        let card_bg =
+            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)));
         for (index, (_, title)) in MATRIX_VARIANTS.iter().enumerate() {
             let x = column_x(index);
             if x.saturating_add(column_width) > area.right() {
                 break;
             }
+            let header_style = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(termrock::FgStep::Muted))))
+                .patch(card_bg);
             let _ = ui.paint_str(
                 Rect {
                     x,
@@ -355,7 +584,7 @@ impl ButtonsPage {
                     height: 1,
                 },
                 title,
-                ui.surface_style(),
+                header_style,
             );
         }
         for (state_index, (name, flags)) in MATRIX_STATES.iter().enumerate() {
@@ -363,6 +592,9 @@ impl ButtonsPage {
             if y >= area.bottom() {
                 break;
             }
+            let state_style = ui.surface_style().patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(termrock::FgStep::Secondary))),
+            );
             let _ = ui.paint_str(
                 Rect {
                     x: area.x,
@@ -371,7 +603,7 @@ impl ButtonsPage {
                     height: 1,
                 },
                 name,
-                ui.surface_style(),
+                state_style,
             );
             for (variant_index, (variant, _)) in MATRIX_VARIANTS.iter().enumerate() {
                 let x = column_x(variant_index);
@@ -383,43 +615,73 @@ impl ButtonsPage {
                     ReferenceTarget::new(id, state).part(PartRef::of(Part::CONTAINER))
                 });
                 ui.reference(target, |ui| {
-                    Button::new(id, " Label")
+                    let mut button = Button::new(id, " Label")
                         .variant(*variant)
-                        .disabled(flags.contains(StateFlags::DISABLED))
-                        .draw(
-                            ui,
-                            Rect {
-                                x,
-                                y,
-                                width: column_width,
-                                height: 1,
-                            },
-                        );
+                        .disabled(flags.contains(StateFlags::DISABLED));
+                    if flags.contains(StateFlags::PRESSED) {
+                        match *variant {
+                            Variant::PRIMARY => button = button.patch_part(PRESSED_PRIMARY_PARTS),
+                            Variant::DEFAULT | Variant::SECONDARY | Variant::SUBTLE => {
+                                button = button.patch_part(PRESSED_NEUTRAL_PARTS)
+                            }
+                            Variant::DANGER => button = button.patch_part(PRESSED_DANGER_PARTS),
+                            _ => {}
+                        }
+                    } else if *variant == Variant::SUBTLE {
+                        if flags.contains(StateFlags::DISABLED) {
+                            button = button.patch_part(SUBTLE_DISABLED_PARTS);
+                        } else if flags.contains(StateFlags::HOVERED)
+                            && ui.theme_ref().capability.color != termrock::ColorLevel::Ansi16
+                        {
+                            button = button.patch_part(SUBTLE_HOVER_PARTS);
+                        }
+                    }
+                    if flags.contains(StateFlags::DISABLED) {
+                        let color_level = ui.theme_ref().capability.color;
+                        if color_level == termrock::ColorLevel::Ansi16
+                            || color_level == termrock::ColorLevel::Mono
+                        {
+                            button = button.patch_part(DISABLED_CONTAINER_PARTS);
+                        }
+                    }
+                    button.draw(
+                        ui,
+                        Rect {
+                            x,
+                            y,
+                            width: 8,
+                            height: 1,
+                        },
+                    );
                     legacy_gutter(
                         ui,
                         Rect {
                             x,
                             y,
-                            width: column_width,
+                            width: 8,
                             height: 1,
                         },
                         *variant,
                         *flags,
                     );
-                    if flags.contains(StateFlags::PRESSED) {
-                        let container = ui
-                            .style(Family::BUTTON, *variant, Part::CONTAINER, *flags)
+                    if flags.contains(StateFlags::DISABLED) {
+                        let trailing_cell = Rect {
+                            x: x.saturating_add(7),
+                            y,
+                            width: 1,
+                            height: 1,
+                        };
+                        let mut style = ui
+                            .style(Family::BUTTON, *variant, Part::LABEL, *flags)
                             .style;
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: x.saturating_add(7),
-                                y,
-                                width: 1,
-                                height: 1,
-                            },
-                            " ",
-                            container,
-                        );
+                        let color_level = ui.theme_ref().capability.color;
+                        if color_level == termrock::ColorLevel::Mono
+                            || color_level == termrock::ColorLevel::Ansi16
+                        {
+                            style = style
+                                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::DisabledFg)));
+                        }
+                        let _ = ui.paint_str(trailing_cell, " ", style);
                     }
                 });
             }

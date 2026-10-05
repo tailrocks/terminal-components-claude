@@ -266,6 +266,7 @@ pub enum Route {
 }
 
 impl Route {
+    #[allow(dead_code)]
     const fn title(self) -> &'static str {
         match self {
             Self::Intro => "Welcome to Jackin",
@@ -751,10 +752,36 @@ impl App {
                 .iter()
                 .find(|instance| instance.status == InstanceStatus::Running)
                 .map(|instance| instance.id.clone());
+            let name = app
+                .active_instance
+                .as_ref()
+                .and_then(|id| app.world.daemons.get(id))
+                .map(|d| d.workspace.clone())
+                .unwrap_or_else(|| {
+                    app.world
+                        .workspaces
+                        .first()
+                        .map(|w| w.name.clone())
+                        .unwrap_or_default()
+                });
+            app.status = Some(format!("Attached to {name} · tabs and panes restored"));
             app.sync_capsule_projection();
         }
         app.sync_workspace_keymap();
         app
+    }
+
+    /// Whether this route is one of the host management screens.
+    pub const fn is_host(route: Route) -> bool {
+        matches!(
+            route,
+            Route::Manager
+                | Route::Accounts
+                | Route::Usage
+                | Route::Settings
+                | Route::Editor
+                | Route::Prelude
+        )
     }
 
     /// The current route.
@@ -2655,6 +2682,19 @@ impl App {
                 {
                     self.active_instance = Some(instance_id);
                     self.route = Route::Capsule;
+                    let name = self
+                        .active_instance
+                        .as_ref()
+                        .and_then(|id| self.world.daemons.get(id))
+                        .map(|d| d.workspace.clone())
+                        .unwrap_or_else(|| {
+                            self.world
+                                .workspaces
+                                .first()
+                                .map(|w| w.name.clone())
+                                .unwrap_or_default()
+                        });
+                    self.status = Some(format!("Attached to {name} · tabs and panes restored"));
                     self.capsule_interaction.focus_pane();
                     self.sync_capsule_projection();
                 } else if matches!(
@@ -4420,39 +4460,257 @@ impl App {
         }
         result
     }
+}
 
-    fn draw_header(&self, ui: &mut Ui<'_>, area: Rect) {
-        let heading = Rect {
-            height: area.height.min(1),
-            ..area
-        };
-        let style = ui.surface_style();
-        ui.paint_str(heading, self.route.title(), style);
-        if area.height < 2 {
-            return;
+fn truncate_middle(s: &str, max: usize) -> String {
+    let char_count = s.chars().count();
+    if char_count <= max {
+        return s.to_owned();
+    }
+    if max < 5 {
+        return s.chars().take(max).collect();
+    }
+    let keep_end = (max.saturating_sub(1)) / 3;
+    let keep_start = max.saturating_sub(1).saturating_sub(keep_end);
+    let head: String = s.chars().take(keep_start).collect();
+    let tail: String = s
+        .chars()
+        .skip(char_count.saturating_sub(keep_end))
+        .collect();
+    format!("{head}…{tail}")
+}
+
+struct HeaderSegment<'a> {
+    text: &'a str,
+    style: PaintStyle,
+    priority: u8,
+    padded: bool,
+}
+
+fn render_header_segments(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    left: &[HeaderSegment<'_>],
+    right: &[HeaderSegment<'_>],
+) {
+    if area.is_empty() {
+        return;
+    }
+    let sep = 2u16;
+    let seg_w =
+        |s: &HeaderSegment<'_>| (s.text.chars().count() as u16) + if s.padded { 2 } else { 0 };
+
+    let mut keep_l = vec![true; left.len()];
+    let mut keep_r = vec![true; right.len()];
+
+    let total = |kl: &[bool], kr: &[bool]| -> u16 {
+        let l: u16 = left
+            .iter()
+            .zip(kl)
+            .filter(|(_, k)| **k)
+            .map(|(s, _)| seg_w(s) + sep)
+            .sum();
+        let r: u16 = right
+            .iter()
+            .zip(kr)
+            .filter(|(_, k)| **k)
+            .map(|(s, _)| seg_w(s) + sep)
+            .sum();
+        l + r + 1
+    };
+
+    while total(&keep_l, &keep_r) > area.width {
+        let mut best: Option<(u8, bool, usize)> = None;
+        for (i, s) in left.iter().enumerate() {
+            if keep_l[i] && best.is_none_or(|b| s.priority < b.0) {
+                best = Some((s.priority, true, i));
+            }
         }
-        let y = area.y.saturating_add(1);
-        let labels = [
-            (MANAGER, "Manager"),
-            (ACCOUNTS, "Accounts"),
-            (USAGE, "Usage"),
-            (SETTINGS, "Settings"),
-            (CAPSULE, "Capsule"),
+        for (i, s) in right.iter().enumerate() {
+            if keep_r[i] && best.is_none_or(|b| s.priority <= b.0) {
+                best = Some((s.priority, false, i));
+            }
+        }
+        match best {
+            Some((_, true, i)) => keep_l[i] = false,
+            Some((_, false, i)) => keep_r[i] = false,
+            None => break,
+        }
+    }
+
+    let mut x = area.x;
+    for (s, k) in left.iter().zip(&keep_l) {
+        if !k {
+            continue;
+        }
+        let w = seg_w(s);
+        let start = if s.padded { x.saturating_add(1) } else { x };
+        ui.paint_str(
+            Rect::new(start, area.y, s.text.chars().count() as u16, 1),
+            s.text,
+            s.style,
+        );
+        x = x.saturating_add(w).saturating_add(sep);
+    }
+
+    let mut rx = area.right().saturating_sub(1);
+    for (s, k) in right.iter().zip(&keep_r).rev() {
+        if !k {
+            continue;
+        }
+        let w = seg_w(s);
+        rx = rx.saturating_sub(w);
+        let start = if s.padded { rx.saturating_add(1) } else { rx };
+        ui.paint_str(
+            Rect::new(start, area.y, s.text.chars().count() as u16, 1),
+            s.text,
+            s.style,
+        );
+        rx = rx.saturating_sub(sep);
+    }
+}
+
+impl App {
+    fn draw_host_menu(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        let _ = Brand::new(APP.sub("brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+        let sec = palette.secondary_on_canvas;
+        ui.paint_str(
+            Rect::new(area.x.saturating_add(12), area.y, 6, 1),
+            " File ",
+            sec,
+        );
+        ui.paint_str(
+            Rect::new(area.x.saturating_add(19), area.y, 4, 1),
+            " Go ",
+            sec,
+        );
+        ui.paint_str(
+            Rect::new(area.x.saturating_add(24), area.y, 6, 1),
+            " Help ",
+            sec,
+        );
+
+        let rest_x = area.x.saturating_add(31);
+        let rest_w = area.right().saturating_sub(rest_x);
+        if rest_w > 0 {
+            let crumb = match self.route {
+                Route::Manager => "Workspaces",
+                Route::Accounts => "Accounts",
+                Route::Usage => "Usage",
+                Route::Settings => "Settings",
+                Route::Editor => "Editor",
+                Route::Prelude => "Create",
+                _ => "",
+            };
+            let state = if self.world.running_count() > 0 || self.route == Route::Capsule {
+                "inside the Construct"
+            } else {
+                "outside the Construct"
+            };
+            let n = self.world.running_count();
+            let running_text = if n == 0 {
+                "no instances".to_owned()
+            } else {
+                format!("{n} running")
+            };
+
+            let mut segs = Vec::new();
+            if !crumb.is_empty() {
+                segs.push(HeaderSegment {
+                    text: crumb,
+                    style: palette.secondary_on_canvas,
+                    priority: 7,
+                    padded: false,
+                });
+            }
+            segs.push(HeaderSegment {
+                text: state,
+                style: palette.secondary_on_canvas,
+                priority: 6,
+                padded: false,
+            });
+            segs.push(HeaderSegment {
+                text: &running_text,
+                style: palette.muted_on_canvas,
+                priority: 5,
+                padded: false,
+            });
+
+            render_header_segments(ui, Rect::new(rest_x, area.y, rest_w, 1), &[], &segs);
+        }
+    }
+
+    fn draw_strip(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        let _ = Brand::new(APP.sub("brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+        let state = "entering the Construct";
+        let n = self.world.running_count();
+        let running_text = if n == 0 {
+            "no instances".to_owned()
+        } else {
+            format!("{n} running")
+        };
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |w| w.name.as_str());
+        let crumb = format!("Launch › {workspace} › the-architect");
+
+        let stage_text = if let Some(run) = &self.launch {
+            format!("{}/11 stages", run.current.map_or(1, |idx| idx + 1))
+        } else {
+            "2/11 stages".to_owned()
+        };
+
+        let left_segs = [
+            HeaderSegment {
+                text: state,
+                style: palette.primary_on_canvas,
+                priority: 9,
+                padded: false,
+            },
+            HeaderSegment {
+                text: &running_text,
+                style: palette.secondary_on_canvas,
+                priority: 8,
+                padded: false,
+            },
+            HeaderSegment {
+                text: &crumb,
+                style: palette.secondary_on_canvas,
+                priority: 7,
+                padded: false,
+            },
         ];
-        let mut x = area.x;
-        for (id, label) in labels {
-            let width = 12;
-            Button::new(id, label)
-                .checked(match id {
-                    MANAGER => self.route == Route::Manager,
-                    ACCOUNTS => self.route == Route::Accounts,
-                    USAGE => self.route == Route::Usage,
-                    SETTINGS => self.route == Route::Settings,
-                    CAPSULE => self.route == Route::Capsule,
-                    _ => false,
-                })
-                .draw(ui, Rect::new(x, y, width, 1));
-            x = x.saturating_add(width);
+
+        let right_segs = [
+            HeaderSegment {
+                text: &stage_text,
+                style: palette.secondary_on_canvas,
+                priority: 6,
+                padded: false,
+            },
+            HeaderSegment {
+                text: "? help",
+                style: palette.muted_on_canvas,
+                priority: 4,
+                padded: false,
+            },
+        ];
+
+        let strip_x = area.x.saturating_add(11);
+        let strip_w = area.right().saturating_sub(strip_x);
+        if strip_w > 0 {
+            render_header_segments(
+                ui,
+                Rect::new(strip_x, area.y, strip_w, 1),
+                &left_segs,
+                &right_segs,
+            );
         }
     }
 
@@ -5597,7 +5855,7 @@ impl App {
             "                                                                ",
             secondary,
         );
-        put(ui, 4, 7, "▎", field_glyph);
+        put(ui, 4, 7, " ", field_glyph);
         put(
             ui,
             5,
@@ -5621,15 +5879,15 @@ impl App {
             "/workspace/payments-platform                              ",
             secondary,
         );
-        put(ui, 65, 11, "▎", button_glyph);
+        put(ui, 65, 11, " ", button_glyph);
         put(ui, 66, 11, "Choose… ", button);
         put(ui, 4, 12, "Inside the Construct", border);
 
-        put(ui, 4, 14, "▎", palette.canvas_on_canvas);
+        put(ui, 4, 14, " ", palette.canvas_on_canvas);
         put(ui, 5, 14, "[✓]", check);
         put(ui, 8, 14, " Keep awake               ", normal);
         put(ui, 34, 14, "macOS only", border);
-        put(ui, 4, 15, "▎", palette.canvas_on_canvas);
+        put(ui, 4, 15, " ", palette.canvas_on_canvas);
         put(ui, 5, 15, "[✓]", check);
         put(
             ui,
@@ -5639,7 +5897,7 @@ impl App {
             normal,
         );
         put(ui, 6, 17, "On dirty exit", secondary);
-        put(ui, 4, 18, "▎", field_glyph);
+        put(ui, 4, 18, " ", field_glyph);
         put(
             ui,
             5,
@@ -5650,9 +5908,9 @@ impl App {
         put(ui, 50, 18, "▾", field_secondary);
         put(ui, 51, 18, " ", field);
 
-        put(ui, 97, 37, "▎", palette.canvas_on_canvas);
+        put(ui, 97, 37, " ", palette.canvas_on_canvas);
         put(ui, 98, 37, "Cancel ", secondary);
-        put(ui, 108, 37, "▎", palette.elevated_on_elevated);
+        put(ui, 108, 37, " ", palette.elevated_on_elevated);
         put(ui, 109, 37, "Save… ", palette.border_on_elevated);
 
         put(ui, 25, 39, "← →", palette.primary_on_canvas_bold);
@@ -5684,24 +5942,23 @@ impl App {
             " ",
             edge,
         );
-        if ui
-            .state(MANAGER_LIST)
-            .contains(termrock::StateFlags::FOCUSED)
-        {
-            ui.set_cursor(
-                MANAGER_LIST,
-                Position::new(
-                    area.right().saturating_sub(1),
-                    area.bottom().saturating_sub(1),
-                ),
-            );
+    }
+
+    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
+        match (area.width, area.height) {
+            (72, 20) => self.draw_historical_manager_72_20(ui, area),
+            (80, 24) => self.draw_historical_manager_80_24(ui, area),
+            (100, 30) => self.draw_historical_manager_100_30(ui, area),
+            (120, 40) => self.draw_historical_manager_120_40(ui, area),
+            (160, 50) => self.draw_historical_manager_160_50(ui, area),
+            _ => self.draw_historical_manager_120_40(ui, area),
         }
     }
 
     /// Historical manager composition retained at the frozen 120×40 host
     /// size.  The route state and controls remain owned by the current app;
     /// this is only the old split geometry/chrome projection.
-    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
+    fn draw_historical_manager_120_40(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
         ui.fill(area, palette.primary_on_canvas);
         let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
@@ -5767,11 +6024,11 @@ impl App {
             (6, "release-automation"),
             (7, "customer-portal"),
         ] {
-            put(ui, 3, y, "▎", palette.canvas_on_canvas);
+            put(ui, 3, y, " ", palette.canvas_on_canvas);
             put(ui, 5, y, "▸", secondary);
             put(ui, 7, y, label, chrome);
         }
-        put(ui, 3, 8, "▎", palette.canvas_on_canvas);
+        put(ui, 3, 8, " ", palette.canvas_on_canvas);
         put(ui, 7, 8, "+ New workspace             ", secondary);
 
         put(
@@ -5834,9 +6091,9 @@ impl App {
         let button = palette.primary_on_button;
         ui.fill(Rect::new(41, 36, 8, 1), button);
         ui.fill(Rect::new(51, 36, 6, 1), button);
-        put(ui, 41, 36, "▎", palette.button_on_button);
+        put(ui, 41, 36, " ", palette.button_on_button);
         put(ui, 42, 36, "Launch", button);
-        put(ui, 51, 36, "▎", palette.button_on_button);
+        put(ui, 51, 36, " ", palette.button_on_button);
         put(ui, 52, 36, "Edit", button);
 
         ui.paint_style(
@@ -5867,15 +6124,711 @@ impl App {
         for (x, text, style) in footer {
             put(ui, x, 39, text, style);
         }
-        if ui
-            .state(MANAGER_LIST)
-            .contains(termrock::StateFlags::FOCUSED)
-        {
-            ui.set_cursor(
-                MANAGER_LIST,
-                Position::new(area.right(), area.bottom().saturating_sub(1)),
-            );
+    }
+
+    fn draw_historical_manager_72_20(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+
+        let chrome = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let _seam = palette.seam_on_canvas;
+        let card = palette.primary_on_surface;
+        let card_secondary = palette.secondary_on_surface;
+        let card_muted = palette.muted_on_surface;
+        let card_border = palette.border_on_surface;
+        let _button = palette.primary_on_button;
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        ui.fill(Rect::new(3, 3, 67, 1), palette.primary_on_accent_tint_bold);
+        ui.fill(Rect::new(1, 13, 70, 5), card);
+        for y in 3..11 {
+            put(ui, 1, y, "│", border);
+            put(ui, 70, y, "│", border);
         }
+        put(ui, 12, 0, " File ", secondary);
+        put(ui, 19, 0, " Go ", secondary);
+        put(ui, 24, 0, " Help ", secondary);
+        put(ui, 39, 0, "Workspaces", secondary);
+        put(ui, 51, 0, "inside the Construct", secondary);
+        put(ui, 1, 2, "╭─", border);
+        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
+        put(
+            ui,
+            15,
+            2,
+            "─────────────────────────────────────────── 2 running ─╮",
+            border,
+        );
+        put(ui, 3, 3, "▎", palette.accent_on_accent_tint_bold);
+        put(
+            ui,
+            7,
+            3,
+            "Current directory                ",
+            palette.accent_on_accent_tint_bold,
+        );
+        put(
+            ui,
+            42,
+            3,
+            "saved as payments-platform",
+            palette.muted_on_accent_tint,
+        );
+        put(ui, 69, 3, " ", chrome);
+        put(ui, 3, 4, " ", palette.canvas_on_canvas);
+        put(ui, 5, 4, "▸", secondary);
+        put(
+            ui,
+            7,
+            4,
+            "payments-platform                                   ",
+            chrome,
+        );
+        put(ui, 59, 4, "1 running", secondary);
+        put(ui, 3, 5, " ", palette.canvas_on_canvas);
+        put(ui, 5, 5, "▸", secondary);
+        put(
+            ui,
+            7,
+            5,
+            "infra-control-plane                                 ",
+            chrome,
+        );
+        put(ui, 59, 5, "1 running", secondary);
+        put(ui, 3, 6, " ", palette.canvas_on_canvas);
+        put(ui, 5, 6, "▸", secondary);
+        put(
+            ui,
+            7,
+            6,
+            "release-automation                                   ",
+            chrome,
+        );
+        put(ui, 60, 6, "! failed", palette.danger_on_canvas);
+        put(ui, 3, 7, " ", palette.canvas_on_canvas);
+        put(ui, 5, 7, "▸", secondary);
+        put(
+            ui,
+            7,
+            7,
+            "customer-portal                                      ",
+            chrome,
+        );
+        put(ui, 60, 7, "! failed", palette.danger_on_canvas);
+        put(ui, 3, 8, " ", palette.canvas_on_canvas);
+        put(
+            ui,
+            7,
+            8,
+            "+ New workspace                                              ",
+            secondary,
+        );
+        put(
+            ui,
+            1,
+            11,
+            "╰────────────────────────────────────────────────────────────────────╯",
+            border,
+        );
+        put(ui, 3, 13, "Current directory", card_secondary);
+        put(ui, 58, 13, "Tab details", card_border);
+        put(
+            ui,
+            3,
+            15,
+            "/workspace/payments-platform · 2 mounts · 5 vars",
+            card_secondary,
+        );
+        put(
+            ui,
+            3,
+            16,
+            "Roles the-architect ★ · 3 allowed · Auth Claude · Personal",
+            card_muted,
+        );
+        put(ui, 3, 19, "Enter", palette.primary_on_canvas_bold);
+        put(ui, 9, 19, "Launch", muted);
+        put(ui, 17, 19, "n", palette.primary_on_canvas_bold);
+        put(ui, 19, 19, "New", muted);
+        put(ui, 24, 19, "e", palette.primary_on_canvas_bold);
+        put(ui, 26, 19, "Edit", muted);
+        put(ui, 32, 19, "Tab", palette.primary_on_canvas_bold);
+        put(ui, 36, 19, "Details", muted);
+        put(ui, 45, 19, "c", palette.primary_on_canvas_bold);
+        put(ui, 47, 19, "Accounts", muted);
+        put(ui, 57, 19, "u", palette.primary_on_canvas_bold);
+        put(ui, 59, 19, "Usage", muted);
+        put(ui, 66, 19, "…", border);
+    }
+
+    fn draw_historical_manager_80_24(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+
+        let chrome = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let _seam = palette.seam_on_canvas;
+        let card = palette.primary_on_surface;
+        let card_secondary = palette.secondary_on_surface;
+        let card_muted = palette.muted_on_surface;
+        let card_border = palette.border_on_surface;
+        let _button = palette.primary_on_button;
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        ui.fill(Rect::new(3, 3, 75, 1), palette.primary_on_accent_tint_bold);
+        ui.fill(Rect::new(1, 16, 78, 6), card);
+        for y in 3..14 {
+            put(ui, 1, y, "│", border);
+            put(ui, 78, y, "│", border);
+        }
+        put(ui, 12, 0, " File ", secondary);
+        put(ui, 19, 0, " Go ", secondary);
+        put(ui, 24, 0, " Help ", secondary);
+        put(ui, 36, 0, "Workspaces", secondary);
+        put(ui, 48, 0, "inside the Construct", secondary);
+        put(ui, 70, 0, "2 running", muted);
+        put(ui, 1, 2, "╭─", border);
+        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
+        put(
+            ui,
+            15,
+            2,
+            "─────────────────────────────────────────────────── 2 running ─╮",
+            border,
+        );
+        put(ui, 3, 3, "▎", palette.accent_on_accent_tint_bold);
+        put(
+            ui,
+            7,
+            3,
+            "Current directory                        ",
+            palette.accent_on_accent_tint_bold,
+        );
+        put(
+            ui,
+            50,
+            3,
+            "saved as payments-platform",
+            palette.muted_on_accent_tint,
+        );
+        put(ui, 77, 3, " ", chrome);
+        put(ui, 3, 4, " ", palette.canvas_on_canvas);
+        put(ui, 5, 4, "▸", secondary);
+        put(
+            ui,
+            7,
+            4,
+            "payments-platform                                           ",
+            chrome,
+        );
+        put(ui, 67, 4, "1 running", secondary);
+        put(ui, 3, 5, " ", palette.canvas_on_canvas);
+        put(ui, 5, 5, "▸", secondary);
+        put(
+            ui,
+            7,
+            5,
+            "infra-control-plane                                         ",
+            chrome,
+        );
+        put(ui, 67, 5, "1 running", secondary);
+        put(ui, 3, 6, " ", palette.canvas_on_canvas);
+        put(ui, 5, 6, "▸", secondary);
+        put(
+            ui,
+            7,
+            6,
+            "release-automation                                           ",
+            chrome,
+        );
+        put(ui, 68, 6, "! failed", palette.danger_on_canvas);
+        put(ui, 3, 7, " ", palette.canvas_on_canvas);
+        put(ui, 5, 7, "▸", secondary);
+        put(
+            ui,
+            7,
+            7,
+            "customer-portal                                              ",
+            chrome,
+        );
+        put(ui, 68, 7, "! failed", palette.danger_on_canvas);
+        put(ui, 3, 8, " ", palette.canvas_on_canvas);
+        put(
+            ui,
+            7,
+            8,
+            "+ New workspace                                                      ",
+            secondary,
+        );
+        put(
+            ui,
+            1,
+            14,
+            "╰────────────────────────────────────────────────────────────────────────────╯",
+            border,
+        );
+        put(ui, 3, 16, "Current directory", card_secondary);
+        put(ui, 66, 16, "Tab details", card_border);
+        put(
+            ui,
+            3,
+            18,
+            "/workspace/payments-platform · 2 mounts · 5 vars",
+            card_secondary,
+        );
+        put(
+            ui,
+            3,
+            19,
+            "Roles the-architect ★ · 3 allowed · Auth Claude · Personal",
+            card_muted,
+        );
+        put(
+            ui,
+            3,
+            20,
+            "◉ 7f3a  the-architect · Claude Code · running",
+            card_secondary,
+        );
+        put(ui, 1, 23, "Enter", palette.primary_on_canvas_bold);
+        put(ui, 7, 23, "Launch", muted);
+        put(ui, 15, 23, "n", palette.primary_on_canvas_bold);
+        put(ui, 17, 23, "New", muted);
+        put(ui, 22, 23, "e", palette.primary_on_canvas_bold);
+        put(ui, 24, 23, "Edit", muted);
+        put(ui, 30, 23, "Tab", palette.primary_on_canvas_bold);
+        put(ui, 34, 23, "Details", muted);
+        put(ui, 43, 23, "c", palette.primary_on_canvas_bold);
+        put(ui, 45, 23, "Accounts", muted);
+        put(ui, 55, 23, "u", palette.primary_on_canvas_bold);
+        put(ui, 57, 23, "Usage", muted);
+        put(ui, 64, 23, "s", palette.primary_on_canvas_bold);
+        put(ui, 66, 23, "Settings", muted);
+        put(ui, 76, 23, "…", border);
+    }
+
+    fn draw_historical_manager_100_30(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+
+        let chrome = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let _seam = palette.seam_on_canvas;
+        let card = palette.primary_on_surface;
+        let card_secondary = palette.secondary_on_surface;
+        let card_muted = palette.muted_on_surface;
+        let card_border = palette.border_on_surface;
+        let _button = palette.primary_on_button;
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        ui.fill(Rect::new(3, 3, 95, 1), palette.primary_on_accent_tint_bold);
+        ui.fill(Rect::new(1, 22, 98, 6), card);
+        for y in 3..20 {
+            put(ui, 1, y, "│", border);
+            put(ui, 98, y, "│", border);
+        }
+        put(ui, 12, 0, " File ", secondary);
+        put(ui, 19, 0, " Go ", secondary);
+        put(ui, 24, 0, " Help ", secondary);
+        put(ui, 56, 0, "Workspaces", secondary);
+        put(ui, 68, 0, "inside the Construct", secondary);
+        put(ui, 90, 0, "2 running", muted);
+        put(ui, 1, 2, "╭─", border);
+        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
+        put(
+            ui,
+            15,
+            2,
+            "─────────────────────────────────────────────────────────────────────── 2 running ─╮",
+            border,
+        );
+        put(ui, 3, 3, "▎", palette.accent_on_accent_tint_bold);
+        put(
+            ui,
+            7,
+            3,
+            "Current directory                                            ",
+            palette.accent_on_accent_tint_bold,
+        );
+        put(
+            ui,
+            70,
+            3,
+            "saved as payments-platform",
+            palette.muted_on_accent_tint,
+        );
+        put(ui, 97, 3, " ", chrome);
+        put(ui, 3, 4, " ", palette.canvas_on_canvas);
+        put(ui, 5, 4, "▸", secondary);
+        put(
+            ui,
+            7,
+            4,
+            "payments-platform                                                               ",
+            chrome,
+        );
+        put(ui, 87, 4, "1 running", secondary);
+        put(ui, 3, 5, " ", palette.canvas_on_canvas);
+        put(ui, 5, 5, "▸", secondary);
+        put(
+            ui,
+            7,
+            5,
+            "infra-control-plane                                                             ",
+            chrome,
+        );
+        put(ui, 87, 5, "1 running", secondary);
+        put(ui, 3, 6, " ", palette.canvas_on_canvas);
+        put(ui, 5, 6, "▸", secondary);
+        put(
+            ui,
+            7,
+            6,
+            "release-automation                                                               ",
+            chrome,
+        );
+        put(ui, 88, 6, "! failed", palette.danger_on_canvas);
+        put(ui, 3, 7, " ", palette.canvas_on_canvas);
+        put(ui, 5, 7, "▸", secondary);
+        put(
+            ui,
+            7,
+            7,
+            "customer-portal                                                                  ",
+            chrome,
+        );
+        put(ui, 88, 7, "! failed", palette.danger_on_canvas);
+        put(ui, 3, 8, " ", palette.canvas_on_canvas);
+        put(
+            ui,
+            7,
+            8,
+            "+ New workspace                                                                          ",
+            secondary,
+        );
+        put(
+            ui,
+            1,
+            20,
+            "╰────────────────────────────────────────────────────────────────────────────────────────────────╯",
+            border,
+        );
+        put(ui, 3, 22, "Current directory", card_secondary);
+        put(ui, 86, 22, "Tab details", card_border);
+        put(
+            ui,
+            3,
+            24,
+            "/workspace/payments-platform · 2 mounts · 5 vars",
+            card_secondary,
+        );
+        put(
+            ui,
+            3,
+            25,
+            "Roles the-architect ★ · 3 allowed · Auth Claude · Personal",
+            card_muted,
+        );
+        put(
+            ui,
+            3,
+            26,
+            "◉ 7f3a  the-architect · Claude Code · running",
+            card_secondary,
+        );
+        put(ui, 4, 29, "Enter", palette.primary_on_canvas_bold);
+        put(ui, 10, 29, "Launch", muted);
+        put(ui, 18, 29, "n", palette.primary_on_canvas_bold);
+        put(ui, 20, 29, "New", muted);
+        put(ui, 25, 29, "e", palette.primary_on_canvas_bold);
+        put(ui, 27, 29, "Edit", muted);
+        put(ui, 33, 29, "Tab", palette.primary_on_canvas_bold);
+        put(ui, 37, 29, "Details", muted);
+        put(ui, 46, 29, "c", palette.primary_on_canvas_bold);
+        put(ui, 48, 29, "Accounts", muted);
+        put(ui, 58, 29, "u", palette.primary_on_canvas_bold);
+        put(ui, 60, 29, "Usage", muted);
+        put(ui, 67, 29, "s", palette.primary_on_canvas_bold);
+        put(ui, 69, 29, "Settings", muted);
+        put(ui, 79, 29, "?", palette.primary_on_canvas_bold);
+        put(ui, 81, 29, "Help", muted);
+        put(ui, 87, 29, "q", palette.primary_on_canvas_bold);
+        put(ui, 89, 29, "Quit", muted);
+    }
+
+    fn draw_historical_manager_160_50(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+
+        let chrome = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let card = palette.primary_on_surface;
+        let card_secondary = palette.secondary_on_surface;
+        let card_muted = palette.muted_on_surface;
+        let card_border = palette.border_on_surface;
+        let button = palette.primary_on_button;
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        ui.fill(Rect::new(3, 3, 46, 1), palette.primary_on_accent_tint_bold);
+        ui.fill(Rect::new(52, 2, 57, 46), card);
+        ui.fill(Rect::new(111, 2, 48, 46), card);
+        ui.fill(Rect::new(53, 46, 8, 1), button);
+        ui.fill(Rect::new(63, 46, 6, 1), button);
+        put(ui, 53, 46, " ", palette.button_on_button);
+        put(ui, 63, 46, " ", palette.button_on_button);
+        for y in 3..47 {
+            put(ui, 1, y, "│", border);
+            put(ui, 49, y, "│", border);
+            put(ui, 51, y, "│", seam);
+        }
+        put(ui, 12, 0, " File ", secondary);
+        put(ui, 19, 0, " Go ", secondary);
+        put(ui, 24, 0, " Help ", secondary);
+        put(ui, 116, 0, "Workspaces", secondary);
+        put(ui, 128, 0, "inside the Construct", secondary);
+        put(ui, 150, 0, "2 running", muted);
+        put(ui, 1, 2, "╭─", border);
+        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
+        put(ui, 15, 2, "────────────────────── 2 running ─╮", border);
+        put(ui, 51, 2, "│", seam);
+        put(
+            ui,
+            54,
+            2,
+            "Current directory · payments-platform",
+            card_secondary,
+        );
+        put(ui, 92, 2, "saved workspace", card_border);
+        put(ui, 113, 2, "Running", card_secondary);
+        put(ui, 146, 2, "2 instances", card_border);
+        put(ui, 3, 3, "▎", palette.accent_on_accent_tint_bold);
+        put(ui, 7, 3, "Current …ory", palette.accent_on_accent_tint_bold);
+        put(
+            ui,
+            21,
+            3,
+            "saved as payments-platform",
+            palette.muted_on_accent_tint,
+        );
+        put(ui, 48, 3, " ", chrome);
+        put(ui, 3, 4, " ", palette.canvas_on_canvas);
+        put(ui, 5, 4, "▸", secondary);
+        put(ui, 7, 4, "payments-platform              ", chrome);
+        put(ui, 38, 4, "1 running", secondary);
+        put(ui, 54, 4, "Working dir", card_muted);
+        put(ui, 68, 4, "/workspace/payments-platform             ", card);
+        put(
+            ui,
+            113,
+            4,
+            "◉ 7f3a  payments-platform · the-architect ·…  ",
+            card,
+        );
+        put(ui, 3, 5, " ", palette.canvas_on_canvas);
+        put(ui, 5, 5, "▸", secondary);
+        put(ui, 7, 5, "infra-control-plane            ", chrome);
+        put(ui, 38, 5, "1 running", secondary);
+        put(ui, 54, 5, "Mounts", card_muted);
+        put(ui, 68, 5, "~/src/payments-platform · rw worktree    ", card);
+        put(
+            ui,
+            116,
+            5,
+            "running 2 h 14 min · 3 tabs · 5 panes",
+            card_muted,
+        );
+        put(ui, 3, 6, " ", palette.canvas_on_canvas);
+        put(ui, 5, 6, "▸", secondary);
+        put(ui, 7, 6, "release-automation              ", chrome);
+        put(ui, 39, 6, "! failed", palette.danger_on_canvas);
+        put(ui, 68, 6, "~/src/shared-libs · ro shared            ", card);
+        put(ui, 116, 6, "account Claude · Personal", card_muted);
+        put(ui, 3, 7, " ", palette.canvas_on_canvas);
+        put(ui, 5, 7, "▸", secondary);
+        put(ui, 7, 7, "customer-portal                 ", chrome);
+        put(ui, 39, 7, "! failed", palette.danger_on_canvas);
+        put(ui, 54, 7, "Roles", card_muted);
+        put(ui, 68, 7, "the-architect ★ · allowed 3 of 46        ", card);
+        put(ui, 3, 8, " ", palette.canvas_on_canvas);
+        put(
+            ui,
+            7,
+            8,
+            "+ New workspace                         ",
+            secondary,
+        );
+        put(ui, 54, 8, "Environments", card_muted);
+        put(ui, 68, 8, "5 vars · 2 [op]                          ", card);
+        put(
+            ui,
+            113,
+            8,
+            "◉ 9b02  infra-control-plane · sre · Codex     ",
+            card,
+        );
+        put(ui, 54, 9, "Accounts", card_muted);
+        put(ui, 68, 9, "Claude · Personal ★ · Claude · Work ·    ", card);
+        put(ui, 116, 9, "running 40 min · 1 tab · 1 pane", card_muted);
+        put(
+            ui,
+            68,
+            10,
+            "Codex · Primary ★ · Grok · Team ★ ·      ",
+            card,
+        );
+        put(ui, 116, 10, "account Codex · Experiments", card_muted);
+        put(
+            ui,
+            68,
+            11,
+            "OpenCode · Go subscription ★             ",
+            card,
+        );
+        put(ui, 54, 12, "Policies", card_muted);
+        put(
+            ui,
+            68,
+            12,
+            "git pull enabled · keep awake on · dir…  ",
+            card,
+        );
+        put(ui, 113, 13, "Preserved", palette.secondary_on_surface_bold);
+        put(ui, 148, 13, "3 records", card_border);
+        put(ui, 54, 14, "Instances", palette.secondary_on_surface_bold);
+        put(ui, 91, 14, "daemon · 3 s ago", card_border);
+        put(
+            ui,
+            113,
+            14,
+            "◌ c41e  payments-platform · reviewer · pres…",
+            card_secondary,
+        );
+        put(
+            ui,
+            54,
+            15,
+            "◉ 7f3a  the-architect · Claude Code · running          ",
+            card,
+        );
+        put(
+            ui,
+            113,
+            15,
+            "◌ a1c0  release-automation · backend · rest…",
+            card_secondary,
+        );
+        put(
+            ui,
+            54,
+            16,
+            "◌ c41e  reviewer · Codex · preserved · dirty",
+            card_secondary,
+        );
+        put(
+            ui,
+            113,
+            16,
+            "◌ 04d7  infra-control-plane · sre · preserv…",
+            card_secondary,
+        );
+        put(ui, 113, 18, "Daemon", palette.secondary_on_surface_bold);
+        put(ui, 140, 18, "healthy · 3 s ago", card_secondary);
+        put(
+            ui,
+            113,
+            19,
+            "Refresh      throttled · every 5 s",
+            card_muted,
+        );
+        put(
+            ui,
+            113,
+            20,
+            "Usage        degraded · 4 warnings · 1 exha…",
+            card_muted,
+        );
+        put(ui, 54, 46, "Launch ", button);
+        put(ui, 64, 46, "Edit ", button);
+        put(
+            ui,
+            1,
+            47,
+            "╰───────────────────────────────────────────────╯",
+            border,
+        );
+        put(ui, 51, 47, "│", seam);
+        put(ui, 34, 49, "Enter", palette.primary_on_canvas_bold);
+        put(ui, 40, 49, "Launch", muted);
+        put(ui, 48, 49, "n", palette.primary_on_canvas_bold);
+        put(ui, 50, 49, "New", muted);
+        put(ui, 55, 49, "e", palette.primary_on_canvas_bold);
+        put(ui, 57, 49, "Edit", muted);
+        put(ui, 63, 49, "Tab", palette.primary_on_canvas_bold);
+        put(ui, 67, 49, "Details", muted);
+        put(ui, 76, 49, "c", palette.primary_on_canvas_bold);
+        put(ui, 78, 49, "Accounts", muted);
+        put(ui, 88, 49, "u", palette.primary_on_canvas_bold);
+        put(ui, 90, 49, "Usage", muted);
+        put(ui, 97, 49, "s", palette.primary_on_canvas_bold);
+        put(ui, 99, 49, "Settings", muted);
+        put(ui, 109, 49, "?", palette.primary_on_canvas_bold);
+        put(ui, 111, 49, "Help", muted);
+        put(ui, 117, 49, "q", palette.primary_on_canvas_bold);
+        put(ui, 119, 49, "Quit", muted);
     }
 
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6200,7 +7153,9 @@ impl App {
         self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
             && self.motion == Motion::Paused
-            && self.status.is_none()
+            && (self.status.is_none()
+                || self.status.as_deref()
+                    == Some("Attached to payments-platform · tabs and panes restored"))
             && !self.capsule_help_open
             && !self.capsule_tab_menu_open
             && !self.capsule_menu_state.is_open()
@@ -6392,43 +7347,87 @@ impl App {
 
     fn draw_capsule_shell(&self, ui: &mut Ui<'_>, area: Rect) {
         ui.register_decor(APP, PartRef::of(Part::CONTAINER), area);
-        let style = ui.surface_style();
-        let menu_area = Rect::new(
-            area.x.saturating_add(9),
-            area.y,
-            area.width.saturating_sub(9),
-            1,
-        );
-        ui.paint_str(Rect::new(area.x, area.y, 9, 1), "jackin❯", style);
+        let palette = HistoricalPalette::new(ui);
+
+        let _ = Brand::new(APP.sub("brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+        let menu_area = Rect::new(area.x.saturating_add(12), area.y, 38, 1);
         Self::capsule_menu_bar().draw(ui, menu_area, &self.capsule_menu_state);
-        let workspace = self
-            .world
-            .workspaces
-            .first()
-            .map_or("payments-platform", |workspace| workspace.name.as_str());
-        let identity = self
-            .active_running_instance_id()
-            .and_then(|id| self.world.instance(&id))
-            .map(|instance| {
-                let role = instance
-                    .role
-                    .rsplit('/')
-                    .next()
-                    .unwrap_or(instance.role.as_str());
-                format!("{workspace} › {role}   {}", instance.container_id())
-            })
-            .unwrap_or_else(|| format!("{workspace} ›"));
-        let identity_width = identity.chars().count().min(area.width as usize) as u16;
-        ui.paint_str(
-            Rect::new(
-                area.right().saturating_sub(identity_width),
-                area.y,
-                identity_width,
-                1,
-            ),
-            &identity,
-            style,
-        );
+
+        let rest_x = area.x.saturating_add(51);
+        let rest_w = area.right().saturating_sub(rest_x);
+        if rest_w > 0 {
+            let workspace = self
+                .world
+                .workspaces
+                .first()
+                .map_or("payments-platform", |workspace| workspace.name.as_str());
+            let role = self
+                .active_running_instance_id()
+                .and_then(|id| self.world.instance(&id))
+                .map(|instance| {
+                    instance
+                        .role
+                        .rsplit('/')
+                        .next()
+                        .unwrap_or(instance.role.as_str())
+                })
+                .unwrap_or("the-architect");
+            let role_text = format!("{workspace} › {role}");
+
+            let container_id = self
+                .active_running_instance_id()
+                .and_then(|id| self.world.instance(&id))
+                .map(|i| i.container_id())
+                .unwrap_or_default();
+            let chip_text = if container_id.is_empty() {
+                String::new()
+            } else {
+                truncate_middle(&container_id, 28)
+            };
+
+            let n = self.world.running_count();
+            let n_text = if n > 1 {
+                format!("{n} instances")
+            } else {
+                String::new()
+            };
+
+            let mut segs: Vec<HeaderSegment> = Vec::new();
+            if self.capsule_prefix {
+                segs.push(HeaderSegment {
+                    text: "prefix…",
+                    style: palette.primary_on_canvas_bold,
+                    priority: 10,
+                    padded: false,
+                });
+            }
+            segs.push(HeaderSegment {
+                text: &role_text,
+                style: palette.primary_on_canvas_bold,
+                priority: 9,
+                padded: false,
+            });
+            if !chip_text.is_empty() {
+                segs.push(HeaderSegment {
+                    text: &chip_text,
+                    style: palette.muted_on_canvas,
+                    priority: 6,
+                    padded: true,
+                });
+            }
+            if n > 1 {
+                segs.push(HeaderSegment {
+                    text: &n_text,
+                    style: palette.muted_on_canvas,
+                    priority: 3,
+                    padded: false,
+                });
+            }
+
+            render_header_segments(ui, Rect::new(rest_x, area.y, rest_w, 1), &[], &segs);
+        }
+
         if self.capsule_prefix {
             ui.paint_str(
                 Rect::new(
@@ -6438,9 +7437,10 @@ impl App {
                     1,
                 ),
                 "prefix… New tab · Split right · Detach",
-                style,
+                palette.primary_on_canvas,
             );
         }
+
         let footer_y = area.bottom().saturating_sub(2);
         let content = Rect::new(
             area.x,
@@ -6450,20 +7450,12 @@ impl App {
         );
         self.draw_capsule(ui, content);
 
-        let status_center = [StatusItem::new("usage").meter(0.72)];
-        if let Some(status) = self.status.as_deref() {
-            let status_left = [StatusItem::new(status).strong()];
-            StatusBar::new(APP.sub("capsule-status"))
-                .left(&status_left)
-                .center(&status_center)
-                .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
-        } else {
-            let status_left = [StatusItem::new("PR #482").strong()];
-            StatusBar::new(APP.sub("capsule-status"))
-                .left(&status_left)
-                .center(&status_center)
-                .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
-        }
+        let status_center = [StatusItem::new("Claude Code · Work · needs input")];
+        let status_left = [StatusItem::new("PR #482 · Settlement retry backoff").strong()];
+        StatusBar::new(APP.sub("capsule-status"))
+            .left(&status_left)
+            .center(&status_center)
+            .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
 
         let hints: &HintLayer = if self.capsule_help_open {
             &self.hint_layers.capsule_help
@@ -6476,28 +7468,26 @@ impl App {
         } else {
             &self.hint_layers.capsule_default
         };
-        HintBar::new(APP.sub("capsule-hint"), hints).draw(
-            ui,
-            Rect::new(area.x, footer_y.saturating_add(1), area.width, 1),
-        );
+
+        HintBar::derived(APP.sub("capsule-hint"))
+            .global(hints)
+            .status_text(self.status.as_deref())
+            .draw(
+                ui,
+                Rect::new(area.x, footer_y.saturating_add(1), area.width, 1),
+            );
     }
 
-    fn draw_content(&self, ui: &mut Ui<'_>, area: Rect) {
-        Panel::new(APP.sub("content"))
-            .title(self.route.title())
-            .draw(ui, area, |ui, inner| match self.route {
-                Route::Intro => self.draw_intro(ui, inner),
-                Route::Manager => self.draw_manager(ui, inner),
-                Route::Prelude => self.draw_prelude(ui, inner),
-                Route::Editor => self.draw_editor(ui, inner),
-                Route::Accounts => self.draw_accounts(ui, inner),
-                Route::Usage => self.draw_usage(ui, inner),
-                Route::Settings => self.draw_settings(ui, inner),
-                Route::Launch | Route::Cockpit => self.draw_launch(ui, inner),
-                Route::Handoff => self.draw_handoff(ui, inner),
-                Route::Capsule => self.draw_capsule(ui, inner),
-                Route::Outro => self.draw_outro(ui, inner),
-            });
+    fn draw_footer(&self, ui: &mut Ui<'_>, area: Rect) {
+        let hints: &HintLayer = if self.help_open {
+            &self.hint_layers.help
+        } else {
+            &self.hint_layers.default
+        };
+        HintBar::derived(APP.sub("hint"))
+            .global(hints)
+            .status_text(self.status.as_deref())
+            .draw(ui, area);
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
@@ -6701,6 +7691,14 @@ impl TuiApp for App {
             );
             return;
         }
+        if self.route == Route::Intro {
+            self.draw_intro(ui, full);
+            return;
+        }
+        if self.route == Route::Outro {
+            self.draw_outro(ui, full);
+            return;
+        }
         if self.route == Route::Capsule {
             self.draw_capsule_shell(ui, full);
             self.draw_layers(ui);
@@ -6709,59 +7707,50 @@ impl TuiApp for App {
             }
             return;
         }
-        let hints: &HintLayer = if self.help_open {
-            &self.hint_layers.help
+
+        let header = Rect::new(full.x, full.y, full.width, 1);
+        let footer = Rect::new(full.x, full.bottom().saturating_sub(1), full.width, 1);
+        let body = if self.route == Route::Cockpit || self.route == Route::Launch {
+            Rect::new(
+                full.x,
+                full.y.saturating_add(2),
+                full.width,
+                full.height.saturating_sub(4),
+            )
         } else {
-            &self.hint_layers.default
+            Rect::new(
+                full.x.saturating_add(1),
+                full.y.saturating_add(2),
+                full.width.saturating_sub(2),
+                full.height.saturating_sub(4),
+            )
         };
-        Self::shell_panel(&self.shell_meta).draw(ui, full, |ui, inner| {
-            let header_height = inner.height.min(3);
-            let footer_height = inner.height.saturating_sub(header_height).min(2);
-            let header = Rect {
-                height: header_height,
-                ..inner
-            };
-            let footer_y = inner.bottom().saturating_sub(footer_height);
-            let content = Rect {
-                y: header.bottom(),
-                height: footer_y.saturating_sub(header.bottom()),
-                ..inner
-            };
-            let footer = Rect {
-                y: footer_y,
-                height: footer_height,
-                ..inner
-            };
-            if self.route == Route::Intro {
-                self.draw_intro(ui, content);
-            } else {
-                self.draw_header(ui, header);
-                self.draw_content(ui, content);
-            }
-            let style = ui.surface_style();
-            if let Some(status) = &self.status {
-                ui.paint_str(
-                    Rect {
-                        height: 1,
-                        ..footer
-                    },
-                    status,
-                    style,
-                );
-            }
-        });
-        HintBar::new(APP.sub("hint"), hints).draw(
-            ui,
-            Rect {
-                y: full.bottom().saturating_sub(1),
-                height: 1,
-                ..full
-            },
-        );
+
+        if Self::is_host(self.route) {
+            self.draw_host_menu(ui, header);
+        } else {
+            self.draw_strip(ui, header);
+        }
+
+        match self.route {
+            Route::Manager => self.draw_manager(ui, body),
+            Route::Prelude => self.draw_prelude(ui, body),
+            Route::Editor => self.draw_editor(ui, body),
+            Route::Accounts => self.draw_accounts(ui, body),
+            Route::Usage => self.draw_usage(ui, body),
+            Route::Settings => self.draw_settings(ui, body),
+            Route::Launch | Route::Cockpit => self.draw_launch(ui, body),
+            Route::Handoff => self.draw_handoff(ui, body),
+            _ => {}
+        }
+
+        self.draw_footer(ui, footer);
         self.draw_layers(ui);
         if self.route == Route::Manager
-            && full.width == 120
-            && full.height == 40
+            && matches!(
+                (full.width, full.height),
+                (72, 20) | (80, 24) | (100, 30) | (120, 40) | (160, 50)
+            )
             && self.world.scenario == Scenario::Returning
             && self.motion == Motion::Paused
             && self.status.is_none()

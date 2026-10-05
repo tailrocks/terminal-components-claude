@@ -353,6 +353,20 @@ impl TextAreaState {
         &mut self.scroll
     }
 
+    /// Current cursor position as (column, line).
+    pub fn cursor_pos(&self) -> Position {
+        let p = self.draft.cursor_pos();
+        Position::new(
+            p.col.min(usize::from(u16::MAX)) as u16,
+            p.line.min(usize::from(u16::MAX)) as u16,
+        )
+    }
+
+    /// Number of lines in the document.
+    pub fn line_count(&self) -> usize {
+        self.draft.line_count()
+    }
+
     /// The last validation error.
     ///
     /// Before the first update reconciles the control's sensitivity, an
@@ -814,7 +828,7 @@ impl<'a> TextArea<'a> {
     /// error marker and the readiness spinner that share it never move the
     /// text (§29 Q1's geometry discipline).
     const fn inner_width(width: u16) -> u16 {
-        width.saturating_sub(3)
+        width.saturating_sub(4)
     }
 
     /// The update phase: drains this control's intents and drives the edit
@@ -882,11 +896,7 @@ impl<'a> TextArea<'a> {
                 acc.fold(&bar);
             }
             match it {
-                Intent::FocusIn { .. } => {
-                    if editable {
-                        st.begin(value.expose());
-                    }
-                }
+                Intent::FocusIn { .. } => {}
                 Intent::FocusOut { .. } => {
                     if st.is_editing() {
                         let policy = self.blur;
@@ -1116,7 +1126,7 @@ impl<'a> TextArea<'a> {
         let inner = Rect {
             x: content.x.saturating_add(2),
             y: content.y,
-            width: Self::inner_width(content.width),
+            width: Self::inner_width(body.width),
             height: content.height,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
@@ -1133,7 +1143,16 @@ impl<'a> TextArea<'a> {
                     Slot::Set(glyph) => {
                         ui.glyph(gutter_cell, glyph, g.style);
                     }
-                    Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
+                    Slot::Inherit if live.contains(StateFlags::FOCUSED) => {
+                        ui.glyph(
+                            gutter_cell,
+                            GlyphRole::FocusBar,
+                            g.style.with_bg_from(field.style),
+                        );
+                    }
+                    Slot::Inherit | Slot::Clear => {
+                        ui.fill(gutter_cell, field.style.with_fg_from_bg(field.style));
+                    }
                 }
             }
         }
@@ -1146,7 +1165,8 @@ impl<'a> TextArea<'a> {
                 match ov.slot_for(Part::PLACEHOLDER) {
                     Some(f) => f(ui, first_row(inner)),
                     None => {
-                        ui.paint_str(first_row(inner), p, ps.style);
+                        let text = crate::text::truncate(p, inner.width);
+                        ui.paint_str(first_row(inner), &text, ps.style);
                     }
                 }
             }
@@ -1234,10 +1254,7 @@ impl<'a> TextArea<'a> {
         // accepts `.status(…)` to render. The error glyph and the spinner
         // share it, error winning, exactly as in `TextInput`; the spinner is
         // a *symbol*, so it survives `Mono` without a theme rule.
-        let trailing = cell_at(
-            first_row(content),
-            content.right().saturating_sub(1).max(content.x),
-        );
+        let trailing = cell_at(first_row(body), body.right().saturating_sub(2).max(body.x));
         if validation_error {
             if let Some(f) = ov.slot_for(Part::MARKER) {
                 f(ui, trailing);
@@ -1773,15 +1790,15 @@ mod tests {
 
     /// The columns of row 0 left of the reserved trailing pad.
     fn text_run(buf: &Buffer) -> String {
-        (0..SCREEN.width - 1)
+        (0..SCREEN.width - 2)
             .map(|x| symbol_at(buf, x, 0))
             .collect()
     }
 
     /// The trailing pad column of the first body row — the cell
-    /// `inner_width`'s `- 3` already reserves and the error marker already
+    /// `inner_width`'s `- 4` already reserves and the error marker already
     /// uses.
-    const READINESS_X: u16 = SCREEN.width - 1;
+    const READINESS_X: u16 = SCREEN.width - 2;
 
     /// §11.4: a component that accepts `.status(…)` must render readiness.
     /// `BUSY` and `LOADING` paint `design.motion.spinner_frames[0]` into the

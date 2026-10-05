@@ -23,11 +23,11 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
-use holla_domain::exec::Command;
 use crate::screens::{
     Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, plural, scroll_drag,
     scroll_press,
 };
+use holla_domain::exec::Command;
 use holla_sim::fs::{FindHit, Fs, NodeKind, Preview, human};
 use holla_sim::world::{SourceState, World};
 
@@ -1133,11 +1133,7 @@ pub fn recommendations(path: &str, markers: &[&str], w: &World) -> Vec<String> {
             Some(holla_sim::fs::Content::Text(t)) => t.clone(),
             _ => String::new(),
         };
-        for t in holla_domain::manifest::make_targets(&text)
-            .0
-            .iter()
-            .take(8)
-        {
+        for t in holla_domain::manifest::make_targets(&text).0.iter().take(8) {
             v.push(format!("make {t}"));
         }
     }

@@ -16,3 +16,21 @@ pub use history::{History, HistoryEntry, HistorySource};
 pub use pending::{PendingEdits, PendingRow};
 pub use schema::{Catalog, ColType, Column, Constraint, Index, ObjectKind, Table};
 pub use value::{ResultSet, Value, cmp_values};
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_engine_labels() {
+        assert_eq!(Engine::Postgres.label(), "PostgreSQL");
+        assert_eq!(Engine::MySql.label(), "MySQL");
+        assert_eq!(Engine::Sqlite.label(), "SQLite");
+        assert_eq!(Engine::Postgres.short(), "pg");
+    }
+
+    #[test]
+    fn test_safe_mode_ordering() {
+        assert!(SafeMode::Silent < SafeMode::Alert);
+    }
+}

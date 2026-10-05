@@ -4,9 +4,9 @@
 //! here. Nothing in this table succeeds generically; an argv without an
 //! entry is an unmodeled failure at the caller.
 
+use crate::world::World;
 use holla_domain::activity::{Branch, LineTone, Script, ScriptLine, line, prompt, toned};
 use holla_domain::exec::{Command, ExecKind};
-use crate::world::World;
 
 fn fail(lines: Vec<ScriptLine>, at: u64, exit: i32) -> Script {
     Script::ending(lines, at, exit)

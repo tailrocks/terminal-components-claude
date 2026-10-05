@@ -69,8 +69,10 @@ pub fn render_aligned(
     }
     let mut x = area.x + 1;
     if let Some((text, kind)) = badge {
-        let b =
-            crate::tui::ui::text::truncate(&format!(" {text} "), area.width.saturating_sub(2) as usize);
+        let b = crate::tui::ui::text::truncate(
+            &format!(" {text} "),
+            area.width.saturating_sub(2) as usize,
+        );
         if !b.is_empty() {
             buf.set_string(x, area.y, &b, t.badge(kind));
             x = (x + crate::tui::ui::text::width(&b) as u16 + 2).min(area.right());
@@ -110,7 +112,10 @@ pub fn render_aligned(
     if centered {
         // measure what fits, then start so the block sits mid-row
         let hint_w = |h: &Hint| {
-            crate::tui::ui::text::width(h.key) as u16 + 1 + crate::tui::ui::text::width(h.action) as u16 + 2
+            crate::tui::ui::text::width(h.key) as u16
+                + 1
+                + crate::tui::ui::text::width(h.action) as u16
+                + 2
         };
         let mut used = 0u16;
         let mut n = 0usize;

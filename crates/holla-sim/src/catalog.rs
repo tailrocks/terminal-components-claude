@@ -10,16 +10,16 @@
 
 use std::collections::BTreeSet;
 
+use crate::cleanup::{self, Eligibility, ProcessObservation};
+use crate::world::{BatchMode, SourceState, World};
 use holla_domain::action::{
     ArgSpec, Confirmation, Freshness, Item, Kind, Launch, ResultType, Risk, Signal,
 };
-use crate::cleanup::{self, Eligibility, ProcessObservation};
 use holla_domain::context::{Os, Scope, ScopeTag};
 use holla_domain::custom::{Danger, TrustStatus};
 use holla_domain::effect::Effect;
 use holla_domain::exec::Command;
 use holla_domain::manifest;
-use crate::world::{BatchMode, SourceState, World};
 
 /// Where a directory sits relative to the working directory.
 fn tag_for_dir(w: &World, dir: &str) -> ScopeTag {
