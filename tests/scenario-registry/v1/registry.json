@@ -1,0 +1,4227 @@
+{
+  "version": "1",
+  "scenarios": [
+    {
+      "id": "BTN-BUSY-FRAMES-001",
+      "app": "showcase",
+      "component": "Button",
+      "part": "marker cell (spinner)",
+      "ref_symbols": [
+        {
+          "glyph": "⠋",
+          "meaning": "busy spinner frame at tick 0",
+          "tick": 0
+        },
+        {
+          "glyph": "⠙",
+          "meaning": "busy spinner frame at tick 1",
+          "tick": 1
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "⠋",
+          "meaning": "busy spinner frame at tick 0",
+          "tick": 0
+        },
+        {
+          "glyph": "⠙",
+          "meaning": "busy spinner frame at tick 1",
+          "tick": 1
+        }
+      ],
+      "data": {
+        "label": "Run long job",
+        "kind": "Primary"
+      },
+      "state": {
+        "busy": true,
+        "disabled": false,
+        "focused": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "playing",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "focus the busy demo button on the showcase buttons page"
+        },
+        {
+          "step": 2,
+          "action": "activate to start the long job; button enters busy",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "advance one animation tick",
+          "ticks": 1
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "first-frame",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "second-frame",
+          "tick": 1,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "marker cell shows ⠋ at tick 0 and ⠙ at tick 1 (spinner_frame(tick), SPINNER[tick % 10])"
+          },
+          {
+            "id": "V2",
+            "text": "busy label text is non-bold text_secondary; spinner glyph is accent"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "widget state reports busy=true and pressed=false while busy"
+          },
+          {
+            "id": "S2",
+            "text": "can_activate() is false while busy"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter/Space while busy returns (Consumed, false): no activation, no toggle flip"
+          },
+          {
+            "id": "A2",
+            "text": "mouse click while busy returns false: no activation"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "second-frame capture must NOT equal first-frame capture (multi-frame, not frozen)"
+          },
+          {
+            "id": "N2",
+            "text": "no toggle marker (●/○) is visible while busy"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/button.rs",
+            "lines": "134-140,153-160",
+            "note": "busy branch renders spinner_frame(ctx.interaction.tick) and overwrites marker cell"
+          },
+          {
+            "path": "src/widgets/progress.rs",
+            "lines": "8-11",
+            "note": "SPINNER 10 braille frames; spinner_frame(tick) = SPINNER[tick % 10]"
+          },
+          {
+            "path": "src/bin/showcase/pages/buttons.rs",
+            "lines": "19,52-53,189-195",
+            "note": "buttons page busy demo: buttons[8].busy with busy_ticks countdown"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/audit/buttons/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "BTN-BUSY-CHECKED-GEOM-002",
+      "app": "showcase",
+      "component": "Button",
+      "part": "marker space geometry (busy + checked)",
+      "ref_symbols": [
+        {
+          "glyph": "⠋",
+          "meaning": "spinner wins over toggle marker while busy+checked",
+          "tick": 0
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "⠋",
+          "meaning": "spinner wins over toggle marker while busy+checked",
+          "tick": 0
+        }
+      ],
+      "data": {
+        "label": "Sync",
+        "kind": "Toggle"
+      },
+      "state": {
+        "busy": true,
+        "on": true,
+        "disabled": false,
+        "focused": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render toggle button with on=true and busy=true at tick 0",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "busy-checked-frame",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "marker cell (area.x+1) shows the spinner glyph, not ●"
+          },
+          {
+            "id": "V2",
+            "text": "button width is label width + 2 padding + 2 marker cells (single marker slot, not doubled)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "on=true is preserved (selected) while busy; busy does not clear the toggle"
+          },
+          {
+            "id": "S2",
+            "text": "can_activate() is false while busy even when checked"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter while busy+checked returns (Consumed, false): on stays true"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "●/○ must NOT appear anywhere in the button row while busy (spinner overwrite wins)"
+          },
+          {
+            "id": "N2",
+            "text": "width must NOT grow a second marker slot when busy and on are combined"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/button.rs",
+            "lines": "61-65",
+            "note": "width(): marker = 2 cells when on.is_some() OR busy (shared slot)"
+          },
+          {
+            "path": "src/widgets/button.rs",
+            "lines": "134-160",
+            "note": "busy text branch takes precedence; spinner overwrites the on/off marker paint at area.x+1"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/flows/buttons/focus/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    }
+  ],
+  "legacy_roots": [
+    {
+      "old": "holla/audit/rust",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/audit/upgrade",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/concept/activities-multi",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/concept/disk-cleanup",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/concept/docker-cleanup",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/concept/first-use",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/concept/hard-cases",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/concept/launch-failure",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/concept/monorepo-child",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/concept/monorepo-root",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/concept/remote-host",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/fade/browser_wheel",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/fade/cleanup_list_wheel",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/fade/executor_burst-end",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/fade/trust_body_wheel",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/activities/empty",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/activities/jump",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/activities/overlay",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/alternatives",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/args",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/args/clone",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/args/page",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/brew/services",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/brew/services_stop_failed",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/brew/upgrade_batch",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/brew/upgrade_plan",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/browser/hidden",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/browser/preview",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cargo/clean",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cargo/clean_confirm",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/child/query",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/artifacts",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/categories",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/derived_data",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/gate-1",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/gate1",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/gate2",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/gate2_typed",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/history",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/linux_report",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/plan",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/cleanup/report",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/config/page",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/disk/scan_complete",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/disk/top_files",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/disk/tree",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/disk/tree_apparent",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/disk/tree_selected",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/disk/tree_unfolded",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/docker/done",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/docker/drift",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/docker/gate2_typed",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/docker/remove_failed",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/docker/remove_gate1",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/docker/remove_gate2",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/files/actions",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/files/jump",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/files/jump_error",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/files/jumped",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/files/preview_control",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/files/results",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/files/unicode",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/finder/query",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/finder/query-selected",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/git/batch",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/git/batch_picker",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/git/merge",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/git/pull_blocked",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/git/push_rejected",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/gradle/cleanup",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/gradle/gate1",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/help/overlay",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/idea/cleanup",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/idea/gate2",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/menu/file",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/menu/go",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/platforms/files",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/platforms/linux_gate1",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/platforms/linux_gate2",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/query/empty_preview",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/query/redone",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/query/undone",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/quit/confirm",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/remote/gate-1",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/remote/gate2",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/remote/gate2_typed",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/remote/query",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/scope/children",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/scope/parent",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/scope/system",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/task/input_cancelled",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/task/input_killed",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/task/sources",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/task/sources_diagnostic",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/trust/accepted",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/trust/deploy_failed",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/trust/prompt",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/upgrade/confirm",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/upgrade/excluded",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/flows/upgrade/facts",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/brew-services",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/browser",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/cargo",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/cleanup-results",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/custom-actions",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/delete-safety",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/discovery",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/disk-navigation",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/disk-scan",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/docker",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/executor",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/files",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/git-batch",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/git-current",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/gradle",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/history",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/idea",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/insights",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/platforms",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/platforms-linux",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/task-input",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/task-sources",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/parity/upgrade-managers",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/resize/rust-dirty_grown",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "holla/resize/rust-dirty_shrunk",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/accounts/add_form",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/accounts/add_form_required",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/accounts/detail",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/accounts/drawer",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/accounts/filter",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/audit/accounts",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/audit/capsule",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/capsule/menu",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/capsule/new_tab",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/capsule/palette",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/capsule/split_vertical",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/capsule/zoom",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/cockpit/cancel_confirm",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/cockpit/debug",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/cockpit/info",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/editor/auth",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/editor/env",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/editor/general",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/editor/mounts",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/editor/mounts_dirty",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/editor/roles",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/editor/save_preview",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/intro/f300",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/intro/f400",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/intro/skipped",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/manager/detail_drawer",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/manager/hard_launch_locked",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/manager/hard_launch_picker",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/manager/help_overlay",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/manager/inspect",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/manager/launch_picker",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/manager/menu_open",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/manager/new_workspace_prelude",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/manager/quit_confirm",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/manager/tree_expanded",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/scenarios/first-use",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/scenarios/hard-cases",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/scenarios/launch-failure",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/scenarios/launch-running",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/scenarios/outro-last",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/scenarios/returning",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/settings/agents",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/settings/env",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/settings/mounts",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/settings/route",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/settings/save_preview",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/settings/trust",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/usage/detail",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "jackin/usage/overview",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/audit/buttons",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/audit/diff",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/audit/forms",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/audit/inputs",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/audit/textareas",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/fade/datagrid/wheel",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/fade/diff/wheel",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/fade/editor/wheel",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/fade/lists/wheel-fade",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/fade/scroll/page",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/fade/scrolling/wheel-fade",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/fade/sidebars/wheel",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/fade/terminal/scrollback",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/fade/textarea/wheel",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/fade/trees/wheel-fade",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/buttons/focus",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/chips/select_open",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/chips/toggled",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/chrome/context",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/chrome/focus",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/chrome/menu",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/chrome/menu_view",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/datagrid/failed",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/datagrid/pending",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/datagrid/preview",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/datagrid/selected",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/dialogs/destructive",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/dialogs/open",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/dialogs/prompt",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/diff/drag-selected",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/diff/empty",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/diff/review",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/editable/committed",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/editable/editing",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/editor/completion",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/editor/diag",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/editor/running",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/forms/invalid",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/forms/valid",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/help/overlay",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/inputs/editing",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/inputs/selected",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/inspector/open",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/inspector/scrolled",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/lists/moved",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/nav/cycled",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/nav/end",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/pickers/level",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/pickers/open",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/pickers/tabs",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/progress/done",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/progress/mid",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/scrolling/mid",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/scrolling/scrolled",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/settings/members",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/settings/toggled",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/settings/toggled_off",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/tables/selected",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/taskrunner/running",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/terminal/mid",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/flows/trees/expanded",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/hover/buttons",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/hover/lists",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/hover/tables",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/chips",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/chrome",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/codeeditor",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/datagrid",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/dialogs",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/editable",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/lists",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/overview",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/panels",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/pickers",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/progress",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/scrolling",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/settings",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/sidebars",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/tables",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/taskrunner",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/terminal",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/pages/trees",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/resize/overview_grown",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "showcase/resize/overview_shrunk",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/ack/armed",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/ack/delete_gate",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/ack/executed",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/ack/gate",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/audit/production",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/connections/default",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/connections/delete_dialog",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/connections/duplicated",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/connections/filter",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/connections/form_advanced",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/connections/form_new",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/connections/form_new-filled",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/connections/production_detail",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/fade/table_wheel",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/overlays/help_overlay",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/overlays/history_tab",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/overlays/picker_open",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/overlays/safemode_picker",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/overlays/tablist_open",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/overlays/tablist_tables",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/query/close_confirm",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/query/completion",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/query/completion_columns",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/query/error",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/query/explain",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/query/explain_analyze",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/query/new_tab",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/query/results",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/resize/workbench_grown",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/resize/workbench_shrunk",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/table/cell_editing",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/table/data",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/table/dirty",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/table/filter_editor",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/table/filtered",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/table/row_duplicated",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/table/scrolled_right",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/table/sorted",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/table/sorted-filtered",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/table/structure",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/workbench/commit_dialog",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/workbench/explorer_hidden",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/workbench/maximized",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    },
+    {
+      "old": "tablepro/workbench/quit_confirm",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending"
+    }
+  ]
+}
