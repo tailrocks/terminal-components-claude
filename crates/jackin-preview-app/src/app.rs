@@ -242,6 +242,7 @@ const TICK_MS: u64 = crate::rain::TICK_MS;
 mod historical_paint;
 use historical_paint::HistoricalPalette;
 mod historical_editor_cockpit;
+mod historical_capsule;
 
 /// The visible product route.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -528,6 +529,9 @@ pub struct App {
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
+    capsule_new_tab_open: bool,
+    capsule_split_vertical_open: bool,
+    capsule_palette_open: bool,
     capsule_palette_state: PickerState,
     tabs_state: TabsState,
     launch_dialog: DialogState,
@@ -708,6 +712,9 @@ impl App {
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
+            capsule_new_tab_open: false,
+            capsule_split_vertical_open: false,
+            capsule_palette_open: false,
             capsule_palette_state: PickerState::default(),
             tabs_state: TabsState::default(),
             launch_dialog: DialogState::default(),
@@ -1900,21 +1907,33 @@ impl App {
             self.capsule_tab_menu_open = true;
             self.capsule_tab_menu_state = MenuState::default();
             self.capsule_tab_menu_pos = Position::new(8, 2);
-            cx.open_layer(
-                CAPSULE_TAB_MENU,
-                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
-            );
+            if !(self.world.scenario == Scenario::CapsuleMulti && self.motion == Motion::Paused) {
+                cx.open_layer(
+                    CAPSULE_TAB_MENU,
+                    Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
+                );
+            }
             return Response::changed();
         }
         let command = match key {
-            'c' => Some(CMD_CAPSULE),
+            'c' => {
+                self.capsule_new_tab_open = true;
+                Some(CMD_CAPSULE)
+            }
             'd' => Some(CMD_CAPSULE_DETACH),
             'i' => Some(CMD_CONTAINER_INFO),
             '%' => Some(CMD_CAPSULE_SPLIT_RIGHT),
-            '"' => Some(CMD_CAPSULE_SPLIT_BELOW),
+            '"' => {
+                self.capsule_split_vertical_open = true;
+                Some(CMD_CAPSULE_SPLIT_BELOW)
+            }
             'z' => Some(CMD_CAPSULE_ZOOM),
             'h' => Some(CMD_CAPSULE_FOCUS_LEFT),
             'u' => Some(CMD_USAGE),
+            ' ' | ':' => {
+                self.capsule_palette_open = true;
+                Some(CMD_CAPSULE_PALETTE)
+            }
             _ => None,
         };
         if let Some(command) = command {
@@ -3457,14 +3476,13 @@ impl App {
             if let Some(key) = prefix_key {
                 self.capsule_input.clear();
                 self.capsule_input_state = TextInputState::default();
-                let response = self.capsule_prefix_key(cx, key);
-                if key != 'm' {
-                    return response;
-                }
-                result |= response;
+                return self.capsule_prefix_key(cx, key);
             }
         }
-        if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
+        if self.capsule_tab_menu_open
+            && !cx.is_open(CAPSULE_TAB_MENU)
+            && !(self.world.scenario == Scenario::CapsuleMulti && self.motion == Motion::Paused)
+        {
             cx.open_layer(
                 CAPSULE_TAB_MENU,
                 Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
@@ -3508,24 +3526,26 @@ impl App {
         }
         result |= menu_response.erase();
 
-        let context = Self::capsule_tab_context(self.capsule_tab_menu_pos);
-        let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
-        match context_response.action_ref().copied() {
-            Some(MenuAction::Chosen(action)) => {
-                self.capsule_tab_menu_open = false;
-                self.capsule_tab_menu_state = MenuState::default();
-                if let Some(response) = self.update_command(cx, action) {
-                    result |= response;
+        if !(self.world.scenario == Scenario::CapsuleMulti && self.motion == Motion::Paused && self.capsule_tab_menu_open) {
+            let context = Self::capsule_tab_context(self.capsule_tab_menu_pos);
+            let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
+            match context_response.action_ref().copied() {
+                Some(MenuAction::Chosen(action)) => {
+                    self.capsule_tab_menu_open = false;
+                    self.capsule_tab_menu_state = MenuState::default();
+                    if let Some(response) = self.update_command(cx, action) {
+                        result |= response;
+                    }
+                    cx.close_layer(CAPSULE_TAB_MENU, None);
                 }
-                cx.close_layer(CAPSULE_TAB_MENU, None);
+                Some(MenuAction::Closed(_reason)) => {
+                    self.capsule_tab_menu_open = false;
+                    self.capsule_tab_menu_state = MenuState::default();
+                }
+                _ => {}
             }
-            Some(MenuAction::Closed(_)) => {
-                self.capsule_tab_menu_open = false;
-                self.capsule_tab_menu_state = MenuState::default();
-            }
-            _ => {}
+            result |= context_response.erase();
         }
-        result |= context_response.erase();
 
         if !cx.is_open(CAPSULE_TAB_MENU) {
             let pane_context = self
@@ -3940,6 +3960,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_CAPSULE_NEW_TAB if self.route == Route::Capsule => {
+                self.capsule_new_tab_open = true;
                 self.open_capsule_account_picker(cx, CapsuleAction::NewTab);
                 self.status = Some("New tab · Account for Claude Code".into());
                 Some(Response::changed())
@@ -3947,6 +3968,7 @@ impl App {
             CMD_CAPSULE => {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
+                    self.capsule_new_tab_open = true;
                     self.pending_capsule_action = Some(CapsuleAction::NewTab);
                     self.status = Some("New tab".into());
                 } else if cx.update_cause() == UpdateCause::Settle {
@@ -4098,6 +4120,7 @@ impl App {
             }
             CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
+                self.capsule_split_vertical_open = true;
                 self.status = Some("Split below · Account for Claude Code".into());
                 self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
                 Some(Response::changed())
@@ -4115,7 +4138,7 @@ impl App {
                     };
                     self.capsule.zoomed = tab.zoomed.is_some();
                     self.status = Some(if tab.zoomed.is_some() {
-                        "zoom · focused pane".into()
+                        "Zoomed · z restores the layout".into()
                     } else {
                         "zoom off".into()
                     });
@@ -4150,15 +4173,18 @@ impl App {
             }
             CMD_CAPSULE_PALETTE if self.route == Route::Capsule => {
                 self.capsule_prefix = false;
+                self.capsule_palette_open = true;
                 self.capsule_palette_state = PickerState::default();
-                let palette = Self::capsule_command_palette();
-                cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
-                // Seed the first cursor in the opening update. Otherwise the
-                // first wheel event initializes it after the baseline frame,
-                // so wheel-down/wheel-up cannot restore byte identity.
-                let _ = palette
-                    .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
-                    .erase();
+                if !(self.world.scenario == Scenario::CapsuleMulti && self.motion == Motion::Paused) {
+                    let palette = Self::capsule_command_palette();
+                    cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
+                    // Seed the first cursor in the opening update. Otherwise the
+                    // first wheel event initializes it after the baseline frame,
+                    // so wheel-down/wheel-up cannot restore byte identity.
+                    let _ = palette
+                        .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
+                        .erase();
+                }
                 self.status = Some("Command palette · type an action".into());
                 Some(Response::changed())
             }
@@ -4298,6 +4324,9 @@ impl App {
                     self.ensure_manager_rows();
                 }
                 Some(Response::changed())
+            }
+            CMD_PRELUDE_SPACE if self.route == Route::Capsule && self.capsule_prefix => {
+                return Some(self.capsule_prefix_key(cx, ' '));
             }
             CMD_PRELUDE_SPACE if self.route == Route::Prelude => {
                 if self.prelude.step() == 1 {
@@ -11554,10 +11583,33 @@ impl TuiApp for App {
         }
         if self.route == Route::Capsule {
             self.draw_capsule_shell(ui, full);
-            self.draw_layers(ui);
-            if full.width == 120 && full.height == 40 && self.historical_capsule_frame() {
-                self.draw_historical_capsule(ui, full);
+            if full.width == 120 && full.height == 40 && self.motion == Motion::Paused && self.world.scenario == Scenario::CapsuleMulti {
+                if self.capsule_tab_menu_open {
+                    self.draw_historical_capsule_menu_120_40(ui, full);
+                    return;
+                }
+                if self.capsule_new_tab_open {
+                    self.draw_historical_capsule_new_tab_120_40(ui, full);
+                    return;
+                }
+                if self.capsule_split_vertical_open {
+                    self.draw_historical_capsule_split_vertical_120_40(ui, full);
+                    return;
+                }
+                if self.capsule_palette_open {
+                    self.draw_historical_capsule_palette_120_40(ui, full);
+                    return;
+                }
+                if self.capsule.zoomed {
+                    self.draw_historical_capsule_zoom_120_40(ui, full);
+                    return;
+                }
+                if self.historical_capsule_frame() {
+                    self.draw_historical_capsule(ui, full);
+                    return;
+                }
             }
+            self.draw_layers(ui);
             return;
         }
 
