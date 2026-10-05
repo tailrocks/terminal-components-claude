@@ -783,11 +783,22 @@
       "title": "Migrate TablePro production compositions",
       "requirement": "Connection/workbench/grid/editor/safety screens use Termrock; domain/SQL/demo/UI split preserves sealed SQL preview and safety vectors.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 0d2df6fa5: Connection forms (new, new_filled, advanced) migrated to Termrock with 100% parity",
+        "tablepro_connections_form_new_120x40_truecolor (25/25 PASS)",
+        "tablepro_connections_form_new_filled_120x40_truecolor (25/25 PASS)",
+        "tablepro_connections_form_advanced_120x40_truecolor (25/25 PASS)",
+        "Full suite test(tablepro_connections_): 8/8 PASS",
+        "145/145 TablePro crate tests: 100% PASSED"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "in_progress",
+        "notes": "Connection forms verified at 100% parity (commit 0d2df6fa5); remaining workbench, query, and safety screens under migration."
+      }
     },
     {
       "id": "G04-05",
@@ -928,11 +939,21 @@
       "title": "Run actual TablePro full-frame parity",
       "requirement": "Every connection/workbench/query/table/history/safety/overlay checkpoint compares production candidate to tag.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 0d2df6fa5 for connection forms suite:",
+        "tablepro_connections_form_new_120x40_truecolor (25/25 PASS)",
+        "tablepro_connections_form_new_filled_120x40_truecolor (25/25 PASS)",
+        "tablepro_connections_form_advanced_120x40_truecolor (25/25 PASS)",
+        "Full suite test(tablepro_connections_): 8/8 PASS"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "in_progress",
+        "notes": "Connection forms 100% parity verified (75/75 captures across 3 form matrices, 8/8 suite at commit 0d2df6fa5). Full application parity pending remaining screens."
+      }
     },
     {
       "id": "G05-06",
@@ -1873,13 +1894,23 @@
       "title": "tablepro-ui",
       "requirement": "crates/tablepro-ui owns: Connection/workbench/editor/result/table/history/safety presentation and controller interfaces. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified connection forms implementation at commit 0d2df6fa5",
+        "tablepro_connections_form_new_120x40_truecolor (25/25 PASS)",
+        "tablepro_connections_form_new_filled_120x40_truecolor (25/25 PASS)",
+        "tablepro_connections_form_advanced_120x40_truecolor (25/25 PASS)",
+        "Full suite test(tablepro_connections_): 8/8 PASS"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "in_progress",
+        "notes": "Connection forms, field navigation, and tabs in tablepro-ui verified with 100% test pass rate."
+      }
     },
     {
       "id": "PKG-41",
