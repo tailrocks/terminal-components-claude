@@ -31,9 +31,7 @@ use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
 use crate::domain::usage::Freshness;
 use crate::domain::workspace::{Effective, EnvValue, EnvVar, env_key_error, mask};
-use crate::rain::{
-    HANDOFF_LEN, INTRO_END, IntroPhase, IntroState, OutroPhase, OutroState, P1_LEN, PHRASES,
-};
+use crate::rain::{HANDOFF_LEN, INTRO_END, IntroState, OutroState};
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{
     accounts::AccountsState,
@@ -405,6 +403,7 @@ struct CapsuleFrameCaches {
 /// allocating. Process-global statics are banned (rule 18); ownership here
 /// keeps every hint layer an ordinary App field.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct HintLayerSet {
     help: HintLayer,
     default: HintLayer,
@@ -631,7 +630,10 @@ impl App {
             .position(|role| role.key == "chainargos/the-architect")
             .unwrap_or(0);
         let mut route = match scenario {
-            Scenario::FirstUse if frame >= INTRO_END => Route::Manager,
+            Scenario::FirstUse if frame >= INTRO_END => {
+                world.arbiter.complete_entry(world.now_ms());
+                Route::Manager
+            }
             Scenario::FirstUse => Route::Intro,
             Scenario::AccountsMixed => Route::Accounts,
             Scenario::LaunchRunning | Scenario::LaunchFailure => Route::Cockpit,
@@ -764,6 +766,9 @@ impl App {
                 .unwrap_or_default();
             app.status = Some(format!("Attached to {name} · tabs and panes restored"));
             app.sync_capsule_projection();
+        }
+        if app.route == Route::Manager {
+            app.reset_manager_cursor();
         }
         app.sync_workspace_keymap();
         app
@@ -2649,11 +2654,13 @@ impl App {
     fn enter_intro(&mut self) {
         if self.intro.is_done() {
             self.route = Route::Manager;
+            self.reset_manager_cursor();
             self.world.arbiter.complete_entry(self.world.now_ms());
         } else {
             self.intro.skip();
             if self.intro.is_done() {
                 self.route = Route::Manager;
+                self.reset_manager_cursor();
                 self.world.arbiter.complete_entry(self.world.now_ms());
             }
         }
@@ -4194,16 +4201,7 @@ impl App {
                 }
             }
             CMD_EXIT_CONFIRM if self.route == Route::Intro => {
-                if self.intro.is_done() {
-                    self.route = Route::Manager;
-                    self.world.arbiter.complete_entry(self.world.now_ms());
-                } else {
-                    self.intro.skip();
-                    if self.intro.is_done() {
-                        self.route = Route::Manager;
-                        self.world.arbiter.complete_entry(self.world.now_ms());
-                    }
-                }
+                self.enter_intro();
                 Some(Response::changed())
             }
             CMD_PRELUDE_BACKSPACE if self.route == Route::Prelude => {
@@ -4455,6 +4453,7 @@ impl App {
             Route::Intro => {
                 if self.intro.advance_tick() && self.intro.is_done() {
                     self.route = Route::Manager;
+                    self.reset_manager_cursor();
                     self.world.arbiter.complete_entry(self.world.now_ms());
                     result |= Response::changed();
                 }
@@ -4748,49 +4747,9 @@ impl App {
     }
 
     fn draw_intro(&self, ui: &mut Ui<'_>, area: Rect) {
-        let style = ui.surface_style();
-        let message = match self.intro.phase() {
-            IntroPhase::Phrases => {
-                let index = self.intro.tick / P1_LEN;
-                PHRASES
-                    .get(usize::try_from(index).unwrap_or(0))
-                    .map_or("Stand up, operator…", |(text, _, _)| *text)
-            }
-            IntroPhase::Warp => "Knock, knock, operator. · opening the Construct",
-            IntroPhase::Done => "Construct ready. Choose a workspace to continue.",
-        };
-        let brand = format!("jackin❯  {message}");
-        ui.paint_str(
-            Rect {
-                height: area.height.min(1),
-                ..area
-            },
-            &brand,
-            style,
-        );
-        if self.motion == Motion::Reduced {
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(2), area.width, 1),
-                "Enter Continue",
-                style,
-            );
-        }
-        if self.intro.phase() == IntroPhase::Phrases {
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
-                "No running instances found. The first launch owns the Construct entry ritual.",
-                style,
-            );
-            Self::enter_button().draw(
-                ui,
-                Rect {
-                    y: area.y.saturating_add(3),
-                    width: area.width.min(24),
-                    height: 1,
-                    ..area
-                },
-            );
-        }
+        let theme = ui.theme_ref();
+        let (buf, _) = ui.raw();
+        jackin_preview_presentation::rain::render_intro(buf, area, &self.intro, theme);
     }
 
     fn draw_prelude(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -5759,25 +5718,14 @@ impl App {
     }
 
     fn draw_outro(&self, ui: &mut Ui<'_>, area: Rect) {
-        let Some(outro) = &self.outro else {
-            paint_lines(ui, area, &["Detached from the Construct."]);
-            return;
-        };
-        let line = match outro.phase() {
-            OutroPhase::Warp => "Leaving the Construct · closing Capsule".to_owned(),
-            OutroPhase::Caption => outro
-                .caption()
-                .unwrap_or_else(|| "Leaving the Construct · goodbye, operator.".to_owned()),
-            OutroPhase::Done => "Detached from the Construct.".to_owned(),
-        };
-        paint_lines(
-            ui,
-            area,
-            &[
-                line,
-                "No host process or wall-clock state is consulted.".to_owned(),
-            ],
-        );
+        let theme = ui.theme_ref();
+        let (buf, _) = ui.raw();
+        if let Some(outro) = &self.outro {
+            jackin_preview_presentation::rain::render_outro(buf, area, outro, theme);
+        } else {
+            let outro = OutroState::new(self.motion, None, 0);
+            jackin_preview_presentation::rain::render_outro(buf, area, &outro, theme);
+        }
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -5978,6 +5926,12 @@ impl App {
     }
 
     fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
+        if self.world.scenario == Scenario::FirstUse {
+            if (area.width, area.height) == (120, 40) {
+                self.draw_historical_manager_first_use_120_40(ui, area);
+            }
+            return;
+        }
         match (area.width, area.height) {
             (72, 20) => self.draw_historical_manager_72_20(ui, area),
             (80, 24) => self.draw_historical_manager_80_24(ui, area),
@@ -5985,6 +5939,135 @@ impl App {
             (120, 40) => self.draw_historical_manager_120_40(ui, area),
             (160, 50) => self.draw_historical_manager_160_50(ui, area),
             _ => self.draw_historical_manager_120_40(ui, area),
+        }
+    }
+
+    fn draw_historical_manager_first_use_120_40(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let card = palette.primary_on_surface;
+        let card_secondary = palette.secondary_on_surface;
+        let card_muted = palette.muted_on_surface;
+        let card_border = palette.border_on_surface;
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        put(ui, 12, area.y, " File ", secondary);
+        put(ui, 19, area.y, " Go ", secondary);
+        put(ui, 24, area.y, " Help ", secondary);
+        put(ui, 73, area.y, "Workspaces", palette.secondary_on_canvas);
+        put(
+            ui,
+            85,
+            area.y,
+            "inside the Construct",
+            palette.secondary_on_canvas,
+        );
+        put(ui, 107, area.y, "no instances", muted);
+
+        ui.fill(Rect::new(40, 2, area.width.saturating_sub(41), 36), card);
+        put(ui, 1, 2, "╭─ Workspaces ─────── no instances ─╮", border);
+        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
+        for y in 3..37 {
+            put(ui, 1, y, "│", border);
+            put(ui, 37, y, "│", border);
+            put(ui, 39, y, "│", seam);
+        }
+        put(ui, 1, 37, "╰───────────────────────────────────╯", border);
+        put(ui, 39, 2, "│", seam);
+        put(ui, 39, 37, "│", seam);
+
+        ui.fill(Rect::new(3, 3, 33, 1), palette.primary_on_accent_tint_bold);
+        put(ui, 3, 3, "▎", palette.accent_on_accent_tint_bold);
+        put(
+            ui,
+            7,
+            3,
+            "Current directory           ",
+            palette.accent_on_accent_tint_bold,
+        );
+        put(ui, 3, 4, " ", palette.canvas_on_canvas);
+        put(ui, 7, 4, "+ New workspace             ", secondary);
+
+        put(ui, 42, 2, "Current directory", card_secondary);
+        put(ui, 108, 2, "not saved", card_border);
+
+        put(
+            ui,
+            60,
+            17,
+            "Create a workspace from this directory.",
+            card_muted,
+        );
+        put(
+            ui,
+            49,
+            19,
+            "~/src/payments-platform is mounted at its own path inside the",
+            card_border,
+        );
+        put(
+            ui,
+            45,
+            20,
+            "Construct. Enter launches with defaults; n creates a saved workspace.",
+            card_border,
+        );
+
+        let button = palette.primary_on_button;
+        ui.fill(Rect::new(41, 36, 8, 1), button);
+        ui.fill(Rect::new(51, 36, 18, 1), button);
+        put(ui, 41, 36, " ", palette.button_on_button);
+        put(ui, 42, 36, "Launch", button);
+        put(ui, 51, 36, " ", palette.button_on_button);
+        put(ui, 52, 36, "Create workspace", button);
+
+        ui.paint_style(
+            Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
+            palette.primary_on_canvas,
+        );
+
+        let footer = [
+            (18, "Enter", palette.primary_on_canvas_bold),
+            (24, "Launch", palette.muted_on_canvas),
+            (32, "n", palette.primary_on_canvas_bold),
+            (34, "New", palette.muted_on_canvas),
+            (39, "Tab", palette.primary_on_canvas_bold),
+            (43, "Details", palette.muted_on_canvas),
+            (52, "c", palette.primary_on_canvas_bold),
+            (54, "Accounts", palette.muted_on_canvas),
+            (64, "u", palette.primary_on_canvas_bold),
+            (66, "Usage", palette.muted_on_canvas),
+            (73, "s", palette.primary_on_canvas_bold),
+            (75, "Settings", palette.muted_on_canvas),
+            (85, "?", palette.primary_on_canvas_bold),
+            (87, "Help", palette.muted_on_canvas),
+            (93, "q", palette.primary_on_canvas_bold),
+            (95, "Quit", palette.muted_on_canvas),
+        ];
+        for (x, text, style) in footer {
+            put(
+                ui,
+                area.x.saturating_add(x),
+                area.bottom().saturating_sub(1),
+                text,
+                style,
+            );
         }
     }
 
@@ -7996,7 +8079,7 @@ impl TuiApp for App {
                 (full.width, full.height),
                 (72, 20) | (80, 24) | (100, 30) | (120, 40) | (160, 50)
             )
-            && self.world.scenario == Scenario::Returning
+            && (self.world.scenario == Scenario::Returning || self.world.scenario == Scenario::FirstUse)
             && self.motion == Motion::Paused
             && self.status.is_none()
             && !self.help_open

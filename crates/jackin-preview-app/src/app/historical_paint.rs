@@ -297,9 +297,7 @@ const MONO_RULES: &[MonoRule] = &[
     (
         Part::custom("jackin.historical.border_on_elevated"),
         StateFlags::empty(),
-        StylePatch::new()
-            .set_fg(Role::BorderStrong)
-            .add(Modifier::DIM),
+        StylePatch::new().set_fg(Role::BorderStrong),
     ),
     (
         Part::custom("jackin.historical.border_on_surface"),

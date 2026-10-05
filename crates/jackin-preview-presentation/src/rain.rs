@@ -4,10 +4,7 @@
 //! the public facade when the shell paints it, while this module keeps the
 //! exact virtual-frame contracts used by the preview and its tests.
 
-use termrock::{
-    Buffer, Color, Family, FgStep, Part, Rect, Role, StateFlags, Style, StylePatch, Surface, Theme,
-    Variant,
-};
+use termrock::{Buffer, Color, Rect, Style, Surface, Theme};
 
 use jackin_preview_domain::scenario::Motion;
 
@@ -54,58 +51,48 @@ pub enum Tone {
     Accent,
 }
 
-const RAIN_FAMILY: Family = Family::custom("jackin-preview.rain");
-const RAIN_PART: Part = Part::custom("jackin-preview.rain.style");
 
-fn role_style(theme: &Theme, patch: StylePatch) -> Style {
-    theme
-        .clone()
-        .define_family(RAIN_FAMILY, |family| {
-            family.part(RAIN_PART).base(patch);
-        })
-        .resolve(
-            RAIN_FAMILY,
-            Variant::DEFAULT,
-            RAIN_PART,
-            StateFlags::empty(),
-            Surface::Canvas,
-        )
-        .style
-        .into_style()
-}
 
-/// Resolve a tone to a theme style.  Dim is index arithmetic over the
-/// foreground ladder; no colour equality is used, so themes with distinct
-/// accent/focus/success colours remain distinct.
 pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
-    let role = match tone {
+    match tone {
         Tone::Ladder(level) => {
-            let index = usize::from(level.saturating_sub(dim).min(4));
-            Role::Fg(match index {
-                0 => FgStep::Primary,
-                1 => FgStep::Secondary,
-                2 => FgStep::Muted,
-                3 => FgStep::Faint,
-                _ => FgStep::Ghost,
-            })
+            let eff = level.saturating_sub(dim);
+            let fg = match eff {
+                0 => theme.color.fg[4],
+                1 => theme.color.fg[3],
+                2 => theme.color.fg[2],
+                3 => theme.color.fg[1],
+                _ => theme.color.fg[0],
+            };
+            Some(Style::new().fg(fg).bg(theme.bg(Surface::Canvas)))
         }
-        Tone::Accent if dim >= 3 => return None,
-        Tone::Accent if dim == 2 => Role::Fg(FgStep::Muted),
-        Tone::Accent if dim == 1 => Role::Fg(FgStep::Faint),
-        Tone::Accent => Role::Accent,
-    };
-    Some(role_style(theme, StylePatch::new().set_fg(role)))
+        Tone::Accent => {
+            if dim >= 3 {
+                None
+            } else if dim == 2 {
+                Some(Style::new().fg(theme.color.fg[2]).bg(theme.bg(Surface::Canvas)))
+            } else if dim == 1 {
+                Some(Style::new().fg(theme.color.fg[3]).bg(theme.bg(Surface::Canvas)))
+            } else {
+                Some(Style::new().fg(theme.color.accent).bg(theme.bg(Surface::Canvas)))
+            }
+        }
+    }
 }
 
 /// Fill a field with the theme canvas colour.
 pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
-    buf.set_style(
-        area,
-        role_style(
-            theme,
-            StylePatch::new().set_bg(Role::Surface(Surface::Canvas)),
-        ),
-    );
+    let st = Style::new()
+        .bg(theme.bg(Surface::Canvas))
+        .fg(theme.color.fg[0]);
+    for y in area.top()..area.bottom() {
+        for x in area.left()..area.right() {
+            if let Some(cell) = buf.cell_mut((x, y)) {
+                cell.set_symbol(" ");
+                cell.set_style(st);
+            }
+        }
+    }
 }
 
 /// Dim existing cells by replacing their foreground with a ladder step.
@@ -130,6 +117,23 @@ pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, theme: &Theme) {
     }
 }
 
+const fn xorshift(seed: &mut u64) -> u64 {
+    if *seed == 0 {
+        *seed = 0xDEAD_BEEF_CAFE_1337;
+    }
+    *seed ^= *seed << 13;
+    *seed ^= *seed >> 7;
+    *seed ^= *seed << 17;
+    *seed
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Star {
+    angle: f32,
+    radius: f32,
+    speed: f32,
+}
+
 /// One deterministic warp cell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WarpCell {
@@ -141,11 +145,11 @@ pub struct WarpCell {
     pub accent: bool,
 }
 
-/// A bounded, reproducible star/warp field.  The implementation is integer
-/// only: it is cheap enough for captures and byte-identical across machines.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// A radial star/warp field.
+#[derive(Debug, Clone, PartialEq)]
 pub struct Starfield {
     seed: u64,
+    stars: Vec<Star>,
     cols: u16,
     rows: u16,
     cells: Vec<Option<WarpCell>>,
@@ -153,50 +157,104 @@ pub struct Starfield {
     pub frame: u64,
 }
 
+fn edge_radius(angle: f32, cx: f32, cy: f32) -> f32 {
+    let dx = (angle.cos() * 2.0).abs();
+    let dy = angle.sin().abs();
+    let rx = if dx > 1e-3 { cx / dx } else { f32::MAX };
+    let ry = if dy > 1e-3 { cy / dy } else { f32::MAX };
+    rx.min(ry).max(1.0)
+}
+
 impl Starfield {
     /// Build a seeded field for `cols × rows`.
     pub fn new(cols: u16, rows: u16, salt: u64) -> Self {
+        use std::f32::consts::PI;
+        let rows = rows.max(1);
+        let mut seed: u64 = 0x9E37_79B9_7F4A_7C15 ^ salt;
+        let (cx, cy) = (cols as f32 / 2.0, rows as f32 / 2.0);
+        let n = (cols as usize * rows as usize / 4).clamp(80, 2400);
+        let stars = (0..n)
+            .map(|_| {
+                let angle = (xorshift(&mut seed) % 36000) as f32 / 36000.0 * 2.0 * PI;
+                Star {
+                    angle,
+                    radius: (xorshift(&mut seed) % 1000) as f32 / 1000.0
+                        * edge_radius(angle, cx, cy),
+                    speed: 0.5 + (xorshift(&mut seed) % 100) as f32 / 100.0,
+                }
+            })
+            .collect();
         Self {
-            seed: mix(MOTION_SEED ^ salt, u64::from(cols), u64::from(rows)),
+            seed,
+            stars,
             cols,
             rows,
-            cells: vec![None; usize::from(cols) * usize::from(rows)],
+            cells: vec![None; cols as usize * rows as usize],
             frame: 0,
         }
     }
 
-    /// Advance and regenerate one field frame.
-    pub fn advance(&mut self, accelerating: bool, frame: u64) {
-        self.cells.fill(None);
-        let cols = usize::from(self.cols);
-        let rows = usize::from(self.rows);
-        if cols == 0 || rows == 0 {
-            self.frame = frame.saturating_add(1);
-            return;
-        }
-        let count = (cols.saturating_mul(rows) / 8).clamp(8, 512);
-        for index in 0..count {
-            let seed = mix(self.seed, index as u64, frame);
-            let x = (seed as usize) % cols;
-            let y = ((seed >> 16) as usize) % rows;
-            let level = (((seed >> 32) % 5) as u8).saturating_add(if accelerating { 0 } else { 1 });
-            let level = level.min(4);
-            let accent = accelerating && pct(seed >> 40) < 8;
-            let cell_index = y.saturating_mul(cols).saturating_add(x);
-            if let Some(cell) = self.cells.get_mut(cell_index) {
-                *cell = Some(WarpCell {
-                    ch: if accent {
-                        '─'
-                    } else {
-                        glyph(x as u64, y as u64, frame)
-                    },
+    /// Advance one frame.
+    pub fn advance(&mut self, accelerating: bool, f: u64) {
+        use std::f32::consts::PI;
+        let (cols, rows) = (self.cols as usize, self.rows as usize);
+        self.cells.iter_mut().for_each(|c| *c = None);
+        let cx = cols as f32 / 2.0;
+        let cy = rows as f32 / 2.0;
+        let max_r = (cx / 2.0).hypot(cy).max(1.0);
+        let t = f as f32 / WARP_TICKS as f32;
+        let warp_factor = if accelerating {
+            0.2 + t * t * 5.0
+        } else {
+            0.2 + (1.0 - t).powi(2) * 5.0
+        };
+        let entry_fade = (f as f32 / 8.0).min(1.0);
+        for i in 0..self.stars.len() {
+            let mut star = self.stars[i];
+            let prev = star.radius;
+            star.radius += star.speed * warp_factor;
+            let (dx, dy) = (star.angle.cos() * 2.0, star.angle.sin());
+            let head_x = cx + dx * star.radius;
+            let head_y = cy + dy * star.radius;
+            if head_x < 0.0 || head_x >= cols as f32 || head_y < 0.0 || head_y >= rows as f32 {
+                star.angle = (xorshift(&mut self.seed) % 36000) as f32 / 36000.0 * 2.0 * PI;
+                star.radius = (xorshift(&mut self.seed) % 60) as f32 / 100.0;
+                star.speed = 0.5 + (xorshift(&mut self.seed) % 100) as f32 / 100.0;
+                self.stars[i] = star;
+                continue;
+            }
+            let steps = ((1.0 + warp_factor * 1.4) as usize).max(1);
+            for s in 0..=steps {
+                let rr = prev + (star.radius - prev) * (s as f32 / steps as f32);
+                let x = (cx + dx * rr).round();
+                let y = (cy + dy * rr).round();
+                if x < 0.0 || y < 0.0 {
+                    continue;
+                }
+                let (xu, yu) = (x as usize, y as usize);
+                if xu >= cols || yu >= rows {
+                    continue;
+                }
+                let frac = (rr / max_r).clamp(0.0, 1.0);
+                let streak = frac > 0.66 && warp_factor > 2.5;
+                let ch = if frac > 0.66 {
+                    if streak { '─' } else { '*' }
+                } else if frac > 0.33 {
+                    '+'
+                } else {
+                    '·'
+                };
+                let bright = (frac * 0.7 + warp_factor / 5.2 * 0.3).clamp(0.0, 1.0) * entry_fade;
+                let level = (bright * 4.999) as u8;
+                self.cells[yu * cols + xu] = Some(WarpCell {
+                    ch,
                     level,
-                    accent,
+                    accent: streak && s == steps && bright > 0.7,
                 });
             }
+            self.stars[i] = star;
         }
-        self.frame = frame.saturating_add(1);
-        self.seed = mix(self.seed, frame, u64::from(accelerating));
+        self.frame = f + 1;
     }
 
     /// Dimensions of the field.
@@ -206,34 +264,36 @@ impl Starfield {
 
     /// Paint the last generated frame.
     pub fn paint(&self, buf: &mut Buffer, area: Rect, dim: u8, theme: &Theme) {
-        let cols = self.cols.min(area.width);
-        let rows = self.rows.min(area.height);
-        for y in 0..rows {
-            for x in 0..cols {
-                let cell_index = usize::from(y)
-                    .saturating_mul(usize::from(self.cols))
-                    .saturating_add(usize::from(x));
-                let Some(cell) = self.cells.get(cell_index).copied().flatten() else {
+        for y in 0..self.rows.min(area.height) {
+            for x in 0..self.cols.min(area.width) {
+                let Some(c) = self.cells[y as usize * self.cols as usize + x as usize] else {
                     continue;
                 };
-                if cell.level == 0 && !cell.accent {
-                    continue;
-                }
-                let tone = if cell.accent {
+                let tone = if c.accent {
                     Tone::Accent
                 } else {
-                    Tone::Ladder(cell.level)
+                    Tone::Ladder(c.level)
                 };
+                if c.level == 0 && !c.accent {
+                    continue;
+                }
                 if let Some(resolved) = style(theme, tone, dim) {
-                    buf.set_string(
+                    put(
+                        buf,
                         area.x.saturating_add(x),
                         area.y.saturating_add(y),
-                        cell.ch.to_string(),
+                        c.ch,
                         resolved,
                     );
                 }
             }
         }
+    }
+}
+
+fn put(buf: &mut Buffer, x: u16, y: u16, ch: char, st: Style) {
+    if x < buf.area.right() && y < buf.area.bottom() {
+        buf.set_string(x, y, ch.to_string(), st);
     }
 }
 
@@ -333,7 +393,6 @@ impl IntroState {
     /// Skip phrases to warp, then warp to done.
     pub fn skip(&mut self) {
         self.tick = match self.mode {
-            Motion::Paused => INTRO_END,
             Motion::Reduced => REDUCED_HOLD,
             _ => match self.phase() {
                 IntroPhase::Phrases => WARP_START,
@@ -526,6 +585,203 @@ pub fn paint_atmosphere(
                 );
             }
         }
+    }
+}
+
+const OUTRO_SALT: u64 = 0x5F5F_4F55_5452_4F5F;
+
+fn center(area: Rect) -> (u16, u16) {
+    (
+        area.x + area.width / 2,
+        area.y + (area.height / 2).saturating_sub(1),
+    )
+}
+
+fn draw_text(buf: &mut Buffer, area: Rect, text: &str, y: u16, tone: Tone, t: &Theme) {
+    let n = text.chars().count() as u16;
+    let x0 = area.x + area.width.saturating_sub(n) / 2;
+    if let Some(st) = style(t, tone, 0) {
+        for (i, ch) in text.chars().enumerate() {
+            put(buf, x0 + i as u16, y, ch, st);
+        }
+    }
+}
+
+fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, t: &Theme) {
+    let text = format!("{key} {action}");
+    let n = text.chars().count() as u16;
+    if area.width < n + 4 {
+        return;
+    }
+    let x = area.right().saturating_sub(n + 2);
+    let y = area.bottom().saturating_sub(1);
+    let empty_st = Style::new()
+        .bg(t.bg(Surface::Canvas))
+        .fg(t.color.fg[0]);
+    for xx in x.saturating_sub(1)..area.right() {
+        if let Some(cell) = buf.cell_mut((xx, y)) {
+            cell.set_symbol(" ");
+            cell.set_style(empty_st);
+        }
+    }
+    let ks = Style::new()
+        .fg(t.color.fg[2])
+        .bg(t.bg(Surface::Canvas))
+        .add_modifier(termrock::Modifier::BOLD);
+    let as_ = Style::new()
+        .fg(t.color.fg[3])
+        .bg(t.bg(Surface::Canvas));
+    buf.set_string(x, y, key, ks);
+    buf.set_string(x + key.chars().count() as u16 + 1, y, action, as_);
+}
+
+fn draw_pill_bottom(buf: &mut Buffer, area: Rect, t: &Theme) {
+    let w = 9;
+    if area.height < 4 || area.width < w + 2 {
+        return;
+    }
+    let x = area.x + area.width.saturating_sub(w) / 2;
+    let y = area.bottom().saturating_sub(2);
+    let st = Style::new()
+        .fg(t.color.on_accent)
+        .bg(t.color.accent)
+        .add_modifier(termrock::Modifier::BOLD);
+    buf.set_string(x, y, " jackin❯ ", st);
+}
+
+fn draw_typed(buf: &mut Buffer, area: Rect, text: &str, y: u16, shown: usize, t: &Theme) {
+    let n = text.chars().count() as u16;
+    let x0 = area.x + area.width.saturating_sub(n) / 2;
+    if let Some(st) = style(t, Tone::Ladder(4), 0) {
+        for (i, ch) in text.chars().take(shown).enumerate() {
+            put(buf, x0 + i as u16, y, ch, st);
+        }
+    }
+}
+
+fn draw_glitched(buf: &mut Buffer, area: Rect, text: &str, y: u16, j: u64, tone: Tone, t: &Theme) {
+    let n = text.chars().count() as u16;
+    let x0 = area.x + area.width.saturating_sub(n) / 2;
+    let Some(st) = style(t, tone, 0) else { return };
+    let pass = j / GLITCH_PASS_TICKS;
+    for (i, ch) in text.chars().enumerate() {
+        let x = x0 + i as u16;
+        let shown = if pass < GLITCH_PASSES && mix(x as u64, y as u64, pass) % 3 == 0 {
+            glyph(x as u64, y as u64, pass)
+        } else {
+            ch
+        };
+        put(buf, x, y, shown, st);
+    }
+}
+
+fn phrase_at(tick: u64) -> Option<(usize, usize)> {
+    let mut start = 0;
+    for (i, (text, char_ms, hold_ms)) in PHRASES.iter().enumerate() {
+        let n = text.chars().count() as u64;
+        let len = phrase_ticks(n, *char_ms, *hold_ms);
+        if tick < start + len {
+            let k = tick - start;
+            let shown = ((k * TICK_MS) / char_ms).min(n) as usize;
+            return Some((i, shown));
+        }
+        start += len;
+    }
+    None
+}
+
+/// Render the intro at `state.tick`.
+pub fn render_intro(buf: &mut Buffer, area: Rect, state: &IntroState, t: &Theme) {
+    if area.is_empty() {
+        return;
+    }
+    let (_, cy) = center(area);
+    let cy = cy + 1;
+    match state.mode {
+        Motion::Reduced => {
+            fill_canvas(buf, area, t);
+            draw_text(buf, area, CAPTION, cy, Tone::Ladder(4), t);
+            draw_pill_bottom(buf, area, t);
+            draw_hint(buf, area, "Enter", "Continue", t);
+            return;
+        }
+        Motion::Full | Motion::Paused => {}
+    }
+    let tick = state.tick;
+    match IntroPhase::of(tick) {
+        IntroPhase::Phrases => {
+            fill_canvas(buf, area, t);
+            if tick < KNOCK_START {
+                if let Some((i, shown)) = phrase_at(tick) {
+                    draw_typed(buf, area, PHRASES[i].0, cy, shown, t);
+                }
+            } else {
+                draw_glitched(
+                    buf,
+                    area,
+                    CAPTION,
+                    cy,
+                    tick - KNOCK_START,
+                    Tone::Ladder(4),
+                    t,
+                );
+            }
+            draw_pill_bottom(buf, area, t);
+            draw_hint(buf, area, "Enter", "Skip", t);
+        }
+        IntroPhase::Warp => {
+            fill_canvas(buf, area, t);
+            let f = tick - WARP_START;
+            let mut field = Starfield::new(area.width, area.height, 0);
+            for step in 0..=f {
+                field.advance(true, step);
+            }
+            field.paint(buf, area, 0, t);
+            draw_hint(buf, area, "Enter", "Skip", t);
+        }
+        IntroPhase::Done => fill_canvas(buf, area, t),
+    }
+}
+
+/// Render the outro at `state.tick`.
+pub fn render_outro(buf: &mut Buffer, area: Rect, state: &OutroState, t: &Theme) {
+    if area.is_empty() {
+        return;
+    }
+    let (_, cy) = center(area);
+    let cy = cy + 1;
+    match state.phase() {
+        OutroPhase::Warp => {
+            fill_canvas(buf, area, t);
+            let f = state.tick;
+            let mut field = Starfield::new(area.width, area.height, OUTRO_SALT);
+            for step in 0..=f {
+                field.advance(false, step);
+            }
+            let dim = if f >= OUT_WARP - 12 {
+                ((f - (OUT_WARP - 12)) / 4) as u8
+            } else {
+                0
+            };
+            field.paint(buf, area, dim, t);
+            draw_hint(buf, area, "Enter", "Skip", t);
+        }
+        OutroPhase::Caption => {
+            fill_canvas(buf, area, t);
+            match (state.mode, state.caption()) {
+                (Motion::Reduced, Some(text)) => {
+                    draw_text(buf, area, &text, cy, Tone::Ladder(4), t)
+                }
+                (Motion::Reduced, None) => {}
+                (_, Some(text)) => {
+                    let j = state.tick - OUT_WARP;
+                    draw_glitched(buf, area, &text, cy, j, Tone::Ladder(4), t);
+                }
+                (_, None) => {}
+            }
+            draw_pill_bottom(buf, area, t);
+        }
+        OutroPhase::Done => fill_canvas(buf, area, t),
     }
 }
 
