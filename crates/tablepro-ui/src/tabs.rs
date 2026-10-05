@@ -1,7 +1,7 @@
 //! `TablePro` tab models. Each tab owns product state; terminal components
 //! only receive controlled values and generic grid adapters.
 
-use tablepro_demo::{PlanNode, explain, run_select};
+use tablepro_demo::{PlanNode, ROW_CAP, explain, run_select};
 use tablepro_domain::{Catalog, ColType, ObjectKind, ResultSet, Table, Value};
 use tablepro_domain::{History, HistoryEntry};
 use tablepro_sql as sql;
@@ -173,6 +173,51 @@ impl TableTab {
         self.result
             .model
             .sort(ColumnKey::num((column as u16).saturating_add(1)), direction);
+    }
+
+    pub fn reload_sorted(
+        &mut self,
+        catalog: &Catalog,
+        col_idx: usize,
+        next_sort: Option<(ColumnKey, SortDir)>,
+    ) -> String {
+        self.result.state.set_sort(next_sort);
+        let col_name = self.result.columns.get(col_idx).map(|(name, _)| name.clone());
+        let order = match next_sort {
+            Some((_, dir)) => col_name.as_ref().map(|name| (name.clone(), dir == SortDir::Asc)),
+            None => None,
+        };
+        let mut predicates = Vec::new();
+        for f in self.filters.iter().filter(|f| f.enabled) {
+            predicates.extend(f.predicates());
+        }
+        let sel = sql::Select {
+            columns: vec!["*".into()],
+            schema: Some(self.table.schema.clone()),
+            table: self.table.name.clone(),
+            predicates,
+            order,
+            limit: Some(ROW_CAP),
+            count_only: false,
+        };
+        if let Ok(rs) = run_select(catalog, &sel) {
+            let saved_state = self.result.state.clone();
+            self.result = GridView::from_result(&rs);
+            self.result.state = saved_state;
+        }
+
+        match next_sort {
+            Some((_, dir)) => {
+                let name = col_name.unwrap_or_default();
+                let dir_str = if dir == SortDir::Asc {
+                    "ascending"
+                } else {
+                    "descending"
+                };
+                format!("Sorted by {name} {dir_str}")
+            }
+            None => "Sort cleared".to_string(),
+        }
     }
 
     pub fn structure(&self) -> Vec<Vec<Value>> {

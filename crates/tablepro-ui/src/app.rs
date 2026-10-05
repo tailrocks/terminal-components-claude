@@ -2,11 +2,11 @@
 
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
-    Action, ActionKey, App, Chord, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState,
+    Action, ActionKey, App, Chord, ColumnKey, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState,
     Family, FgStep, Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction,
     GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
     LayerSize, LayerSpec, Modifier, NodeKind, Panel, PanelKind, Part, Phase, PickerAction,
-    Response, Role, RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState,
+    Response, Role, RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState,
     StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction,
     TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
 };
@@ -180,6 +180,7 @@ const FORM: ActionKey = ActionKey::application("tablepro.form");
 const HELP: ActionKey = ActionKey::application("tablepro.help");
 const TAB_LIST: ActionKey = ActionKey::application("tablepro.tab-list");
 const FILTER: ActionKey = ActionKey::application("tablepro.filter");
+const SORT: ActionKey = ActionKey::application("tablepro.sort");
 const PREVIEW: ActionKey = ActionKey::application("tablepro.preview");
 const SAVE: ActionKey = ActionKey::application("tablepro.save");
 const EXPLAIN: ActionKey = ActionKey::application("tablepro.explain");
@@ -476,6 +477,11 @@ fn keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('f'), KeyModifiers::NONE),
             FILTER,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('s'), KeyModifiers::NONE),
+            SORT,
         )
         .bind(
             KeyPhase::Bubble,
@@ -2122,7 +2128,17 @@ impl TableProApp {
                     let grid_response =
                         Self::update_grid_view(cx, key.control("data"), &mut table.result);
                     if let Some(action) = grid_response.action_ref() {
-                        Self::handle_grid(&mut self.status, action);
+                        match action {
+                            GridAction::Sort(col_key, dir) => {
+                                let col_idx = usize::from(col_key.raw()).saturating_sub(1);
+                                self.status = table.reload_sorted(
+                                    &self.catalog,
+                                    col_idx,
+                                    Some((*col_key, *dir)),
+                                );
+                            }
+                            other => Self::handle_grid(&mut self.status, other),
+                        }
                     }
                     response |= grid_response.erase();
                     let grid_response =
@@ -4822,13 +4838,49 @@ impl TableProApp {
                         let (columns, count) =
                             Self::column_specs(&grid.columns, grid.model.is_editable(), active_table);
                         let grid_widget = result_grid(id, columns.get(..count).unwrap_or(&[]));
-                        let rows_label = grid_widget.rows_label(ui, &grid.state, &grid.model);
-                        let cols_label = grid_widget.cols_label(ui, &grid.state, &grid.model);
-                        let mut status = rows_label;
-                        if let Some(c) = cols_label {
-                            status.push_str(" · ");
-                            status.push_str(&c);
+                        let mut parts: Vec<(String, u8)> = vec![];
+                        if let Some((col_key, dir)) = grid.state.sort() {
+                            let col_idx = usize::from(col_key.raw()).saturating_sub(1);
+                            if let Some((col_name, _)) = grid.columns.get(col_idx) {
+                                parts.push((
+                                    format!(
+                                        "sort {} {}",
+                                        col_name,
+                                        if dir == SortDir::Asc { "▴" } else { "▾" }
+                                    ),
+                                    4,
+                                ));
+                            }
                         }
+                        let active_filters = table.filters.iter().filter(|f| f.enabled).count();
+                        if active_filters > 0 {
+                            parts.push((format!("filtered ({active_filters})"), 4));
+                        }
+                        let rows_label = grid_widget.rows_label(ui, &grid.state, &grid.model);
+                        parts.push((rows_label, 5));
+                        if let Some(c) = grid_widget.cols_label(ui, &grid.state, &grid.model) {
+                            parts.push((c, 2));
+                        }
+                        if let Some(r) = grid.model.read_only_reason() {
+                            parts.push((format!("read-only: {r}"), 3));
+                        }
+                        let avail = inner.width.saturating_sub(2);
+                        let joined = |parts: &[(String, u8)]| {
+                            parts
+                                .iter()
+                                .map(|p| p.0.as_str())
+                                .collect::<Vec<_>>()
+                                .join(" · ")
+                        };
+                        while parts.len() > 1 && termrock::width(&joined(&parts)) > avail {
+                            let (i, _) = parts
+                                .iter()
+                                .enumerate()
+                                .min_by_key(|(_, (_, prio))| *prio)
+                                .unwrap();
+                            parts.remove(i);
+                        }
+                        let status = joined(&parts);
                         let status_y = inner.bottom().saturating_sub(1);
                         let status_rect = termrock::Rect {
                             x: inner.x.saturating_add(1),
@@ -6558,6 +6610,30 @@ impl App for TableProApp {
                         response |= Response::changed();
                     }
                 }
+                c if c == SORT => {
+                    if self.screen == Screen::Workbench {
+                        if let Some(Tab::Table(table)) = self.workbench.active_mut() {
+                            if !table.is_structure() {
+                                let col_idx = table
+                                    .result
+                                    .state
+                                    .cursor()
+                                    .map(|(_, col)| usize::from(col.raw()).saturating_sub(1))
+                                    .unwrap_or(0);
+                                let col_key = ColumnKey::num((col_idx as u16).saturating_add(1));
+                                let next_sort = match table.result.state.sort() {
+                                    Some((c, SortDir::Asc)) if c == col_key => {
+                                        Some((col_key, SortDir::Desc))
+                                    }
+                                    Some((c, SortDir::Desc)) if c == col_key => None,
+                                    _ => Some((col_key, SortDir::Asc)),
+                                };
+                                self.status = table.reload_sorted(&self.catalog, col_idx, next_sort);
+                                response |= Response::changed();
+                            }
+                        }
+                    }
+                }
                 c if c == HELP => {
                     self.surface = Surface::HelpDialog;
                     response |= Response::changed();
@@ -7011,6 +7087,28 @@ mod replacement_tests {
         assert!(!text.contains("secret-captured-sql"));
         assert!(!text.contains("secret-result-value"));
     }
+
+    #[test]
+    fn table_sort_keystroke_works() {
+        let mut app = TableProApp::default();
+        let idx = app.connections.iter().position(|c| c.name == "Production").unwrap();
+        let _ = app.connect(idx);
+        let mut h = Harness::new(app, Theme::junie(), 120, 40);
+        // Navigate explorer to orders:
+        for _ in 0..5 {
+            let _ = h.key(KeyCode::Down);
+        }
+        let _ = h.key(KeyCode::Enter);
+        eprintln!("Screen after enter:\n{}", h.text());
+        // 12 right keys:
+        for _ in 0..12 {
+            let _ = h.key(KeyCode::Right);
+        }
+        eprintln!("Screen after 12 right:\n{}", h.text());
+        let _ = h.key(KeyCode::Char('s'));
+        eprintln!("Screen after s:\n{}", h.text());
+        assert!(h.text().contains("sort created_at ▴"));
+    }
 }
 
 #[cfg(test)]
@@ -7027,6 +7125,7 @@ mod action_namespace_tests {
             DISCARD_ROWS,
             QUIT,
             CANCEL_OR_QUIT,
+            SORT,
             OPEN,
             NEW_QUERY,
             HISTORY,

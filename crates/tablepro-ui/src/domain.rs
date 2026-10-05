@@ -359,8 +359,25 @@ impl GridModel for ResultGrid {
     }
 
     fn cell_decor(&self, row: usize, col: usize) -> CellDecor<'_> {
+        let dirty = self.pending.is_dirty(row, col);
+        let mut italic = false;
+        let mut tone = None;
+        if !dirty {
+            match self.pending.value(row, col) {
+                Some(Value::Null | Value::Default) => {
+                    tone = Some(Role::Fg(FgStep::Muted));
+                    italic = true;
+                }
+                Some(Value::Text(s)) if s.is_empty() => {
+                    tone = Some(Role::Fg(FgStep::Faint));
+                }
+                _ => {}
+            }
+        }
         CellDecor {
-            dirty: self.pending.is_dirty(row, col),
+            dirty,
+            italic,
+            tone,
             ..CellDecor::default()
         }
     }

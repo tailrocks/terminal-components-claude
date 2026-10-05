@@ -2,7 +2,7 @@
 
 use tablepro_domain::{ColType, Table, Value};
 use tablepro_sql::preview_sql;
-use termrock::{CellRef, GridModel, ItemKey};
+use termrock::{CellDecor, CellRef, GridModel, ItemKey};
 
 use crate::domain::ResultGrid;
 
@@ -78,6 +78,10 @@ impl GridModel for StructureModel {
 
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
         GridModel::cell(&self.grid, row, col)
+    }
+
+    fn cell_decor(&self, row: usize, col: usize) -> CellDecor<'_> {
+        GridModel::cell_decor(&self.grid, row, col)
     }
 
     fn read_only_reason(&self) -> Option<&str> {

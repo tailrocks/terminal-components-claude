@@ -215,6 +215,39 @@ impl Filter {
         }
     }
 
+    /// Predicates the demo engine can evaluate.
+    pub fn predicates(&self) -> Vec<tablepro_sql::Predicate> {
+        use tablepro_sql::Cmp;
+        let p = |cmp: Cmp, value: &str| tablepro_sql::Predicate {
+            column: self.column.clone(),
+            cmp,
+            value: value.to_owned(),
+        };
+        match self.op {
+            FilterOp::Eq => vec![p(Cmp::Eq, &self.value)],
+            FilterOp::Ne => vec![p(Cmp::Ne, &self.value)],
+            FilterOp::Contains => vec![p(Cmp::Like, &format!("%{}%", self.value))],
+            FilterOp::NotContains => vec![],
+            FilterOp::StartsWith => vec![p(Cmp::Like, &format!("{}%", self.value))],
+            FilterOp::EndsWith => vec![p(Cmp::Like, &format!("%{}", self.value))],
+            FilterOp::Gt => vec![p(Cmp::Gt, &self.value)],
+            FilterOp::Ge => vec![p(Cmp::Ge, &self.value)],
+            FilterOp::Lt => vec![p(Cmp::Lt, &self.value)],
+            FilterOp::Le => vec![p(Cmp::Le, &self.value)],
+            FilterOp::IsNull => vec![p(Cmp::IsNull, "")],
+            FilterOp::IsNotNull => vec![p(Cmp::IsNotNull, "")],
+            FilterOp::IsEmpty => vec![p(Cmp::Eq, "")],
+            FilterOp::IsNotEmpty => vec![p(Cmp::Ne, "")],
+            FilterOp::In => vec![p(
+                Cmp::In(self.value.split(',').map(|s| s.trim().to_owned()).collect()),
+                "",
+            )],
+            FilterOp::NotIn => vec![],
+            FilterOp::Between => vec![p(Cmp::Ge, &self.value), p(Cmp::Le, &self.value2)],
+            FilterOp::Regex => vec![],
+        }
+    }
+
     /// Apply this filter to one value.
     pub fn matches(&self, value: &Value) -> bool {
         if !self.enabled {

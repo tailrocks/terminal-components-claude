@@ -699,6 +699,23 @@ impl Drop for CellUi<'_> {
                 let dst = Position::new(x.saturating_add(shift), y);
                 self.ui.move_cell(src, dst, self.style);
             }
+            let lead = Rect {
+                x: self.area.x,
+                y,
+                width: shift,
+                height: 1,
+            };
+            self.ui.fill(lead, self.style);
+        }
+        let trail_x = self.area.x.saturating_add(shift).saturating_add(used);
+        if trail_x < self.area.right() {
+            let trail = Rect {
+                x: trail_x,
+                y,
+                width: self.area.right().saturating_sub(trail_x),
+                height: 1,
+            };
+            self.ui.fill(trail, self.style);
         }
         // final style over the painted range
         let painted = Rect {

@@ -883,6 +883,16 @@ impl GridState {
         self.sampled_len = 0;
     }
 
+    /// Return the active sort column and direction, if any.
+    pub const fn sort(&self) -> Option<(ColumnKey, SortDir)> {
+        self.sort
+    }
+
+    /// Set the active sort column and direction.
+    pub fn set_sort(&mut self, sort: Option<(ColumnKey, SortDir)>) {
+        self.sort = sort;
+    }
+
     fn sampled_width(&self, key: ColumnKey) -> Option<SampledWidth> {
         self.sampled_widths
             .iter()
@@ -3021,11 +3031,22 @@ impl Grid<'_> {
 }
 
 impl Grid<'_> {
-    fn right_overflow_rect(head: Rect, hidden_right: usize) -> Rect {
-        let count = Num::new(hidden_right);
+    fn right_overflow_rect(head: Rect, geometry: &Geometry) -> Rect {
+        let count = Num::new(geometry.hidden_right);
         let indicator_width = width(count.as_str()).saturating_add(1).min(head.width);
+        let x = if geometry
+            .columns_area
+            .right()
+            .saturating_add(1)
+            .saturating_add(indicator_width)
+            <= head.right()
+        {
+            geometry.columns_area.right().saturating_add(1)
+        } else {
+            head.right().saturating_sub(indicator_width)
+        };
         Rect {
-            x: head.right().saturating_sub(indicator_width),
+            x,
             width: indicator_width,
             ..head
         }
@@ -3075,8 +3096,10 @@ impl Grid<'_> {
             .style;
         if geometry.hidden_left > 0 {
             let count = Num::new(geometry.hidden_left);
+            let indicator_width = width(count.as_str()).saturating_add(1);
             let at = Rect {
-                width: head.width.min(2),
+                x: head.x.saturating_add(1),
+                width: indicator_width.min(head.width.saturating_sub(1)),
                 ..head
             };
             let used = ui.glyph(at, GlyphRole::OverflowLeft, style);
@@ -3092,7 +3115,7 @@ impl Grid<'_> {
         }
         if geometry.hidden_right > 0 {
             let count = Num::new(geometry.hidden_right);
-            let at = Self::right_overflow_rect(head, geometry.hidden_right);
+            let at = Self::right_overflow_rect(head, geometry);
             let used = ui.paint_str(at, count.as_str(), style);
             ui.glyph(
                 Rect {
@@ -3198,7 +3221,7 @@ impl Grid<'_> {
         );
         ui.fill(head, hs.style);
         let right_overflow =
-            (g.hidden_right > 0).then(|| Self::right_overflow_rect(head, g.hidden_right));
+            (g.hidden_right > 0).then(|| Self::right_overflow_rect(head, g));
         for i in 0..g.n {
             let raw_rect = g.cell(i, head.y);
             let Some(col) = self.columns.get(i) else {
@@ -3214,7 +3237,7 @@ impl Grid<'_> {
             let show_sort = col.sortable
                 && (self.sort_indicator == GridSortIndicator::Always
                     || st.sort.is_some_and(|(key, _)| key == col.key));
-            let sort_width = u16::from(show_sort).min(rect.width);
+            let sort_width = if show_sort { 2u16.min(rect.width) } else { 0 };
             let title = Rect {
                 width: rect
                     .width
@@ -3251,14 +3274,31 @@ impl Grid<'_> {
                     Some((key, SortDir::Desc)) if key == col.key => GlyphRole::SortDesc,
                     _ => GlyphRole::SortAsc,
                 };
+                let glyph_x = match col.align {
+                    Align::Left => {
+                        let prefix_w: u16 = if col.prefix_glyph == Some(GlyphRole::PrimaryKey) {
+                            2
+                        } else {
+                            0
+                        };
+                        let title_w = prefix_w
+                            .saturating_add(width(col.title) as u16)
+                            .min(title.width);
+                        rect.x
+                            .saturating_add(title_w)
+                            .saturating_add(1)
+                            .min(rect.right().saturating_sub(1))
+                    }
+                    Align::Center | Align::Right => rect.right().saturating_sub(1),
+                };
                 ui.glyph(
                     Rect {
-                        x: rect.right().saturating_sub(1),
-                        width: sort_width,
+                        x: glyph_x,
+                        width: 1,
                         ..rect
                     },
                     glyph,
-                    hs.style,
+                    title_style,
                 );
             }
         }
