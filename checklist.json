@@ -1098,11 +1098,21 @@
       "title": "Select actual visual tests explicitly",
       "requirement": "Required CI covers both ordinary and ignored visual population through Nextest; report-only and approval writers are not selected as verification.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 64dec781f9a2ba14a8409393a52eec89e90099ee",
+        ".velnor/config.toml has run_ignored = \"all\" configured for nextest tasks",
+        ".github/workflows/ci.yml generates the nextest step for termrock-conformance with --run-ignored all --no-tests fail, strictly verifying the tuiscotti visual baseline in CI",
+        "Job-level env hoisting keeps the generated .github/workflows/ci.yml at 499,780 bytes, strictly below the 500,000-byte cap",
+        "actionlint -config-file .github/actionlint.yaml .github/workflows/ci.yml verified 100% valid with 0 errors"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "Verified explicit selection of ignored visual tests in CI with strict nextest flags and valid actionlint under 500 KB limit."
+      }
     },
     {
       "id": "G06-04",
