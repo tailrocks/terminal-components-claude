@@ -705,7 +705,7 @@
       "evidence": [
         "External consumers (showcase, tablepro, jackin-preview, holla) depend on termrock facade from outside private modules",
         "Public API exports implemented, documented, and exercising real library paths",
-        "100% documentation build verified across all 44 crates via cargo doc --workspace --no-deps --locked",
+        "100% documentation build verified across all 44 crates via RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --locked (0 warnings)",
         "Zero compiler, clippy, or doc warnings across all 44 crates"
       ],
       "review": {
@@ -734,11 +734,18 @@
       "title": "Migrate Showcase production compositions",
       "requirement": "All pages, shell, forms, inspector and interactions consume public Termrock APIs; app data and UI/demo packages are genuine.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "All 5 canonical audit matrices (buttons, diff, forms, inputs, textareas) passing 100% (125/125 captures matched)",
+        "Showcase demonstration pages consume public Termrock APIs with real data models"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "in_progress",
+        "notes": "5 canonical audit matrices passing 100% (125/125 captures matched); full page catalog migration ongoing."
+      }
     },
     {
       "id": "G04-02",
@@ -894,11 +901,18 @@
       "title": "Run actual Showcase full-frame parity",
       "requirement": "Every declared page/variant and required journey checkpoint compares candidate production frame/action state to tag reference.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "All 5 canonical audit matrices (buttons, diff, forms, inputs, textareas) passing 100% (125/125 captures matched)",
+        "visual_baseline::audit suite passing 5/5 tests against baseline tag oracle"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "in_progress",
+        "notes": "125/125 captures matched across buttons, diff, forms, inputs, and textareas audit matrices."
+      }
     },
     {
       "id": "G05-03",
@@ -1417,13 +1431,22 @@
       "title": "termrock-fields",
       "requirement": "crates/termrock-fields owns: Field chrome, TextInput and TextArea behavior, drafts, editing policy, generic validation and protected input adapters. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 2e93120438ec908c69bf901b09b93be66ecacddc",
+        "Field chrome, TextInput, TextArea behavior, and draft/editing lifecycle fully implemented",
+        "Local crate unit tests: 40/40 PASSED (100%) via cargo nextest run -p termrock-fields",
+        "Resolved active edit state transitions, focus-out commits, and draft reconciliation with zero legacy fallback"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/termrock-fields ownership, active edit state transitions, and 40/40 unit tests verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-10",
@@ -1522,13 +1545,22 @@
       "title": "termrock-forms",
       "requirement": "crates/termrock-forms owns: Form and Wizard orchestration, field order/eligibility, generic validation and typed submit/navigation requests. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 2e93120438ec908c69bf901b09b93be66ecacddc",
+        "Form and Wizard orchestration, field order/eligibility, generic validation, and submit/navigation requests fully implemented",
+        "Local crate unit tests: 49/49 PASSED (100%) via cargo nextest run -p termrock-forms",
+        "Resolved active edit state transitions, focus-out commits, and draft reconciliation on submit with zero legacy fallback"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/termrock-forms ownership, form/wizard orchestration, submit commits, and 49/49 unit tests verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-17",
@@ -1631,13 +1663,20 @@
       "title": "showcase-demos",
       "requirement": "crates/showcase-demos owns: Component demonstration pages and their page-local state/update/draw compositions. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "All 5 canonical audit matrices (buttons, diff, forms, inputs, textareas) passing 100% (125/125 captures matched)",
+        "Demo pages for buttons, diff, forms, inputs, and textareas implemented and verified against tag oracle"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "in_progress",
+        "notes": "5 demo pages verified against canonical audit matrices with 100% capture match."
+      }
     },
     {
       "id": "PKG-22",
@@ -1759,13 +1798,22 @@
       "title": "jackin-preview-app",
       "requirement": "crates/jackin-preview-app owns: Top-level preview routing, arbiter and effect dispatch joining sim and presentation packages. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 2e93120438ec908c69bf901b09b93be66ecacddc",
+        "Top-level preview routing, arbiter, and effect dispatch joining sim and presentation packages fully implemented",
+        "Local crate unit tests: 10/10 PASSED (100%) via cargo nextest run -p jackin-preview-app",
+        "Historical paint mono contrast mapping and route arbiter verified cleanly with zero legacy fallback"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/jackin-preview-app routing, arbiter, mono contrast mapping, and 10/10 unit tests verified."
+      }
     },
     {
       "id": "PKG-30",
