@@ -19,7 +19,7 @@ use crate::safety_dialog::{
     Prop, SAFETY_CANCEL, SAFETY_CONFIRM, SAFETY_DIALOG, SAFETY_INPUT, SafetyDialog,
     SafetyDialogAction, SafetyFocus, SafetyIntent, Tone,
 };
-use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
+use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord, TableTab};
 use crate::workbench::Workbench;
 use tablepro_demo as db;
 use tablepro_domain::{
@@ -2221,6 +2221,335 @@ impl TableProApp {
                     &grid.state,
                     &grid.model,
                 );
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn draw_structure_view(
+        &self,
+        ui: &mut Ui<'_>,
+        inner: termrock::Rect,
+        table: &TableTab,
+        active_tab_style: PaintStyle,
+        inactive_tab_style: PaintStyle,
+        border_strong_style: PaintStyle,
+        border_subtle_style: PaintStyle,
+    ) {
+        let body = termrock::Rect::new(
+            inner.x,
+            inner.y.saturating_add(3),
+            inner.width,
+            inner.height.saturating_sub(3),
+        );
+        if body.height < 4 {
+            return;
+        }
+
+        if let Some(tab_key) = self.workbench.active_key() {
+            ui.register_control(tab_key.control("structure"), body, Focusability::Focusable);
+        }
+
+        // 1. Structure tabs: Columns, Indexes, Foreign keys, Constraints, Triggers, DDL
+        let labels = [
+            "Columns",
+            "Indexes",
+            "Foreign keys",
+            "Constraints",
+            "Triggers",
+            "DDL",
+        ];
+        let widths: [u16; 6] = [10, 10, 15, 14, 11, 6];
+        let total: u16 = widths.iter().map(|&w| w + 1).sum();
+        let overflow = total > body.width;
+        let left_w: u16 = if overflow { 4 } else { 0 };
+        let right_w: u16 = if overflow { 4 } else { 0 };
+        let avail = body.width.saturating_sub(left_w + right_w);
+
+        let mut fit = 0usize;
+        let mut used = 0u16;
+        for &w in &widths {
+            if used + w + 1 > avail {
+                break;
+            }
+            used += w + 1;
+            fit += 1;
+        }
+        let fit = fit.max(1).min(6);
+
+        if overflow {
+            let left_st = ui.surface_style().patch(
+                ui.paint_patch(
+                    &StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+                ),
+            );
+            ui.paint_str(termrock::Rect::new(body.x, body.y, left_w, 1), "    ", left_st);
+
+            let hidden_right = 6usize.saturating_sub(fit);
+            if hidden_right > 0 {
+                let rx = body.right().saturating_sub(right_w);
+                let overflow_text = format!("{:>3}›", hidden_right.min(99));
+                let st = ui.surface_style().patch(
+                    ui.paint_patch(
+                        &StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+                    ),
+                );
+                ui.paint_str(termrock::Rect::new(rx, body.y, right_w, 1), &overflow_text, st);
+            }
+        }
+
+        let start_x = body.x.saturating_add(left_w);
+        let mut cur_x = start_x;
+        let mut active_rect = termrock::Rect::ZERO;
+        for (i, &label) in labels.iter().take(fit).enumerate() {
+            let w = widths[i];
+            let r = termrock::Rect::new(cur_x, body.y, w, 1);
+            if i == 0 {
+                active_rect = r;
+                ui.fill(r, active_tab_style);
+                ui.paint_str(r, &format!(" {label}  "), active_tab_style);
+            } else {
+                ui.fill(r, inactive_tab_style);
+                ui.paint_str(r, &format!(" {label}  "), inactive_tab_style);
+            }
+            cur_x = cur_x.saturating_add(w).saturating_add(1);
+        }
+
+        // Sub-tabs underline rule at body.y + 1
+        let rule_y = body.y.saturating_add(1);
+        let full_rule_rect = termrock::Rect::new(body.x, rule_y, body.width, 1);
+        let subtle_line = "─".repeat(body.width as usize);
+        ui.paint_str(full_rule_rect, &subtle_line, border_subtle_style);
+
+        if !active_rect.is_empty() {
+            let strong_rect = termrock::Rect::new(active_rect.x, rule_y, active_rect.width, 1);
+            let strong_line = "━".repeat(active_rect.width as usize);
+            ui.paint_str(strong_rect, &strong_line, border_strong_style);
+        }
+
+        // 2. Status line at body.bottom() - 1
+        let status_y = body.bottom().saturating_sub(1);
+        let n = table.table.columns.len();
+        let status_str = format!("{n} columns · read from the catalog · changes are queued until Save");
+        let status_style = ui.surface_style().patch(
+            ui.paint_patch(
+                &StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
+            ),
+        );
+        let (buf, _) = ui.raw();
+        buf.set_string(
+            inner.x.saturating_add(1),
+            status_y,
+            &status_str,
+            status_style.into_style(),
+        );
+
+        // 3. DataTable area
+        let table_y = body.y.saturating_add(3);
+        let table_height = body.height.saturating_sub(4);
+        if table_height < 2 {
+            return;
+        }
+        let table_area = termrock::Rect::new(body.x, table_y, body.width, table_height);
+
+        let data_rows_height = table_area.height.saturating_sub(1);
+        let num_rows = table.table.columns.len();
+        let visible_rows = num_rows.min(data_rows_height as usize);
+        let has_sb = num_rows > visible_rows;
+
+        let cols_area_width = table_area
+            .width
+            .saturating_sub(5 + if has_sb { 1 } else { 0 });
+        let cols_area = termrock::Rect::new(
+            table_area.x.saturating_add(3),
+            table_area.y,
+            cols_area_width,
+            table_area.height,
+        );
+
+        let min_widths = [16u16, 14, 8, 22, 6];
+        let mut col_fit = 0usize;
+        let mut col_used = 0u16;
+        for &w in &min_widths {
+            let need = if col_fit == 0 { w } else { w + 2 };
+            if col_used + need > cols_area_width {
+                break;
+            }
+            col_used += need;
+            col_fit += 1;
+        }
+        let col_fit = col_fit.max(1).min(5);
+        let more_right = col_fit < 5;
+
+        let constraints: Vec<ratatui::layout::Constraint> = (0..col_fit)
+            .map(|i| match i {
+                0 => ratatui::layout::Constraint::Min(16),
+                1 => ratatui::layout::Constraint::Length(14),
+                2 => ratatui::layout::Constraint::Length(8),
+                3 => ratatui::layout::Constraint::Length(22),
+                4 => ratatui::layout::Constraint::Length(6),
+                _ => ratatui::layout::Constraint::Min(6),
+            })
+            .collect();
+        let col_rects = ratatui::layout::Layout::horizontal(constraints)
+            .spacing(2)
+            .split(ratatui::layout::Rect::new(
+                cols_area.x,
+                cols_area.y,
+                cols_area.width,
+                1,
+            ));
+
+        // Column headers
+        let col_titles = ["Name", "Type", "Nullable", "Default", "Key"];
+        let header_style = ui.surface_style().patch(
+            ui.paint_patch(
+                &StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
+            ),
+        );
+        for ci in 0..col_fit {
+            let r = col_rects[ci];
+            let title = Self::fit_text(col_titles[ci], r.width);
+            ui.paint_str(
+                termrock::Rect::new(r.x, r.y, r.width, 1),
+                &title,
+                header_style,
+            );
+        }
+        if more_right {
+            let faint_style = ui.surface_style().patch(
+                ui.paint_patch(
+                    &StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+                ),
+            );
+            ui.paint_str(
+                termrock::Rect::new(cols_area.right().saturating_add(1), table_area.y, 1, 1),
+                "…",
+                faint_style,
+            );
+        }
+
+        // Column data rows
+        for di in 0..visible_rows {
+            let y = table_area.y.saturating_add(1).saturating_add(di as u16);
+            let is_focused = di == 0;
+            let row_rect = termrock::Rect::new(
+                table_area.x,
+                y,
+                table_area.width.saturating_sub(if has_sb { 1 } else { 0 }),
+                1,
+            );
+            let mut row_patch = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
+            if is_focused {
+                row_patch = row_patch.add(Modifier::BOLD);
+            }
+            let row_style = ui.surface_style().patch(ui.paint_patch(&row_patch));
+            ui.fill(row_rect, row_style);
+
+            if is_focused {
+                let gutter_style = ui.surface_style().patch(
+                    ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Accent)
+                            .add(Modifier::BOLD),
+                    ),
+                );
+                ui.paint_str(
+                    termrock::Rect::new(table_area.x, y, 1, 1),
+                    "▎",
+                    gutter_style,
+                );
+            } else {
+                let gutter_style = ui.surface_style().with_fg_from_bg(ui.surface_style());
+                ui.paint_str(
+                    termrock::Rect::new(table_area.x, y, 1, 1),
+                    " ",
+                    gutter_style,
+                );
+            }
+            let col_data = &table.table.columns[di];
+            let name_str = &col_data.name;
+            let type_str = col_data.ty.sql();
+            let nullable_str = if col_data.nullable { "yes" } else { "no" };
+            let default_str = col_data.default.as_deref().unwrap_or("—");
+            let key_str = if col_data.primary {
+                "PK"
+            } else if col_data.references.is_some() {
+                "FK"
+            } else {
+                ""
+            };
+
+            let values = [name_str, type_str, nullable_str, default_str, key_str];
+            for ci in 0..col_fit {
+                let r = col_rects[ci];
+                let fg = match ci {
+                    0 => Role::Fg(FgStep::Primary),
+                    1 => Role::Fg(FgStep::Secondary),
+                    2 => {
+                        if col_data.nullable {
+                            Role::Fg(FgStep::Muted)
+                        } else {
+                            Role::Fg(FgStep::Secondary)
+                        }
+                    }
+                    3 => Role::Fg(FgStep::Muted),
+                    4 => Role::Fg(FgStep::Secondary),
+                    _ => Role::Fg(FgStep::Primary),
+                };
+                let mut patch = StylePatch::new().set_fg(fg);
+                if is_focused {
+                    patch = patch.add(Modifier::BOLD);
+                }
+                let cell_style = ui.surface_style().patch(ui.paint_patch(&patch));
+                let text = Self::fit_text(values[ci], r.width);
+                ui.paint_str(
+                    termrock::Rect::new(r.x, y, r.width, 1),
+                    &text,
+                    cell_style,
+                );
+            }
+        }
+
+        // Scrollbar if needed
+        if has_sb {
+            let mut scroll = termrock::ScrollState::new(num_rows);
+            scroll.set_viewport(data_rows_height as usize);
+            let fade_rect = termrock::Rect::new(
+                table_area.x,
+                table_area.y.saturating_add(1),
+                table_area.width.saturating_sub(1),
+                data_rows_height,
+            );
+            ui.scroll_edges_except(
+                fade_rect,
+                &scroll,
+                &[table_area.y.saturating_add(1)],
+            );
+
+            let track_len = visible_rows;
+            let len = ((track_len * track_len) / num_rows).max(1);
+            let len = len.min(track_len);
+            let (start, len) = (0, len);
+            let sb_x = table_area.right().saturating_sub(1);
+            let thumb_style = ui.surface_style().patch(
+                ui.paint_patch(
+                    &StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+                ),
+            );
+            let track_style = ui.surface_style().patch(
+                ui.paint_patch(
+                    &StylePatch::new().set_fg(Role::BorderSubtle),
+                ),
+            );
+            for i in 0..track_len {
+                let sy = table_area.y.saturating_add(1).saturating_add(i as u16);
+                let cell = termrock::Rect::new(sb_x, sy, 1, 1);
+                if i >= start && i < start + len {
+                    ui.paint_str(cell, "┃", thumb_style);
+                } else {
+                    ui.paint_str(cell, "│", track_style);
+                }
+            }
         }
     }
 
@@ -4442,6 +4771,16 @@ impl TableProApp {
                         }
                         ui.paint_str(r3, &quiet, border_subtle_style);
                     }
+
+                    self.draw_structure_view(
+                        ui,
+                        inner,
+                        table,
+                        active_tab_style,
+                        inactive_tab_style,
+                        border_strong_style,
+                        border_subtle_style,
+                    );
                 } else {
                     let data_rect = termrock::Rect::new(inner.x, inner.y, 7, 1);
                     ui.fill(data_rect, active_tab_style);
@@ -4468,40 +4807,41 @@ impl TableProApp {
                         }
                         ui.paint_str(r2, &quiet, border_subtle_style);
                     }
-                }
-                let grid_height = inner.height.saturating_sub(4);
-                let grid_rect = termrock::Rect {
-                    x: inner.x,
-                    y: inner.y.saturating_add(3),
-                    width: inner.width,
-                    height: grid_height,
-                };
-                self.draw_result_grid(ui, grid_rect);
 
-                if let Some((id, grid)) = self.workbench.active_grid() {
-                    let active_table = Some(&table.table);
-                    let (columns, count) =
-                        Self::column_specs(&grid.columns, grid.model.is_editable(), active_table);
-                    let grid_widget = result_grid(id, columns.get(..count).unwrap_or(&[]));
-                    let rows_label = grid_widget.rows_label(ui, &grid.state, &grid.model);
-                    let cols_label = grid_widget.cols_label(ui, &grid.state, &grid.model);
-                    let mut status = rows_label;
-                    if let Some(c) = cols_label {
-                        status.push_str(" · ");
-                        status.push_str(&c);
-                    }
-                    let status_y = inner.bottom().saturating_sub(1);
-                    let status_rect = termrock::Rect {
-                        x: inner.x.saturating_add(1),
-                        y: status_y,
-                        width: inner.width.saturating_sub(2),
-                        height: 1,
+                    let grid_height = inner.height.saturating_sub(4);
+                    let grid_rect = termrock::Rect {
+                        x: inner.x,
+                        y: inner.y.saturating_add(3),
+                        width: inner.width,
+                        height: grid_height,
                     };
-                    let status_style = ui.surface_style().patch(ui.paint_patch(
-                        &termrock::StylePatch::new()
-                            .set_fg(termrock::Role::Fg(termrock::FgStep::Muted)),
-                    ));
-                    let _ = ui.paint_str(status_rect, &status, status_style);
+                    self.draw_result_grid(ui, grid_rect);
+
+                    if let Some((id, grid)) = self.workbench.active_grid() {
+                        let active_table = Some(&table.table);
+                        let (columns, count) =
+                            Self::column_specs(&grid.columns, grid.model.is_editable(), active_table);
+                        let grid_widget = result_grid(id, columns.get(..count).unwrap_or(&[]));
+                        let rows_label = grid_widget.rows_label(ui, &grid.state, &grid.model);
+                        let cols_label = grid_widget.cols_label(ui, &grid.state, &grid.model);
+                        let mut status = rows_label;
+                        if let Some(c) = cols_label {
+                            status.push_str(" · ");
+                            status.push_str(&c);
+                        }
+                        let status_y = inner.bottom().saturating_sub(1);
+                        let status_rect = termrock::Rect {
+                            x: inner.x.saturating_add(1),
+                            y: status_y,
+                            width: inner.width.saturating_sub(2),
+                            height: 1,
+                        };
+                        let status_style = ui.surface_style().patch(ui.paint_patch(
+                            &termrock::StylePatch::new()
+                                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted)),
+                        ));
+                        let _ = ui.paint_str(status_rect, &status, status_style);
+                    }
                 }
             }
             Some(Tab::History(history)) => {
@@ -5533,6 +5873,20 @@ fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
         ]
     } else {
         match app.workbench.active() {
+            Some(Tab::Table(t)) if t.is_structure() => &[
+                KeyHint {
+                    key: "↑ ↓",
+                    action: "Move",
+                },
+                KeyHint {
+                    key: "Ctrl+D",
+                    action: "Structure",
+                },
+                KeyHint {
+                    key: "Tab",
+                    action: "Next",
+                },
+            ],
             Some(Tab::Table(t)) => {
                 if t.result.model.is_editable() {
                     &[
@@ -6155,6 +6509,15 @@ impl App for TableProApp {
                     } else {
                         let _ = self.workbench.toggle_structure();
                         self.sync_active_tab();
+                        if let Some(tab_key) = self.workbench.active_key() {
+                            if let Some(Tab::Table(t)) = self.workbench.active() {
+                                if t.is_structure() {
+                                    cx.focus(tab_key.control("structure"));
+                                } else {
+                                    cx.focus(tab_key.control("data"));
+                                }
+                            }
+                        }
                         response |= Response::changed();
                     }
                 }
@@ -6488,6 +6851,9 @@ impl App for TableProApp {
             if main.is_empty() {
                 if let Some(tab_key) = self.workbench.active_key() {
                     let pf = match self.workbench.active() {
+                        Some(Tab::Table(t)) if t.is_structure() => {
+                            Some(tab_key.control("structure"))
+                        }
                         Some(Tab::Table(_)) => Some(tab_key.control("data")),
                         Some(Tab::Query(_)) => Some(tab_key.control("query")),
                         Some(Tab::History(_)) => Some(tab_key.control("history")),
