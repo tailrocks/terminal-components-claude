@@ -381,12 +381,16 @@ const MONO_RULES: &[MonoRule] = &[
     (
         Part::custom("jackin.historical.seam_on_canvas"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::BorderSubtle),
+        StylePatch::new()
+            .set_fg(Role::BorderStrong)
+            .add(Modifier::DIM),
     ),
     (
         Part::custom("jackin.historical.seam_on_elevated"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::BorderSubtle),
+        StylePatch::new()
+            .set_fg(Role::BorderStrong)
+            .add(Modifier::DIM),
     ),
     (
         Part::custom("jackin.historical.secondary_on_canvas"),
