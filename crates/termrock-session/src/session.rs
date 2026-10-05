@@ -15,6 +15,7 @@ use std::time::{Duration, Instant};
 
 use ratatui_core::terminal::Terminal;
 use ratatui_crossterm::CrosstermBackend;
+use ratatui_crossterm::crossterm::cursor::Hide;
 use ratatui_crossterm::crossterm::event::{
     DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture, poll,
     read,
@@ -137,7 +138,8 @@ impl TerminalSession {
                     out,
                     EnterAlternateScreen,
                     EnableMouseCapture,
-                    EnableBracketedPaste
+                    EnableBracketedPaste,
+                    Hide
                 )?;
                 Terminal::new(CrosstermBackend::new(out))
             },
