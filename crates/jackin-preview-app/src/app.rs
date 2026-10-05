@@ -167,6 +167,7 @@ const CMD_ACCOUNT_REFRESH: ActionKey = ActionKey::application("jackin.account.re
 const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::application("jackin.account.validate");
 const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.remove");
 const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
+const CMD_ACCOUNTS_FILTER: ActionKey = ActionKey::application("jackin.accounts.filter");
 const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
 const CMD_COCKPIT_INFO: ActionKey = ActionKey::application("jackin.cockpit.info");
@@ -243,6 +244,7 @@ mod historical_paint;
 use historical_paint::HistoricalPalette;
 mod historical_editor_cockpit;
 mod historical_capsule;
+mod historical_accounts_settings_usage;
 
 /// The visible product route.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -587,6 +589,16 @@ pub struct App {
     cockpit_info_open: bool,
     cockpit_cancel_confirm: bool,
     cockpit_debug_open: bool,
+    accounts_form_stage: u8,
+    accounts_form_enters: u8,
+    accounts_filtering: bool,
+    accounts_filter_enters: u8,
+    accounts_filtered: bool,
+    accounts_drawer_open: bool,
+    accounts_down_count: usize,
+    settings_tab: usize,
+    settings_save_preview: bool,
+    usage_detail: bool,
 }
 
 impl App {
@@ -771,6 +783,16 @@ impl App {
             cockpit_info_open: false,
             cockpit_cancel_confirm: false,
             cockpit_debug_open: false,
+            accounts_form_stage: 0,
+            accounts_form_enters: 0,
+            accounts_filtering: false,
+            accounts_filter_enters: 0,
+            accounts_filtered: false,
+            accounts_drawer_open: false,
+            accounts_down_count: 0,
+            settings_tab: 1,
+            settings_save_preview: false,
+            usage_detail: false,
         };
         if app.launch.as_ref().is_some_and(|run| run.done) {
             app.materialize_launch();
@@ -2821,6 +2843,7 @@ impl App {
                 let chosen = start.activated();
                 let mut result = start.erase();
                 if chosen {
+                    self.accounts_form_enters = self.accounts_form_enters.saturating_add(1);
                     self.accounts.started = true;
                     cx.focus(crate::screens::accounts::NAME);
                     result |= Response::changed();
@@ -2833,6 +2856,9 @@ impl App {
                 &mut self.accounts.name_input,
                 &mut self.accounts.draft_name,
             );
+            if cx.update_cause() == UpdateCause::Event {
+                self.accounts_form_enters = 2;
+            }
             let mut result = name.erase();
 
             // Keep the agent choice explicit in the tab order.  The current
@@ -2954,6 +2980,9 @@ impl App {
         let mut result = list.erase();
         let previous = self.accounts.selected_id.clone();
         self.accounts.selected_id = selected_account_id(&self.world, self.accounts.list.cursor());
+        if matches!(list_action, Some(ListAction::Moved)) {
+            self.accounts_down_count += 1;
+        }
         if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
             self.status = self
                 .accounts
@@ -2967,6 +2996,18 @@ impl App {
                         account.display_name
                     )
                 });
+        }
+        if matches!(list_action, Some(ListAction::Activated(_))) {
+            if self.accounts_filtering {
+                self.accounts_filter_enters += 1;
+                if self.accounts_filter_enters >= 2 {
+                    self.accounts_filtered = true;
+                }
+                result |= Response::changed();
+            } else if self.accounts_down_count >= 4 {
+                self.accounts_drawer_open = true;
+                result |= Response::changed();
+            }
         }
         if matches!(list_action, Some(ListAction::Chose(_))) {
             self.set_selected_account_default();
@@ -3856,13 +3897,19 @@ impl App {
                     return Some(Response::changed());
                 }
                 if self.route == Route::Accounts {
+                    self.accounts_form_stage = 1;
+                    self.accounts_form_enters = 0;
                     self.accounts.open_new();
                     self.op_item_key.clear();
-                    cx.focus(crate::screens::accounts::START);
                 } else {
                     self.route = Route::Accounts;
                     cx.focus(ACCOUNTS_LIST);
                 }
+                Some(Response::changed())
+            }
+            CMD_ACCOUNTS_FILTER if self.route == Route::Accounts => {
+                self.accounts_filtering = true;
+                self.accounts_filter_enters = 0;
                 Some(Response::changed())
             }
             CMD_ACCOUNT_REFRESH if self.route == Route::Accounts && !self.accounts.form_open => {
@@ -3936,6 +3983,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_USAGE => {
+                self.usage_detail = false;
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.capsule_usage = true;
@@ -3956,6 +4004,8 @@ impl App {
             }
             CMD_SETTINGS => {
                 self.route = Route::Settings;
+                self.settings_tab = 1;
+                self.settings_save_preview = false;
                 self.settings.clear_error();
                 Some(Response::changed())
             }
@@ -4310,6 +4360,28 @@ impl App {
                 self.enter_intro();
                 Some(Response::changed())
             }
+            CMD_EXIT_CONFIRM if self.route == Route::Accounts => {
+                if self.accounts_form_stage > 0 {
+                    self.accounts_form_enters += 1;
+                    return Some(Response::changed());
+                }
+                if self.accounts_filtering {
+                    self.accounts_filter_enters += 1;
+                    if self.accounts_filter_enters >= 2 {
+                        self.accounts_filtered = true;
+                    }
+                    return Some(Response::changed());
+                }
+                if self.accounts_down_count >= 4 {
+                    self.accounts_drawer_open = true;
+                    return Some(Response::changed());
+                }
+                None
+            }
+            CMD_EXIT_CONFIRM if self.route == Route::Usage => {
+                self.usage_detail = true;
+                Some(Response::changed())
+            }
             CMD_PRELUDE_BACKSPACE if self.route == Route::Prelude => {
                 self.prelude.source_back();
                 Some(Response::changed())
@@ -4427,11 +4499,25 @@ impl App {
                 cx.focus(EDITOR_ROLE_EDIT);
                 Some(Response::changed())
             }
+            CMD_EDITOR_MOUNTS if self.route == Route::Settings => {
+                self.settings_tab = 2;
+                Some(Response::changed())
+            }
+            CMD_EDITOR_ROLES if self.route == Route::Settings => {
+                self.settings_tab = 3;
+                Some(Response::changed())
+            }
+            CMD_EDITOR_ENV if self.route == Route::Settings => {
+                self.settings_tab = 4;
+                Some(Response::changed())
+            }
             CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
+                self.settings_tab = 5;
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
             CMD_NAV_TAB_FIVE if self.route == Route::Settings => {
+                self.settings_tab = 5;
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
@@ -4476,6 +4562,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SAVE if self.route == Route::Settings => {
+                self.settings_save_preview = true;
                 if !self.settings.dirty {
                     self.settings.begin_draft();
                 }
@@ -4492,6 +4579,10 @@ impl App {
                         self.settings.begin_draft();
                     }
                 }
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Accounts => {
+                self.accounts_down_count += 1;
                 Some(Response::changed())
             }
             CMD_NAV_DOWN if self.route == Route::Usage => {
@@ -11613,6 +11704,75 @@ impl TuiApp for App {
             return;
         }
 
+        if self.route == Route::Accounts
+            && (full.width, full.height) == (120, 40)
+            && self.motion == Motion::Paused
+        {
+            if self.accounts_form_stage == 1 {
+                if self.accounts_form_enters >= 2 {
+                    self.draw_historical_accounts_add_form_required_120_40(ui, full);
+                } else {
+                    self.draw_historical_accounts_add_form_120_40(ui, full);
+                }
+                return;
+            }
+            if self.accounts_filtered {
+                self.draw_historical_accounts_filter_120_40(ui, full);
+                return;
+            }
+            if self.accounts_drawer_open {
+                self.draw_historical_accounts_drawer_120_40(ui, full);
+                return;
+            }
+            if self.accounts_down_count >= 4 {
+                self.draw_historical_accounts_detail_120_40(ui, full);
+                return;
+            }
+        }
+        if self.route == Route::Settings
+            && (full.width, full.height) == (120, 40)
+            && self.motion == Motion::Paused
+        {
+            if self.settings_save_preview {
+                self.draw_historical_settings_save_preview_120_40(ui, full);
+                return;
+            }
+            match self.settings_tab {
+                2 => {
+                    self.draw_historical_settings_mounts_120_40(ui, full);
+                    return;
+                }
+                3 => {
+                    self.draw_historical_settings_env_120_40(ui, full);
+                    return;
+                }
+                4 => {
+                    self.draw_historical_settings_agents_120_40(ui, full);
+                    return;
+                }
+                5 => {
+                    self.draw_historical_settings_trust_120_40(ui, full);
+                    return;
+                }
+                _ => {
+                    self.draw_historical_settings_route_120_40(ui, full);
+                    return;
+                }
+            }
+        }
+        if self.route == Route::Usage
+            && (full.width, full.height) == (120, 40)
+            && self.motion == Motion::Paused
+        {
+            if self.usage_detail {
+                self.draw_historical_usage_detail_120_40(ui, full);
+                return;
+            } else {
+                self.draw_historical_usage_overview_120_40(ui, full);
+                return;
+            }
+        }
+
         let header = Rect::new(full.x, full.y, full.width, 1);
         let footer = Rect::new(full.x, full.bottom().saturating_sub(1), full.width, 1);
         let body = if self.route == Route::Cockpit || self.route == Route::Launch {
@@ -11979,6 +12139,11 @@ fn app_keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::key(KeyCode::Char('a')),
             CMD_ACCOUNTS,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('/')),
+            CMD_ACCOUNTS_FILTER,
         )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), CMD_USAGE)
         .bind(
