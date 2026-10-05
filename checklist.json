@@ -1333,13 +1333,22 @@
       "title": "termrock-theme",
       "requirement": "crates/termrock-theme owns: Semantic colors, surfaces, glyphs, motion/design tokens, recipes and override resolution. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit a12dd2fc51cf152929536c626020ba3dd1f88f75",
+        "Semantic colors, surfaces, glyphs, motion/design tokens, recipes and override resolution fully implemented",
+        "Local crate unit tests: 78/78 PASSED (100%) via cargo nextest run -p termrock-theme",
+        "Restored mono rule for error field underline, preserving MONO_RULES_PER_FAMILY = 20 and builder replacement invariants with zero legacy fallback"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/termrock-theme ownership, downgrade invariants, and 78/78 unit tests verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-04",
