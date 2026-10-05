@@ -21,6 +21,7 @@ const COLUMNS: [Column<'static>; 4] = [
         sticky: true,
         prefix_glyph: None,
         badge: None,
+        filtered: false,
     },
     Column {
         key: ColumnKey::num(1),
@@ -34,6 +35,7 @@ const COLUMNS: [Column<'static>; 4] = [
         sticky: false,
         prefix_glyph: None,
         badge: None,
+        filtered: false,
     },
     Column {
         key: ColumnKey::num(2),
@@ -47,6 +49,7 @@ const COLUMNS: [Column<'static>; 4] = [
         sticky: false,
         prefix_glyph: None,
         badge: None,
+        filtered: false,
     },
     Column {
         key: ColumnKey::num(3),
@@ -60,6 +63,7 @@ const COLUMNS: [Column<'static>; 4] = [
         sticky: false,
         prefix_glyph: None,
         badge: None,
+        filtered: false,
     },
 ];
 

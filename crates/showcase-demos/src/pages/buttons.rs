@@ -119,7 +119,7 @@ fn paint_playground_meta(ui: &mut Ui<'_>, rect: Rect) {
         .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
     let _ = ui.paint_str(
         Rect {
-            x: rect.x.saturating_sub(1),
+            x: rect.x,
             y: rect.y,
             width: rect.width,
             height: 1,
@@ -135,7 +135,7 @@ fn paint_matrix_meta(ui: &mut Ui<'_>, rect: Rect) {
         .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
     let _ = ui.paint_str(
         Rect {
-            x: rect.x.saturating_sub(1),
+            x: rect.x,
             y: rect.y,
             width: rect.width,
             height: 1,
