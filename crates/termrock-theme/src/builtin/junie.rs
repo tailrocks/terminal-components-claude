@@ -255,4 +255,10 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
         vec![(Part::CONTAINER, StateFlags::DISABLED, disabled)],
     );
     recipes
+        .get_mut(Family::TREE)
+        .parts
+        .entry(Part::CONTAINER)
+        .states
+        .retain(|rule| !rule.when.contains(StateFlags::HOVERED));
+    recipes
 }

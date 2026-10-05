@@ -18,7 +18,7 @@ use termrock::{
     HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
     ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Modifier, Moment, Panel,
     Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText, Reconcile,
-    Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
+    Rect, Response, SecretPolicy, Tabs, TabsAction, TabsState, TextAction,
     TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
     ViewportLine, ViewportState,
 };
@@ -144,6 +144,7 @@ const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.pre
 const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environments");
 const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
 const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.expand");
+const CMD_MANAGER_TOGGLE: ActionKey = ActionKey::application("jackin.manager.toggle");
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
@@ -469,11 +470,14 @@ impl Default for HintLayerSet {
                 Self::hint(HintKey::Chord(Chord::key(KeyCode::Tab)), "Open diff", 90),
                 Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 80),
             ]),
-            capsule_default: Self::layer(vec![Self::hint(
-                HintKey::Chord(Chord::with(KeyCode::Char('B'), KeyModifiers::CONTROL)),
-                "prefix",
-                90,
-            )]),
+            capsule_default: Self::layer(vec![
+                Self::hint(HintKey::Label("Ctrl+B"), "Prefix", 100),
+                Self::hint(HintKey::Label("F10"), "Menu", 90),
+                Self::hint(HintKey::Label("Ctrl+\\"), "Palette", 80),
+                Self::hint(HintKey::Label("Alt+Shift+↑↓←→"), "Resize", 70),
+                Self::hint(HintKey::Label("right-click"), "Tab menu", 60),
+                Self::hint(HintKey::Label("Ctrl+Q"), "Quit", 50),
+            ]),
         }
     }
 }
@@ -757,13 +761,7 @@ impl App {
                 .as_ref()
                 .and_then(|id| app.world.daemons.get(id))
                 .map(|d| d.workspace.clone())
-                .unwrap_or_else(|| {
-                    app.world
-                        .workspaces
-                        .first()
-                        .map(|w| w.name.clone())
-                        .unwrap_or_default()
-                });
+                .unwrap_or_default();
             app.status = Some(format!("Attached to {name} · tabs and panes restored"));
             app.sync_capsule_projection();
         }
@@ -1203,36 +1201,41 @@ impl App {
 
     fn build_manager_rows(&self) -> Vec<ManagerRow> {
         let mut rows = Vec::new();
+        rows.push(ManagerRow::new(
+            ManagerRowKey::CurrentDirectory,
+            "Current directory".to_string(),
+        ));
         for workspace in &self.world.workspaces {
             let expanded = self.manager.is_expanded(workspace.id);
-            let marker = if expanded { "▾" } else { "▸" };
             let count = self.manager_instances(Some(workspace.id)).count();
+            let marker = if count == 0 {
+                " "
+            } else if expanded {
+                "▾"
+            } else {
+                "▸"
+            };
             rows.push(ManagerRow::new(
                 ManagerRowKey::Workspace(workspace.id),
-                format!(
-                    "{marker} {} · {count} instance{}",
-                    workspace.name,
-                    if count == 1 { "" } else { "s" }
-                ),
+                format!("{marker} {}", workspace.name),
             ));
             if expanded {
                 for instance in self.manager_instances(Some(workspace.id)) {
                     rows.push(ManagerRow::new(
                         ManagerRowKey::Instance(instance.id.clone()),
                         format!(
-                            "  {} · instance · {} · run {} · {}",
-                            instance.id,
-                            instance.status.label(),
-                            instance.run_id.short(),
-                            instance.dirty_summary()
+                            "  {}  {} · {}",
+                            instance.id.trim_start_matches("jk-"),
+                            instance.role,
+                            instance.agent.label()
                         ),
                     ));
                 }
             }
         }
         rows.push(ManagerRow::new(
-            ManagerRowKey::CurrentDirectory,
-            format!("Current directory · {}", self.world.home),
+            ManagerRowKey::NewWorkspace,
+            "+ New workspace".to_string(),
         ));
         rows.extend(self.manager_instances(None).map(|instance| {
             ManagerRow::new(
@@ -2687,13 +2690,7 @@ impl App {
                         .as_ref()
                         .and_then(|id| self.world.daemons.get(id))
                         .map(|d| d.workspace.clone())
-                        .unwrap_or_else(|| {
-                            self.world
-                                .workspaces
-                                .first()
-                                .map(|w| w.name.clone())
-                                .unwrap_or_default()
-                        });
+                        .unwrap_or_default();
                     self.status = Some(format!("Attached to {name} · tabs and panes restored"));
                     self.capsule_interaction.focus_pane();
                     self.sync_capsule_projection();
@@ -2707,16 +2704,17 @@ impl App {
                 }
                 result |= Response::changed();
             }
-            Some(ListAction::Chose(_)) => {
-                self.manager.set_detail_open(true);
-                self.status = match self.manager.selected_row() {
-                    ManagerRowKey::Workspace(id) => self
-                        .world
-                        .workspace(*id)
-                        .map(|workspace| format!("Workspaces › {}", workspace.name)),
-                    ManagerRowKey::Instance(id) => Some(format!("Instance › {id}")),
-                    ManagerRowKey::CurrentDirectory | ManagerRowKey::NewWorkspace => None,
-                };
+            Some(ListAction::Chose(key)) => {
+                let target = self
+                    .manager_rows_cache
+                    .iter()
+                    .find(|row| row.key == key)
+                    .map(|row| row.domain.clone())
+                    .unwrap_or_else(|| self.manager.selected_row().clone());
+                if let ManagerRowKey::Workspace(workspace) = target {
+                    self.manager.toggle(workspace);
+                    self.ensure_manager_rows();
+                }
                 result |= Response::changed();
             }
             _ => {}
@@ -3635,7 +3633,15 @@ impl App {
             && !self.capsule_tab_menu_open
             && !cx.is_open(CAPSULE_TAB_MENU)
         {
-            cx.focus(CAPSULE_INPUT);
+            let has_daemon = self
+                .active_instance
+                .as_ref()
+                .is_some_and(|id| self.world.daemons.contains_key(id));
+            if has_daemon {
+                cx.focus(CAPSULE_INPUT);
+            } else {
+                cx.focus(CAPSULE_MENU_BAR);
+            }
         }
         self.update_capsule_viewports(cx, &mut result);
         let input = Self::capsule_input().update(
@@ -3993,6 +3999,13 @@ impl App {
                 }
                 Some(Response::changed())
             }
+            CMD_MANAGER_TOGGLE if self.route == Route::Manager => {
+                if let ManagerRowKey::Workspace(workspace) = *self.manager.selected_row() {
+                    self.manager.toggle(workspace);
+                    self.ensure_manager_rows();
+                }
+                Some(Response::changed())
+            }
             CMD_EDITOR_OPEN if self.route == Route::Manager => {
                 self.route = Route::Editor;
                 if let Some(workspace) = self.world.workspaces.first() {
@@ -4199,6 +4212,13 @@ impl App {
             }
             CMD_NAV_DOWN if self.route == Route::Prelude => {
                 self.prelude.move_selection(true);
+                Some(Response::changed())
+            }
+            CMD_PRELUDE_SPACE if self.route == Route::Manager => {
+                if let ManagerRowKey::Workspace(workspace) = *self.manager.selected_row() {
+                    self.manager.toggle(workspace);
+                    self.ensure_manager_rows();
+                }
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE if self.route == Route::Prelude => {
@@ -4558,14 +4578,27 @@ fn render_header_segments(
         if !k {
             continue;
         }
-        let w = seg_w(s);
-        rx = rx.saturating_sub(w);
-        let start = if s.padded { rx.saturating_add(1) } else { rx };
-        ui.paint_str(
-            Rect::new(start, area.y, s.text.chars().count() as u16, 1),
-            s.text,
-            s.style,
-        );
+        let sw = s.text.chars().count() as u16;
+        rx = rx.saturating_sub(sw);
+        let start = if s.padded {
+            rx.saturating_sub(1)
+        } else {
+            rx
+        };
+        if s.padded {
+            let padded_text = format!(" {} ", s.text);
+            ui.paint_str(
+                Rect::new(start, area.y, padded_text.chars().count() as u16, 1),
+                &padded_text,
+                s.style,
+            );
+        } else {
+            ui.paint_str(
+                Rect::new(start, area.y, sw, 1),
+                s.text,
+                s.style,
+            );
+        }
         rx = rx.saturating_sub(sep);
     }
 }
@@ -7257,6 +7290,15 @@ impl App {
     }
 
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let has_daemon = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .is_some();
+        if !has_daemon {
+            return;
+        }
         Self::ensure_capsule_tabs(
             &mut self.capsule_frame.borrow_mut(),
             &self.world,
@@ -7348,38 +7390,30 @@ impl App {
     fn draw_capsule_shell(&self, ui: &mut Ui<'_>, area: Rect) {
         ui.register_decor(APP, PartRef::of(Part::CONTAINER), area);
         let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
 
         let _ = Brand::new(APP.sub("brand"), "jackin❯")
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-        let menu_area = Rect::new(area.x.saturating_add(12), area.y, 38, 1);
+        let menu_area = Rect::new(area.x.saturating_add(11), area.y, 39, 1);
         Self::capsule_menu_bar().draw(ui, menu_area, &self.capsule_menu_state);
 
         let rest_x = area.x.saturating_add(51);
         let rest_w = area.right().saturating_sub(rest_x);
         if rest_w > 0 {
-            let workspace = self
-                .world
-                .workspaces
-                .first()
-                .map_or("payments-platform", |workspace| workspace.name.as_str());
-            let role = self
+            let instance = self
                 .active_running_instance_id()
-                .and_then(|id| self.world.instance(&id))
-                .map(|instance| {
-                    instance
-                        .role
-                        .rsplit('/')
-                        .next()
-                        .unwrap_or(instance.role.as_str())
-                })
-                .unwrap_or("the-architect");
-            let role_text = format!("{workspace} › {role}");
+                .and_then(|id| self.world.instance(&id));
+            let daemon = self
+                .active_running_instance_id()
+                .and_then(|id| self.world.daemons.get(&id));
+            let ws = daemon.map(|d| d.workspace.clone()).unwrap_or_default();
+            let role_label = match instance {
+                Some(i) => self.role_label(&i.role),
+                None => self.role_label("the-architect"),
+            };
+            let role_text = format!("{ws} › {role_label}");
 
-            let container_id = self
-                .active_running_instance_id()
-                .and_then(|id| self.world.instance(&id))
-                .map(|i| i.container_id())
-                .unwrap_or_default();
+            let container_id = instance.map(|i| i.container_id()).unwrap_or_default();
             let chip_text = if container_id.is_empty() {
                 String::new()
             } else {
@@ -7419,7 +7453,7 @@ impl App {
             if n > 1 {
                 segs.push(HeaderSegment {
                     text: &n_text,
-                    style: palette.muted_on_canvas,
+                    style: palette.border_on_canvas,
                     priority: 3,
                     padded: false,
                 });
@@ -7450,32 +7484,243 @@ impl App {
         );
         self.draw_capsule(ui, content);
 
-        let status_center = [StatusItem::new("Claude Code · Work · needs input")];
-        let status_left = [StatusItem::new("PR #482 · Settlement retry backoff").strong()];
-        StatusBar::new(APP.sub("capsule-status"))
-            .left(&status_left)
-            .center(&status_center)
-            .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
+        self.draw_capsule_status(ui, Rect::new(area.x, footer_y, area.width, 1));
 
-        let hints: &HintLayer = if self.capsule_help_open {
-            &self.hint_layers.capsule_help
+        self.draw_capsule_hints(ui, Rect::new(area.x, footer_y.saturating_add(1), area.width, 1));
+    }
+
+    fn draw_capsule_hints(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+
+        let hints: &[(&str, &str)] = if self.capsule_help_open {
+            &[("↑↓", "Move"), ("Esc", "Close")]
         } else if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
-            &self.hint_layers.capsule_menu
+            &[("← →", "Menu"), ("↑↓", "Move"), ("Enter", "Choose"), ("Esc", "Close")]
         } else if self.capsule_prefix {
-            &self.hint_layers.capsule_prefix
+            &[
+                ("c", "New tab"),
+                ("n p", "Tabs"),
+                ("x", "Close"),
+                ("h j k l", "Nav"),
+                ("\"", "Split ↕"),
+                ("%", "Split ↔"),
+                ("z", "Zoom"),
+                ("&", "Kill tab"),
+                ("Ctrl+L", "Clear"),
+                ("d", "Detach"),
+                ("u", "Usage"),
+                (", m", "Title · tab menu"),
+                ("Space", "Palette"),
+            ]
         } else if self.inspect_files {
-            &self.hint_layers.capsule_inspect
+            &[("Tab", "Open diff"), ("Esc", "Close")]
         } else {
-            &self.hint_layers.capsule_default
+            &[
+                ("Ctrl+B", "Prefix"),
+                ("F10", "Menu"),
+                ("Ctrl+\\", "Palette"),
+                ("Alt+Shift+↑↓←→", "Resize"),
+                ("right-click", "Tab menu"),
+                ("Ctrl+Q", "Quit"),
+            ]
         };
 
-        HintBar::derived(APP.sub("capsule-hint"))
-            .global(hints)
-            .status_text(self.status.as_deref())
-            .draw(
-                ui,
-                Rect::new(area.x, footer_y.saturating_add(1), area.width, 1),
-            );
+        let str_w = |s: &str| s.chars().count() as u16;
+
+        let mut right_w = 0u16;
+        if let Some(r) = self.status.as_deref() {
+            let w = str_w(r);
+            if w > 0 && area.width > w + 2 {
+                let sx = area.right().saturating_sub(w).saturating_sub(1);
+                ui.paint_str(Rect::new(sx, area.y, w, 1), r, palette.secondary_on_canvas);
+                right_w = w + 3;
+            }
+        }
+
+        let limit = area.right().saturating_sub(right_w);
+        let hint_w = |(k, a): &(&str, &str)| str_w(k) + 1 + str_w(a) + 2;
+        let mut used = 0u16;
+        let mut n = 0usize;
+        for (i, h) in hints.iter().enumerate() {
+            let reserve = if i + 1 < hints.len() { 2 } else { 0 };
+            if 1 + used + hint_w(h) + reserve > limit {
+                break;
+            }
+            used += hint_w(h);
+            n += 1;
+        }
+        if n < hints.len() {
+            used += 2;
+        }
+        let free = area.width.saturating_sub(used);
+        let mid = area.x + free / 2;
+        let mut x = mid.max(area.x + 1).min(limit.saturating_sub(used).max(area.x + 1));
+
+        let mut drawn = 0usize;
+        for (i, (key, action)) in hints.iter().enumerate() {
+            let kw = str_w(key);
+            let aw = str_w(action);
+            let w = kw + 1 + aw + 2;
+            let reserve = if i + 1 < hints.len() { 2 } else { 0 };
+            if x + w + reserve > limit {
+                break;
+            }
+            ui.paint_str(Rect::new(x, area.y, kw, 1), key, palette.primary_on_canvas_bold);
+            ui.paint_str(Rect::new(x + kw + 1, area.y, aw, 1), action, palette.muted_on_canvas);
+            x += w;
+            drawn += 1;
+        }
+        if drawn < hints.len() && x < limit {
+            ui.paint_str(Rect::new(x, area.y, 1, 1), "…", palette.border_on_canvas);
+        }
+    }
+
+    fn draw_capsule_status(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_elevated);
+
+        let instance = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.instance(&id));
+        let daemon = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id));
+
+        const GAP: u16 = 3;
+        const EDGE: u16 = 1;
+
+        let str_w = |s: &str| s.chars().count() as u16;
+
+        let mut left_items: Vec<(String, PaintStyle)> = Vec::new();
+        if let Some(i) = instance {
+            let branch = i.branch.clone().unwrap_or_else(|| i.default_branch.clone());
+            let work = match &i.pr {
+                Some((n, title)) => {
+                    let end = title.char_indices().nth(32).map_or(title.len(), |(idx, _)| idx);
+                    format!("PR #{n} · {}", &title[..end])
+                }
+                None => truncate_middle(&branch, 36),
+            };
+            left_items.push((work, palette.primary_on_elevated_bold));
+            let touched = daemon.map(|d| d.touched_files().len()).unwrap_or(0);
+            let changed = i.uncommitted + touched;
+            if changed > 0 || i.unpushed > 0 {
+                let mut parts = vec![];
+                if changed > 0 {
+                    parts.push(format!("• {changed} changed"));
+                }
+                if i.unpushed > 0 {
+                    parts.push(format!("{} unpushed", i.unpushed));
+                }
+                left_items.push((parts.join(" · "), palette.warning_on_elevated));
+            } else {
+                left_items.push(("clean".to_string(), palette.muted_on_elevated));
+            }
+        } else {
+            left_items.push((
+                "PR #482 · Settlement retry backoff".to_string(),
+                palette.primary_on_elevated_bold,
+            ));
+        }
+
+        let mut center_items: Vec<(String, PaintStyle)> = Vec::new();
+        if let Some(daemon) = daemon {
+            let pane = daemon.focused_pane().and_then(|p| daemon.pane(p));
+            if let Some(pane) = pane {
+                let agent = pane.proc.agent.map(|a| a.label()).unwrap_or("shell");
+                let account = pane
+                    .proc
+                    .account
+                    .as_ref()
+                    .and_then(|id| self.world.accounts.get(id))
+                    .map(|a| format!(" · {}", a.display_name))
+                    .unwrap_or_default();
+                let (state, style) = match pane.state() {
+                    crate::domain::instance::AgentState::Working => (" · working", palette.secondary_on_elevated),
+                    crate::domain::instance::AgentState::Blocked => (" · needs input", palette.warning_on_elevated),
+                    crate::domain::instance::AgentState::Done => (" · done", palette.secondary_on_elevated),
+                    crate::domain::instance::AgentState::Idle => (" · idle", palette.muted_on_elevated),
+                    crate::domain::instance::AgentState::Unknown => ("", palette.secondary_on_elevated),
+                };
+                center_items.push((format!("{agent}{account}{state}"), style));
+            }
+            let panes = daemon.active_tab().map(|t| t.leaves().len()).unwrap_or(0);
+            if panes > 0 {
+                let t_len = daemon.tabs.len();
+                let t_str = if t_len == 1 { "tab" } else { "tabs" };
+                let p_str = if panes == 1 { "pane" } else { "panes" };
+                center_items.push((format!("{t_len} {t_str} · {panes} {p_str}"), palette.border_on_elevated));
+            }
+        }
+
+        let mut right_items: Vec<(String, PaintStyle)> = Vec::new();
+        if daemon.is_none() {
+            right_items.push(("no account · shell".to_string(), palette.border_on_elevated));
+        }
+
+        let total_w = area.width;
+        let left_w: u16 = left_items.iter().map(|(t, _)| str_w(t)).sum::<u16>()
+            + (left_items.len().saturating_sub(1) as u16) * GAP;
+        let right_w: u16 = right_items.iter().map(|(t, _)| str_w(t)).sum::<u16>()
+            + (right_items.len().saturating_sub(1) as u16) * GAP;
+        let center_w: u16 = center_items.iter().map(|(t, _)| str_w(t)).sum::<u16>()
+            + (center_items.len().saturating_sub(1) as u16) * GAP;
+
+        let show_center = center_w > 0 && left_w + GAP + center_w + GAP + right_w + 2 * EDGE <= total_w;
+        let show_right = right_w > 0 && left_w + GAP + right_w + 2 * EDGE <= total_w;
+
+        // Draw left
+        let mut x = area.x + EDGE;
+        let left_budget = total_w.saturating_sub(2 * EDGE);
+        for (i, (text, style)) in left_items.iter().enumerate() {
+            let tw = str_w(text);
+            if i > 0 && x + tw + (if show_right { right_w + GAP } else { 0 }) > area.right().saturating_sub(EDGE) {
+                break;
+            }
+            let room = (area.x + EDGE + left_budget).saturating_sub(x);
+            let display_text = if tw > room {
+                let char_count = text.chars().count();
+                if char_count <= room as usize {
+                    text.clone()
+                } else {
+                    let mut out: String = text.chars().take((room as usize).saturating_sub(1)).collect();
+                    out.push('…');
+                    out
+                }
+            } else {
+                text.clone()
+            };
+            let w = str_w(&display_text);
+            ui.paint_str(Rect::new(x, area.y, w, 1), &display_text, *style);
+            x += w + GAP;
+        }
+        let left_end = x.saturating_sub(GAP);
+
+        // Draw right
+        let mut rx = area.right().saturating_sub(EDGE);
+        if show_right {
+            for (text, style) in right_items.iter().rev() {
+                let w = str_w(text);
+                rx = rx.saturating_sub(w);
+                ui.paint_str(Rect::new(rx, area.y, w, 1), text, *style);
+                rx = rx.saturating_sub(GAP);
+            }
+        }
+        let right_start = if show_right { rx + GAP } else { area.right().saturating_sub(EDGE) };
+
+        // Draw center
+        if show_center {
+            let lo = left_end + GAP;
+            let hi = right_start.saturating_sub(GAP);
+            let free = hi.saturating_sub(lo);
+            let mut cx = lo + free.saturating_sub(center_w) / 2;
+            for (text, style) in &center_items {
+                let w = str_w(text);
+                ui.paint_str(Rect::new(cx, area.y, w, 1), text, *style);
+                cx += w + GAP;
+            }
+        }
     }
 
     fn draw_footer(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -8004,6 +8249,11 @@ fn app_keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::key(KeyCode::Right),
             CMD_MANAGER_EXPAND,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char(' ')),
+            CMD_MANAGER_TOGGLE,
         )
         .bind(
             KeyPhase::Capture,

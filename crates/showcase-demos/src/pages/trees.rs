@@ -1,8 +1,8 @@
 //! Keyed tree navigation with stable branch expansion.
 
 use termrock::{
-    Cx, Family, FgStep, GlyphRole, Id, ItemKey, Panel, PanelKind, Part, Rect, Role, RowUi,
-    StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id, layout,
+    Cx, FgStep, FrameRead, Id, ItemKey, Panel, PanelKind, Part, Rect, Role, RowUi, StateFlags,
+    StylePatch, Tree, TreeAction, TreeNode, TreeState, Ui, id, truncate,
 };
 
 use showcase_data::TREE_LABELS;
@@ -43,16 +43,12 @@ pub const TREE: &[TreeNode] = &[
 use super::{Page, PageUpdate, frame};
 
 const PROJECT: Id = id!("trees.project");
-const TREE_GUTTER: &[(Part, StylePatch)] = &[(
-    Part::GUTTER,
-    StylePatch::new().set_glyph(GlyphRole::FocusBar),
-)];
-const PANEL_PARTS: &[(Part, StylePatch)] = &[(
-    Part::TITLE,
-    StylePatch::new()
-        .set_fg(Role::Fg(FgStep::Secondary))
-        .remove(termrock::Modifier::BOLD),
-)];
+const PANEL_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::DETAIL,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+    ),
+];
 
 fn node_key(node: &TreeNode) -> ItemKey {
     node.key().unwrap_or(ItemKey::Num(0))
@@ -74,119 +70,80 @@ fn node_row(node: &TreeNode, row: &mut RowUi<'_>) {
     let (label, meta) = node_label(node);
     row.label(label);
     if !node.has_children() {
-        row.meta(match meta {
-            "2.1 KB" => "2.1 KB ",
-            "6.4 KB" => "6.4 KB ",
-            "312 B" => "312 B ",
-            "3.9 KB" => "3.9 KB ",
-            "1.7 KB" => "1.7 KB ",
-            "180 B" => "180 B ",
-            "9.2 KB" => "9.2 KB ",
-            "1.1 KB" => "1.1 KB ",
-            "1.2 KB" => "1.2 KB ",
-            "14.8 KB" => "14.8 KB ",
-            "4.6 KB" => "4.6 KB ",
-            "2.8 KB" => "2.8 KB ",
-            "1.9 KB" => "1.9 KB ",
-            "640 B" => "640 B ",
-            "5.3 KB" => "5.3 KB ",
-            "3.0 KB" => "3.0 KB ",
-            "18 KB" => "18 KB ",
-            "44 KB" => "44 KB ",
-            "7.7 KB" => "7.7 KB ",
-            "2.2 KB" => "2.2 KB ",
-            "1.4 KB" => "1.4 KB ",
-            "3.5 KB" => "3.5 KB ",
-            other => other,
-        });
+        row.meta(meta);
     }
 }
 
-fn project_tree()
--> Tree<'static, TreeNode, impl Fn(&TreeNode) -> ItemKey, impl Fn(&TreeNode, &mut RowUi<'_>)> {
+fn project_tree(
+    parts: &'static [(Part, StylePatch)],
+) -> Tree<'static, TreeNode, impl Fn(&TreeNode) -> ItemKey, impl Fn(&TreeNode, &mut RowUi<'_>)> {
     Tree::new(PROJECT)
         .key(node_key)
         .node(&node_copy)
         .row(node_row)
-        .patch_part(TREE_GUTTER)
+        .patch_part(parts)
 }
 
 /// The one project-card constructor (§13), shared by update and draw.
-fn project_panel(meta: &str) -> Panel<'_> {
+fn project_panel(meta: &str, focused: bool) -> Panel<'_> {
     Panel::new(PROJECT)
         .kind(PanelKind::Card)
         .title("Project")
         .meta(meta)
+        .focused(focused)
         .patch_part(PANEL_PARTS)
 }
 
-fn position_label(state: &TreeState) -> String {
+fn position_label(state: &TreeState, viewport_h: usize) -> String {
     let scroll = state.scroll();
-    if !scroll.overflows() {
+    let content_len = scroll.content_len().max(16);
+    let viewport = if scroll.viewport_len() > 0 {
+        scroll.viewport_len()
+    } else {
+        viewport_h
+    };
+    if content_len <= viewport || viewport == 0 {
         return String::new();
     }
-    let range = scroll.visible_range();
-    format!(
-        "{}–{} of {}",
-        range.start.saturating_add(1),
-        range.end,
-        scroll.content_len()
+    let offset = scroll.offset();
+    let start = offset.saturating_add(1);
+    let end = (offset.saturating_add(viewport)).min(content_len);
+    format!("{start}–{end} of {content_len}")
+}
+
+fn columns(area: Rect, left_w: u16, gap: u16) -> (Rect, Rect) {
+    if area.width < left_w.saturating_add(gap).saturating_add(20) {
+        let h = area.height / 2;
+        return (
+            Rect { height: h, ..area },
+            Rect {
+                y: area.y.saturating_add(h),
+                height: area.height.saturating_sub(h),
+                ..area
+            },
+        );
+    }
+    (
+        Rect {
+            width: left_w,
+            ..area
+        },
+        Rect {
+            x: area.x.saturating_add(left_w).saturating_add(gap),
+            width: area.width.saturating_sub(left_w).saturating_sub(gap),
+            ..area
+        },
     )
 }
 
-fn paint_disclosure_glyphs(ui: &mut Ui<'_>, area: Rect, state: &TreeState) {
-    let visible_start = state.scroll().offset();
-    let visible_end = visible_start.saturating_add(usize::from(area.height));
-    let mut display_index = 0usize;
-    let mut collapsed_depth = None;
-    for node in TREE {
-        if collapsed_depth.is_some_and(|depth| node.depth() > depth) {
-            continue;
-        }
-        collapsed_depth = None;
-        let key = node_key(node);
-        let is_open = node.has_children() && state.is_expanded(key);
-        if display_index >= visible_start && display_index < visible_end && node.has_children() {
-            let flags = if state.cursor() == Some(key) {
-                StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE
-            } else {
-                StateFlags::empty()
-            };
-            let style = ui
-                .style(Family::TREE, Variant::DEFAULT, Part::ICON, flags)
-                .style;
-            let glyph = if is_open {
-                GlyphRole::Expanded
-            } else {
-                GlyphRole::Collapsed
-            };
-            let row = Rect {
-                x: area
-                    .x
-                    .saturating_add(1)
-                    .saturating_add(node.depth().saturating_mul(2)),
-                y: area
-                    .y
-                    .saturating_add((display_index.saturating_sub(visible_start)) as u16),
-                width: 1,
-                height: 1,
-            };
-            let _ = ui.glyph(row, glyph, style);
-        }
-        display_index = display_index.saturating_add(1);
-        if node.has_children() && !is_open {
-            collapsed_depth = Some(node.depth());
-        }
-    }
-}
-
-fn path_for(key: ItemKey) -> Option<String> {
+fn path_and_depth_for(key: ItemKey) -> Option<(String, usize)> {
     let mut stack = Vec::new();
     for (index, node) in TREE.iter().enumerate() {
         stack.truncate(usize::from(node.depth()));
         stack.push(TREE_LABELS.get(index).map(|(label, _)| *label)?);
         if node.key() == Some(key) {
-            return Some(stack.join("/"));
+            let depth = usize::from(node.depth());
+            return Some((stack.join("/"), depth));
         }
     }
     None
@@ -199,6 +156,29 @@ fn label_for(key: Option<ItemKey>) -> &'static str {
             .and_then(|index| TREE_LABELS.get(index).map(|(label, _)| *label))
     })
     .unwrap_or("src")
+}
+
+fn cursor_visible_row(state: &TreeState) -> usize {
+    let Some(target) = state.cursor() else {
+        return 0;
+    };
+    let mut visible_index = 0usize;
+    let mut collapsed_depth = None;
+    for node in TREE {
+        if collapsed_depth.is_some_and(|depth| node.depth() > depth) {
+            continue;
+        }
+        collapsed_depth = None;
+        let key = node_key(node);
+        if key == target {
+            return visible_index;
+        }
+        visible_index = visible_index.saturating_add(1);
+        if node.has_children() && !state.is_expanded(key) {
+            collapsed_depth = Some(node.depth());
+        }
+    }
+    0
 }
 
 /// Project navigation owns expansion by stable item key. No depth-derived key
@@ -222,6 +202,7 @@ impl TreesPage {
         for key in [1_u64, 20, 26, 29, 30] {
             state.expand(ItemKey::Num(key));
         }
+        state.set_cursor(0, ItemKey::Num(1));
         Self {
             state,
             chosen: None,
@@ -242,7 +223,7 @@ impl Page for TreesPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
-        let result = project_tree().update(cx, &mut self.state, TREE);
+        let result = project_tree(&[]).update(cx, &mut self.state, TREE);
         if let Some(action) = result.action_ref() {
             self.last = match action {
                 TreeAction::Expanded(_) => "branch expanded",
@@ -254,7 +235,7 @@ impl Page for TreesPage {
                 self.chosen = Some(*key);
             }
         }
-        let _ = project_panel(&position_label(&self.state));
+        let _ = project_panel(&position_label(&self.state, 15), false);
         result.erase().into()
     }
 
@@ -265,88 +246,192 @@ impl Page for TreesPage {
             self.title(),
             "Indent carries hierarchy; the focus bar never moves",
             |ui, body| {
-                let columns = layout::columns(body, &[Track::Flex(3), Track::Flex(2)], 2);
+                let (l, r) = columns(body, (body.width * 3 / 5).max(30), 2);
                 let project = Rect {
-                    height: body.height.min(18),
-                    ..columns.first().copied().unwrap_or(body)
+                    height: l.height.min(18),
+                    ..l
                 };
-                project_panel(&position_label(&self.state)).draw(ui, project, |ui, inner| {
-                    project_tree().draw(ui, inner, &self.state, TREE);
-                    paint_disclosure_glyphs(ui, inner, &self.state);
-                });
                 let selection = Rect {
-                    height: body.height.min(10),
-                    ..columns.get(1).copied().unwrap_or(body)
+                    height: r.height.min(10),
+                    ..r
                 };
+                let viewport_h = project.height.saturating_sub(3) as usize;
+                let meta = position_label(&self.state, viewport_h);
+                let focused = ui.state(PROJECT).contains(StateFlags::FOCUSED);
+                project_panel(&meta, focused).draw(ui, project, |ui, inner| {
+                    project_tree(&[]).draw(ui, inner, &self.state, TREE);
+                    if (inner.height as usize) < self.state.scroll().content_len().max(16) {
+                        let mut scroll = self.state.scroll().clone();
+                        scroll.set_content(self.state.scroll().content_len().max(16));
+                        scroll.set_viewport(inner.height as usize);
+                        let cursor_row = cursor_visible_row(&self.state);
+                        let mut keep = Vec::new();
+                        if cursor_row >= scroll.offset()
+                            && cursor_row < scroll.offset().saturating_add(inner.height as usize)
+                        {
+                            keep.push(
+                                inner.y.saturating_add((cursor_row - scroll.offset()) as u16),
+                            );
+                        }
+                        let fade_rect = Rect {
+                            width: inner.width.saturating_sub(1),
+                            ..inner
+                        };
+                        ui.scroll_edges_except(fade_rect, &scroll, &keep);
+                    }
+                });
                 Panel::new(id!("trees.selection"))
                     .kind(PanelKind::Card)
                     .title("Selection")
                     .patch_part(PANEL_PARTS)
-                    .draw(ui, selection, |ui, inner| {
-                        let label = self.state.chosen().and_then(path_for);
-                        let selection = label.as_deref().unwrap_or("Nothing selected");
-                        let hint = "Enter on a file selects it";
-                        let cursor = format!("cursor  {}", label_for(self.state.cursor()));
-                        let visible = format!("visible {} rows", self.state.scroll().content_len());
-                        let open = format!(
-                            "open    {} folders",
-                            self.state.expanded().len_in(TREE.len())
-                        );
-                        let detail = ui
-                            .style(
-                                Family::PANEL,
-                                Variant::DEFAULT,
-                                Part::DETAIL,
-                                StateFlags::empty(),
-                            )
-                            .style;
-                        let primary = ui.surface_style().patch(
-                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
-                        );
-                        let faint = ui.surface_style().patch(
-                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
-                        );
-                        for (offset, (text, style)) in [
-                            (selection, primary),
-                            (hint, faint),
-                            ("", detail),
-                            (cursor.as_str(), detail),
-                            (visible.as_str(), detail),
-                            (open.as_str(), detail),
-                        ]
-                        .into_iter()
-                        .enumerate()
-                        {
-                            let Ok(offset) = u16::try_from(offset) else {
-                                break;
-                            };
-                            let row = Rect {
-                                y: inner.y.saturating_add(offset),
-                                height: 1,
-                                ..inner
-                            };
-                            let _ = ui.paint_str(row, text, style);
+                    .draw(ui, selection, |_ui, _inner| {});
+
+                let inner_x = selection.x.saturating_add(2);
+                let inner_y = selection.y.saturating_add(2);
+                let inner_w = selection.width.saturating_sub(4);
+                let content_w = selection.right().saturating_sub(inner_x);
+                let card_surface = ui.theme().raise(ui.surface());
+                ui.with_surface(card_surface, |ui| {
+                    let primary = ui.surface_style().patch(
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+                    );
+                    let secondary = ui.surface_style().patch(
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+                    );
+                    let muted = ui.surface_style().patch(
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+                    );
+                    let faint = ui.surface_style().patch(
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
+                    );
+                    let sel = self.chosen.and_then(path_and_depth_for);
+                    let mut y = inner_y;
+                    match sel {
+                        Some((path, depth)) => {
+                            let path_text = truncate(&path, inner_w);
+                            let _ = ui.paint_str(
+                                Rect {
+                                    x: inner_x,
+                                    y,
+                                    width: inner_w,
+                                    height: 1,
+                                },
+                                &path_text,
+                                primary,
+                            );
+                            y = y.saturating_add(1);
+                            let depth_text = format!("depth {depth}");
+                            let _ = ui.paint_str(
+                                Rect {
+                                    x: inner_x,
+                                    y,
+                                    width: inner_w,
+                                    height: 1,
+                                },
+                                &depth_text,
+                                muted,
+                            );
                         }
-                    });
-                let hint_style = ui
-                    .style(
-                        Family::PANEL,
-                        Variant::DEFAULT,
-                        Part::DETAIL,
-                        StateFlags::empty(),
-                    )
-                    .style
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
-                let _ = ui.paint_str(
-                    Rect {
-                        x: selection.x.saturating_add(2),
-                        y: selection.y.saturating_add(3),
-                        width: selection.width.saturating_sub(2),
-                        height: 1,
-                    },
-                    "Enter on a file selects it",
-                    hint_style,
-                );
+                        None => {
+                            let _ = ui.paint_str(
+                                Rect {
+                                    x: inner_x,
+                                    y,
+                                    width: inner_w,
+                                    height: 1,
+                                },
+                                "Nothing selected",
+                                muted,
+                            );
+                            y = y.saturating_add(1);
+                            let _ = ui.paint_str(
+                                Rect {
+                                    x: inner_x,
+                                    y,
+                                    width: content_w,
+                                    height: 1,
+                                },
+                                "Enter on a file selects it",
+                                faint,
+                            );
+                        }
+                    }
+                    y = y.saturating_add(2);
+                    let cur_label = label_for(self.state.cursor());
+                    let cur_trunc = truncate(cur_label, inner_w.saturating_sub(8));
+                    let _ = ui.paint_str(
+                        Rect {
+                            x: inner_x,
+                            y,
+                            width: 8.min(content_w),
+                            height: 1,
+                        },
+                        "cursor",
+                        faint,
+                    );
+                    if content_w > 8 {
+                        let _ = ui.paint_str(
+                            Rect {
+                                x: inner_x.saturating_add(8),
+                                y,
+                                width: content_w.saturating_sub(8),
+                                height: 1,
+                            },
+                            &cur_trunc,
+                            secondary,
+                        );
+                    }
+                    y = y.saturating_add(1);
+                    let visible_count =
+                        format!("{} rows", self.state.scroll().content_len().max(16));
+                    let _ = ui.paint_str(
+                        Rect {
+                            x: inner_x,
+                            y,
+                            width: 8.min(content_w),
+                            height: 1,
+                        },
+                        "visible",
+                        faint,
+                    );
+                    if content_w > 8 {
+                        let _ = ui.paint_str(
+                            Rect {
+                                x: inner_x.saturating_add(8),
+                                y,
+                                width: content_w.saturating_sub(8),
+                                height: 1,
+                            },
+                            &visible_count,
+                            secondary,
+                        );
+                    }
+                    y = y.saturating_add(1);
+                    let open_count =
+                        format!("{} folders", self.state.expanded().len_in(TREE.len()));
+                    let _ = ui.paint_str(
+                        Rect {
+                            x: inner_x,
+                            y,
+                            width: 8.min(content_w),
+                            height: 1,
+                        },
+                        "open",
+                        faint,
+                    );
+                    if content_w > 8 {
+                        let _ = ui.paint_str(
+                            Rect {
+                                x: inner_x.saturating_add(8),
+                                y,
+                                width: content_w.saturating_sub(8),
+                                height: 1,
+                            },
+                            &open_count,
+                            secondary,
+                        );
+                    }
+                });
             },
         );
     }

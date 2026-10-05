@@ -49,7 +49,7 @@ fn row_like(m: &mut PartMap<PartRecipe>) {
             .set_bg(Role::Fg(FgStep::Primary))
             .add(Modifier::BOLD),
     );
-    part(m, Part::GUTTER, p()).when(
+    part(m, Part::GUTTER, p().set_fg(Role::CurrentSurface)).when(
         StateFlags::FOCUSED,
         p().set_glyph(GlyphRole::FocusBar).set_fg(Role::Focus),
     );
@@ -253,6 +253,10 @@ fn container_like(m: &mut PartMap<PartRecipe>) {
         StateFlags::FOCUSED,
         p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
     );
+    part(m, Part::GUTTER, p()).when(
+        StateFlags::FOCUSED,
+        p().set_glyph(GlyphRole::FocusBar).set_fg(Role::Focus),
+    );
     part(m, Part::DETAIL, p().set_fg(Role::Fg(FgStep::Secondary)));
     part(
         m,
@@ -290,11 +294,13 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
         .when(
             StateFlags::HOVERED,
             p().set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(Role::RaisedSurface),
+                .set_bg(Role::HoverSurface),
         )
         .when(
             StateFlags::ACTIVE,
-            p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::HoverSurface)
+                .add(Modifier::BOLD),
         );
     part(
         m,
