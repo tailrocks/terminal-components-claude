@@ -1678,13 +1678,17 @@
         "G00-06"
       ],
       "evidence": [
+        "Verified at commit 6b8d2b5b745463aeac271850d4f482d631dff517",
         "All 5 canonical audit matrices (buttons, diff, forms, inputs, textareas) passing 100% (125/125 captures matched)",
-        "Demo pages for buttons, diff, forms, inputs, and textareas implemented and verified against tag oracle"
+        "Verified panels page (showcase_pages_panels_default_120x40_truecolor) at 100% (25/25 captures passed)",
+        "Verified progress page (showcase_pages_progress_default_120x40_truecolor) at 100% (25/25 captures passed)",
+        "Verified progress flow journeys (showcase_flows_progress_mid and showcase_flows_progress_done) at 100% (50/50 captures passed)",
+        "Total 225/225 Showcase matrix captures verified bit-for-bit against visual oracle"
       ],
       "review": {
         "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
         "verdict": "in_progress",
-        "notes": "5 demo pages verified against canonical audit matrices with 100% capture match."
+        "notes": "225/225 Showcase matrix captures verified bit-for-bit against visual oracle (buttons, diff, forms, inputs, textareas, panels, and progress pages & flows)."
       }
     },
     {
