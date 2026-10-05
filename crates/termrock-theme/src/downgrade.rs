@@ -482,7 +482,11 @@ fn mono_rules() -> [MonoRule; 15] {
             StateFlags::ERROR,
             p().set_glyph(GlyphRole::Error),
         ),
-        (Part::FIELD, StateFlags::ERROR, p()),
+        (
+            Part::FIELD,
+            StateFlags::ERROR,
+            p().add(Modifier::UNDERLINED),
+        ),
         (
             Part::MARKER,
             StateFlags::WARNING,
