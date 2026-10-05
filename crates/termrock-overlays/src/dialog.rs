@@ -217,7 +217,7 @@ fn zeroize_string(value: &mut String) {
 /// None of its own; the border is painted strong (the legacy focused
 /// frame); action buttons derive `DISABLED` from arming.
 /// Reference fixtures target an individual prompt or action through
-/// [`Ui::reference`](crate::Ui::reference) (A11).
+/// `Ui::reference` (A11).
 ///
 /// ## Actions
 /// `Action(key)` when a button fires, `Dismissed(reason)` when the layer
@@ -380,7 +380,7 @@ impl<'a> Dialog<'a> {
     }
 
     /// A facts body, sized for one row per property and closed by one action.
-    /// Paint `props` through [`Props`](crate::components::Props) in `draw`'s
+    /// Paint `props` through `Props` in `draw`'s
     /// body slot; this constructor stores no closed body representation.
     pub fn facts(id: Id, title: &'a str, props: &'a [(&'a str, &'a str)]) -> Self {
         let mut d = Self::info(id, title);
@@ -694,7 +694,7 @@ impl<'a> Dialog<'a> {
     ///
     /// A pure function of the props and the design tokens, and the number
     /// [`Dialog::draw`] lays out against — the two share
-    /// [`wrapped_rows`](crate::text::wrapped_rows), so a description that
+    /// `wrapped_rows`, so a description that
     /// rewraps moves both together.
     pub fn measured_height(&self, d: &DesignTokens) -> u16 {
         let inner = self.inner_width(d);

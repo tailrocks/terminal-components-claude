@@ -21,7 +21,7 @@ use crate::theme::{Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// One titled group, borrowing the same derived binding metadata a
-/// [`crate::components::HintBar`] consumes.
+/// `HintBar` consumes.
 #[derive(Clone, Copy, Debug)]
 pub struct HelpSection<'a> {
     title: &'a str,

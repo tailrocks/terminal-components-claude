@@ -32,7 +32,7 @@ fn wipe(bytes: &mut [u8]) {
 /// lookahead — never the full line or document.
 ///
 /// [`ClusterFeed::new`] clears content while retaining capacity, so a reused
-/// owner (the frame scratch behind [`Ui`](crate::ui::Ui)) stays warm and a
+/// owner (the frame scratch behind `Ui`) stays warm and a
 /// fresh owner is cold. `Debug` reports lengths only, never bytes; the
 /// scratch is not `Clone`.
 pub struct ClusterScratch {

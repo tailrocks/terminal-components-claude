@@ -45,7 +45,7 @@ pub enum PanelKind {
 /// `.kind(PanelKind)` (`Card`), `.title(&str)` (none), `.meta(&str)`
 /// (none), `.badge(&str)` (none), `.focused(bool)` (`false`), `.patch`,
 /// `.patch_part`, `.slot`, reference fixtures use
-/// [`Ui::reference`](crate::Ui::reference).
+/// `Ui::reference`.
 ///
 /// ## Variants
 /// `Family::PANEL`, `Variant::DEFAULT` only; `Recipe.default_variant` is
@@ -111,7 +111,7 @@ pub enum PanelKind {
 /// The inner rect is always a subrect of `area`. The body closure runs
 /// with the panel's own [`Surface`] pushed, so a child resolving
 /// `Role::CurrentSurface` gets the plane the panel filled. An outer
-/// [`Ui::reference`](crate::Ui::reference) scope suppresses registrations.
+/// `Ui::reference` scope suppresses registrations.
 pub struct Panel<'a> {
     id: Id,
     kind: PanelKind,
@@ -261,16 +261,19 @@ impl<'a> Panel<'a> {
     /// a child, or to decide whether the content fits — reads it here
     /// instead of guessing.
     pub fn inner(&self, ui: &Ui<'_>, area: Rect) -> Rect {
-        let side = match self.kind {
-            PanelKind::Card => ui.design().space.card_inset,
-            PanelKind::Framed => ui.design().space.frame_inset,
+        let (l, r) = match self.kind {
+            PanelKind::Card => (ui.design().space.card_inset, ui.design().space.card_inset),
+            PanelKind::Framed => (
+                ui.design().space.frame_inset,
+                ui.design().space.frame_inset.saturating_sub(1),
+            ),
         };
         let r = inset(
             area,
             Insets {
-                l: side,
+                l,
                 t: self.top_inset(),
-                r: side,
+                r,
                 b: 1,
             },
         );
@@ -445,14 +448,16 @@ impl<'a> Panel<'a> {
                 Slot::Inherit if live.contains(StateFlags::FOCUSED) => {
                     ui.glyph(gutter, GlyphRole::FocusBar, g.style);
                 }
-                Slot::Inherit | Slot::Clear => ui.fill(gutter, g.style),
+                Slot::Inherit | Slot::Clear => {
+                    if self.kind == PanelKind::Card {
+                        ui.fill(gutter, g.style);
+                    }
+                }
             }
         }
         let text_x = area.x.saturating_add(2);
         // The head span never touches the gutter or either frame corner.
-        let span_w = area
-            .width
-            .saturating_sub(if self.kind == PanelKind::Framed { 3 } else { 4 });
+        let span_w = area.width.saturating_sub(4);
 
         // Preserve the established title/meta geometry whenever the badge
         // lane is absent or does not fit: the lane appears only at the width
@@ -533,13 +538,11 @@ impl<'a> Panel<'a> {
         ui: &mut Ui<'_>,
         area: Rect,
         live: StateFlags,
-        fill: crate::theme::PaintStyle,
+        _fill: crate::theme::PaintStyle,
     ) {
         let head = first_row(area);
         let text_x = area.x.saturating_add(2);
-        let span_w = area
-            .width
-            .saturating_sub(if self.kind == PanelKind::Framed { 3 } else { 4 });
+        let span_w = area.width.saturating_sub(4);
         let pad = u16::from(self.kind == PanelKind::Framed);
         let ov = self.ov;
         let id = self.id;
@@ -584,11 +587,11 @@ impl<'a> Panel<'a> {
             } else {
                 let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::TITLE, live);
                 if pad == 1 {
-                    ui.fill(cell_at(head, text_x), fill);
+                    ui.fill(cell_at(head, text_x), s.style);
                 }
                 ui.paint_str(rect, &t_trunc, s.style);
                 if pad == 1 {
-                    ui.fill(cell_at(head, rect.right()), fill);
+                    ui.fill(cell_at(head, rect.right()), s.style);
                 }
             }
             cx = text_x

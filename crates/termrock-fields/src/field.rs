@@ -37,7 +37,7 @@ use crate::ui::{FrameRead, Ui};
 /// ## States
 /// Reads the control's runtime flags (`FOCUSED`, `DISABLED`) and adds
 /// `ERROR` when `.error` is `Some`; reference fixtures inject runtime state
-/// through [`Ui::reference`](crate::Ui::reference).
+/// through `Ui::reference`.
 ///
 /// ## Actions
 /// None.
@@ -207,7 +207,9 @@ impl<'a, C: FieldControl> Field<'a, C> {
             && !self.plain
             && self.optional_suffix
             && name_w.saturating_add(12) <= area.width;
-        ui.fill(text, ls.style);
+        if self.optional_suffix || self.required {
+            ui.fill(text, ls.style);
+        }
         let used = ui.paint_str(text, self.label, ls.style);
         if self.required && !self.label.is_empty() {
             let cell = cell_at(text, text.x.saturating_add(used).saturating_add(1));

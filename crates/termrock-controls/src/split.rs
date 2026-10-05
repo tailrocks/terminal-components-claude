@@ -186,7 +186,7 @@ enum SeamAlign {
 /// `.resizable(bool)` (`false`), `.disabled(bool)` (`false`),
 /// `.seam_start/center/end(width)` (full gap
 /// by default), `.patch`, `.patch_part`, `.slot`,
-/// reference fixtures use [`Ui::reference`](crate::Ui::reference).
+/// reference fixtures use `Ui::reference`.
 ///
 /// ## Variants
 /// `Family::SPLIT`, `Variant::DEFAULT` only.

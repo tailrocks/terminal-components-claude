@@ -64,7 +64,7 @@ pub const fn custom_hash16(name: &str) -> u16 {
 
 /// A stable component identity.
 ///
-/// Built from a `const` path by [`id!`](crate::id) or [`Id::root`] and derived with
+/// Built from a `const` path by [`id!`](crate::id!) or [`Id::root`] and derived with
 /// [`Id::sub`], [`Id::part`], [`Id::index`] and [`Id::item`]. Every
 /// derivation is a `const fn` except `item`, which takes a runtime key.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]

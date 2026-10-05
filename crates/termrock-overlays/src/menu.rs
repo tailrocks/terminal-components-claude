@@ -1191,7 +1191,9 @@ impl<'a> MenuBar<'a> {
             Part::CONTAINER,
             live,
         );
-        ui.fill(row, container.style);
+        let mut container_style = container.style;
+        container_style = container_style.remove_modifier(ratatui::style::Modifier::BOLD);
+        ui.fill(row, container_style);
         if st.open.is_none() {
             ui.register_control(self.id, row, Focusability::Focusable);
             ui.publish_bindings(self.id, live, BAR_BINDINGS);
@@ -1225,7 +1227,7 @@ impl<'a> MenuBar<'a> {
             } else {
                 flags.remove(StateFlags::PRESSED);
             }
-            let style = self.ov.style(
+            let mut style = self.ov.style(
                 ui,
                 self.id,
                 Family::MENU,
@@ -1233,6 +1235,26 @@ impl<'a> MenuBar<'a> {
                 Part::TITLE,
                 flags,
             );
+            let is_cursor = live.intersects(StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE)
+                && st.open.is_none()
+                && st.cursor == index;
+            if is_cursor {
+                style.style = style.style.add_modifier(ratatui::style::Modifier::BOLD);
+                let mut gutter = self.ov.style(
+                    ui,
+                    self.id,
+                    Family::MENU,
+                    Variant::DEFAULT,
+                    Part::GUTTER,
+                    flags,
+                );
+                gutter.style = gutter.style.remove_modifier(ratatui::style::Modifier::BOLD);
+                let focus_cell = cell_at(row, rect.x.saturating_sub(1));
+                ui.paint_str(focus_cell, "▎", gutter.style);
+            } else if st.open != Some(index) && !flags.contains(StateFlags::HOVERED) {
+                style.style = style.style.remove_modifier(ratatui::style::Modifier::BOLD);
+                style.style = style.style.fg(ui.theme().color.fg[1]);
+            }
             let label = shift(rect, 1);
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {
                 slot(ui, label);
@@ -1245,7 +1267,8 @@ impl<'a> MenuBar<'a> {
                     style.style,
                 );
             } else {
-                ui.paint_str(label, menu.label, style.style);
+                let text = format!(" {} ", menu.label);
+                ui.paint_str(rect, &text, style.style);
             }
             ui.register_decor(
                 self.menu_id(index),
