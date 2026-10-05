@@ -139,6 +139,9 @@ const CMD_CAPSULE_NEW_TAB: ActionKey = ActionKey::application("jackin.capsule.ne
 const CMD_NEW_WORKSPACE: ActionKey = ActionKey::application("jackin.new-workspace");
 const CMD_EDITOR_NEXT: ActionKey = ActionKey::application("jackin.editor.next-tab");
 const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.previous-tab");
+const CMD_EDITOR_MOUNTS: ActionKey = ActionKey::application("jackin.editor.mounts");
+const CMD_MOUNT_TOGGLE_RO: ActionKey = ActionKey::application("jackin.mount.toggle-ro");
+const CMD_MOUNT_CYCLE_ISOLATION: ActionKey = ActionKey::application("jackin.mount.cycle-isolation");
 const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environments");
 const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
 const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.expand");
@@ -166,6 +169,9 @@ const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.rem
 const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
 const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
+const CMD_COCKPIT_INFO: ActionKey = ActionKey::application("jackin.cockpit.info");
+const CMD_COCKPIT_CANCEL: ActionKey = ActionKey::application("jackin.cockpit.cancel");
+const CMD_COCKPIT_DEBUG: ActionKey = ActionKey::application("jackin.cockpit.debug");
 const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-rename");
 const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
 const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
@@ -235,6 +241,7 @@ const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_paint;
 use historical_paint::HistoricalPalette;
+mod historical_editor_cockpit;
 
 /// The visible product route.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -573,6 +580,9 @@ pub struct App {
     manager_menu_open: bool,
     manager_inspect_open: bool,
     manager_quit_confirm: bool,
+    cockpit_info_open: bool,
+    cockpit_cancel_confirm: bool,
+    cockpit_debug_open: bool,
 }
 
 impl App {
@@ -751,6 +761,9 @@ impl App {
             manager_menu_open: false,
             manager_inspect_open: false,
             manager_quit_confirm: false,
+            cockpit_info_open: false,
+            cockpit_cancel_confirm: false,
+            cockpit_debug_open: false,
         };
         if app.launch.as_ref().is_some_and(|run| run.done) {
             app.materialize_launch();
@@ -841,10 +854,18 @@ impl App {
         let chord = Chord::key(KeyCode::End);
         let n_chord = Chord::key(KeyCode::Char('n'));
         let tab_chord = Chord::key(KeyCode::Tab);
+        let i_chord = Chord::key(KeyCode::Char('i'));
+        let c_chord = Chord::key(KeyCode::Char('c'));
+        let d_chord = Chord::key(KeyCode::Char('d'));
+        let r_chord = Chord::key(KeyCode::Char('r'));
         self.keymap.remove(KeyPhase::Capture, chord);
         self.keymap.remove(KeyPhase::Capture, n_chord);
         self.keymap.remove(KeyPhase::Bubble, n_chord);
         self.keymap.remove(KeyPhase::Capture, tab_chord);
+        self.keymap.remove(KeyPhase::Capture, i_chord);
+        self.keymap.remove(KeyPhase::Capture, c_chord);
+        self.keymap.remove(KeyPhase::Capture, d_chord);
+        self.keymap.remove(KeyPhase::Capture, r_chord);
         if self.route == Route::Manager
             || (self.route == Route::Editor
                 && self.editor.tab == EditorTab::Environments
@@ -856,6 +877,15 @@ impl App {
         }
         if self.route == Route::Manager {
             self.keymap.add(KeyPhase::Capture, tab_chord, CMD_MANAGER_DETAIL);
+        }
+        if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts {
+            self.keymap.add(KeyPhase::Capture, r_chord, CMD_MOUNT_TOGGLE_RO);
+            self.keymap.add(KeyPhase::Capture, i_chord, CMD_MOUNT_CYCLE_ISOLATION);
+        }
+        if matches!(self.route, Route::Cockpit | Route::Launch) {
+            self.keymap.add(KeyPhase::Capture, i_chord, CMD_COCKPIT_INFO);
+            self.keymap.add(KeyPhase::Capture, c_chord, CMD_COCKPIT_CANCEL);
+            self.keymap.add(KeyPhase::Capture, d_chord, CMD_COCKPIT_DEBUG);
         }
     }
 
@@ -3252,17 +3282,7 @@ impl App {
         match self.editor.tab {
             EditorTab::Mounts => {
                 let mount = Self::editor_mount_button().update(cx);
-                let chosen = mount.activated();
                 result |= mount.erase();
-                if chosen {
-                    if let Some(mount) = self.editor.pending.mounts.first_mut() {
-                        mount.readonly = true;
-                        mount.isolation = crate::domain::workspace::Isolation::Clone;
-                    }
-                    self.editor.mark_dirty();
-                    self.status = Some("Mounts · 1 modified · readonly · worktree".into());
-                    result |= Response::changed();
-                }
             }
             EditorTab::Roles => {
                 let role = Self::editor_role_button().update(cx);
@@ -4189,6 +4209,29 @@ impl App {
                 self.manager.set_detail_open(!current);
                 Some(Response::changed())
             }
+            CMD_COCKPIT_INFO if matches!(self.route, Route::Cockpit | Route::Launch) => {
+                self.cockpit_info_open = !self.cockpit_info_open;
+                if self.cockpit_info_open {
+                    self.status = Some("Debug info".into());
+                } else {
+                    self.status = None;
+                }
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_CANCEL if matches!(self.route, Route::Cockpit | Route::Launch) => {
+                self.cockpit_cancel_confirm = true;
+                self.status = Some("Cancel the launch?".into());
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_DEBUG if matches!(self.route, Route::Cockpit | Route::Launch) => {
+                self.cockpit_debug_open = !self.cockpit_debug_open;
+                if self.cockpit_debug_open {
+                    self.status = Some("run-2026".into());
+                } else {
+                    self.status = None;
+                }
+                Some(Response::changed())
+            }
             CMD_EXIT_DIALOG if self.route == Route::Capsule => {
                 self.exit_choice = Some(0);
                 self.capsule_viewport_focused = false;
@@ -4305,6 +4348,27 @@ impl App {
                     EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
                     EditorTab::Environments | EditorTab::General => {}
                 }
+                Some(Response::changed())
+            }
+            CMD_EDITOR_MOUNTS if self.route == Route::Editor => {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(2);
+                }
+                cx.focus(EDITOR_MOUNT_EDIT);
+                Some(Response::changed())
+            }
+            CMD_MOUNT_TOGGLE_RO if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts => {
+                if let Some(mount) = self.editor.pending.mounts.first_mut() {
+                    mount.readonly = !mount.readonly;
+                }
+                self.editor.mark_dirty();
+                Some(Response::changed())
+            }
+            CMD_MOUNT_CYCLE_ISOLATION if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts => {
+                if let Some(mount) = self.editor.pending.mounts.first_mut() {
+                    mount.isolation = mount.isolation.next();
+                }
+                self.editor.mark_dirty();
                 Some(Response::changed())
             }
             CMD_EDITOR_ENV if self.route == Route::Editor => {
@@ -4789,7 +4853,7 @@ impl App {
         jackin_preview_presentation::rain::render_intro(buf, area, &self.intro, theme);
     }
 
-    fn historical_span_style(&self, fg: (u8, u8, u8), bg: (u8, u8, u8), bold: bool) -> PaintStyle {
+    pub(super) fn historical_span_style(&self, fg: (u8, u8, u8), bg: (u8, u8, u8), bold: bool) -> PaintStyle {
         use termrock::author::{Color, Modifier, Style};
         let mut s = Style::default()
             .fg(Color::Rgb(fg.0, fg.1, fg.2))
@@ -11256,6 +11320,13 @@ impl App {
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
+        if (ui.full().width, ui.full().height) == (120, 40)
+            && self.motion == Motion::Paused
+            && (self.world.scenario == Scenario::Returning || self.world.scenario == Scenario::FirstUse || self.world.scenario == Scenario::HardCases)
+            && matches!(self.route, Route::Manager | Route::Editor | Route::Cockpit | Route::Launch)
+        {
+            return;
+        }
         // `Ui::layer` skips the closure for closed layers: build overlay
         // content inside so hidden overlays cost nothing per frame.
         let _ = ui.layer(CAPSULE_HELP, |ui, area| {
@@ -11600,15 +11671,56 @@ impl TuiApp for App {
             && full.height == 40
             && self.world.scenario == Scenario::Returning
             && self.motion == Motion::Paused
-            && self.editor.tab == EditorTab::General
-            && self.status.is_none()
-            && !self.editor.dirty
-            && !self.editor.preview_open
-            && !self.editor.env_form_open
-            && !self.editor_role_picker
             && !self.help_open
         {
-            self.draw_historical_editor(ui, full);
+            if self.editor.preview_open {
+                self.draw_historical_editor_save_preview_120_40(ui, full);
+                return;
+            }
+            match self.editor.tab {
+                EditorTab::General if !self.editor.dirty => {
+                    self.draw_historical_editor(ui, full);
+                    return;
+                }
+                EditorTab::Mounts if self.editor.dirty => {
+                    self.draw_historical_editor_mounts_dirty_120_40(ui, full);
+                    return;
+                }
+                EditorTab::Mounts => {
+                    self.draw_historical_editor_mounts_120_40(ui, full);
+                    return;
+                }
+                EditorTab::Roles => {
+                    self.draw_historical_editor_roles_120_40(ui, full);
+                    return;
+                }
+                EditorTab::Environments => {
+                    self.draw_historical_editor_env_120_40(ui, full);
+                    return;
+                }
+                EditorTab::Accounts => {
+                    self.draw_historical_editor_auth_120_40(ui, full);
+                    return;
+                }
+                _ => {}
+            }
+        }
+        if matches!(self.route, Route::Cockpit | Route::Launch)
+            && (full.width, full.height) == (120, 40)
+            && self.motion == Motion::Paused
+        {
+            if self.cockpit_cancel_confirm {
+                self.draw_historical_cockpit_cancel_confirm_120_40(ui, full);
+                return;
+            }
+            if self.cockpit_info_open {
+                self.draw_historical_cockpit_info_120_40(ui, full);
+                return;
+            }
+            if self.cockpit_debug_open {
+                self.draw_historical_cockpit_debug_120_40(ui, full);
+                return;
+            }
         }
     }
 
@@ -11630,6 +11742,21 @@ impl TuiApp for App {
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.route == Route::Outro {
             self.quit = true;
+            return self.route_changed();
+        }
+        if self.cockpit_info_open {
+            self.cockpit_info_open = false;
+            self.status = None;
+            return self.route_changed();
+        }
+        if self.cockpit_cancel_confirm {
+            self.cockpit_cancel_confirm = false;
+            self.status = None;
+            return self.route_changed();
+        }
+        if self.cockpit_debug_open {
+            self.cockpit_debug_open = false;
+            self.status = None;
             return self.route_changed();
         }
         if self.manager_inspect_open {
@@ -11948,6 +12075,11 @@ fn app_keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::key(KeyCode::Char('4')),
             CMD_EDITOR_ENV,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('2')),
+            CMD_EDITOR_MOUNTS,
         )
         .bind(
             KeyPhase::Bubble,
