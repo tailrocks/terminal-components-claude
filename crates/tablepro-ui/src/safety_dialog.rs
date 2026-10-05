@@ -160,8 +160,8 @@ impl SafetyDialog {
             }
         }
         let body_h = facts_rows + self.code_rows() + self.ack_rows();
-        // border(2) + pad(1) + title(1) + gap(1) + facts + gap(1) + code + gap(1) + ack(2) + gap(2) + actions(1) + pad(1) = body_h + 9
-        body_h + 9
+        // border(2) + pad(1) + title(1) + gap(1) + body + gap(1) + actions(1) + pad(1) = body_h + 8
+        body_h + 8
     }
 
     pub fn on_key(&mut self, key: termrock::Key) -> Option<SafetyDialogAction> {
@@ -240,9 +240,13 @@ impl SafetyDialog {
         if area.is_empty() {
             return;
         }
-        let elevated_style = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Elevated))));
+        let elevated_style = ui.surface_style().patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_bg(Role::Surface(Surface::Elevated))
+                    .set_fg(Role::Fg(FgStep::Muted)),
+            ),
+        );
         ui.fill(area, elevated_style);
 
         let border_style =
@@ -326,6 +330,9 @@ impl SafetyDialog {
         );
 
         // Facts
+        let actions_y = area.bottom().saturating_sub(3);
+        let fixed = self.code_rows() + self.ack_rows();
+        let facts_bottom = actions_y.saturating_sub(1 + fixed);
         let label_w = self.label_width();
         let vw = (inner.width as usize).saturating_sub(label_w);
         let mut y = inner.y + 2;
@@ -341,6 +348,9 @@ impl SafetyDialog {
             elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Danger)));
 
         for prop in &self.facts {
+            if y >= facts_bottom {
+                break;
+            }
             let tone_style = match prop.tone {
                 Tone::Normal => primary_style,
                 Tone::Secondary => secondary_style,
@@ -354,6 +364,9 @@ impl SafetyDialog {
                 vec![prop.value.clone()]
             };
             for (i, line) in lines.iter().enumerate() {
+                if y >= facts_bottom {
+                    break;
+                }
                 if i == 0 {
                     ui.paint_str(
                         Rect::new(inner.x, y, label_w as u16, 1),
@@ -393,7 +406,9 @@ impl SafetyDialog {
             } else {
                 secondary_style
             };
-            let label_text = format!("Type {tok} to confirm");
+            let label_raw = format!("Type {tok} to confirm");
+            let label_w = (inner.width.saturating_sub(1) as usize).max(label_raw.len());
+            let label_text = format!("{label_raw:<label_w$}");
             ui.paint_str(
                 Rect::new(inner.x + 1, y, inner.width.saturating_sub(1), 1),
                 &label_text,
@@ -430,7 +445,6 @@ impl SafetyDialog {
         }
 
         // Actions row
-        let actions_y = area.bottom().saturating_sub(3);
         let cancel_w = 8u16;
         let confirm_w = (self.confirm_label.len() + 2) as u16;
         let confirm_x = area.right().saturating_sub(3 + confirm_w);
@@ -457,7 +471,14 @@ impl SafetyDialog {
                 text_style,
             );
         } else {
-            ui.paint_str(cancel_rect, " Cancel ", cancel_btn_style);
+            let gutter_style = cancel_btn_style
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Overlay))));
+            ui.paint_str(Rect::new(cancel_x, actions_y, 1, 1), " ", gutter_style);
+            ui.paint_str(
+                Rect::new(cancel_x + 1, actions_y, cancel_w - 1, 1),
+                "Cancel ",
+                cancel_btn_style,
+            );
         }
 
         // Confirm button
@@ -468,8 +489,15 @@ impl SafetyDialog {
             let disabled_style =
                 overlay_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::DisabledFg)));
             ui.fill(confirm_rect, disabled_style);
-            let text = format!(" {} ", self.confirm_label);
-            ui.paint_str(confirm_rect, &text, disabled_style);
+            let gutter_style = disabled_style
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Overlay))));
+            ui.paint_str(Rect::new(confirm_x, actions_y, 1, 1), " ", gutter_style);
+            let text = format!("{} ", self.confirm_label);
+            ui.paint_str(
+                Rect::new(confirm_x + 1, actions_y, confirm_w - 1, 1),
+                &text,
+                disabled_style,
+            );
         } else if self.confirm_danger {
             let danger_btn_style = ui.surface_style().patch(
                 ui.paint_patch(
@@ -492,8 +520,15 @@ impl SafetyDialog {
                     text_style,
                 );
             } else {
-                let text = format!(" {} ", self.confirm_label);
-                ui.paint_str(confirm_rect, &text, danger_btn_style);
+                let gutter_style =
+                    danger_btn_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Danger)));
+                ui.paint_str(Rect::new(confirm_x, actions_y, 1, 1), " ", gutter_style);
+                let text = format!("{} ", self.confirm_label);
+                ui.paint_str(
+                    Rect::new(confirm_x + 1, actions_y, confirm_w - 1, 1),
+                    &text,
+                    danger_btn_style,
+                );
             }
         } else {
             let accent_btn_style = ui.surface_style().patch(
@@ -517,8 +552,15 @@ impl SafetyDialog {
                     text_style,
                 );
             } else {
-                let text = format!(" {} ", self.confirm_label);
-                ui.paint_str(confirm_rect, &text, accent_btn_style);
+                let gutter_style =
+                    accent_btn_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+                ui.paint_str(Rect::new(confirm_x, actions_y, 1, 1), " ", gutter_style);
+                let text = format!("{} ", self.confirm_label);
+                ui.paint_str(
+                    Rect::new(confirm_x + 1, actions_y, confirm_w - 1, 1),
+                    &text,
+                    accent_btn_style,
+                );
             }
         }
     }

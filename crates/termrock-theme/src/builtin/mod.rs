@@ -290,6 +290,20 @@ fn dialog(r: &mut Recipe) {
 
 fn tabs(m: &mut PartMap<PartRecipe>) {
     row_like(m);
+    part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Secondary)))
+        .when(
+            StateFlags::HOVERED,
+            p().set_fg(Role::Fg(FgStep::Primary)),
+        )
+        .when(
+            StateFlags::DISABLED,
+            p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),
+        )
+        .when(
+            StateFlags::ACTIVE,
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        );
     part(m, Part::TAB, p().set_fg(Role::Fg(FgStep::Secondary)))
         .when(
             StateFlags::HOVERED,
@@ -570,11 +584,35 @@ fn grid(m: &mut PartMap<PartRecipe>) {
     row_like(m);
     // Optional header prefixes supply their semantic tone below explicit overrides.
     m.entry(Part::ICON).base = p();
-    part(m, Part::ROW, p());
+    part(
+        m,
+        Part::HEADER,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::CurrentSurface),
+    );
+    part(
+        m,
+        Part::ROW,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::CurrentSurface),
+    )
+    .when(StateFlags::FOCUSED, p().add(Modifier::BOLD));
     part(m, Part::CELL, p())
         .when(
             StateFlags::ACTIVE,
             p().set_bg(Role::AccentTint).add(Modifier::BOLD),
+        )
+        .when(
+            StateFlags::ACTIVE | StateFlags::FOCUSED,
+            p().set_fg(Role::Surface(Surface::Canvas))
+                .set_bg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        )
+        .when(
+            StateFlags::ACTIVE | StateFlags::FOCUSED | StateFlags::ERROR,
+            p().set_fg(Role::Surface(Surface::Canvas))
+                .set_bg(Role::Danger)
+                .add(Modifier::BOLD),
         )
         .when(StateFlags::ERROR, p().set_fg(Role::Danger))
         .when(StateFlags::DIRTY, p().set_fg(Role::Warning))
@@ -585,8 +623,14 @@ fn grid(m: &mut PartMap<PartRecipe>) {
                 .add(Modifier::BOLD)
                 .remove(Modifier::REVERSED),
         );
-    part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Muted)));
-    part(m, Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Secondary)));
+    part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Faint)))
+        .when(
+            StateFlags::HOVERED,
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::HoverSurface),
+        );
+    part(m, Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Muted)))
+        .when(StateFlags::FOCUSED, p().add(Modifier::BOLD));
 }
 
 fn picker(m: &mut PartMap<PartRecipe>) {

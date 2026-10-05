@@ -617,7 +617,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             }
         }
         if let Some(l) = cx.layout(self.id) {
-            self.follow(st, items, l.viewport_len);
+            if l.viewport_len < l.content_len
+                || st
+                    .active
+                    .and_then(|a| self.index_of(items, a, Some(st.core.cursor_index())))
+                    .is_some_and(|ai| ai < st.first_index)
+            {
+                self.follow(st, items, l.viewport_len);
+            }
         }
         acc.finish(self.id)
     }
@@ -756,11 +763,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 self.row.row(item, &mut r);
             }
             let label_w = painted_width(ui, content).max(1);
-            let close_w: u16 = if self.closable { 2 } else { 0 };
             let tab_w = 1u16
                 .saturating_add(label_w)
-                .saturating_add(1)
-                .saturating_add(close_w);
+                .saturating_add(if self.closable { 4 } else { 2 });
             let tab = Rect {
                 x,
                 y: row0.y,
@@ -775,7 +780,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             };
             ui.fill(tail, strip.style);
             let ts = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::TAB, flags);
-            ui.paint_style(tab, ts.style);
+            ui.fill(cell_at(tab, tab.x), ts.style);
             // §11.4's mono `PRESSED` affordance: `[label]`. The row fn paints
             // the label through `RowUi`, which cannot consult the `LABEL`
             // glyph slot the way `Button::draw` does, so the strip paints the
@@ -795,7 +800,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 }
             }
             if self.closable {
-                let close_cell = cell_at(tab, tab.right().saturating_sub(2));
+                let close_cell = cell_at(tab, tab.right().saturating_sub(3));
                 let close_part = PartRef::item(Part::CLOSE, key);
                 let mut close_flags = flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
                 if hovered == Some(close_part) {
@@ -849,7 +854,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 ui.register_part(self.id, PartRef::item(Part::TAB, key), tab);
             }
             if self.closable && !ui.is_inert() {
-                let close_cell = cell_at(tab, tab.right().saturating_sub(2));
+                let close_cell = cell_at(tab, tab.right().saturating_sub(3));
                 ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
             }
             x = tab.right().saturating_add(1);
@@ -940,28 +945,41 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 width: new_w.min(row0.width),
                 height: 1,
             };
+            let mut new_flags = StateFlags::empty();
+            let new_part = PartRef::of(Part::NEW);
+            if hovered == Some(new_part) {
+                new_flags |= StateFlags::HOVERED;
+            }
+            if pressed == Some(new_part) {
+                new_flags |= StateFlags::PRESSED;
+            }
             let ns = ov.style(
                 ui,
                 id,
                 Family::TABS,
                 Variant::DEFAULT,
                 Part::NEW,
-                StateFlags::empty(),
+                new_flags,
             );
-            let inner = super::shift(cell, 1);
+            let btn = Rect {
+                width: 3.min(cell.width),
+                ..cell
+            };
+            ui.fill(btn, ns.style);
+            let glyph_cell = cell_at(btn, btn.x.saturating_add(1));
             match ns.glyph {
                 Slot::Set(glyph) => {
-                    ui.glyph(inner, glyph, ns.style);
+                    ui.glyph(glyph_cell, glyph, ns.style);
                 }
                 Slot::Inherit => {
-                    ui.glyph(inner, GlyphRole::NewTab, ns.style);
+                    ui.glyph(glyph_cell, GlyphRole::NewTab, ns.style);
                 }
                 Slot::Clear => {
-                    ui.fill(inner, ns.style);
+                    ui.fill(glyph_cell, ns.style);
                 }
             }
             if !ui.is_inert() {
-                ui.register_part(self.id, PartRef::of(Part::NEW), cell);
+                ui.register_part(self.id, PartRef::of(Part::NEW), btn);
             }
         }
         if status_w > 0 {

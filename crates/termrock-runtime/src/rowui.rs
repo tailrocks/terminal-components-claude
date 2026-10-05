@@ -15,7 +15,7 @@ use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
 use crate::response::StateFlags;
 use crate::text::{Span, width};
-use crate::theme::{Align, Family, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::theme::{Align, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// Maximum columns `RowUi::columns` lays out without allocating.
@@ -104,12 +104,17 @@ impl<'u> RowUi<'u> {
         label_patch: Option<StylePatch>,
     ) -> RowUi<'u> {
         let mut ui = ui.reborrow();
+        let part = if family == Family::TABS {
+            Part::TAB
+        } else {
+            Part::CONTAINER
+        };
         let container = match container_patch {
             Some(patch) => {
-                ui.style_patched(family, variant, Part::CONTAINER, flags, &patch)
+                ui.style_patched(family, variant, part, flags, &patch)
                     .style
             }
-            None => ui.style(family, variant, Part::CONTAINER, flags).style,
+            None => ui.style(family, variant, part, flags).style,
         };
         ui.fill(row, container);
         RowUi {
@@ -144,6 +149,11 @@ impl<'u> RowUi<'u> {
     /// The whole row rect.
     pub const fn area(&self) -> Rect {
         self.row
+    }
+
+    /// Available width in the unallocated middle of the row.
+    pub fn remaining_width(&self) -> u16 {
+        self.remaining().width
     }
 
     fn remaining(&self) -> Rect {
@@ -519,6 +529,16 @@ impl<'u> CellUi<'u> {
         self.used = self.used.saturating_add(used);
     }
 
+    /// Remaining unpainted width in the cell.
+    pub fn available_width(&self) -> u16 {
+        self.free().width
+    }
+
+    /// Total width of the cell area.
+    pub const fn width(&self) -> u16 {
+        self.area.width
+    }
+
     /// Paint text.
     pub fn text(&mut self, s: &str) -> &mut Self {
         let area = self.free();
@@ -621,7 +641,18 @@ impl<'u> CellUi<'u> {
     /// A trailing glyph.
     pub fn suffix(&mut self, g: GlyphRole) -> &mut Self {
         let area = self.free();
-        let used = self.ui.glyph(area, g, self.style);
+        let s = self
+            .style
+            .patch(self.ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        let used = self.ui.glyph(area, g, s);
+        self.used = self.used.saturating_add(used);
+        self
+    }
+
+    /// A trailing glyph painted with an explicit style.
+    pub fn suffix_style(&mut self, g: GlyphRole, s: PaintStyle) -> &mut Self {
+        let area = self.free();
+        let used = self.ui.glyph(area, g, s);
         self.used = self.used.saturating_add(used);
         self
     }

@@ -1323,7 +1323,10 @@ impl FrameRead for Ui<'_> {
         if self.reference.is_some() {
             None
         } else {
-            self.last.registry.area_of(id)
+            self.last
+                .registry
+                .area_of(id)
+                .or_else(|| self.frame.registry.area_of(id))
         }
     }
 
@@ -1331,7 +1334,10 @@ impl FrameRead for Ui<'_> {
         if self.reference.is_some() {
             None
         } else {
-            self.last.registry.area_of_part(owner, part)
+            self.last
+                .registry
+                .area_of_part(owner, part)
+                .or_else(|| self.frame.registry.area_of_part(owner, part))
         }
     }
 
@@ -1339,7 +1345,14 @@ impl FrameRead for Ui<'_> {
         if self.reference.is_some() {
             None
         } else {
-            self.last.layout_of(id)
+            self.last.layout_of(id).or_else(|| {
+                self.frame
+                    .layout
+                    .iter()
+                    .rev()
+                    .find(|(owner, _)| *owner == id)
+                    .map(|(_, l)| *l)
+            })
         }
     }
 }

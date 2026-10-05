@@ -374,11 +374,13 @@ impl Ui<'_> {
         if area.is_empty() {
             return;
         }
+        let style = s.into_style();
         {
             let buf = self.buffer();
             for pos in area.positions() {
                 if let Some(c) = buf.cell_mut(pos) {
-                    c.set_symbol(" ").set_style(s.into_style());
+                    c.set_symbol(" ").set_style(style);
+                    c.modifier = style.add_modifier;
                 }
             }
         }

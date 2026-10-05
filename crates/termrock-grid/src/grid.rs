@@ -42,7 +42,7 @@ use crate::text::width;
 use crate::theme::{
     Align, Family, FgStep, GlyphRole, Modifier, Role, StyleDefaults, StylePatch, Variant,
 };
-use crate::ui::{Cx, FrameRead, Ui};
+use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
@@ -1677,11 +1677,15 @@ impl<'a> Grid<'a> {
     ) -> [u16; GRID_MAX_COLUMNS] {
         let mut widths = [0; GRID_MAX_COLUMNS];
         for (i, c) in self.columns.iter().enumerate().take(self.column_count()) {
-            let mut w = width(c.title).saturating_add(if self.header_prefix(c.key).is_some() {
-                2
-            } else {
-                0
-            });
+            let mut w = width(c.title).saturating_add(
+                if c.prefix_glyph == Some(GlyphRole::PrimaryKey)
+                    || self.header_prefix(c.key).is_some()
+                {
+                    2
+                } else {
+                    0
+                },
+            );
             let mut has_actions = false;
             if let Some(b) = c.badge {
                 w = w.saturating_add(width(b)).saturating_add(1);
@@ -1709,7 +1713,7 @@ impl<'a> Grid<'a> {
                     has_actions |= !model.actions(r, i).is_empty();
                 }
             }
-            if c.prefix_glyph.is_some() {
+            if c.prefix_glyph.is_some_and(|g| g != GlyphRole::PrimaryKey) {
                 w = w.saturating_add(2);
             }
             if has_actions {
@@ -1910,15 +1914,16 @@ impl<'a> Grid<'a> {
             if window_closed || used >= avail || (used.saturating_add(w) > avail && last_shown > 0)
             {
                 g.hidden_right = g.hidden_right.saturating_add(1);
-                if let GridColumnFit::CompleteWithPreview { min_width } = self.column_fit {
-                    if !window_closed
-                        && avail.saturating_sub(used) >= min_width.max(1)
-                        && let (Some(px), Some(sh)) = (g.x.get_mut(i), g.shown.get_mut(i))
-                    {
-                        *px = x;
-                        *sh = true;
-                    }
+                if !window_closed {
                     window_closed = true;
+                    if let GridColumnFit::CompleteWithPreview { min_width } = self.column_fit {
+                        if avail.saturating_sub(used) >= min_width.max(1)
+                            && let (Some(px), Some(sh)) = (g.x.get_mut(i), g.shown.get_mut(i))
+                        {
+                            *px = x;
+                            *sh = true;
+                        }
+                    }
                 }
                 continue;
             }
@@ -1964,12 +1969,28 @@ fn paint_aligned(ui: &mut Ui<'_>, area: Rect, text: &str, align: Align, style: P
         Align::Center => pad / 2,
         Align::Right => pad,
     };
+    if off > 0 {
+        let lead = Rect {
+            width: off,
+            ..area
+        };
+        ui.fill(lead, style);
+    }
     let at = Rect {
         x: area.x.saturating_add(off),
         width: area.width.saturating_sub(off),
         ..area
     };
-    ui.paint_str(at, text, style);
+    let used = ui.paint_str(at, text, style);
+    let trail_x = at.x.saturating_add(used);
+    if trail_x < area.right() {
+        let trail = Rect {
+            x: trail_x,
+            width: area.right().saturating_sub(trail_x),
+            ..area
+        };
+        ui.fill(trail, style);
+    }
 }
 
 fn apply_style_delta(ui: &Ui<'_>, base: PaintStyle, delta: StylePatch) -> PaintStyle {
@@ -2160,9 +2181,18 @@ impl Grid<'_> {
         if g.hidden_left == 0 && g.hidden_right == 0 {
             return None;
         }
-        let mut shown = (0..g.n).filter(|&i| g.shown.get(i).copied().unwrap_or(false));
-        let first = shown.clone().next()?;
-        let last = shown.next_back()?;
+        let mut complete = (0..g.n).filter(|&i| g.complete.get(i).copied().unwrap_or(false));
+        let (first, last) = match (complete.next(), complete.next_back()) {
+            (Some(f), Some(l)) => (f, l),
+            (Some(f), None) => (f, f),
+            (None, _) => {
+                let mut shown = (0..g.n).filter(|&i| g.shown.get(i).copied().unwrap_or(false));
+                (
+                    shown.next()?,
+                    shown.next_back().unwrap_or_else(|| shown.clone().next().unwrap_or(0)),
+                )
+            }
+        };
         let mut s = String::new();
         s.push_str("cols ");
         push_grouped(&mut s, first.saturating_add(1));
@@ -3084,7 +3114,12 @@ impl Grid<'_> {
         flags: StateFlags,
         style: PaintStyle,
     ) {
-        let Some((glyph, tone)) = self.header_prefix(col.key) else {
+        let prefix = if col.prefix_glyph == Some(GlyphRole::PrimaryKey) {
+            Some((GlyphRole::PrimaryKey, Role::Fg(FgStep::Faint)))
+        } else {
+            self.header_prefix(col.key)
+        };
+        let Some((glyph, tone)) = prefix else {
             paint_aligned(ui, area, col.title, col.align, style);
             return;
         };
@@ -3190,7 +3225,18 @@ impl Grid<'_> {
                     .saturating_sub(sort_width),
                 ..rect
             };
-            self.paint_header_title(ui, title, col, live, hs.style);
+            let is_selected = (st.col == Some(col.key) || (st.col.is_none() && i == 0))
+                && live.contains(StateFlags::FOCUSED);
+            let is_sorted = st.sort.is_some_and(|(key, _)| key == col.key);
+            let title_tone = if is_selected || is_sorted {
+                Role::Fg(FgStep::Primary)
+            } else {
+                Role::Fg(FgStep::Muted)
+            };
+            let title_style = hs
+                .style
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(title_tone)));
+            self.paint_header_title(ui, title, col, live, title_style);
             if let Some(badge) = col.badge {
                 let bw = width(badge).min(rect.width);
                 let at = Rect {
@@ -3265,21 +3311,21 @@ impl Grid<'_> {
         if focused {
             focus = focus.set_fg(Role::Focus);
         }
-        let mut check = StylePatch::new()
-            .set_fg(if focused {
-                Role::Accent
-            } else {
-                Role::Fg(FgStep::Secondary)
-            })
-            .remove(Modifier::CROSSED_OUT);
+        let mut check = StylePatch::new().remove(Modifier::CROSSED_OUT);
         if checked {
-            check = check.set_glyph(GlyphRole::Checked);
+            check = check
+                .set_glyph(GlyphRole::Checked)
+                .set_fg(if focused {
+                    Role::Accent
+                } else {
+                    Role::Fg(FgStep::Secondary)
+                });
         }
-        let mut change = StylePatch::new()
-            .set_fg(decor.tone.unwrap_or(Role::Fg(FgStep::Secondary)))
-            .remove(Modifier::CROSSED_OUT);
+        let mut change = StylePatch::new().remove(Modifier::CROSSED_OUT);
         if let Some(glyph) = decor.marker {
-            change = change.set_glyph(glyph);
+            change = change
+                .set_glyph(glyph)
+                .set_fg(decor.tone.unwrap_or(Role::Fg(FgStep::Secondary)));
         }
         let number_defaults = StylePatch::new()
             .set_fg(Role::Fg(if focused {
@@ -3315,7 +3361,9 @@ impl Grid<'_> {
             if let Some(slot) = self.ov.slot_for(part) {
                 ui.with_area(area, |ui| slot(ui, area));
             } else if let Some(glyph) = resolved.glyph.get() {
-                ui.glyph(area, glyph, style);
+                if part != Part::GUTTER || focused {
+                    ui.glyph(area, glyph, style);
+                }
             } else if part == Part::ROW_NUMBER
                 && let Some(value) = &value
             {
@@ -3379,13 +3427,15 @@ impl Grid<'_> {
         if !self.disabled && pressed == Some(PartRef::item(Part::ROW, key)) {
             rflags |= StateFlags::PRESSED;
         }
-        if !self.disabled && self.gutter != GridGutter::Compact {
+        if !self.disabled {
             let hovered = ui.hovered_part(self.id);
             if matches!(hovered, Some(PartRef { part: Part::ROW_NUMBER | Part::CELL, item: Some(hovered_key) }) if hovered_key == key)
             {
                 rflags |= StateFlags::HOVERED;
             }
-            if pressed == Some(PartRef::item(Part::ROW_NUMBER, key)) {
+            if self.gutter != GridGutter::Compact
+                && pressed == Some(PartRef::item(Part::ROW_NUMBER, key))
+            {
                 rflags |= StateFlags::PRESSED;
             }
         }
@@ -3482,7 +3532,7 @@ impl Grid<'_> {
                     Part::CELL,
                     cflags,
                 );
-                ui.fill(rect, cs.style);
+                ui.fill(rect, row_style.patch(cs.style));
                 if !inert {
                     geometry.register_cell_part(
                         ui,
@@ -3508,13 +3558,22 @@ impl Grid<'_> {
             let mut cell_delta = StylePatch::new();
             if let Some(role) = cdecor.tone.or(cell.tone) {
                 cell_delta = cell_delta.set_fg(role);
+            } else if self
+                .columns
+                .get(i)
+                .is_some_and(|c| c.prefix_glyph == Some(GlyphRole::PrimaryKey))
+                && !is_cursor
+            {
+                cell_delta = cell_delta.set_fg(Role::Fg(FgStep::Secondary));
             }
             if cdecor.italic {
                 cell_delta = cell_delta.add(Modifier::ITALIC);
             }
-            let style = apply_style_delta(ui, cs.style, cell_delta);
+            let style = apply_style_delta(ui, row_style.patch(cs.style), cell_delta);
             let mut text_rect = rect;
-            if let Some(gl) = self.columns.get(i).and_then(|c| c.prefix_glyph) {
+            if let Some(gl) = self.columns.get(i).and_then(|c| c.prefix_glyph)
+                && gl != GlyphRole::PrimaryKey
+            {
                 let used = ui.glyph(rect, gl, style);
                 text_rect = Rect {
                     x: rect.x.saturating_add(used).saturating_add(1),
@@ -3673,6 +3732,15 @@ impl Grid<'_> {
         let scroll = Self::scroll_for_view(st, usize::from(body.height));
         let content = self.bar().draw(ui, body, &scroll, total);
         let rows = Self::window(st, content, total);
+        ui.report_layout(
+            self.id,
+            LayoutFacts::new(
+                usize::from(content.height),
+                total,
+                content.height,
+                content.width,
+            ),
+        );
         let g = self.geometry(content, st, model, rows.clone());
         let head = Rect {
             x: content.x,
@@ -3835,6 +3903,16 @@ impl Grid<'_> {
             }
             self.draw_row(ui, y, row, &row_paint);
         }
+        let view = ScrollRegion::view(&scroll, content, total);
+        let keep_y = if cursor.0 >= view.offset()
+            && cursor.0 < view.offset().saturating_add(view.viewport_len())
+        {
+            let cy = content.y.saturating_add((cursor.0 - view.offset()) as u16);
+            [cy]
+        } else {
+            [u16::MAX]
+        };
+        ui.scroll_edges_except(content, &view, &keep_y);
         self.draw_actions(ui, bar, live);
         area
     }

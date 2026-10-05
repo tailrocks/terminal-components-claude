@@ -583,7 +583,7 @@ impl Session {
     }
 
     pub fn send_key(&mut self, key: &str) -> Result<(), tuiscotti::tui::TuiError> {
-        self.inner.press(key)
+        press_chord(&self.inner, key)
     }
 
     pub fn scroll(
@@ -726,6 +726,27 @@ fn normalize_chord(step: &str) -> String {
     step.to_string()
 }
 
+fn press_chord(inner: &tuiscotti::tui::Session, chord_str: &str) -> Result<(), tuiscotti::tui::TuiError> {
+    let chord = normalize_chord(chord_str);
+    let mut parts: Vec<&str> = chord.split('+').collect();
+    let key_name = parts.pop().unwrap_or_default();
+    if key_name.eq_ignore_ascii_case("f") {
+        let mut mods = tuiscotti::tui::KeyMods::NONE;
+        for m in parts {
+            match m.to_ascii_lowercase().as_str() {
+                "ctrl" | "control" | "ctl" => mods.ctrl = true,
+                "alt" | "opt" | "meta" => mods.alt = true,
+                "shift" => mods.shift = true,
+                "super" | "cmd" | "win" | "windows" | "command" => mods.ext.sup = true,
+                _ => {}
+            }
+        }
+        let ch = key_name.chars().next().unwrap_or('f');
+        return inner.press_key(tuiscotti::tui::Key::Char(ch), mods);
+    }
+    inner.press(&chord)
+}
+
 #[allow(dead_code)]
 pub fn drive(session: &mut Session, steps: &[&str]) {
     drive_with_timeout(session, steps, 8_000);
@@ -738,29 +759,30 @@ pub fn drive_with_timeout(session: &mut Session, steps: &[&str], timeout_ms: u64
         } else if let Some(needle) = step.strip_prefix("wait:") {
             let deadline = std::time::Instant::now() + Duration::from_millis(timeout_ms.max(8_000));
             let cancel = CancelToken::new();
-            let last_text = std::cell::RefCell::new(String::new());
+            let last_text = std::sync::Mutex::new(String::new());
             session
                 .inner
                 .wait_predicate(
                     |obs| {
                         let t = frame_from_screen(&obs.screen, "default").text();
                         let found = t.contains(needle);
-                        *last_text.borrow_mut() = t;
+                        if let Ok(mut l) = last_text.lock() {
+                            *l = t;
+                        }
                         found
                     },
                     deadline,
                     &cancel,
                 )
-                .unwrap_or_else(|e| panic!("`wait:{needle}` timed out: {e:#}\n--- LAST SCREEN TEXT ---\n{}\n--- END SCREEN TEXT ---", last_text.borrow()));
+                .unwrap_or_else(|e| {
+                    let text = last_text.lock().map_or_else(|_| String::new(), |l| l.clone());
+                    panic!("`wait:{needle}` timed out: {e:#}\n--- SCREEN TEXT ---\n{text}\n--- END SCREEN TEXT ---")
+                });
         } else if let Some(text) = step.strip_prefix("type:") {
             session.inner.send_text(text).expect("type_text");
             std::thread::sleep(Duration::from_millis(120));
-        } else if *step == "f" || *step == "F" {
-            session.inner.send_text(step).expect("send_key");
-            std::thread::sleep(Duration::from_millis(120));
         } else {
-            let chord = normalize_chord(step);
-            session.inner.press(&chord).expect("send_key");
+            press_chord(&session.inner, step).expect("send_key");
             std::thread::sleep(Duration::from_millis(120));
         }
     }
@@ -1301,6 +1323,11 @@ pub fn run_canonical(representative: &Case) {
         for color in CANONICAL_COLORS {
             let case = representative.variant(cols, rows, color);
             let name = case.name.to_string();
+            if let Ok(filter) = std::env::var("COMBO_FILTER") {
+                if !name.contains(&filter) {
+                    continue;
+                }
+            }
             if !collect_matrix(&name, || run_and_assert(&case)) {
                 failures.push(name);
             }
@@ -1364,6 +1391,11 @@ pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
                 .unwrap_or(representative)
                 .variant(cols, rows, color);
             let name = case.name.to_string();
+            if let Ok(filter) = std::env::var("COMBO_FILTER") {
+                if !name.contains(&filter) {
+                    continue;
+                }
+            }
             if !collect_matrix(&name, || run_and_assert(&case)) {
                 failures.push(name);
             }
@@ -1381,6 +1413,11 @@ pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut S
         for color in CANONICAL_COLORS {
             let case = representative.variant(cols, rows, color);
             let name = case.name.to_string();
+            if let Ok(filter) = std::env::var("COMBO_FILTER") {
+                if !name.contains(&filter) {
+                    continue;
+                }
+            }
             if !collect_matrix(&name, || {
                 let mut session = spawn_boot(&case);
                 interact(&mut session, &case);

@@ -35,6 +35,8 @@ pub struct Workbench {
     pub history: History,
     /// Whether the active tab is maximised.
     pub maximized: bool,
+    /// Whether the explorer panel is visible.
+    pub explorer_visible: bool,
 }
 
 impl Workbench {
@@ -43,7 +45,7 @@ impl Workbench {
         Self {
             owner: std::sync::Arc::new(()),
             current_schema: "public".to_owned(),
-            schema_caption: "public ".to_owned(),
+            schema_caption: "public".to_owned(),
             explorer: tabs::explorer_items(&catalog),
             connection,
             catalog,
@@ -55,6 +57,7 @@ impl Workbench {
             next_tab_key: Some(1),
             history: History::seeded(),
             maximized: false,
+            explorer_visible: true,
         }
     }
     /// Schema selected for explorer reconstruction.
@@ -77,7 +80,7 @@ impl Workbench {
             return false;
         }
         schema.clone_into(&mut self.current_schema);
-        self.schema_caption = format!("{schema} ");
+        self.schema_caption = schema.to_owned();
         self.explorer_filter.clear();
         self.explorer_selected = 0;
         true
