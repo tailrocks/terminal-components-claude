@@ -831,16 +831,14 @@ impl App {
     }
 
     fn sync_workspace_keymap(&mut self) {
-        for code in [KeyCode::Char('n'), KeyCode::End] {
-            let chord = Chord::key(code);
-            self.keymap.remove(KeyPhase::Capture, chord);
-            if self.route == Route::Manager
-                || (self.route == Route::Editor
-                    && self.editor.tab == EditorTab::Environments
-                    && !self.editor.env_form_open)
-            {
-                self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
-            }
+        let chord = Chord::key(KeyCode::End);
+        self.keymap.remove(KeyPhase::Capture, chord);
+        if self.route == Route::Manager
+            || (self.route == Route::Editor
+                && self.editor.tab == EditorTab::Environments
+                && !self.editor.env_form_open)
+        {
+            self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
         }
     }
 
@@ -4800,286 +4798,6 @@ impl App {
         );
     }
 
-    fn draw_historical_prelude_120_40(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
-            if y < area.bottom() && x < area.right() {
-                ui.paint_str(
-                    Rect::new(x, y, area.right().saturating_sub(x), 1),
-                    text,
-                    style,
-                );
-            }
-        };
-        put(ui, 1, 0, " jackin\u276f ", palette.border_on_button);
-        put(ui, 12, 0, " File ", palette.border_on_canvas);
-        put(ui, 19, 0, " Go ", palette.border_on_canvas);
-        put(ui, 24, 0, " Help ", palette.border_on_canvas);
-        put(ui, 57, 0, "Workspaces \u203a new workspace", palette.border_on_canvas);
-        put(ui, 85, 0, "inside the Construct", palette.border_on_canvas);
-        put(ui, 107, 0, "no instances", palette.seam_on_canvas);
-        put(ui, 18, 9, "\u256d\u2500", palette.border_on_elevated);
-        put(ui, 20, 9, " New workspace \u00b7 step 1 of 5 \u00b7 Source ", palette.primary_on_elevated_bold);
-        put(ui, 58, 9, "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e", palette.border_on_elevated);
-        put(ui, 18, 10, "\u2502", palette.border_on_elevated);
-        put(ui, 19, 10, "  Source \u00b7 Destination \u00b7 Edit \u00b7 Working dir \u00b7 Name                                ", palette.muted_on_elevated);
-        put(ui, 101, 10, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 11, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 11, 82, 1), palette.muted_on_elevated);
-        put(ui, 101, 11, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 12, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 12, 3, 1), palette.muted_on_elevated);
-        put(ui, 22, 12, "Path                                                                         ", palette.secondary_on_elevated);
-        ui.fill(Rect::new(99, 12, 2, 1), palette.muted_on_elevated);
-        put(ui, 101, 12, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 13, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 13, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(20, 13, 1, 1), palette.field_on_field);
-        put(ui, 21, 13, " ~/src/payments-platform                                                      ", palette.primary_on_field);
-        ui.fill(Rect::new(99, 13, 2, 1), palette.muted_on_elevated);
-        put(ui, 101, 13, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 14, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 14, 82, 1), palette.muted_on_elevated);
-        put(ui, 101, 14, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 15, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 15, 1, 1), palette.muted_on_elevated);
-        put(ui, 20, 15, "\u258e", palette.accent_on_accent_tint_bold);
-        put(ui, 21, 15, "  ..                                                                   ", palette.primary_on_elevated_bold);
-        put(ui, 92, 15, "parent", palette.secondary_on_elevated_bold);
-        ui.fill(Rect::new(98, 15, 1, 1), palette.primary_on_elevated_bold);
-        ui.fill(Rect::new(99, 15, 2, 1), palette.muted_on_elevated);
-        put(ui, 101, 15, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 16, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 16, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(20, 16, 1, 1), palette.elevated_on_elevated);
-        put(ui, 21, 16, "  crates/                                                             ", palette.primary_on_elevated);
-        put(ui, 91, 16, "6 items", palette.muted_on_elevated);
-        ui.fill(Rect::new(98, 16, 1, 1), palette.primary_on_elevated);
-        ui.fill(Rect::new(99, 16, 2, 1), palette.muted_on_elevated);
-        put(ui, 101, 16, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 17, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 17, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(20, 17, 1, 1), palette.elevated_on_elevated);
-        put(ui, 21, 17, "  docs/                                                                   ", palette.primary_on_elevated);
-        put(ui, 95, 17, "adr", palette.muted_on_elevated);
-        ui.fill(Rect::new(98, 17, 1, 1), palette.primary_on_elevated);
-        ui.fill(Rect::new(99, 17, 2, 1), palette.muted_on_elevated);
-        put(ui, 101, 17, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 18, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 18, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(20, 18, 1, 1), palette.elevated_on_elevated);
-        put(ui, 21, 18, "  scripts/                                                            ", palette.primary_on_elevated);
-        put(ui, 91, 18, "3 items", palette.muted_on_elevated);
-        ui.fill(Rect::new(98, 18, 1, 1), palette.primary_on_elevated);
-        ui.fill(Rect::new(99, 18, 2, 1), palette.muted_on_elevated);
-        put(ui, 101, 18, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 19, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 19, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(20, 19, 1, 1), palette.elevated_on_elevated);
-        put(ui, 21, 19, "  Cargo.toml                                                              1 h ", palette.border_on_elevated);
-        ui.fill(Rect::new(99, 19, 2, 1), palette.muted_on_elevated);
-        put(ui, 101, 19, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 20, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 20, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(20, 20, 1, 1), palette.elevated_on_elevated);
-        put(ui, 21, 20, "  README.md                                                               3 d ", palette.border_on_elevated);
-        ui.fill(Rect::new(99, 20, 2, 1), palette.muted_on_elevated);
-        put(ui, 101, 20, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 21, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 21, 82, 1), palette.muted_on_elevated);
-        put(ui, 101, 21, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 22, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 22, 82, 1), palette.muted_on_elevated);
-        put(ui, 101, 22, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 23, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 23, 82, 1), palette.muted_on_elevated);
-        put(ui, 101, 23, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 24, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 24, 82, 1), palette.muted_on_elevated);
-        put(ui, 101, 24, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 25, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 25, 82, 1), palette.muted_on_elevated);
-        put(ui, 101, 25, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 26, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 26, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(20, 26, 1, 1), palette.elevated_on_elevated);
-        put(ui, 21, 26, "[ ]", palette.muted_on_elevated);
-        put(ui, 24, 26, " Mount read-only                                                           ", palette.primary_on_elevated);
-        ui.fill(Rect::new(99, 26, 2, 1), palette.muted_on_elevated);
-        put(ui, 101, 26, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 27, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 27, 82, 1), palette.muted_on_elevated);
-        put(ui, 101, 27, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 28, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 28, 82, 1), palette.muted_on_elevated);
-        put(ui, 101, 28, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 29, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(19, 29, 52, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(71, 29, 1, 1), palette.button_on_button);
-        put(ui, 72, 29, "Git URL\u2026 ", palette.primary_on_button);
-        ui.fill(Rect::new(81, 29, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(82, 29, 1, 1), palette.elevated_on_elevated);
-        put(ui, 83, 29, "Cancel ", palette.secondary_on_elevated);
-        ui.fill(Rect::new(90, 29, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(91, 29, 1, 1), palette.on_accent_on_accent_bold);
-        put(ui, 92, 29, "Choose ", palette.on_accent_on_accent_bold);
-        ui.fill(Rect::new(99, 29, 2, 1), palette.muted_on_elevated);
-        put(ui, 101, 29, "\u2502", palette.border_on_elevated);
-        put(ui, 18, 30, "\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f", palette.border_on_elevated);
-        put(ui, 30, 39, "Enter ", palette.primary_on_canvas_bold);
-        put(ui, 36, 39, "Open", palette.secondary_on_canvas_bold);
-        put(ui, 40, 39, "  Space", palette.primary_on_canvas_bold);
-        put(ui, 48, 39, "C", palette.muted_on_canvas);
-        put(ui, 49, 39, "hoose", palette.secondary_on_canvas_bold);
-        put(ui, 56, 39, "g", palette.primary_on_canvas_bold);
-        put(ui, 58, 39, "Git U", palette.muted_on_canvas);
-        put(ui, 63, 39, "R", palette.secondary_on_canvas_bold);
-        put(ui, 64, 39, "L", palette.muted_on_canvas);
-        put(ui, 67, 39, "Tab", palette.primary_on_canvas_bold);
-        put(ui, 71, 39, "Nex", palette.muted_on_canvas);
-        put(ui, 74, 39, "t", palette.secondary_on_canvas_bold);
-        put(ui, 75, 39, "  Esc", palette.primary_on_canvas_bold);
-        put(ui, 81, 39, "Can", palette.muted_on_canvas);
-        put(ui, 84, 39, "cel", palette.secondary_on_canvas_bold);
-    }
-
-    fn draw_historical_prelude_80_24(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
-            if y < area.bottom() && x < area.right() {
-                ui.paint_str(
-                    Rect::new(x, y, area.right().saturating_sub(x), 1),
-                    text,
-                    style,
-                );
-            }
-        };
-        put(ui, 1, 0, " jackin\u276f ", palette.border_on_button);
-        put(ui, 12, 0, " File ", palette.border_on_canvas);
-        put(ui, 19, 0, " Go ", palette.border_on_canvas);
-        put(ui, 24, 0, " Help ", palette.border_on_canvas);
-        put(ui, 53, 0, "Workspaces \u203a new workspace", palette.border_on_canvas);
-        put(ui, 2, 2, "\u256d\u2500", palette.border_on_elevated);
-        put(ui, 4, 2, " New workspace \u00b7 step 1 of 5 \u00b7 Source ", palette.primary_on_elevated_bold);
-        put(ui, 42, 2, "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e", palette.border_on_elevated);
-        put(ui, 2, 3, "\u2502", palette.border_on_elevated);
-        put(ui, 3, 3, "  Source \u00b7 Destination \u00b7 Edit \u00b7 Working dir \u00b7 Name                        ", palette.muted_on_elevated);
-        put(ui, 77, 3, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 4, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 4, 74, 1), palette.muted_on_elevated);
-        put(ui, 77, 4, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 5, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 5, 3, 1), palette.muted_on_elevated);
-        put(ui, 6, 5, "Path                                                                 ", palette.secondary_on_elevated);
-        ui.fill(Rect::new(75, 5, 2, 1), palette.muted_on_elevated);
-        put(ui, 77, 5, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 6, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 6, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(4, 6, 1, 1), palette.field_on_field);
-        put(ui, 5, 6, " ~/src/payments-platform                                              ", palette.primary_on_field);
-        ui.fill(Rect::new(75, 6, 2, 1), palette.muted_on_elevated);
-        put(ui, 77, 6, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 7, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 7, 74, 1), palette.muted_on_elevated);
-        put(ui, 77, 7, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 8, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 8, 1, 1), palette.muted_on_elevated);
-        put(ui, 4, 8, "\u258e", palette.accent_on_accent_tint_bold);
-        put(ui, 5, 8, "  ..                                                           ", palette.primary_on_elevated_bold);
-        put(ui, 68, 8, "parent", palette.secondary_on_elevated_bold);
-        ui.fill(Rect::new(74, 8, 1, 1), palette.primary_on_elevated_bold);
-        ui.fill(Rect::new(75, 8, 2, 1), palette.muted_on_elevated);
-        put(ui, 77, 8, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 9, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 9, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(4, 9, 1, 1), palette.elevated_on_elevated);
-        put(ui, 5, 9, "  crates/                                                     ", palette.primary_on_elevated);
-        put(ui, 67, 9, "6 items", palette.muted_on_elevated);
-        ui.fill(Rect::new(74, 9, 1, 1), palette.primary_on_elevated);
-        ui.fill(Rect::new(75, 9, 2, 1), palette.muted_on_elevated);
-        put(ui, 77, 9, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 10, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 10, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(4, 10, 1, 1), palette.elevated_on_elevated);
-        put(ui, 5, 10, "  docs/                                                           ", palette.primary_on_elevated);
-        put(ui, 71, 10, "adr", palette.muted_on_elevated);
-        ui.fill(Rect::new(74, 10, 1, 1), palette.primary_on_elevated);
-        ui.fill(Rect::new(75, 10, 2, 1), palette.muted_on_elevated);
-        put(ui, 77, 10, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 11, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 11, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(4, 11, 1, 1), palette.elevated_on_elevated);
-        put(ui, 5, 11, "  scripts/                                                    ", palette.primary_on_elevated);
-        put(ui, 67, 11, "3 items", palette.muted_on_elevated);
-        ui.fill(Rect::new(74, 11, 1, 1), palette.primary_on_elevated);
-        ui.fill(Rect::new(75, 11, 2, 1), palette.muted_on_elevated);
-        put(ui, 77, 11, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 12, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 12, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(4, 12, 1, 1), palette.elevated_on_elevated);
-        put(ui, 5, 12, "  Cargo.toml                                                      1 h ", palette.border_on_elevated);
-        ui.fill(Rect::new(75, 12, 2, 1), palette.muted_on_elevated);
-        put(ui, 77, 12, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 13, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 13, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(4, 13, 1, 1), palette.elevated_on_elevated);
-        put(ui, 5, 13, "  README.md                                                       3 d ", palette.border_on_elevated);
-        ui.fill(Rect::new(75, 13, 2, 1), palette.muted_on_elevated);
-        put(ui, 77, 13, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 14, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 14, 74, 1), palette.muted_on_elevated);
-        put(ui, 77, 14, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 15, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 15, 74, 1), palette.muted_on_elevated);
-        put(ui, 77, 15, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 16, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 16, 74, 1), palette.muted_on_elevated);
-        put(ui, 77, 16, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 17, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 17, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(4, 17, 1, 1), palette.elevated_on_elevated);
-        put(ui, 5, 17, "[ ]", palette.muted_on_elevated);
-        put(ui, 8, 17, " Mount read-only                                                   ", palette.primary_on_elevated);
-        ui.fill(Rect::new(75, 17, 2, 1), palette.muted_on_elevated);
-        put(ui, 77, 17, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 18, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 18, 74, 1), palette.muted_on_elevated);
-        put(ui, 77, 18, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 19, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 19, 74, 1), palette.muted_on_elevated);
-        put(ui, 77, 19, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 20, "\u2502", palette.border_on_elevated);
-        ui.fill(Rect::new(3, 20, 44, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(47, 20, 1, 1), palette.button_on_button);
-        put(ui, 48, 20, "Git URL\u2026 ", palette.primary_on_button);
-        ui.fill(Rect::new(57, 20, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(58, 20, 1, 1), palette.elevated_on_elevated);
-        put(ui, 59, 20, "Cancel ", palette.secondary_on_elevated);
-        ui.fill(Rect::new(66, 20, 1, 1), palette.muted_on_elevated);
-        ui.fill(Rect::new(67, 20, 1, 1), palette.on_accent_on_accent_bold);
-        put(ui, 68, 20, "Choose ", palette.on_accent_on_accent_bold);
-        ui.fill(Rect::new(75, 20, 2, 1), palette.muted_on_elevated);
-        put(ui, 77, 20, "\u2502", palette.border_on_elevated);
-        put(ui, 2, 21, "\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f", palette.border_on_elevated);
-        put(ui, 10, 23, "Enter ", palette.primary_on_canvas_bold);
-        put(ui, 16, 23, "Open", palette.secondary_on_canvas_bold);
-        put(ui, 20, 23, "  Space", palette.primary_on_canvas_bold);
-        put(ui, 28, 23, "C", palette.muted_on_canvas);
-        put(ui, 29, 23, "hoose", palette.secondary_on_canvas_bold);
-        put(ui, 36, 23, "g", palette.primary_on_canvas_bold);
-        put(ui, 38, 23, "Git U", palette.muted_on_canvas);
-        put(ui, 43, 23, "R", palette.secondary_on_canvas_bold);
-        put(ui, 44, 23, "L", palette.muted_on_canvas);
-        put(ui, 47, 23, "Tab", palette.primary_on_canvas_bold);
-        put(ui, 51, 23, "Nex", palette.muted_on_canvas);
-        put(ui, 54, 23, "t", palette.secondary_on_canvas_bold);
-        put(ui, 55, 23, "  Esc", palette.primary_on_canvas_bold);
-        put(ui, 61, 23, "Can", palette.muted_on_canvas);
-        put(ui, 64, 23, "cel", palette.secondary_on_canvas_bold);
-    }
-
     /// Historical capsule composition retained at the frozen 120×40 host size.
     fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
@@ -8305,15 +8023,6 @@ impl TuiApp for App {
             self.draw_intro(ui, full);
             return;
         }
-        if self.route == Route::Prelude {
-            if full.width == 120 && full.height == 40 {
-                self.draw_historical_prelude_120_40(ui, full);
-                return;
-            } else if full.width == 80 && full.height == 24 {
-                self.draw_historical_prelude_80_24(ui, full);
-                return;
-            }
-        }
         if self.route == Route::Outro {
             self.draw_outro(ui, full);
             return;
@@ -8689,11 +8398,6 @@ fn app_keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::key(KeyCode::Enter),
             CMD_EXIT_CONFIRM,
-        )
-        .bind(
-            KeyPhase::Capture,
-            Chord::key(KeyCode::Char('n')),
-            CMD_NEW_WORKSPACE,
         )
         .bind(
             KeyPhase::Capture,
