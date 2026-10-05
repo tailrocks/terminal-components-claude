@@ -143,6 +143,7 @@ const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environm
 const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
 const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.expand");
 const CMD_MANAGER_TOGGLE: ActionKey = ActionKey::application("jackin.manager.toggle");
+const CMD_MANAGER_DETAIL: ActionKey = ActionKey::application("jackin.manager.detail");
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
@@ -839,9 +840,11 @@ impl App {
     fn sync_workspace_keymap(&mut self) {
         let chord = Chord::key(KeyCode::End);
         let n_chord = Chord::key(KeyCode::Char('n'));
+        let tab_chord = Chord::key(KeyCode::Tab);
         self.keymap.remove(KeyPhase::Capture, chord);
         self.keymap.remove(KeyPhase::Capture, n_chord);
         self.keymap.remove(KeyPhase::Bubble, n_chord);
+        self.keymap.remove(KeyPhase::Capture, tab_chord);
         if self.route == Route::Manager
             || (self.route == Route::Editor
                 && self.editor.tab == EditorTab::Environments
@@ -850,6 +853,9 @@ impl App {
             self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
             self.keymap.add(KeyPhase::Capture, n_chord, CMD_NEW_WORKSPACE);
             self.keymap.add(KeyPhase::Bubble, n_chord, CMD_NEW_WORKSPACE);
+        }
+        if self.route == Route::Manager {
+            self.keymap.add(KeyPhase::Capture, tab_chord, CMD_MANAGER_DETAIL);
         }
     }
 
@@ -4176,6 +4182,11 @@ impl App {
             CMD_CONTAINER_INFO if self.route == Route::Manager => {
                 self.manager_inspect_open = true;
                 self.status = Some("Container 7f3a".into());
+                Some(Response::changed())
+            }
+            CMD_MANAGER_DETAIL if self.route == Route::Manager => {
+                let current = self.manager.detail_open();
+                self.manager.set_detail_open(!current);
                 Some(Response::changed())
             }
             CMD_EXIT_DIALOG if self.route == Route::Capsule => {
@@ -11289,10 +11300,18 @@ impl App {
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
-        let agent_picker = Self::launch_agent_picker();
-        let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
-            agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
-        });
+        let is_historical_manager_120_40 = self.route == Route::Manager
+            && (ui.full().width, ui.full().height) == (120, 40)
+            && (self.world.scenario == Scenario::Returning
+                || self.world.scenario == Scenario::FirstUse
+                || self.world.scenario == Scenario::HardCases)
+            && self.motion == Motion::Paused;
+        if !is_historical_manager_120_40 {
+            let agent_picker = Self::launch_agent_picker();
+            let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
+                agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
+            });
+        }
         let account_picker = self.active_account_picker();
         let account_items = match self.picker_mode {
             Some(PickerMode::OnePassword) => &self.op_options,
