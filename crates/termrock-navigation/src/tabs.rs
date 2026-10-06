@@ -1004,6 +1004,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         }
                         Slot::Clear => ui.fill(icon_cell, icon.style),
                     },
+                    Status::Warning => match icon.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(icon_cell, glyph, icon.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(icon_cell, GlyphRole::WarningMark, icon.style);
+                        }
+                        Slot::Clear => ui.fill(icon_cell, icon.style),
+                    },
                     Status::Ready => {}
                 }
             }

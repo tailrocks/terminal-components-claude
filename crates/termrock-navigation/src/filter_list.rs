@@ -497,6 +497,18 @@ impl<'a, T, R> FilterList<'a, T, R> {
                         ui.fill(icon_area, icon.style);
                     }
                 }
+                Status::Warning => {
+                    let glyph = match icon.glyph {
+                        Slot::Set(glyph) => Some(glyph),
+                        Slot::Inherit => Some(GlyphRole::WarningMark),
+                        Slot::Clear => None,
+                    };
+                    if let Some(glyph) = glyph {
+                        ui.glyph(icon_area, glyph, icon.style);
+                    } else {
+                        ui.fill(icon_area, icon.style);
+                    }
+                }
                 Status::Ready => {}
             }
         }

@@ -140,6 +140,7 @@ impl PickerState {
 pub struct Picker<'a, T, R = ItemRow> {
     id: Id,
     title: &'a str,
+    meta: Option<&'a str>,
     width: Option<u16>,
     searchable: bool,
     filter: FilterPolicy,
@@ -161,6 +162,7 @@ impl<T, R> core::fmt::Debug for Picker<'_, T, R> {
         f.debug_struct("Picker")
             .field("id", &self.id)
             .field("title", &self.title)
+            .field("meta", &self.meta)
             .field("scopes", &self.scopes)
             .field("searchable", &self.searchable)
             .field("requested_size", &self.requested_size)
@@ -175,6 +177,7 @@ impl<T> Picker<'_, T, ItemRow> {
         Self {
             id,
             title: "Choose",
+            meta: None,
             width: None,
             searchable: true,
             filter: FilterPolicy::Label,
@@ -226,6 +229,12 @@ impl<'a, T, R> Picker<'a, T, R> {
     #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
         self.title = title;
+        self
+    }
+    /// Optional metadata text displayed on the right side of the title row.
+    #[must_use]
+    pub const fn meta(mut self, meta: &'a str) -> Self {
+        self.meta = Some(meta);
         self
     }
     /// Override the requested width; the layer resolver still clamps to the viewport.
@@ -285,6 +294,7 @@ impl<'a, T, R> Picker<'a, T, R> {
         Picker {
             id: self.id,
             title: self.title,
+            meta: self.meta,
             width: self.width,
             searchable: self.searchable,
             filter: self.filter,
@@ -294,7 +304,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             align: self.align,
             empty: self.empty,
             row,
-            item_layout: ItemRowLayout::Compact,
+            item_layout: self.item_layout,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -505,6 +515,27 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     live,
                 );
                 ui.paint_str(title, self.title, title_style.style);
+                if let Some(meta) = self.meta {
+                    let meta_w = width(meta);
+                    let meta_style = self.ov.style(
+                        ui,
+                        self.id,
+                        Family::PICKER,
+                        Variant::DEFAULT,
+                        Part::META,
+                        live,
+                    );
+                    ui.paint_str(
+                        Rect {
+                            x: content.right().saturating_sub(meta_w),
+                            y: content.y,
+                            width: meta_w,
+                            height: 1,
+                        },
+                        meta,
+                        meta_style.style,
+                    );
+                }
                 if self.searchable {
                     let query = Rect {
                         y: content.y.saturating_add(1),

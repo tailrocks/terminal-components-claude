@@ -855,7 +855,7 @@
       "rule": "OWN-11"
     },
     {
-      "max": 915,
+      "max": 146,
       "path": "crates/jackin-preview-app/src/app.rs",
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
@@ -876,14 +876,14 @@
       "rule": "OWN-04"
     },
     {
-      "max": 20,
+      "max": 15,
       "path": "crates/jackin-preview-app/src/app.rs",
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-10"
     },
     {
-      "max": 21,
+      "max": 19,
       "path": "crates/jackin-preview-app/src/app.rs",
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",

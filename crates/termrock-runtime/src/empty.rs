@@ -21,6 +21,8 @@ pub enum Status {
     Loading,
     /// In error.
     Error,
+    /// Warning.
+    Warning,
 }
 
 impl Status {
@@ -31,6 +33,7 @@ impl Status {
             Status::Busy => StateFlags::BUSY,
             Status::Loading => StateFlags::LOADING,
             Status::Error => StateFlags::ERROR,
+            Status::Warning => StateFlags::WARNING,
         }
     }
 }

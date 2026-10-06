@@ -536,6 +536,9 @@ fn bars(m: &mut PartMap<PartRecipe>) {
     part(m, Part::LABEL, p())
         .when(StateFlags::ERROR, p().set_fg(Role::Danger))
         .when(StateFlags::WARNING, p().set_fg(Role::Warning));
+    part(m, Part::MARKER, p())
+        .when(StateFlags::ERROR, p().set_fg(Role::Danger))
+        .when(StateFlags::WARNING, p().set_fg(Role::Warning).add(Modifier::BOLD));
 }
 
 fn keyhint(m: &mut PartMap<PartRecipe>) {

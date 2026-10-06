@@ -407,6 +407,10 @@ impl<'a> PickerChain<'a> {
                 message: "Unable to load",
                 detail: Some("Press r to retry"),
             }),
+            Status::Warning => Some(EmptyState::Error {
+                message: "Warning",
+                detail: None,
+            }),
             Status::Ready => self.empty,
         });
         if let Some(slot) = self.ov.slot_for(Part::BODY) {
@@ -464,6 +468,11 @@ impl<'a> PickerChain<'a> {
             Status::Error => match icon.glyph {
                 Slot::Set(glyph) => Some(ui.design().glyphs.get(glyph)),
                 Slot::Inherit => Some(ui.design().glyphs.get(GlyphRole::Error)),
+                Slot::Clear => None,
+            },
+            Status::Warning => match icon.glyph {
+                Slot::Set(glyph) => Some(ui.design().glyphs.get(glyph)),
+                Slot::Inherit => Some(ui.design().glyphs.get(GlyphRole::WarningMark)),
                 Slot::Clear => None,
             },
             Status::Ready => None,

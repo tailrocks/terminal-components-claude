@@ -466,6 +466,15 @@ impl<'a> Button<'a> {
                         }
                         Slot::Clear => ui.fill(icon_cell, is.style),
                     },
+                    Status::Warning => match is.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(icon_cell, glyph, is.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(icon_cell, GlyphRole::WarningMark, is.style);
+                        }
+                        Slot::Clear => ui.fill(icon_cell, is.style),
+                    },
                     Status::Ready => {
                         if let Some(glyph) = self.icon {
                             ui.glyph(icon_cell, glyph, is.style);
