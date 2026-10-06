@@ -1,0 +1,100 @@
+{
+  "schema": "termrock-doc-pack-manifest/v1",
+  "files": [
+    {
+      "path": "FINDINGS.md",
+      "bytes": 9964,
+      "sha256": "a1553f9393778560266f86504309917e8ba6ccb929649c66c6f2567a5763c49f"
+    },
+    {
+      "path": "GOAL.md",
+      "bytes": 17887,
+      "sha256": "284321cb94c80b08ac175e7f3e822edf11d89058c6f7638beb8a264f678d9e5c"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3138,
+      "sha256": "cce0c17ca1b336b5b6f864cff0a569ab5df6eee14bc6f8f545e67278cdffacf4"
+    },
+    {
+      "path": "proposal/.github/pull_request_template.md",
+      "bytes": 763,
+      "sha256": "19f5d85e0905fb7c3656d69720708404f0f139aa8b46328ebf0327ba79b19416"
+    },
+    {
+      "path": "proposal/AGENTS.md",
+      "bytes": 4254,
+      "sha256": "baa99b0e4ede55be2231485469175a0b444dc38d2bcdc78484aa54c02cb87482"
+    },
+    {
+      "path": "proposal/docs/api/consumer-recipes.md",
+      "bytes": 34855,
+      "sha256": "01490da284675b8db5d0957442d5eb82baa28521439b280c168a3cd56a67ebb8"
+    },
+    {
+      "path": "proposal/docs/api/example-catalog.json",
+      "bytes": 19194,
+      "sha256": "f8ac2d1743769c38c2c31a0f560e53267e99fff9e0310bf0d54cf4f121c081c6"
+    },
+    {
+      "path": "proposal/docs/architecture/component-composition.md",
+      "bytes": 8255,
+      "sha256": "6749d4c66521e6ce47b7617dcd5e45151e0f6dde111e9ade9829c8a23a1f557d"
+    },
+    {
+      "path": "proposal/docs/implementation/code-remediation-backlog.md",
+      "bytes": 4857,
+      "sha256": "b8d6e156630c3dca88725d82b9366c2f2bd42bd5e96f3d733c0e4238b8b2e443"
+    },
+    {
+      "path": "proposal/docs/implementation/documentation-repair-checklist.json",
+      "bytes": 22237,
+      "sha256": "01ae1a123d2e63e1d8f3cd67e1aee92e56ad4b813e0965ebbbeb3e30a0676ac7"
+    },
+    {
+      "path": "proposal/docs/implementation/documentation-repair-checklist.md",
+      "bytes": 8868,
+      "sha256": "3d6a456e82fbed1f365a465eb4f300fbbce2d191f07b4cc8bf88760147cea48a"
+    },
+    {
+      "path": "proposal/docs/process/document-map.md",
+      "bytes": 3380,
+      "sha256": "22896ce43bd6f35304b85968b530779e1a835da5b6eccd98549d8ac6de834d13"
+    },
+    {
+      "path": "proposal/docs/process/per-commit-review.md",
+      "bytes": 6246,
+      "sha256": "15603446ad12d1eb8de7648e727a6a7037437334820aa95fbdee15a220631b2b"
+    },
+    {
+      "path": "proposal/docs/process/writing-style.md",
+      "bytes": 1878,
+      "sha256": "9c8f50e1d99f905f6d29e0cf4a7814659126403ebb05a76814d1a6a21c94879e"
+    },
+    {
+      "path": "proposal/docs/templates/change-review.md",
+      "bytes": 1085,
+      "sha256": "6d25ded37df72b1f1dd8c9bb6dbbb4289179641f5fc03783385a929b728e5d7a"
+    },
+    {
+      "path": "proposal/docs/templates/component-contract.md",
+      "bytes": 1634,
+      "sha256": "32701e7d3971139fb1236184ee35a4c0d7a5b1ce540b5274adac6ce634d57b37"
+    },
+    {
+      "path": "proposal/docs/verification/ownership-and-parity.md",
+      "bytes": 7751,
+      "sha256": "0f65a187fc4c075cae7f17bae6a373fb9d6493b5e22098adaedf50b9ec31b42a"
+    },
+    {
+      "path": "sources.lock.json",
+      "bytes": 1050,
+      "sha256": "ab2d56f198c050e5fc527a9a895c475fa8aa5f34e2b2adaba12c97ed09b71a01"
+    },
+    {
+      "path": "validation.json",
+      "bytes": 1294,
+      "sha256": "d05a787dcf50c4e78ed5f584fc17a070d2a2e8d5bb1073abdf8b70313eef4851"
+    }
+  ]
+}

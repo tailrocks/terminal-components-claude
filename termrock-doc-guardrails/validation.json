@@ -1,0 +1,36 @@
+{
+  "schema": "termrock-documentation-pack-validation/v1",
+  "status": "structural_checks_passed",
+  "scope": "Generated documentation pack, not the repository implementation.",
+  "checked": {
+    "markdown_files": 15,
+    "json_files_before_report": 5,
+    "local_document_links": 20,
+    "recipe_groups": 22,
+    "recipe_status_counts": {
+      "current_source_checked": 2,
+      "proposed_target": 18,
+      "forbidden_example": 2
+    },
+    "documentation_checklist_items": 51,
+    "unique_declared_rule_ids": 32,
+    "all_documentation_checklist_items_initially_pending": true,
+    "no_executable_source_files_in_pack": true,
+    "no_subagent_model_instructions": true
+  },
+  "not_executed": [
+    "Rust compilation",
+    "Rust tests",
+    "Snapshot generation",
+    "Live UI or PTY verification",
+    "Repository write or commit",
+    "Independent subagent review",
+    "Complete ASD-STE100 dictionary audit",
+    "Exhaustive review of all repository source or all screenshots"
+  ],
+  "warnings": [
+    "Positive target snippets are proposed fragments and signature contracts, not compiled examples.",
+    "The five-commit review includes source inspection where the service omitted a patch.",
+    "The proposals must be integrated with the actual current canonical documentation."
+  ]
+}

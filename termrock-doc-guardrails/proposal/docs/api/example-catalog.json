@@ -1,0 +1,637 @@
+{
+  "schema": "termrock-doc-example-catalog/v1",
+  "status": "documentation_proposal",
+  "implementation_branch": "termrock-implementation",
+  "source_revision": "4d117b48092c5210c80070ac9bbeb6560973b2b0",
+  "notes": [
+    "No snippet was compiled or executed for this pack.",
+    "Source-checked signatures are not a claim of accepted behavior.",
+    "Target examples require canonical signature reconciliation before implementation."
+  ],
+  "examples": [
+    {
+      "id": "EX-01",
+      "title": "A button with one owner",
+      "status": "current_source_checked",
+      "document": "consumer-recipes.md",
+      "source_revision": "4d117b48092c5210c80070ac9bbeb6560973b2b0",
+      "source_declarations": [
+        "crates/termrock-controls/src/button.rs",
+        "crates/termrock/src/lib.rs"
+      ],
+      "contract_owners": [
+        "termrock-controls"
+      ],
+      "proposed_api_or_helper_contracts": [],
+      "required_acceptance_cases": [
+        "keyboard activation",
+        "completed pointer activation",
+        "disabled activation rejected",
+        "press then release outside"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-02",
+      "title": "Current controlled text input",
+      "status": "current_source_checked",
+      "document": "consumer-recipes.md",
+      "source_revision": "4d117b48092c5210c80070ac9bbeb6560973b2b0",
+      "source_declarations": [
+        "crates/termrock-fields/src/input.rs:1138-1150",
+        "crates/termrock-fields/src/input.rs:1313-1325",
+        "crates/termrock/src/lib.rs"
+      ],
+      "contract_owners": [
+        "termrock-fields"
+      ],
+      "proposed_api_or_helper_contracts": [],
+      "required_acceptance_cases": [
+        "commit",
+        "cancel",
+        "read-only input",
+        "focus transfer",
+        "grapheme-safe pointer placement"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-03",
+      "title": "Controlled choices",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-controls",
+        "termrock-navigation",
+        "termrock-overlays"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "ValueChange<T>",
+        "Response::action typed borrowed accessor",
+        "controlled-choice builder/update shape"
+      ],
+      "required_acceptance_cases": [
+        "unchecked/checked",
+        "disabled",
+        "pointer cancellation",
+        "choice key retained after reorder"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-04",
+      "title": "A form with validation and protected input",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-forms",
+        "termrock-fields"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "FormSchema borrowed field schema",
+        "FieldSpec typed data binding",
+        "Form schema/update/draw contract",
+        "SecretPolicy::masked_no_copy"
+      ],
+      "required_acceptance_cases": [
+        "invalid submit",
+        "first invalid field focus",
+        "cancel restores draft",
+        "masked input/copy rejection",
+        "nested form paste"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-05",
+      "title": "List content without a custom row painter",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-navigation",
+        "termrock-collections",
+        "termrock-controls"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "RowContent",
+        "BadgeContent",
+        "List::row_content",
+        "keyed collection adapter"
+      ],
+      "required_acceptance_cases": [
+        "long label",
+        "changed status",
+        "duplicate labels with distinct keys",
+        "scroll",
+        "remove pressed row"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-06",
+      "title": "Tree and detail layout",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-controls",
+        "termrock-navigation"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "SplitPane minimums/areas target",
+        "Panel composition callback shape",
+        "PropsList borrowed model draw contract"
+      ],
+      "required_acceptance_cases": [
+        "split drag",
+        "maximize/restore",
+        "tree collapse",
+        "detail selection",
+        "resize below minima"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-07",
+      "title": "Tabs and screen selection",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-navigation",
+        "termrock-layout"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "controlled Tabs selected/update/draw shape",
+        "rows<const N>",
+        "Track::Fixed / Track::Fill"
+      ],
+      "required_acceptance_cases": [
+        "tab overflow",
+        "close dirty tab",
+        "reorder tabs",
+        "narrow/wide restore"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-08",
+      "title": "A dialog that keeps normal input behavior",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-overlays",
+        "termrock-runtime",
+        "termrock-controls"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "Dialog composition and typed result shape",
+        "Label / TextRole",
+        "LayerSpec accepted opening contract"
+      ],
+      "required_acceptance_cases": [
+        "outside press/release",
+        "Escape",
+        "nested dialog",
+        "removed target",
+        "paused mode input"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-09",
+      "title": "Menus, context menus, and a command palette",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-overlays"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "PaletteAction / command-model contract",
+        "CommandPalette phase signatures"
+      ],
+      "required_acceptance_cases": [
+        "filter query",
+        "disabled command",
+        "scroll",
+        "nested submenu",
+        "outside dismissal"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-10",
+      "title": "One Grid for tables and editable cells",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-grid"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "GridModel / GridEditor accepted capability shape",
+        "GridMode",
+        "GridAction::EditApplied reports an already-applied local edit; no duplicate request"
+      ],
+      "required_acceptance_cases": [
+        "invalid edit",
+        "sort with draft",
+        "range selection",
+        "server rejection simulation",
+        "pending SQL preview"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-11",
+      "title": "A log viewport, not a repainted text block",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-viewport",
+        "termrock-controls"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "FollowPolicy",
+        "revisioned keyed text source contract",
+        "viewport request contract"
+      ],
+      "required_acceptance_cases": [
+        "append at tail",
+        "manual scroll",
+        "selection and eviction",
+        "horizontal scroll",
+        "protected-row fade"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-12",
+      "title": "Code and diff views",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-editors",
+        "termrock-layout"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "columns<const N>",
+        "editor controlled-source contract",
+        "DiffMode::AdaptiveReview"
+      ],
+      "required_acceptance_cases": [
+        "code completion",
+        "read-only",
+        "diagnostics",
+        "wide grapheme caret",
+        "narrow diff recovery"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-13",
+      "title": "Motion uses time, not another screen",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-feedback",
+        "termrock-navigation"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "time/motion sampling builder shape",
+        "progress status projection",
+        "meter freshness projection"
+      ],
+      "required_acceptance_cases": [
+        "spinner phase wrap",
+        "feedback 139/140/141ms",
+        "paused cancellation",
+        "progress rounding",
+        "quota thresholds"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-14",
+      "title": "Theme and part customization",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-theme",
+        "termrock-controls",
+        "termrock-navigation"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "StylePatch semantic text-role setter",
+        "RowContent",
+        "BadgeContent"
+      ],
+      "required_acceptance_cases": [
+        "default unchanged",
+        "custom label applied",
+        "disabled barrier retained",
+        "slot clipped",
+        "sibling unchanged"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-15",
+      "title": "Terminal cells are content inside a component",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-terminal",
+        "termrock-controls"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "TerminalSource adapter",
+        "TerminalAction",
+        "TerminalView phase contract"
+      ],
+      "required_acceptance_cases": [
+        "continuation cells",
+        "cursor",
+        "selection/copy",
+        "paused modal input",
+        "pane resize"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-16",
+      "title": "Jackin workspace prelude composition",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "jackin-preview-app",
+        "jackin-preview-host-ui",
+        "termrock-forms",
+        "termrock-overlays"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "Wizard step composition and typed transition contract",
+        "app step-data adapter"
+      ],
+      "required_acceptance_cases": [
+        "all five steps",
+        "backtracking",
+        "invalid name",
+        "changed source label",
+        "read-only choice",
+        "paused input"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-17",
+      "title": "TablePro workbench composition",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "tablepro-ui",
+        "tablepro-sql",
+        "termrock-grid",
+        "termrock-editors"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "accepted Grid and editor phase contracts",
+        "typed app reducer adapters"
+      ],
+      "required_acceptance_cases": [
+        "pending edit preview",
+        "invalid cell",
+        "sort/filter",
+        "safety acknowledgement",
+        "query cancellation"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-18",
+      "title": "Holla finder and activity composition",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "holla-ui",
+        "termrock-fields",
+        "termrock-navigation",
+        "termrock-viewport"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "borrowed match/preview adapters",
+        "follow policy",
+        "component-only layout helper"
+      ],
+      "required_acceptance_cases": [
+        "search",
+        "no matches",
+        "narrow drawer",
+        "activity output",
+        "cancel",
+        "trust dialog"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-19",
+      "title": "Showcase proves ordinary consumer use",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "showcase-ui",
+        "showcase-demos"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "app demo-page interface",
+        "typed demo fixture/state mapping"
+      ],
+      "required_acceptance_cases": [
+        "every page",
+        "changed demo data",
+        "keyboard navigation",
+        "mouse navigation",
+        "customization"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-20",
+      "title": "How to handle a missing reusable primitive",
+      "status": "proposed_target",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [
+        "termrock-controls",
+        "termrock-feedback"
+      ],
+      "proposed_api_or_helper_contracts": [
+        "Label",
+        "TextRole",
+        "TextOverflow",
+        "MeasureCx accepted measurement contract"
+      ],
+      "required_acceptance_cases": [
+        "Unicode clipping",
+        "empty label",
+        "semantic theme",
+        "noninteractive label",
+        "two unrelated data sets"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-21",
+      "title": "Prohibited: snapshot-shaped application rendering",
+      "status": "forbidden_example",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [],
+      "proposed_api_or_helper_contracts": [],
+      "required_acceptance_cases": [
+        "historical-dispatch rejection",
+        "neighboring width",
+        "changed workspace label",
+        "paused mouse input"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "EX-22",
+      "title": "Prohibited: moving the shortcut into a helper",
+      "status": "forbidden_example",
+      "document": "consumer-recipes.md",
+      "source_revision": null,
+      "source_declarations": [],
+      "contract_owners": [],
+      "proposed_api_or_helper_contracts": [],
+      "required_acceptance_cases": [
+        "stored-answer dependency check",
+        "library-painter mutation reaches real app",
+        "action mutation fails actual journey"
+      ],
+      "form": "fragment_or_signature_contract",
+      "compile_status": "not_run",
+      "runtime_status": "not_run",
+      "independent_review_status": "pending",
+      "evidence": []
+    }
+  ]
+}

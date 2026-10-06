@@ -1,0 +1,23 @@
+{
+  "repository": "tailrocks/terminal-components-claude",
+  "observed_refs": {
+    "termrock-implementation": "4d117b48092c5210c80070ac9bbeb6560973b2b0",
+    "termrock-refactor": "15c1a0a73911584cf2339eaad2c0212b2661fbd8",
+    "visual-baseline-branch": "209c88e7494cad301771bed55916316d4e890ec7",
+    "visual-baseline-tag-commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+  },
+  "baseline_src_tree": "a372ce43f3ac9e010d1c1a44ba381a7181a6ab23",
+  "commits": [
+    "9f3e04fe667aa704a03e7b70d6a1f4bae579165a",
+    "fbca27983a4f6ef980a2e24ec068ab57c33d6177",
+    "d6637639107d2046247d0a537946520960a6c719",
+    "087a1af433c0e99a32fd537d19d8418ebaac9c2a",
+    "34b28f6ebe63a0c968367d7bd822a6245c97647e"
+  ],
+  "review_scope": "Read-only source and selected commit-path review; no full runtime parity certification.",
+  "upstream_guidance": [
+    "https://www.asd-ste100.org/about_STE.html",
+    "https://google.github.io/eng-practices/review/reviewer/looking-for.html",
+    "https://google.github.io/eng-practices/review/developer/small-cls.html"
+  ]
+}
