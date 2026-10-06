@@ -35,6 +35,7 @@
 
 mod audit;
 mod button_busy_frames;
+mod control_states;
 mod holla;
 mod jackin;
 mod negative_controls;
