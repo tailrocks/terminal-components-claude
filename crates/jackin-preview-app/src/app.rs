@@ -153,6 +153,7 @@ const CMD_MANAGER_DETAIL: ActionKey = ActionKey::application("jackin.manager.det
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
+const CMD_NAV_UP: ActionKey = ActionKey::application("jackin.navigation.up");
 const CMD_NAV_DOWN: ActionKey = ActionKey::application("jackin.navigation.down");
 const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::application("jackin.navigation.tab-five");
 const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::application("jackin.capsule.prefix");
@@ -4838,12 +4839,71 @@ impl App {
                 self.usage_detail = true;
                 Some(Response::changed())
             }
+            CMD_EXIT_CONFIRM if self.route == Route::Manager => {
+                if let Some(instance_id) = self.selected_instance_id()
+                    && self
+                        .world
+                        .instance(&instance_id)
+                        .is_some_and(|instance| instance.status.reconnectable())
+                {
+                    self.active_instance = Some(instance_id);
+                    self.route = Route::Capsule;
+                    let name = self
+                        .active_instance
+                        .as_ref()
+                        .and_then(|id| self.world.daemons.get(id))
+                        .map(|d| d.workspace.clone())
+                        .unwrap_or_default();
+                    self.status = Some(format!("Attached to {name} · tabs and panes restored"));
+                    self.capsule_interaction.focus_pane();
+                    self.sync_capsule_projection();
+                    Some(Response::changed())
+                } else if matches!(
+                    self.manager.selected_row(),
+                    ManagerRowKey::Workspace(_)
+                        | ManagerRowKey::CurrentDirectory
+                        | ManagerRowKey::NewWorkspace
+                ) {
+                    self.open_agent_picker(cx);
+                    Some(Response::changed())
+                } else {
+                    None
+                }
+            }
             CMD_PRELUDE_BACKSPACE if self.route == Route::Prelude => {
                 self.prelude.source_back();
                 Some(Response::changed())
             }
             CMD_NAV_DOWN if self.route == Route::Prelude => {
                 self.prelude.move_selection(true);
+                Some(Response::changed())
+            }
+            CMD_NAV_UP if self.route == Route::Manager => {
+                self.ensure_manager_rows();
+                let current_index = self
+                    .manager_rows_cache
+                    .iter()
+                    .position(|r| Some(r.key) == self.manager.list.cursor())
+                    .unwrap_or(0);
+                let prev_index = current_index.saturating_sub(1);
+                if let Some(row) = self.manager_rows_cache.get(prev_index) {
+                    self.manager.list.set_cursor(prev_index, row.key);
+                    self.manager.select_row(row.domain.clone());
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Manager => {
+                self.ensure_manager_rows();
+                let current_index = self
+                    .manager_rows_cache
+                    .iter()
+                    .position(|r| Some(r.key) == self.manager.list.cursor())
+                    .unwrap_or(0);
+                let next_index = (current_index + 1).min(self.manager_rows_cache.len().saturating_sub(1));
+                if let Some(row) = self.manager_rows_cache.get(next_index) {
+                    self.manager.list.set_cursor(next_index, row.key);
+                    self.manager.select_row(row.domain.clone());
+                }
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE if self.route == Route::Manager => {
@@ -11726,6 +11786,7 @@ fn app_keymap() -> KeyMap {
             Chord::key(KeyCode::Char(' ')),
             CMD_PRELUDE_SPACE,
         )
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Up), CMD_NAV_UP)
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Down), CMD_NAV_DOWN)
         .bind(
             KeyPhase::Bubble,

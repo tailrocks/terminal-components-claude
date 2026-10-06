@@ -1312,12 +1312,13 @@ impl<'a> MenuBar<'a> {
                 width: w,
                 height: 1,
             };
-            let current =
-                st.open == Some(index) || (st.open.is_none() && st.core.cursor_index() == index);
+            let is_open = st.open == Some(index);
             let mut flags = ui.state(self.menu_id(index));
-            if current {
-                flags |=
-                    StateFlags::ACTIVE | live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+            if is_open {
+                flags |= StateFlags::ACTIVE;
+            }
+            if st.open.is_none() && st.core.cursor_index() == index {
+                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
             }
             if FrameRead::hovered_part(ui, self.id)
                 == Some(PartRef::item(Part::TITLE, ItemKey::index(index)))
