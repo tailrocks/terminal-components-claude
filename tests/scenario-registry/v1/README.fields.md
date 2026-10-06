@@ -6,7 +6,7 @@ Each sentence holds one fact.
 
 ## Files
 
-- `scenario-registry.fields.json` holds 16 rows.
+- `scenario-registry.fields.json` holds 17 rows.
   It covers 3 components: Field, TextInput, TextArea.
   It uses the same stable IDs as `registry.json`.
 - `validate-fields.py` checks the registry.

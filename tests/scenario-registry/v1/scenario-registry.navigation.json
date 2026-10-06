@@ -848,6 +848,206 @@
       }
     },
     {
+      "id": "LIST-WHEEL-003",
+      "app": "showcase",
+      "component": "List",
+      "part": "wheel scroll + edge fade over languages",
+      "ref_symbols": [
+        {
+          "glyph": "7–19 of",
+          "meaning": "language window after two wheel notches"
+        },
+        {
+          "glyph": "Chosen: Rust",
+          "meaning": "choice header untouched by the wheel"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "7–19 of",
+          "meaning": "language window after two wheel notches"
+        },
+        {
+          "glyph": "Chosen: Rust",
+          "meaning": "choice header untouched by the wheel"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/list.rs",
+          "symbols": [
+            "ListBox",
+            "on_wheel",
+            "scroll",
+            "chosen",
+            "cursor",
+            "SelectMode"
+          ]
+        },
+        {
+          "path": "src/bin/showcase/pages/lists.rs",
+          "symbols": [
+            "ListsPage",
+            "Wheel",
+            "on_wheel",
+            "position_label",
+            "chosen"
+          ]
+        },
+        {
+          "path": "src/ui/fade.rs",
+          "symbols": [
+            "scroll_edges_except",
+            "OUTER_KEEP",
+            "INNER_KEEP",
+            "DEEP_FROM",
+            "MIN_ROWS"
+          ]
+        },
+        {
+          "path": "src/core/scroll.rs",
+          "symbols": [
+            "ScrollState",
+            "scroll_by",
+            "overflows",
+            "visible_range",
+            "ensure_visible"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "lists",
+        "column": "Language",
+        "items": 20,
+        "chosen": "Rust"
+      },
+      "state": {
+        "offset": 6,
+        "chosen": 0,
+        "cursor": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot the showcase lists page"
+        },
+        {
+          "step": 2,
+          "action": "roll the wheel down twice over Python",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "wheel-faded",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the window reads 7–19 with Swift first; Chosen: Rust persists in the header"
+          },
+          {
+            "id": "V2",
+            "text": "both viewport edges fade (mid-list); no focus bar shows (the list is unfocused)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "two down-notches moved the offset 0 to 6; chosen and cursor stay 0 (the wheel moves the viewport only)"
+          },
+          {
+            "id": "S2",
+            "text": "the choice Rust persists: nothing activated"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "wheel-down returns Changed while items hide below; at the end offset it returns Consumed"
+          },
+          {
+            "id": "A2",
+            "text": "a cursor key after wheeling re-reveals row 0 via ensure_visible"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the choice must NOT change: no Enter was pressed"
+          },
+          {
+            "id": "N2",
+            "text": "the filter and empty columns must NOT move: the wheel hit the Language column only"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/list.rs",
+            "lines": "187-193",
+            "note": "on_wheel: scroll_by, Changed iff moved"
+          },
+          {
+            "path": "src/widgets/list.rs",
+            "lines": "336-346",
+            "note": "scroll_edges_except over the body, cursor row kept"
+          },
+          {
+            "path": "src/bin/showcase/pages/lists.rs",
+            "lines": "21-27,187-196",
+            "note": "language fixtures plus wheel routing to the owning list"
+          },
+          {
+            "path": "src/ui/fade.rs",
+            "lines": "26-32,44-60",
+            "note": "fade ramp constants plus edge gates"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/fade/lists/wheel-fade/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
       "id": "FLIST-QUERY-001",
       "app": "showcase",
       "component": "FilterList",
@@ -1686,6 +1886,205 @@
       }
     },
     {
+      "id": "NAV-WHEEL-003",
+      "app": "showcase",
+      "component": "NavList",
+      "part": "wheel scroll + fade over the sidebars demo list",
+      "ref_symbols": [
+        {
+          "glyph": "Collapse",
+          "meaning": "last demo row revealed by the wheel"
+        },
+        {
+          "glyph": "M Members",
+          "meaning": "needle cell the wheel rolled over"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Collapse",
+          "meaning": "last demo row revealed by the wheel"
+        },
+        {
+          "glyph": "M Members",
+          "meaning": "needle cell the wheel rolled over"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/showcase/pages/sidebars.rs",
+          "symbols": [
+            "NavList",
+            "on_wheel",
+            "scroll",
+            "rows",
+            "row_of",
+            "reveal_cursor",
+            "ensure_visible"
+          ]
+        },
+        {
+          "path": "src/core/scroll.rs",
+          "symbols": [
+            "ScrollState",
+            "scroll_by",
+            "overflows",
+            "visible_range",
+            "ensure_visible"
+          ]
+        },
+        {
+          "path": "src/ui/fade.rs",
+          "symbols": [
+            "scroll_edges_except",
+            "OUTER_KEEP",
+            "INNER_KEEP",
+            "DEEP_FROM",
+            "MIN_ROWS"
+          ]
+        },
+        {
+          "path": "src/widgets/scrollbar.rs",
+          "symbols": [
+            "render_vertical",
+            "position_label",
+            "TRACK",
+            "THUMB"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "sidebars",
+        "list": "Tasks demo nav",
+        "viewport_rows": 12
+      },
+      "state": {
+        "scrolled": true,
+        "last_visible": "Collapse",
+        "collapsed": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 72,
+        "height": 20
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot the showcase sidebars page at 72x20 (demo list overflows its 12-row viewport)"
+        },
+        {
+          "step": 2,
+          "action": "roll the wheel down twice over Members",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "wheel-faded",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the demo shows B Branches through Collapse with a scrollbar; the last row Collapse is revealed"
+          },
+          {
+            "id": "V2",
+            "text": "the demo top edge fades (Workspace/Tasks/Runs sit above the fold); the shell nav fades its bottom edge (│)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "two down-notches moved the demo offset down; Collapse entered the viewport"
+          },
+          {
+            "id": "S2",
+            "text": "current, collapsed, and cursor are untouched: on_wheel moves scroll.offset only"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "wheel-down over the demo returns Changed while rows hide below"
+          },
+          {
+            "id": "A2",
+            "text": "at the demo bottom the wheel returns Consumed (boundary, no wrap)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the current item must NOT change under the wheel: it persists by identity"
+          },
+          {
+            "id": "N2",
+            "text": "the shell nav window must NOT move: the wheel hit the demo region, a separate scroll area"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/showcase/pages/sidebars.rs",
+            "lines": "27-50",
+            "note": "NavList shape: sections, current, cursor, scroll"
+          },
+          {
+            "path": "src/bin/showcase/pages/sidebars.rs",
+            "lines": "88-101",
+            "note": "reveal_cursor plus on_wheel through scroll_by"
+          },
+          {
+            "path": "src/bin/showcase/pages/sidebars.rs",
+            "lines": "261-275",
+            "note": "fade with the cursor row kept plus scrollbar paint"
+          },
+          {
+            "path": "src/ui/fade.rs",
+            "lines": "44-60",
+            "note": "edge gates: fade only where content hides"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/fade/sidebars/wheel/72x20/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
       "id": "TREE-FOLD-001",
       "app": "showcase",
       "component": "Tree",
@@ -2117,6 +2516,205 @@
         "requires": [
           "glyph-capture",
           "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "TREE-WHEEL-003",
+      "app": "showcase",
+      "component": "Tree",
+      "part": "wheel scroll + fade over the project tree",
+      "ref_symbols": [
+        {
+          "glyph": "2–16 of 16",
+          "meaning": "window after one wheel notch reaches the last row"
+        },
+        {
+          "glyph": "Nothing selected",
+          "meaning": "selection panel untouched by the wheel"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "2–16 of 16",
+          "meaning": "window after one wheel notch reaches the last row"
+        },
+        {
+          "glyph": "Nothing selected",
+          "meaning": "selection panel untouched by the wheel"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/tree.rs",
+          "symbols": [
+            "TreeView",
+            "on_wheel",
+            "scroll",
+            "expanded",
+            "FlatRow",
+            "toggle"
+          ]
+        },
+        {
+          "path": "src/bin/showcase/pages/trees.rs",
+          "symbols": [
+            "TreesPage",
+            "Wheel",
+            "on_wheel",
+            "expanded",
+            "selected",
+            "position_label"
+          ]
+        },
+        {
+          "path": "src/ui/fade.rs",
+          "symbols": [
+            "scroll_edges_except",
+            "OUTER_KEEP",
+            "INNER_KEEP",
+            "DEEP_FROM",
+            "MIN_ROWS"
+          ]
+        },
+        {
+          "path": "src/core/scroll.rs",
+          "symbols": [
+            "ScrollState",
+            "scroll_by",
+            "at_end",
+            "visible_range"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "trees",
+        "rows": 16,
+        "open": 5
+      },
+      "state": {
+        "offset": 1,
+        "expanded": 5,
+        "selected": null
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot the showcase trees page"
+        },
+        {
+          "step": 2,
+          "action": "roll the wheel down once over config.rs",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "wheel-faded",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the window reads 2–16 of 16; api/db/workers stay folded (▸) and tests open (▾)"
+          },
+          {
+            "id": "V2",
+            "text": "the top edge fades (offset 1); the bottom edge stays whole (row 16 is the last row)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "one down-notch moved the offset 0 to 1; expansion and selection are untouched"
+          },
+          {
+            "id": "S2",
+            "text": "the cursor stays on its boot row: the wheel moves the viewport only"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "the notch returned Changed (it moved); a second notch returns Consumed (at_end reached)"
+          },
+          {
+            "id": "A2",
+            "text": "toggle keys still fold and unfold after wheeling"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the expansion must NOT change: still 5 folders open"
+          },
+          {
+            "id": "N2",
+            "text": "the selection panel must still read Nothing selected"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/tree.rs",
+            "lines": "471-477",
+            "note": "on_wheel: scroll_by, Changed iff moved"
+          },
+          {
+            "path": "src/widgets/tree.rs",
+            "lines": "651-661",
+            "note": "scroll_edges_except over the body, cursor row kept"
+          },
+          {
+            "path": "src/bin/showcase/pages/trees.rs",
+            "lines": "21-21,42-42,131-131",
+            "note": "tree boot, position meta, wheel routing"
+          },
+          {
+            "path": "src/ui/fade.rs",
+            "lines": "44-60",
+            "note": "edge gates: fade only where content hides"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/fade/trees/wheel-fade/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
         ]
       },
       "results": {
@@ -3390,7 +3988,8 @@
       "component": "List",
       "rows": [
         "LIST-SINGLE-001",
-        "LIST-MULTI-002"
+        "LIST-MULTI-002",
+        "LIST-WHEEL-003"
       ],
       "handlers": [
         "on_key: cursor moves, page jumps, ends, activate, toggle-all (list.rs on_key)",
@@ -3456,7 +4055,8 @@
       "component": "NavList",
       "rows": [
         "NAV-SHELL-001",
-        "NAV-SIDE-002"
+        "NAV-SIDE-002",
+        "NAV-WHEEL-003"
       ],
       "handlers": [
         "shell: nav keys, [ ] cycle, 0/Esc focus, click, wheel (app.rs)",
@@ -3489,7 +4089,8 @@
       "component": "Tree",
       "rows": [
         "TREE-FOLD-001",
-        "TREE-FILTER-002"
+        "TREE-FILTER-002",
+        "TREE-WHEEL-003"
       ],
       "handlers": [
         "flatten by path identity with substring filter and relocate (tree.rs)",
@@ -4072,6 +4673,48 @@
       "new": null,
       "status": "pending",
       "note": "holla service chips share ChipBar paths; dedicated row deferred"
+    },
+    {
+      "old": "showcase/fade/lists/wheel-fade",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "LIST-WHEEL-003",
+      "status": "mapped",
+      "note": "8A-S1: wheel scroll plus fade over languages"
+    },
+    {
+      "old": "showcase/fade/trees/wheel-fade",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-WHEEL-003",
+      "status": "mapped",
+      "note": "8A-S1: wheel scroll plus fade over the project tree"
+    },
+    {
+      "old": "showcase/fade/sidebars/wheel",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "NAV-WHEEL-003",
+      "status": "mapped",
+      "note": "8A-S1: wheel scroll plus fade over the sidebars demo list"
     }
   ]
 }

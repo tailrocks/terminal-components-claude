@@ -6,9 +6,9 @@ Each sentence holds one fact.
 
 ## Files
 
-- `scenario-registry.data-views.json` holds 18 rows.
-  It covers 6 components: Grid, CodeEditor, DiffView,
-  TextViewport, TerminalView, ScrollRegion.
+- `scenario-registry.data-views.json` holds 30 rows.
+  It covers 7 components: Grid, CodeEditor, DiffView,
+  TextViewport, TerminalView, ScrollRegion, DataTable.
   It uses the same stable IDs as `registry.json`.
 - `validate-data-views.py` checks the registry.
   Run it from the repo root: `python3 tests/scenario-registry/v1/validate-data-views.py`.
@@ -62,6 +62,10 @@ Each sentence holds one fact.
   No widget of that name exists.
   `ScrollState` holds offset, content, and viewport lengths.
   The scrollbar draws the thumb; presses grab, drags follow.
+- **DataTable**: the `DataTable` widget with sortable headers.
+  Enter selects, `s` sorts, hover lifts the row.
+  Editable columns open an in-place cell editor.
+  Commits validate and emit events; there is no pending queue.
 
 ## Rules
 
@@ -77,6 +81,8 @@ Each sentence holds one fact.
   The entry note names the overlap.
 - Grid rows cite `grid.rs`.
   DataTable pages and the tables roots are not DataGrids.
+- DataTable rows cite `table.rs`.
+  They pin sorting, selection, hover, and cell editing.
 - TerminalView rows cite `viewport.rs` and `terminal.rs`.
   The seam and the step rail stay owned elsewhere.
 - ScrollRegion rows cite `scroll.rs` and `scrollbar.rs`.

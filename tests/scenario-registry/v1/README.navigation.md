@@ -6,7 +6,7 @@ Each sentence holds one fact.
 
 ## Files
 
-- `scenario-registry.navigation.json` holds 16 rows.
+- `scenario-registry.navigation.json` holds 19 rows.
   It covers 8 components: ChipBar, List, FilterList,
   NavList, Tree, Steps, Tabs, PropsList.
   It uses the same stable IDs as `registry.json`.
