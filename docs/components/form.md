@@ -1,28 +1,24 @@
 # Form
 
-**Component ID:** W11\
-**Group:** Forms\
-**Phase:** P3\
-**Contract status:** canonical Termrock target; implementation is future work on `termrock-implementation`.
+Status: proposed target; implementation is future work on `termrock-implementation`.
+Owner: termrock-forms.
+Visual authority: visual-baseline 4a79c0a2 (commit `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`).
+Component ID: W11 · Group: Forms · Phase: P3.
 
-## Purpose and scope
+## Purpose and exclusions
 
 `Form` composes borrowed field declarations, child controls, validation, and action metadata. The caller binds live values and child state. Form owns only submission-attempt and invalid-field focus bookkeeping. It reports intent through typed actions; it does not save, persist, authorize, or perform product work.
 
-### Non-goals
+Exclusions:
 
 - No untyped value map, schema engine, persistence, or domain model.
 - No Jackin service, account, provider, Docker, Git, Holla, or TablePro implementation.
 - No decorative child painting in place of real controls.
 - No hidden field focus or automatic reset of sibling drafts.
 
-## Oracle and provenance
+## Public API
 
-The immutable oracle is [`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`](https://github.com/donbeave/terminal-components-claude/commit/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b). Current application evidence is in [`src/bin/jackin_preview/screens/modals.rs`](../../src/bin/jackin_preview/screens/modals.rs) and [`src/bin/jackin_preview/screens/editor.rs`](../../src/bin/jackin_preview/screens/editor.rs), with Showcase form snapshots as a second protected consumer. These files remain product fixtures and are not implementation targets.
-
-Use [`capture-plans/form.json`](../reference/capture-plans/form.json), W11, planned and without expected artifacts. Bind ExistingOracle/ExtractedOracle before candidate comparison.
-
-## Public API and ownership
+Proposed target. No part of this API is source-checked against current code.
 
 ```rust
 Form::new(
@@ -49,21 +45,41 @@ Builders: `validation(&'a [FieldError])`, `dirty(bool)`, `busy(bool)`, and `patc
 
 `FormState` stores submission attempt and invalid-field focus bookkeeping only. Child control state and caller values live in `FormControls`. Typed actions are `FormAction::{ Submit, Cancel, Auxiliary { action: ActionKey } }`. Expose read-only keyed cursor/navigation/scroll observations with invariant-preserving commands; fields remain private, and runtime geometry/domain rows are not public mutable state.
 
-## Update, draw, and measure
+Update, draw, and measure:
 
 - `update` traverses visible enabled declarations in paint order, forwards child responses, commits the focused draft before submit, validates current values, and emits Submit only if valid. Invalid submission focuses the first invalid visible field. Busy submission is blocked; Cancel follows explicit caller eligibility.
 - `draw` paints real child controls through Field/child contracts, validation summary, and action controls. It must not mutate values, commit drafts, save, or reset sibling state.
 - `measure` accounts for field groups, validation summary, action row, and constrained child sizes. Hidden fields consume no geometry or hit region; resize reconciles focus deterministically.
 
-## Identity, reconciliation, and nested layers
+## Ordinary use
+
+Consumer recipe: [EX-04 — A form with validation and protected input](../api/consumer-recipes.md) (`proposed_target`).
+
+Current application evidence is in [`src/bin/jackin_preview/screens/modals.rs`](../../src/bin/jackin_preview/screens/modals.rs) and [`src/bin/jackin_preview/screens/editor.rs`](../../src/bin/jackin_preview/screens/editor.rs), with Showcase form snapshots as a second protected consumer. These files remain product fixtures and are not implementation targets.
+
+Ordinary use passes borrowed `fields` declarations and `actions` metadata. The caller binds live values and child state in `FormControls` and routes `FormAction` (Submit, Cancel, Auxiliary). Submit commits the focused draft in update, validates, and emits only when valid; invalid submission focuses the first invalid visible field.
+
+## Ownership
 
 Each declaration has a stable `FieldKey` and child `Id`. Visibility/disabled changes reconcile by key: hidden fields lose focus/hit ownership; disabled fields remain visible as applicable but cannot edit. A nested picker layer returns or cancels to the exact parent draft and focus; sibling drafts survive. Reordering declarations does not transfer a draft or pending action by index.
 
-## Visual contract
+Shared dependencies:
 
-Parts are `container`, `field-group`, `validation-summary`, and `actions`. Preserve existing form row spacing, Field chrome, error/required treatment, action layout, busy/disabled styling, focus gutter, modal surfaces, and clipping. [`Field`](field.md), [`TextInput`](text-input.md), and [`Button`](button.md) own child visual mechanisms; Form composes them without duplicate renderers. [`theme`](../foundations/theme.md) defines semantic style precedence.
+- [`identity`](../foundations/identity.md), [`collections`](../foundations/collections.md) — stable FieldKey/child identity and declaration reconciliation.
+- [`input-actions`](../foundations/input-actions.md), [`runtime`](../foundations/runtime.md) — traversal, typed actions, focus, hit, capture, and time.
+- [`layers`](../foundations/layers.md) — nested picker ownership and restoration.
+- [`layout`](../foundations/layout.md), [`theme`](../foundations/theme.md) — composition geometry and semantic styles.
+- [`secret-validation`](../foundations/secret-validation.md) — validation and redaction rules for child values.
+- [`author`](../foundations/author.md), [`conformance`](../foundations/conformance.md) — controlled composition and oracle proof.
+- [`Field`](field.md), [`TextInput`](text-input.md), [`Button`](button.md), and [`Select`](select.md) — child contracts and intentional behavior.
 
-## Interaction and state rules
+## Customization
+
+Parts are `container`, `field-group`, `validation-summary`, and `actions`. Preserve existing form row spacing, Field chrome, error/required treatment, action layout, busy/disabled styling, focus gutter, modal surfaces, and clipping. [`Field`](field.md), [`TextInput`](text-input.md), and [`Button`](button.md) own child visual mechanisms; Form composes them without duplicate renderers. [`theme`](../foundations/theme.md) owns semantic style precedence.
+
+Ordinary example: `Form::new(id, &fields, &actions).validation(&errors).busy(false)`.
+
+## Behavior
 
 | Area | Required behavior |
 |---|---|
@@ -77,7 +93,7 @@ Parts are `container`, `field-group`, `validation-summary`, and `actions`. Prese
 | Capability/color | Field, error, summary, action, modal, disabled, and busy styles resolve semantically across capabilities. |
 | Motion | Child feedback/fade timing follows their contracts; Form adds no animation loop. |
 
-## Applicable state matrix
+## Visual matrix
 
 | Axis | Cases |
 |---|---|
@@ -88,7 +104,13 @@ Parts are `container`, `field-group`, `validation-summary`, and `actions`. Prese
 
 Run applicable cases at all five plan dimensions and truecolor, 256, 16, none, and nocolor. Do not invent interaction states for display-only summaries.
 
-## Required capture cases
+## Verification
+
+The immutable oracle is [`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`](https://github.com/donbeave/terminal-components-claude/commit/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b).
+
+Use [`capture-plans/form.json`](../reference/capture-plans/form.json), W11, planned and without expected artifacts. Bind ExistingOracle/ExtractedOracle before candidate comparison.
+
+Required capture cases:
 
 | Case | Exact requirement |
 |---|---|
@@ -100,17 +122,7 @@ Run applicable cases at all five plan dimensions and truecolor, 256, 16, none, a
 
 Record exact cells, cursor, child focus/capture/layer owners, field keys, action count/target, draft/committed values according to child redaction policy, and validation/dirty/busy state.
 
-## Foundation and component dependencies
-
-- [`identity`](../foundations/identity.md), [`collections`](../foundations/collections.md) — stable FieldKey/child identity and declaration reconciliation.
-- [`input-actions`](../foundations/input-actions.md), [`runtime`](../foundations/runtime.md) — traversal, typed actions, focus, hit, capture, and time.
-- [`layers`](../foundations/layers.md) — nested picker ownership and restoration.
-- [`layout`](../foundations/layout.md), [`theme`](../foundations/theme.md) — composition geometry and semantic styles.
-- [`secret-validation`](../foundations/secret-validation.md) — validation and redaction rules for child values.
-- [`author`](../foundations/author.md), [`conformance`](../foundations/conformance.md) — controlled composition and oracle proof.
-- [`Field`](field.md), [`TextInput`](text-input.md), [`Button`](button.md), and [`Select`](select.md) — child contracts and intentional behavior.
-
-## Negative tests and acceptance
+Negative tests:
 
 - Hidden/disabled field changes cannot leave stale focus, hit, or capture ownership.
 - Invalid submit cannot emit Submit; it focuses exactly the first invalid visible field.
@@ -121,3 +133,22 @@ Record exact cells, cursor, child focus/capture/layer owners, field keys, action
 - Candidate output cannot become expected output.
 
 Accept after external API, traversal/reconciliation, validation/action, exact snapshots, nested layer, and independent review gates pass.
+
+## Rejected use
+
+Forbidden: painting field rows and a submit label with `ui.paint_str` and saving on click instead of composing real child controls.
+
+```rust
+// Forbidden: preview owns form rendering and the save.
+ui.paint_str(0, 0, "Name: Ada");
+ui.paint_str(4, 0, "[ Submit ]");
+if clicked { save(values); }
+```
+
+Rule: [ARC-012](../architecture/component-composition.md) prohibits direct `ui.paint_str` rendering of controls and padded strings that simulate fields or buttons. Compose `Form::new` with real child controls and route the typed `FormAction`.
+
+## Known gaps
+
+- Capture plan W11 is planned and uncaptured; no expected artifacts are bound.
+- Implementation is future work on `termrock-implementation`.
+- [FIX-001 prelude/forms](../implementation/code-remediation-backlog.md): the contract API is a proposed target and no signature is source-checked.

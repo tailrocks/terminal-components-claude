@@ -1,28 +1,24 @@
 # TextArea
 
-**Component ID:** W09\
-**Group:** Forms\
-**Phase:** P3\
-**Contract status:** canonical Termrock target; implementation is future work on `termrock-implementation`.
+Status: proposed target; implementation is future work on `termrock-implementation`.
+Owner: termrock-fields.
+Visual authority: visual-baseline 4a79c0a2 (commit `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`).
+Component ID: W09 · Group: Forms · Phase: P3.
 
-## Purpose and scope
+## Purpose and exclusions
 
 `TextArea` is a multiline controlled editor. The caller owns committed text and revision. Durable state owns multiline draft/editor positions, selection, vertical and horizontal scroll, edit phase, and follow-caret policy. Field chrome and text operations are shared with TextInput; they are not copied into a second editor.
 
-### Non-goals
+Exclusions:
 
 - No document persistence, product editor semantics, schema, or domain side effects.
 - No generic widget trait or universal editor policy.
 - No paste or Escape behavior copied from TextInput: TextArea intentionally differs.
 - No geometry or palette stored in editor state.
 
-## Oracle and provenance
+## Public API
 
-The immutable oracle is [`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`](https://github.com/donbeave/terminal-components-claude/commit/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b). Current source is [`src/widgets/textarea.rs`](../../src/widgets/textarea.rs), legacy `TextArea`, source blob `5bfa5148a8b335c28ed52a5af305fa9df39917e5`; shared Field/edit helpers are [`src/widgets/field_common.rs`](../../src/widgets/field_common.rs), blob `bd41cdd85e9c2605c356f7468dc0de3e3c50e54b`. Showcase textarea captures are protected baseline consumers. Current source tests cover read-only scrolling, boundary wheels, Unicode click/cursor geometry, manual scroll, resize, and narrow allocations.
-
-Use [`capture-plans/text-area.json`](../reference/capture-plans/text-area.json), W09, planned and without expected artifacts. Bind source output before candidates.
-
-## Public API and ownership
+Proposed target. No part of this API is source-checked against current code.
 
 ```rust
 TextArea::new(id: Id, value: &'a str, revision: Revision)
@@ -39,17 +35,36 @@ Builders: `label(&'a str)`, `help(&'a str)`, `rows(u16)`, `disabled(bool)`, `rea
 
 `TextAreaState<Plain>` contains shared editor state, multiline caret/selection, vertical/horizontal scroll, edit phase, and follow-caret. Secret specialization is redacted and non-Clone like TextInput. Safe observations are `phase()`, `caret()`, `selection()`, `resolve_conflict()`, and Plain-only `draft()`. Typed actions are `TextAction<V>::{ Edited, Commit { value: V }, Cancelled, Conflict }`; an explicit cancel command is distinct from the baseline Escape binding.
 
-## Update, draw, and measure
+Update, draw, and measure:
 
 - `update` handles navigation scrolling, edit grammar, wheel, paste, and focus transitions. Enter/F2 or completed click enters edit. Enter while editing inserts a newline. Escape finishes and commits TextArea editing; Tab/Shift+Tab commits and traverses.
 - `draw` is semantically immutable. It paints Field chrome, visible lines, selection, cursor, scrollbar, and fades from state. It must not commit, mutate scroll, or recalculate semantic values as a side effect.
 - `measure` accounts for label, body rows, help/error line, text viewport, and scrollbar. It preserves source offsets across wrapped lines, empty final lines, and resize.
 
-## Identity, reconciliation, and conflict
+## Ordinary use
+
+No consumer recipe covers TextArea yet.
+
+Showcase textarea captures are protected baseline consumers.
+
+Ordinary use passes a stable `Id`, committed `value`, and `revision`. The caller keeps `TextAreaState` across frames and routes `TextAction` (Edited, Commit, Cancelled, Conflict). Enter while editing inserts a newline; Escape finishes and commits (the intentional TextArea exception to TextInput rollback). Paste requires editing already active.
+
+## Ownership
 
 Stable `Id` owns runtime focus/hit/capture. Draft/editor state follows that ID and source revision. Reorder does not move a draft to a neighboring field; removal releases runtime ownership and clears secret material. External revision changes during edit use explicit conflict policy and never silently overwrite.
 
-## Visual contract
+Shared dependencies:
+
+- [`identity`](../foundations/identity.md) — semantic ID and revision.
+- [`input-actions`](../foundations/input-actions.md) — multiline keymap, paste, and typed responses.
+- [`runtime`](../foundations/runtime.md) — focus, hit, capture, hover, cursor, and time.
+- [`layout`](../foundations/layout.md), [`text`](../foundations/text.md) — line/column measurement, graphemes, selection, and resize.
+- [`theme`](../foundations/theme.md) — field, cursor, selection, scrollbar, fade, and capability styles.
+- [`secret-validation`](../foundations/secret-validation.md) — validation, redaction, and secret lifetime.
+- [`author`](../foundations/author.md), [`conformance`](../foundations/conformance.md) — API ownership and oracle proof.
+- [`Field`](field.md), [`ScrollRegion`](scroll-region.md), and [`TextInput`](text-input.md) — shared mechanisms and intentional differences.
+
+## Customization
 
 Parts are `container`, `label`, `gutter`, `text`, `selection`, `cursor`, `help`, `error`, `scrollbar`, and `fade`. [`Field`](field.md) owns shared chrome; [`ScrollRegion`](scroll-region.md) owns scrolling/thumb/fade mechanism. Preserve baseline body fill, focus gutter, cursor, selection modifiers, line clipping, horizontal ellipsis, vertical scrollbar, edge fades, disabled/error colors, and narrow height behavior. Supported patches cannot replace geometry, focus/capture, or whole surface.
 
@@ -60,7 +75,9 @@ optional scrollbar takes one column. The footer keeps help/error at left and
 insertion point; an offscreen hardware cursor is hidden rather than painted
 over unrelated text.
 
-## Interaction and state rules
+Ordinary example: `TextArea::new(id, value, rev).label("Notes").rows(6)`.
+
+## Behavior
 
 | Area | Required behavior |
 |---|---|
@@ -74,7 +91,7 @@ over unrelated text.
 | Capability/color | Resolve field, selection, cursor, scrollbar, fade, error, and disabled styles semantically across capabilities. |
 | Motion | Shared scroll fade policy only; no private animation loop. |
 
-## Applicable state matrix
+## Visual matrix
 
 | Axis | Cases |
 |---|---|
@@ -84,7 +101,15 @@ over unrelated text.
 | Editing | navigation, editing, selected text, invalid, read-only, commit, finish via Escape, blur, Tab traversal, source revision conflict |
 | Scroll | no overflow, start, middle, end, wheel boundary, thumb drag, resize while scrolled, edge fade, protected row |
 
-## Required capture cases
+Capture all applicable cases at 72×20, 80×24, 100×30, 120×40, and 160×50 under truecolor, 256, 16, none, and nocolor. Record exact cells, cursor, focus/capture/layer owner, scroll offset, caret/selection/source offsets, draft/committed values (redacted for secrets), and typed action count/target.
+
+## Verification
+
+The immutable oracle is [`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`](https://github.com/donbeave/terminal-components-claude/commit/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b). Current source is [`src/widgets/textarea.rs`](../../src/widgets/textarea.rs), legacy `TextArea`, source blob `5bfa5148a8b335c28ed52a5af305fa9df39917e5`; shared Field/edit helpers are [`src/widgets/field_common.rs`](../../src/widgets/field_common.rs), blob `bd41cdd85e9c2605c356f7468dc0de3e3c50e54b`. Current source tests cover read-only scrolling, boundary wheels, Unicode click/cursor geometry, manual scroll, resize, and narrow allocations.
+
+Use [`capture-plans/text-area.json`](../reference/capture-plans/text-area.json), W09, planned and without expected artifacts. Bind source output before candidates.
+
+Required capture cases:
 
 | Case | Exact requirement |
 |---|---|
@@ -95,20 +120,7 @@ over unrelated text.
 | W09-05 | Wheel while editing followed by caret movement; follow-caret resumes correctly. |
 | W09-06 | Height 0/1 and `rows+2` Field layout. |
 
-Capture all applicable cases at 72×20, 80×24, 100×30, 120×40, and 160×50 under truecolor, 256, 16, none, and nocolor. Record exact cells, cursor, focus/capture/layer owner, scroll offset, caret/selection/source offsets, draft/committed values (redacted for secrets), and typed action count/target.
-
-## Foundation and component dependencies
-
-- [`identity`](../foundations/identity.md) — semantic ID and revision.
-- [`input-actions`](../foundations/input-actions.md) — multiline keymap, paste, and typed responses.
-- [`runtime`](../foundations/runtime.md) — focus, hit, capture, hover, cursor, and time.
-- [`layout`](../foundations/layout.md), [`text`](../foundations/text.md) — line/column measurement, graphemes, selection, and resize.
-- [`theme`](../foundations/theme.md) — field, cursor, selection, scrollbar, fade, and capability styles.
-- [`secret-validation`](../foundations/secret-validation.md) — validation, redaction, and secret lifetime.
-- [`author`](../foundations/author.md), [`conformance`](../foundations/conformance.md) — API ownership and oracle proof.
-- [`Field`](field.md), [`ScrollRegion`](scroll-region.md), and [`TextInput`](text-input.md) — shared mechanisms and intentional differences.
-
-## Negative tests and acceptance
+Negative tests:
 
 - Escape commits TextArea and never rolls back as TextInput does.
 - Navigation paste never inserts; edit paste preserves newlines.
@@ -119,3 +131,21 @@ Capture all applicable cases at 72×20, 80×24, 100×30, 120×40, and 160×50 un
 - Candidate output cannot become expected output.
 
 Accept after API, state/action, exact visual, scrolling, Unicode, secret, conflict, and independent review gates pass.
+
+## Rejected use
+
+Forbidden: painting text lines with `ui.paint_str` and owning newline insertion instead of using TextArea.
+
+```rust
+// Forbidden: preview owns multiline rendering and editing.
+for (i, line) in draft.lines().enumerate() { ui.paint_str(i, 0, line); }
+if enter { draft.insert(caret, '\n'); }
+```
+
+Rule: [ARC-012](../architecture/component-composition.md) prohibits direct `ui.paint_str` rendering of controls and app-local generic input handling in preview drawing paths. Use `TextArea::new` and route the typed `TextAction`.
+
+## Known gaps
+
+- Capture plan W09 is planned and uncaptured; no expected artifacts are bound.
+- Implementation is future work on `termrock-implementation`.
+- [FIX-001 prelude/forms](../implementation/code-remediation-backlog.md): the contract API is a proposed target and no signature is source-checked.
