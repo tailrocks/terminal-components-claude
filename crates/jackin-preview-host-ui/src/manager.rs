@@ -10,11 +10,11 @@ use termrock::author::{
     StylePatch, Surface, Ui, Variant,
 };
 use termrock::{
-    Button, Empty, EmptyState, Insets, ListState, Panel, PanelKind, Props, PropsRow, ScrollState,
-    SplitAxis, SplitPane, SplitPaneState, truncate, truncate_middle, width,
+    Button, Empty, EmptyState, Insets, LayerSize, LayerSpec, ListState, Panel, PanelKind, Props,
+    PropsRow, ScrollState, SplitAxis, SplitPane, SplitPaneState, truncate, truncate_middle, width,
 };
 
-use crate::manager_actions::role_label;
+use crate::manager_actions::{role_label, Fact};
 use jackin_preview_domain::account::AccountId;
 use jackin_preview_domain::agent::Agent;
 use jackin_preview_domain::clock::format_duration;
@@ -40,6 +40,10 @@ pub const AGENT_PICKER: Id = LAUNCH.sub("agent-picker");
 pub const ROSTER: Id = Id::root("jackin.manager.roster");
 /// Split seam between panes.
 pub const SEAM: Id = Id::root("jackin.manager.seam");
+/// Inspect dialog owned by the manager.
+pub const INSPECT: Id = Id::root("jackin.manager.inspect");
+/// Close button in the inspect dialog.
+pub const INSPECT_CLOSE: Id = INSPECT.sub("close");
 
 /// Stable identity for a row in the manager tree.
 ///
@@ -583,6 +587,141 @@ pub fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
         x = x.saturating_add(w).saturating_add(gap);
     }
     out
+}
+
+pub use crate::manager_actions::inspect_facts;
+
+const INSPECT_PANEL_PATCH: [(Part, StylePatch); 4] = [
+    (
+        Part::CONTAINER,
+        StylePatch::new().set_bg(Role::Surface(Surface::Surface)),
+    ),
+    (
+        Part::BORDER,
+        StylePatch::new()
+            .set_fg(Role::BorderSubtle)
+            .set_bg(Role::Surface(Surface::Surface)),
+    ),
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Surface(Surface::Surface))
+            .add(Modifier::BOLD),
+    ),
+    (
+        Part::DETAIL,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::Surface(Surface::Surface)),
+    ),
+];
+
+/// Inspect dialog displaying durable instance facts.
+pub struct InspectDialog<'a> {
+    pub id: Id,
+    pub title: &'a str,
+    pub facts: &'a [Fact],
+    pub focused_index: usize,
+}
+
+impl<'a> InspectDialog<'a> {
+    pub const fn new(id: Id, title: &'a str, facts: &'a [Fact]) -> Self {
+        Self {
+            id,
+            title,
+            facts,
+            focused_index: 0,
+        }
+    }
+
+    pub const fn focused_index(mut self, index: usize) -> Self {
+        self.focused_index = index;
+        self
+    }
+
+    pub fn layer_spec(id: Id) -> LayerSpec {
+        LayerSpec::modal(id).size(LayerSize::Fixed(66, 14))
+    }
+
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        ui.with_surface(Surface::Surface, |ui| {
+            let palette = ManagerPalette::new(ui);
+            let dialog_w = 66u16.min(area.width);
+            let dialog_h = 14u16.min(area.height);
+            let dialog_area = Rect::new(
+                area.x.saturating_add((area.width.saturating_sub(dialog_w)) / 2),
+                area.y.saturating_add((area.height.saturating_sub(dialog_h)) / 2),
+                dialog_w,
+                dialog_h,
+            );
+
+            Panel::new(self.id)
+                .kind(PanelKind::Framed)
+                .title(self.title)
+                .meta("read-only")
+                .patch_part(&INSPECT_PANEL_PATCH)
+                .inner_inset(Insets::all(1))
+                .draw(ui, dialog_area, |ui, body| {
+                    let focus_bar_style = resolve_style(ui, Role::Focus, Role::Surface(Surface::Surface), true);
+                    let label_style = palette.card_secondary;
+                    let text_style = palette.card_primary;
+                    let bold_style = palette.card_primary_bold;
+                    let shortcut_style = palette.card_muted;
+
+                    for (i, fact) in self.facts.iter().enumerate() {
+                        let y = body.y.saturating_add(i as u16);
+                        if y >= body.bottom() {
+                            break;
+                        }
+                        let is_focused = i == self.focused_index;
+                        ui.paint_str(Rect::new(body.x, y, 1, 1), " ", label_style);
+                        if is_focused {
+                            ui.paint_str(Rect::new(body.x.saturating_add(1), y, 1, 1), "▎", focus_bar_style);
+                            ui.paint_str(Rect::new(body.x.saturating_add(2), y, 1, 1), " ", bold_style);
+                            ui.paint_str(Rect::new(body.x.saturating_add(3), y, fact.label.len() as u16, 1), fact.label, label_style);
+
+                            let val_start = body.x.saturating_add(3).saturating_add(fact.label.len() as u16);
+                            let hint_start = body.right().saturating_sub(9);
+                            let val_col = body.x.saturating_add(14);
+                            let lead_spaces = val_col.saturating_sub(val_start);
+                            let trail_spaces = hint_start.saturating_sub(val_col.saturating_add(fact.value.len() as u16));
+                            let val_str = format!("{}{}{}", " ".repeat(lead_spaces as usize), fact.value, " ".repeat(trail_spaces as usize));
+                            ui.paint_str(Rect::new(val_start, y, val_str.len() as u16, 1), &val_str, bold_style);
+
+                            if fact.copyable {
+                                ui.paint_str(Rect::new(hint_start, y, 6, 1), "y copy", shortcut_style);
+                            } else {
+                                ui.paint_str(Rect::new(hint_start, y, 6, 1), "      ", bold_style);
+                            }
+                            ui.paint_str(Rect::new(hint_start.saturating_add(6), y, 1, 1), " ", bold_style);
+                            ui.paint_str(Rect::new(body.right().saturating_sub(2), y, 2, 1), "  ", label_style);
+                        } else {
+                            ui.paint_str(Rect::new(body.x.saturating_add(1), y, 1, 1), " ", resolve_style(ui, Role::Surface(Surface::Surface), Role::Surface(Surface::Surface), false));
+                            ui.paint_str(Rect::new(body.x.saturating_add(2), y, 1, 1), " ", text_style);
+                            ui.paint_str(Rect::new(body.x.saturating_add(3), y, fact.label.len() as u16, 1), fact.label, label_style);
+
+                            let val_start = body.x.saturating_add(3).saturating_add(fact.label.len() as u16);
+                            let val_end = body.right().saturating_sub(2);
+                            let val_col = body.x.saturating_add(14);
+                            let lead_spaces = val_col.saturating_sub(val_start);
+                            let trail_spaces = val_end.saturating_sub(val_col.saturating_add(fact.value.len() as u16));
+                            let val_str = format!("{}{}{}", " ".repeat(lead_spaces as usize), fact.value, " ".repeat(trail_spaces as usize));
+                            ui.paint_str(Rect::new(val_start, y, val_str.len() as u16, 1), &val_str, text_style);
+
+                            ui.paint_str(Rect::new(body.right().saturating_sub(2), y, 2, 1), "  ", label_style);
+                        }
+                    }
+
+                    let btn_y = body.bottom().saturating_sub(1);
+                    let btn_x = body.right().saturating_sub(9);
+                    Button::new(INSPECT_CLOSE, "Close")
+                        .variant(Variant::SECONDARY)
+                        .draw(ui, Rect::new(btn_x, btn_y, 7, 1));
+                    ui.paint_str(Rect::new(body.right().saturating_sub(2), btn_y, 2, 1), "  ", label_style);
+                });
+        });
+    }
 }
 
 pub struct ManagerScreen;

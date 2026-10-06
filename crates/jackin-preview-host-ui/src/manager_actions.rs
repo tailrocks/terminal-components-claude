@@ -711,7 +711,7 @@ pub fn role_label<'a>(world: &'a World, key: &'a str) -> &'a str {
         .map_or(key, |entry| entry.name.as_str())
 }
 
-fn inspect(i: &Instance, world: &World) -> Effect {
+pub fn inspect_facts(i: &Instance, world: &World) -> (String, Vec<Fact>) {
     let workspace = i.workspace.and_then(|id| world.workspace(id));
     let resolved = world.account_for(i.agent.provider(), workspace, Some(&i.role), None);
     let account = resolved.label(&world.accounts);
@@ -774,10 +774,12 @@ fn inspect(i: &Instance, world: &World) -> Effect {
     {
         fact.tone = FactTone::Warning;
     }
-    Effect::Inspect {
-        title: format!("Container {}", short(&i.id)),
-        facts,
-    }
+    (format!("Container {}", short(&i.id)), facts)
+}
+
+fn inspect(i: &Instance, world: &World) -> Effect {
+    let (title, facts) = inspect_facts(i, world);
+    Effect::Inspect { title, facts }
 }
 
 /// Launch context captured before a picker opens; unrelated selection cannot replace it.
