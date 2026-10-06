@@ -1,8 +1,8 @@
 //! Three independent scroll surfaces: prose, a long list, and a following log.
 
 use termrock::{
-    Cx, FrameRead, Id, Panel, Rect, Response, StateFlags, TextViewport, Ui, ViewportAction,
-    ViewportLine, ViewportState, id,
+    Cx, FrameRead, Id, List, ListAction, ListState, Panel, Rect, Response, ScrollState, SelectMode,
+    StateFlags, TextViewport, Ui, ViewportAction, ViewportLine, ViewportState, id,
 };
 
 use showcase_data::{PROSE, SCROLL_ROWS, log_lines};
@@ -20,20 +20,12 @@ fn prose_view() -> TextViewport<'static> {
     TextViewport::new(PROSE_VIEW).wrap(true)
 }
 
-fn list_view() -> TextViewport<'static> {
-    TextViewport::new(LIST_VIEW)
+fn list_view() -> List<'static, &'static str> {
+    List::new(LIST_VIEW).select_mode(SelectMode::None)
 }
 
 fn log_view() -> TextViewport<'static> {
     TextViewport::new(LOG_VIEW)
-}
-
-fn list_lines() -> Vec<ViewportLine<'static>> {
-    SCROLL_ROWS
-        .iter()
-        .copied()
-        .map(ViewportLine::Plain)
-        .collect()
 }
 
 fn string_lines(lines: &[String]) -> Vec<ViewportLine<'_>> {
@@ -43,8 +35,7 @@ fn string_lines(lines: &[String]) -> Vec<ViewportLine<'_>> {
         .collect()
 }
 
-fn position_label(state: &ViewportState) -> String {
-    let scroll = state.scroll();
+fn position_label(scroll: &ScrollState) -> String {
     if !scroll.overflows() {
         return String::new();
     }
@@ -101,10 +92,9 @@ fn columns(area: Rect) -> [Rect; 3] {
 #[derive(Debug)]
 pub struct ScrollingPage {
     prose: Vec<ViewportLine<'static>>,
-    list: Vec<ViewportLine<'static>>,
     log: Vec<String>,
     prose_state: ViewportState,
-    list_state: ViewportState,
+    list_state: ListState,
     log_state: ViewportState,
     last: &'static str,
 }
@@ -118,13 +108,11 @@ impl ScrollingPage {
         }
         let mut prose_state = ViewportState::default();
         prose_state.set_follow(false);
-        let mut list_state = ViewportState::default();
-        list_state.set_follow(false);
+        let list_state = ListState::default();
         let mut log_state = ViewportState::default();
         log_state.set_follow(true);
         Self {
             prose,
-            list: list_lines(),
             // The capture starts at the historical follow-tail window.
             log: log_lines(400),
             prose_state,
@@ -142,6 +130,28 @@ impl ScrollingPage {
                 ViewportAction::FollowChanged(false) => "manual scroll",
                 ViewportAction::Copy(_) => "copied selection",
             };
+        }
+    }
+
+    fn note_list(&mut self, action: Option<&ListAction>) {
+        match action {
+            // The cursor move is the scroll analogue: the legacy
+            // arrows/page/home/end keys always moved the list content and
+            // always reported it as a manual scroll.
+            Some(ListAction::Moved) => self.last = "manual scroll",
+            // Enter was unbound on the legacy pane (silent) and the
+            // double-click word-select has no counterpart on a cursor
+            // list; selection actions are unreachable in
+            // `SelectMode::None`.
+            Some(
+                ListAction::Chose(_)
+                | ListAction::Toggled(_)
+                | ListAction::Activated(_)
+                | ListAction::ToggledAll
+                | ListAction::LeaveBackward
+                | ListAction::LeaveForward,
+            )
+            | None => {}
         }
     }
 }
@@ -170,20 +180,20 @@ impl Page for ScrollingPage {
         self.note(prose.action_ref());
         response |= prose.erase();
         let list_offset = self.list_state.scroll().offset();
-        let list = list_view().update(cx, &mut self.list_state, &self.list);
+        let list = list_view().update(cx, &mut self.list_state, SCROLL_ROWS);
         if self.list_state.scroll().offset() != list_offset {
             self.last = "manual scroll";
         }
-        self.note(list.action_ref());
+        self.note_list(list.action_ref());
         response |= list.erase();
         let log_lines = string_lines(&self.log);
         let log = log_view().update(cx, &mut self.log_state, &log_lines);
         self.note(log.action_ref());
         response |= log.erase();
         // The update pass builds the same three pane cards draw will render (§13).
-        let log_meta = position_label(&self.log_state);
-        let _ = prose_panel(&position_label(&self.prose_state));
-        let _ = list_panel(&position_label(&self.list_state));
+        let log_meta = position_label(self.log_state.scroll());
+        let _ = prose_panel(&position_label(self.prose_state.scroll()));
+        let _ = list_panel(&position_label(self.list_state.scroll()));
         let _ = log_panel(&log_meta);
         response.into()
     }
@@ -197,13 +207,19 @@ impl Page for ScrollingPage {
             |ui, body| {
                 let top = body;
                 let cols = columns(top);
-                prose_panel(&position_label(&self.prose_state))
-                    .draw(ui, cols[0], |ui, inner| self.draw_prose(ui, inner));
+                prose_panel(&position_label(self.prose_state.scroll())).draw(
+                    ui,
+                    cols[0],
+                    |ui, inner| self.draw_prose(ui, inner),
+                );
 
-                list_panel(&position_label(&self.list_state))
-                    .draw(ui, cols[1], |ui, inner| self.draw_list(ui, inner));
+                list_panel(&position_label(self.list_state.scroll())).draw(
+                    ui,
+                    cols[1],
+                    |ui, inner| self.draw_list(ui, inner),
+                );
 
-                let log_meta = position_label(&self.log_state);
+                let log_meta = position_label(self.log_state.scroll());
                 let log_meta = if log_meta.is_empty() {
                     String::new()
                 } else {
@@ -254,7 +270,7 @@ impl ScrollingPage {
 
 impl ScrollingPage {
     fn draw_list(&self, ui: &mut Ui<'_>, inner: Rect) {
-        list_view().draw(ui, inner, &self.list_state, &self.list);
+        list_view().draw(ui, inner, &self.list_state, SCROLL_ROWS);
     }
 }
 
@@ -322,6 +338,42 @@ mod motion_tests {
         assert!(
             !row.contains("145.78s"),
             "log row 0 must not show the retired paint-over, got {row:?}"
+        );
+    }
+
+    /// Q56: the 'Long list' pane is a `List`, not a bare viewport: the
+    /// row label starts one column pitch plus the gutter + marker chrome
+    /// (label@+3) after the sibling viewport pane's text edge.
+    #[test]
+    fn list_row_label_starts_after_list_chrome() {
+        const W: u16 = 120;
+        const H: u16 = 40;
+        // The frame body keeps the full width (title + blank take two
+        // rows); both cards share one kind, so the prose pane's text
+        // edge plus the column pitch is the list pane's inner edge.
+        let cols = columns(Rect::new(0, 2, W, H.saturating_sub(2)));
+        let pitch = usize::from(cols[1].x.saturating_sub(cols[0].x));
+
+        let mut h = Harness::new(PageApp(ScrollingPage::new()), Theme::junie(), W, H);
+        // An unbound key: runs `update` and draws.
+        let _ = h.key(KeyCode::Null);
+
+        // First inner row of the list pane: frame title + blank (2) plus
+        // the titled-card top inset (2).
+        let row = h.row(4);
+        let prose_x = row.find("Junie").expect("prose must paint its first line");
+        let label_byte = row.find("Row 001").expect("list must paint its first row");
+        // The scrollbar glyph between the panes is multibyte: compare in
+        // character cells, not bytes.
+        let label_x = row[..label_byte].chars().count();
+        assert_eq!(
+            label_x,
+            prose_x.saturating_add(pitch).saturating_add(3),
+            "list label must start after the gutter/marker chrome, got {row:?}"
+        );
+        assert!(
+            row[..label_byte].ends_with("   "),
+            "gutter/marker/fill before the label must be blank, got {row:?}"
         );
     }
 }
