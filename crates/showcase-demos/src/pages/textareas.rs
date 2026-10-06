@@ -1,9 +1,8 @@
 //! Multiline editing and viewport scrolling.
 
 use termrock::{
-    Cx, Family, FgStep, Field, FieldError, Id, Panel, PanelKind, Part, Rect, Role, StateFlags,
-    StylePatch, TextAction, TextArea, TextAreaState, Track, Ui, Variant, id, layout, truncate,
-    width,
+    Cx, Family, FgStep, Field, Id, Panel, PanelKind, Part, Rect, Role, StateFlags, StylePatch,
+    TextAction, TextArea, TextAreaState, Track, Ui, Variant, id, layout, truncate, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -14,6 +13,15 @@ const TRANSCRIPT: Id = id!("textareas.transcript");
 const COMMIT: Id = id!("textareas.commit");
 const PLAYGROUND: Id = id!("textareas.playground");
 const STATES: Id = id!("textareas.states");
+
+const DETAIL_PATCH: &[(Part, StylePatch)] = &[(
+    Part::DETAIL,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+)];
+const DISABLED_LABEL_PATCH: &[(Part, StylePatch)] = &[(
+    Part::LABEL,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+)];
 
 fn body_area() -> TextArea<'static> {
     TextArea::new(BODY, 8).placeholder("Write a checklist")
@@ -52,6 +60,7 @@ fn transcript_field() -> Field<'static, TextArea<'static>> {
             .disabled(true),
     )
     .optional_suffix(false)
+    .patch_part(DISABLED_LABEL_PATCH)
 }
 
 fn commit_field() -> Field<'static, TextArea<'static>> {
@@ -69,6 +78,7 @@ fn playground_panel(meta: &'static str) -> Panel<'static> {
         .kind(PanelKind::Card)
         .title("Playground")
         .meta(meta)
+        .patch_part(DETAIL_PATCH)
 }
 
 fn states_panel() -> Panel<'static> {
@@ -172,9 +182,14 @@ pub struct TextAreasPage {
 
 impl TextAreasPage {
     pub fn new() -> Self {
+        let value = checklist();
+        let lines = value.split('\n').count();
+        let mut state = TextAreaState::default();
+        state.scroll_mut().set_content(lines);
+        state.scroll_mut().set_viewport(8);
         Self {
-            value: checklist(),
-            state: TextAreaState::default(),
+            value,
+            state,
             last: "ready",
         }
     }
@@ -218,7 +233,7 @@ impl Page for TextAreasPage {
                 ui,
                 playground,
                 |ui, inner| {
-                    let (task, notes) = columns(inner, inner.width / 2 - 2, 4);
+                    let (task, notes) = columns(inner, (inner.width / 2).saturating_sub(2), 4);
                     task_field(&self.value).draw(ui, task, &self.state);
                     scroll_help(ui, task, &self.state);
                     ui.reference(None, |ui| {
@@ -227,9 +242,11 @@ impl Page for TextAreasPage {
                 },
             );
             if let Some(states) = regions.get(2).copied() {
-                states_panel().draw(ui, states, |ui, inner| {
-                    Self::draw_states(ui, inner);
-                });
+                if !states.is_empty() {
+                    states_panel().draw(ui, states, |ui, inner| {
+                        Self::draw_states(ui, inner);
+                    });
+                }
             }
         });
     }
@@ -254,9 +271,12 @@ impl Page for TextAreasPage {
 
 impl TextAreasPage {
     fn draw_states(ui: &mut Ui<'_>, inner: Rect) {
-        let (transcript, commit) = columns(inner, inner.width / 2 - 2, 4);
+        if inner.is_empty() {
+            return;
+        }
+        let (transcript, commit) = columns(inner, (inner.width / 2).saturating_sub(2), 4);
         let mut commit_state = TextAreaState::default();
-        commit_state.set_error(Some(FieldError::new(
+        commit_state.set_error(Some(termrock::FieldError::new(
             "Use the imperative mood and explain why",
         )));
         ui.reference(None, |ui| {
