@@ -243,10 +243,10 @@ impl Page for ScrollingPage {
                 let top = strips.first().copied().unwrap_or(body);
                 let cols = columns(top);
                 prose_panel(&position_label(&self.prose_state))
-                    .draw(ui, cols[0], |ui, inner| self.draw_prose(ui, inner, cols[0]));
+                    .draw(ui, cols[0], |ui, inner| self.draw_prose(ui, inner));
 
                 list_panel(&position_label(&self.list_state))
-                    .draw(ui, cols[1], |ui, inner| self.draw_list(ui, inner, cols[1]));
+                    .draw(ui, cols[1], |ui, inner| self.draw_list(ui, inner));
 
                 let log_meta = position_label(&self.log_state);
                 let log_meta = if log_meta.is_empty() {
@@ -257,41 +257,6 @@ impl Page for ScrollingPage {
                 let log = string_lines(&self.log);
                 log_panel(&log_meta).draw(ui, cols[2], |ui, inner| {
                     log_view().draw(ui, inner, &self.log_state, &log);
-                    if cols[2].width < 30 {
-                        let visible = [
-                            "   145.78s  in… │",
-                            "   146.15s  in… │",
-                            "   146.52s  in… │",
-                            "   146.89s  in… │",
-                            "   147.26s  in… │",
-                            "   147.63s  in… │",
-                            "   148.00s  wa… │",
-                            "   148.37s  in… │",
-                            "   148.74s  in… │",
-                            "   149.11s  in… │",
-                            "   149.48s  in… │",
-                            "   149.85s  er… │",
-                            "   150.22s  in… │",
-                            "   150.59s  in… │",
-                            "   150.96s  in… ┃",
-                        ];
-                        for (offset, line) in visible.iter().enumerate() {
-                            let Ok(offset) = u16::try_from(offset) else {
-                                break;
-                            };
-                            if offset >= inner.height.saturating_sub(2) {
-                                break;
-                            }
-                            let row = Rect {
-                                x: cols[2].x.saturating_sub(2),
-                                y: inner.y.saturating_add(offset),
-                                width: cols[2].width.saturating_add(4),
-                                height: 1,
-                            };
-                            ui.fill(row, ui.surface_style());
-                            let _ = ui.paint_str(row, line, ui.surface_style());
-                        }
-                    }
                 });
 
                 if let Some(strip) = strips.get(2).copied() {
@@ -358,77 +323,22 @@ impl ScrollingPage {
         ui.scroll_edges(content, &view);
     }
 
-    fn draw_prose(&self, ui: &mut Ui<'_>, inner: Rect, column: Rect) {
+    fn draw_prose(&self, ui: &mut Ui<'_>, inner: Rect) {
         prose_view().draw(ui, inner, &self.prose_state, &self.prose);
-        if column.width < 30 {
-            let visible = [
-                "  Junie works  ┃",
-                "  through a    │",
-                "  task the way │",
-                "  a careful    │",
-                "  engineer     │",
-                "  would: it    │",
-                "  reads the    │",
-                "  relevant     │",
-                "  code, forms  │",
-                "  a plan,      │",
-                "  makes        │",
-                "  focused      │",
-                "  changes,     │",
-                "  runs the     │",
-                "  tests, and   │",
-            ];
-            for (offset, line) in visible.iter().enumerate() {
-                let Ok(offset) = u16::try_from(offset) else {
-                    break;
-                };
-                if offset >= column.height {
-                    break;
-                }
-                let row = Rect {
-                    x: column.x.saturating_sub(2),
-                    y: inner.y.saturating_add(offset),
-                    width: column.width.saturating_add(4),
-                    height: 1,
-                };
-                ui.fill(row, ui.surface_style());
-                let _ = ui.paint_str(row, line, ui.surface_style());
-            }
-        }
     }
 }
 
 impl ScrollingPage {
-    fn draw_list(&self, ui: &mut Ui<'_>, inner: Rect, column: Rect) {
+    fn draw_list(&self, ui: &mut Ui<'_>, inner: Rect) {
         list_view().draw(ui, inner, &self.list_state, &self.list);
-        if column.width < 30 {
-            for (offset, number) in (1..=15).enumerate() {
-                let Ok(offset) = u16::try_from(offset) else {
-                    break;
-                };
-                if offset >= column.height {
-                    break;
-                }
-                let line = format!(
-                    "  ▎  Row {number:03}   {}",
-                    if number == 1 { "┃" } else { "│" }
-                );
-                let row = Rect {
-                    x: column.x.saturating_sub(2),
-                    y: inner.y.saturating_add(offset),
-                    width: column.width.saturating_add(4),
-                    height: 1,
-                };
-                ui.fill(row, ui.surface_style());
-                let _ = ui.paint_str(row, &line, ui.surface_style());
-            }
-        }
     }
 }
 
 #[cfg(test)]
 mod motion_tests {
     use super::*;
+    use termrock::{App, KeyCode, Theme};
+    use termrock_test_support::Harness;
 
     #[test]
     fn paused_seek_bounds_the_log_fixture() {
@@ -437,5 +347,57 @@ mod motion_tests {
         assert_eq!(page.log.len(), 421);
         page.seek_paused(usize::MAX);
         assert_eq!(page.log.len(), 10_409);
+    }
+
+    struct PageApp(ScrollingPage);
+
+    impl App for PageApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.0.update(cx).response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let full = ui.full();
+            self.0.draw(ui, full);
+        }
+    }
+
+    /// FIX-005-S3: at narrow widths the log pane must show the live
+    /// follow-tail, not the retired hardcoded repaint (line-394-era
+    /// timestamps such as `145.78s`).
+    #[test]
+    fn narrow_log_row_zero_shows_live_tail() {
+        const W: u16 = 72;
+        const H: u16 = 24;
+        let top = Rect::new(0, 2, W, H.saturating_sub(10));
+        let cols = columns(top);
+        assert!(
+            cols[2].width < 30,
+            "precondition: log column must be narrow, got {}",
+            cols[2].width
+        );
+
+        let mut h = Harness::new(PageApp(ScrollingPage::new()), Theme::junie(), W, H);
+        // An unbound key: runs `update` (follow jumps to the tail) and draws.
+        h.key(KeyCode::Null);
+
+        // First inner row of the log pane: frame title + blank (2) plus the
+        // titled-card top inset (2).
+        let row = h.row(4);
+        let offset = h.app().0.log_state.scroll().offset();
+        let expected = &h.app().0.log[offset];
+        // `log_lines` renders `{seconds:7.2}s  ...`; the seconds fragment is
+        // the stable per-line identity (ASCII, up to and including `s`).
+        let head = expected.trim_start();
+        let end = head.find('s').map(|i| i + 1).unwrap_or(head.len());
+        let needle = &head[..end];
+        assert!(
+            row.contains(&needle),
+            "log row 0 must show the live tail line {offset} ({needle:?}), got {row:?}"
+        );
+        assert!(
+            !row.contains("145.78s"),
+            "log row 0 must not show the retired paint-over, got {row:?}"
+        );
     }
 }
