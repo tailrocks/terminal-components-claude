@@ -1,21 +1,17 @@
 # Steps
 
+Status: proposed target; implementation is future work on `termrock-implementation`.
+Owner: termrock-navigation.
+Visual authority: visual-baseline 4a79c0a2 (commit `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`).
+Component ID: W16 · Group: Feedback · Phase: P5.
+
+## Purpose and exclusions
+
 Canonical Termrock contract for W16. `Steps` is a lifecycle/status rail with an optional inspection cursor. It never runs work.
-
-| Field | Value |
-|---|---|
-| Group / phase | Feedback / P5 |
-| Legacy family | C26 |
-| Oracle | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` (`visual-baseline`) |
-| Capture plan | [`../reference/capture-plans/steps.json`](../reference/capture-plans/steps.json) |
-
-## Purpose and boundary
 
 The caller supplies ordered stable step keys, lifecycle status, labels, detail/meta and the current status snapshot. The component presents queued/running/skipped/blocked/done/failed states and may provide navigable inspection. It has no dependency graph, scheduler, retry policy, launch engine or lifecycle authority.
 
-The frozen source is [`src/widgets/steps.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/steps.rs), currently exposing `Step`, `StepRail`, `StepState`, `WidgetId` and `Outcome`. Jackin Preview cockpit and Showcase taskrunner are reference consumers. Holla has its own product plan model; any shared visual use remains a protected application fixture, not a product roadmap for this component.
-
-## Target public API
+## Public API
 
 ```rust
 Steps::new(id: Id, steps: &'a [StepItem<'a>], revision: Revision) -> Steps<'a>
@@ -33,7 +29,13 @@ Steps::measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size;
 
 `StepsState` exists only in `Navigable` mode and owns cursor key plus shared scroll. Display mode has no focus stop or interaction state. The only typed action is `StepsAction::Activate { key: ItemKey, origin: ActivationOrigin }`; it asks the caller to inspect a step without changing its lifecycle.
 
-## Ownership and reconciliation
+## Ordinary use
+
+Jackin Preview cockpit and Showcase taskrunner are reference consumers. Holla has its own product plan model; any shared visual use remains a protected application fixture, not a product roadmap for this component.
+
+The caller supplies borrowed steps, a source revision, and the status snapshot, then applies the typed `StepsAction` inspection requests.
+
+## Ownership
 
 - Caller owns status, labels, details, ordering and revision. The component may derive read-only frontier/count observations but cannot write lifecycle state.
 - Stable step keys survive source replacement/reorder where present. A removed current key is stale and cannot activate a new row at its old index.
@@ -41,7 +43,9 @@ Steps::measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size;
 - `update` changes only navigable state and returns inspection actions. `draw` never advances status, spinner phase, cursor or scroll. `measure` is pure.
 - `AnimationSample` is an explicit caller-provided phase/time sample. Repaint count and polling never advance animation.
 
-## Visual contract
+Shared dependencies: [`scroll-region`](./scroll-region.md#scroll-and-capture-behavior), [`identity`](../foundations/identity.md), [`input-actions`](../foundations/input-actions.md), [`layout`](../foundations/layout.md), [`theme`](../foundations/theme.md), [`author`](../foundations/author.md), and [`conformance`](../foundations/conformance.md).
+
+## Customization
 
 Styled parts are `container`, `row`, `gutter`, `marker`, `label`, `detail`, `status`, `scrollbar` and `fade`. Theme/patch precedence follows [`theme`](../foundations/theme.md); parts cannot replace geometry or runtime ownership.
 
@@ -55,7 +59,7 @@ only live-activity use of green in this rail. Display-only progress has no
 focus gutter; navigable mode adds the existing focus treatment without
 changing status colors.
 
-## Interaction contract
+## Behavior
 
 - Display mode accepts no focus, hover, pointer activation or keyboard action. Its rows remain readable and do not create focus stops.
 - Navigable mode uses the baseline Up/Down, `j`/`k`, Home/`g` and End/`G` navigation plus pointer row selection when offered. Enter/click emits `Activate` for the stable key and does not alter the caller status.
@@ -63,7 +67,7 @@ changing status colors.
 - Hover/focus are meaningful only in navigable mode. Keyboard input suppresses stale hover until pointer movement. Removed/disabled rows cannot activate.
 - Resize, long labels/details and narrow widths preserve numbering, status glyph placement and the protected cursor row. Motion supports every supplied phase, pause and reduced-motion sample.
 
-## Applicable state matrix
+## Visual matrix
 
 | Axis | Required cases |
 |---|---|
@@ -76,7 +80,11 @@ changing status colors.
 
 Only status variants supplied by the caller are captured. Shared dimensions/capabilities are in [`../verification/visual-parity.md`](../verification/visual-parity.md).
 
-## Required parity and capture cases
+## Verification
+
+The immutable oracle is commit [`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`](https://github.com/donbeave/terminal-components-claude/commit/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b). The frozen source is [`src/widgets/steps.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/steps.rs) (legacy family C26), currently exposing `Step`, `StepRail`, `StepState`, `WidgetId` and `Outcome`.
+
+Use [`../reference/capture-plans/steps.json`](../reference/capture-plans/steps.json). Expected output is bound before candidate testing through [`../verification/oracle-and-provenance.md`](../verification/oracle-and-provenance.md). Compare exact cells, continuation cells, colors/modifiers, cursor visibility/position, focus/capture owner, key, status, animation phase and action count/target. Invalid oracle setup blocks the case.
 
 | Case | Required observation |
 |---|---|
@@ -86,10 +94,22 @@ Only status variants supplied by the caller are captured. Shared dimensions/capa
 | W16-04 | Partial details, long labels and overflow retain baseline clipping. |
 | W16-05 | Live source replacement preserves the current stable key when it survives. |
 
-Expected output is bound before candidate testing through [`../verification/oracle-and-provenance.md`](../verification/oracle-and-provenance.md). Compare exact cells, continuation cells, colors/modifiers, cursor visibility/position, focus/capture owner, key, status, animation phase and action count/target. Invalid oracle setup blocks the case.
-
-## Dependencies and negative tests
-
-Dependencies: [`scroll-region`](./scroll-region.md#scroll-and-capture-behavior), [`identity`](../foundations/identity.md), [`input-actions`](../foundations/input-actions.md), [`layout`](../foundations/layout.md), [`theme`](../foundations/theme.md), [`author`](../foundations/author.md), and [`conformance`](../foundations/conformance.md).
-
 Negative tests must prove: display mode never registers a focus stop; lifecycle status cannot change during update/draw; spinner phase cannot advance from repaint count; removed/disabled keys cannot activate; duplicate keys are rejected; draw is semantically pure; wheel/scrollbar cannot change status; long Unicode text cannot corrupt cells; and part patches cannot overwrite required status/gutter cells. Steps does not embed a scheduler or retry operation.
+
+## Rejected use
+
+Forbidden: painting status glyph rows and tracking the lifecycle in preview instead of using Steps.
+
+```rust
+// Forbidden: preview paints its own step rail.
+ui.paint_str(row, 0, "✓ fetch  ◌ build");
+if done { status = "done"; }
+```
+
+Rule: [ARC-012](../architecture/component-composition.md) prohibits direct `ui.paint_str` rendering of controls and padded strings that simulate status. Use `Steps::new` with stable step keys and handle the typed `StepsAction`.
+
+## Known gaps
+
+- Capture plan W16 is planned and uncaptured; no expected artifacts are bound.
+- Implementation is future work on `termrock-implementation`.
+- [FIX-007 signature drift](../implementation/code-remediation-backlog.md): the contract API is a proposed target and no signature is source-checked.
