@@ -10,7 +10,7 @@
 #
 # Allowed paths (whole file):
 #   tests/*, snapshots/tuiscotti/*, baselines/tuiscotti-v1/*,
-#   docs/testing/*, scripts/test-scope-check.sh
+#   docs/testing/*, .config/nextest.toml, scripts/test-scope-check.sh
 #
 # Section-checked paths:
 #   src/*.rs ................ only hunks inside #[cfg(test)] modules
@@ -867,7 +867,7 @@ mkfixture() {
     git config user.name "scope-check-test" || exit 1
     git config commit.gpgsign false || exit 1
     git config core.hooksPath /dev/null || exit 1
-    mkdir -p src dep-a/src dep-b/src .github/workflows tests docs/testing snapshots/tuiscotti baselines/tuiscotti-v1 || exit 1
+    mkdir -p src dep-a/src dep-b/src .github/workflows tests docs/testing snapshots/tuiscotti baselines/tuiscotti-v1 .config || exit 1
     cat >src/lib.rs <<'EOF' || exit 1
 pub fn prod() -> u32 {
     41
@@ -924,6 +924,7 @@ EOF
     printf '' >docs/testing/.gitkeep || exit 1
     printf '' >snapshots/tuiscotti/.gitkeep || exit 1
     printf '' >baselines/tuiscotti-v1/.gitkeep || exit 1
+    printf '[profile.default]\nfail-fast = false\n' >.config/nextest.toml || exit 1
     cargo metadata --format-version 1 --offline >/dev/null || exit 1
     git add -A || exit 1
     git commit -qm base || exit 1
@@ -997,6 +998,14 @@ EOF
   printf 'base\n' >"$FXD/fx/baselines/tuiscotti-v1/b.txt"
   printf '# note\n' >"$FXD/fx/docs/testing/note.md"
   run_case pass "snapshot, baseline, and test-doc files pass"
+
+  fxreset
+  printf 'slow-timeout = { period = "60s" }\n' >>"$FXD/fx/.config/nextest.toml"
+  run_case pass "nextest test-selection config passes"
+
+  fxreset
+  printf '[other]\n' >"$FXD/fx/.config/other.toml"
+  run_case fail "non-nextest .config file fails"
 
   fxreset
   cat >"$FXD/fx/.github/workflows/test-e2e.yml" <<'EOF'
@@ -1179,7 +1188,7 @@ while IFS= read -r -d '' path; do
     continue
   fi
   case "$path" in
-    tests/*|snapshots/tuiscotti/*|baselines/tuiscotti-v1/*|docs/testing/*|scripts/test-scope-check.sh)
+    tests/*|snapshots/tuiscotti/*|baselines/tuiscotti-v1/*|docs/testing/*|.config/nextest.toml|scripts/test-scope-check.sh)
       CHECKED=$((CHECKED + 1))
       echo "PASS  $path (allowlisted path)"
       ;;
