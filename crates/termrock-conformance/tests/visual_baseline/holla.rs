@@ -15,11 +15,7 @@
 //! where ticks must advance the world (files indexing, disk scan, the docker
 //! plan run, the executor burst).
 
-use std::time::Duration;
-
-use crate::support::{ScreenExt, Scroll, Session};
-
-use crate::pointer::wheel_below;
+use crate::pointer::{wheel_below, wheel_down};
 use crate::support::{self, Case, Color, HOLLA};
 
 // ---------------------------------------------------------------- concept --
@@ -588,26 +584,6 @@ crate::baseline_case!(holla_flows_docker_drift_120x40_truecolor => Case::new("ho
 // --------------------------------------------------------------------- fade --
 // Wheel scroll-fade over live sessions, centrally expanded by the shared
 // canonical live matrix.
-
-/// First occurrence of `needle` as `(row, col)`, waiting until it appears.
-fn find(s: &mut Session, needle: &str) -> (u16, u16) {
-    let mut hit = None;
-    s.wait_until(|screen| {
-        hit = screen.find(needle);
-        hit.is_some()
-    })
-    .unwrap_or_else(|e| panic!("`{needle}` never appeared: {e:#}"));
-    hit.expect("wait_until passed with the needle on screen")
-}
-
-/// `notches` wheel-down steps over `needle`'s cell, paced like a send step.
-fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
-    let (row, col) = find(s, needle);
-    for _ in 0..notches {
-        s.scroll(col, row, Scroll::Down).expect("wheel scroll");
-        std::thread::sleep(Duration::from_millis(120));
-    }
-}
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
