@@ -1,0 +1,1573 @@
+{
+  "exceptions": [
+    {
+      "max": 2,
+      "path": "crates/holla-domain/src/activity.rs",
+      "reason": "Paused/scenario switches in Holla domain/sim fixtures; reviewed, ratcheted pending FIX-005.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-09"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-domain/src/manifest.rs",
+      "reason": "Inherent parser-combinator method `expect`, not Option/Result::expect; no panic path.",
+      "review": "Q16: reviewed permanent allowance",
+      "rule": "OWN-14"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-sim/src/catalog.rs",
+      "reason": "Paused/scenario switches in Holla domain/sim fixtures; reviewed, ratcheted pending FIX-005.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-sim/src/fixtures.rs",
+      "reason": "Paused/scenario switches in Holla domain/sim fixtures; reviewed, ratcheted pending FIX-005.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-sim/src/parity.rs",
+      "reason": "Paused/scenario switches in Holla domain/sim fixtures; reviewed, ratcheted pending FIX-005.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/app.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/app.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/app.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 3,
+      "path": "crates/holla-ui/src/app.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/activity.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/screens/activity.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/activity.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/cleanup.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 17,
+      "path": "crates/holla-ui/src/screens/cleanup.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/cleanup.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/disk.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 14,
+      "path": "crates/holla-ui/src/screens/disk.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/holla-ui/src/screens/disk.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/files.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 17,
+      "path": "crates/holla-ui/src/screens/files.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 4,
+      "path": "crates/holla-ui/src/screens/files.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/finder.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 16,
+      "path": "crates/holla-ui/src/screens/finder.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/holla-ui/src/screens/finder.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/mod.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/mod.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/mod.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/modals.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 8,
+      "path": "crates/holla-ui/src/screens/modals.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/plan.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 26,
+      "path": "crates/holla-ui/src/screens/plan.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/holla-ui/src/screens/plan.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/review.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 10,
+      "path": "crates/holla-ui/src/screens/review.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/snapshot.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/screens/snapshot.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/snapshot.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/core/text.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/runtime.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/ui/ctx.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 2,
+      "path": "crates/holla-ui/src/tui/ui/ctx.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/ui/fade.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/ui/fade.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/holla-ui/src/tui/ui/fade.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/ui/popup.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 2,
+      "path": "crates/holla-ui/src/tui/ui/popup.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 4,
+      "path": "crates/holla-ui/src/tui/ui/text.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/brand.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 2,
+      "path": "crates/holla-ui/src/tui/widgets/brand.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/button.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/tui/widgets/button.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/chips.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 7,
+      "path": "crates/holla-ui/src/tui/widgets/chips.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/choice.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 4,
+      "path": "crates/holla-ui/src/tui/widgets/choice.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/tui/widgets/choice.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/code.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 3,
+      "path": "crates/holla-ui/src/tui/widgets/code.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/tui/widgets/code.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/completion.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 4,
+      "path": "crates/holla-ui/src/tui/widgets/completion.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/completion.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/dialog.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/tui/widgets/dialog.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/dialog.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/diff.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 4,
+      "path": "crates/holla-ui/src/tui/widgets/diff.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/empty.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 2,
+      "path": "crates/holla-ui/src/tui/widgets/empty.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/grid.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 17,
+      "path": "crates/holla-ui/src/tui/widgets/grid.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/tui/widgets/grid.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/hintbar.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/input.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 11,
+      "path": "crates/holla-ui/src/tui/widgets/input.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 8,
+      "path": "crates/holla-ui/src/tui/widgets/input.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/keyhint.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 6,
+      "path": "crates/holla-ui/src/tui/widgets/keyhint.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/list.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/tui/widgets/list.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/menu.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 6,
+      "path": "crates/holla-ui/src/tui/widgets/menu.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/menu.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/panel.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/tui/widgets/panel.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/holla-ui/src/tui/widgets/panel.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/picker.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 16,
+      "path": "crates/holla-ui/src/tui/widgets/picker.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/progress.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 18,
+      "path": "crates/holla-ui/src/tui/widgets/progress.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/holla-ui/src/tui/widgets/progress.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/props.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 6,
+      "path": "crates/holla-ui/src/tui/widgets/props.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/props.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/scrollbar.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 2,
+      "path": "crates/holla-ui/src/tui/widgets/scrollbar.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/segments.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/segments.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/segments.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/select.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 8,
+      "path": "crates/holla-ui/src/tui/widgets/select.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/holla-ui/src/tui/widgets/select.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/splitter.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/splitter.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/statusbar.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/tui/widgets/statusbar.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/steps.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/tui/widgets/steps.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/table.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 10,
+      "path": "crates/holla-ui/src/tui/widgets/table.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/holla-ui/src/tui/widgets/table.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/tabs.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 12,
+      "path": "crates/holla-ui/src/tui/widgets/tabs.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/holla-ui/src/tui/widgets/tabs.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/textarea.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 12,
+      "path": "crates/holla-ui/src/tui/widgets/textarea.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 8,
+      "path": "crates/holla-ui/src/tui/widgets/textarea.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/tree.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/tui/widgets/tree.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/viewport.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/viewport.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/viewport.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 2803,
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-03"
+    },
+    {
+      "max": 24,
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 25,
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 23,
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 4437,
+      "path": "crates/jackin-preview-app/src/app/historical_accounts_settings_usage.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1594,
+      "path": "crates/jackin-preview-app/src/app/historical_capsule.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2021,
+      "path": "crates/jackin-preview-app/src/app/historical_editor_cockpit.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 28,
+      "path": "crates/jackin-preview-host-ui/src/prelude.rs",
+      "reason": "Transitional prelude painters (FIX-001 follow-up); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/jackin-preview-host-ui/src/prelude.rs",
+      "reason": "Transitional prelude painters (FIX-001 follow-up); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 3,
+      "path": "crates/jackin-preview-host-ui/src/prelude.rs",
+      "reason": "Transitional prelude painters (FIX-001 follow-up); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/jackin-preview-presentation/src/rain.rs",
+      "reason": "Raw-buffer rain effect pending component replacement (FIX-005 scope); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 10,
+      "path": "crates/jackin-preview-presentation/src/rain.rs",
+      "reason": "Raw-buffer rain effect pending component replacement (FIX-005 scope); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/jackin-preview-presentation/src/rain.rs",
+      "reason": "Raw-buffer rain effect pending component replacement (FIX-005 scope); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 4,
+      "path": "crates/jackin-preview-sim/src/fixtures/pinned.rs",
+      "reason": "Scenario/size switches in deterministic sim fixtures; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 1,
+      "path": "crates/jackin-preview-sim/src/pty.rs",
+      "reason": "Scenario/size switches in deterministic sim fixtures; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 6,
+      "path": "crates/jackin-preview-sim/src/world.rs",
+      "reason": "Scenario/size switches in deterministic sim fixtures; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/author.rs",
+      "reason": "Downstream-authoring teaching demo: paints through the public termrock::author API by design.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 11,
+      "path": "crates/showcase-demos/src/pages/buttons.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 5,
+      "path": "crates/showcase-demos/src/pages/buttons.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/buttons.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/chips.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/chips.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/chips.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 12,
+      "path": "crates/showcase-demos/src/pages/chrome.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 24,
+      "path": "crates/showcase-demos/src/pages/chrome.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/chrome.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-demos/src/pages/dialogs.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/dialogs.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/dialogs.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-demos/src/pages/diff.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 5,
+      "path": "crates/showcase-demos/src/pages/diff.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/editable.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/editable.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/editable.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/editor.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/editor.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/editor.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 26,
+      "path": "crates/showcase-demos/src/pages/forms.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/forms.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 7,
+      "path": "crates/showcase-demos/src/pages/forms.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/grid.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 11,
+      "path": "crates/showcase-demos/src/pages/grid.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/grid.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/inputs.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/inputs.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 4,
+      "path": "crates/showcase-demos/src/pages/inputs.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-demos/src/pages/lists.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/lists.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 12,
+      "path": "crates/showcase-demos/src/pages/lists.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-demos/src/pages/mod.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/mod.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/mod.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/overview.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 5,
+      "path": "crates/showcase-demos/src/pages/overview.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 4,
+      "path": "crates/showcase-demos/src/pages/overview.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 18,
+      "path": "crates/showcase-demos/src/pages/panels.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/panels.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 13,
+      "path": "crates/showcase-demos/src/pages/panels.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 24,
+      "path": "crates/showcase-demos/src/pages/pickers.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 23,
+      "path": "crates/showcase-demos/src/pages/pickers.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/pickers.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 23,
+      "path": "crates/showcase-demos/src/pages/progress.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 7,
+      "path": "crates/showcase-demos/src/pages/progress.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 10,
+      "path": "crates/showcase-demos/src/pages/progress.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-09"
+    },
+    {
+      "max": 5,
+      "path": "crates/showcase-demos/src/pages/progress.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/scrolling.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/scrolling.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 7,
+      "path": "crates/showcase-demos/src/pages/scrolling.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 12,
+      "path": "crates/showcase-demos/src/pages/settings.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 12,
+      "path": "crates/showcase-demos/src/pages/settings.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/settings.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 7,
+      "path": "crates/showcase-demos/src/pages/sidebars.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/sidebars.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/sidebars.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/tables.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/tables.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/tables.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/taskrunner.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 13,
+      "path": "crates/showcase-demos/src/pages/taskrunner.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/taskrunner.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/terminal.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 4,
+      "path": "crates/showcase-demos/src/pages/terminal.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/terminal.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/textareas.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/textareas.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/textareas.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 11,
+      "path": "crates/showcase-demos/src/pages/trees.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/trees.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/trees.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 25,
+      "path": "crates/showcase-ui/src/app.rs",
+      "reason": "Shell chrome painters plus paused/time/size controls; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-ui/src/app.rs",
+      "reason": "Shell chrome painters plus paused/time/size controls; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 10,
+      "path": "crates/showcase-ui/src/app.rs",
+      "reason": "Shell chrome painters plus paused/time/size controls; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-09"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-ui/src/app.rs",
+      "reason": "Shell chrome painters plus paused/time/size controls; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 152,
+      "path": "crates/tablepro-ui/src/app.rs",
+      "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/tablepro-ui/src/app.rs",
+      "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-03"
+    },
+    {
+      "max": 30,
+      "path": "crates/tablepro-ui/src/app.rs",
+      "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 31,
+      "path": "crates/tablepro-ui/src/app.rs",
+      "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 36,
+      "path": "crates/tablepro-ui/src/filter_editor.rs",
+      "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 35,
+      "path": "crates/tablepro-ui/src/safety_dialog.rs",
+      "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/tablepro-ui/src/safety_dialog.rs",
+      "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/termrock-runtime/src/ui/derived.rs",
+      "reason": "The one allowed production expect: the TypeId-keyed derived-cache slot invariant, stated next to the code that establishes it.",
+      "review": "Q16: reviewed permanent allowance; see file docs and OWN-14",
+      "rule": "OWN-14"
+    }
+  ],
+  "schema": "termrock-ownership-exceptions/v1"
+}

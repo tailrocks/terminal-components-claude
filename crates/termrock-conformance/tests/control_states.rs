@@ -48,10 +48,10 @@
 //! cannot yet express a reference case, the test is `#[ignore]`d with a
 //! `PARITY <case>: <reason>` record instead of weakening the expectation.
 //!
-//! Ownership map: `component-ownership.json` (`W01`-`W24`) is loaded with
-//! `include_str!` and each component is proven to resolve through its owner
-//! crate's facade module (`termrock::controls`, `termrock::navigation`,
-//! `termrock::fields`, `termrock::overlays`, `termrock::forms`).
+//! Ownership map: `component-ownership.json` (all 45 components, `W01`-`W45`)
+//! is loaded with `include_str!` and each component is proven to resolve
+//! through its owner crate's facade module. Unknown component ids fail the
+//! gate: the map must match the registry vocabulary exactly.
 
 use std::any::TypeId;
 use std::cell::{Cell, RefCell};
@@ -62,21 +62,20 @@ use std::time::Duration;
 use termrock::runtime::stub::{Stub, deliver, key, mouse};
 use termrock::{
     Action, ActionKey, App, Axis, BlurPolicy, Brand, Buffer, Button, Checkbox, ChipBar,
-    ChipBarAction, ChipBarState, Color, ColorLevel, Constraints, Cx, DefaultRow, EmptyState, Field,
-    FieldError, FieldKind, FieldMut, FieldRef, FieldSpec, FilterList, FilterListAction,
-    FilterListState, Focusability, Form, FormAction, FrameRead,
-    FormData, FormState, Id, Input, Item, ItemKey, ItemRowLayout, KeyCode, KeyModifiers,
-    List, ListAction,
-    ListState, Modifier, MouseKind, NavList, NavListAction, NavListState, NavMode, NodeKind,
-    Part, PartRef, Picker, PickerAction, PickerState,
-    Position, RadioGroup,
+    ChipBarAction, ChipBarState, CodeEditor, Color, ColorLevel, Constraints, Cx, DefaultRow,
+    DiffView, Empty, EmptyState, Field, FieldError, FieldKind, FieldMut, FieldRef, FieldSpec,
+    FilterList, FilterListAction, FilterListState, Focusability, Form, FormAction, FormData,
+    FormState, FrameRead, Grid, HelpOverlay, HintBar, Id, Input, Item, ItemKey, ItemRowLayout,
+    KeyCode, KeyHint, KeyModifiers, List, ListAction, ListState, MenuBar, Meter, Modifier,
+    MouseKind, NavList, NavListAction, NavListState, NavMode, NodeKind, Panel, Part, PartRef,
+    Picker, PickerAction, PickerState, Position, ProgressBar, Props, PropsList, RadioGroup,
     RadioGroupAction, RadioGroupState, Rect, ReferenceState, ReferenceTarget, Response, Role,
-    RowTotal, RowUi, Runtime, ScrollState, SecretPolicy, Select, SelectAction, SelectMode,
-    SelectState,
-    Size, Span, StateFlags, Status, StepState, Steps, StepsAction, StepsState, StylePatch,
-    Tabs, TabsAction, TabsState, TextAction, TextArea, TextAreaState, TextInput,
-    TextInputState, Theme, Toggle, Tree, TreeAction, TreeBranchActivation, TreeBranchClick,
-    TreeNode, TreeState, Ui, Validate, Variant, width,
+    RowTotal, RowUi, Runtime, ScrollRegion, ScrollState, SecretPolicy, Select, SelectAction,
+    SelectMode, SelectState, Size, Span, Spinner, SplitPane, StateFlags, Status, StatusBar,
+    StepState, Steps, StepsAction, StepsState, StylePatch, Tabs, TabsAction, TabsState,
+    TerminalView, TextAction, TextArea, TextAreaState, TextInput, TextInputState, TextViewport,
+    Theme, Toggle, TooSmall, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeNode,
+    TreeState, Ui, Validate, Variant, Wizard, width,
 };
 use termrock_test_support::Harness;
 
@@ -157,56 +156,14 @@ fn measure_size(draw: impl Fn(&Ui<'_>, Constraints) -> Size) -> Size {
 
 const OWNERSHIP_JSON: &str = include_str!("../../../component-ownership.json");
 
-/// The W01-W24 slice of `component-ownership.json`: every matrix component
-/// resolves through its owner crate's facade module.
+/// The full `component-ownership.json` map: every one of W01-W45 resolves
+/// through its owner crate's facade module, and any unknown component id
+/// fails the gate.
 #[test]
-fn w01_w24_resolve_through_owner_crate_modules() {
+fn w01_w45_resolve_through_owner_crate_modules() {
     let doc: serde_json::Value =
         serde_json::from_str(OWNERSHIP_JSON).expect("ownership map must parse");
-    let mut owners = std::collections::BTreeMap::new();
-    for component in doc["components"].as_array().expect("components array") {
-        let id = component["id"].as_str().expect("component id");
-        if id <= "W24" {
-            owners.insert(
-                id.to_string(),
-                component["owner"].as_str().expect("owner").to_string(),
-            );
-        }
-    }
-    assert_eq!(owners.len(), 24, "W01-W24 must all be present: {owners:?}");
-    let expected: &[(&str, &str)] = &[
-        ("W01", "termrock-controls"),
-        ("W02", "termrock-controls"),
-        ("W03", "termrock-controls"),
-        ("W04", "termrock-controls"),
-        ("W05", "termrock-controls"),
-        ("W06", "termrock-navigation"),
-        ("W07", "termrock-fields"),
-        ("W08", "termrock-fields"),
-        ("W09", "termrock-fields"),
-        ("W10", "termrock-overlays"),
-        ("W11", "termrock-forms"),
-        ("W12", "termrock-navigation"),
-        ("W13", "termrock-navigation"),
-        ("W14", "termrock-navigation"),
-        ("W15", "termrock-navigation"),
-        ("W16", "termrock-navigation"),
-        ("W17", "termrock-navigation"),
-        ("W18", "termrock-overlays"),
-        ("W19", "termrock-overlays"),
-        ("W20", "termrock-overlays"),
-        ("W21", "termrock-overlays"),
-        ("W22", "termrock-overlays"),
-        ("W23", "termrock-overlays"),
-        ("W24", "termrock-overlays"),
-    ];
-    for (id, owner) in expected {
-        assert_eq!(
-            owners.get(*id).map(String::as_str),
-            Some(*owner),
-            "ownership of {id}"
-        );
-    }
+    verify_ownership_map(&doc).expect("ownership map must match W01-W45 exactly");
 
     // Each facade-root component type is identical to the type exported by
     // its owner crate's module: the ownership map is executable, not a comment.
@@ -280,6 +237,134 @@ fn w01_w24_resolve_through_owner_crate_modules() {
     same::<termrock::Dialog<'static>, termrock::overlays::Dialog<'static>>();
     same::<termrock::Menu<'static>, termrock::overlays::Menu<'static>>();
     same::<termrock::ContextMenu<'static>, termrock::overlays::ContextMenu<'static>>();
+    same::<MenuBar<'static>, termrock::overlays::MenuBar<'static>>();
+    same::<HelpOverlay<'static>, termrock::overlays::HelpOverlay<'static>>();
+    same::<Wizard<'static>, termrock::forms::Wizard<'static>>();
+    same::<Grid<'static>, termrock::grid::Grid<'static>>();
+    same::<CodeEditor<'static>, termrock::editors::CodeEditor<'static>>();
+    same::<DiffView<'static>, termrock::editors::DiffView<'static>>();
+    same::<TextViewport<'static>, termrock::viewport::TextViewport<'static>>();
+    same::<Panel<'static>, termrock::controls::Panel<'static>>();
+    same::<SplitPane<'static>, termrock::controls::SplitPane<'static>>();
+    same::<Props<'static>, termrock::controls::Props<'static>>();
+    same::<PropsList<'static>, termrock::navigation::PropsList<'static>>();
+    same::<Empty<'static>, termrock::controls::Empty<'static>>();
+    same::<ProgressBar<'static>, termrock::feedback::ProgressBar<'static>>();
+    same::<Spinner<'static>, termrock::feedback::Spinner<'static>>();
+    same::<Meter<'static>, termrock::feedback::Meter<'static>>();
+    same::<StatusBar<'static>, termrock::feedback::StatusBar<'static>>();
+    same::<HintBar<'static>, termrock::feedback::HintBar<'static>>();
+    same::<KeyHint<'static>, termrock::feedback::KeyHint<'static>>();
+    same::<TooSmall<'static>, termrock::controls::TooSmall<'static>>();
+    same::<TerminalView<'static>, termrock::terminal::TerminalView<'static>>();
+    same::<ScrollRegion<'static>, termrock::viewport::ScrollRegion<'static>>();
+}
+
+/// Exact-set verification of the ownership map: every id in the document
+/// must be a known W01-W45 component with its exact owner, and every
+/// expected component must be present. Unknown ids fail.
+fn verify_ownership_map(doc: &serde_json::Value) -> Result<(), String> {
+    const EXPECTED: &[(&str, &str)] = &[
+        ("W01", "termrock-controls"),
+        ("W02", "termrock-controls"),
+        ("W03", "termrock-controls"),
+        ("W04", "termrock-controls"),
+        ("W05", "termrock-controls"),
+        ("W06", "termrock-navigation"),
+        ("W07", "termrock-fields"),
+        ("W08", "termrock-fields"),
+        ("W09", "termrock-fields"),
+        ("W10", "termrock-overlays"),
+        ("W11", "termrock-forms"),
+        ("W12", "termrock-navigation"),
+        ("W13", "termrock-navigation"),
+        ("W14", "termrock-navigation"),
+        ("W15", "termrock-navigation"),
+        ("W16", "termrock-navigation"),
+        ("W17", "termrock-navigation"),
+        ("W18", "termrock-overlays"),
+        ("W19", "termrock-overlays"),
+        ("W20", "termrock-overlays"),
+        ("W21", "termrock-overlays"),
+        ("W22", "termrock-overlays"),
+        ("W23", "termrock-overlays"),
+        ("W24", "termrock-overlays"),
+        ("W25", "termrock-overlays"),
+        ("W26", "termrock-overlays"),
+        ("W27", "termrock-forms"),
+        ("W28", "termrock-grid"),
+        ("W29", "termrock-editors"),
+        ("W30", "termrock-editors"),
+        ("W31", "termrock-viewport"),
+        ("W32", "termrock-controls"),
+        ("W33", "termrock-controls"),
+        ("W34", "termrock-controls"),
+        ("W35", "termrock-navigation"),
+        ("W36", "termrock-controls"),
+        ("W37", "termrock-feedback"),
+        ("W38", "termrock-feedback"),
+        ("W39", "termrock-feedback"),
+        ("W40", "termrock-feedback"),
+        ("W41", "termrock-feedback"),
+        ("W42", "termrock-feedback"),
+        ("W43", "termrock-controls"),
+        ("W44", "termrock-terminal"),
+        ("W45", "termrock-viewport"),
+    ];
+    let components = doc["components"]
+        .as_array()
+        .ok_or_else(|| "ownership map lacks a components array".to_string())?;
+    let mut owners = std::collections::BTreeMap::new();
+    for component in components {
+        let id = component["id"]
+            .as_str()
+            .ok_or_else(|| "a component lacks a string id".to_string())?;
+        let owner = component["owner"]
+            .as_str()
+            .ok_or_else(|| format!("component {id} lacks a string owner"))?;
+        owners.insert(id.to_string(), owner.to_string());
+    }
+    for id in owners.keys() {
+        if !EXPECTED.iter().any(|(known, _)| known == id) {
+            return Err(format!("unknown component id {id}"));
+        }
+    }
+    let missing: Vec<&&str> = EXPECTED
+        .iter()
+        .map(|(id, _)| id)
+        .filter(|id| !owners.contains_key(**id))
+        .collect();
+    if !missing.is_empty() {
+        return Err(format!("missing components: {missing:?}"));
+    }
+    for (id, owner) in EXPECTED {
+        let actual = owners.get(*id).map(String::as_str);
+        if actual != Some(*owner) {
+            return Err(format!(
+                "ownership of {id}: expected {owner}, got {actual:?}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Unknown component ids fail the ownership gate (negative probe).
+#[test]
+fn ownership_gate_rejects_unknown_component_ids() {
+    let lone = serde_json::json!({
+        "components": [{"id": "W99", "name": "Bogus", "owner": "termrock-controls"}]
+    });
+    let err = verify_ownership_map(&lone).expect_err("a lone W99 must fail");
+    assert!(err.contains("W99"), "unexpected error: {err}");
+
+    let mut full: serde_json::Value =
+        serde_json::from_str(OWNERSHIP_JSON).expect("ownership map must parse");
+    full["components"]
+        .as_array_mut()
+        .expect("components array")
+        .push(serde_json::json!({"id": "W00", "name": "Bogus", "owner": "termrock-controls"}));
+    let err = verify_ownership_map(&full).expect_err("an injected W00 must fail");
+    assert!(err.contains("W00"), "unexpected error: {err}");
 }
 
 // ---------------------------------------------------------------------------

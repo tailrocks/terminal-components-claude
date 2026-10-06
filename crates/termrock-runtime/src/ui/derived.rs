@@ -6,9 +6,12 @@
 //! resize, theme change and generation gap. Nothing semantic lives here: a
 //! dropped entry must only cost work.
 //!
-//! This file is the **one** place in `crates/tui/src` allowed to name
-//! `expect` (`xtask` forbidden-pattern rule 19's path exception). `dyn
-//! Any::downcast_mut` returns `Option` and safe Rust cannot express "this
+//! This file is the **one** production source allowed to name
+//! `Option`/`Result::expect` (`termrock-xtask` ownership rule OWN-14's path
+//! exception; `#[cfg(test)]` code and the test-support/xtask tooling crates
+//! stand outside that rule, and `holla-domain`'s parser `expect` is an
+//! inherent method, not this call). `dyn Any::downcast_mut` returns `Option`
+//! and safe Rust cannot express "this
 //! slot holds a `Box<T>` because it was keyed by `TypeId::of::<T>()`", so the
 //! invariant is stated once, here, next to the code that establishes it —
 //! rather than being laundered into a livelock (BL-2) or spread across the
