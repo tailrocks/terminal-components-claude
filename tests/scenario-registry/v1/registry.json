@@ -5689,7 +5689,3691 @@
         "status": "unrun",
         "runs": []
       }
+    },
+  {
+    "id": "SELECT-OPEN-001",
+    "app": "showcase",
+    "component": "Select",
+    "part": "closed field + open popup list",
+    "ref_symbols": [
+      {
+        "glyph": "▾",
+        "meaning": "closed select affordance at the field end"
+      },
+      {
+        "glyph": "▴",
+        "meaning": "open select affordance at the field end"
+      },
+      {
+        "glyph": "›",
+        "meaning": "marks the selected option row in the popup"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▾",
+        "meaning": "closed select affordance at the field end"
+      },
+      {
+        "glyph": "▴",
+        "meaning": "open select affordance at the field end"
+      },
+      {
+        "glyph": "›",
+        "meaning": "marks the selected option row in the popup"
+      }
+    ],
+    "data": {
+      "page": "chips",
+      "sort_options": [
+        "created_at",
+        "total",
+        "status",
+        "customer"
+      ],
+      "sort_selected": 0,
+      "size_options": [
+        "25",
+        "50",
+        "100",
+        "500"
+      ],
+      "size_selected": 1,
+      "engine_options": [
+        "PostgreSQL"
+      ],
+      "engine_disabled": true
+    },
+    "state": {
+      "focus": "chips.sort",
+      "open": false,
+      "cursor": 0,
+      "selected": 0
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the showcase chips page"
+      },
+      {
+        "step": 2,
+        "action": "focus the Sort select and open the popup",
+        "key": "Enter"
+      },
+      {
+        "step": 3,
+        "action": "move the cursor down one option",
+        "key": "Down"
+      },
+      {
+        "step": 4,
+        "action": "choose the cursor option",
+        "key": "Enter"
+      },
+      {
+        "step": 5,
+        "action": "open the disabled Engine select",
+        "key": "Enter"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "select-closed",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "select-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "select-changed",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "closed field shows the value with a trailing ▾; open shows ▴"
+        },
+        {
+          "id": "V2",
+          "text": "the open popup anchors below the field; the selected row carries ›"
+        },
+        {
+          "id": "V3",
+          "text": "the disabled Engine select paints faint and never opens"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "Enter opens with cursor = selected; Up/Down/k/j move the cursor clamped to the options"
+        },
+        {
+          "id": "S2",
+          "text": "closed Up/Down/Left/Right change selected directly without opening"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Enter/Space on an open list emits Changed(i) only when cursor differs from selected"
+        },
+        {
+          "id": "A2",
+          "text": "Esc closes and restores cursor = selected; click outside dismisses without change"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "a disabled select ignores keys and clicks; choosing the already selected option emits no event"
+        },
+        {
+          "id": "N2",
+          "text": "a modified chord (ctrl/alt + char) is Ignored; losing focus closes the popup"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/select.rs",
+          "lines": "35-47,72-127,129-155,157-248",
+          "note": "constructors, key/click events, dismiss, closed field and popup render"
+        },
+        {
+          "path": "src/bin/showcase/pages/chips.rs",
+          "lines": "32-34,53-66,117-119",
+          "note": "sort, page_size, and disabled engine fixtures plus the selects helper"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/showcase/flows/chips/select_open/80x24/truecolor.txt",
+        "snapshots/showcase/pages/chips/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
     }
+  },
+  {
+    "id": "SELECT-FILTER-002",
+    "app": "tablepro",
+    "component": "Select",
+    "part": "column + operator selects in the filter editor",
+    "ref_symbols": [
+      {
+        "glyph": "▾",
+        "meaning": "closed select affordance at the field end"
+      },
+      {
+        "glyph": "›",
+        "meaning": "marks the selected option row in the popup"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▾",
+        "meaning": "closed select affordance at the field end"
+      },
+      {
+        "glyph": "›",
+        "meaning": "marks the selected option row in the popup"
+      }
+    ],
+    "data": {
+      "tab": "table orders",
+      "column_options": "table column names",
+      "op_options": "FilterOp labels ordered for the column type"
+    },
+    "state": {
+      "modal": "filter-editor",
+      "focus": "filter-editor.col",
+      "column_open": false,
+      "op_open": false
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "open the Add filter editor on a table tab"
+      },
+      {
+        "step": 2,
+        "action": "open the Column select and choose another column",
+        "key": "Enter"
+      },
+      {
+        "step": 3,
+        "action": "move to the Operator select and open it",
+        "key": "Tab"
+      },
+      {
+        "step": 4,
+        "action": "choose the cursor operator",
+        "key": "Enter"
+      },
+      {
+        "step": 5,
+        "action": "press Esc with no popup open",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "filter-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "column-changed",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "op-chosen",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "Column and Operator render as labeled selects with ▾ and a help row under Operator"
+        },
+        {
+          "id": "V2",
+          "text": "the open operator popup lists type-ordered operators with › on the current one"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "choosing a column rebuilds the Operator select from ordered_for(type) at index 0"
+        },
+        {
+          "id": "S2",
+          "text": "Tab traversal runs only while no text field edits and no select is open"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Column Changed(i) re-seeds operators; Operator Changed(i) only repaints"
+        },
+        {
+          "id": "A2",
+          "text": "Esc with both popups closed cancels the editor; Esc with one open closes just it"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "Esc never cancels while a select popup is open; it closes the popup first"
+        },
+        {
+          "id": "N2",
+          "text": "operator labels never show operators that do not fit the column type first"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/select.rs",
+          "lines": "72-127,129-155",
+          "note": "open/move/choose/cancel keys, click choose, dismiss"
+        },
+        {
+          "path": "src/bin/tablepro/app.rs",
+          "lines": "1372-1420,1657-1700",
+          "note": "filter editor construction with Column/Operator selects; filter_key routing and operator rebuild on column change"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/tablepro/table/filter_editor/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "PICKER-QUERY-001",
+    "app": "showcase",
+    "component": "Picker",
+    "part": "query field + ranked rows + scope",
+    "ref_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor row"
+      },
+      {
+        "glyph": "…",
+        "meaning": "truncation in query placeholder and long rows"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor row"
+      },
+      {
+        "glyph": "…",
+        "meaning": "truncation in query placeholder and long rows"
+      }
+    ],
+    "data": {
+      "page": "pickers",
+      "kind": "Quick",
+      "title": "Open quickly",
+      "placeholder": "Files and tasks…",
+      "width": 80,
+      "groups": [
+        "Files",
+        "Tasks"
+      ],
+      "scope_label": "All · Tab scope"
+    },
+    "state": {
+      "query": "",
+      "scope": "All",
+      "cursor": 0,
+      "chosen": null
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the showcase pickers page and open the Quick picker"
+      },
+      {
+        "step": 2,
+        "action": "type a query character",
+        "key": "o"
+      },
+      {
+        "step": 3,
+        "action": "cycle the scope All -> Files",
+        "key": "Tab"
+      },
+      {
+        "step": 4,
+        "action": "choose the cursor row",
+        "key": "Enter"
+      },
+      {
+        "step": 5,
+        "action": "reopen and clear the query with Esc",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "picker-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "picker-filtered",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "picker-chosen",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "centered modal titled Open quickly with the query row, scope label, grouped rows, and hint footer"
+        },
+        {
+          "id": "V2",
+          "text": "file rows carry glyph F and task rows glyph T with detail lines"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "every keystroke emits QueryChanged and the owner re-supplies ranked rows with cursor reset to the first eligible row"
+        },
+        {
+          "id": "S2",
+          "text": "Tab emits NextScope and cycles All -> Files -> Tasks -> All"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Enter emits Chosen(i); Alt+Enter emits ChosenAlt(i) for the new-tab path"
+        },
+        {
+          "id": "A2",
+          "text": "first Esc clears a non-empty query; Esc on an empty query emits Cancelled and closes"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "Submit (free text, no eligible row) keeps the picker open; the query stays"
+        },
+        {
+          "id": "N2",
+          "text": "clicking outside the modal closes it without choosing"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/picker.rs",
+          "lines": "106-121,144-150,270-367,369-374",
+          "note": "event taxonomy, cursor reset on set_items, key map, click choose"
+        },
+        {
+          "path": "src/bin/showcase/pages/pickers.rs",
+          "lines": "105-131,132-170,241-303,367-378",
+          "note": "Quick open, fuzzy fill with scope, event effects, modal hints"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/showcase/pages/pickers/80x24/truecolor.txt",
+        "snapshots/showcase/flows/pickers/open/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "PICKER-TABS-002",
+    "app": "showcase",
+    "component": "Picker",
+    "part": "tab list with tags + non-searchable level list",
+    "ref_symbols": [
+      {
+        "glyph": "≡",
+        "meaning": "query-tab glyph on the first tab row"
+      },
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor row"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "≡",
+        "meaning": "query-tab glyph on the first tab row"
+      },
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor row"
+      }
+    ],
+    "data": {
+      "page": "pickers",
+      "tabs": [
+        "Query 1",
+        "orders",
+        "order_items",
+        "History"
+      ],
+      "active_tag": "active",
+      "levels": [
+        "Silent",
+        "Alert",
+        "Alert (Full)",
+        "Safe Mode",
+        "Safe Mode (Full)",
+        "Read-Only"
+      ],
+      "level_current": 3,
+      "level_searchable": false
+    },
+    "state": {
+      "tabs_open": 4,
+      "level": 3,
+      "chosen": null
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the showcase pickers page and open the Tabs picker"
+      },
+      {
+        "step": 2,
+        "action": "close the cursor tab",
+        "key": "Delete"
+      },
+      {
+        "step": 3,
+        "action": "close the Tabs picker and open the Level picker",
+        "key": "Esc"
+      },
+      {
+        "step": 4,
+        "action": "move with vim keys (no search box)",
+        "key": "j"
+      },
+      {
+        "step": 5,
+        "action": "set the level",
+        "key": "Enter"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "tabs-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "tab-closed",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "level-set",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the Tabs modal shows glyphs, the active tag, and group Open tabs"
+        },
+        {
+          "id": "V2",
+          "text": "the Level modal shows no query row; the current level carries the current tag"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "Delete emits Secondary(i) and splices the tab while more than one remains"
+        },
+        {
+          "id": "S2",
+          "text": "the Level picker opens with cursor = stored level; choosing stores it"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Secondary on the last remaining tab is refused; the list never empties"
+        },
+        {
+          "id": "A2",
+          "text": "in a non-searchable picker j/k move and typed text is impossible"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "Back (Backspace on empty query) is ignored by every showcase picker"
+        },
+        {
+          "id": "N2",
+          "text": "Secondary outside the Tabs kind does nothing"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/picker.rs",
+          "lines": "317-324,353-366",
+          "note": "Delete to Secondary, Back on empty query, searchable gate for typing and j/k"
+        },
+        {
+          "path": "src/bin/showcase/pages/pickers.rs",
+          "lines": "113-125,172-239,270-280",
+          "note": "Tabs and Level open shapes, fills, secondary close with last-tab guard"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/showcase/flows/pickers/tabs/80x24/truecolor.txt",
+        "snapshots/showcase/flows/pickers/level/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "PICKER-SWITCHER-003",
+    "app": "tablepro",
+    "component": "Picker",
+    "part": "switcher + tab list + safe-mode pickers",
+    "ref_symbols": [
+      {
+        "glyph": "≡",
+        "meaning": "tab glyph on tab-list rows"
+      },
+      {
+        "glyph": "›",
+        "meaning": "marks the current safe-mode row"
+      },
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor row"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "≡",
+        "meaning": "tab glyph on tab-list rows"
+      },
+      {
+        "glyph": "›",
+        "meaning": "marks the current safe-mode row"
+      },
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor row"
+      }
+    ],
+    "data": {
+      "switcher_title": "Open Quickly",
+      "switcher_scopes": 4,
+      "tablist_title": "Open tabs",
+      "safemode_title": "Safe Mode · this connection",
+      "safemode_searchable": false
+    },
+    "state": {
+      "modal": "Picker(Switcher)",
+      "scope": 0,
+      "query": ""
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "open the Open Quickly switcher",
+        "key": "Ctrl+O"
+      },
+      {
+        "step": 2,
+        "action": "cycle the switcher scope",
+        "key": "Tab"
+      },
+      {
+        "step": 3,
+        "action": "type a filter query",
+        "key": "o"
+      },
+      {
+        "step": 4,
+        "action": "close the switcher and open the tab list",
+        "key": "Ctrl+G"
+      },
+      {
+        "step": 5,
+        "action": "close the cursor tab from the tab list",
+        "key": "Delete"
+      },
+      {
+        "step": 6,
+        "action": "open the safe-mode picker and set a level",
+        "key": "Ctrl+L"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "switcher-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "switcher-scoped",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "tablist-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "safemode-open",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the switcher shows the scope label and ranked targets with kind glyphs"
+        },
+        {
+          "id": "V2",
+          "text": "the tab list shows ≡ rows with the active tag; the safe-mode list shows › on the current level"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "NextScope advances scope = (scope + 1) % 4 and refreshes switcher rows only"
+        },
+        {
+          "id": "S2",
+          "text": "tab-list filtering is a plain substring match; the row detail carries the tab index"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Chosen(i) dispatches via picker_chosen per kind; Cancelled closes the modal"
+        },
+        {
+          "id": "A2",
+          "text": "Secondary(i) in the tab list closes that tab and reopens the list"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "Back and Submit keep the picker open; a query matching nothing is not a command"
+        },
+        {
+          "id": "N2",
+          "text": "NextScope outside the switcher kind changes nothing"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/picker.rs",
+          "lines": "106-121,270-324",
+          "note": "event taxonomy and the key map that produces them"
+        },
+        {
+          "path": "src/bin/tablepro/app.rs",
+          "lines": "93-96,1214-1233,1283-1338,1341-1369,1462-1529",
+          "note": "PickerKind, the three open sites, and modal picker event dispatch"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/tablepro/overlays/picker_open/80x24/truecolor.txt",
+        "snapshots/tablepro/overlays/tablist_open/80x24/truecolor.txt",
+        "snapshots/tablepro/overlays/tablist_tables/80x24/truecolor.txt",
+        "snapshots/tablepro/overlays/safemode_picker/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "PALETTE-COMMAND-001",
+    "app": "jackin-preview",
+    "component": "CommandPalette",
+    "part": "capsule command palette modal",
+    "ref_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor row"
+      },
+      {
+        "glyph": "…",
+        "meaning": "truncation in the filter placeholder"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor row"
+      },
+      {
+        "glyph": "…",
+        "meaning": "truncation in the filter placeholder"
+      }
+    ],
+    "data": {
+      "screen": "capsule",
+      "title": "Command palette",
+      "placeholder": "Type to filter commands…",
+      "empty_text": "No matching commands",
+      "commands": 20,
+      "width": 60
+    },
+    "state": {
+      "modal": "palette",
+      "query": "",
+      "scope": "20 of 20"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "open the palette from the capsule screen",
+        "key": "Space"
+      },
+      {
+        "step": 2,
+        "action": "type a filter query",
+        "key": "e"
+      },
+      {
+        "step": 3,
+        "action": "move to a row",
+        "key": "Down"
+      },
+      {
+        "step": 4,
+        "action": "run the cursor command",
+        "key": "Enter"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "palette-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "palette-filtered",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "palette-ran",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the modal is titled Command palette with scope N of 20 and shortcut details per row"
+        },
+        {
+          "id": "V2",
+          "text": "unavailable rows (no selection, no file, no link) render disabled with a reason detail"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "filtering is a case-insensitive substring match; matched bytes are marked for bold"
+        },
+        {
+          "id": "S2",
+          "text": "Close becomes Close tab on a single-leaf tab; palette_cmds parallels the visible rows"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Picked(i) resolves palette_cmds[i] and dispatches run_palette"
+        },
+        {
+          "id": "A2",
+          "text": "Space, colon, and the Help menu Command palette item all open the palette"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "a disabled row can never be picked; Enter on it is refused"
+        },
+        {
+          "id": "N2",
+          "text": "a query matching nothing shows No matching commands and picks nothing"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/jackin_preview/screens/capsule.rs",
+          "lines": "102-121,282,468,843-851,854-921,922-930,1303-1304,2198-2215",
+          "note": "command table, Help menu item, open, filtered items with disabled reasons, dispatch, keys, modal result"
+        },
+        {
+          "path": "src/widgets/picker.rs",
+          "lines": "270-292,317-324",
+          "note": "query, choose, cancel, and scope keys the palette inherits"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/jackin/capsule/palette/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "PICKCHAIN-OP-001",
+    "app": "jackin-preview",
+    "component": "PickerChain",
+    "part": "1Password account-vault-item-field chain",
+    "ref_symbols": [
+      {
+        "glyph": "›",
+        "meaning": "crumb separator in the chain scope line"
+      },
+      {
+        "glyph": "…",
+        "meaning": "loading and search placeholder ellipsis"
+      },
+      {
+        "glyph": "!",
+        "meaning": "error marker in the picker status row"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "›",
+        "meaning": "crumb separator in the chain scope line"
+      },
+      {
+        "glyph": "…",
+        "meaning": "loading and search placeholder ellipsis"
+      },
+      {
+        "glyph": "!",
+        "meaning": "error marker in the picker status row"
+      }
+    ],
+    "data": {
+      "screen": "settings environments",
+      "key": "p on an env row",
+      "steps": [
+        "Account",
+        "Vault",
+        "Item",
+        "Field"
+      ],
+      "width": 64
+    },
+    "state": {
+      "step": "Account",
+      "account": null,
+      "vault": null,
+      "item": null,
+      "result": null
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "press p on an env row to open the chain"
+      },
+      {
+        "step": 2,
+        "action": "wait for the loading tick then choose an account",
+        "key": "Enter"
+      },
+      {
+        "step": 3,
+        "action": "choose a vault, then an item",
+        "key": "Enter"
+      },
+      {
+        "step": 4,
+        "action": "choose a field to store the reference",
+        "key": "Enter"
+      },
+      {
+        "step": 5,
+        "action": "reopen and walk back one step",
+        "key": "Backspace"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "chain-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "chain-mid",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "chain-stored",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "each stage retitles the picker (Choose account/vault/item/field) with the › crumb as scope"
+        },
+        {
+          "id": "V2",
+          "text": "loading shows the spinner row; errors show ! message with retry detail"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "choosing advances Account -> Vault -> Item -> Field; each advance reloads with a cleared query"
+        },
+        {
+          "id": "S2",
+          "text": "Back/Esc rewinds one stage and clears that stage value; Back at Account cancels with result None"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "choosing a field resolves the reference and stores only metadata; r retries after an error"
+        },
+        {
+          "id": "A2",
+          "text": "a single available account is pre-chosen and the chain starts at Vault"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "while loading, every key except Esc is Consumed and changes nothing"
+        },
+        {
+          "id": "N2",
+          "text": "no secret value leaves the flow; clicks only choose rows"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/jackin_preview/screens/modals.rs",
+          "lines": "1555-1600,1605-1617,1619-1666,1689-1700,1803-1830,1850-1888,1889-1916,1931-1960",
+          "note": "OpStep/OpFlow shape, crumb, load/tick/error, refresh, back, choose, key handling, hints, render"
+        },
+        {
+          "path": "src/bin/jackin_preview/screens/config.rs",
+          "lines": "1373-1381",
+          "note": "p on an env row opens Modal::Op"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/jackin/settings/env/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "COMPLETE-SQL-001",
+    "app": "tablepro",
+    "component": "Completion",
+    "part": "query editor suggestion popup",
+    "ref_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor suggestion"
+      },
+      {
+        "glyph": "T",
+        "meaning": "kind glyph for table suggestions"
+      },
+      {
+        "glyph": "C",
+        "meaning": "kind glyph for column suggestions"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor suggestion"
+      },
+      {
+        "glyph": "T",
+        "meaning": "kind glyph for table suggestions"
+      },
+      {
+        "glyph": "C",
+        "meaning": "kind glyph for column suggestions"
+      }
+    ],
+    "data": {
+      "tab": "query tab",
+      "catalog": "acme_prod public schema",
+      "max_rows": 8
+    },
+    "state": {
+      "open": false,
+      "cursor": 0,
+      "replace_len": 0
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot tablepro with a query tab and start editing"
+      },
+      {
+        "step": 2,
+        "action": "type a prefix that auto-triggers completion",
+        "key": "o"
+      },
+      {
+        "step": 3,
+        "action": "move the suggestion cursor",
+        "key": "Down"
+      },
+      {
+        "step": 4,
+        "action": "accept the cursor suggestion",
+        "key": "Tab"
+      },
+      {
+        "step": 5,
+        "action": "retrigger then dismiss",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "completion-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "completion-moved",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "completion-accepted",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the popup anchors below the cursor with kind glyphs, bold matched prefix, and right-aligned details"
+        },
+        {
+          "id": "V2",
+          "text": "more rows than fit show a scrollbar; width clamps to 24..48 cells"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "open(items, anchor, replace) resets cursor to 0; empty items close the popup"
+        },
+        {
+          "id": "S2",
+          "text": "render never pulls the viewport to the cursor, so a wheel scroll survives frames"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Tab/Enter emits Accept(i) and replaces replace_len bytes with insert; functions land the cursor inside the parens"
+        },
+        {
+          "id": "A2",
+          "text": "Esc closes and emits Dismiss; commit or click-outside closes silently"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "plain n/p type into the editor; only Ctrl+N/Ctrl+P move the cursor"
+        },
+        {
+          "id": "N2",
+          "text": "typing that yields no items closes the popup instead of showing an empty box"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/completion.rs",
+          "lines": "62-76,94-150,152-180",
+          "note": "open/close/is_open, key/click/wheel handling, anchored render with scrollbar"
+        },
+        {
+          "path": "src/bin/tablepro/tabs.rs",
+          "lines": "987,1077,1232-1280,1338-1350,1360-1374,1445-1450",
+          "note": "popup ownership, trigger/accept, editor key routing, click accept and outside close"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/tablepro/query/completion/80x24/truecolor.txt",
+        "snapshots/tablepro/query/completion_columns/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "COMPLETE-EDITOR-002",
+    "app": "showcase",
+    "component": "Completion",
+    "part": "code editor identifier popup",
+    "ref_symbols": [
+      {
+        "glyph": "ƒ",
+        "meaning": "kind glyph for function candidates"
+      },
+      {
+        "glyph": "T",
+        "meaning": "kind glyph for type candidates"
+      },
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor suggestion"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "ƒ",
+        "meaning": "kind glyph for function candidates"
+      },
+      {
+        "glyph": "T",
+        "meaning": "kind glyph for type candidates"
+      },
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the cursor suggestion"
+      }
+    ],
+    "data": {
+      "page": "editor",
+      "candidates": "functions, types, locals, macros, keywords",
+      "auto_min_word": 2
+    },
+    "state": {
+      "open": false,
+      "word": "",
+      "replace_len": 0
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the showcase editor page and start editing code"
+      },
+      {
+        "step": 2,
+        "action": "type two identifier characters to auto-trigger",
+        "key": "l"
+      },
+      {
+        "step": 3,
+        "action": "move the suggestion cursor",
+        "key": "Down"
+      },
+      {
+        "step": 4,
+        "action": "accept the cursor suggestion",
+        "key": "Enter"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "completion-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "completion-accepted",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the popup anchors at the word start with ƒ/T/v/m/k glyphs and signature details"
+        },
+        {
+          "id": "V2",
+          "text": "fuzzy-matched label bytes render bold on every row"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "auto trigger needs a 2+ character word; manual trigger ranks any word"
+        },
+        {
+          "id": "S2",
+          "text": "candidates rank by fuzzy penalty then label; the popup opens only when non-empty"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Accept(i) removes the typed word, inserts the label, and closes; function inserts gain ()"
+        },
+        {
+          "id": "A2",
+          "text": "Dismiss and running a block both close the popup"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "a one-character word never auto-opens; typing past all matches closes"
+        },
+        {
+          "id": "N2",
+          "text": "accepting a stale index (row gone) changes nothing"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/showcase/pages/editor.rs",
+          "lines": "61-80,199,207-216,217-253,254-268,457-461,506",
+          "note": "candidates, word scan, manual/auto trigger, accept insert, event and click routing"
+        },
+        {
+          "path": "src/widgets/completion.rs",
+          "lines": "62-76,127-142,207-230",
+          "note": "open/close, accept/dismiss keys and click, bold matched bytes"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/showcase/flows/editor/completion/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "DIALOG-CONFIRM-001",
+    "app": "showcase",
+    "component": "Dialog",
+    "part": "confirm + three-choice text dialogs",
+    "ref_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the focused action"
+      },
+      {
+        "glyph": "…",
+        "meaning": "ellipsis in buttons that open a dialog"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the focused action"
+      },
+      {
+        "glyph": "…",
+        "meaning": "ellipsis in buttons that open a dialog"
+      }
+    ],
+    "data": {
+      "page": "dialogs",
+      "confirm_title": "Run task now?",
+      "confirm_action": "Run",
+      "choice_title": "Unsaved changes",
+      "choice_actions": [
+        "Cancel",
+        "Discard",
+        "Save"
+      ],
+      "choice_initial": "Save"
+    },
+    "state": {
+      "dialog": null,
+      "history": []
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the showcase dialogs page and open Confirm run"
+      },
+      {
+        "step": 2,
+        "action": "answer with the quick key",
+        "key": "y"
+      },
+      {
+        "step": 3,
+        "action": "open Three choices and move between actions",
+        "key": "Right"
+      },
+      {
+        "step": 4,
+        "action": "activate the focused action",
+        "key": "Enter"
+      },
+      {
+        "step": 5,
+        "action": "reopen and cancel with Esc",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "dialog-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "dialog-answered",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "dialog-cancelled",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the dialog centers over a dimmed page; the footer row stays live"
+        },
+        {
+          "id": "V2",
+          "text": "confirm focuses the primary action first; the three-choice dialog focuses Save"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "Left/Right/h/l move between actions skipping disabled ones; Tab cycles the ring"
+        },
+        {
+          "id": "S2",
+          "text": "closing appends a history line and a status message naming the outcome"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "y finishes the primary action and n finishes the cancel action on text dialogs"
+        },
+        {
+          "id": "A2",
+          "text": "Esc and click-outside finish the cancel_index action when one exists"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "y/n do nothing on input or facts dialogs; all other keys are Consumed"
+        },
+        {
+          "id": "N2",
+          "text": "clicking the prompt input focuses it without finishing; clicks on no action are Consumed"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/dialog.rs",
+          "lines": "58-73,146-150,199-213,215-322,332-362,364-383",
+          "note": "confirm shape, action override, finish, full key map, click handling, dimmed centered render"
+        },
+        {
+          "path": "src/bin/showcase/pages/dialogs.rs",
+          "lines": "49-56,65-83,185-213",
+          "note": "confirm and three-choice opens, close handling with history"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/showcase/pages/dialogs/80x24/truecolor.txt",
+        "snapshots/showcase/flows/dialogs/open/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "DIALOG-PROMPT-002",
+    "app": "showcase",
+    "component": "Dialog",
+    "part": "validated prompt + destructive confirm",
+    "ref_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the focused field or action"
+      },
+      {
+        "glyph": "…",
+        "meaning": "ellipsis in buttons that open a dialog"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the focused field or action"
+      },
+      {
+        "glyph": "…",
+        "meaning": "ellipsis in buttons that open a dialog"
+      }
+    ],
+    "data": {
+      "page": "dialogs",
+      "prompt_title": "Rename task",
+      "prompt_initial": "Migrate sessions table",
+      "prompt_rules": "non-empty, 40 max",
+      "destructive_title": "Delete branch?",
+      "destructive_action": "Delete branch"
+    },
+    "state": {
+      "dialog": null,
+      "task_name": "Migrate sessions table"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the showcase dialogs page and open Rename task"
+      },
+      {
+        "step": 2,
+        "action": "clear the name and submit",
+        "key": "Enter"
+      },
+      {
+        "step": 3,
+        "action": "type a valid name and submit",
+        "key": "Enter"
+      },
+      {
+        "step": 4,
+        "action": "open Delete branch with the direct key",
+        "key": "d"
+      },
+      {
+        "step": 5,
+        "action": "cancel the destructive dialog",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "prompt-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "prompt-blocked",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "prompt-renamed",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "destructive-open",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the prompt focuses its input first with help text under it"
+        },
+        {
+          "id": "V2",
+          "text": "the destructive dialog focuses Cancel first with the action in danger style"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "finish commits an editing input then validates; a failing validation keeps the dialog open"
+        },
+        {
+          "id": "S2",
+          "text": "a successful rename stores task_name and reports it in history"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Enter in the prompt input submits to the primary action; paste routes to the input"
+        },
+        {
+          "id": "A2",
+          "text": "d opens the destructive flow even when the action buttons share no visible row"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "empty or over-long names never close the prompt; no rename is stored"
+        },
+        {
+          "id": "N2",
+          "text": "Esc in the destructive dialog always lands on Cancel, never on Delete"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/dialog.rs",
+          "lines": "75-107,139-144,152-158,199-213,224-258,324-329",
+          "note": "destructive/prompt shapes, armed, editing, validating finish, input-first keys, paste"
+        },
+        {
+          "path": "src/bin/showcase/pages/dialogs.rs",
+          "lines": "25-33,57-64,84-90,155-163,186-200",
+          "note": "rename validator, prompt and destructive opens, direct d key, rename close path"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/showcase/flows/dialogs/prompt/80x24/truecolor.txt",
+        "snapshots/showcase/flows/dialogs/destructive/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "DIALOG-ACK-003",
+    "app": "tablepro",
+    "component": "Dialog",
+    "part": "facts + code + typed acknowledgement gates",
+    "ref_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the ack input or focused action"
+      },
+      {
+        "glyph": "…",
+        "meaning": "more-lines marker in the clipped code preview"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the ack input or focused action"
+      },
+      {
+        "glyph": "…",
+        "meaning": "more-lines marker in the clipped code preview"
+      }
+    ],
+    "data": {
+      "safety_title": "Execute write query?",
+      "commit_title": "Delete N rows and save?",
+      "close_title": "Close tab with unsaved work?",
+      "ack_label": "Type TOKEN to confirm"
+    },
+    "state": {
+      "modal": "Dialog(SAFETY_DIALOG)",
+      "armed": false,
+      "ack_text": ""
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot tablepro and trigger a destructive write gate"
+      },
+      {
+        "step": 2,
+        "action": "type a wrong token",
+        "key": "x"
+      },
+      {
+        "step": 3,
+        "action": "type the exact token",
+        "key": "Enter"
+      },
+      {
+        "step": 4,
+        "action": "move to Execute and confirm",
+        "key": "Enter"
+      },
+      {
+        "step": 5,
+        "action": "open a destructive close-tab confirm and cancel",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "gate-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "gate-armed",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "gate-executed",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "facts render above a code preview clipped to six lines with a … N more tail"
+        },
+        {
+          "id": "V2",
+          "text": "the ack field sits above the actions; only the facts region clips on short screens"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "armed is true only when the trimmed ack input equals the token, or when no token is required"
+        },
+        {
+          "id": "S2",
+          "text": "dangerous gates focus Cancel; plain writes focus Execute; ack gates focus the ack input"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Enter in the ack input only advances focus so Execute is reached deliberately"
+        },
+        {
+          "id": "A2",
+          "text": "the close-tab confirm is destructive with Cancel first; Esc lands on Cancel"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "a wrong or untrimmed token never arms; armed stays false until the exact token is typed"
+        },
+        {
+          "id": "N2",
+          "text": "y/n quick answers do not exist on facts dialogs"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/dialog.rs",
+          "lines": "110-144,168-197,237-243,418-460",
+          "note": "facts shape with token, armed, measured height, ack Enter advance, anchored facts/code/ack render"
+        },
+        {
+          "path": "src/bin/tablepro/app.rs",
+          "lines": "477-486,955-979,1094-1110,1153-1185,1187-1193",
+          "note": "close, safety, commit, and preview builders plus open_dialog focus handoff"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/tablepro/ack/gate/80x24/truecolor.txt",
+        "snapshots/tablepro/ack/armed/80x24/truecolor.txt",
+        "snapshots/tablepro/ack/delete_gate/80x24/truecolor.txt",
+        "snapshots/tablepro/ack/executed/80x24/truecolor.txt",
+        "snapshots/tablepro/query/close_confirm/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "DIALOG-CANCEL-004",
+    "app": "jackin-preview",
+    "component": "Dialog",
+    "part": "launch cancel + quit confirm",
+    "ref_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the focused action"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the focused action"
+      }
+    ],
+    "data": {
+      "cancel_title": "Cancel the launch?",
+      "cancel_action": "Cancel launch",
+      "cancel_key": "c",
+      "quit_title": "Exit jackin❯?",
+      "quit_action": "Quit"
+    },
+    "state": {
+      "modal": null,
+      "run_terminal": false
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot jackin cockpit with a running launch"
+      },
+      {
+        "step": 2,
+        "action": "ask to cancel the launch",
+        "key": "c"
+      },
+      {
+        "step": 3,
+        "action": "confirm the cancel",
+        "key": "y"
+      },
+      {
+        "step": 4,
+        "action": "request quit from the manager",
+        "key": "Ctrl+Q"
+      },
+      {
+        "step": 5,
+        "action": "cancel the quit",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "cancel-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "cancel-confirmed",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "quit-open",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "Cancel the launch? centers over the cockpit with Cancel focused first in danger style"
+        },
+        {
+          "id": "V2",
+          "text": "the quit confirm names the running count and the reconnect path"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "c is refused once the run is terminal; otherwise it pushes Modal::Dialog tagged cancel"
+        },
+        {
+          "id": "S2",
+          "text": "the quit body differs for zero versus running instances"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "y confirms the cancel; Esc and n land on Cancel"
+        },
+        {
+          "id": "A2",
+          "text": "quitting pushes Modal::Dialog tagged quit through push_modal"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "c on a terminal run opens nothing and consumes the key"
+        },
+        {
+          "id": "N2",
+          "text": "Esc never confirms either dialog"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/jackin_preview/screens/cockpit.rs",
+          "lines": "615-633",
+          "note": "c opens the destructive cancel dialog unless the run is terminal"
+        },
+        {
+          "path": "src/bin/jackin_preview/app.rs",
+          "lines": "1211-1227",
+          "note": "quit confirm body per running count, pushed as modal quit"
+        },
+        {
+          "path": "src/widgets/dialog.rs",
+          "lines": "75-90,271-277,305-319",
+          "note": "destructive shape, Esc to cancel, y/n quick answers"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/jackin/cockpit/cancel_confirm/80x24/truecolor.txt",
+        "snapshots/jackin/manager/quit_confirm/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "MENU-OPEN-001",
+    "app": "showcase",
+    "component": "Menu",
+    "part": "open dropdown list",
+    "ref_symbols": [
+      {
+        "glyph": "─",
+        "meaning": "separator rule between item runs"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "─",
+        "meaning": "separator rule between item runs"
+      }
+    ],
+    "data": {
+      "page": "chrome",
+      "menus": [
+        "File",
+        "View",
+        "Help"
+      ],
+      "file_items": [
+        "New tab",
+        "Split right",
+        "Export…",
+        "Close tab"
+      ],
+      "view_items": [
+        "Zoom pane",
+        "Redraw",
+        "Usage",
+        "Inspect changes"
+      ],
+      "disabled_item": "Inspect changes",
+      "danger_item": "Close tab"
+    },
+    "state": {
+      "focus": "chrome.menubar",
+      "open": 0,
+      "cursor": 0
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the showcase chrome page and focus the menu bar"
+      },
+      {
+        "step": 2,
+        "action": "open the File menu",
+        "key": "Enter"
+      },
+      {
+        "step": 3,
+        "action": "move past Export to the danger row",
+        "key": "Down"
+      },
+      {
+        "step": 4,
+        "action": "choose the cursor row",
+        "key": "Enter"
+      },
+      {
+        "step": 5,
+        "action": "open the View menu and jump to the last enabled row",
+        "key": "End"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "menu-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "menu-danger",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "menu-chosen",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the cursor row is a solid highlight fill with bold text and no gutter bar"
+        },
+        {
+          "id": "V2",
+          "text": "shortcuts right-align in the muted tone; danger rows use the error tone; separators are ─ rules"
+        },
+        {
+          "id": "V3",
+          "text": "disabled rows render faint and the cursor never lands on them"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "step wraps with rem_euclid and skips disabled rows; Home/End jump to first/last enabled"
+        },
+        {
+          "id": "S2",
+          "text": "the popover flips above the anchor when the room below is short"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Enter/Space on an enabled row emits Chosen(i); Esc emits Dismissed"
+        },
+        {
+          "id": "A2",
+          "text": "a row click chooses it; a click elsewhere dismisses; hover moves the cursor"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "Enter on a disabled row is Consumed with no event; a modified chord is Ignored"
+        },
+        {
+          "id": "N2",
+          "text": "choosing never leaves the menu open"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/menu.rs",
+          "lines": "126-141,143-171,173-186,188-220,222-237,239-352,605-609",
+          "note": "sizing, placement with flip, wrap step, key/click handling, row render, render_open"
+        },
+        {
+          "path": "src/bin/showcase/pages/chrome.rs",
+          "lines": "41-64,173-180,244",
+          "note": "bar menus with shortcut/disabled/danger/separator, choose effect, render_open call"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/showcase/flows/chrome/menu/80x24/truecolor.txt",
+        "snapshots/showcase/flows/chrome/menu_view/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "CTXMENU-ANCHOR-001",
+    "app": "showcase",
+    "component": "ContextMenu",
+    "part": "anchored session context menu",
+    "ref_symbols": [
+      {
+        "glyph": "─",
+        "meaning": "separator rule above the danger row"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "─",
+        "meaning": "separator rule above the danger row"
+      }
+    ],
+    "data": {
+      "page": "chrome",
+      "sessions": [
+        "1 Claude Code (Work)",
+        "2 Codex (Primary)",
+        "3 Shell",
+        "4 docs"
+      ],
+      "items": [
+        "Change title…",
+        "Move left",
+        "Move right",
+        "Close"
+      ],
+      "open_keys": [
+        "m",
+        "right-click"
+      ]
+    },
+    "state": {
+      "focus": "chrome.sessions",
+      "cursor": 1,
+      "context": null
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the showcase chrome page with the session list focused"
+      },
+      {
+        "step": 2,
+        "action": "open the context menu for the cursor session",
+        "key": "m"
+      },
+      {
+        "step": 3,
+        "action": "move to the danger row",
+        "key": "Down"
+      },
+      {
+        "step": 4,
+        "action": "choose the cursor row",
+        "key": "Enter"
+      },
+      {
+        "step": 5,
+        "action": "reopen and dismiss by clicking outside",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "context-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "context-chosen",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "context-closed",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the popover titles itself with the session label above the items"
+        },
+        {
+          "id": "V2",
+          "text": "Move left/right disable at the list ends; Close is danger under a separator"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "m anchors under the cursor row; right-click anchors at the pointer and moves the cursor there"
+        },
+        {
+          "id": "S2",
+          "text": "choosing records last as tab › label and clears the menu"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "keys route to the menu first while open; Chosen and Dismissed both clear it"
+        },
+        {
+          "id": "A2",
+          "text": "clicks route to the menu first while open with the same clear rule"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "a disabled edge row can never be chosen by key or click"
+        },
+        {
+          "id": "N2",
+          "text": "the menu never opens when the session list is not focused"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/menu.rs",
+          "lines": "72-124,188-220,222-237",
+          "note": "context menu shape, anchor/title/row ids, key and click handling"
+        },
+        {
+          "path": "src/bin/showcase/pages/chrome.rs",
+          "lines": "115-137,253-266,276-303,305-320",
+          "note": "open_context items with edge disables, priority key/click routing, m and right-click sites"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/showcase/flows/chrome/context/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "CTXMENU-TAB-002",
+    "app": "jackin-preview",
+    "component": "ContextMenu",
+    "part": "tab menu + brand menu",
+    "ref_symbols": [
+      {
+        "glyph": "─",
+        "meaning": "separator rule between item runs"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "─",
+        "meaning": "separator rule between item runs"
+      }
+    ],
+    "data": {
+      "screen": "capsule",
+      "tab_items": [
+        "Change title…",
+        "Split right",
+        "Close tab"
+      ],
+      "tab_shortcuts": [
+        "2×click",
+        "Ctrl+B %",
+        "Ctrl+B &"
+      ],
+      "brand_items": [
+        "About jackin-preview",
+        "Usage",
+        "Workspace manager"
+      ]
+    },
+    "state": {
+      "tab_menu": null,
+      "tab": 0
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the jackin capsule screen with several tabs"
+      },
+      {
+        "step": 2,
+        "action": "right-click a tab to open its menu"
+      },
+      {
+        "step": 3,
+        "action": "move to the danger row",
+        "key": "Down"
+      },
+      {
+        "step": 4,
+        "action": "choose the cursor row",
+        "key": "Enter"
+      },
+      {
+        "step": 5,
+        "action": "activate the brand lockup for the brand menu"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "tabmenu-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "tabmenu-chosen",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "brandmenu-open",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the tab menu titles itself with the tab label and anchors under the tab strip cell"
+        },
+        {
+          "id": "V2",
+          "text": "Close tab is danger under a separator; shortcuts right-align per row"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "right-click on a tab opens the titled menu for it; right-click on a pane opens the Edit menu at the pointer tagged usize::MAX"
+        },
+        {
+          "id": "S2",
+          "text": "the brand menu anchors under the menubar brand area with no title"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "choosing Change title opens the rename prompt for that tab"
+        },
+        {
+          "id": "A2",
+          "text": "Esc or an outside click clears tab_menu without acting"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "opening on an empty tab area does nothing; no menu appears"
+        },
+        {
+          "id": "N2",
+          "text": "the tab menu never shows for a tab that has no strip cell"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/jackin_preview/screens/capsule.rs",
+          "lines": "290-326,452-456,1300-1301,1891-1900,1975-1980,2069,2083,2097",
+          "note": "brand and titled tab menus, run_menu dispatch to rename, m/right-click/double-click sites, menu event routing"
+        },
+        {
+          "path": "src/widgets/menu.rs",
+          "lines": "98-112,188-220,239-280",
+          "note": "anchor/at/title, key handling, titled popover render"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/jackin/capsule/menu/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "MENUBAR-SHELL-001",
+    "app": "showcase",
+    "component": "MenuBar",
+    "part": "label strip + brand lockup",
+    "ref_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus bar on the cursor label"
+      },
+      {
+        "glyph": "❯",
+        "meaning": "prompt mark in the brand lockup"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus bar on the cursor label"
+      },
+      {
+        "glyph": "❯",
+        "meaning": "prompt mark in the brand lockup"
+      }
+    ],
+    "data": {
+      "page": "chrome",
+      "labels": [
+        "File",
+        "View",
+        "Help"
+      ],
+      "brand": "app❯"
+    },
+    "state": {
+      "focus": "chrome.menubar",
+      "cursor": 0,
+      "open": null
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the showcase chrome page"
+      },
+      {
+        "step": 2,
+        "action": "focus the bar and open the first menu",
+        "key": "F10"
+      },
+      {
+        "step": 3,
+        "action": "switch to the next open menu",
+        "key": "Right"
+      },
+      {
+        "step": 4,
+        "action": "choose the cursor row",
+        "key": "Enter"
+      },
+      {
+        "step": 5,
+        "action": "activate the brand lockup"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "bar-focused",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "bar-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "bar-chosen",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "labels render padded with one cell gaps; the open label shares the popover plane in bold"
+        },
+        {
+          "id": "V2",
+          "text": "the focused cursor label carries the ▎ bar; hover lifts the label plane"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "Left/Right move the cursor closed, or switch the open menu when one is open"
+        },
+        {
+          "id": "S2",
+          "text": "Enter/Down/Space opens the cursor menu; clicking its label again closes it"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "choosing emits Chosen(menu, item) and closes; the page records menu › label"
+        },
+        {
+          "id": "A2",
+          "text": "the brand lockup emits Brand; hovering another label while open switches to it"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "hover with no menu open changes nothing; a modified chord is Ignored"
+        },
+        {
+          "id": "N2",
+          "text": "labels that do not fit the row keep Rect::ZERO areas and cannot open"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/widgets/menu.rs",
+          "lines": "358-366,382-438,440-490,494-522,525-537,541-603",
+          "note": "bar events and shape, open/close, key/click/hover handling, strip render"
+        },
+        {
+          "path": "src/bin/showcase/pages/chrome.rs",
+          "lines": "41-64,173-180,267-292,321-330",
+          "note": "bar construction, choose effect, F10 open, key/click/brand routing"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/showcase/pages/chrome/80x24/truecolor.txt",
+        "snapshots/showcase/flows/chrome/focus/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "MENUBAR-HOST-002",
+    "app": "jackin-preview",
+    "component": "MenuBar",
+    "part": "capsule bar + per-route host bar",
+    "ref_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus bar on the cursor label"
+      },
+      {
+        "glyph": "❯",
+        "meaning": "prompt mark in the brand lockup"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "▎",
+        "meaning": "focus bar on the cursor label"
+      },
+      {
+        "glyph": "❯",
+        "meaning": "prompt mark in the brand lockup"
+      }
+    ],
+    "data": {
+      "capsule_labels": [
+        "File",
+        "Edit",
+        "View",
+        "Session",
+        "Help"
+      ],
+      "host_labels": [
+        "File",
+        "Go",
+        "Help"
+      ],
+      "manager_file_items": [
+        "New workspace…",
+        "Edit workspace…",
+        "Launch…",
+        "Prewarm",
+        "Delete workspace…",
+        "Refresh",
+        "Quit"
+      ]
+    },
+    "state": {
+      "capsule_open": null,
+      "host_open": null
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the jackin capsule screen"
+      },
+      {
+        "step": 2,
+        "action": "open the capsule File menu",
+        "key": "F10"
+      },
+      {
+        "step": 3,
+        "action": "choose the cursor row",
+        "key": "Enter"
+      },
+      {
+        "step": 4,
+        "action": "go to the workspace manager and open its File menu",
+        "key": "F10"
+      },
+      {
+        "step": 5,
+        "action": "click the brand lockup"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "capsule-bar-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "capsule-menu-chosen",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "host-menu-open",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the capsule strip shows five labels with the jackin brand lockup at the left"
+        },
+        {
+          "id": "V2",
+          "text": "the manager File menu shows workspace commands with a danger Delete above a separator"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "F10 opens menu 0 on both bars; the host bar re-syncs its per-route items first"
+        },
+        {
+          "id": "S2",
+          "text": "the host File menu is rebuilt per route; Go and Help stay fixed"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "capsule Chosen dispatches run_menu by label; host Chosen dispatches run_host_menu"
+        },
+        {
+          "id": "A2",
+          "text": "capsule Brand opens the brand menu; host Brand opens About"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "clicking outside an open bar menu closes it without choosing"
+        },
+        {
+          "id": "N2",
+          "text": "F10 while editing a host form does not open the host menu"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/jackin_preview/screens/capsule.rs",
+          "lines": "228-286,1904-1916,1918-1920,1986-2000,2453-2459",
+          "note": "capsule bar construction, key/click routing with run_menu and brand menu, hover and render"
+        },
+        {
+          "path": "src/bin/jackin_preview/app.rs",
+          "lines": "582-598,699-742,1644-1658",
+          "note": "host bar key routing with F10 guard, per-route construction, click routing"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/jackin/capsule/zoom/80x24/truecolor.txt",
+        "snapshots/jackin/manager/menu_open/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "HELP-SHOWCASE-001",
+    "app": "showcase",
+    "component": "HelpOverlay",
+    "part": "keyboard and mouse reference dialog",
+    "ref_symbols": [
+      {
+        "glyph": "?",
+        "meaning": "header affordance and key that open help"
+      },
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the Close action"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "?",
+        "meaning": "header affordance and key that open help"
+      },
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the Close action"
+      }
+    ],
+    "data": {
+      "title": "Keyboard & mouse",
+      "action": "Close",
+      "width": 70,
+      "rows": "focus, move, activate, cancel, pages, jump, inspector, quit, mouse"
+    },
+    "state": {
+      "dialog": null,
+      "saved_focus": null
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot the showcase app on any page"
+      },
+      {
+        "step": 2,
+        "action": "open help",
+        "key": "?"
+      },
+      {
+        "step": 3,
+        "action": "close help",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "help-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "help-closed",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "a single Close action sits under the key table; the page dims behind it"
+        },
+        {
+          "id": "V2",
+          "text": "the table lists keyboard rows first and one mouse row last"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "open_help strips the Cancel action so Close is index 0 with cancel and initial focus on it"
+        },
+        {
+          "id": "S2",
+          "text": "closing restores the focus saved before the dialog opened"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "the ? key and the header Help affordance both open the dialog"
+        },
+        {
+          "id": "A2",
+          "text": "Enter, Space, n, and Esc all finish through the single Close action"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "no second action exists to reach by Left/Right"
+        },
+        {
+          "id": "N2",
+          "text": "y never closes help: Close is Secondary, so no primary exists to answer"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/showcase/app.rs",
+          "lines": "26-28,239,494,596,631-647,725-726",
+          "note": "help ids, saved focus, dialog guard, ? key, open_help shape, header affordance"
+        },
+        {
+          "path": "src/widgets/dialog.rs",
+          "lines": "58-73,271-277,305-319",
+          "note": "confirm shape, Esc to cancel, y/n quick answers"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/showcase/flows/help/overlay/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "HELP-JACKIN-002",
+    "app": "jackin-preview",
+    "component": "HelpOverlay",
+    "part": "scrollable shortcut reference modal",
+    "ref_symbols": [
+      {
+        "glyph": "↑",
+        "meaning": "scroll hint in the footer row"
+      },
+      {
+        "glyph": "↓",
+        "meaning": "scroll hint in the footer row"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "↑",
+        "meaning": "scroll hint in the footer row"
+      },
+      {
+        "glyph": "↓",
+        "meaning": "scroll hint in the footer row"
+      }
+    ],
+    "data": {
+      "title": "Keyboard shortcuts",
+      "scope": "per-route scope label",
+      "sections": "per-route key/action groups",
+      "col_width": 36,
+      "max_cols": 3
+    },
+    "state": {
+      "modal": "help",
+      "scroll_offset": 0,
+      "closed": false
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot jackin on the workspace manager"
+      },
+      {
+        "step": 2,
+        "action": "open the key reference",
+        "key": "?"
+      },
+      {
+        "step": 3,
+        "action": "scroll down one row",
+        "key": "Down"
+      },
+      {
+        "step": 4,
+        "action": "page down",
+        "key": "PageDown"
+      },
+      {
+        "step": 5,
+        "action": "close the overlay",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "help-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "help-scrolled",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "help-closed",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "sections distribute round-robin into up to three 36-cell columns with bold headings"
+        },
+        {
+          "id": "V2",
+          "text": "overflow shows edge fades, a scrollbar, and a position label on the frame"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "Down/j and Up/k scroll one row; PageDown/PageUp page; the wheel scrolls by delta"
+        },
+        {
+          "id": "S2",
+          "text": "sections come from the per-route table with the route scope as subtitle"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Esc, ?, q, and Enter all set closed and finish the modal"
+        },
+        {
+          "id": "A2",
+          "text": "every other key is Consumed so the page behind never sees it"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "scrolling past either end moves nothing and never closes"
+        },
+        {
+          "id": "N2",
+          "text": "a short list shows no scrollbar, no fades, and no position label"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/jackin_preview/screens/modals.rs",
+          "lines": "2303-2310,2312-2334,2336-2362,2364-2367,2369-2455",
+          "note": "overlay shape, constructor, close/scroll keys, wheel, column layout with scrollbar and footer"
+        },
+        {
+          "path": "src/bin/jackin_preview/app.rs",
+          "lines": "882,892,1185-1208",
+          "note": "open_help with the per-route sections table pushed as modal help"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/jackin/manager/help_overlay/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  },
+  {
+    "id": "HELP-TABLEPRO-003",
+    "app": "tablepro",
+    "component": "HelpOverlay",
+    "part": "keyboard reference dialog",
+    "ref_symbols": [
+      {
+        "glyph": "?",
+        "meaning": "header affordance that opens help"
+      },
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the Close action"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "?",
+        "meaning": "header affordance that opens help"
+      },
+      {
+        "glyph": "▎",
+        "meaning": "focus gutter on the Close action"
+      }
+    ],
+    "data": {
+      "title": "Keyboard",
+      "action": "Close",
+      "width": 78,
+      "rows": "focus, switcher, tabs, run, explain, cancel, grid, rows, save, history, quit"
+    },
+    "state": {
+      "modal": null,
+      "saved_focus": null
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 80,
+      "height": 24
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot tablepro on the workbench"
+      },
+      {
+        "step": 2,
+        "action": "open help from the header"
+      },
+      {
+        "step": 3,
+        "action": "close help",
+        "key": "Esc"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "help-open",
+        "tick": 0,
+        "capture": true
+      },
+      {
+        "name": "help-closed",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "a single Secondary Close action sits under the key table at width 78"
+        },
+        {
+          "id": "V2",
+          "text": "the table names every workbench chord from Ctrl+O to q"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "open_help strips Cancel so Close is index 0 with cancel and initial focus on it"
+        },
+        {
+          "id": "S2",
+          "text": "open_dialog saves focus and sets it to the Close action"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Enter, Space, n, and Esc all finish through the single Close action"
+        },
+        {
+          "id": "A2",
+          "text": "closing restores the saved focus"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "y never closes help: Close is Secondary, so no primary exists to answer"
+        },
+        {
+          "id": "N2",
+          "text": "no second action exists to reach by Left/Right"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/tablepro/app.rs",
+          "lines": "1187-1212,1439-1442",
+          "note": "open_dialog focus handoff, open_help single-action shape, close_modal restore"
+        },
+        {
+          "path": "src/widgets/dialog.rs",
+          "lines": "58-73,271-277,305-319",
+          "note": "confirm shape, Esc to cancel, y/n quick answers"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "snapshots": {
+      "ref": [
+        "snapshots/tablepro/overlays/help_overlay/80x24/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "results": {
+      "status": "unrun",
+      "runs": []
+    }
+  }
   ],
   "legacy_roots": [
     {
