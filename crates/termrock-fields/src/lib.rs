@@ -34,6 +34,7 @@ pub mod scroll_region {
 
 pub(crate) use termrock_runtime::{Acc, PartStyle, SlotFn, cell_at, first_row, shift};
 
+pub(crate) mod edit_keys;
 pub mod field;
 pub mod input;
 pub mod textarea;

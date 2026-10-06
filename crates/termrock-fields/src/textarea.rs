@@ -11,9 +11,8 @@ use super::input::{
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::SecretPolicy;
-use crate::action::ActionKey;
 use crate::collection::CellUi;
-use crate::event::{Chord, KeyCode, KeyModifiers};
+use crate::edit_keys::{edit_action_of, edit_bindings};
 use crate::field_control::FieldControl;
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -27,227 +26,6 @@ use crate::text::{EditAction, EditOutcome, Extend, Motion, width};
 use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
-
-const CTRL: KeyModifiers = KeyModifiers::CONTROL;
-const ALT: KeyModifiers = KeyModifiers::ALT;
-const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
-
-const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Binding<TextCmd> {
-    Binding {
-        action: ActionKey::custom(label),
-        chord: Some(chord),
-        cmd,
-        label,
-        priority: 50,
-        visible,
-    }
-}
-
-/// The multi-line flavour of the shared edit table (the legacy
-/// `field_common::edit_key(key, multiline = true)`): `Enter` inserts a
-/// newline, `Esc` **commits** — a document is not cancelled by leaving it —
-/// and `↑`/`↓`/`PgUp`/`PgDn` move the cursor by line and by page.
-const BINDINGS: &[Binding<TextCmd>] = &[
-    b(Chord::key(KeyCode::Esc), TextCmd::Commit, "Done", true),
-    b(
-        Chord::key(KeyCode::Enter),
-        TextCmd::Newline,
-        "New line",
-        true,
-    ),
-    b(
-        Chord::key(KeyCode::Left),
-        TextCmd::Move(Motion::Left, Extend::No),
-        "Left",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Right),
-        TextCmd::Move(Motion::Right, Extend::No),
-        "Right",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Up),
-        TextCmd::Move(Motion::Up, Extend::No),
-        "Up",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Down),
-        TextCmd::Move(Motion::Down, Extend::No),
-        "Down",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Left, SHIFT),
-        TextCmd::Move(Motion::Left, Extend::Select),
-        "Select left",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Right, SHIFT),
-        TextCmd::Move(Motion::Right, Extend::Select),
-        "Select right",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Up, SHIFT),
-        TextCmd::Move(Motion::Up, Extend::Select),
-        "Select up",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Down, SHIFT),
-        TextCmd::Move(Motion::Down, Extend::Select),
-        "Select down",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Left, CTRL),
-        TextCmd::Move(Motion::WordLeft, Extend::No),
-        "Word left",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Right, CTRL),
-        TextCmd::Move(Motion::WordRight, Extend::No),
-        "Word right",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Left, ALT),
-        TextCmd::Move(Motion::WordLeft, Extend::No),
-        "Word left (Alt+Left)",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Right, ALT),
-        TextCmd::Move(Motion::WordRight, Extend::No),
-        "Word right (Alt+Right)",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::PageUp),
-        TextCmd::PageUp,
-        "Page up",
-        true,
-    ),
-    b(
-        Chord::key(KeyCode::PageDown),
-        TextCmd::PageDown,
-        "Page down",
-        true,
-    ),
-    b(
-        Chord::key(KeyCode::Home),
-        TextCmd::Move(Motion::Home, Extend::No),
-        "Line start",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::End),
-        TextCmd::Move(Motion::End, Extend::No),
-        "Line end",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Home, SHIFT),
-        TextCmd::Move(Motion::Home, Extend::Select),
-        "Select to line start",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::End, SHIFT),
-        TextCmd::Move(Motion::End, Extend::Select),
-        "Select to line end",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Home, CTRL),
-        TextCmd::Move(Motion::DocStart, Extend::No),
-        "Start",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::End, CTRL),
-        TextCmd::Move(Motion::DocEnd, Extend::No),
-        "End",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Backspace),
-        TextCmd::Backspace,
-        "Backspace",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Backspace, CTRL),
-        TextCmd::DeleteWordLeft,
-        "Delete word",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Backspace, ALT),
-        TextCmd::DeleteWordLeft,
-        "Delete word (Alt+Backspace)",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Delete),
-        TextCmd::Delete,
-        "Delete",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('a'), CTRL),
-        TextCmd::Move(Motion::Home, Extend::No),
-        "Line start (Ctrl+A)",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('e'), CTRL),
-        TextCmd::Move(Motion::End, Extend::No),
-        "Line end (Ctrl+E)",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('u'), CTRL),
-        TextCmd::DeleteToLineStart,
-        "Delete to start",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('k'), CTRL),
-        TextCmd::DeleteToLineEnd,
-        "Delete to end",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('w'), CTRL),
-        TextCmd::DeleteWordLeft,
-        "Delete word (Ctrl+W)",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('l'), CTRL),
-        TextCmd::SelectAll,
-        "Select all",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('b'), ALT),
-        TextCmd::Move(Motion::WordLeft, Extend::No),
-        "Word left (Alt+B)",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('f'), ALT),
-        TextCmd::Move(Motion::WordRight, Extend::No),
-        "Word right (Alt+F)",
-        false,
-    ),
-];
 
 /// Durable state of a [`TextArea`]: the in-flight draft, the phase, the
 /// vertical scroll and the last validation error. `Debug` redacts the draft.
@@ -914,7 +692,7 @@ impl<'a> TextArea<'a> {
                     }
                 }
                 Intent::Binding(action) if editable => {
-                    if let Some(cmd) = Binding::command(BINDINGS, action) {
+                    if let Some(cmd) = Binding::command(edit_bindings(true), action) {
                         if !st.is_editing() && cmd != TextCmd::Commit {
                             st.begin(value.expose());
                         }
@@ -1028,23 +806,7 @@ impl<'a> TextArea<'a> {
                         }
                         out
                     }
-                    other => {
-                        let action = match other {
-                            TextCmd::Move(m, e) => EditAction::Move(m, e),
-                            TextCmd::Newline => EditAction::Newline,
-                            TextCmd::Backspace => EditAction::Backspace,
-                            TextCmd::Delete => EditAction::Delete,
-                            TextCmd::DeleteWordLeft => EditAction::DeleteWordLeft,
-                            TextCmd::DeleteToLineEnd => EditAction::DeleteToLineEnd,
-                            TextCmd::DeleteToLineStart => EditAction::DeleteToLineStart,
-                            TextCmd::SelectAll => EditAction::SelectAll,
-                            TextCmd::Cancel
-                            | TextCmd::Commit
-                            | TextCmd::PageUp
-                            | TextCmd::PageDown => EditAction::ClearSelection,
-                        };
-                        st.apply(action)
-                    }
+                    other => st.apply(edit_action_of(other)),
                 };
                 match outcome {
                     EditOutcome::Changed => {
@@ -1119,7 +881,9 @@ impl<'a> TextArea<'a> {
         };
         let mut field = style(ui, Part::FIELD, live);
         if !editing {
-            field.style = field.style.remove_modifier(ratatui_core::style::Modifier::UNDERLINED);
+            field.style = field
+                .style
+                .remove_modifier(ratatui_core::style::Modifier::UNDERLINED);
         }
         ui.fill(body, field.style);
         let shown = if editing {
@@ -1137,7 +901,7 @@ impl<'a> TextArea<'a> {
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         ui.register_editor(self.id, body, focusability, declared);
-        ui.publish_bindings(self.id, live, BINDINGS);
+        ui.publish_bindings(self.id, live, edit_bindings(true));
         // gutter: one cell per row, the focus bar when the recipe says so
         for row in content.rows() {
             let gutter_cell = cell_at(row, content.x);
@@ -1396,7 +1160,7 @@ impl Bindings for TextArea<'_> {
     type Cmd = TextCmd;
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<TextCmd>] {
-        BINDINGS
+        edit_bindings(true)
     }
 }
 

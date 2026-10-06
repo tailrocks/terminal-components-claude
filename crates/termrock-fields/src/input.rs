@@ -7,9 +7,8 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
 use super::{PartStyle, SlotFn, cell_at, first_row, shift};
-use crate::action::ActionKey;
 use crate::collection::{CellUi, Status};
-use crate::event::{Chord, KeyCode, KeyModifiers};
+use crate::edit_keys::{edit_action_of, edit_bindings};
 use crate::field_control::FieldControl;
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -149,182 +148,6 @@ pub enum TextCmd {
     /// Move the cursor down one viewport (multi-line controls only).
     PageDown,
 }
-
-const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Binding<TextCmd> {
-    Binding {
-        action: ActionKey::custom(label),
-        chord: Some(chord),
-        cmd,
-        label,
-        priority: 50,
-        visible,
-    }
-}
-
-const CTRL: KeyModifiers = KeyModifiers::CONTROL;
-const ALT: KeyModifiers = KeyModifiers::ALT;
-const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
-
-const BINDINGS: &[Binding<TextCmd>] = &[
-    b(Chord::key(KeyCode::Esc), TextCmd::Cancel, "Cancel", true),
-    b(Chord::key(KeyCode::Enter), TextCmd::Commit, "Commit", true),
-    b(
-        Chord::key(KeyCode::Left),
-        TextCmd::Move(Motion::Left, Extend::No),
-        "Left",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Right),
-        TextCmd::Move(Motion::Right, Extend::No),
-        "Right",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Left, SHIFT),
-        TextCmd::Move(Motion::Left, Extend::Select),
-        "Select left",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Right, SHIFT),
-        TextCmd::Move(Motion::Right, Extend::Select),
-        "Select right",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Left, CTRL),
-        TextCmd::Move(Motion::WordLeft, Extend::No),
-        "Word left",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Right, CTRL),
-        TextCmd::Move(Motion::WordRight, Extend::No),
-        "Word right",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Left, ALT),
-        TextCmd::Move(Motion::WordLeft, Extend::No),
-        "Word left (Alt+Left)",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Right, ALT),
-        TextCmd::Move(Motion::WordRight, Extend::No),
-        "Word right (Alt+Right)",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Home),
-        TextCmd::Move(Motion::Home, Extend::No),
-        "Start",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::End),
-        TextCmd::Move(Motion::End, Extend::No),
-        "End",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Home, SHIFT),
-        TextCmd::Move(Motion::Home, Extend::Select),
-        "Select to start",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::End, SHIFT),
-        TextCmd::Move(Motion::End, Extend::Select),
-        "Select to end",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Home, CTRL),
-        TextCmd::Move(Motion::DocStart, Extend::No),
-        "Document start",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::End, CTRL),
-        TextCmd::Move(Motion::DocEnd, Extend::No),
-        "Document end",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Backspace),
-        TextCmd::Backspace,
-        "Backspace",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Backspace, CTRL),
-        TextCmd::DeleteWordLeft,
-        "Delete word",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Backspace, ALT),
-        TextCmd::DeleteWordLeft,
-        "Delete word (Alt+Backspace)",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Delete),
-        TextCmd::Delete,
-        "Delete",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('a'), CTRL),
-        TextCmd::Move(Motion::Home, Extend::No),
-        "Start (Ctrl+A)",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('e'), CTRL),
-        TextCmd::Move(Motion::End, Extend::No),
-        "End (Ctrl+E)",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('u'), CTRL),
-        TextCmd::DeleteToLineStart,
-        "Delete to start",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('k'), CTRL),
-        TextCmd::DeleteToLineEnd,
-        "Delete to end",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('w'), CTRL),
-        TextCmd::DeleteWordLeft,
-        "Delete word (Ctrl+W)",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('l'), CTRL),
-        TextCmd::SelectAll,
-        "Select all",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('b'), ALT),
-        TextCmd::Move(Motion::WordLeft, Extend::No),
-        "Word left (Alt+B)",
-        false,
-    ),
-    b(
-        Chord::with(KeyCode::Char('f'), ALT),
-        TextCmd::Move(Motion::WordRight, Extend::No),
-        "Word right (Alt+F)",
-        false,
-    ),
-];
 
 /// The in-flight editor with its sensitivity encoded in the variant.
 ///
@@ -1209,7 +1032,7 @@ impl<'a> TextInput<'a> {
                     }
                 }
                 Intent::Binding(action) if editable => {
-                    if let Some(cmd) = Binding::command(BINDINGS, action) {
+                    if let Some(cmd) = Binding::command(edit_bindings(false), action) {
                         if st.is_editing() {
                             self.edit_command_target(st, value, cmd, &mut acc);
                         } else if cmd == TextCmd::Commit {
@@ -1293,21 +1116,7 @@ impl<'a> TextInput<'a> {
                 acc.action(TextAction::Committed);
             }
             cmd => {
-                let action = match cmd {
-                    TextCmd::Move(m, e) => EditAction::Move(m, e),
-                    TextCmd::Backspace => EditAction::Backspace,
-                    TextCmd::Delete => EditAction::Delete,
-                    TextCmd::DeleteWordLeft => EditAction::DeleteWordLeft,
-                    TextCmd::DeleteToLineEnd => EditAction::DeleteToLineEnd,
-                    TextCmd::DeleteToLineStart => EditAction::DeleteToLineStart,
-                    TextCmd::SelectAll => EditAction::SelectAll,
-                    // never bound by the single-line table above
-                    TextCmd::Newline
-                    | TextCmd::PageUp
-                    | TextCmd::PageDown
-                    | TextCmd::Cancel
-                    | TextCmd::Commit => EditAction::ClearSelection,
-                };
+                let action = edit_action_of(cmd);
                 match st.apply(action) {
                     EditOutcome::Changed => {
                         self.live_validate(st);
@@ -1392,11 +1201,11 @@ impl<'a> TextInput<'a> {
         } else {
             ui.register_keyboard_editor(self.id, area, focusability, declared);
         }
-        ui.publish_bindings(self.id, live, BINDINGS);
+        ui.publish_bindings(self.id, live, edit_bindings(false));
         if let crate::TypingPolicy::Fallback { cursor } = self.typing_policy {
             ui.publish_typing_target(
                 self.id,
-                BINDINGS,
+                edit_bindings(false),
                 |cmd| !matches!(cmd, TextCmd::Commit | TextCmd::Cancel),
                 cursor,
             );
@@ -1709,7 +1518,7 @@ impl Bindings for TextInput<'_> {
     type Cmd = TextCmd;
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<TextCmd>] {
-        BINDINGS
+        edit_bindings(false)
     }
 }
 
