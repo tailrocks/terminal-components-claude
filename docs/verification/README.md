@@ -16,6 +16,7 @@ reference consumers and conformance fixtures.
 
 | Question | Canonical document |
 | --- | --- |
+| Eight proof gates and the evidence each gate requires | [`ownership-and-parity.md`](ownership-and-parity.md) |
 | Exact rendered cells, pixels, geometry, colors, cursor and visual states | [`visual-parity.md`](visual-parity.md) |
 | Event programs, pointer traces, focus/capture, actions and semantic observations | [`interaction-parity.md`](interaction-parity.md) |
 | Oracle lanes, source/tool pins, artifacts, provenance and limitations | [`oracle-and-provenance.md`](oracle-and-provenance.md) |
