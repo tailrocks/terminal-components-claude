@@ -946,6 +946,7 @@ pub struct TextInput<'a> {
     pointer_enabled: bool,
     status: Status,
     ov: PartStyle<'a>,
+    inline: bool,
 }
 
 impl fmt::Debug for TextInput<'_> {
@@ -961,6 +962,7 @@ impl fmt::Debug for TextInput<'_> {
             .field("disabled", &self.disabled)
             .field("pointer_enabled", &self.pointer_enabled)
             .field("status", &self.status)
+            .field("inline", &self.inline)
             .finish_non_exhaustive()
     }
 }
@@ -992,7 +994,15 @@ impl<'a> TextInput<'a> {
             pointer_enabled: true,
             status: Status::Ready,
             ov: PartStyle::new(),
+            inline: false,
         }
+    }
+
+    /// Whether the editor is drawn inline in a cell, without standalone gutter or indent.
+    #[must_use]
+    pub const fn inline(mut self, enabled: bool) -> Self {
+        self.inline = enabled;
+        self
     }
 
     /// The controlled value, for `draw`.
@@ -1120,6 +1130,7 @@ impl<'a> TextInput<'a> {
             pointer_enabled: self.pointer_enabled,
             status: self.status,
             ov: self.ov,
+            inline: self.inline,
         }
     }
 
@@ -1362,11 +1373,18 @@ impl<'a> TextInput<'a> {
         // without a theme rule (§11.4's `BUSY`/`LOADING` row); it shares the
         // trailing cell with the error glyph, which wins.
         let busy = matches!(self.status, Status::Busy | Status::Loading);
-        let inner = Rect {
-            x: area.x.saturating_add(2),
-            y: area.y,
-            width: Self::inner_width(area.width),
-            height: 1,
+        let inner = if self.inline {
+            Rect {
+                width: area.width.saturating_sub(1),
+                ..area
+            }
+        } else {
+            Rect {
+                x: area.x.saturating_add(2),
+                y: area.y,
+                width: Self::inner_width(area.width),
+                height: 1,
+            }
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         if self.pointer_enabled {
@@ -1396,24 +1414,26 @@ impl<'a> TextInput<'a> {
         };
         let field = style(ui, Part::FIELD);
         ui.fill(area, field.style);
-        let gutter_cell = cell_at(area, area.x);
-        if let Some(f) = ov.slot_for(Part::GUTTER) {
-            f(ui, gutter_cell);
-        } else {
-            let g = style(ui, Part::GUTTER);
-            match g.glyph {
-                Slot::Set(glyph) => {
-                    ui.glyph(gutter_cell, glyph, g.style);
-                }
-                Slot::Inherit if live.contains(StateFlags::FOCUSED) => {
-                    ui.glyph(
-                        gutter_cell,
-                        GlyphRole::FocusBar,
-                        g.style.with_bg_from(field.style),
-                    );
-                }
-                Slot::Inherit | Slot::Clear => {
-                    ui.fill(gutter_cell, field.style.with_fg_from_bg(field.style));
+        if !self.inline {
+            let gutter_cell = cell_at(area, area.x);
+            if let Some(f) = ov.slot_for(Part::GUTTER) {
+                f(ui, gutter_cell);
+            } else {
+                let g = style(ui, Part::GUTTER);
+                match g.glyph {
+                    Slot::Set(glyph) => {
+                        ui.glyph(gutter_cell, glyph, g.style);
+                    }
+                    Slot::Inherit if live.contains(StateFlags::FOCUSED) => {
+                        ui.glyph(
+                            gutter_cell,
+                            GlyphRole::FocusBar,
+                            g.style.with_bg_from(field.style),
+                        );
+                    }
+                    Slot::Inherit | Slot::Clear => {
+                        ui.fill(gutter_cell, field.style.with_fg_from_bg(field.style));
+                    }
                 }
             }
         }
@@ -1450,9 +1470,12 @@ impl<'a> TextInput<'a> {
                     Some(_) => graphemes(shown).count(),
                     None => usize::from(width(shown)),
                 };
-                let ellipsis_style = ts
-                    .style
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+                let ellipsis_style = if self.inline {
+                    ts.style
+                } else {
+                    ts.style
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))))
+                };
                 let mut run = inner;
                 if hs > 0 {
                     let used = ui.glyph(run, GlyphRole::Ellipsis, ellipsis_style);
@@ -1560,39 +1583,41 @@ impl<'a> TextInput<'a> {
                 }
             }
         }
-        let readiness_cell = cell_at(area, area.right().saturating_sub(1));
-        if validation_error {
-            if let Some(f) = ov.slot_for(Part::MARKER) {
-                f(ui, readiness_cell);
-            } else {
-                let ms = style(ui, Part::MARKER);
-                if let Slot::Set(g) = ms.glyph {
-                    ui.glyph(readiness_cell, g, ms.style);
-                }
-            }
-        } else if status_error {
-            if let Some(f) = ov.slot_for(Part::ICON) {
-                f(ui, readiness_cell);
-            } else {
-                let is = style(ui, Part::ICON);
-                match is.glyph {
-                    Slot::Set(g) => {
-                        ui.glyph(readiness_cell, g, is.style);
+        if !self.inline {
+            let readiness_cell = cell_at(area, area.right().saturating_sub(1));
+            if validation_error {
+                if let Some(f) = ov.slot_for(Part::MARKER) {
+                    f(ui, readiness_cell);
+                } else {
+                    let ms = style(ui, Part::MARKER);
+                    if let Slot::Set(g) = ms.glyph {
+                        ui.glyph(readiness_cell, g, ms.style);
                     }
-                    Slot::Inherit => {
-                        ui.glyph(readiness_cell, GlyphRole::Error, is.style);
-                    }
-                    Slot::Clear => ui.fill(readiness_cell, is.style),
                 }
-            }
-        } else if busy {
-            if let Some(f) = ov.slot_for(Part::ICON) {
-                f(ui, readiness_cell);
-            } else {
-                let is = style(ui, Part::ICON);
-                let frames = ui.design().motion.spinner_frames;
-                let frame = frames.first().copied().unwrap_or("");
-                ui.paint_str(readiness_cell, frame, is.style);
+            } else if status_error {
+                if let Some(f) = ov.slot_for(Part::ICON) {
+                    f(ui, readiness_cell);
+                } else {
+                    let is = style(ui, Part::ICON);
+                    match is.glyph {
+                        Slot::Set(g) => {
+                            ui.glyph(readiness_cell, g, is.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(readiness_cell, GlyphRole::Error, is.style);
+                        }
+                        Slot::Clear => ui.fill(readiness_cell, is.style),
+                    }
+                }
+            } else if busy {
+                if let Some(f) = ov.slot_for(Part::ICON) {
+                    f(ui, readiness_cell);
+                } else {
+                    let is = style(ui, Part::ICON);
+                    let frames = ui.design().motion.spinner_frames;
+                    let frame = frames.first().copied().unwrap_or("");
+                    ui.paint_str(readiness_cell, frame, is.style);
+                }
             }
         }
         area
