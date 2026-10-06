@@ -1,0 +1,4569 @@
+{
+ "version": "1",
+ "group": "data-views",
+ "ref_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+ "head_commit": "7b5a527eb23825cf64dd6d94d68323f1adc0d0b7",
+ "description": "DATA-VIEWS group slice: Grid, CodeEditor, DiffView, TextViewport, TerminalView, ScrollRegion. Same stable IDs as v1/registry.json; ref_source lists reference source symbols verified present in the cited files. src/ tree is identical between ref_commit and head_commit, so cited lines hold for both. TerminalView is the showcase terminal page composition over a TextViewport (no widget of that name exists); ScrollRegion is the ScrollState model plus the scrollbar painter and ScrollPanel (no widget of that name exists).",
+ "scenarios": [
+  {
+   "id": "GRID-EDIT-001",
+   "app": "showcase",
+   "component": "Grid",
+   "part": "customers cell cursor + inline cell editor",
+   "ref_symbols": [
+    {
+     "glyph": "rows 1–40 of 40 loaded · ~4,812 total",
+     "meaning": "position label with estimated total"
+    },
+    {
+     "glyph": "▸",
+     "meaning": "cursor row marker"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "rows 1–40 of 40 loaded · ~4,812 total",
+     "meaning": "position label with estimated total"
+    },
+    {
+     "glyph": "▸",
+     "meaning": "cursor row marker"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/grid.rs",
+     "symbols": [
+      "DataGrid",
+      "begin_edit",
+      "commit_edit",
+      "cancel_edit",
+      "default_validator",
+      "CellValue",
+      "ColumnSpec",
+      "GridEvent",
+      "position_label",
+      "rows_label"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/grid.rs",
+     "symbols": [
+      "GridPage",
+      "PAGE",
+      "local_sort",
+      "set_rows",
+      "on_key"
+     ]
+    }
+   ],
+   "data": {
+    "page": "grid",
+    "table": "customers",
+    "columns": 8,
+    "page_rows": 40,
+    "loaded": 96
+   },
+   "state": {
+    "editable": true,
+    "editing": false,
+    "sort": null,
+    "pending_total": 0,
+    "local_sort": true
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase grid page (customers, page 1 of 40)"
+    },
+    {
+     "step": 2,
+     "action": "move the cell cursor with arrows",
+     "key": "Down",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "edit the cell under the cursor",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "commit the typed value",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "selected",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "committed",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the cursor cell is highlighted and the meta reads rows 1–40 of 40 loaded · ~4,812 total"
+     },
+     {
+      "id": "V2",
+      "text": "while editing, the cell shows the draft text; commit repaints the typed value"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "Enter on a writable cell opens EditState with the cell edit_text"
+     },
+     {
+      "id": "S2",
+      "text": "commit runs default_validator and emits CellChanged on success"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Enter/F2 begins editing; Bool cells toggle inline without opening the editor"
+     },
+     {
+      "id": "A2",
+      "text": "Tab commits then opens the next writable cell, skipping read_only and primary columns"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "Enter on a read_only column or a queued-for-deletion row must NOT open the editor"
+     },
+     {
+      "id": "N2",
+      "text": "a failed validation must NOT emit CellChanged: the editor stays open with the error"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "542-592",
+      "note": "begin_edit: read_only/deleted guard, Bool toggle, Json/long-text viewer, editor open"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "593-626",
+      "note": "commit_edit: empty rules, validator, CellChanged or error kept open; cancel_edit"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "267-322",
+      "note": "default_validator per CellKind incl null handling and error strings"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "1430-1468",
+      "note": "position_label/rows_label incl estimated-total wording"
+     },
+     {
+      "path": "src/bin/showcase/pages/grid.rs",
+      "lines": "113-145",
+      "note": "GridPage columns, editable grid, local_sort, first page load"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/datagrid/80x24/truecolor.txt",
+     "snapshots/showcase/flows/datagrid/selected/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "GRID-PENDING-002",
+   "app": "showcase",
+   "component": "Grid",
+   "part": "pending-change queue + Preview SQL dialog",
+   "ref_symbols": [
+    {
+     "glyph": "Preview SQL",
+     "meaning": "pending bar first button"
+    },
+    {
+     "glyph": "UPDATE customers SET",
+     "meaning": "preview statement prefix"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Preview SQL",
+     "meaning": "pending bar first button"
+    },
+    {
+     "glyph": "UPDATE customers SET",
+     "meaning": "preview statement prefix"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/grid.rs",
+     "symbols": [
+      "PendingChanges",
+      "record_cell",
+      "toggle_delete",
+      "insert_row",
+      "duplicate_row",
+      "discard",
+      "GridEvent",
+      "PreviewSql",
+      "DiscardRequested",
+      "on_bar_key",
+      "bar_ids"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/grid.rs",
+     "symbols": [
+      "statements",
+      "GridEvent",
+      "PreviewSql",
+      "Pending changes",
+      "counts"
+     ]
+    }
+   ],
+   "data": {
+    "page": "grid",
+    "table": "customers",
+    "bar": [
+     "Preview SQL",
+     "Discard",
+     "Save"
+    ]
+   },
+   "state": {
+    "pending_total": 3,
+    "changed": 1,
+    "inserted": 1,
+    "deleted": 1,
+    "dialog": "facts"
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase grid page with queued edits"
+    },
+    {
+     "step": 2,
+     "action": "change a cell, insert a row, queue a deletion",
+     "key": "+",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "open the pending SQL preview",
+     "key": "p",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "pending",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "preview",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the pending bar shows Preview SQL, Discard and Save as separate stops"
+     },
+     {
+      "id": "V2",
+      "text": "the preview dialog lists UPDATE/INSERT/DELETE statements plus changed/inserted/deleted counts"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "record_cell queues values; reverting to the stored value clears the change"
+     },
+     {
+      "id": "S2",
+      "text": "deleting an inserted row removes it entirely instead of queueing a delete"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "p emits PreviewSql; u undoes one queued change; U emits DiscardRequested"
+     },
+     {
+      "id": "A2",
+      "text": "the bar buttons emit PreviewSql/DiscardRequested/CommitRequested via on_bar_key"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "inserted rows must NOT also render UPDATE statements in the preview"
+     },
+     {
+      "id": "N2",
+      "text": "discard must NOT touch committed rows: only the pending queue clears"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "187-224",
+      "note": "PendingChanges shape: cells/inserted/deleted, counts, total, is_dirty"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "631-760",
+      "note": "record_cell/undo, toggle_delete incl inserted-row removal, insert_row, duplicate_row"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "402-406",
+      "note": "pending bar buttons Preview SQL, Discard, Save"
+     },
+     {
+      "path": "src/bin/showcase/pages/grid.rs",
+      "lines": "147-196",
+      "note": "statements(): UPDATE per changed cell, INSERT per inserted row, DELETE per deleted row"
+     },
+     {
+      "path": "src/bin/showcase/pages/grid.rs",
+      "lines": "227-245",
+      "note": "PreviewSql opens the Pending changes facts dialog with counts"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/datagrid/pending/80x24/truecolor.txt",
+     "snapshots/showcase/flows/datagrid/preview/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "GRID-COMMIT-003",
+   "app": "showcase",
+   "component": "Grid",
+   "part": "commit round-trip + row-level error",
+   "ref_symbols": [
+    {
+     "glyph": "Saving…",
+     "meaning": "commit status while the fake server works"
+    },
+    {
+     "glyph": "Loading rows…",
+     "meaning": "loading overlay line"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Saving…",
+     "meaning": "commit status while the fake server works"
+    },
+    {
+     "glyph": "Loading rows…",
+     "meaning": "loading overlay line"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/grid.rs",
+     "symbols": [
+      "set_loading",
+      "apply_commit_result",
+      "cell_errors",
+      "row_errors",
+      "RowState",
+      "CommitRequested",
+      "Loading rows"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/grid.rs",
+     "symbols": [
+      "CommitRequested",
+      "commit_ticks",
+      "finish_commit",
+      "set_loading",
+      "Save failed"
+     ]
+    }
+   ],
+   "data": {
+    "page": "grid",
+    "table": "customers",
+    "commit_ticks": 4,
+    "seat_limit": 500
+   },
+   "state": {
+    "loading": true,
+    "pending_total": 1,
+    "bad_col": 3,
+    "row_error": "seats above the plan limit (500)"
+   },
+   "motion": "playing",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase grid page with a seats edit above 500"
+    },
+    {
+     "step": 2,
+     "action": "request commit",
+     "key": "Ctrl+S",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "let the 4-tick fake save finish",
+     "ticks": 4
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "saving",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "failed",
+     "tick": 4,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "while saving, the grid shows the spinner with Loading rows…"
+     },
+     {
+      "id": "V2",
+      "text": "after the failed save, the rejected row is marked and the error text is visible"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "CommitRequested sets loading and arms commit_ticks=4 with status Saving…"
+     },
+     {
+      "id": "S2",
+      "text": "finish_commit applies Err(row, seats above the plan limit (500)) via apply_commit_result"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Ctrl+S emits CommitRequested; each Tick decrements until finish_commit runs"
+     },
+     {
+      "id": "A2",
+      "text": "a clean queue reports Nothing to save instead of starting the round-trip"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "valid queued edits must NOT be marked when only one row is rejected"
+     },
+     {
+      "id": "N2",
+      "text": "the pending queue must NOT clear on failure: the user can fix and retry"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "475-531",
+      "note": "set_loading, local sort application, row_state incl Error"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "783-830",
+      "note": "apply_commit_result and discard"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "1688-1740",
+      "note": "loading overlay render with spinner and Loading rows…"
+     },
+     {
+      "path": "src/bin/showcase/pages/grid.rs",
+      "lines": "214-226",
+      "note": "CommitRequested arms the 4-tick save; empty queue reports Nothing to save"
+     },
+     {
+      "path": "src/bin/showcase/pages/grid.rs",
+      "lines": "269-292",
+      "note": "finish_commit rejects seats above 500 with a marked row"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/datagrid/failed/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "GRID-SORT-004",
+   "app": "tablepro",
+   "component": "Grid",
+   "part": "sorted column header + reordered rows",
+   "ref_symbols": [
+    {
+     "glyph": "▴",
+     "meaning": "ascending sort marker in the header"
+    },
+    {
+     "glyph": "▾",
+     "meaning": "descending sort marker in the header"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "▴",
+     "meaning": "ascending sort marker in the header"
+    },
+    {
+     "glyph": "▾",
+     "meaning": "descending sort marker in the header"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/grid.rs",
+     "symbols": [
+      "request_sort",
+      "apply_local_sort",
+      "HEADER_SORT_ASC",
+      "HEADER_SORT_DESC",
+      "SortRequested",
+      "local_sort",
+      "SortDir"
+     ]
+    },
+    {
+     "path": "src/bin/tablepro/tabs.rs",
+     "symbols": [
+      "sort",
+      "SortDir",
+      "SortRequested",
+      "grid"
+     ]
+    }
+   ],
+   "data": {
+    "screen": "table",
+    "table": "orders",
+    "sort_cycle": [
+     "asc",
+     "desc",
+     "none"
+    ]
+   },
+   "state": {
+    "sort": [
+     2,
+     "asc"
+    ],
+    "local_sort": false,
+    "filtered": true
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "open the tablepro orders table"
+    },
+    {
+     "step": 2,
+     "action": "sort the cursor column ascending",
+     "key": "s",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "apply the status filter so rows reorder under sort",
+     "key": "f",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "sorted",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "sorted-filtered",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the sorted header carries ▴ (asc) or ▾ (desc) after the title"
+     },
+     {
+      "id": "V2",
+      "text": "rows reorder by the sorted column; the filter keeps the sort markers"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "s cycles asc, desc, then none on the cursor column"
+     },
+     {
+      "id": "S2",
+      "text": "without local_sort the widget emits SortRequested and the owner re-runs the query"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "s on a sortable column requests the next direction; S clears the sort"
+     },
+     {
+      "id": "A2",
+      "text": "s on a non-sortable column is Consumed with no state change"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "clearing the sort must NOT keep a stale marker in any header"
+     },
+     {
+      "id": "N2",
+      "text": "the sort must NOT reorder the stored rows: only the display order changes"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "365-366",
+      "note": "HEADER_SORT_ASC/DESC marker constants"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "1132-1144",
+      "note": "s/S sort keys incl the non-sortable Consumed path"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "1179-1190",
+      "note": "request_sort: local apply vs SortRequested emission"
+     },
+     {
+      "path": "src/bin/tablepro/tabs.rs",
+      "lines": "470-499",
+      "note": "table sort state mirrored into grid.sort; query re-run"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/table/sorted/80x24/truecolor.txt",
+     "snapshots/tablepro/table/sorted-filtered/80x24/truecolor.txt",
+     "snapshots/tablepro/table/data/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "GRID-CELL-005",
+   "app": "tablepro",
+   "component": "Grid",
+   "part": "dirty cells + duplicated row + horizontal scroll",
+   "ref_symbols": [
+    {
+     "glyph": "cols",
+     "meaning": "horizontal position label prefix"
+    },
+    {
+     "glyph": "y",
+     "meaning": "copy key for the selection"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "cols",
+     "meaning": "horizontal position label prefix"
+    },
+    {
+     "glyph": "y",
+     "meaning": "copy key for the selection"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/grid.rs",
+     "symbols": [
+      "record_cell",
+      "duplicate_row",
+      "hscroll",
+      "cols_label",
+      "position_label",
+      "copy_text",
+      "CellChanged",
+      "RowInserted",
+      "CommitRequested",
+      "DiscardRequested",
+      "PreviewSql"
+     ]
+    },
+    {
+     "path": "src/bin/tablepro/workbench.rs",
+     "symbols": [
+      "FetchMore",
+      "Refresh",
+      "CommitRequested",
+      "CommitPending",
+      "ConfirmDiscard",
+      "PreviewSql",
+      "CellChanged"
+     ]
+    }
+   ],
+   "data": {
+    "screen": "table",
+    "table": "orders",
+    "requests": [
+     "CommitPending",
+     "ConfirmDiscard",
+     "PreviewSql"
+    ]
+   },
+   "state": {
+    "dirty_cells": 2,
+    "duplicated": 1,
+    "hscroll_offset": 3,
+    "editable": true
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "open the tablepro orders table"
+    },
+    {
+     "step": 2,
+     "action": "edit two cells so they go dirty",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "duplicate the cursor row",
+     "key": "Ctrl+D",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "scroll the columns right",
+     "key": "Ctrl+Right",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "cell_editing",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "dirty",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "scrolled_right",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "dirty cells render the pending tint distinct from committed cells"
+     },
+     {
+      "id": "V2",
+      "text": "scrolled right, the meta adds cols a–b of N to the rows label"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "duplicate_row inserts a copy and emits RowInserted"
+     },
+     {
+      "id": "S2",
+      "text": "Ctrl+arrows page the hscroll state without moving the cursor"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "y copies the selection; CommitRequested routes to the CommitPending request"
+     },
+     {
+      "id": "A2",
+      "text": "FetchMore appends the next page; Refresh replaces the rows"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "horizontal scroll must NOT move the cell cursor or the selection"
+     },
+     {
+      "id": "N2",
+      "text": "read-only result grids must NOT open the editor: Enter emits Activated"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "729-782",
+      "note": "duplicate_row copies the cursor row and reports RowInserted"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "875-926",
+      "note": "copy_text with and without header"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "1003-1012",
+      "note": "Ctrl+arrows page hscroll without moving the cursor"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "1461-1468",
+      "note": "cols_label wording when columns overflow"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "805-819",
+      "note": "FetchMore/Refresh/Commit/Discard/Preview grid events become app requests"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/table/cell_editing/80x24/truecolor.txt",
+     "snapshots/tablepro/table/dirty/80x24/truecolor.txt",
+     "snapshots/tablepro/table/row_duplicated/80x24/truecolor.txt",
+     "snapshots/tablepro/table/scrolled_right/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "GRID-RESULTS-006",
+   "app": "tablepro",
+   "component": "Grid",
+   "part": "query result grid under the SQL editor",
+   "ref_symbols": [
+    {
+     "glyph": "No rows",
+     "meaning": "empty result grid title"
+    },
+    {
+     "glyph": "15 ms",
+     "meaning": "result duration meta"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "No rows",
+     "meaning": "empty result grid title"
+    },
+    {
+     "glyph": "15 ms",
+     "meaning": "result duration meta"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/grid.rs",
+     "symbols": [
+      "DataGrid",
+      "local_sort",
+      "read_only_reason",
+      "RowTotal",
+      "Estimated",
+      "set_rows",
+      "GridRows",
+      "empty",
+      "EmptyState"
+     ]
+    },
+    {
+     "path": "src/bin/tablepro/tabs.rs",
+     "symbols": [
+      "result",
+      "local_sort",
+      "read_only_reason",
+      "No rows",
+      "RowTotal",
+      "set_rows",
+      "editable"
+     ]
+    }
+   ],
+   "data": {
+    "screen": "query",
+    "tab": "Query 1",
+    "sql": "SELECT * FROM orders"
+   },
+   "state": {
+    "local_sort": true,
+    "editable": false,
+    "read_only_reason": "TablePro cannot tell which table these rows came from.",
+    "total": "exact"
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "open a tablepro query tab with SELECT * FROM orders"
+    },
+    {
+     "step": 2,
+     "action": "run the statement",
+     "key": "Ctrl+R",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "sort the result locally",
+     "key": "s",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "results",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "explain",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the result grid renders under the editor with a duration meta"
+     },
+     {
+      "id": "V2",
+      "text": "an empty result shows the No rows empty state with its hint"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "result grids always sort locally via apply_local_sort"
+     },
+     {
+      "id": "S2",
+      "text": "unattributable results set read_only_reason and editable=false"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "s sorts the result without emitting SortRequested"
+     },
+     {
+      "id": "A2",
+      "text": "Enter on a read-only result emits Activated instead of editing"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "local result sorting must NOT re-run the query"
+     },
+     {
+      "id": "N2",
+      "text": "the empty state must NOT show grid chrome like sort markers"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "505-531",
+      "note": "apply_local_sort and row_state"
+     },
+     {
+      "path": "src/bin/tablepro/tabs.rs",
+      "lines": "2068-2088",
+      "note": "result grid construction: local_sort, read_only_reason, empty state, totals"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/query/results/80x24/truecolor.txt",
+     "snapshots/tablepro/query/explain/80x24/truecolor.txt",
+     "snapshots/tablepro/query/explain_analyze/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "CODE-EDIT-001",
+   "app": "showcase",
+   "component": "CodeEditor",
+   "part": "gutter + navigation/editing modes + footer",
+   "ref_symbols": [
+    {
+     "glyph": "›",
+     "meaning": "current-block marker in the gutter"
+    },
+    {
+     "glyph": "ln 1/26 · col 1",
+     "meaning": "footer position readout shape"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "›",
+     "meaning": "current-block marker in the gutter"
+    },
+    {
+     "glyph": "ln 1/26 · col 1",
+     "meaning": "footer position readout shape"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/code.rs",
+     "symbols": [
+      "CodeEditor",
+      "nav_key",
+      "begin_edit",
+      "commit",
+      "EditorEvent",
+      "Committed",
+      "Changed",
+      "CursorMoved",
+      "blocks",
+      "current_block",
+      "open_find",
+      "goto_match",
+      "gutter_w",
+      "after_change",
+      "hscroll",
+      "tab_leaves"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/editor.rs",
+     "symbols": [
+      "SAMPLE",
+      "highlight",
+      "blocks",
+      "KEYWORDS",
+      "placeholder",
+      "navigating",
+      "editing"
+     ]
+    }
+   ],
+   "data": {
+    "page": "editor",
+    "file": "retry.rs",
+    "blocks": 4,
+    "placeholder": "Type code. i edits, Ctrl+R runs the block under the cursor."
+   },
+   "state": {
+    "editing": false,
+    "read_only": false,
+    "find": null,
+    "diagnostics": 0,
+    "tab_leaves": false
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase editor page on retry.rs"
+    },
+    {
+     "step": 2,
+     "action": "move between blocks",
+     "key": "}",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "enter editing at the cursor",
+     "key": "i",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "leave editing, keeping the document",
+     "key": "Esc",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "navigating",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "editing",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the gutter shows the cursor bar, block marker › and right-aligned numbers"
+     },
+     {
+      "id": "V2",
+      "text": "the footer reads ln L/N · col C; keywords and strings carry syntax tones"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "i/Enter/a enters editing; Esc commits back to navigation (Committed)"
+     },
+     {
+      "id": "S2",
+      "text": "{ and } jump to the previous/next block start"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "/ opens the find bar; n/N step through matches with CursorMoved"
+     },
+     {
+      "id": "A2",
+      "text": "h/l pan 8 cells; PageUp/Down move by the viewport height"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "typing in navigation must NOT mutate the document"
+     },
+     {
+      "id": "N2",
+      "text": "Esc with no find bar open must NOT consume: it returns Ignored"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "65-92",
+      "note": "CodeEditor fields: editing, read_only, scroll, hscroll, find, running, tab_leaves"
+     },
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "404-487",
+      "note": "nav_key: i/a edit entry, hjkl/gG motion, block jumps, find, match steps"
+     },
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "489-502",
+      "note": "after_change keeps the cursor visible and re-runs find"
+     },
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "683-686",
+      "note": "gutter geometry: bar + marker + numbers(num_w>=2) + spaces"
+     },
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "969-1000",
+      "note": "footer: ln/col readout, position label, nearest-diagnostic message"
+     },
+     {
+      "path": "src/bin/showcase/pages/editor.rs",
+      "lines": "159-182",
+      "note": "blocks(): paragraphs are runs of non-blank lines"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/codeeditor/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "CODE-RUN-002",
+   "app": "showcase",
+   "component": "CodeEditor",
+   "part": "running block + diagnostics",
+   "ref_symbols": [
+    {
+     "glyph": "running",
+     "meaning": "panel meta while the block runs"
+    },
+    {
+     "glyph": "!",
+     "meaning": "diagnostic marker in the gutter"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "running",
+     "meaning": "panel meta while the block runs"
+    },
+    {
+     "glyph": "!",
+     "meaning": "diagnostic marker in the gutter"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/code.rs",
+     "symbols": [
+      "set_running",
+      "running",
+      "Diagnostic",
+      "Severity",
+      "spinner_frame",
+      "FindState",
+      "bracket_pair",
+      "on_paste"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/editor.rs",
+     "symbols": [
+      "run",
+      "finish_run",
+      "run_ticks",
+      "set_running",
+      "unwrap",
+      "todo",
+      "Block ran in",
+      "Diagnostics"
+     ]
+    }
+   ],
+   "data": {
+    "page": "editor",
+    "file": "retry.rs",
+    "run_ticks": 10,
+    "warn_block": 2
+   },
+   "state": {
+    "running": true,
+    "runs": 0,
+    "diagnostics": 1,
+    "severity": "Warning"
+   },
+   "motion": "playing",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase editor page on retry.rs"
+    },
+    {
+     "step": 2,
+     "action": "move the cursor into the second block",
+     "key": "}",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "run the block under the cursor",
+     "key": "Ctrl+R",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "let the 10-tick run finish",
+     "ticks": 10
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "running",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "diag",
+     "tick": 10,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "while running, the block marker column shows the accent spinner and the meta reads running"
+     },
+     {
+      "id": "V2",
+      "text": "after the run, the unwrap() line owns the ! marker and the Diagnostics panel lists ln · message"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "Ctrl+R sets running to the current block and arms run_ticks=10"
+     },
+     {
+      "id": "S2",
+      "text": "finish_run pushes the unwrap Warning (or todo Error) and reports Block ran in N ms"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Ctrl+R with the cursor between blocks only reports Nothing to run"
+     },
+     {
+      "id": "A2",
+      "text": "any edit clears the diagnostics via the Changed event"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the run must NOT mutate the document text"
+     },
+     {
+      "id": "N2",
+      "text": "a diagnostic must NOT survive the next edit"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "223-243",
+      "note": "editing primitives: begin_edit, set_running, commit"
+     },
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "743-771",
+      "note": "marker column: running spinner, block ›, diagnostic ! wins"
+     },
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "842-851",
+      "note": "diagnostic underline in error/warning tones"
+     },
+     {
+      "path": "src/bin/showcase/pages/editor.rs",
+      "lines": "269-302",
+      "note": "run/finish_run: 10 ticks, unwrap Warning, todo Error, Block ran in ms"
+     },
+     {
+      "path": "src/bin/showcase/pages/editor.rs",
+      "lines": "387-429",
+      "note": "Diagnostics panel with ln · message rows and the Nothing flagged empty state"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/editor/running/80x24/truecolor.txt",
+     "snapshots/showcase/flows/editor/diag/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "CODE-SQL-003",
+   "app": "tablepro",
+   "component": "CodeEditor",
+   "part": "SQL statement editor + error readout",
+   "ref_symbols": [
+    {
+     "glyph": "▎",
+     "meaning": "gutter focus bar on the cursor line"
+    },
+    {
+     "glyph": "Type SQL.",
+     "meaning": "editor placeholder lead"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "▎",
+     "meaning": "gutter focus bar on the cursor line"
+    },
+    {
+     "glyph": "Type SQL.",
+     "meaning": "editor placeholder lead"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/code.rs",
+     "symbols": [
+      "CodeEditor",
+      "Highlighter",
+      "Segmenter",
+      "highlighter",
+      "segmenter",
+      "placeholder",
+      "read_only",
+      "diagnostics"
+     ]
+    },
+    {
+     "path": "src/bin/tablepro/tabs.rs",
+     "symbols": [
+      "highlight_sql",
+      "segment_sql",
+      "QueryTab",
+      "editor",
+      "dirty",
+      "saved_text",
+      "placeholder",
+      "Ctrl+R"
+     ]
+    }
+   ],
+   "data": {
+    "screen": "query",
+    "tab": "Query 1",
+    "placeholder": "Type SQL. Ctrl+R runs the statement under the cursor."
+   },
+   "state": {
+    "dirty": true,
+    "diagnostics": 0,
+    "completion": "closed"
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "open a tablepro query tab"
+    },
+    {
+     "step": 2,
+     "action": "type a statement with an error",
+     "key": "i",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "run the statement under the cursor",
+     "key": "Ctrl+R",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "editing",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "error",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "SQL keywords carry the keyword tone; the cursor line owns the gutter bar"
+     },
+     {
+      "id": "V2",
+      "text": "a failed run keeps the statement visible with the error readout below"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "dirty compares editor text against saved_text"
+     },
+     {
+      "id": "S2",
+      "text": "highlight_sql/segment_sql supply tones and statement blocks; the widget only receives spans"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Ctrl+R runs the statement under the cursor"
+     },
+     {
+      "id": "A2",
+      "text": "completion opens from the editor cursor cell (owned by the OVERLAYS rows)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "running must NOT clear the typed statement"
+     },
+     {
+      "id": "N2",
+      "text": "the language knowledge must NOT live in the widget: tones come from the owner"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "1-6,26-27",
+      "note": "editor contract: caller-supplied highlighting and segmentation"
+     },
+     {
+      "path": "src/bin/tablepro/tabs.rs",
+      "lines": "324-343",
+      "note": "highlight_sql and segment_sql supplier functions"
+     },
+     {
+      "path": "src/bin/tablepro/tabs.rs",
+      "lines": "972-999",
+      "note": "QueryTab editor wiring: SQL suppliers, placeholder, dirty via saved_text"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/query/error/80x24/truecolor.txt",
+     "snapshots/tablepro/query/new_tab/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "DIFF-UNIFIED-001",
+   "app": "showcase",
+   "component": "DiffView",
+   "part": "unified listing + empty file state",
+   "ref_symbols": [
+    {
+     "glyph": "- attempts = 3",
+     "meaning": "removed line with marker"
+    },
+    {
+     "glyph": "+ attempts = 5",
+     "meaning": "added line with marker"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "- attempts = 3",
+     "meaning": "removed line with marker"
+    },
+    {
+     "glyph": "+ attempts = 5",
+     "meaning": "added line with marker"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/diff.rs",
+     "symbols": [
+      "DiffView",
+      "DiffFile",
+      "DiffHunk",
+      "DiffLine",
+      "DiffStatus",
+      "DiffMode",
+      "unified_lines",
+      "num_width",
+      "gutter",
+      "set_file",
+      "set_mode",
+      "header",
+      "summary",
+      "marker",
+      "tone"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/diff.rs",
+     "symbols": [
+      "sample",
+      "DiffPage",
+      "update_controls",
+      "service.toml",
+      "No file selected"
+     ]
+    }
+   ],
+   "data": {
+    "page": "diff",
+    "path": "config/service.toml",
+    "status": "Modified",
+    "hunks": 5
+   },
+   "state": {
+    "mode": "Unified",
+    "file": "sample",
+    "empty_toggle": false
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase diff page (unified sample file)"
+    },
+    {
+     "step": 2,
+     "action": "scroll the listing",
+     "key": "Down",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "toggle the Empty control",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "unified",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "empty",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the header shows M config/service.toml plus +N −M · K hunks; hunks open with muted @@ lines"
+     },
+     {
+      "id": "V2",
+      "text": "each row shows old/new numbers, a bold +/- marker and the toned text; empty shows No file selected"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "set_file(None) renders the No file selected line and resets follow"
+     },
+     {
+      "id": "S2",
+      "text": "a file with no hunks renders (no textual changes)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "the Review/Empty toggles call set_mode/set_file and clear the selection"
+     },
+     {
+      "id": "A2",
+      "text": "keys, wheel and drags delegate to the wrapped TextViewport"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the unified listing must NOT show the Old/New column headers"
+     },
+     {
+      "id": "N2",
+      "text": "toggling Empty must NOT keep the previous file scroll offset"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/diff.rs",
+      "lines": "124-166",
+      "note": "DiffFile counts, summary and header incl Renamed shape"
+     },
+     {
+      "path": "src/widgets/diff.rs",
+      "lines": "224-243",
+      "note": "set_file/set_mode setters reset scroll and follow"
+     },
+     {
+      "path": "src/widgets/diff.rs",
+      "lines": "330-396",
+      "note": "gutter/num_width and unified_lines row layout"
+     },
+     {
+      "path": "src/bin/showcase/pages/diff.rs",
+      "lines": "27-48",
+      "note": "sample(): Modified config/service.toml with 5 hunks"
+     },
+     {
+      "path": "src/bin/showcase/pages/diff.rs",
+      "lines": "62-75",
+      "note": "update_controls maps the toggles to set_mode/set_file"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/audit/diff/80x24/truecolor.txt",
+     "snapshots/showcase/flows/diff/empty/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "DIFF-REVIEW-002",
+   "app": "showcase",
+   "component": "DiffView",
+   "part": "side-by-side review + drag selection copy",
+   "ref_symbols": [
+    {
+     "glyph": "│",
+     "meaning": "review column separator"
+    },
+    {
+     "glyph": "Old",
+     "meaning": "review left column header"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "│",
+     "meaning": "review column separator"
+    },
+    {
+     "glyph": "Old",
+     "meaning": "review left column header"
+    }
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "ref_source": [
+    {
+     "path": "src/widgets/diff.rs",
+     "symbols": [
+      "DiffView",
+      "DiffMode",
+      "Review",
+      "review_lines",
+      "review_fits",
+      "changed_range",
+      "emphasised",
+      "layout_mode",
+      "toggle_mode",
+      "layout"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/diff.rs",
+     "symbols": [
+      "Review",
+      "set_mode",
+      "on_drag",
+      "ViewportEvent",
+      "Selection copied in demo"
+     ]
+    }
+   ],
+   "data": {
+    "page": "diff",
+    "path": "config/service.toml",
+    "review_min_cells": 16
+   },
+   "state": {
+    "mode": "Review",
+    "selection": true,
+    "copied": true
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase diff page"
+    },
+    {
+     "step": 2,
+     "action": "toggle Review mode on",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "drag across the review columns",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "copy the selection",
+     "key": "y",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "review",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "drag-selected",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "review shows Old │ New columns with faint numbers and bold changed runs"
+     },
+     {
+      "id": "V2",
+      "text": "the dragged range paints the selection style; copy keeps the demo text"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "review_fits falls back to unified below 2*(numw+1+16)+3 cells; the mode is retained"
+     },
+     {
+      "id": "S2",
+      "text": "y with a selection emits Copy; the page reports Selection copied in demo"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Review toggles set_mode; narrow panes keep unified automatically"
+     },
+     {
+      "id": "A2",
+      "text": "Esc clears the selection; wheel scrolls via the viewport"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "unpaired sides must NOT pair text: the empty side stays blank"
+     },
+     {
+      "id": "N2",
+      "text": "tabs must NOT break columns: they expand to four spaces before measuring"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/diff.rs",
+      "lines": "245-280",
+      "note": "layout_mode 16-cell fallback and width-cached layout"
+     },
+     {
+      "path": "src/widgets/diff.rs",
+      "lines": "398-439",
+      "note": "changed_range plus bold-middle emphasised clipping"
+     },
+     {
+      "path": "src/widgets/diff.rs",
+      "lines": "441-550",
+      "note": "review_lines columns, pairing, separators, review_fits threshold"
+     },
+     {
+      "path": "src/widgets/diff.rs",
+      "lines": "310-327",
+      "note": "render reserves the scrollbar column and caches the layout"
+     },
+     {
+      "path": "src/bin/showcase/pages/diff.rs",
+      "lines": "118-125",
+      "note": "y copy handling with the Selection copied in demo status"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/diff/review/80x24/truecolor.txt",
+     "snapshots/showcase/flows/diff/drag-selected/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "DIFF-INSPECT-003",
+   "app": "jackin-preview",
+   "component": "DiffView",
+   "part": "inspect modal file diff + mode toggle",
+   "ref_symbols": [
+    {
+     "glyph": "d switches",
+     "meaning": "mode meta hint suffix"
+    },
+    {
+     "glyph": "M",
+     "meaning": "modified file marker"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "d switches",
+     "meaning": "mode meta hint suffix"
+    },
+    {
+     "glyph": "M",
+     "meaning": "modified file marker"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/diff.rs",
+     "symbols": [
+      "DiffView",
+      "toggle_mode",
+      "toggled",
+      "label",
+      "set_file",
+      "file",
+      "owns",
+      "on_key"
+     ]
+    },
+    {
+     "path": "src/bin/jackin_preview/screens/inspect.rs",
+     "symbols": [
+      "InspectChanges",
+      "diff",
+      "toggle_mode",
+      "select_file",
+      "set_file",
+      "d switches",
+      "compact_rows",
+      "set_mode"
+     ]
+    }
+   ],
+   "data": {
+    "screen": "inspect",
+    "modal": "InspectChanges",
+    "regions": [
+     "Tree",
+     "Diff"
+    ],
+    "modes": [
+     "Compact",
+     "Advanced"
+    ]
+   },
+   "state": {
+    "region": "Diff",
+    "diff_mode": "Unified",
+    "open": true
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "open the jackin inspect modal on changed files"
+    },
+    {
+     "step": 2,
+     "action": "select a file so its diff renders",
+     "key": "Down",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "toggle the diff presentation",
+     "key": "d",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "inspect",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the diff region renders the selected file with the mode meta {mode} · {diffmode} · d switches"
+     },
+     {
+      "id": "V2",
+      "text": "compact rows list one row per file plus the unpushed-commits row"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "select_file calls set_file and syncs the tree cursor"
+     },
+     {
+      "id": "S2",
+      "text": "d toggles unified/review; m/F2 toggles compact/advanced"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "diff keys, wheel and drags route to the DiffView in the Diff region"
+     },
+     {
+      "id": "A2",
+      "text": "scrollbar hits route to on_scrollbar via the diff scrollbar id"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "toggling the mode must NOT change the selected file"
+     },
+     {
+      "id": "N2",
+      "text": "tree keys must NOT reach the diff while the Tree region owns focus"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/diff.rs",
+      "lines": "177-190",
+      "note": "DiffMode label and toggled"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/inspect.rs",
+      "lines": "150-164",
+      "note": "select_file wires set_file plus tree sync"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/inspect.rs",
+      "lines": "625-640",
+      "note": "d toggles the diff mode; m/F2 toggles compact/advanced"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/inspect.rs",
+      "lines": "355-385",
+      "note": "diff body render with the d switches meta"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/manager/inspect/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "VP-PANE-001",
+   "app": "jackin-preview",
+   "component": "TextViewport",
+   "part": "capsule pane terminal + live prompt caret",
+   "ref_symbols": [
+    {
+     "glyph": "⠋ ",
+     "meaning": "agent spinner line while the reply lands"
+    },
+    {
+     "glyph": "Mix (3)",
+     "meaning": "multi-pane tab label shape"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "⠋ ",
+     "meaning": "agent spinner line while the reply lands"
+    },
+    {
+     "glyph": "Mix (3)",
+     "meaning": "multi-pane tab label shape"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/viewport.rs",
+     "symbols": [
+      "TextViewport",
+      "set_follow",
+      "max_lines",
+      "caret",
+      "caret_visible",
+      "push",
+      "pop",
+      "replace_last",
+      "clear",
+      "last",
+      "len",
+      "ViewportEvent",
+      "FollowChanged"
+     ]
+    },
+    {
+     "path": "src/bin/jackin_preview/sim/pty.rs",
+     "symbols": [
+      "Pane",
+      "SCROLLBACK",
+      "refresh_prompt",
+      "push_lines",
+      "type_char",
+      "backspace",
+      "commit",
+      "set_follow",
+      "caret",
+      "received_output",
+      "clear"
+     ]
+    }
+   ],
+   "data": {
+    "screen": "capsule",
+    "scrollback": 2000,
+    "panes": 2,
+    "tabs": [
+     "Mix (3)",
+     "Shell",
+     "docs"
+    ]
+   },
+   "state": {
+    "follow": true,
+    "caret": true,
+    "awaiting": true,
+    "received_output": true
+   },
+   "motion": "playing",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "open the jackin capsule with two split panes"
+    },
+    {
+     "step": 2,
+     "action": "let the agent emit output lines",
+     "ticks": 5
+    },
+    {
+     "step": 3,
+     "action": "type ahead while the agent works",
+     "key": "a",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "split",
+     "tick": 5,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "each pane shows agent output with the live prompt row last and the caret on it"
+     },
+     {
+      "id": "V2",
+      "text": "the spinner line stands alone while the reply lands, then the reply replaces it"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "panes cap retention at SCROLLBACK=2000 with follow on"
+     },
+     {
+      "id": "S2",
+      "text": "typing, backspace and commit all snap follow back to live"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "output pushes lines; a pending prompt row is popped before appends"
+     },
+     {
+      "id": "A2",
+      "text": "clear wipes the viewport, restores follow and redraws the prompt"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the prompt row must NOT duplicate: refresh reuses the last line when it is the prompt"
+     },
+     {
+      "id": "N2",
+      "text": "stale spinner rows must NOT accumulate: each reply pops its spinner first"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/viewport.rs",
+      "lines": "366-400",
+      "note": "TextViewport fields: follow, caret, retention, selection, marks"
+     },
+     {
+      "path": "src/widgets/viewport.rs",
+      "lines": "594-660",
+      "note": "set_lines/push/replace_last/pop content transactions"
+     },
+     {
+      "path": "src/bin/jackin_preview/sim/pty.rs",
+      "lines": "19-19",
+      "note": "SCROLLBACK retention constant"
+     },
+     {
+      "path": "src/bin/jackin_preview/sim/pty.rs",
+      "lines": "1261-1319",
+      "note": "Pane construction with max_lines plus prompt refresh and caret"
+     },
+     {
+      "path": "src/bin/jackin_preview/sim/pty.rs",
+      "lines": "1320-1408",
+      "note": "push_lines spinner/clear handling, typing snaps, commit, clear"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/capsule/split_vertical/80x24/truecolor.txt",
+     "snapshots/jackin/capsule/new_tab/80x24/truecolor.txt",
+     "snapshots/jackin/audit/capsule/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "VP-PREVIEW-002",
+   "app": "holla",
+   "component": "TextViewport",
+   "part": "file preview pane + find marks",
+   "ref_symbols": [
+    {
+     "glyph": "first 2000 lines",
+     "meaning": "preview truncation meta lead"
+    },
+    {
+     "glyph": "┃",
+     "meaning": "scrollbar thumb in the preview pane"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "first 2000 lines",
+     "meaning": "preview truncation meta lead"
+    },
+    {
+     "glyph": "┃",
+     "meaning": "scrollbar thumb in the preview pane"
+    }
+   ],
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "ref_source": [
+    {
+     "path": "src/widgets/viewport.rs",
+     "symbols": [
+      "TextViewport",
+      "set_lines",
+      "set_marks",
+      "clear_marks",
+      "Mark",
+      "set_follow",
+      "jump_start",
+      "wrap",
+      "selected_text",
+      "on_key",
+      "SelectionChanged",
+      "Copy"
+     ]
+    },
+    {
+     "path": "src/bin/holla/screens/files.rs",
+     "symbols": [
+      "preview",
+      "TextViewport",
+      "set_lines",
+      "set_follow",
+      "jump_start",
+      "run_find",
+      "apply_marks",
+      "find_matches",
+      "clear_marks",
+      "first 2000 lines",
+      "first 256 KiB",
+      "long lines cut at 4096"
+     ]
+    }
+   ],
+   "data": {
+    "screen": "files",
+    "folder": "~/work/site",
+    "file": "big.log",
+    "gutter_prefix": 6
+   },
+   "state": {
+    "follow": false,
+    "wrap": false,
+    "marks": 0,
+    "find": null
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "open the holla files browser on ~/work/site"
+    },
+    {
+     "step": 2,
+     "action": "focus big.log so the preview pane renders",
+     "key": "Down",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "search the preview for a term",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "preview",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "wide panes show the preview with a numbered gutter and the truncation meta"
+     },
+     {
+      "id": "V2",
+      "text": "find matches underline; the current match reverses in the accent tone"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "preview loads via set_lines with follow off and the offset at the top"
+     },
+     {
+      "id": "S2",
+      "text": "run_find maps matches through the 6-byte gutter prefix into marks"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "an empty query clears the marks instead of searching"
+     },
+     {
+      "id": "A2",
+      "text": "y with a selection emits Copy with the source bytes"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the preview must NOT follow the tail: it holds the top after load"
+     },
+     {
+      "id": "N2",
+      "text": "copied text must NOT include the display gutter or wrapped shaping"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/viewport.rs",
+      "lines": "1351-1408",
+      "note": "on_key: shift-arrows select, f toggles follow, y copies, Esc clears"
+     },
+     {
+      "path": "src/widgets/viewport.rs",
+      "lines": "1455-1467",
+      "note": "mark paint: current bold-reversed accent, others underlined"
+     },
+     {
+      "path": "src/bin/holla/screens/files.rs",
+      "lines": "337-348",
+      "note": "truncation metas: 256 KiB, 2000 lines, 4096-cell cut"
+     },
+     {
+      "path": "src/bin/holla/screens/files.rs",
+      "lines": "370-410",
+      "note": "preview load with numbered gutter, follow off, jump to top, find marks"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/holla/flows/browser/preview/120x40/truecolor.txt",
+     "snapshots/holla/flows/browser/preview/160x50/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "TERM-RUN-001",
+   "app": "showcase",
+   "component": "TerminalView",
+   "part": "launch transcript + step rail run",
+   "ref_symbols": [
+    {
+     "glyph": "payments-platform ❯",
+     "meaning": "launch prompt lead"
+    },
+    {
+     "glyph": "▶",
+     "meaning": "stage start marker"
+    },
+    {
+     "glyph": "✓",
+     "meaning": "done stage marker"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "payments-platform ❯",
+     "meaning": "launch prompt lead"
+    },
+    {
+     "glyph": "▶",
+     "meaning": "stage start marker"
+    },
+    {
+     "glyph": "✓",
+     "meaning": "done stage marker"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/viewport.rs",
+     "symbols": [
+      "TextViewport",
+      "max_lines",
+      "set_follow",
+      "push",
+      "clear",
+      "is_at_tail",
+      "scrollback_depth",
+      "has_selection",
+      "len"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/terminal.rs",
+     "symbols": [
+      "TerminalPage",
+      "STAGES",
+      "DURATIONS",
+      "stage_lines",
+      "advance",
+      "reset",
+      "StepRail",
+      "set_state",
+      "set_meta",
+      "Following the tail"
+     ]
+    }
+   ],
+   "data": {
+    "page": "terminal",
+    "command": "jackin launch",
+    "stages": 7,
+    "durations": [
+     10,
+     26,
+     40,
+     8,
+     18,
+     14,
+     1
+    ]
+   },
+   "state": {
+    "running": true,
+    "stage": 2,
+    "fail_at": null,
+    "follow": true
+   },
+   "motion": "playing",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase terminal page (run starts immediately)"
+    },
+    {
+     "step": 2,
+     "action": "advance the stage engine",
+     "ticks": 30
+    },
+    {
+     "step": 3,
+     "action": "restart the run",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "mid",
+     "tick": 30,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the transcript opens with the bold prompt plus jackin launch; stages open with ▶ lines"
+     },
+     {
+      "id": "V2",
+      "text": "finished stages push ✓ lines; the meta reads N lines · following at the tail"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "reset clears the viewport, re-queues the rail and restores follow"
+     },
+     {
+      "id": "S2",
+      "text": "stage 3 is Skipped/cached; each stage Done moves the Running state on"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "each Tick pushes stage lines and advances stage_tick until the duration ends"
+     },
+     {
+      "id": "A2",
+      "text": "Run restarts clean; Run with a failure arms fail_at=1"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "a clean run must NOT show the ✗ failure line or Blocked states"
+     },
+     {
+      "id": "N2",
+      "text": "ticks after the last stage must NOT append more output"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/showcase/pages/terminal.rs",
+      "lines": "24-34",
+      "note": "STAGES names and DURATIONS ticks"
+     },
+     {
+      "path": "src/bin/showcase/pages/terminal.rs",
+      "lines": "52-88",
+      "note": "stage_lines per-stage transcript lines"
+     },
+     {
+      "path": "src/bin/showcase/pages/terminal.rs",
+      "lines": "120-194",
+      "note": "reset plus the advance engine incl skip and fail paths"
+     },
+     {
+      "path": "src/bin/showcase/pages/terminal.rs",
+      "lines": "205-229",
+      "note": "render: follow/scrollback/selection meta and the Viewport panel"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/terminal/80x24/truecolor.txt",
+     "snapshots/showcase/flows/terminal/mid/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "TERM-FOLLOW-002",
+   "app": "showcase",
+   "component": "TerminalView",
+   "part": "follow tail + scrollback + selection copy",
+   "ref_symbols": [
+    {
+     "glyph": "selection · y copies",
+     "meaning": "selection meta"
+    },
+    {
+     "glyph": "scrollback ↑",
+     "meaning": "detached scrollback meta lead"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "selection · y copies",
+     "meaning": "selection meta"
+    },
+    {
+     "glyph": "scrollback ↑",
+     "meaning": "detached scrollback meta lead"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/viewport.rs",
+     "symbols": [
+      "on_wheel",
+      "on_click",
+      "on_drag",
+      "on_scrollbar",
+      "on_scrollbar_drag",
+      "is_at_tail",
+      "remember_reading",
+      "selected_text",
+      "clear_selection",
+      "FollowChanged",
+      "SelectionChanged"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/terminal.rs",
+     "symbols": [
+      "on_key",
+      "ViewportEvent",
+      "Copied",
+      "copied",
+      "Paused at the scrollback position",
+      "on_drag",
+      "on_wheel",
+      "owns"
+     ]
+    }
+   ],
+   "data": {
+    "page": "terminal",
+    "max_lines": 2000,
+    "copy_key": "y"
+   },
+   "state": {
+    "follow": false,
+    "selection": true,
+    "copied": true
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase terminal page with transcript output"
+    },
+    {
+     "step": 2,
+     "action": "wheel up to leave the tail",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "drag a selection across the transcript",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "copy the selection",
+     "key": "y",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "scrolled",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "copied",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "off the tail the meta reads scrollback ↑depth; a selection switches it to selection · y copies"
+     },
+     {
+      "id": "V2",
+      "text": "after copy, the step side shows the copied: first-line readout"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "wheel/scrollbar moves recompute follow from is_at_tail and remember the reading row"
+     },
+     {
+      "id": "S2",
+      "text": "Copy reports Copied N lines and retains the first line"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "f toggles follow with Following/Pausing status; Esc clears the selection"
+     },
+     {
+      "id": "A2",
+      "text": "drag auto-scrolls at the vertical edges and extends from the press anchor"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "y with no selection must NOT emit Copy: it returns Consumed"
+     },
+     {
+      "id": "N2",
+      "text": "a scrollbar press on the thumb must NOT jump: it grabs for the drag"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/viewport.rs",
+      "lines": "1092-1139",
+      "note": "click clears and anchors; drag extends with edge auto-scroll"
+     },
+     {
+      "path": "src/widgets/viewport.rs",
+      "lines": "1132-1174",
+      "note": "wheel and scrollbar moves recompute follow and reading"
+     },
+     {
+      "path": "src/bin/showcase/pages/terminal.rs",
+      "lines": "271-295",
+      "note": "term key routing: Copy and FollowChanged statuses"
+     },
+     {
+      "path": "src/bin/showcase/pages/terminal.rs",
+      "lines": "315-364",
+      "note": "press/click/drag/wheel routing incl scrollbar and seam ids"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/terminal/80x24/truecolor.txt",
+     "snapshots/showcase/flows/terminal/mid/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "SCROLL-REGION-001",
+   "app": "showcase",
+   "component": "ScrollRegion",
+   "part": "three scrolling columns + position labels",
+   "ref_symbols": [
+    {
+     "glyph": "following",
+     "meaning": "log follow meta suffix"
+    },
+    {
+     "glyph": "of 400",
+     "meaning": "log position label total"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "following",
+     "meaning": "log follow meta suffix"
+    },
+    {
+     "glyph": "of 400",
+     "meaning": "log position label total"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/core/scroll.rs",
+     "symbols": [
+      "ScrollState",
+      "set_viewport",
+      "set_content",
+      "scroll_by",
+      "page_up",
+      "page_down",
+      "jump_start",
+      "jump_end",
+      "ensure_visible",
+      "visible_range",
+      "overflows",
+      "at_end",
+      "max_offset",
+      "clamp"
+     ]
+    },
+    {
+     "path": "src/widgets/scrollbar.rs",
+     "symbols": [
+      "TRACK",
+      "THUMB",
+      "id_for",
+      "render_vertical",
+      "position_label"
+     ]
+    },
+    {
+     "path": "src/widgets/panel.rs",
+     "symbols": [
+      "ScrollPanel",
+      "wrap",
+      "tail",
+      "push",
+      "measure",
+      "on_key",
+      "on_wheel"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/scrolling.rs",
+     "symbols": [
+      "ScrollingPage",
+      "ScrollPanel",
+      "position_label",
+      "follow",
+      "log_lines",
+      "animating"
+     ]
+    }
+   ],
+   "data": {
+    "page": "scrolling",
+    "columns": [
+     "Wrapped text",
+     "Long list",
+     "Log"
+    ],
+    "list_rows": 120,
+    "log_rows": 400,
+    "log_cap": 2000
+   },
+   "state": {
+    "log_follow": true,
+    "prose_wrap": true,
+    "focused": "log"
+   },
+   "motion": "playing",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase scrolling page"
+    },
+    {
+     "step": 2,
+     "action": "wheel over the prose column",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "page the focused log",
+     "key": "PageDown",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "let the log grow a line",
+     "ticks": 1
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "mid",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "scrolled",
+     "tick": 1,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "each column meta shows the a–b of n position label; the log adds · following"
+     },
+     {
+      "id": "V2",
+      "text": "overflowing columns draw the │ track with the ┃ thumb at the offset"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the log grows one line per tick while follow holds and lines stay below 2000"
+     },
+     {
+      "id": "S2",
+      "text": "wheel routes under the pointer; keys route to the focused container"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "PageUp/Down page by the viewport length; g/G jump to the ends"
+     },
+     {
+      "id": "A2",
+      "text": "f toggles log follow; G jumps to the live end"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "a fitting column must NOT draw a scrollbar or a position label"
+     },
+     {
+      "id": "N2",
+      "text": "keys must NOT move containers that do not own focus"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/core/scroll.rs",
+      "lines": "28-53",
+      "note": "max_offset/overflows/at_end plus viewport/content setters and clamp"
+     },
+     {
+      "path": "src/core/scroll.rs",
+      "lines": "55-108",
+      "note": "scroll_by/scroll_to/page/jump/ensure_visible/visible_range"
+     },
+     {
+      "path": "src/widgets/scrollbar.rs",
+      "lines": "8-45",
+      "note": "TRACK/THUMB glyphs, id_for, render_vertical"
+     },
+     {
+      "path": "src/widgets/panel.rs",
+      "lines": "224-280",
+      "note": "ScrollPanel shape with wrap/tail constructors, push and on_key"
+     },
+     {
+      "path": "src/bin/showcase/pages/scrolling.rs",
+      "lines": "25-44",
+      "note": "three columns: wrapped prose, 120-row list, 400-line tailing log"
+     },
+     {
+      "path": "src/bin/showcase/pages/scrolling.rs",
+      "lines": "113-190",
+      "note": "tick growth, key/wheel/scrollbar routing, follow-driven animation"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/scrolling/80x24/truecolor.txt",
+     "snapshots/showcase/flows/scrolling/mid/80x24/truecolor.txt",
+     "snapshots/showcase/flows/scrolling/scrolled/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "SCROLL-TRACK-002",
+   "app": "showcase",
+   "component": "ScrollRegion",
+   "part": "scrollbar track press + thumb drag",
+   "ref_symbols": [
+    {
+     "glyph": "│",
+     "meaning": "scrollbar track cell"
+    },
+    {
+     "glyph": "┃",
+     "meaning": "scrollbar thumb cell"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "│",
+     "meaning": "scrollbar track cell"
+    },
+    {
+     "glyph": "┃",
+     "meaning": "scrollbar thumb cell"
+    }
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "ref_source": [
+    {
+     "path": "src/core/scroll.rs",
+     "symbols": [
+      "thumb",
+      "offset_for_thumb_start",
+      "offset_for_track_pos",
+      "press_track",
+      "drag_track",
+      "release_track",
+      "grab"
+     ]
+    },
+    {
+     "path": "src/widgets/scrollbar.rs",
+     "symbols": [
+      "press",
+      "drag",
+      "offset_for_click",
+      "track_row",
+      "render_vertical"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/scrolling.rs",
+     "symbols": [
+      "on_scrollbar",
+      "on_scrollbar_drag",
+      "scrollbar"
+     ]
+    }
+   ],
+   "data": {
+    "page": "scrolling",
+    "column": "Log",
+    "content": 400
+   },
+   "state": {
+    "grab": null,
+    "offset": 0
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase scrolling page"
+    },
+    {
+     "step": 2,
+     "action": "press the log scrollbar thumb",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "drag the thumb down two rows",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "release and press the bare track",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "grabbed",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "jumped",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the thumb spans viewport/content of the track, at least one cell"
+     },
+     {
+      "id": "V2",
+      "text": "a thumb press holds the offset; a track press centers the thumb under the pointer"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "pressing the thumb only records the grab row; dragging keeps it under the pointer"
+     },
+     {
+      "id": "S2",
+      "text": "a drag without a press behaves like a press; release clears the grab"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "press/drag report whether the offset changed for repaint-vs-noop"
+     },
+     {
+      "id": "A2",
+      "text": "track positions map through offset_for_track_pos with thumb centering"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "a thumb press must NOT move the view on its own"
+     },
+     {
+      "id": "N2",
+      "text": "without overflow, press and drag must NOT change the offset"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/core/scroll.rs",
+      "lines": "110-145",
+      "note": "thumb geometry plus offset inverses with centering"
+     },
+     {
+      "path": "src/core/scroll.rs",
+      "lines": "146-181",
+      "note": "press_track grab-vs-jump, drag_track grab keeping, release_track"
+     },
+     {
+      "path": "src/widgets/scrollbar.rs",
+      "lines": "47-80",
+      "note": "offset_for_click, clamped track_row, press, drag, position_label"
+     },
+     {
+      "path": "src/bin/showcase/pages/scrolling.rs",
+      "lines": "141-172",
+      "note": "press grabs or jumps; the post-drag click finds the thumb and moves nothing"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/scrolling/80x24/truecolor.txt",
+     "snapshots/showcase/flows/scrolling/scrolled/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "results": {
+    "status": "unrun",
+    "runs": []
+   },
+   "cand_source": []
+  }
+ ],
+ "coverage": [
+  {
+   "component": "Grid",
+   "rows": [
+    "GRID-EDIT-001",
+    "GRID-PENDING-002",
+    "GRID-COMMIT-003",
+    "GRID-SORT-004",
+    "GRID-CELL-005",
+    "GRID-RESULTS-006"
+   ],
+   "handlers": [
+    "cursor motion (arrows/hjkl/Home/End/PageUp/PageDown/g/G, shift extends)",
+    "Enter/F2 edit-or-activate; Space toggles row selection; Esc clears selection",
+    "s/S sort cycle; f// /F filter events; r/F5 refresh; y/Y copy; p preview SQL",
+    "+ insert, - delete, ctrl+d duplicate, ctrl+s commit, u undo, U discard",
+    "Tab commits and opens the next writable cell or emits LeaveForward/Backward",
+    "mouse: header/cell/rownum hit ids, scrollbar press/drag, wheel incl horizontal",
+    "pending bar: Preview SQL, Discard, Save via on_bar_key; paste via on_paste"
+   ],
+   "flags": [
+    "editable",
+    "edit (EditState buffer+error)",
+    "sort",
+    "local_sort",
+    "pending (cells/inserted/deleted)",
+    "selected_rows",
+    "anchor",
+    "loading",
+    "cell_errors",
+    "row_errors",
+    "filtered_cols",
+    "more",
+    "total (RowTotal)",
+    "row_numbers",
+    "read_only_reason"
+   ],
+   "thresholds": [
+    "sort markers HEADER_SORT_ASC/DESC ( ▴/ ▾); sort cycles asc, desc, none",
+    "empty commit: Text/Json/Enum become empty text, nullable becomes Null, else Empty: use Delete for NULL",
+    "Bool toggles inline (true/false/Null-if-nullable); Json and 2x-wide text open the viewer",
+    "demo commit rejects seats above 500 with a marked row after 4 ticks"
+   ],
+   "timers": [
+    "showcase commit round-trip: 4 ticks of Saving… then finish_commit",
+    "loading overlay spinner advances on the interaction tick"
+   ],
+   "early_returns": [
+    "begin_edit refuses read_only columns and queued-for-deletion rows",
+    "empty grids answer only +/r/F5/f/F; other keys return Ignored",
+    "non-editable Enter emits Activated instead of editing",
+    "Tab off the last writable cell emits LeaveForward/Backward",
+    "s on a non-sortable column is Consumed with no state change"
+   ],
+   "notes": [
+    "reverting a cell to its stored value clears the queued change",
+    "deleting an inserted row removes it entirely instead of queueing a delete",
+    "tablepro maps FetchMore/Refresh/Commit/Discard/Preview to app requests"
+   ]
+  },
+  {
+   "component": "CodeEditor",
+   "rows": [
+    "CODE-EDIT-001",
+    "CODE-RUN-002",
+    "CODE-SQL-003"
+   ],
+   "handlers": [
+    "find bar capture: Esc closes, Enter confirms, Backspace/chars edit the needle",
+    "navigation mode: i/Enter/a edit entry, hjkl/arrows, g/G ends, PgUp/PgDn",
+    "{/} block jumps; / opens find; n/N step matches; Esc clears find",
+    "editing mode: edit_key dispatch (Commit/Cancel/Tab/Apply/Insert)",
+    "Tab indents (or commits and Leave when tab_leaves); shift-Tab dedents",
+    "mouse: click enters editing at the pointer; wheel pans both axes; scrollbar drag",
+    "paste via on_paste"
+   ],
+   "flags": [
+    "editing",
+    "read_only",
+    "tab_leaves",
+    "hscroll",
+    "indent",
+    "highlighter",
+    "segmenter",
+    "diagnostics",
+    "running",
+    "find",
+    "placeholder"
+   ],
+   "thresholds": [
+    "gutter: bar(1) marker(1) space(1) numbers(num_w>=2) space(1)",
+    "h/l pan 8 cells; after_change keeps a 4-cell margin around the cursor",
+    "find label needs 8 cells; count shows cur/n or no matches",
+    "demo run lasts 10 ticks; reported ms is 40+(runs*37)%90"
+   ],
+   "timers": [
+    "block runs count 10 ticks before finish_run adds diagnostics",
+    "the running marker spins on the interaction tick via spinner_frame"
+   ],
+   "early_returns": [
+    "read_only reconciles editing off before dispatch and refuses inserts",
+    "an open editing find bar captures every key (others return Consumed)",
+    "Esc with no find bar returns Ignored",
+    "Ctrl+R between blocks only reports Nothing to run"
+   ],
+   "notes": [
+    "language knowledge stays outside: the widget only receives highlight spans and block ranges",
+    "marker precedence: diagnostic ! wins over the running spinner and the block ›",
+    "any edit clears diagnostics; completion is owned by the OVERLAYS rows"
+   ]
+  },
+  {
+   "component": "DiffView",
+   "rows": [
+    "DIFF-UNIFIED-001",
+    "DIFF-REVIEW-002",
+    "DIFF-INSPECT-003"
+   ],
+   "handlers": [
+    "all input delegates to the wrapped TextViewport (keys, wheel, click, drag, scrollbar)",
+    "set_file/set_mode/toggle_mode/layout/layout_mode presentation control",
+    "render reserves the scrollbar column and caches the width-aware layout"
+   ],
+   "flags": [
+    "mode (Unified/Review)",
+    "file (Option<DiffFile>)",
+    "dirty",
+    "laid_width",
+    "laid_mode"
+   ],
+   "thresholds": [
+    "review falls back to unified below 2*(numw+1+16)+3 cells; the mode is retained",
+    "gutter numbers pad to num_width>=3; hunk separators clip at 200 cells",
+    "tabs expand to four spaces before measuring, emphasizing and clipping"
+   ],
+   "timers": [
+    "no timers: static layout rebuilt on width/mode/file change only"
+   ],
+   "early_returns": [
+    "layout returns early when nothing changed at the same width and mode",
+    "render returns on an empty area",
+    "review_lines returns unified_lines when the width cannot fit review",
+    "set_file/set_mode skip work when the value is unchanged"
+   ],
+   "notes": [
+    "the viewer only turns hunks into styled lines; scrolling and selection come from TextViewport",
+    "paired remove/add runs bold the changed middle; unpaired sides stay blank",
+    "empty file renders No file selected; hunk-less files render (no textual changes)"
+   ]
+  },
+  {
+   "component": "TextViewport",
+   "rows": [
+    "VP-PANE-001",
+    "VP-PREVIEW-002"
+   ],
+   "handlers": [
+    "keys: arrows/kj scroll, PgUp/PgDn page, Home/g top, End/G tail+follow, f follow toggle",
+    "shift-arrows extend the selection (word with ctrl/alt); y copies; Esc clears",
+    "click clears and anchors; drag extends with edge auto-scroll",
+    "wheel and scrollbar press/drag recompute follow from is_at_tail",
+    "content transactions: set_lines/push/extend/replace_last/pop/clear/set_max_lines",
+    "marks via set_marks/clear_marks; producer caret reconciled through eviction"
+   ],
+   "flags": [
+    "follow",
+    "wrap",
+    "caret",
+    "caret_visible",
+    "max_lines (retention)",
+    "selection",
+    "drag_anchor",
+    "browse",
+    "marks",
+    "reading"
+   ],
+   "thresholds": [
+    "jackin panes and the showcase terminal cap retention at 2000 lines",
+    "tabs expand to four cells; C0 controls render as ^X; copy returns source bytes",
+    "holla preview truncates at 256 KiB / 2000 lines; long lines cut at 4096 cells",
+    "holla find maps through a 6-byte NNNNN gutter prefix"
+   ],
+   "timers": [
+    "no timers: the widget is tick-agnostic; producers push lines"
+   ],
+   "early_returns": [
+    "scroll moves at the boundary return Consumed without touching follow state",
+    "y with no selection returns Consumed; Esc with no selection returns Ignored",
+    "drag without an anchor returns Ignored",
+    "render returns on an empty area"
+   ],
+   "notes": [
+    "retained identities survive eviction: selection, anchors, caret and reading reconcile by id",
+    "the hardware cursor shows the selection head while selecting, else the producer caret while following",
+    "copy returns source bytes (tabs and controls included), never display text"
+   ]
+  },
+  {
+   "component": "TerminalView",
+   "rows": [
+    "TERM-RUN-001",
+    "TERM-FOLLOW-002"
+   ],
+   "handlers": [
+    "Tick advances the stage engine while running",
+    "keys route to the term viewport, the step rail, or the Run buttons by focus",
+    "press/click/drag/wheel route term, scrollbar, rail rows, buttons and the seam",
+    "Copy/FollowChanged viewport events become status lines and the copied readout"
+   ],
+   "flags": [
+    "running",
+    "fail_at",
+    "stage",
+    "stage_tick",
+    "tick",
+    "copied"
+   ],
+   "thresholds": [
+    "7 stages with DURATIONS ticks [10,26,40,8,18,14,1]",
+    "failure triggers at half the armed stage duration with exit 1 and Blocked followers",
+    "stage 3 always Skips as cached; rail metas show stage_tick*0.08 seconds",
+    "transcript retention is 2000 lines with follow restored on reset"
+   ],
+   "timers": [
+    "one Tick pushes the stage lines and advances stage_tick until the duration ends"
+   ],
+   "early_returns": [
+    "advance returns Ignored once running is false",
+    "clicks on unknown ids and keys on unfocused stops return Ignored"
+   ],
+   "notes": [
+    "TerminalView is the terminal page composition; the transcript widget is a TextViewport",
+    "meta reads N lines · following at the tail, scrollback ↑depth off it, selection · y copies while selecting",
+    "the splitter seam and step rail stay owned by the CONTROLS and NAVIGATION rows"
+   ]
+  },
+  {
+   "component": "ScrollRegion",
+   "rows": [
+    "SCROLL-REGION-001",
+    "SCROLL-TRACK-002"
+   ],
+   "handlers": [
+    "ScrollState: scroll_by/scroll_to/page_up/page_down/jump_start/jump_end/ensure_visible",
+    "geometry: visible_range, thumb, offset_for_thumb_start, offset_for_track_pos",
+    "track: press_track grab-vs-jump, drag_track grab keeping, release_track",
+    "scrollbar: render_vertical, offset_for_click, press, drag, position_label",
+    "ScrollPanel: on_key/on_wheel/on_scrollbar/on_scrollbar_drag, push, measure, render"
+   ],
+   "flags": [
+    "offset",
+    "content_len",
+    "viewport_len",
+    "grab",
+    "ScrollPanel follow/tail/wrap"
+   ],
+   "thresholds": [
+    "the thumb spans viewport/content of the track, clamped to at least one cell",
+    "track presses center the thumb (len/2); drags keep the grabbed row under the pointer",
+    "demo page: 120 list rows with every 7th flagged; 400-line log capped at 2000",
+    "demo prose repeats 3 times with blank separators; log grows one line per tick"
+   ],
+   "timers": [
+    "the demo log grows one line per tick while follow holds below 2000 lines"
+   ],
+   "early_returns": [
+    "without overflow (or a zero track) thumb covers the track and press/drag return false",
+    "a drag without a press falls back to a press",
+    "fitting columns draw no scrollbar and no position label",
+    "movement reports whether the offset changed for repaint-vs-noop"
+   ],
+   "notes": [
+    "ScrollState is a pure model; the scrollbar derives geometry from it",
+    "the completed click after a drag finds the thumb under the pointer and moves nothing",
+    "the list column stays owned by the NAVIGATION rows; these rows pin the scroll model"
+   ]
+  }
+ ],
+ "legacy_map": [
+  {
+   "old": "showcase/pages/datagrid",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-EDIT-001",
+   "status": "mapped",
+   "note": "shared with CONTROLS, which pins the props panel (PROPS-CURSOR-TONE-001); this row pins the grid"
+  },
+  {
+   "old": "showcase/flows/datagrid/selected",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-EDIT-001",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/flows/datagrid/pending",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-PENDING-002",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/flows/datagrid/preview",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-PENDING-002",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/flows/datagrid/failed",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-COMMIT-003",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/pages/codeeditor",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "CODE-EDIT-001",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/flows/editor/running",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "CODE-RUN-002",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/flows/editor/diag",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "CODE-RUN-002",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/audit/diff",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "DIFF-UNIFIED-001",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/flows/diff/empty",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "DIFF-UNIFIED-001",
+   "status": "mapped",
+   "note": "shared with CONTROLS, which pins the empty state (EMPTY-KIND-NARROW-001); this row pins the diff listing"
+  },
+  {
+   "old": "showcase/flows/diff/review",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "DIFF-REVIEW-002",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/flows/diff/drag-selected",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "DIFF-REVIEW-002",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/pages/terminal",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "TERM-RUN-001",
+   "status": "mapped",
+   "also": [
+    "TERM-FOLLOW-002"
+   ],
+   "note": "shared with CONTROLS (SPLIT-SEAM-DRAG-001 seam) and NAVIGATION (STEPS-LIFE-001 rail); these rows pin the transcript"
+  },
+  {
+   "old": "showcase/flows/terminal/mid",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "TERM-RUN-001",
+   "status": "mapped",
+   "also": [
+    "TERM-FOLLOW-002"
+   ],
+   "note": "shared transcript root; these rows pin the run plus follow and copy"
+  },
+  {
+   "old": "showcase/pages/scrolling",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "SCROLL-REGION-001",
+   "status": "mapped",
+   "also": [
+    "SCROLL-TRACK-002"
+   ],
+   "note": "shared with NAVIGATION, which pins the list (LIST-SINGLE-001); these rows pin the scroll model and scrollbar"
+  },
+  {
+   "old": "showcase/flows/scrolling/mid",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "SCROLL-REGION-001",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/flows/scrolling/scrolled",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "SCROLL-REGION-001",
+   "status": "mapped",
+   "also": [
+    "SCROLL-TRACK-002"
+   ]
+  },
+  {
+   "old": "tablepro/table/data",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-SORT-004",
+   "status": "mapped",
+   "note": "shared with NAVIGATION, which pins the result tabs (TABS-STATES-002); this row pins the grid sort"
+  },
+  {
+   "old": "tablepro/table/sorted",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-SORT-004",
+   "status": "mapped"
+  },
+  {
+   "old": "tablepro/table/sorted-filtered",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-SORT-004",
+   "status": "mapped"
+  },
+  {
+   "old": "tablepro/table/cell_editing",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-CELL-005",
+   "status": "mapped"
+  },
+  {
+   "old": "tablepro/table/dirty",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-CELL-005",
+   "status": "mapped"
+  },
+  {
+   "old": "tablepro/table/row_duplicated",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-CELL-005",
+   "status": "mapped"
+  },
+  {
+   "old": "tablepro/table/scrolled_right",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-CELL-005",
+   "status": "mapped"
+  },
+  {
+   "old": "tablepro/query/results",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-RESULTS-006",
+   "status": "mapped",
+   "also": [
+    "CODE-SQL-003"
+   ],
+   "note": "result grid plus the SQL editor above it"
+  },
+  {
+   "old": "tablepro/query/explain",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-RESULTS-006",
+   "status": "mapped",
+   "also": [
+    "CODE-SQL-003"
+   ],
+   "note": "plan grid plus the SQL editor above it"
+  },
+  {
+   "old": "tablepro/query/explain_analyze",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-RESULTS-006",
+   "status": "mapped",
+   "also": [
+    "CODE-SQL-003"
+   ],
+   "note": "analyzed plan grid plus the SQL editor above it"
+  },
+  {
+   "old": "tablepro/query/error",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "CODE-SQL-003",
+   "status": "mapped"
+  },
+  {
+   "old": "tablepro/query/new_tab",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "CODE-SQL-003",
+   "status": "mapped",
+   "note": "shared with NAVIGATION, which pins the tabs (TABS-STATES-002); this row pins the SQL editor"
+  },
+  {
+   "old": "jackin/manager/inspect",
+   "app": "jackin",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "DIFF-INSPECT-003",
+   "status": "mapped"
+  },
+  {
+   "old": "jackin/capsule/split_vertical",
+   "app": "jackin",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "VP-PANE-001",
+   "status": "mapped",
+   "note": "pending in CONTROLS and OVERLAYS; this row pins the pane viewports"
+  },
+  {
+   "old": "jackin/capsule/new_tab",
+   "app": "jackin",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "VP-PANE-001",
+   "status": "mapped",
+   "note": "shared with FEEDBACK, which pins the shell chrome (HB-SHELL-002); this row pins the pane viewport"
+  },
+  {
+   "old": "jackin/audit/capsule",
+   "app": "jackin",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "VP-PANE-001",
+   "status": "mapped"
+  },
+  {
+   "old": "holla/flows/browser/preview",
+   "app": "holla",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "VP-PREVIEW-002",
+   "status": "mapped"
+  },
+  {
+   "old": "tablepro/table/structure",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": null,
+   "status": "pending",
+   "note": "DataTable structure view has no row yet (not a DataGrid)"
+  },
+  {
+   "old": "showcase/pages/tables",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": null,
+   "status": "pending",
+   "note": "DataTable page has no row yet (not a DataGrid)"
+  },
+  {
+   "old": "showcase/flows/tables/selected",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": null,
+   "status": "pending",
+   "note": "DataTable selection has no row yet (not a DataGrid)"
+  },
+  {
+   "old": "showcase/flows/editable/editing",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": null,
+   "status": "pending",
+   "note": "DataTable editing has no row yet (not a DataGrid)"
+  },
+  {
+   "old": "showcase/flows/editable/committed",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": null,
+   "status": "pending",
+   "note": "DataTable commit has no row yet (not a DataGrid)"
+  },
+  {
+   "old": "tablepro/overlays/history_tab",
+   "app": "tablepro",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": null,
+   "status": "pending",
+   "note": "read-only SQL detail editor has no row yet"
+  }
+ ]
+}
