@@ -357,6 +357,7 @@ pub struct Runtime<A: App> {
     intents: IntentQueue,
     inter: Interaction,
     pending_tick: bool,
+    tick: u64,
     frame: FrameState,
     core: UiCore,
     generation: u32,
@@ -415,6 +416,7 @@ impl<A: App> Runtime<A> {
             intents: IntentQueue::new(),
             inter: Interaction::default(),
             pending_tick: false,
+            tick: 0,
             frame: FrameState::default(),
             core,
             generation: 0,
@@ -566,6 +568,11 @@ impl<A: App> Runtime<A> {
     /// Explicit elapsed milliseconds, truncated only for this legacy inspector.
     pub fn clock_ms(&self) -> u64 {
         u64::try_from(self.now().as_duration().as_millis()).unwrap_or(u64::MAX)
+    }
+
+    /// Current animation tick.
+    pub const fn tick(&self) -> u64 {
+        self.tick
     }
 
     /// The terminal size as last resized or successfully presented.
@@ -1364,6 +1371,8 @@ impl<A: App> Runtime<A> {
             if !core::mem::take(&mut self.pending_tick) {
                 return Response::ignored();
             }
+            self.tick = self.tick.wrapping_add(1);
+            self.services.tick = self.tick;
             self.intents.clear();
             self.pump_layer_events();
             let r = self.run_update(None, UpdateCause::Tick, None);
@@ -1423,6 +1432,8 @@ impl<A: App> Runtime<A> {
                 return Ok(self.finish(r));
             }
             Input::Tick => {
+                self.tick = self.tick.wrapping_add(1);
+                self.services.tick = self.tick;
                 update_cause = UpdateCause::Tick;
                 // Explicit ticks request an update at unchanged time. Only
                 // advance_to consumes an elapsed absolute deadline.
@@ -1558,6 +1569,7 @@ impl<A: App> Runtime<A> {
         self.core.begin_cache_frame(self.generation);
         self.core.style_cache.clear();
         self.frame.reset(self.generation, area);
+        self.frame.tick = snapshot.map_or(self.tick, |value| value.last.tick);
         self.frame.inert_floor = snapshot.map_or_else(
             || self.services.layers.inert_floor(),
             |value| value.inert_floor,
@@ -1621,6 +1633,7 @@ impl<A: App> Runtime<A> {
             &mut self.frame.typing_bindings,
         );
         self.last.typing = self.frame.typing_resolved;
+        self.last.tick = self.tick;
     }
 
     fn commit_frame(&mut self) {

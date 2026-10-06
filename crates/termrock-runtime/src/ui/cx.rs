@@ -85,6 +85,7 @@ pub struct LastFrame {
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing: crate::runtime::typing::TypingResolved,
     pub snapshot: Snapshot,
+    pub tick: u64,
 }
 
 impl LastFrame {
@@ -168,6 +169,10 @@ pub trait FrameRead {
     }
     /// LAST frame's layout facts for `id`.
     fn layout(&self, id: Id) -> Option<LayoutFacts>;
+    /// Current animation tick.
+    fn tick(&self) -> u64 {
+        0
+    }
 }
 
 /// A semantic traversal whose target must come from the next frame's ring.
@@ -206,6 +211,7 @@ pub struct FrameServices {
     /// as the claim's `origin`, so `pos - origin` is the press offset inside
     /// the thumb rather than the offset from the region's top-left (MA-5).
     pub(crate) press_pos: Option<Position>,
+    pub(crate) tick: u64,
 }
 
 /// The update-phase context.
@@ -285,6 +291,16 @@ impl<'f> Cx<'f> {
             self.activation_key = key;
         }
         self
+    }
+
+    /// Current animation tick.
+    pub const fn tick(&self) -> u64 {
+        self.services.tick
+    }
+
+    /// Current animation tick.
+    pub const fn animation_tick(&self) -> u64 {
+        self.services.tick
     }
 
     /// This owner's intents for the frame. Borrows only the frozen queue;
@@ -629,6 +645,10 @@ impl FrameRead for Cx<'_> {
 
     fn layout(&self, id: Id) -> Option<LayoutFacts> {
         self.last.layout_of(id)
+    }
+
+    fn tick(&self) -> u64 {
+        self.tick()
     }
 }
 

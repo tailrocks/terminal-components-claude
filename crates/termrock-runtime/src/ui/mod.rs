@@ -83,6 +83,7 @@ pub struct FrameState {
     pub(crate) screen: Rect,
     pub(crate) inert_floor: LayerId,
     pub(crate) top: LayerId,
+    pub(crate) tick: u64,
     #[cfg(feature = "testing")]
     pub(crate) styled_parts: Vec<(Id, Part)>,
     #[cfg(feature = "testing")]
@@ -205,6 +206,7 @@ impl FrameState {
         self.screen = screen;
         self.inert_floor = LayerId::PAGE;
         self.top = LayerId::PAGE;
+        self.tick = 0;
         #[cfg(feature = "testing")]
         self.styled_parts.clear();
         #[cfg(feature = "testing")]
@@ -413,6 +415,16 @@ impl<'f> Ui<'f> {
     /// Whether registrations from this layer are suppressed (`inert_below`).
     pub const fn is_inert(&self) -> bool {
         self.inert || self.reference.is_some()
+    }
+
+    /// Current animation tick.
+    pub const fn tick(&self) -> u64 {
+        self.frame.tick
+    }
+
+    /// Current animation tick.
+    pub const fn animation_tick(&self) -> u64 {
+        self.frame.tick
     }
 
     /// Draw an inert reference fixture.
@@ -1353,6 +1365,10 @@ impl FrameRead for Ui<'_> {
                 .map(|(_, l)| *l)
                 .or_else(|| self.last.layout_of(id))
         }
+    }
+
+    fn tick(&self) -> u64 {
+        self.tick()
     }
 }
 

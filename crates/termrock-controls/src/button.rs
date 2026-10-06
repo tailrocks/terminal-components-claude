@@ -343,7 +343,11 @@ impl<'a> Button<'a> {
 
     /// Columns the independent toggle marker needs.
     fn marker_width(&self) -> u16 {
-        if self.checked.is_some() { 2 } else { 0 }
+        if self.checked.is_some() && !self.busy() {
+            2
+        } else {
+            0
+        }
     }
 
     /// The natural width: gutter, optional icon, optional marker, label, pad.
@@ -445,7 +449,12 @@ impl<'a> Button<'a> {
                 match self.status {
                     Status::Busy | Status::Loading => {
                         let frames = ui.design().motion.spinner_frames;
-                        let frame = frames.first().copied().unwrap_or("");
+                        let frame = if frames.is_empty() {
+                            ""
+                        } else {
+                            let tick = ui.tick() as usize;
+                            frames[tick % frames.len()]
+                        };
                         ui.paint_str(icon_cell, frame, is.style);
                     }
                     Status::Error => match is.glyph {
@@ -466,7 +475,9 @@ impl<'a> Button<'a> {
             }
             text = shift(text, 2);
         }
-        if let Some(on) = self.checked {
+        if let Some(on) = self.checked
+            && !self.busy()
+        {
             let marker_cell = Rect {
                 width: text.width.min(1),
                 ..text
