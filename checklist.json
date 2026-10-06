@@ -767,7 +767,7 @@
       "title": "Migrate Holla production compositions",
       "requirement": "Finder, plans, activities/resources and overlays use Termrock; catalog/plan/domain/sim/UI boundaries preserve model/effect behavior.",
       "mandatory": true,
-      "status": "verified",
+      "status": "in_progress",
       "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G03-08",
@@ -779,17 +779,18 @@
         "PKG-36"
       ],
       "evidence": [
-        "Verified at commit 80d6a19a543c4ac1ec6b995b973427240319803e",
-        "Finder, plans, activities/resources, cleanup, and disk/files screens use Termrock",
-        "Catalog/plan/domain/sim/UI boundaries strictly preserve model and effect behavior",
-        "252/252 Crate tests: 100% PASSED",
-        "85/85 Flow journeys: 100% PASSED",
-        "9/9 Concept scenarios: 100% PASSED"
+        "REOPENED at c0ca76c2e: Q57 proved zero Termrock paint in holla routes (38.1k-line private ratatui stack; only termrock_core Key types referenced); prior verified status was false at code level. Q58 deleted 7,765 dead lines; S-H2 modal migration queued.",
+        "HISTORICAL (superseded, kept per §14): Verified at commit 80d6a19a543c4ac1ec6b995b973427240319803e",
+        "HISTORICAL (superseded): Finder, plans, activities/resources, cleanup, and disk/files screens use Termrock",
+        "HISTORICAL (superseded): Catalog/plan/domain/sim/UI boundaries strictly preserve model and effect behavior",
+        "HISTORICAL (superseded): 252/252 Crate tests: 100% PASSED",
+        "HISTORICAL (superseded): 85/85 Flow journeys: 100% PASSED",
+        "HISTORICAL (superseded): 9/9 Concept scenarios: 100% PASSED"
       ],
       "review": {
         "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
-        "verdict": "passed",
-        "notes": "Holla production compositions migrated cleanly to Termrock with full domain/sim/UI separation and verified behavioral preservation."
+        "verdict": "in_progress",
+        "notes": "Reopened: Q57 ownership audit falsified the migration claim (no Termrock consumer call path in holla-ui production code). Prior passing evidence retained as historical. Re-verification requires real component adoption slices (S-H2/S-H3) with ownership proof."
       }
     },
     {
