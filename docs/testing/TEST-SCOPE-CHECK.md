@@ -16,6 +16,7 @@ These paths pass as whole files:
 - `snapshots/tuiscotti/*`
 - `baselines/tuiscotti-v1/*`
 - `docs/testing/*`
+- `.config/nextest.toml` (test-selection config only)
 - `scripts/test-scope-check.sh`
 
 These paths pass only in test sections:
