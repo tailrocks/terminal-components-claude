@@ -1926,13 +1926,439 @@ pub fn check_baseline_bundle(
     compare_bundle_dirs(name, frame, &actual_root, &approved_root, &diff_root)
 }
 
+/// The HTML gate masks one volatile field before it compares: the absolute
+/// bless-worktree path in `provenance.argv[0]`
+/// ([`forgive_html_argv0_drift`]). Every other byte stays exact.
 pub fn gate(name: &str, frame: &Frame) -> GroupedOutcome {
     let target_name = screen_first_path(name);
-    RENDERER.with(|r| {
+    let mut outcome = RENDERER.with(|r| {
         let mut renderer = r.borrow_mut();
         check_baseline_bundle(&target_name, frame, &mut renderer)
             .unwrap_or_else(|e| panic!("gate `{target_name}` failed: {e}"))
-    })
+    });
+    forgive_html_argv0_drift(&target_name, &mut outcome);
+    outcome
+}
+
+/// Placeholder that replaces the `provenance.argv[0]` value on both sides
+/// of the HTML comparison. In-memory only; never written to any artifact.
+const NORMALIZED_ARGV0: &str = "argv0-normalized";
+
+/// Byte span of the `provenance.argv[0]` string value (content without the
+/// quotes) inside a standalone `.html` render.
+///
+/// tuiscotti embeds the canonical frame JSON in one
+/// `<script type="application/json">` block with `provenance` as its last
+/// field, so the LAST `"argv"` key is the provenance one: any earlier
+/// occurrence can only be cell text or SVG overlay text. Parsing is strict
+/// (`"argv"` `:` `[` `"` value `"` with optional ASCII whitespace); an
+/// empty argv or any malformed shape returns `None` (fail closed).
+fn html_argv0_value_span(html: &[u8]) -> Option<(usize, usize)> {
+    const KEY: &[u8] = b"\"argv\"";
+    let key_at = html.windows(KEY.len()).rposition(|window| window == KEY)?;
+    let mut i = key_at + KEY.len();
+    while i < html.len() && html[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    if html.get(i) != Some(&b':') {
+        return None;
+    }
+    i += 1;
+    while i < html.len() && html[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    if html.get(i) != Some(&b'[') {
+        return None;
+    }
+    i += 1;
+    while i < html.len() && html[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    if html.get(i) != Some(&b'"') {
+        return None;
+    }
+    i += 1;
+    let start = i;
+    while i < html.len() {
+        match html[i] {
+            b'\\' => {
+                if i + 1 >= html.len() {
+                    return None;
+                }
+                i += 2;
+            }
+            b'"' => return Some((start, i)),
+            0x00..=0x1F => return None,
+            _ => i += 1,
+        }
+    }
+    None
+}
+
+/// Copy of `html` with the `provenance.argv[0]` value replaced by
+/// [`NORMALIZED_ARGV0`]. `None` when the field is absent or malformed.
+fn mask_html_argv0(html: &[u8]) -> Option<Vec<u8>> {
+    let (start, end) = html_argv0_value_span(html)?;
+    let mut masked = Vec::with_capacity(html.len() - (end - start) + NORMALIZED_ARGV0.len());
+    masked.extend_from_slice(&html[..start]);
+    masked.extend_from_slice(NORMALIZED_ARGV0.as_bytes());
+    masked.extend_from_slice(&html[end..]);
+    Some(masked)
+}
+
+/// `true` iff the two renders are byte-identical except for the
+/// `provenance.argv[0]` value. Any masking failure reads as a difference.
+fn html_equal_modulo_argv0(approved: &[u8], actual: &[u8]) -> bool {
+    match (mask_html_argv0(approved), mask_html_argv0(actual)) {
+        (Some(masked_approved), Some(masked_actual)) => masked_approved == masked_actual,
+        _ => false,
+    }
+}
+
+/// Forgive an HTML-only mismatch that is exactly the volatile bless path.
+///
+/// The tuiscotti HTML gate compares whole renders byte-exact. Each render
+/// embeds `provenance.argv[0]`: the absolute path of the capture binary at
+/// bless time. A rerun from another worktree changes only that path, so the
+/// gate fails without any visual change. This wrapper re-compares the two
+/// renders with only that value masked (see [`mask_html_argv0`]), and only
+/// when the ansi, txt, and pixel gates already passed. The sealed verdict
+/// is corrected to the normalized check so reports agree with the gate.
+///
+/// ASD-STE100 NOTE. The HTML file contains provenance.argv[0]. This value
+/// is the absolute path of the binary at bless time. The path changes with
+/// the worktree. It is volatile environment metadata (GOAL section 8). It
+/// is not visual data. It is not semantic data. Mask only this value before
+/// the compare. Compare all other bytes exactly. If other bytes differ, the
+/// gate fails. The sealed verdict records the normalized check.
+///
+/// CANDIDATE ADAPTATION. [`compare_bundle_dirs`] also maps a
+/// `png.fidelity.json` drift to [`Status::PixelsDiffer`], which the shape
+/// above cannot see, so forgiveness additionally requires the bundle note
+/// to record the HTML gate as the sole failing gate
+/// ([`note_has_only_html_finding`]); any other finding keeps the failure.
+fn forgive_html_argv0_drift(name: &str, outcome: &mut GroupedOutcome) {
+    if outcome.ansi_match != Some(true)
+        || outcome.txt_match != Some(true)
+        || outcome.html_match != Some(false)
+        || !matches!(outcome.outcome.status, Status::PixelsDiffer)
+        || !outcome
+            .outcome
+            .pixel_score
+            .is_some_and(|score| score >= 1.0)
+        || !note_has_only_html_finding(&outcome.outcome.note)
+    {
+        return;
+    }
+    let approved_html = std::fs::read(&outcome.approved.html)
+        .unwrap_or_else(|e| panic!("read {}: {e}", outcome.approved.html.display()));
+    let actual_html = std::fs::read(&outcome.actual.html)
+        .unwrap_or_else(|e| panic!("read {}: {e}", outcome.actual.html.display()));
+    if !html_equal_modulo_argv0(&approved_html, &actual_html) {
+        return;
+    }
+    let note = normalized_html_note(&outcome.outcome.note);
+    outcome.html_match = Some(true);
+    outcome.outcome.status = Status::Matched;
+    outcome.outcome.note = note.clone();
+    rewrite_sealed_verdict_for_argv0(name, outcome, &note);
+}
+
+/// Verdict note for a normalized HTML match: drop the stale byte-gate
+/// finding, keep any other finding, record the normalization.
+fn normalized_html_note(previous: &str) -> String {
+    const NORMALIZATION: &str =
+        "html matches with provenance.argv0 normalized (volatile bless path ignored)";
+    let mut kept: Vec<&str> = previous
+        .split("; ")
+        .filter(|segment| !segment.starts_with("html differs"))
+        .filter(|segment| !is_html_byte_count_fragment(segment))
+        .filter(|segment| !segment.is_empty())
+        .collect();
+    kept.push(NORMALIZATION);
+    kept.join("; ")
+}
+
+/// `approved <n> bytes, actual <m> bytes`: the tail of the HTML byte-gate
+/// finding (the first-difference detail joins it with `"; "`, so it
+/// survives a naive split on the finding prefix). ASCII digits only;
+/// anything else is kept as evidence.
+fn is_html_byte_count_fragment(segment: &str) -> bool {
+    let Some(rest) = segment.strip_prefix("approved ") else {
+        return false;
+    };
+    let Some(rest) = rest.strip_suffix(" bytes") else {
+        return false;
+    };
+    match rest.split_once(" bytes, actual ") {
+        Some((approved, actual)) => {
+            !approved.is_empty()
+                && !actual.is_empty()
+                && approved.bytes().all(|b| b.is_ascii_digit())
+                && actual.bytes().all(|b| b.is_ascii_digit())
+        }
+        None => false,
+    }
+}
+
+/// `true` iff the bundle note records the HTML byte gate as the sole
+/// failing gate: every `"; "`-separated segment is the `"html differs"`
+/// finding, an HTML byte-count tail (see [`is_html_byte_count_fragment`]),
+/// or the trailing `state: ...` failure diagnostics
+/// ([`compare_bundle_dirs`] appends that diagnostic block last on any
+/// failure, so everything from the `state: ` segment on is diagnostics,
+/// never a finding).
+fn note_has_only_html_finding(note: &str) -> bool {
+    let mut saw_html_finding = false;
+    let mut in_diagnostics = false;
+    for segment in note.split("; ") {
+        if segment.starts_with("state: ") {
+            in_diagnostics = true;
+            continue;
+        }
+        if in_diagnostics {
+            continue;
+        }
+        if segment == "html differs" {
+            saw_html_finding = true;
+        } else if !is_html_byte_count_fragment(segment) {
+            return false;
+        }
+    }
+    saw_html_finding
+}
+
+/// Correct the sealed `<name>.verdict.json` after argv0 forgiveness.
+///
+/// `check_with` already sealed the byte-exact verdict (`pixels-differ`,
+/// `html_match: false`). Reports reuse a fresh sealed verdict verbatim, so
+/// leaving it would keep the report red after the gate turned green. This
+/// rewrites only the verdict fields (status, html_match, note, the
+/// html-gate check label); artifact hashes stay untouched, so the verdict
+/// stays fresh and reports show the normalized check. Any unexpected shape
+/// panics (fail closed) instead of recording a half-corrected verdict.
+///
+/// CANDIDATE ADAPTATION. [`compare_bundle_dirs`] seals no verdict (the
+/// outcome is returned in-memory), so a missing verdict file is the
+/// expected shape here and there is nothing to correct; a present but
+/// malformed verdict still panics (fail closed).
+fn rewrite_sealed_verdict_for_argv0(name: &str, outcome: &GroupedOutcome, note: &str) {
+    assert!(
+        note.bytes().all(|b| b >= 0x20 && b != b'"' && b != b'\\'),
+        "normalized note must be plain ASCII without quotes or backslashes: {note:?}"
+    );
+    let verdict_path = outcome.actual.html.with_extension("verdict.json");
+    if !verdict_path.exists() {
+        return;
+    }
+    let text = std::fs::read_to_string(&verdict_path)
+        .unwrap_or_else(|e| panic!("read {}: {e}", verdict_path.display()));
+    let replace_once = |text: &str, from: &str, to: &str| -> String {
+        assert_eq!(
+            text.matches(from).count(),
+            1,
+            "verdict `{name}` lost its expected shape at `{from}` (fail closed)"
+        );
+        text.replacen(from, to, 1)
+    };
+    let text = replace_once(
+        &text,
+        "\"status\": \"pixels-differ\"",
+        "\"status\": \"matched\"",
+    );
+    let text = replace_once(&text, "\"html_match\": false", "\"html_match\": true");
+    let text = replace_once(
+        &text,
+        "\"html-byte-gate\"",
+        "\"html-byte-gate+argv0-normalized\"",
+    );
+    let text = replace_verdict_note(&text, name, note);
+    tuiscotti::snapshot::write_atomic(verdict_path.as_path(), text.as_bytes())
+        .unwrap_or_else(|e| panic!("rewrite {}: {e}", verdict_path.display()));
+    let reread = std::fs::read_to_string(&verdict_path)
+        .unwrap_or_else(|e| panic!("re-read {}: {e}", verdict_path.display()));
+    assert!(
+        reread.contains("\"status\": \"matched\"")
+            && reread.contains("\"html_match\": true")
+            && reread.contains(note),
+        "verdict `{name}` failed to record the normalized check (fail closed)"
+    );
+}
+
+/// Replace the `"note"` value inside a sealed verdict document. The old
+/// value is scanned as a JSON string (backslash escapes honored), so a
+/// quote inside the old note cannot corrupt the document shape.
+fn replace_verdict_note(text: &str, name: &str, note: &str) -> String {
+    const KEY: &str = "\"note\": \"";
+    let value_at = text
+        .find(KEY)
+        .unwrap_or_else(|| panic!("verdict `{name}` has no note (fail closed)"))
+        + KEY.len();
+    let bytes = text.as_bytes();
+    let mut i = value_at;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'\\' => {
+                assert!(
+                    i + 1 < bytes.len(),
+                    "verdict `{name}` note is truncated (fail closed)"
+                );
+                i += 2;
+            }
+            b'"' => break,
+            _ => i += 1,
+        }
+    }
+    assert!(
+        i < bytes.len(),
+        "verdict `{name}` note is unterminated (fail closed)"
+    );
+    format!("{}{}{}", &text[..value_at], note, &text[i..])
+}
+
+/// Mask-test render: the candidate static HTML writer embeds no provenance
+/// (no committed baseline render carries `provenance.argv`), so the fixture
+/// embeds the documented shape — frame JSON with `provenance` last inside
+/// one `<script type="application/json">` block — synthetically around a
+/// realistic payload. The argv span sits past byte 1000 so the negative
+/// control flips a byte outside it (enforced by assert in the test).
+fn argv0_test_render() -> Vec<u8> {
+    let mut html = String::from("<!DOCTYPE html><html><body><pre>");
+    html.push_str(&"x".repeat(1100));
+    html.push_str("</pre><script type=\"application/json\">");
+    html.push_str(
+        r#"{"cells":[],"provenance":{"tool":"tuiscotti","argv":["/repo/tests/harness/target/debug/jackin-preview","--scenario","first-use"]}}"#,
+    );
+    html.push_str("</script></body></html>");
+    html.into_bytes()
+}
+
+#[test]
+fn html_argv0_mask_replaces_only_the_argv0_value() {
+    let html = argv0_test_render();
+    let (start, end) = html_argv0_value_span(&html).expect("argv0 span exists");
+    assert!(end > start, "argv0 value is non-empty");
+    assert!(
+        html[start..end].contains(&b'/'),
+        "argv0 is an absolute path"
+    );
+    let original = html[start..end].to_vec();
+    let masked = mask_html_argv0(&html).expect("mask applies");
+    assert_eq!(&masked[..start], &html[..start], "prefix untouched");
+    assert_eq!(
+        &masked[start + NORMALIZED_ARGV0.len()..],
+        &html[end..],
+        "suffix untouched"
+    );
+    assert_eq!(
+        &masked[start..start + NORMALIZED_ARGV0.len()],
+        NORMALIZED_ARGV0.as_bytes(),
+        "span holds the placeholder"
+    );
+    assert!(
+        !masked
+            .windows(original.len())
+            .any(|window| window == original.as_slice()),
+        "original bless path is gone"
+    );
+    let twice = mask_html_argv0(&masked).expect("mask applies twice");
+    assert_eq!(masked, twice, "masking is stable");
+}
+
+#[test]
+fn html_argv0_mask_ignores_worktree_drift() {
+    let approved = argv0_test_render();
+    // Simulate a rerun from another worktree: same render, other argv0.
+    let (start, end) = html_argv0_value_span(&approved).expect("argv0 span exists");
+    let mut rerun = approved.clone();
+    rerun.splice(
+        start..end,
+        b"/tmp/other-worktree/tests/harness/target/debug/jackin-preview"
+            .iter()
+            .copied(),
+    );
+    assert_ne!(approved, rerun, "raw bytes still differ");
+    assert!(
+        html_equal_modulo_argv0(&approved, &rerun),
+        "masked compare ignores argv0 drift"
+    );
+}
+
+#[test]
+fn html_argv0_mask_detects_any_other_byte() {
+    let approved = argv0_test_render();
+    let (span_start, _) = html_argv0_value_span(&approved).expect("argv0 span exists");
+    // NEGATIVE control 1: one flipped byte in the payload region.
+    let mut corrupted = approved.clone();
+    let flip_at = 1000;
+    assert!(flip_at < span_start, "flip sits outside the masked span");
+    corrupted[flip_at] ^= 0x01;
+    assert!(
+        !html_equal_modulo_argv0(&approved, &corrupted),
+        "a non-provenance byte still fails the gate"
+    );
+    // NEGATIVE control 2: one changed byte in argv[1] (only argv[0] is masked).
+    let mut flag_change = approved.clone();
+    let argv1_start = {
+        let (_, argv0_end) = html_argv0_value_span(&approved).expect("argv0 span exists");
+        let mut i = argv0_end + 1; // skip argv0 closing quote
+        assert_eq!(approved[i], b',', "argv continues past argv0");
+        i += 1;
+        while approved[i].is_ascii_whitespace() {
+            i += 1;
+        }
+        assert_eq!(approved[i], b'"', "argv[1] opens");
+        i + 1
+    };
+    flag_change[argv1_start] ^= 0x01;
+    assert!(
+        !html_equal_modulo_argv0(&approved, &flag_change),
+        "argv[1] stays gated"
+    );
+}
+
+#[test]
+fn html_normalized_note_drops_the_stale_finding() {
+    let previous = "html differs; state: dims expected 120x40 vs actual 120x40; digest expected aaa vs actual aaa; cursor expected none vs actual none; 0 differing cell(s)";
+    assert_eq!(
+        normalized_html_note(previous),
+        "state: dims expected 120x40 vs actual 120x40; digest expected aaa vs actual aaa; cursor expected none vs actual none; 0 differing cell(s); html matches with provenance.argv0 normalized (volatile bless path ignored)"
+    );
+    // Unknown findings are kept as evidence, never dropped.
+    let other = "png dimensions differ: approved (1, 2), actual (3, 4)";
+    assert!(normalized_html_note(other).starts_with(other));
+}
+
+#[test]
+fn html_forgiveness_requires_the_html_gate_to_fail_alone() {
+    let html_only = "html differs; state: dims expected 120x40 vs actual 120x40; digest expected aaa vs actual aaa; cursor expected none vs actual none; 0 differing cell(s)";
+    assert!(
+        note_has_only_html_finding(html_only),
+        "html-only failure is forgivable"
+    );
+    // A genuine fidelity delta beside the html finding blocks forgiveness.
+    let with_fidelity = "html differs; png.fidelity.json differs: pixels.above_threshold: 3 vs 0; state: dims expected 120x40 vs actual 120x40; digest expected aaa vs actual bbb; cursor expected none vs actual none; 0 differing cell(s)";
+    assert!(
+        !note_has_only_html_finding(with_fidelity),
+        "fidelity drift is never forgiven"
+    );
+    // No html finding at all: nothing to forgive.
+    assert!(!note_has_only_html_finding("txt differs"));
+    assert!(!note_has_only_html_finding(""));
+}
+
+#[test]
+fn html_argv0_span_rejects_empty_or_absent_argv() {
+    assert_eq!(
+        html_argv0_value_span(br#"{"provenance":{"argv":[]}}"#),
+        None
+    );
+    assert_eq!(html_argv0_value_span(b"no json here"), None);
+    assert_eq!(html_argv0_value_span(br#"{"argv":["unterminated}"#), None);
+    // An escaped quote inside the value does not end the span early.
+    let escaped = br#"{"argv":["a\"b"]}"#;
+    let (start, end) = html_argv0_value_span(escaped).expect("span");
+    assert_eq!(&escaped[start..end], b"a\\\"b");
 }
 
 /// Fail-closed assertion: only `matched` passes. Missing approval remains
