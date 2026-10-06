@@ -6558,6 +6558,16 @@ jobs:
           VELNOR_TASK_DIGEST: b3-0f5a21a4d96711394652d49820ab45c64c60277796fa5fbbd38aaf82969eab3d
           VELNOR_TASK_ID: stack/rust/crates/termrock-xtask/nextest/default
         run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; s=$(date +%s%3N); mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest run --profile ci --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask --no-tests fail; code=$?; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$s\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+      - name: Doctests
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-xtask/doctest/default,')"
+        env:
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-xtask/doctest/default
+          VELNOR_MATRIX_KEY: m-19773f050fe11083
+          VELNOR_TASK_DIGEST: b3-ff639b1a76dfa2570fbc1c275159eaa18e85dbc0b79630e07dba74575526ca2b
+          VELNOR_TASK_ID: stack/rust/crates/termrock-xtask/doctest/default
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; s=$(date +%s%3N); mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo test --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask --doc; code=$?; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$s\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Documentation
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-xtask/doc/default,')"
         env:
