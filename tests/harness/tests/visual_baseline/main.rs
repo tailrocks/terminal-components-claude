@@ -51,6 +51,7 @@ mod showcase;
 mod showcase_journeys;
 mod support;
 mod tablepro;
+mod tablepro_journeys;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
