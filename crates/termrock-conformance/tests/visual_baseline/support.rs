@@ -23,8 +23,10 @@
 
 use std::borrow::Cow;
 use std::cell::RefCell;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use sha2::{Digest, Sha256};
@@ -320,41 +322,185 @@ impl Case {
     }
 }
 
-pub fn resolve_bin(name: &str) -> PathBuf {
+/// Opt-in marking a run as explicitly partial/diagnostic (non-acceptance).
+/// Set `TERMROCK_PARTIAL_RUN=1` to allow `COMBO_FILTER` subset runs or
+/// mid-test-built subjects without failing the acceptance verdict. Filtered
+/// or mid-test-built runs without this flag FAIL completeness accounting;
+/// results produced with it must never be cited as parity evidence.
+pub const PARTIAL_RUN_ENV: &str = "TERMROCK_PARTIAL_RUN";
+
+/// Local-iteration escape hatch: set `TERMROCK_ALLOW_MIDTEST_BUILD=1` to
+/// permit the legacy mid-test `cargo build --bin` fallback when the subject
+/// binary is missing. Using it poisons the run: the acceptance verdict fails
+/// unless [`PARTIAL_RUN_ENV`] is also set, so hatch-built subjects can never
+/// silently become an acceptance subject.
+pub const MIDTEST_BUILD_ENV: &str = "TERMROCK_ALLOW_MIDTEST_BUILD";
+
+pub fn partial_run_allowed() -> bool {
+    std::env::var(PARTIAL_RUN_ENV).as_deref() == Ok("1")
+}
+
+pub fn midtest_build_allowed() -> bool {
+    std::env::var(MIDTEST_BUILD_ENV).as_deref() == Ok("1")
+}
+
+static MIDTEST_BUILD_USED: AtomicBool = AtomicBool::new(false);
+
+pub fn midtest_build_used() -> bool {
+    MIDTEST_BUILD_USED.load(Ordering::SeqCst)
+}
+
+fn mark_midtest_build_used() {
+    MIDTEST_BUILD_USED.store(true, Ordering::SeqCst);
+}
+
+/// The executed subject binary, bound to its content digest at resolve time.
+#[derive(Clone, Debug)]
+pub struct BinSubject {
+    pub path: PathBuf,
+    pub sha256: String,
+    pub len: u64,
+    pub mtime_unix: Option<u64>,
+}
+
+/// Digest `path` into a [`BinSubject`]. Returns `None` when the file cannot
+/// be read (missing binary, permissions); callers fail loudly instead.
+pub fn digest_file(path: &Path) -> Option<BinSubject> {
+    let bytes = std::fs::read(path).ok()?;
+    let meta = std::fs::metadata(path).ok()?;
+    let mut hasher = Sha256::new();
+    hasher.update(&bytes);
+    let sha256 = format!("{:x}", hasher.finalize());
+    let mtime_unix = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs());
+    Some(BinSubject {
+        path: path.to_path_buf(),
+        sha256,
+        len: meta.len(),
+        mtime_unix,
+    })
+}
+
+static SUBJECT_CACHE: std::sync::OnceLock<Mutex<HashMap<String, BinSubject>>> =
+    std::sync::OnceLock::new();
+
+fn cached_subject(name: &str, path: &Path) -> Option<BinSubject> {
+    let cache = SUBJECT_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let cached = cache.lock().ok()?.get(name).cloned()?;
+    if cached.path != path {
+        return None;
+    }
+    let meta = std::fs::metadata(path).ok()?;
+    let mtime_unix = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs());
+    if cached.len == meta.len() && cached.mtime_unix == mtime_unix {
+        Some(cached)
+    } else {
+        None
+    }
+}
+
+fn store_subject(name: &str, subject: &BinSubject) {
+    if let Ok(mut cache) = SUBJECT_CACHE
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+    {
+        cache.insert(name.to_string(), subject.clone());
+    }
+}
+
+fn candidate_bins(name: &str) -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
     let key = format!("CARGO_BIN_EXE_{}", name.replace('-', "_"));
     if let Ok(path) = std::env::var(&key) {
-        let p = PathBuf::from(path);
-        if p.exists() {
-            return p;
-        }
+        candidates.push(PathBuf::from(path));
     }
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     let root = manifest.parent().and_then(Path::parent).unwrap_or(manifest);
-    let debug = root.join("target").join("debug").join(name);
-    if debug.exists() {
-        return debug;
+    candidates.push(root.join("target").join("debug").join(name));
+    candidates.push(root.join("target").join("release").join(name));
+    candidates
+}
+
+/// Resolve `name` to its executed path and bind it to its sha256 digest.
+///
+/// This never builds: a missing binary is a loud error naming every searched
+/// path plus the build instructions, so a stale or absent binary cannot
+/// silently become the execution subject. The only build path is the
+/// [`MIDTEST_BUILD_ENV`] escape hatch inside [`resolve_bin`], which poisons
+/// the acceptance verdict (see [`acceptance_verdict`]).
+pub fn try_resolve_bin(name: &str) -> Result<BinSubject, String> {
+    for candidate in candidate_bins(name) {
+        if !candidate.exists() {
+            continue;
+        }
+        if let Some(subject) = cached_subject(name, &candidate) {
+            return Ok(subject);
+        }
+        if let Some(subject) = digest_file(&candidate) {
+            eprintln!(
+                "subject bin={name} path={} sha256={} len={} mtime={}",
+                subject.path.display(),
+                subject.sha256,
+                subject.len,
+                subject
+                    .mtime_unix
+                    .map_or_else(|| "-".to_string(), |m| m.to_string()),
+            );
+            store_subject(name, &subject);
+            return Ok(subject);
+        }
     }
-    let release = root.join("target").join("release").join(name);
-    if release.exists() {
-        return release;
-    }
+    let searched = candidate_bins(name)
+        .iter()
+        .map(|p| format!("  {}", p.display()))
+        .collect::<Vec<_>>()
+        .join("\n");
+    Err(format!(
+        "subject binary `{name}` missing: not built from the reviewed commit; refusing to substitute a stale subject.\n\
+         searched paths:\n{searched}\n\
+         build the reviewed tree first (e.g. `cargo build --bin {name}` or run via nextest, which builds first), then re-run.\n\
+         local iteration only: set {MIDTEST_BUILD_ENV}=1 to allow a mid-test build plus {PARTIAL_RUN_ENV}=1 to mark the run non-acceptance."
+    ))
+}
+
+fn midtest_build(name: &str) {
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let root = manifest.parent().and_then(Path::parent).unwrap_or(manifest);
     static BUILD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-    if let Ok(_guard) = BUILD_LOCK.lock()
-        && !debug.exists()
-        && !release.exists()
-    {
+    if let Ok(_guard) = BUILD_LOCK.lock() {
         let _ = std::process::Command::new("cargo")
             .args(["build", "--bin", name])
             .current_dir(root)
             .status();
     }
-    if debug.exists() {
-        return debug;
+}
+
+pub fn resolve_bin(name: &str) -> PathBuf {
+    match try_resolve_bin(name) {
+        Ok(subject) => subject.path,
+        Err(err) => {
+            if !midtest_build_allowed() {
+                panic!("{err}");
+            }
+            eprintln!(
+                "NON-ACCEPTANCE: mid-test `cargo build --bin {name}` fallback engaged via \
+                 {MIDTEST_BUILD_ENV}=1; this run cannot pass acceptance unless {PARTIAL_RUN_ENV}=1 is also set."
+            );
+            mark_midtest_build_used();
+            midtest_build(name);
+            match try_resolve_bin(name) {
+                Ok(subject) => subject.path,
+                Err(_) => panic!("{err}"),
+            }
+        }
     }
-    if release.exists() {
-        return release;
-    }
-    PathBuf::from(name)
 }
 
 pub fn argv_for(case: &Case) -> Vec<String> {
@@ -1192,21 +1338,25 @@ pub fn run_and_assert(case: &Case) {
 /// representative whose determinism contract is size-independent.
 pub fn run_canonical(representative: &Case) {
     let mut failures = Vec::new();
+    let mut executed = 0usize;
+    let mut skipped = 0usize;
     for &(cols, rows) in &CANONICAL_SIZES {
         for color in CANONICAL_COLORS {
             let case = representative.variant(cols, rows, color);
             let name = case.name.to_string();
             if let Ok(filter) = std::env::var("COMBO_FILTER") {
                 if !name.contains(&filter) {
+                    skipped += 1;
                     continue;
                 }
             }
+            executed += 1;
             if !collect_matrix(&name, || run_and_assert(&case)) {
                 failures.push(name);
             }
         }
     }
-    finish_matrix(&failures);
+    finish_matrix_accounted(&failures, executed, skipped);
 }
 
 /// Expand one representative while preserving exact legacy declarations.
@@ -1256,6 +1406,8 @@ pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
     }
 
     let mut failures = Vec::new();
+    let mut executed = 0usize;
+    let mut skipped = 0usize;
     for &(cols, rows) in &CANONICAL_SIZES {
         for color in CANONICAL_COLORS {
             let case = selected
@@ -1266,15 +1418,17 @@ pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
             let name = case.name.to_string();
             if let Ok(filter) = std::env::var("COMBO_FILTER") {
                 if !name.contains(&filter) {
+                    skipped += 1;
                     continue;
                 }
             }
+            executed += 1;
             if !collect_matrix(&name, || run_and_assert(&case)) {
                 failures.push(name);
             }
         }
     }
-    finish_matrix(&failures);
+    finish_matrix_accounted(&failures, executed, skipped);
 }
 
 /// Expand a live pointer/keyboard/manual-flow root through the same matrix.
@@ -1282,15 +1436,19 @@ pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
 /// centrally settled/gated capture.
 pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut Session, &Case)) {
     let mut failures = Vec::new();
+    let mut executed = 0usize;
+    let mut skipped = 0usize;
     for &(cols, rows) in &CANONICAL_SIZES {
         for color in CANONICAL_COLORS {
             let case = representative.variant(cols, rows, color);
             let name = case.name.to_string();
             if let Ok(filter) = std::env::var("COMBO_FILTER") {
                 if !name.contains(&filter) {
+                    skipped += 1;
                     continue;
                 }
             }
+            executed += 1;
             if !collect_matrix(&name, || {
                 let mut session = spawn_boot(&case);
                 interact(&mut session, &case);
@@ -1300,7 +1458,7 @@ pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut S
             }
         }
     }
-    finish_matrix(&failures);
+    finish_matrix_accounted(&failures, executed, skipped);
 }
 
 /// Expand a representative live root, substituting a compact send chain for
@@ -1352,14 +1510,76 @@ pub fn collect_matrix(combo: &str, body: impl FnOnce()) -> bool {
     }
 }
 
-/// Panic if any [`collect_matrix`] call reported a failure.
+/// Pure acceptance verdict over one matrix run: failures, required
+/// completeness (executed vs skipped-by-filter), and execution-subject
+/// integrity (mid-test-built binaries poison acceptance). `Err` carries the
+/// failure message; filtered or hatch-built runs pass only when explicitly
+/// flagged via [`PARTIAL_RUN_ENV`] (non-acceptance, never parity evidence).
+pub fn acceptance_verdict(
+    failures: &[String],
+    executed: usize,
+    skipped: usize,
+    partial_allowed: bool,
+    midtest_build_used: bool,
+) -> Result<(), String> {
+    if !failures.is_empty() {
+        return Err(format!(
+            "{} matrix capture(s) failed: {}",
+            failures.len(),
+            failures.join(", ")
+        ));
+    }
+    if skipped > 0 && !partial_allowed {
+        let required = executed + skipped;
+        let filter = std::env::var("COMBO_FILTER").unwrap_or_else(|_| "-".to_string());
+        return Err(format!(
+            "matrix incomplete: executed {executed}/{required} required, skipped {skipped} by COMBO_FILTER=`{filter}`; \
+             a filtered run cannot pass acceptance. Re-run without COMBO_FILTER, or set {PARTIAL_RUN_ENV}=1 \
+             for an explicitly partial/diagnostic (non-acceptance) run."
+        ));
+    }
+    if midtest_build_used && !partial_allowed {
+        return Err(format!(
+            "execution subject unbound: a subject binary was built mid-test via {MIDTEST_BUILD_ENV}=1 instead of \
+             from the reviewed commit; this run cannot pass acceptance. Build the reviewed tree first and re-run, \
+             or set {PARTIAL_RUN_ENV}=1 for an explicitly partial/diagnostic (non-acceptance) run."
+        ));
+    }
+    Ok(())
+}
+
+/// Panic if any [`collect_matrix`] call reported a failure, or if a mid-test
+/// build poisoned this run's execution subject without the partial-run flag.
 pub fn finish_matrix(failures: &[String]) {
-    assert!(
-        failures.is_empty(),
-        "{} matrix capture(s) failed: {}",
-        failures.len(),
-        failures.join(", ")
-    );
+    if let Err(msg) =
+        acceptance_verdict(failures, 0, 0, partial_run_allowed(), midtest_build_used())
+    {
+        panic!("{msg}");
+    }
+}
+
+/// [`finish_matrix`] plus required-completeness accounting: records
+/// executed/skipped-vs-required counts and fails the acceptance verdict when
+/// a case filter skipped combos without the partial-run opt-in. No silent
+/// subset pass.
+pub fn finish_matrix_accounted(failures: &[String], executed: usize, skipped: usize) {
+    let required = executed + skipped;
+    eprintln!("matrix completeness: executed {executed}/{required} required (skipped {skipped})");
+    if skipped > 0 && partial_run_allowed() {
+        eprintln!(
+            "NON-ACCEPTANCE: partial run executed {executed}/{required} required combos; \
+             results must not be cited as parity evidence."
+        );
+    }
+    if let Err(msg) = acceptance_verdict(
+        failures,
+        executed,
+        skipped,
+        partial_run_allowed(),
+        midtest_build_used(),
+    ) {
+        panic!("{msg}");
+    }
 }
 
 /// One `#[test]` per canonical root, generated from the representative static
@@ -1388,4 +1608,133 @@ macro_rules! baseline_case_with_variants {
             $crate::support::run_canonical_with_variants(&$case, &variants);
         }
     };
+}
+
+#[cfg(test)]
+mod execution_subject_tests {
+    use super::*;
+
+    /// sha256("abc"), NIST vector.
+    const ABC_SHA256: &str = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+
+    #[test]
+    fn verdict_full_matrix_ok() {
+        assert!(acceptance_verdict(&[], 25, 0, false, false).is_ok());
+    }
+
+    #[test]
+    fn verdict_failures_listed() {
+        let failures = vec!["a/80x24/truecolor".to_string(), "b/80x24/16".to_string()];
+        let err = acceptance_verdict(&failures, 25, 0, false, false).unwrap_err();
+        assert!(err.contains("2 matrix capture(s) failed"), "{err}");
+        assert!(err.contains("a/80x24/truecolor"), "{err}");
+        assert!(err.contains("b/80x24/16"), "{err}");
+    }
+
+    #[test]
+    fn verdict_filtered_without_optin_fails() {
+        let err = acceptance_verdict(&[], 3, 22, false, false).unwrap_err();
+        assert!(err.contains("executed 3/25"), "{err}");
+        assert!(err.contains("skipped 22"), "{err}");
+        assert!(err.contains(PARTIAL_RUN_ENV), "{err}");
+    }
+
+    #[test]
+    fn verdict_filtered_with_optin_ok() {
+        assert!(acceptance_verdict(&[], 3, 22, true, false).is_ok());
+    }
+
+    #[test]
+    fn verdict_failures_beat_partial_optin() {
+        let failures = vec!["a/80x24/truecolor".to_string()];
+        let err = acceptance_verdict(&failures, 3, 22, true, false).unwrap_err();
+        assert!(err.contains("1 matrix capture(s) failed"), "{err}");
+    }
+
+    #[test]
+    fn verdict_midtest_poison_without_optin_fails() {
+        let err = acceptance_verdict(&[], 25, 0, false, true).unwrap_err();
+        assert!(err.contains("unbound"), "{err}");
+        assert!(err.contains(MIDTEST_BUILD_ENV), "{err}");
+        assert!(err.contains(PARTIAL_RUN_ENV), "{err}");
+    }
+
+    #[test]
+    fn verdict_midtest_poison_with_optin_ok() {
+        assert!(acceptance_verdict(&[], 25, 0, true, true).is_ok());
+    }
+
+    #[test]
+    fn digest_file_known_vector() {
+        let probe = tempfile::NamedTempFile::new().expect("temp probe");
+        std::fs::write(probe.path(), b"abc").expect("write probe");
+        let subject = digest_file(probe.path()).expect("digest probe");
+        assert_eq!(subject.sha256, ABC_SHA256);
+        assert_eq!(subject.len, 3);
+        assert_eq!(subject.path, probe.path());
+        assert!(subject.mtime_unix.is_some());
+    }
+
+    #[test]
+    fn digest_file_missing_returns_none() {
+        assert!(digest_file(Path::new("/tmp/termrock-q05-definitely-missing-probe")).is_none());
+    }
+
+    #[test]
+    fn try_resolve_missing_errors_loudly_without_building() {
+        unsafe { std::env::remove_var("CARGO_BIN_EXE_termrockq05nosuchbin") };
+        let before_debug = candidate_bins("termrockq05nosuchbin");
+        assert!(
+            before_debug.iter().all(|p| !p.exists()),
+            "probe precondition: no such binary on disk"
+        );
+        let err = try_resolve_bin("termrockq05nosuchbin").unwrap_err();
+        assert!(err.contains("termrockq05nosuchbin"), "{err}");
+        assert!(err.contains("target/debug"), "{err}");
+        assert!(err.contains("target/release"), "{err}");
+        assert!(err.contains(MIDTEST_BUILD_ENV), "{err}");
+        assert!(
+            candidate_bins("termrockq05nosuchbin")
+                .iter()
+                .all(|p| !p.exists()),
+            "try_resolve_bin must never build: no binary may appear as a side effect"
+        );
+    }
+
+    #[test]
+    fn try_resolve_binds_digest_to_executed_path() {
+        let probe = tempfile::NamedTempFile::new().expect("temp probe");
+        std::fs::write(probe.path(), b"abc").expect("write probe");
+        unsafe {
+            std::env::set_var(
+                "CARGO_BIN_EXE_termrockq05digestprobe",
+                probe.path().as_os_str(),
+            )
+        };
+        let subject = try_resolve_bin("termrockq05digestprobe").expect("resolve probe");
+        unsafe { std::env::remove_var("CARGO_BIN_EXE_termrockq05digestprobe") };
+        assert_eq!(subject.path, probe.path());
+        assert_eq!(subject.sha256, ABC_SHA256);
+        assert_eq!(subject.len, 3);
+    }
+
+    #[test]
+    fn resolve_bin_missing_panics_without_hatch() {
+        if midtest_build_allowed() {
+            eprintln!("{MIDTEST_BUILD_ENV}=1 set; skipping panic-behavior probe");
+            return;
+        }
+        unsafe { std::env::remove_var("CARGO_BIN_EXE_termrockq05nosuchbinresolve") };
+        let caught = std::panic::catch_unwind(|| {
+            resolve_bin("termrockq05nosuchbinresolve");
+        });
+        let panic_value = caught.expect_err("resolve_bin must panic on a missing binary");
+        let msg = panic_value
+            .downcast_ref::<String>()
+            .cloned()
+            .or_else(|| panic_value.downcast_ref::<&str>().map(|s| s.to_string()))
+            .unwrap_or_default();
+        assert!(msg.contains("termrockq05nosuchbinresolve"), "{msg}");
+        assert!(msg.contains(MIDTEST_BUILD_ENV), "{msg}");
+    }
 }
