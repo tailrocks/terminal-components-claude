@@ -122,9 +122,10 @@ impl PageFrame {
     pub(crate) const NOTES: PageFrame = PageFrame::new("", "");
 
     /// The declared part contract with its instance patches: `TITLE`
-    /// carries primary foreground (bold is applied post-resolution, since a
-    /// `StylePatch` cannot carry modifiers), `DETAIL` carries muted
-    /// foreground, and `CONTAINER`/`TEXT` resolve to the neutral surface.
+    /// carries primary foreground (post-resolution `BOLD` is the correct
+    /// equivalence choice because it matches the retired layering
+    /// exactly), `DETAIL` carries muted foreground, and
+    /// `CONTAINER`/`TEXT` resolve to the neutral surface.
     fn styles() -> PartStyle<'static> {
         PartStyle::new()
             .declare(FRAME_PARTS)

@@ -22,6 +22,17 @@ const DIFF_PARTS: &[(Part, StylePatch)] = &[(
     StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
 )];
 
+/// The diff panel keeps its framed rule unbroken: clearing the gutter glyph
+/// suppresses the stock focus bar so the border `─` shows in every state,
+/// exactly like the retired slot painter.
+const PANEL_PARTS: &[(Part, StylePatch)] = &[(
+    Part::GUTTER,
+    StylePatch {
+        glyph: termrock::Slot::Clear,
+        ..StylePatch::new()
+    },
+)];
+
 #[derive(Debug, Default)]
 struct SampleSource {
     revision: u64,
@@ -196,7 +207,6 @@ impl Page for DiffPage {
                 let empty_btn = self.empty_button();
                 let r_review = review_btn.draw(ui, controls);
                 draw_toggle_marker(ui, r_review, self.review, ui.state(REVIEW));
-                legacy_gutter(ui, r_review, Variant::TOGGLE, ui.state(REVIEW));
 
                 let empty_rect = Rect {
                     x: r_review.right().saturating_add(2),
@@ -207,7 +217,6 @@ impl Page for DiffPage {
                 };
                 let r_empty = empty_btn.draw(ui, empty_rect);
                 draw_toggle_marker(ui, r_empty, self.empty, ui.state(EMPTY));
-                legacy_gutter(ui, r_empty, Variant::TOGGLE, ui.state(EMPTY));
 
                 let panel_area = Rect::new(
                     body.x,
@@ -217,7 +226,8 @@ impl Page for DiffPage {
                 );
                 Panel::new(PANEL)
                     .kind(PanelKind::Framed)
-                    .slot(Part::GUTTER, &paint_diff_head)
+                    .title("Diff")
+                    .patch_part(PANEL_PARTS)
                     .focused(ui.state(DIFF).contains(StateFlags::FOCUSED))
                     .draw(ui, panel_area, |_, _| ());
 
@@ -265,49 +275,6 @@ impl Page for DiffPage {
     }
 }
 
-fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlags) {
-    if area.is_empty() {
-        return;
-    }
-    if flags.contains(StateFlags::FOCUSED) && !flags.contains(StateFlags::DISABLED) {
-        let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
-        let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
-        gutter = gutter.with_bg_from(container.style);
-        if flags.contains(StateFlags::PRESSED) {
-            match variant {
-                Variant::PRIMARY => {
-                    gutter = gutter
-                        .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::AccentPressed)));
-                }
-                Variant::DEFAULT | Variant::SECONDARY | Variant::SUBTLE => {
-                    gutter = gutter.patch(
-                        ui.paint_patch(&StylePatch::new().set_bg(Role::Fg(FgStep::Primary))),
-                    );
-                }
-                Variant::DANGER => {
-                    gutter = gutter
-                        .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Danger)))
-                        .remove_modifier(termrock::Modifier::BOLD);
-                }
-                _ => {}
-            }
-        } else if variant == Variant::SUBTLE
-            && flags.contains(StateFlags::HOVERED)
-            && ui.theme_ref().capability.color != termrock::ColorLevel::Ansi16
-        {
-            gutter = gutter.patch(ui.paint_patch(&StylePatch::new().set_bg(Role::HoverSurface)));
-        }
-        let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
-    } else if variant == Variant::PRIMARY && !flags.contains(StateFlags::DISABLED) {
-        let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
-        let mut gutter = container.style.remove_modifier(termrock::Modifier::BOLD);
-        if let Some(bg) = container.style.bg {
-            gutter = gutter.fg(bg);
-        }
-        let _ = ui.paint_str(Rect { width: 1, ..area }, " ", gutter);
-    }
-}
-
 fn draw_toggle_marker(ui: &mut Ui<'_>, area: Rect, on: bool, flags: StateFlags) {
     let role = if on {
         Role::Accent
@@ -329,31 +296,5 @@ fn draw_toggle_marker(ui: &mut Ui<'_>, area: Rect, on: bool, flags: StateFlags) 
         },
         if on { "●" } else { "○" },
         marker,
-    );
-}
-
-fn paint_diff_head(ui: &mut Ui<'_>, rect: Rect) {
-    let focused = ui.state(DIFF).contains(StateFlags::FOCUSED);
-    let flags = if focused {
-        StateFlags::FOCUSED
-    } else {
-        StateFlags::empty()
-    };
-    let border_style = ui
-        .style(Family::PANEL, Variant::DEFAULT, Part::BORDER, flags)
-        .style;
-    let _ = ui.paint_str(rect, "─", border_style);
-    let title_style = ui
-        .style(Family::PANEL, Variant::DEFAULT, Part::TITLE, flags)
-        .style;
-    let _ = ui.paint_str(
-        Rect {
-            x: rect.x.saturating_add(1),
-            y: rect.y,
-            width: 6,
-            height: 1,
-        },
-        " Diff ",
-        title_style,
     );
 }
