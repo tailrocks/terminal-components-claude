@@ -1806,6 +1806,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let view = ScrollRegion::view(st.core.scroll(), content, len);
         let indent = ui.design().space.tree_indent;
+        let mut keep = Vec::new();
         for (offset, d) in view.visible_range().enumerate() {
             let Some(flat) = ui.cache::<TreeIndex>(self.id).row(d) else {
                 break;
@@ -1840,9 +1841,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 row.flags
                     .set(StateFlags::SELECTED, st.core.cursor() == Some(row.key));
             }
+            if st.core.cursor() == Some(row.key) || row.flags.contains(StateFlags::SELECTED) {
+                keep.push(rect.y);
+            }
             self.project_pointer_flags(ui, st, live, &mut row);
             self.paint_row(ui, row, indent, item);
         }
+        ui.scroll_edges_except(content, &view, &keep);
         area
     }
 
