@@ -126,7 +126,7 @@ impl ScrollingPage {
             prose,
             list: list_lines(),
             // The capture starts at the historical follow-tail window.
-            log: log_lines(409),
+            log: log_lines(400),
             prose_state,
             list_state,
             log_state,
@@ -154,7 +154,7 @@ impl Default for ScrollingPage {
 
 impl Page for ScrollingPage {
     fn seek_paused(&mut self, frame: usize) {
-        self.log = log_lines(409usize.saturating_add(frame.min(10_000)));
+        self.log = log_lines(400usize.saturating_add(frame.min(10_000)));
     }
 
     fn title(&self) -> &'static str {
@@ -268,9 +268,9 @@ mod motion_tests {
     fn paused_seek_bounds_the_log_fixture() {
         let mut page = ScrollingPage::new();
         page.seek_paused(12);
-        assert_eq!(page.log.len(), 421);
+        assert_eq!(page.log.len(), 412);
         page.seek_paused(usize::MAX);
-        assert_eq!(page.log.len(), 10_409);
+        assert_eq!(page.log.len(), 10_400);
     }
 
     struct PageApp(ScrollingPage);

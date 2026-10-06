@@ -463,7 +463,7 @@ fn showcase_fade_scrolling_wheel_fade_matrix() {
         SHOWCASE_BOOT,
     );
     support::run_canonical_live(&case, |s, _| {
-        wheel_up(s, "739.63s", 2);
+        wheel_up(s, "736.67s", 2);
     });
 }
 
