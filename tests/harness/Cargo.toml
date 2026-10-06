@@ -1,0 +1,52 @@
+[package]
+name = "visual-baseline-harness"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Isolated runner for the tuiscotti visual-baseline suite (test-only crate, own lockfile)"
+license = "MIT"
+
+# Own workspace root: never a member of any parent workspace, so the
+# tuiscotti/ratatui-0.29 dev closure cannot leak into the root lockfile.
+[workspace]
+
+[lib]
+name = "visual_baseline_harness"
+path = "src/lib.rs"
+
+# The four preview binaries, compiled from the parent package's sources so
+# `env!("CARGO_BIN_EXE_*")` keeps working for the moved suite. `test = false`
+# skips bin unit-test builds here; those still run in the root package.
+[[bin]]
+name = "showcase"
+path = "../../src/bin/showcase/main.rs"
+test = false
+
+[[bin]]
+name = "tablepro"
+path = "../../src/bin/tablepro/main.rs"
+test = false
+
+[[bin]]
+name = "jackin-preview"
+path = "../../src/bin/jackin_preview/main.rs"
+test = false
+
+[[bin]]
+name = "holla"
+path = "../../src/bin/holla/main.rs"
+test = false
+
+[dependencies]
+# Parent library under test.
+junie-tui = { path = "../.." }
+# Mirrors the parent bins' direct deps (same specs as root Cargo.toml).
+clap = { version = "4.6", features = ["derive"] }
+ratatui = { version = "0.30", features = ["crossterm_0_29"] }
+unicode-width = "0.2"
+unicode-segmentation = "1"
+# Visual-baseline capture/gate engine (was a root dev-dep before isolation).
+tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274", features = ["pty"] }
+# Legacy Buffer adapter: tuiscotti 0.2.0 pins ratatui =0.29.0 while prod uses
+# 0.30. Test support converts 0.30 buffers cell-by-cell (tests only).
+ratatui029 = { package = "ratatui", version = "=0.29.0", default-features = false, features = ["crossterm"] }

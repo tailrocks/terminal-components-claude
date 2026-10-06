@@ -10,9 +10,11 @@
 //! past a non-ASCII row prefix falls back to the global first hit plus a
 //! containment check, and fails when that hit is outside the scope.
 
-use tuisnap::pty::Session;
-use tuisnap::termlens::Screen;
+use tuiscotti::Screen;
+use tuiscotti::tui::Session;
 use unicode_width::UnicodeWidthStr;
+
+use super::{DEFAULT_WAIT, row_text, screen_find, try_wait_screen};
 
 /// A column×row rectangle, 0-based inclusive. See [`Scope`].
 #[derive(Debug, Clone, Copy)]
@@ -121,15 +123,15 @@ impl Target {
             "target needle must be single-line, got {needle:?}"
         );
         let mut last: Option<(Vec<(u16, u16)>, u16, u16)> = None;
-        let outcome = s.wait_until(|screen| {
-            let (cols, rows) = screen.size();
+        let outcome = try_wait_screen(s, DEFAULT_WAIT, |screen| {
+            let (cols, rows) = (screen.cols(), screen.rows());
             let hits = find_in_scope(screen, scope, needle, cols, rows);
             let unique = hits.len() == 1;
             last = Some((hits, cols, rows));
             unique
         });
         match (outcome, last) {
-            (Ok(()), Some((hits, cols, rows))) => {
+            (Ok(_), Some((hits, cols, rows))) => {
                 let (row, col) = hits[0];
                 Self {
                     needle: needle.to_string(),
@@ -140,7 +142,7 @@ impl Target {
                     rows,
                 }
             }
-            (Ok(()), None) => unreachable!("wait_until always evaluates once"),
+            (Ok(_), None) => unreachable!("try_wait_screen always evaluates once"),
             (Err(e), last) => {
                 let seen = last.map_or_else(
                     || "no observation".to_string(),
@@ -253,29 +255,26 @@ fn find_in_scope(
         return Vec::new();
     };
     // Fast path: every in-scope row is ASCII, so byte offsets are columns.
-    let ascii_rows = (r0..=r1).all(|row| screen.row_text(row).is_ascii());
+    let ascii_rows = (r0..=r1).all(|row| row_text(screen, row).is_ascii());
     if ascii_rows {
         let mut hits = Vec::new();
         for row in r0..=r1 {
-            let line = screen.row_text(row);
+            let line = row_text(screen, row);
             let trimmed = line.trim_end();
             for (off, _) in trimmed.match_indices(needle) {
                 let col = off as u16;
                 if col + (needle.len() as u16) - 1 > c1 || col < c0 {
                     continue;
                 }
-                if screen
-                    .cell(row, col)
-                    .is_some_and(|c| !c.contents().is_empty())
-                {
+                if screen.get(col, row).is_some_and(|c| !c.symbol.is_empty()) {
                     hits.push((row, col));
                 }
             }
         }
         return hits;
     }
-    // Fallback: global first hit (NFC-folded, wide-aware) + containment.
-    match screen.find(needle) {
+    // Fallback: global first hit (wide-aware) + containment.
+    match screen_find(screen, needle) {
         Some((row, col)) if scope.contains(col, row) => vec![(row, col)],
         _ => Vec::new(),
     }

@@ -6,14 +6,14 @@
 //! braille cycle must surface a distinct glyph and the cycle boundary must
 //! wrap exactly. These tests render the real production Button directly
 //! into a Ratatui buffer and convert each buffer through the component
-//! capture path (`tuisnap::ratatui::from_buffer`, the pure-view capture
-//! the tuiscotti lineage provides in this worktree) into a canonical
-//! [`Frame`](tuisnap::Frame); assertions run against both the buffer cells
-//! and the captured frames.
+//! capture path ([`support::capture_buffer`], the pure-view capture
+//! over `tuiscotti::ratatui::from_buffer`) into a canonical
+//! [`Frame`](tuiscotti::Frame); assertions run against both the buffer
+//! cells and the captured frames.
 //!
 //! Evidence: every test writes its captured frames and a human-readable
 //! record under a unique run dir in `target/tuiscotti-actuals/` (gitignored
-//! scratch, like `target/tuisnap/`). The dir is printed via `eprintln`.
+//! scratch, like `target/tuiscotti/`). The dir is printed via `eprintln`.
 //!
 //! The showcase busy control under test is the `Start long job` secondary
 //! button (`ButtonsPage` index 8), busy while its wall-clock job runs.
@@ -30,7 +30,9 @@ use junie_tui::widgets::button::Button;
 use junie_tui::widgets::progress::{SPINNER, spinner_frame};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use tuisnap::{Frame, Provenance};
+use tuiscotti::{Frame, Provenance};
+
+use crate::support;
 
 /// Label of the real showcase busy button (`ButtonsPage` index 8).
 const LABEL: &str = "Start long job";
@@ -72,11 +74,8 @@ fn render_capture(tick: u64, on: Option<bool>, area_w: u16) -> (Buffer, Frame, B
         &mut ring,
     );
     button.render(area, &mut buf, &mut ctx, theme.canvas);
-    let frame = tuisnap::ratatui::from_buffer(
+    let frame = support::capture_buffer(
         &buf,
-        VIEW_COLS,
-        VIEW_ROWS,
-        None,
         Provenance::now("default", "button_busy_frames", vec![]),
     );
     (buf, frame, button)
