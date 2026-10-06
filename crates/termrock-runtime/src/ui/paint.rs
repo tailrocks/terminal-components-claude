@@ -12,7 +12,7 @@ use ratatui_core::buffer::{Buffer, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
 
-use super::Ui;
+use super::{Target, Ui};
 use crate::scroll::ScrollState;
 use crate::text::Span;
 use crate::text::clusters::ClusterFeed;
@@ -450,6 +450,20 @@ impl Ui<'_> {
         (self.buffer(), clip)
     }
 
+    /// Read-only access to the buffer and the current clip rect without
+    /// marking cells as written or erasing semantic roles.
+    pub fn peek(&self) -> (&Buffer, Rect) {
+        let clip = self.clip;
+        let buf: &Buffer = match self.target {
+            Target::Page => self.page,
+            Target::Layer(i) => match self.frame.layers.active().get(i) {
+                Some(d) => &d.buf,
+                None => self.page,
+            },
+        };
+        (buf, clip)
+    }
+
     /// Dim the page under a layer by walking the role recorded per painted
     /// cell and stepping it down the foreground ladder semantically
     /// (§54, `docs/design/visual-contract.md` § Modal backdrops). `steps == 0` is identity:
@@ -529,27 +543,37 @@ impl Ui<'_> {
                     _ => FadeResult::Fg(Some(theme.color.fg[4])),
                 }
             } else {
-                match roles.fg {
-                    Some(Role::CurrentSurface | Role::RaisedSurface | Role::Surface(_)) => {
-                        FadeResult::Fg(bg)
+                let cell_fg = self.page().cell(pos).and_then(|c| c.style().fg);
+                let was_blended = match roles.fg {
+                    Some(Role::Fg(FgStep::Primary)) => cell_fg.is_some_and(|c| c != theme.color.fg[0]),
+                    Some(Role::Fg(FgStep::Secondary)) => cell_fg.is_some_and(|c| c != theme.color.fg[1]),
+                    _ => false,
+                };
+                if was_blended {
+                    FadeResult::Fg(Some(theme.color.fg[4]))
+                } else {
+                    match roles.fg {
+                        Some(Role::CurrentSurface | Role::RaisedSurface | Role::Surface(_)) => {
+                            FadeResult::Fg(bg)
+                        }
+                        Some(
+                            Role::Fg(FgStep::Primary)
+                            | Role::Accent
+                            | Role::AccentHover
+                            | Role::AccentPressed
+                            | Role::Danger
+                            | Role::DangerSoft
+                            | Role::Warning
+                            | Role::Success
+                            | Role::Info,
+                        ) => ladder(theme, surface, 0, steps),
+                        Some(Role::Fg(FgStep::Secondary) | Role::OnAccent | Role::OnDanger) => {
+                            ladder(theme, surface, 1, steps)
+                        }
+                        Some(Role::Fg(FgStep::Ghost)) => ladder(theme, surface, 4, steps),
+                        Some(_) => ladder(theme, surface, 2, steps),
+                        None => FadeResult::Fg(backdrop_text),
                     }
-                    Some(
-                        Role::Fg(FgStep::Primary)
-                        | Role::Accent
-                        | Role::AccentHover
-                        | Role::AccentPressed
-                        | Role::Danger
-                        | Role::DangerSoft
-                        | Role::Warning
-                        | Role::Success
-                        | Role::Info,
-                    ) => ladder(theme, surface, 0, steps),
-                    Some(Role::Fg(FgStep::Secondary) | Role::OnAccent | Role::OnDanger) => {
-                        ladder(theme, surface, 1, steps)
-                    }
-                    Some(Role::Fg(FgStep::Ghost)) => ladder(theme, surface, 4, steps),
-                    Some(_) => ladder(theme, surface, 2, steps),
-                    None => FadeResult::Fg(backdrop_text),
                 }
             };
             let page = self.page_mut();

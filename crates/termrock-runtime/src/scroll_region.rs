@@ -87,6 +87,7 @@ pub struct ScrollRegion<'a> {
     id: Id,
     family: Family,
     scrollbar_visible: bool,
+    focus_override: Option<bool>,
     ov: PartStyle<'a>,
 }
 
@@ -105,6 +106,7 @@ impl fmt::Debug for ScrollRegion<'_> {
             .field("id", &self.id)
             .field("family", &self.family)
             .field("scrollbar_visible", &self.scrollbar_visible)
+            .field("focus_override", &self.focus_override)
             .field("overrides", &self.ov)
             .finish()
     }
@@ -120,8 +122,16 @@ impl<'a> ScrollRegion<'a> {
             id,
             family: Family::SCROLLBAR,
             scrollbar_visible: true,
+            focus_override: None,
             ov: PartStyle::new(),
         }
+    }
+
+    /// Explicitly override the focus state used for track/thumb styling.
+    #[must_use]
+    pub const fn focused(mut self, focused: bool) -> Self {
+        self.focus_override = Some(focused);
+        self
     }
 
     /// Show and reserve the overflow scrollbar column. Default: true.
@@ -353,7 +363,11 @@ impl<'a> ScrollRegion<'a> {
         let track_len = usize::from(track_rect.height);
         let (start, len) = view.thumb(track_len);
         let ov = self.ov;
-        let part_live = ui.state(self.id) & StateFlags::FOCUSED;
+        let part_live = match self.focus_override {
+            Some(true) => ui.state(self.id) | StateFlags::FOCUSED,
+            Some(false) => ui.state(self.id) & !StateFlags::FOCUSED,
+            None => ui.state(self.id) & StateFlags::FOCUSED,
+        };
         let track = ov.style(
             ui,
             self.id,
