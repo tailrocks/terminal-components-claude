@@ -163,60 +163,6 @@ fn log_position_label(card_area: Rect, state: &ViewportState, total: usize) -> S
     }
 }
 
-fn paint_card_title_meta(ui: &mut Ui<'_>, area: Rect, title: &str, meta: &str) {
-    if area.width <= 4 || area.is_empty() {
-        return;
-    }
-    let row = Rect {
-        x: area.x.saturating_add(2),
-        y: area.y,
-        width: area.width.saturating_sub(4),
-        height: 1,
-    };
-    let w = row.width;
-    let title_min = termrock::width(title).min(4);
-    let meta_opt = {
-        let room = w.saturating_sub(if title_min > 0 { title_min + 1 } else { 0 });
-        if termrock::width(meta) > room {
-            Some(termrock::truncate(meta, room))
-        } else {
-            Some(meta.to_string())
-        }
-    };
-    let meta_w = meta_opt.as_ref().map(|m| termrock::width(m)).unwrap_or(0);
-    let cx = row.x;
-    let room = if meta_w > 0 {
-        w.saturating_sub(meta_w + 1)
-    } else {
-        w
-    };
-    let t_trunc = termrock::truncate(title, room);
-    let tw = termrock::width(&t_trunc);
-    let mut right = row.right();
-    if let Some(m) = meta_opt {
-        let mw = termrock::width(&m);
-        if right >= cx + tw + mw + 1 {
-            right = right.saturating_sub(mw);
-            if right == cx.saturating_add(tw).saturating_add(1) {
-                let card_surface = ui.theme().raise(ui.surface());
-                ui.with_surface(card_surface, |ui| {
-                    let title_style = panel_style(ui, FgStep::Secondary);
-                    let _ = ui.paint_str(
-                        Rect {
-                            x: cx.saturating_add(tw),
-                            y: row.y,
-                            width: 1,
-                            height: 1,
-                        },
-                        " ",
-                        title_style,
-                    );
-                });
-            }
-        }
-    }
-}
-
 fn paint_framed_meta(ui: &mut Ui<'_>, area: Rect, title: &str, meta: &str) {
     if area.width <= 4 {
         return;
@@ -698,7 +644,6 @@ impl Page for PanelsPage {
                     paint_legacy_log(ui, body, &self.log_state, &self.log);
                     body
                 });
-                paint_card_title_meta(ui, log_area, "Card · scrollable", &log_meta);
                 paint_legacy_scrollbar(
                     ui,
                     legacy_log_area(log_inner),
