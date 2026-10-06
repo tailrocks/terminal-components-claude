@@ -43,6 +43,7 @@ mod control_states;
 mod holla;
 mod jackin;
 mod negative_controls;
+mod negative_controls_phase6a;
 mod pointer;
 mod showcase;
 mod support;
