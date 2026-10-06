@@ -2431,6 +2431,7 @@ impl TableProApp {
         inactive_tab_style: PaintStyle,
         border_strong_style: PaintStyle,
         border_subtle_style: PaintStyle,
+        status_out: &mut Option<StructureStatusLine>,
     ) {
         let body = termrock::Rect::new(
             inner.x,
@@ -2523,7 +2524,9 @@ impl TableProApp {
             ui.paint_str(strong_rect, &strong_line, border_strong_style);
         }
 
-        // 2. Status line at body.bottom() - 1
+        // 2. Status line at body.bottom() - 1, deferred past the panel
+        // clip (see `StructureStatusLine`): the style resolves here, under
+        // the panel surface, while the paint runs after `Panel::draw`.
         let status_y = body.bottom().saturating_sub(1);
         let n = table.table.columns.len();
         let status_str = format!("{n} columns · read from the catalog · changes are queued until Save");
@@ -2532,13 +2535,12 @@ impl TableProApp {
                 &StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
             ),
         );
-        let (buf, _) = ui.raw();
-        buf.set_string(
-            inner.x.saturating_add(1),
-            status_y,
-            &status_str,
-            status_style.into_style(),
-        );
+        *status_out = Some(StructureStatusLine {
+            x: inner.x.saturating_add(1),
+            y: status_y,
+            text: status_str,
+            style: status_style,
+        });
 
         // 3. DataTable area
         let table_y = body.y.saturating_add(3);
@@ -4613,6 +4615,7 @@ impl TableProApp {
             && self.destructive_intent.is_none()
             && !ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED);
         let panel = Self::content_panel(&title, meta.as_deref(), focused);
+        let mut status_line: Option<StructureStatusLine> = None;
         panel.draw(ui, area, |ui, inner| match self.workbench.active() {
             Some(Tab::Query(query)) => {
                 let (editor_h, bottom_rect) = {
@@ -5010,6 +5013,7 @@ impl TableProApp {
                         inactive_tab_style,
                         border_strong_style,
                         border_subtle_style,
+                        &mut status_line,
                     );
                 } else {
                     let data_rect = termrock::Rect::new(inner.x, inner.y, 7, 1);
@@ -5210,7 +5214,30 @@ impl TableProApp {
                 ui.paint_str(inner, "No tab open", ui.surface_style());
             }
         });
+        if let Some(status) = status_line {
+            ui.paint_str(
+                termrock::Rect::new(status.x, status.y, termrock::width(&status.text), 1),
+                &status.text,
+                status.style,
+            );
+        }
     }
+}
+
+/// Structure-view status line, painted after [`Panel::draw`] restores the
+/// full-screen clip.
+///
+/// `Panel::draw` narrows the clip to its inner rect and every owned paint API
+/// honors the clip, while the frozen baseline pins the raw-buffer overflow
+/// over the panel border at narrow widths. The line is therefore specified
+/// inside the panel closure (same geometry, same panel-surface style) and
+/// painted once the panel closes. Do not move the paint back inside the
+/// closure: the 72x20 captures would lose the overflow cells.
+struct StructureStatusLine {
+    x: u16,
+    y: u16,
+    text: String,
+    style: PaintStyle,
 }
 
 /// Result of executing a query.
