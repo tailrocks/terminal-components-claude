@@ -1416,6 +1416,78 @@ pub fn settle_frame(
     frame_from_screen(&obs.screen, provenance)
 }
 
+/// Settle a screen that may be quiet-idle OR live-ticking, returning the
+/// settled frame (no snapshot gate: needle-proof screens have no approvals).
+///
+/// Accepts either phase, both bounded by `timeout`:
+/// (a) quiet — no new revision for `quiet` (the [`settle_frame`] rule:
+///     showcase/tablepro idle here);
+/// (b) content-stable — an identical [`Frame::digest`] (cells, colors,
+///     cursor) across [`LIVE_STABLE`] while revisions keep arriving (the
+///     Phase-3u liveness+digest rule: jackin replays the intro ritual and
+///     holla's finder repaints on every world tick behind the static
+///     TooSmall notice, so PTY output never quiets by design — yet the
+///     visible text never changes).
+/// The capture happens DURING the live clock at a content-stable phase —
+/// nothing is waited out. The caller's needle wait is the liveness proof
+/// (a wedged PTY never shows the needle); every bound fails loudly with
+/// the last frame text; no sleep is a verdict.
+pub fn settle_frame_content_stable(
+    session: &mut Session,
+    quiet: Duration,
+    timeout: Duration,
+    name: &str,
+    provenance: Provenance,
+) -> Frame {
+    let deadline = Instant::now() + timeout;
+    let obs = session
+        .observe_now()
+        .unwrap_or_else(|e| panic!("`{name}` settle sample failed: {e:#}"));
+    let mut frame = frame_from_screen(&obs.screen, provenance.clone());
+    let mut digest = frame.digest();
+    let mut seen = obs.revision;
+    let mut quiet_since = Instant::now();
+    let mut stable_since = Instant::now();
+    let mut advanced_in_window = false;
+    loop {
+        if Instant::now() >= deadline {
+            panic!(
+                "`{name}` never settled after {} ms; last frame:\n{}",
+                timeout.as_millis(),
+                frame.text()
+            );
+        }
+        std::thread::sleep(LIVE_POLL);
+        let obs = session
+            .observe_now()
+            .unwrap_or_else(|e| panic!("`{name}` settle sample failed: {e:#}"));
+        let next = frame_from_screen(&obs.screen, provenance.clone());
+        let next_digest = next.digest();
+        if next_digest != digest {
+            digest = next_digest;
+            frame = next;
+            stable_since = Instant::now();
+            advanced_in_window = false;
+        } else {
+            frame = next;
+        }
+        if obs.revision > seen {
+            seen = obs.revision;
+            quiet_since = Instant::now();
+            advanced_in_window = true;
+        }
+        // (a) quiet-idle: nothing arrived for `quiet`.
+        if quiet_since.elapsed() >= quiet {
+            return frame;
+        }
+        // (b) live-ticking: identical digest across LIVE_STABLE with the
+        // clock provably flowing inside the window.
+        if stable_since.elapsed() >= LIVE_STABLE && advanced_in_window {
+            return frame;
+        }
+    }
+}
+
 /// Settle the screen and gate the capture.
 pub fn settle_and_gate(session: &mut Session, case: &Case) {
     let frame = settle_frame(

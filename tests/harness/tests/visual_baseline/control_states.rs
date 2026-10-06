@@ -2609,6 +2609,9 @@ use tuiscotti::tui::{Session, Tui};
 /// Spawn `bin` at `cols`x`rows`, wait for `needle`, settle and return the
 /// frame. Deliberately not a ported-matrix capture: no inventory names, no
 /// snapshot gate — a needle proof for a screen with no approved frames.
+/// Settles by quiet-idle OR content stability: jackin/holla repaint on
+/// every tick behind the static notice, so a quiet window alone times out
+/// by design (Phase-3u rule, ungated).
 fn spawn_frame(bin: &str, cols: u16, rows: u16, needle: &str) -> Frame {
     let argv = vec![
         bin.to_string(),
@@ -2635,7 +2638,7 @@ fn spawn_frame(bin: &str, cols: u16, rows: u16, needle: &str) -> Frame {
         &format!("{bin}: needle `{needle}` missing"),
         |screen| support::screen_text(screen).contains(needle),
     );
-    support::settle_frame(
+    support::settle_frame_content_stable(
         &mut s,
         Duration::from_millis(400),
         timeout,
