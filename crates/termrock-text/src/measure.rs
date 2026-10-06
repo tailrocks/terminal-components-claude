@@ -26,6 +26,25 @@ pub fn grapheme_width(g: &str) -> u16 {
     }
 }
 
+/// Byte offset of display column `col` in `s` (the whole length past the end).
+///
+/// A `col` landing inside a wide grapheme snaps to the start of that
+/// grapheme (floor), matching the `w + gw > budget` break-before-add check
+/// used by [`truncate`], [`middle_parts`], and the wrap walk: the straddled
+/// grapheme is kept, never skipped, so horizontal scroll and vertical cursor
+/// motion never silently drop a visible character.
+pub fn byte_at_col(s: &str, col: usize) -> usize {
+    let mut w = 0usize;
+    for (i, g) in s.grapheme_indices(true) {
+        let gw = usize::from(grapheme_width(g));
+        if w.saturating_add(gw) > col {
+            return i;
+        }
+        w = w.saturating_add(gw);
+    }
+    s.len()
+}
+
 /// Display width in columns, as `Buffer::set_stringn` consumes them.
 pub fn width(s: &str) -> u16 {
     if s.len() == 1 {
@@ -255,6 +274,19 @@ mod tests {
     fn wide_characters_count_as_two_columns() {
         assert_eq!(width("日本"), 4);
         assert_eq!(grapheme_width("漢"), 2);
+    }
+
+    #[test]
+    fn byte_at_col_snaps_inside_wide_grapheme_to_its_start() {
+        // "日本": 日 = bytes 0..3 (cols 0..2), 本 = bytes 3..6 (cols 2..4).
+        assert_eq!(byte_at_col("日本", 0), 0);
+        assert_eq!(byte_at_col("日本", 1), 0);
+        assert_eq!(byte_at_col("日本", 2), 3);
+        assert_eq!(byte_at_col("日本", 3), 3);
+        assert_eq!(byte_at_col("日本", 4), 6);
+        assert_eq!(byte_at_col("日本", 9), 6);
+        assert_eq!(byte_at_col("ab", 9), 2);
+        assert_eq!(byte_at_col("", 0), 0);
     }
 
     #[test]

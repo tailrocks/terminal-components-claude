@@ -18,7 +18,7 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy, wipe_string};
-use crate::text::measure::graphemes;
+use crate::text::measure::{byte_at_col, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
 use crate::theme::{ColorLevel, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
@@ -1703,18 +1703,6 @@ impl Validate for Dyn<'_> {
     fn check(&self, s: &str) -> Result<(), FieldError> {
         self.0.check(s)
     }
-}
-
-/// Byte offset of display column `col` in `s` (the whole length past the end).
-pub(super) fn byte_at_col(s: &str, col: usize) -> usize {
-    let mut w = 0usize;
-    for (i, g) in graphemes(s) {
-        if w >= col {
-            return i;
-        }
-        w = w.saturating_add(usize::from(width(g)));
-    }
-    s.len()
 }
 
 impl Bindings for TextInput<'_> {

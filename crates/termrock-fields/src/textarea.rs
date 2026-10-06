@@ -6,8 +6,7 @@ use core::fmt;
 use ratatui_core::layout::{Position, Rect};
 
 use super::input::{
-    BlurPolicy, EditPhase, EditorDraft, ErrorState, TextAction, TextCmd, TextTarget, byte_at_col,
-    discard_error,
+    BlurPolicy, EditPhase, EditorDraft, ErrorState, TextAction, TextCmd, TextTarget, discard_error,
 };
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
@@ -23,7 +22,7 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::text::measure::graphemes;
+use crate::text::measure::{byte_at_col, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, width};
 use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
