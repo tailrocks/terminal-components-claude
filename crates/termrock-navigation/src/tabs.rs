@@ -1030,7 +1030,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
 /// Columns of `row` painted with a non-blank symbol, measured from its left.
 fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
     ui.with_area(row, |ui| {
-        let (buf, clip) = ui.raw();
+        let (buf, clip) = ui.peek();
         let mut last = 0u16;
         for x in clip.columns().map(|c| c.x) {
             if let Some(c) = buf.cell(Position::new(x, clip.y))
