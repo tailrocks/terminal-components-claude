@@ -1,0 +1,4077 @@
+{
+  "version": "1",
+  "group": "navigation",
+  "ref_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "head_commit": "1895d36545bfc7d3721b37da9941d32aca4efed9",
+  "description": "NAVIGATION group slice: ChipBar, List, FilterList, NavList, Tree, Steps, Tabs, PropsList. Same stable IDs as v1/registry.json; ref_source lists reference source symbols verified present in the cited files. src/ tree is identical between ref_commit and head_commit, so cited lines hold for both. FilterList is the Picker widget (query + ranked rows).",
+  "scenarios": [
+    {
+      "id": "CHIP-BAR-001",
+      "app": "showcase",
+      "component": "ChipBar",
+      "part": "chip row + lead + add button",
+      "ref_symbols": [
+        {
+          "glyph": "×",
+          "meaning": "remove affordance on a removable chip"
+        },
+        {
+          "glyph": "…",
+          "meaning": "overflow marker when the next chip does not fit"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor chip"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "×",
+          "meaning": "remove affordance on a removable chip"
+        },
+        {
+          "glyph": "…",
+          "meaning": "overflow marker when the next chip does not fit"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor chip"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/chips.rs",
+          "symbols": [
+            "ChipBar",
+            "chip_id",
+            "close_id",
+            "add_id",
+            "lead_id",
+            "stops",
+            "ChipEvent",
+            "Activate",
+            "Toggle",
+            "Remove",
+            "ClearAll",
+            "Lead"
+          ]
+        },
+        {
+          "path": "src/bin/showcase/pages/chips.rs",
+          "symbols": [
+            "CANDIDATES",
+            "sync_lead",
+            "on_chip",
+            "match_all",
+            "next_candidate"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "chips",
+        "chips": [
+          "status = 'pending'",
+          "total > 100",
+          "country in (DE, FR)"
+        ],
+        "disabled_chip": "country in (DE, FR)",
+        "lead": "match all ▾",
+        "add": "+ Add filter",
+        "candidates": [
+          "created_at > '2026-01-01'",
+          "currency = 'EUR'",
+          "notes is not null",
+          "seats between 5 and 50"
+        ]
+      },
+      "state": {
+        "cursor": 0,
+        "match_all": true,
+        "last": "nothing yet"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot the showcase chips page"
+        },
+        {
+          "step": 2,
+          "action": "move the cursor across chips and the add stop",
+          "key": "Right"
+        },
+        {
+          "step": 3,
+          "action": "toggle the chip under the cursor",
+          "key": "Space"
+        },
+        {
+          "step": 4,
+          "action": "activate the chip under the cursor",
+          "key": "Enter"
+        },
+        {
+          "step": 5,
+          "action": "remove the chip under the cursor",
+          "key": "x"
+        },
+        {
+          "step": 6,
+          "action": "add the next candidate filter",
+          "key": "+"
+        },
+        {
+          "step": 7,
+          "action": "clear all chips",
+          "key": "X"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "bar-initial",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "chip-toggled",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "chip-removed",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "cleared",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "lead shows 'match all ▾' and the add stop shows '+ Add filter'"
+          },
+          {
+            "id": "V2",
+            "text": "each removable chip ends with ×; a chip that does not fit is replaced by …"
+          },
+          {
+            "id": "V3",
+            "text": "panel meta shows the count of enabled chips ('N active')"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "cursor ranges over chips plus the add stop (stops = len + add?) and clamps on every key"
+          },
+          {
+            "id": "S2",
+            "text": "Space flips enabled; Remove splices the chip; ClearAll empties the vec"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter on a chip emits Activate, on the add stop emits Add"
+          },
+          {
+            "id": "A2",
+            "text": "Space emits Toggle; x/Delete/Backspace on a removable chip emits Remove; + emits Add; lead click emits Lead"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Remove never fires for a non-removable chip or when the cursor sits on the add stop"
+          },
+          {
+            "id": "N2",
+            "text": "a modified chord (ctrl/alt + char) is Ignored and moves nothing"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/chips.rs",
+            "lines": "85-123,125-150,196-199",
+            "note": "cursor stops, key events, click ids, overflow ellipsis"
+          },
+          {
+            "path": "src/bin/showcase/pages/chips.rs",
+            "lines": "21-26,39-48,76-116",
+            "note": "three fixtures, lead, candidate cycle, event effects"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/chips/80x24/truecolor.txt",
+          "snapshots/showcase/flows/chips/toggled/80x24/truecolor.txt",
+          "snapshots/showcase/flows/chips/select_open/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "CHIP-FILTER-002",
+      "app": "tablepro",
+      "component": "ChipBar",
+      "part": "filter chips + lead",
+      "ref_symbols": [
+        {
+          "glyph": "×",
+          "meaning": "remove affordance on a filter chip"
+        },
+        {
+          "glyph": "▾",
+          "meaning": "lead indicator for the match-all/match-any mode"
+        },
+        {
+          "glyph": "+",
+          "meaning": "add stop prefix for a new filter"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "×",
+          "meaning": "remove affordance on a filter chip"
+        },
+        {
+          "glyph": "▾",
+          "meaning": "lead indicator for the match-all/match-any mode"
+        },
+        {
+          "glyph": "+",
+          "meaning": "add stop prefix for a new filter"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/chips.rs",
+          "symbols": [
+            "Chip",
+            "ChipBar",
+            "ChipEvent",
+            "Toggle",
+            "Activate",
+            "Remove",
+            "Lead"
+          ]
+        },
+        {
+          "path": "src/bin/tablepro/tabs.rs",
+          "symbols": [
+            "rebuild_chips",
+            "chip_label",
+            "match_all",
+            "filters"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "screen": "table orders",
+        "filters": [
+          "status = 'pending'"
+        ],
+        "lead_all": "match all ▾",
+        "lead_any": "match any ▾"
+      },
+      "state": {
+        "match_all": true,
+        "active_filters": 1
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "open the orders table with one enabled filter"
+        },
+        {
+          "step": 2,
+          "action": "toggle the filter chip under the cursor",
+          "key": "Space"
+        },
+        {
+          "step": 3,
+          "action": "flip the lead between match all and match any"
+        },
+        {
+          "step": 4,
+          "action": "remove the filter chip",
+          "key": "x"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "filtered-chips",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "lead-any",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "chip-removed",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "one chip per Filter with the chip_label text and a × affordance"
+          },
+          {
+            "id": "V2",
+            "text": "lead reads 'match all ▾' or 'match any ▾' matching match_all"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "rebuild_chips mirrors filters (label + enabled) and rewrites the lead"
+          },
+          {
+            "id": "S2",
+            "text": "toggling a chip flips only that Filter enabled flag"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Toggle/Remove/Lead events from the bar update filters and re-run the query"
+          },
+          {
+            "id": "A2",
+            "text": "Enter on a chip emits Activate for the filter editor"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "an empty filter list shows no chips but keeps the lead and add stop"
+          },
+          {
+            "id": "N2",
+            "text": "a disabled chip never contributes to the filtered query"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/chips.rs",
+            "lines": "46-53,85-123",
+            "note": "chip events and the keys that emit them"
+          },
+          {
+            "path": "src/bin/tablepro/tabs.rs",
+            "lines": "374-375,405-409,518-533",
+            "note": "chips field, lead setup, rebuild_chips mirror"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/table/filtered/80x24/truecolor.txt",
+          "snapshots/tablepro/table/filtered/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "LIST-SINGLE-001",
+      "app": "showcase",
+      "component": "List",
+      "part": "single-select column + empty state",
+      "ref_symbols": [
+        {
+          "glyph": "›",
+          "meaning": "chosen marker on the selected row"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "›",
+          "meaning": "chosen marker on the selected row"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/list.rs",
+          "symbols": [
+            "ListBox",
+            "ListItem",
+            "SelectMode",
+            "chosen",
+            "cursor",
+            "move_cursor",
+            "activate",
+            "empty_text",
+            "ensure_visible"
+          ]
+        },
+        {
+          "path": "src/bin/showcase/pages/lists.rs",
+          "symbols": [
+            "ListsPage",
+            "chosen",
+            "empty_text",
+            "position_label"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "lists",
+        "column": "Language",
+        "items": "crate::data::languages() (20 entries, Rust first)",
+        "empty_column": "Search results",
+        "empty_text": "No results for “retry”"
+      },
+      "state": {
+        "chosen": 0,
+        "cursor": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot the showcase lists page"
+        },
+        {
+          "step": 2,
+          "action": "move the cursor down two rows",
+          "key": "j"
+        },
+        {
+          "step": 3,
+          "action": "jump to the last row",
+          "key": "G"
+        },
+        {
+          "step": 4,
+          "action": "choose the cursor row",
+          "key": "Enter"
+        },
+        {
+          "step": 5,
+          "action": "click a visible row"
+        },
+        {
+          "step": 6,
+          "action": "wheel the viewport without moving the cursor"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "lists-initial",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "single-moved",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "single-chosen",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the chosen row carries › in the marker cell; other rows are blank"
+          },
+          {
+            "id": "V2",
+            "text": "the empty column shows its empty_text centred, never a marker"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "cursor clamps to the item range; activate sets chosen only for enabled rows"
+          },
+          {
+            "id": "S2",
+            "text": "wheeling moves the viewport and keeps the cursor; next keystroke re-reveals it"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter/Space activates the cursor row; a click moves the cursor and activates"
+          },
+          {
+            "id": "A2",
+            "text": "g/G/Home/End/PageUp/PageDown move by row, end, or viewport"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "an empty list ignores every key (Ignored, never Consumed-by-action)"
+          },
+          {
+            "id": "N2",
+            "text": "a click past the last row is Consumed without moving the cursor"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/list.rs",
+            "lines": "93-119,121-175,291-295",
+            "note": "cursor clamp, activate, full key map, › marker"
+          },
+          {
+            "path": "src/bin/showcase/pages/lists.rs",
+            "lines": "21-27,89-120",
+            "note": "language fixtures with chosen=0, chosen header, position label"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/lists/80x24/truecolor.txt",
+          "snapshots/showcase/flows/lists/moved/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "LIST-MULTI-002",
+      "app": "showcase",
+      "component": "List",
+      "part": "multi-select column",
+      "ref_symbols": [
+        {
+          "glyph": "✓",
+          "meaning": "checked marker on each included row"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "✓",
+          "meaning": "checked marker on each included row"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/list.rs",
+          "symbols": [
+            "checked",
+            "anchor",
+            "checked_count",
+            "activate",
+            "move_cursor",
+            "SelectMode"
+          ]
+        },
+        {
+          "path": "src/bin/showcase/pages/lists.rs",
+          "symbols": [
+            "checked_count",
+            "checked",
+            "disabled",
+            "ListsPage"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "lists",
+        "column": "Files to include",
+        "items": "12 file rows with meta tags",
+        "disabled": [
+          "src/db/schema.rs",
+          "Cargo.lock"
+        ],
+        "checked": [
+          "src/api/auth.rs",
+          "src/api/billing.rs"
+        ]
+      },
+      "state": {
+        "checked": [
+          0,
+          1
+        ],
+        "cursor": 0,
+        "anchor": null
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot the showcase lists page"
+        },
+        {
+          "step": 2,
+          "action": "toggle the cursor row",
+          "key": "Space"
+        },
+        {
+          "step": 3,
+          "action": "extend a checked range downward",
+          "key": "Shift+Down"
+        },
+        {
+          "step": 4,
+          "action": "toggle all non-disabled rows",
+          "key": "a"
+        },
+        {
+          "step": 5,
+          "action": "attempt to activate a disabled row",
+          "key": "Enter"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "multi-initial",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "range-checked",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "all-toggled",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "checked rows carry ✓; the header meta shows 'N selected' from checked_count"
+          },
+          {
+            "id": "V2",
+            "text": "disabled rows render muted and never carry ✓ from range or all operations"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "Shift+arrows check anchor..cursor skipping disabled; plain moves clear the anchor"
+          },
+          {
+            "id": "S2",
+            "text": "'a' checks all non-disabled rows, or clears them when all are checked"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Space/Enter flips the cursor row unless it is disabled"
+          },
+          {
+            "id": "A2",
+            "text": "clicking a row moves the cursor there and toggles it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "activate on a disabled row is Consumed and changes nothing"
+          },
+          {
+            "id": "N2",
+            "text": "hover and focus never appear on disabled rows"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/list.rs",
+            "lines": "93-108,110-119,159-172",
+            "note": "range anchor, activate gate, toggle-all"
+          },
+          {
+            "path": "src/bin/showcase/pages/lists.rs",
+            "lines": "28-47,121-146",
+            "note": "file fixtures with disabled rows, selected-count meta"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/lists/80x24/truecolor.txt",
+          "snapshots/showcase/hover/lists/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "FLIST-QUERY-001",
+      "app": "showcase",
+      "component": "FilterList",
+      "part": "query field + ranked rows",
+      "ref_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "caret bar at the left of the query field"
+        },
+        {
+          "glyph": "…",
+          "meaning": "ellipsis inside the query placeholder text"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "caret bar at the left of the query field"
+        },
+        {
+          "glyph": "…",
+          "meaning": "ellipsis inside the query placeholder text"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/picker.rs",
+          "symbols": [
+            "Picker",
+            "PickerItem",
+            "PickerEvent",
+            "QueryChanged",
+            "Chosen",
+            "ChosenAlt",
+            "Cancelled",
+            "set_items",
+            "eligible",
+            "current_key",
+            "matched",
+            "scope"
+          ]
+        },
+        {
+          "path": "src/bin/showcase/pages/pickers.rs",
+          "symbols": [
+            "Kind",
+            "Scope",
+            "flatten",
+            "fill",
+            "fuzzy",
+            "on_picker"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "pickers",
+        "kind": "Quick",
+        "title": "Open quickly",
+        "placeholder": "Files and tasks…",
+        "width": 80,
+        "scope": "All",
+        "entries": "project files plus 12 tasks"
+      },
+      "state": {
+        "query": "",
+        "cursor": 0,
+        "status": "Ready"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "open the Quick picker from its button"
+        },
+        {
+          "step": 2,
+          "action": "type 'auth' into the query field"
+        },
+        {
+          "step": 3,
+          "action": "move to the second match",
+          "key": "Down"
+        },
+        {
+          "step": 4,
+          "action": "choose the cursor row",
+          "key": "Enter"
+        },
+        {
+          "step": 5,
+          "action": "reopen, type, then clear the query",
+          "key": "Escape"
+        },
+        {
+          "step": 6,
+          "action": "cancel the picker",
+          "key": "Escape"
+        },
+        {
+          "step": 7,
+          "action": "reopen and cycle the scope",
+          "key": "Tab"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "picker-open",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "query-auth",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "chose-auth",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the query field shows the placeholder when empty, underlined query text otherwise"
+          },
+          {
+            "id": "V2",
+            "text": "matched label bytes render bold; the scope label sits right-aligned in the title row"
+          },
+          {
+            "id": "V3",
+            "text": "the first row of each group shows its group label right-aligned and muted"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "every query edit emits QueryChanged and set_items resets to the first eligible row"
+          },
+          {
+            "id": "S2",
+            "text": "Esc with text clears the query; Esc with an empty query emits Cancelled"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter emits Chosen (ChosenAlt with alt); only eligible rows resolve"
+          },
+          {
+            "id": "A2",
+            "text": "Tab emits NextScope; a click outside the modal dismisses it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Enter with no eligible row and blank query is Consumed without an event"
+          },
+          {
+            "id": "N2",
+            "text": "typing is impossible when searchable is false (Level kind)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/picker.rs",
+            "lines": "144-186,270-292,449-484",
+            "note": "set_items reset, eligible gate, Enter/Esc, query render"
+          },
+          {
+            "path": "src/bin/showcase/pages/pickers.rs",
+            "lines": "105-130,132-170,241-252",
+            "note": "Quick kind setup, fuzzy fill with scope, QueryChanged refill"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/pickers/80x24/truecolor.txt",
+          "snapshots/showcase/flows/pickers/open/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "FLIST-CHOICE-002",
+      "app": "showcase",
+      "component": "FilterList",
+      "part": "fixed-choice + tab rows",
+      "ref_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        },
+        {
+          "glyph": "≡",
+          "meaning": "kind glyph on the query tab row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        },
+        {
+          "glyph": "≡",
+          "meaning": "kind glyph on the query tab row"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/picker.rs",
+          "symbols": [
+            "searchable",
+            "Secondary",
+            "NextScope",
+            "Submit",
+            "Back",
+            "refresh_items",
+            "step",
+            "set_cursor",
+            "PickerStatus"
+          ]
+        },
+        {
+          "path": "src/bin/showcase/pages/pickers.rs",
+          "symbols": [
+            "Kind",
+            "level",
+            "Secondary",
+            "NextScope",
+            "tabs"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "pickers",
+        "tabs_kind": {
+          "title": "Open tabs",
+          "width": 48,
+          "tabs": [
+            "Query 1",
+            "orders",
+            "order_items",
+            "History"
+          ]
+        },
+        "level_kind": {
+          "title": "Safe Mode · this connection",
+          "width": 112,
+          "searchable": false,
+          "level": 3,
+          "levels": [
+            "Silent",
+            "Alert",
+            "Alert (Full)",
+            "Safe Mode",
+            "Safe Mode (Full)",
+            "Read-Only"
+          ]
+        }
+      },
+      "state": {
+        "cursor": 0,
+        "status": "Ready"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "open the Tabs picker"
+        },
+        {
+          "step": 2,
+          "action": "close the cursor tab row",
+          "key": "Delete"
+        },
+        {
+          "step": 3,
+          "action": "open the Level picker (no search box)"
+        },
+        {
+          "step": 4,
+          "action": "move with j/k in the fixed list",
+          "key": "j"
+        },
+        {
+          "step": 5,
+          "action": "set the level",
+          "key": "Enter"
+        },
+        {
+          "step": 6,
+          "action": "Backspace on an empty Quick query emits Back",
+          "key": "Backspace"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tabs-open",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "tab-closed",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "level-set",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the Level modal has no query field; the cursor row keeps its gutter"
+          },
+          {
+            "id": "V2",
+            "text": "the current level row shows its 'current' tag; the active tab shows 'active'"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "refresh_items follows the cursor row key across insert/remove; a vanished key falls to first eligible"
+          },
+          {
+            "id": "S2",
+            "text": "Delete emits Secondary only for an eligible row of a Ready picker"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter on a level sets it and closes with a status line"
+          },
+          {
+            "id": "A2",
+            "text": "Backspace on an empty query emits Back instead of editing"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Delete/Enter/clicks resolve to nothing while Loading or Error"
+          },
+          {
+            "id": "N2",
+            "text": "j/k type into the query when searchable; they move only when it is false"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/picker.rs",
+            "lines": "153-170,293-367",
+            "note": "key-following refresh, navigation and secondary keys"
+          },
+          {
+            "path": "src/bin/showcase/pages/pickers.rs",
+            "lines": "194-239,270-303",
+            "note": "level fixtures with cursor preset, close/scope/cancel handling"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/flows/pickers/tabs/80x24/truecolor.txt",
+          "snapshots/showcase/flows/pickers/level/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "NAV-SHELL-001",
+      "app": "showcase",
+      "component": "NavList",
+      "part": "shell sidebar",
+      "ref_symbols": [
+        {
+          "glyph": "›",
+          "meaning": "current-page marker"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor entry"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "›",
+          "meaning": "current-page marker"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor entry"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/showcase/app.rs",
+          "symbols": [
+            "NAV_ENTRIES",
+            "NavEntry",
+            "nav_cursor",
+            "nav_scroll",
+            "nav_reveal",
+            "draw_sidebar",
+            "goto",
+            "NAV"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "shell": "showcase",
+        "sections": 3,
+        "entries": "NAV_ENTRIES page list with section labels"
+      },
+      "state": {
+        "nav_cursor": 0,
+        "page": "overview"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot showcase and focus the sidebar",
+          "key": "0"
+        },
+        {
+          "step": 2,
+          "action": "move the cursor to Buttons",
+          "key": "Down"
+        },
+        {
+          "step": 3,
+          "action": "open the cursor page",
+          "key": "Enter"
+        },
+        {
+          "step": 4,
+          "action": "cycle to the next page",
+          "key": "]"
+        },
+        {
+          "step": 5,
+          "action": "jump the cursor to the last entry",
+          "key": "End"
+        },
+        {
+          "step": 6,
+          "action": "return focus to navigation",
+          "key": "Escape"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "nav-buttons",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "nav-end",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the open page carries ›; the cursor entry carries ▎ only while the sidebar is focused"
+          },
+          {
+            "id": "V2",
+            "text": "short heights drop section labels and keep a one-cell gap (compact mode)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "nav_cursor clamps to the entries; reveal pulls it into view after moves and resizes"
+          },
+          {
+            "id": "S2",
+            "text": "[ and ] cycle the open page with wrap-around; the cursor is untouched"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter/Space/Right/l opens the cursor page; Right/l also advances focus into the page"
+          },
+          {
+            "id": "A2",
+            "text": "0 focuses the sidebar; Esc refocuses it from anywhere; clicks move the cursor and open"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the ▎ gutter never shows on the cursor row while focus sits inside a page"
+          },
+          {
+            "id": "N2",
+            "text": "current (›) persists across focus moves; cursor moves never change the page alone"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/showcase/app.rs",
+            "lines": "523-566,603-626,1004-1066",
+            "note": "sidebar keys, global cycle/refocus keys, sidebar render"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/flows/nav/cycled/80x24/truecolor.txt",
+          "snapshots/showcase/flows/nav/end/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "NAV-SIDE-002",
+      "app": "showcase",
+      "component": "NavList",
+      "part": "sidebar page + collapsed mode",
+      "ref_symbols": [
+        {
+          "glyph": "›",
+          "meaning": "current-item marker"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor item"
+        },
+        {
+          "glyph": "·",
+          "meaning": "collapsed-section placeholder dots"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "›",
+          "meaning": "current-item marker"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor item"
+        },
+        {
+          "glyph": "·",
+          "meaning": "collapsed-section placeholder dots"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/showcase/pages/sidebars.rs",
+          "symbols": [
+            "NavList",
+            "NavItem",
+            "NavRow",
+            "current",
+            "collapsed",
+            "rows",
+            "row_of",
+            "reveal_cursor",
+            "on_click",
+            "width"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "sidebars",
+        "sections": [
+          "Workspace",
+          "Project",
+          "Preferences"
+        ],
+        "items": [
+          "Tasks",
+          "Runs",
+          "Branches",
+          "Members",
+          "Environment",
+          "Billing",
+          "Keyboard",
+          "Appearance"
+        ],
+        "badge": "Tasks shows 3",
+        "disabled": "Billing",
+        "widths": {
+          "open": 24,
+          "collapsed": 6
+        }
+      },
+      "state": {
+        "current": 0,
+        "cursor": 0,
+        "collapsed": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot the showcase sidebars page"
+        },
+        {
+          "step": 2,
+          "action": "move down past enabled items",
+          "key": "j"
+        },
+        {
+          "step": 3,
+          "action": "open the cursor item",
+          "key": "Enter"
+        },
+        {
+          "step": 4,
+          "action": "toggle collapsed mode from the collapse button"
+        },
+        {
+          "step": 5,
+          "action": "click an enabled item"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "sidebars-initial",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "item-opened",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "collapsed",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "section headings precede each group with a blank row between sections"
+          },
+          {
+            "id": "V2",
+            "text": "collapsed mode shows icons only at width 6 with ···· section markers"
+          },
+          {
+            "id": "V3",
+            "text": "the collapse button label flips between Collapse, Expand, and ›"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "Up/Down/Home/End skip disabled items; reveal_cursor keeps the cursor row visible"
+          },
+          {
+            "id": "S2",
+            "text": "Enter/Space sets current only for enabled items"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "a click on an enabled item moves cursor and current together"
+          },
+          {
+            "id": "A2",
+            "text": "the collapse button toggles collapsed without moving cursor or current"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "disabled items are skipped by keys and never registered clickable"
+          },
+          {
+            "id": "N2",
+            "text": "collapsed mode keeps rows and markers; only labels are hidden"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/showcase/pages/sidebars.rs",
+            "lines": "63-93,123-180,196-258",
+            "note": "flat rows, key skip logic, render with current and collapse"
+          },
+          {
+            "path": "src/bin/showcase/pages/sidebars.rs",
+            "lines": "290-361",
+            "note": "eight fixtures across three sections, Billing disabled"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/sidebars/80x24/truecolor.txt",
+          "snapshots/showcase/pages/sidebars/72x20/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "TREE-FOLD-001",
+      "app": "showcase",
+      "component": "Tree",
+      "part": "folding rows + selection panel",
+      "ref_symbols": [
+        {
+          "glyph": "▸",
+          "meaning": "fold glyph on a collapsed folder"
+        },
+        {
+          "glyph": "▾",
+          "meaning": "fold glyph on an expanded folder"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▸",
+          "meaning": "fold glyph on a collapsed folder"
+        },
+        {
+          "glyph": "▾",
+          "meaning": "fold glyph on an expanded folder"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/tree.rs",
+          "symbols": [
+            "TreeView",
+            "TreeNode",
+            "FlatRow",
+            "TreeEvent",
+            "expanded",
+            "toggle",
+            "expand_all",
+            "collapse_all",
+            "reveal",
+            "cursor_path"
+          ]
+        },
+        {
+          "path": "src/bin/showcase/pages/trees.rs",
+          "symbols": [
+            "TreesPage",
+            "position_label",
+            "expanded",
+            "selected"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "trees",
+        "roots": [
+          "src",
+          "tests",
+          "docs",
+          "Cargo.toml",
+          "README.md"
+        ],
+        "leaves": "size metas (2.1 KB, 312 B, …)",
+        "panel": "Selection card with path, depth, cursor, visible, open"
+      },
+      "state": {
+        "cursor": 0,
+        "selected": null
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot the showcase trees page"
+        },
+        {
+          "step": 2,
+          "action": "expand the cursor folder",
+          "key": "Right"
+        },
+        {
+          "step": 3,
+          "action": "move into the folder and select a leaf",
+          "key": "Enter"
+        },
+        {
+          "step": 4,
+          "action": "climb to the parent",
+          "key": "Left"
+        },
+        {
+          "step": 5,
+          "action": "expand every folder",
+          "key": "*"
+        },
+        {
+          "step": 6,
+          "action": "collapse every folder",
+          "key": "-"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "trees-initial",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "api-expanded",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "leaf-selected",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "folders show ▸/▾, leaves a blank; indent grows two cells per depth"
+          },
+          {
+            "id": "V2",
+            "text": "the meta column shows for all visible rows or none; labels win over meta when narrow"
+          },
+          {
+            "id": "V3",
+            "text": "the Selection card shows the selected path, depth, cursor label, and row counts"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "toggle flips the expanded set by path identity; collapse relocates the cursor to the ancestor"
+          },
+          {
+            "id": "S2",
+            "text": "Enter on a leaf sets selected; cursor moves never clear it"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Right expands or steps in, Left collapses or climbs, Enter toggles or activates"
+          },
+          {
+            "id": "A2",
+            "text": "clicking a fold glyph toggles; clicking a leaf row selects it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Enter on a note row is Consumed and selects nothing"
+          },
+          {
+            "id": "N2",
+            "text": "modified chords never navigate"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/tree.rs",
+            "lines": "148-220,316-341,396-434",
+            "note": "flatten by identity, toggle by path, fold/climb/activate keys"
+          },
+          {
+            "path": "src/bin/showcase/pages/trees.rs",
+            "lines": "18-24,34-103",
+            "note": "project_tree fixture, selection panel fields"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/trees/80x24/truecolor.txt",
+          "snapshots/showcase/flows/trees/expanded/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "TREE-FILTER-002",
+      "app": "tablepro",
+      "component": "Tree",
+      "part": "filtered explorer + lazy load",
+      "ref_symbols": [
+        {
+          "glyph": "▸",
+          "meaning": "fold glyph on lazy and collapsed folders"
+        },
+        {
+          "glyph": "▾",
+          "meaning": "fold glyph on an expanded folder"
+        },
+        {
+          "glyph": "◇",
+          "meaning": "kind glyph on a filtered connection leaf"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▸",
+          "meaning": "fold glyph on lazy and collapsed folders"
+        },
+        {
+          "glyph": "▾",
+          "meaning": "fold glyph on an expanded folder"
+        },
+        {
+          "glyph": "◇",
+          "meaning": "kind glyph on a filtered connection leaf"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/tree.rs",
+          "symbols": [
+            "filter",
+            "set_filter",
+            "set_children",
+            "set_busy",
+            "lazy",
+            "busy",
+            "note",
+            "matches",
+            "relocate",
+            "flatten"
+          ]
+        },
+        {
+          "path": "src/bin/tablepro/workbench.rs",
+          "symbols": [
+            "EXPLORER",
+            "build_explorer",
+            "schema_children",
+            "explorer_filter",
+            "set_filter",
+            "set_children"
+          ]
+        },
+        {
+          "path": "src/bin/tablepro/connections.rs",
+          "symbols": [
+            "set_filter",
+            "filter",
+            "glyph",
+            "short"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "screens": [
+          "connections",
+          "workbench explorer"
+        ],
+        "connections_query": "stag",
+        "explorer": "database dir, lazy schema dirs, Tables/Views/Functions/Sequences sections"
+      },
+      "state": {
+        "filter": "stag",
+        "cursor": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "open connections and type 'stag' in the filter"
+        },
+        {
+          "step": 2,
+          "action": "clear the filter"
+        },
+        {
+          "step": 3,
+          "action": "expand a lazy schema node in the explorer"
+        },
+        {
+          "step": 4,
+          "action": "deliver the fetched children while the cursor sits below"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "connections-stag",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "explorer-filtered",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "children-arrived",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "filtering keeps match ancestors visible and opens folders that contain matches"
+          },
+          {
+            "id": "V2",
+            "text": "lazy nodes show ▸ until children arrive; busy nodes show the spinner instead"
+          },
+          {
+            "id": "V3",
+            "text": "note rows render muted and are never selectable"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "set_filter resets the cursor to 0 and jumps the viewport to the start"
+          },
+          {
+            "id": "S2",
+            "text": "set_children keeps the focused path: matches follow identity, not row index"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "expanding a lazy node marks it busy and emits Expand for the owner to fetch"
+          },
+          {
+            "id": "A2",
+            "text": "typing in the filter re-runs set_filter on every committed edit"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "a filter that matches nothing yields zero rows, never a crash"
+          },
+          {
+            "id": "N2",
+            "text": "children arriving above the cursor never retarget the focused node"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/tree.rs",
+            "lines": "158-220,268-290",
+            "note": "substring match walk, identity relocate, load and filter setters"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "459-467,291-314",
+            "note": "filter input wiring, rebuild preserving the active filter"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "110,120,144,184,353,407-410,616",
+            "note": "explorer tree, lazy schemas and tables, filter and child delivery"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/connections/filter/80x24/truecolor.txt",
+          "snapshots/tablepro/connections/filter/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "STEPS-LIFE-001",
+      "app": "showcase",
+      "component": "Steps",
+      "part": "stage rail rows",
+      "ref_symbols": [
+        {
+          "glyph": "✓",
+          "meaning": "done marker on a finished step"
+        },
+        {
+          "glyph": "!",
+          "meaning": "bold failure marker on a failed step"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "✓",
+          "meaning": "done marker on a finished step"
+        },
+        {
+          "glyph": "!",
+          "meaning": "bold failure marker on a failed step"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/steps.rs",
+          "symbols": [
+            "StepRail",
+            "Step",
+            "StepState",
+            "frontier",
+            "counts",
+            "failed",
+            "set_state",
+            "set_meta",
+            "numbered",
+            "terminal"
+          ]
+        },
+        {
+          "path": "src/bin/showcase/pages/terminal.rs",
+          "symbols": [
+            "STAGES",
+            "DURATIONS",
+            "advance",
+            "reset",
+            "stage_tick"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "terminal",
+        "stages": [
+          "Resolve workspace",
+          "Pull base image",
+          "Build container",
+          "Mount sources",
+          "Resolve credentials",
+          "Start agent",
+          "Ready"
+        ],
+        "durations": [
+          10,
+          26,
+          40,
+          8,
+          18,
+          14,
+          1
+        ],
+        "skipped": "Mount sources is skipped as cached"
+      },
+      "state": {
+        "running": true,
+        "stage": 0,
+        "tick": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot the terminal page (run starts at once)"
+        },
+        {
+          "step": 2,
+          "action": "advance ticks until all stages finish",
+          "ticks": 120
+        },
+        {
+          "step": 3,
+          "action": "reset with a failure at stage 1"
+        },
+        {
+          "step": 4,
+          "action": "advance ticks past the failing stage",
+          "ticks": 20
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "rail-running",
+          "tick": 5,
+          "capture": true
+        },
+        {
+          "name": "rail-done",
+          "tick": 120,
+          "capture": true
+        },
+        {
+          "name": "rail-failed",
+          "tick": 20,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "rows show the ordinal, the state glyph (spinner, ✓, bold !), and the label"
+          },
+          {
+            "id": "V2",
+            "text": "the running row shows elapsed meta; the failed row shows 'exit 1'; later rows show 'blocked'"
+          },
+          {
+            "id": "V3",
+            "text": "queued rows render muted, the running label bold, failed labels bold error"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "frontier is the first non-terminal step; counts report done/skipped/failed"
+          },
+          {
+            "id": "S2",
+            "text": "a failure marks the stage Failed and every later stage Blocked"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "each tick advances the log and the running stage meta; finishing a stage marks it Done"
+          },
+          {
+            "id": "A2",
+            "text": "reset re-queues every stage and restarts the run at stage 0"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "meta hides when the row is too narrow (needs mw + 12 cells)"
+          },
+          {
+            "id": "N2",
+            "text": "a finished run ignores further ticks"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/steps.rs",
+            "lines": "112-129,247-315",
+            "note": "frontier and counts, state glyphs and meta column"
+          },
+          {
+            "path": "src/bin/showcase/pages/terminal.rs",
+            "lines": "24-34,127-130,153-190,252",
+            "note": "stage fixtures, reset, failure and skip branches, rail render"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/terminal/80x24/truecolor.txt",
+          "snapshots/showcase/pages/terminal/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "STEPS-RAIL-002",
+      "app": "jackin-preview",
+      "component": "Steps",
+      "part": "cockpit rail (display-only)",
+      "ref_symbols": [
+        {
+          "glyph": "✓",
+          "meaning": "done marker on a finished stage"
+        },
+        {
+          "glyph": "!",
+          "meaning": "bold failure marker on a failed stage"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "✓",
+          "meaning": "done marker on a finished stage"
+        },
+        {
+          "glyph": "!",
+          "meaning": "bold failure marker on a failed stage"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/steps.rs",
+          "symbols": [
+            "selectable",
+            "on_click",
+            "on_wheel",
+            "on_scrollbar",
+            "locate",
+            "owns"
+          ]
+        },
+        {
+          "path": "src/bin/jackin_preview/screens/cockpit.rs",
+          "symbols": [
+            "rail",
+            "RAIL",
+            "Stage",
+            "frontier",
+            "set_state"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "screen": "cockpit",
+        "stages": 11,
+        "selectable": false,
+        "header": "stage N of 11 · label · done/skipped counts"
+      },
+      "state": {
+        "tick": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "open the cockpit with the run at stage 3"
+        },
+        {
+          "step": 2,
+          "action": "send cursor keys at the rail",
+          "key": "Down"
+        },
+        {
+          "step": 3,
+          "action": "click a rail row"
+        },
+        {
+          "step": 4,
+          "action": "advance the run to a failed stage",
+          "ticks": 30
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "cockpit-rail",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "cockpit-failed",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "done rows show ✓ with durations; the running row shows the spinner"
+          },
+          {
+            "id": "V2",
+            "text": "the header names the frontier stage with done and skipped counts"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "no StepRail in any app is selectable: the rail never owns focus"
+          },
+          {
+            "id": "S2",
+            "text": "hover is forced off on every row while selectable is false"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "keys at the rail return Ignored; clicks return Consumed"
+          },
+          {
+            "id": "A2",
+            "text": "stage progress flows only through set_state/set_meta from the run loop"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the rail never registers a focus stop, so Tab never lands on it"
+          },
+          {
+            "id": "N2",
+            "text": "no keyboard cursor exists: cursor stays 0 and paints nothing"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/steps.rs",
+            "lines": "148-170,219-225",
+            "note": "read-only key and click paths, conditional focus stop"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/cockpit.rs",
+            "lines": "49,92,121,230,457,856-858,877",
+            "note": "non-selectable rail, stage updates, frontier header"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/cockpit/debug/80x24/truecolor.txt",
+          "snapshots/jackin/cockpit/debug/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "TABS-STRIP-001",
+      "app": "showcase",
+      "component": "Tabs",
+      "part": "settings tab strip",
+      "ref_symbols": [
+        {
+          "glyph": "━",
+          "meaning": "accent rule under the active tab"
+        },
+        {
+          "glyph": "─",
+          "meaning": "base rule under inactive tabs"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "━",
+          "meaning": "accent rule under the active tab"
+        },
+        {
+          "glyph": "─",
+          "meaning": "base rule under inactive tabs"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/tabs.rs",
+          "symbols": [
+            "Tabs",
+            "TabItem",
+            "TabEvent",
+            "set_active",
+            "cursor",
+            "first",
+            "fit",
+            "hidden",
+            "ensure_visible",
+            "tab_width"
+          ]
+        },
+        {
+          "path": "src/bin/showcase/pages/settings.rs",
+          "symbols": [
+            "tabs",
+            "active",
+            "on_key",
+            "on_click"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "page": "settings",
+        "tabs": [
+          "General",
+          "Members",
+          "Environment"
+        ],
+        "body": "the active tab selects the settings body"
+      },
+      "state": {
+        "active": 0,
+        "cursor": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot the showcase settings page"
+        },
+        {
+          "step": 2,
+          "action": "move to the next tab",
+          "key": "Right"
+        },
+        {
+          "step": 3,
+          "action": "jump to the second tab",
+          "key": "2"
+        },
+        {
+          "step": 4,
+          "action": "re-assert the cursor tab",
+          "key": "Enter"
+        },
+        {
+          "step": 5,
+          "action": "click the Environment tab"
+        },
+        {
+          "step": 6,
+          "action": "attempt to close a non-closable tab",
+          "key": "x"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tabs-general",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "tabs-members",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "only the active tab carries the accent ━ rule edge to edge; the rest sit on ─"
+          },
+          {
+            "id": "V2",
+            "text": "the active tab sits one plane up; a cursor/hovered tab sits two planes up and bold"
+          },
+          {
+            "id": "V3",
+            "text": "no tab ever carries the ▎ gutter glyph"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "set_active moves active and cursor together and pulls the tab into the window"
+          },
+          {
+            "id": "S2",
+            "text": "digits 1-9 jump directly; out-of-range digits are Ignored"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "arrows/h/l switch tabs and emit Activated; Enter/Space re-emits it"
+          },
+          {
+            "id": "A2",
+            "text": "clicking a tab activates it; the body follows the active tab"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "x/Delete on a non-closable tab emits nothing"
+          },
+          {
+            "id": "N2",
+            "text": "a cursor on an inactive tab never draws the underline"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/tabs.rs",
+            "lines": "141-171,186-217,436-446",
+            "note": "active repair and window, switch keys, edge-to-edge rule"
+          },
+          {
+            "path": "src/bin/showcase/pages/settings.rs",
+            "lines": "115,160-168,282-285,392-394",
+            "note": "three tabs, strip render, key and click passthrough"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/settings/80x24/truecolor.txt",
+          "snapshots/showcase/flows/settings/members/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "TABS-STATES-002",
+      "app": "tablepro",
+      "component": "Tabs",
+      "part": "workbench strip + quiet tabs",
+      "ref_symbols": [
+        {
+          "glyph": "×",
+          "meaning": "close affordance on a closable tab"
+        },
+        {
+          "glyph": "━",
+          "meaning": "active rule (accent, or white when quiet)"
+        },
+        {
+          "glyph": "‹",
+          "meaning": "left overflow indicator with hidden count"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "×",
+          "meaning": "close affordance on a closable tab"
+        },
+        {
+          "glyph": "━",
+          "meaning": "active rule (accent, or white when quiet)"
+        },
+        {
+          "glyph": "‹",
+          "meaning": "left overflow indicator with hidden count"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/tabs.rs",
+          "symbols": [
+            "allow_new",
+            "quiet",
+            "closable",
+            "dirty",
+            "busy",
+            "error",
+            "prefix",
+            "suffix",
+            "remove",
+            "hidden"
+          ]
+        },
+        {
+          "path": "src/bin/tablepro/workbench.rs",
+          "symbols": [
+            "strip",
+            "TABSTRIP",
+            "sync_strip",
+            "set_active",
+            "allow_new"
+          ]
+        },
+        {
+          "path": "src/bin/tablepro/tabs.rs",
+          "symbols": [
+            "mode_tabs",
+            "structure_tabs",
+            "quiet"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "screen": "workbench",
+        "strip": "query and table tabs with T/≡/H prefixes, all closable",
+        "mode_tabs": [
+          "Data",
+          "Structure"
+        ],
+        "structure_tabs": [
+          "Columns",
+          "Indexes",
+          "Foreign keys",
+          "Constraints",
+          "Triggers",
+          "DDL"
+        ],
+        "quiet": true,
+        "allow_new": true
+      },
+      "state": {
+        "active": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "open the workbench with two tabs"
+        },
+        {
+          "step": 2,
+          "action": "switch tabs",
+          "key": "Right"
+        },
+        {
+          "step": 3,
+          "action": "close the cursor tab",
+          "key": "x"
+        },
+        {
+          "step": 4,
+          "action": "open a new tab",
+          "key": "n"
+        },
+        {
+          "step": 5,
+          "action": "overflow the strip and page with the ‹ › indicators"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "strip-two-tabs",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "tab-closed",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "strip-overflow",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "state glyphs render after the label: spinner when busy, ! on error, • when dirty"
+          },
+          {
+            "id": "V2",
+            "text": "quiet tabs draw a white rule so one screen keeps one accent underline"
+          },
+          {
+            "id": "V3",
+            "text": "overflow shows ‹N / N› counts and a trailing + for the new-tab button"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "remove repairs active/cursor/first so the strip never points past the end"
+          },
+          {
+            "id": "S2",
+            "text": "sync_strip preserves first across rebuilds; set_active then re-reveals"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "x/Delete emits Close for closable tabs; n and the + button emit New"
+          },
+          {
+            "id": "A2",
+            "text": "‹ › clicks page first; tab clicks activate"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "an empty strip only answers Enter/n with New when allow_new is set"
+          },
+          {
+            "id": "N2",
+            "text": "labels never shrink: the strip scrolls instead"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/tabs.rs",
+            "lines": "152-163,208-215,290-320",
+            "note": "removal repair, close/new keys, overflow window"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "380-398,407-410",
+            "note": "strip items with states, rebuild preserving first"
+          },
+          {
+            "path": "src/bin/tablepro/tabs.rs",
+            "lines": "407-409,410-422",
+            "note": "quiet mode and structure tab sets"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/query/new_tab/80x24/truecolor.txt",
+          "snapshots/tablepro/table/filtered/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "PLIST-COPY-001",
+      "app": "jackin-preview",
+      "component": "PropsList",
+      "part": "info dialog rows + copy",
+      "ref_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/props.rs",
+          "symbols": [
+            "PropsList",
+            "PropsEvent",
+            "Copy",
+            "Activate",
+            "copyable",
+            "cursor",
+            "set_cursor",
+            "row_id"
+          ]
+        },
+        {
+          "path": "src/bin/jackin_preview/screens/modals.rs",
+          "symbols": [
+            "InfoDialog",
+            "copy_values",
+            "initial_focus",
+            "InfoResult"
+          ]
+        },
+        {
+          "path": "src/bin/jackin_preview/screens/cockpit.rs",
+          "symbols": [
+            "copyable",
+            "run_id"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "screen": "cockpit",
+        "dialog": "Debug info (read-only)",
+        "rows": [
+          "Target",
+          "Role",
+          "Agent",
+          "Run id"
+        ],
+        "copyable": [
+          "Run id"
+        ]
+      },
+      "state": {
+        "cursor": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "open the cockpit Debug info dialog"
+        },
+        {
+          "step": 2,
+          "action": "move to the Run id row",
+          "key": "Down"
+        },
+        {
+          "step": 3,
+          "action": "copy the row value",
+          "key": "y"
+        },
+        {
+          "step": 4,
+          "action": "move to a plain row and press y",
+          "key": "y"
+        },
+        {
+          "step": 5,
+          "action": "activate the cursor row",
+          "key": "Enter"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "info-dialog",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "run-copied",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "labels sit muted at a shared column; values take the row tone"
+          },
+          {
+            "id": "V2",
+            "text": "a focused copyable row shows the 'y copy' hint at the right edge"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the dialog keeps a copy of each copyable value by row index"
+          },
+          {
+            "id": "S2",
+            "text": "y on a copyable row emits Copy; on a plain row it is Consumed"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Copy stores the row value as the dialog result"
+          },
+          {
+            "id": "A2",
+            "text": "Enter and row clicks emit Activate"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "y never fires for a plain row, even when focused"
+          },
+          {
+            "id": "N2",
+            "text": "an empty prop list ignores keys and focuses Close instead"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/props.rs",
+            "lines": "176-201,293-309",
+            "note": "cursor keys with the y gate, copy hint render"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/modals.rs",
+            "lines": "1989-1998,2042-2052",
+            "note": "copy value capture, initial focus, key entry"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/cockpit.rs",
+            "lines": "366,378,388,410,423",
+            "note": "copyable run id fixtures and dialog titles"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/cockpit/info/80x24/truecolor.txt",
+          "snapshots/jackin/cockpit/info/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "PLIST-SCROLL-002",
+      "app": "jackin-preview",
+      "component": "PropsList",
+      "part": "dialog list scroll + focus",
+      "ref_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "focus gutter on the cursor row"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/widgets/props.rs",
+          "symbols": [
+            "set_props",
+            "on_wheel",
+            "on_scrollbar",
+            "on_scrollbar_drag",
+            "locate",
+            "owns",
+            "track"
+          ]
+        },
+        {
+          "path": "src/bin/jackin_preview/screens/modals.rs",
+          "symbols": [
+            "locate",
+            "on_wheel",
+            "on_click",
+            "on_scrollbar",
+            "props_h"
+          ]
+        },
+        {
+          "path": "src/bin/jackin_preview/screens/capsule.rs",
+          "symbols": [
+            "open_about",
+            "InfoDialog",
+            "copyable"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "screen": "capsule",
+        "dialog": "About (width 64)",
+        "rows": [
+          "Product",
+          "Scenario",
+          "Construct",
+          "Design system"
+        ],
+        "detail": "long wrapped detail text below the rows"
+      },
+      "state": {
+        "cursor": 0,
+        "offset": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "open the capsule About dialog"
+        },
+        {
+          "step": 2,
+          "action": "wheel the prop list"
+        },
+        {
+          "step": 3,
+          "action": "press and drag the list scrollbar"
+        },
+        {
+          "step": 4,
+          "action": "click a prop row"
+        },
+        {
+          "step": 5,
+          "action": "shrink the prop list below the cursor"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "about-dialog",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "props-scrolled",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the label column widths to the longest label plus two cells"
+          },
+          {
+            "id": "V2",
+            "text": "an overflowing list draws the scrollbar and fades scrolled edges"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "set_props clamps the cursor into the new list"
+          },
+          {
+            "id": "S2",
+            "text": "wheel and scrollbar moves change the viewport, never the cursor"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "clicking a row focuses the list, moves the cursor, and emits Activate"
+          },
+          {
+            "id": "A2",
+            "text": "scrollbar press jumps or grabs; drags track the pointer"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "boundary wheels are Consumed, never Changed"
+          },
+          {
+            "id": "N2",
+            "text": "locate only resolves visible rows; hidden rows are unreachable by pointer"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/props.rs",
+            "lines": "155-159,211-248",
+            "note": "cursor clamp on replace, wheel and scrollbar paths"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/modals.rs",
+            "lines": "2143-2152,2189-2198",
+            "note": "click-to-row, scrollbar and wheel dispatch, list height"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/capsule.rs",
+            "lines": "349-364",
+            "note": "About dialog fixtures and width"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/cockpit/info/80x24/truecolor.txt",
+          "snapshots/jackin/cockpit/info/72x20/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    }
+  ],
+  "coverage": [
+    {
+      "component": "ChipBar",
+      "rows": [
+        "CHIP-BAR-001",
+        "CHIP-FILTER-002"
+      ],
+      "handlers": [
+        "render: lead, chips with ×, add stop, … overflow (chips.rs render)",
+        "on_key: cursor over stops, Activate/Toggle/Remove/Add/ClearAll events",
+        "on_click: add, lead, chip, and close hit ids; owns covers all parts"
+      ],
+      "flags": [
+        "enabled",
+        "removable",
+        "error",
+        "focused",
+        "hovered"
+      ],
+      "thresholds": [
+        "chip width = 1 + label + 1 + (2 if removable) + 1; overflow shows … and stops",
+        "stops = chips + (1 if add_label); cursor clamps on every key"
+      ],
+      "timers": [
+        "none: the bar is static (no tick-driven frames)"
+      ],
+      "early_returns": [
+        "empty area returns with no paint; zero stops ignores every key"
+      ],
+      "notes": [
+        "holla service chips (add_label None, removable false) share these paths; holla roots stay pending",
+        "close × hover renders bold primary; lead hover lifts the plane"
+      ]
+    },
+    {
+      "component": "List",
+      "rows": [
+        "LIST-SINGLE-001",
+        "LIST-MULTI-002"
+      ],
+      "handlers": [
+        "on_key: cursor moves, page jumps, ends, activate, toggle-all (list.rs on_key)",
+        "on_click/on_wheel/on_scrollbar: pointer row, viewport, thumb drag",
+        "render: gutter, marker, label, right meta, scrollbar, edge fade"
+      ],
+      "flags": [
+        "disabled",
+        "focused",
+        "hovered",
+        "selected (chosen or checked)"
+      ],
+      "thresholds": [
+        "meta hides when label room minus meta falls below 12 cells",
+        "text width reserves 1 cell, or 2 with a scrollbar"
+      ],
+      "timers": [
+        "none: the list is static (no tick-driven frames)"
+      ],
+      "early_returns": [
+        "empty area returns; empty items paint empty_text and ignore keys",
+        "clicks past the last row are Consumed without effect"
+      ],
+      "notes": [
+        "the container registers before rows so rows win hit-testing",
+        "120-row scrolling page and 20-language single list pin the same paths"
+      ]
+    },
+    {
+      "component": "FilterList",
+      "rows": [
+        "FLIST-QUERY-001",
+        "FLIST-CHOICE-002"
+      ],
+      "handlers": [
+        "query edits, word kill, grapheme backspace, and single-event paste",
+        "set_items (reset to first eligible) vs refresh_items (follow row key)",
+        "eligible gate for Enter/Delete/click; render of modal, columns, states"
+      ],
+      "flags": [
+        "searchable",
+        "status (Ready/Loading/Error)",
+        "disabled rows",
+        "cursor_dirty"
+      ],
+      "thresholds": [
+        "list rows clamp to 1..max_rows (Ready) or 2..max_rows (busy)",
+        "label column clamps to 6..45% of the row from all items, not visible ones"
+      ],
+      "timers": [
+        "busy/loading spinner frame follows the interaction tick"
+      ],
+      "early_returns": [
+        "empty inner area returns; Loading/Error paint their state and return early",
+        "empty items paint empty_text; no eligible row refuses Enter/Delete/click"
+      ],
+      "notes": [
+        "FilterList is the Picker widget (picker.rs) used as a searchable list",
+        "only a cursor move pulls the viewport; wheel scrolls survive renders"
+      ]
+    },
+    {
+      "component": "NavList",
+      "rows": [
+        "NAV-SHELL-001",
+        "NAV-SIDE-002"
+      ],
+      "handlers": [
+        "shell: nav keys, [ ] cycle, 0/Esc focus, click, wheel (app.rs)",
+        "page: section rows, disabled skip, open, collapse toggle (sidebars.rs)"
+      ],
+      "flags": [
+        "current vs cursor",
+        "collapsed",
+        "compact",
+        "focused",
+        "disabled"
+      ],
+      "thresholds": [
+        "shell compacts below entries + 5 rows: labels drop, gaps stay",
+        "page width is 24 open, 6 collapsed"
+      ],
+      "timers": [
+        "none: navigation is static (no tick-driven frames)"
+      ],
+      "early_returns": [
+        "keys outside the focused nav fall through to page and global keys",
+        "disabled items are skipped by moves and never clickable (page)"
+      ],
+      "notes": [
+        "current (›) is the open target; cursor (▎) is the keyboard position",
+        "both lists reveal the cursor row after moves and resizes"
+      ]
+    },
+    {
+      "component": "Tree",
+      "rows": [
+        "TREE-FOLD-001",
+        "TREE-FILTER-002"
+      ],
+      "handlers": [
+        "flatten by path identity with substring filter and relocate (tree.rs)",
+        "toggle/expand_all/collapse_all/reveal; lazy Expand with busy then children",
+        "fold/climb/activate keys, row and toggle clicks, wheel and scrollbar"
+      ],
+      "flags": [
+        "expanded set",
+        "busy",
+        "lazy",
+        "note",
+        "selected path",
+        "filter text"
+      ],
+      "thresholds": [
+        "indent is 2 cells per depth; meta shows for all visible rows or none",
+        "labels starve meta below 10 cells of room"
+      ],
+      "timers": [
+        "busy rows show the spinner frame for the interaction tick"
+      ],
+      "early_returns": [
+        "no rows ignores keys; toggle on a leaf is Consumed",
+        "note rows consume Enter and clicks without selecting"
+      ],
+      "notes": [
+        "cursor 0 and viewport start are deliberate on every set_filter",
+        "collapsed-away cursors relocate to the ancestor, else a neighbour"
+      ]
+    },
+    {
+      "component": "Steps",
+      "rows": [
+        "STEPS-LIFE-001",
+        "STEPS-RAIL-002"
+      ],
+      "handlers": [
+        "set_state/set_meta from the owner run loop; frontier/counts/failed",
+        "render of ordinals, state glyphs, labels, and right meta",
+        "selectable cursor keys and clicks (unused: no app enables them)"
+      ],
+      "flags": [
+        "selectable (false in every app)",
+        "terminal states",
+        "focused",
+        "hovered"
+      ],
+      "thresholds": [
+        "meta shows only when avail covers meta width + 12 cells",
+        "ordinals print as two digits (01..99)"
+      ],
+      "timers": [
+        "the Running row shows the spinner frame for the interaction tick"
+      ],
+      "early_returns": [
+        "empty area returns; non-selectable keys are Ignored and clicks Consumed",
+        "no focus stop and no hover register while selectable is false"
+      ],
+      "notes": [
+        "a failure marks the stage Failed and all later stages Blocked",
+        "header text derives from frontier plus done/skipped counts"
+      ]
+    },
+    {
+      "component": "Tabs",
+      "rows": [
+        "TABS-STRIP-001",
+        "TABS-STATES-002"
+      ],
+      "handlers": [
+        "set_active/remove/ensure_visible with active/cursor/first repair",
+        "switch, digit-jump, close, and new keys; tab, close, ‹ ›, and + clicks",
+        "strip render with planes, state glyphs, rule, and overflow window"
+      ],
+      "flags": [
+        "active",
+        "cursor",
+        "quiet",
+        "allow_new",
+        "closable",
+        "dirty",
+        "busy",
+        "error"
+      ],
+      "thresholds": [
+        "tab width = 1 + label + 2 + prefix/suffix/state/close extras",
+        "overflow reserves 4 cells per indicator; hidden counts cap at 99"
+      ],
+      "timers": [
+        "busy tabs show the spinner frame for the interaction tick"
+      ],
+      "early_returns": [
+        "an empty strip only answers Enter/n with New when allow_new is set",
+        "close fires only for closable tabs under a plain key"
+      ],
+      "notes": [
+        "quiet tabs draw a white rule: one screen keeps one accent underline",
+        "the strip scrolls with ‹N/N› instead of shrinking labels"
+      ]
+    },
+    {
+      "component": "PropsList",
+      "rows": [
+        "PLIST-COPY-001",
+        "PLIST-SCROLL-002"
+      ],
+      "handlers": [
+        "cursor keys with PageUp/PageDown/Home/End; Enter and click activate",
+        "y copies the copyable cursor row; wheel and scrollbar move the viewport",
+        "InfoDialog capture of copy values, initial focus, and result"
+      ],
+      "flags": [
+        "copyable",
+        "focused",
+        "hovered"
+      ],
+      "thresholds": [
+        "the label column is the longest label plus two cells",
+        "the 'y copy' hint takes 8 cells on a focused copyable row"
+      ],
+      "timers": [
+        "none: the list is static (no tick-driven frames)"
+      ],
+      "early_returns": [
+        "empty props ignore keys; the dialog then focuses Close",
+        "clicks past the last row and boundary wheels are Consumed"
+      ],
+      "notes": [
+        "y on a plain row is Consumed; y on a copyable row emits Copy(i)",
+        "locate resolves visible rows only, so hidden rows ignore the pointer"
+      ]
+    }
+  ],
+  "legacy_map": [
+    {
+      "old": "showcase/pages/chips",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "CHIP-BAR-001",
+      "status": "mapped",
+      "note": "controls slice maps this root to EMPTY-KIND-NARROW-001; the page shows both"
+    },
+    {
+      "old": "showcase/flows/chips/toggled",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "CHIP-BAR-001",
+      "status": "mapped",
+      "note": "pending in the controls slice; the capture pins the toggled bar"
+    },
+    {
+      "old": "showcase/flows/chips/select_open",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "CHIP-BAR-001",
+      "status": "mapped",
+      "note": "pending in the controls slice; also shows a Select popup (other group)"
+    },
+    {
+      "old": "showcase/pages/lists",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "LIST-SINGLE-001",
+      "status": "mapped",
+      "also": [
+        "LIST-MULTI-002"
+      ],
+      "note": "three columns pin single, multi, and empty states"
+    },
+    {
+      "old": "showcase/flows/lists/moved",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "LIST-SINGLE-001",
+      "status": "mapped",
+      "also": [
+        "LIST-MULTI-002"
+      ]
+    },
+    {
+      "old": "showcase/hover/lists",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "LIST-MULTI-002",
+      "status": "mapped",
+      "also": [
+        "LIST-SINGLE-001"
+      ]
+    },
+    {
+      "old": "showcase/pages/scrolling",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "LIST-SINGLE-001",
+      "status": "mapped",
+      "note": "120-row single list with scrollbar and edge fade"
+    },
+    {
+      "old": "showcase/flows/scrolling/mid",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "LIST-SINGLE-001",
+      "status": "mapped"
+    },
+    {
+      "old": "showcase/flows/scrolling/scrolled",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "LIST-SINGLE-001",
+      "status": "mapped"
+    },
+    {
+      "old": "showcase/pages/pickers",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "FLIST-QUERY-001",
+      "status": "mapped",
+      "also": [
+        "FLIST-CHOICE-002"
+      ]
+    },
+    {
+      "old": "showcase/flows/pickers/open",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "FLIST-QUERY-001",
+      "status": "mapped"
+    },
+    {
+      "old": "showcase/flows/pickers/tabs",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "FLIST-CHOICE-002",
+      "status": "mapped"
+    },
+    {
+      "old": "showcase/flows/pickers/level",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "FLIST-CHOICE-002",
+      "status": "mapped",
+      "note": "result capture after choosing Safe Mode (Full)"
+    },
+    {
+      "old": "showcase/flows/nav/cycled",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "NAV-SHELL-001",
+      "status": "mapped"
+    },
+    {
+      "old": "showcase/flows/nav/end",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "NAV-SHELL-001",
+      "status": "mapped"
+    },
+    {
+      "old": "showcase/pages/sidebars",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "NAV-SIDE-002",
+      "status": "mapped"
+    },
+    {
+      "old": "showcase/pages/trees",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-FOLD-001",
+      "status": "mapped"
+    },
+    {
+      "old": "showcase/flows/trees/expanded",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-FOLD-001",
+      "status": "mapped"
+    },
+    {
+      "old": "showcase/pages/taskrunner",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-FOLD-001",
+      "status": "mapped",
+      "note": "target tree pins the same fold paths with different fixtures"
+    },
+    {
+      "old": "showcase/flows/taskrunner/running",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-FOLD-001",
+      "status": "mapped"
+    },
+    {
+      "old": "tablepro/connections/filter",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-FILTER-002",
+      "status": "mapped",
+      "note": "pending in the fields slice; the capture pins the filtered tree"
+    },
+    {
+      "old": "tablepro/table/filtered",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "CHIP-FILTER-002",
+      "status": "mapped",
+      "also": [
+        "TABS-STATES-002"
+      ],
+      "note": "filter chips above the grid; quiet Data/Structure tabs above those"
+    },
+    {
+      "old": "tablepro/table/data",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TABS-STATES-002",
+      "status": "mapped"
+    },
+    {
+      "old": "tablepro/query/new_tab",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TABS-STATES-002",
+      "status": "mapped"
+    },
+    {
+      "old": "showcase/pages/settings",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TABS-STRIP-001",
+      "status": "mapped",
+      "note": "controls slice maps this root to TGL-STATE-MATRIX-001; the page shows both"
+    },
+    {
+      "old": "showcase/flows/settings/members",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TABS-STRIP-001",
+      "status": "mapped",
+      "note": "pending in the controls slice; Members tab active"
+    },
+    {
+      "old": "showcase/pages/terminal",
+      "app": "showcase",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "STEPS-LIFE-001",
+      "status": "mapped"
+    },
+    {
+      "old": "jackin/cockpit/debug",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "STEPS-RAIL-002",
+      "status": "mapped"
+    },
+    {
+      "old": "jackin/cockpit/info",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "PLIST-COPY-001",
+      "status": "mapped",
+      "also": [
+        "PLIST-SCROLL-002"
+      ],
+      "note": "Debug info dialog pins the PropsList rows"
+    },
+    {
+      "old": "tablepro/workbench/explorer_hidden",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending",
+      "note": "negative: the explorer tree is hidden here"
+    },
+    {
+      "old": "holla/flows/activities/jump",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending",
+      "note": "holla service chips share ChipBar paths; dedicated row deferred"
+    },
+    {
+      "old": "holla/flows/activities/overlay",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": null,
+      "status": "pending",
+      "note": "holla service chips share ChipBar paths; dedicated row deferred"
+    }
+  ]
+}
