@@ -1265,8 +1265,10 @@ mod tests {
 
     /// The `VIEWPORT`/`DIFF` thumb wears the legacy `scrollbar_thumb`
     /// ladder: `Muted` idle, `Secondary` hovered, `Primary` focused — the
-    /// same three rungs as the `SCROLLBAR` family, at all four color levels.
-    /// At mono the ladder survives as Gray-vs-White; the glyph never moves.
+    /// same idle/hover/focus rungs as the `SCROLLBAR` family, which carries
+    /// one further `PRESSED` rung `VIEWPORT`/`DIFF` omit, at all four color
+    /// levels. At mono the ladder survives as Gray-vs-White; the glyph
+    /// never moves.
     #[test]
     fn viewport_and_diff_thumbs_follow_the_scrollbar_ladder() {
         use crate::ColorLevel;
