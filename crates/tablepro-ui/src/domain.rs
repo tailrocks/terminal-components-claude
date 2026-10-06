@@ -5,7 +5,7 @@
 
 use termrock::{
     CellDecor, CellRef, ColumnKey, EditIntent, FgStep, FieldError, GlyphRole, GridEditor,
-    GridModel, ItemKey, Role, RowDecor, RowTotal, SortDir, StateFlags,
+    GridModel, ItemKey, Role, RowDecor, RowTotal, SortDir,
 };
 
 use tablepro_domain::{ColType, PendingEdits, ResultSet, Value, cmp_values};
@@ -24,6 +24,7 @@ pub struct ResultGrid {
     read_only_reason: Option<String>,
     display: Vec<Option<String>>,
     undo: Vec<PendingEdits>,
+    pub estimated: bool,
 }
 
 impl core::fmt::Debug for ResultGrid {
@@ -70,9 +71,15 @@ impl ResultGrid {
             read_only_reason,
             display: Vec::new(),
             undo: Vec::new(),
+            estimated: false,
         };
         grid.rebuild_display();
         grid
+    }
+
+    /// Set whether row total is estimated.
+    pub fn set_estimated(&mut self, estimated: bool) {
+        self.estimated = estimated;
     }
 
     /// Number of loaded rows.
@@ -116,6 +123,26 @@ impl ResultGrid {
                 }
             })
             .sum()
+    }
+
+    /// Tuple of (updates, inserts, deletes) counts.
+    pub fn pending_counts(&self) -> (usize, usize, usize) {
+        let mut u: usize = 0;
+        let mut i: usize = 0;
+        let mut d: usize = 0;
+        for (row, cells) in self.pending.rows().iter().enumerate() {
+            if self.pending.is_inserted(row) {
+                i = i.saturating_add(1);
+            } else {
+                if self.pending.is_deleted(row) {
+                    d = d.saturating_add(1);
+                }
+                if (0..cells.current.len()).any(|col| self.pending.is_dirty(row, col)) {
+                    u = u.saturating_add(1);
+                }
+            }
+        }
+        (u, i, d)
     }
 
     /// Insert a row with typed NULL/default values.
@@ -336,24 +363,31 @@ impl GridModel for ResultGrid {
     }
 
     fn row_decor(&self, row: usize) -> RowDecor<'_> {
+        let is_del = self.pending.is_deleted(row);
+        let is_ins = self.pending.is_inserted(row);
+        let is_mod = self.pending.is_dirty_row(row);
+        let marker = if is_del {
+            Some(GlyphRole::Deleted)
+        } else if is_ins {
+            Some(GlyphRole::Inserted)
+        } else if is_mod {
+            Some(GlyphRole::Dirty)
+        } else {
+            None
+        };
+        let tone = if is_del {
+            Some(Role::Fg(FgStep::Faint))
+        } else if is_ins {
+            Some(Role::Fg(FgStep::Secondary))
+        } else if is_mod {
+            Some(Role::Warning)
+        } else {
+            None
+        };
         RowDecor {
-            marker: if self.pending.is_deleted(row) {
-                Some(GlyphRole::Deleted)
-            } else if self.pending.is_inserted(row) {
-                Some(GlyphRole::Inserted)
-            } else {
-                None
-            },
-            strike: self.pending.is_deleted(row),
-            tone: self
-                .pending
-                .is_deleted(row)
-                .then_some(Role::Fg(FgStep::Faint)),
-            flags: if self.pending.is_dirty_row(row) {
-                StateFlags::DIRTY
-            } else {
-                StateFlags::empty()
-            },
+            marker,
+            strike: is_del,
+            tone,
             ..RowDecor::default()
         }
     }
@@ -383,7 +417,11 @@ impl GridModel for ResultGrid {
     }
 
     fn total(&self) -> RowTotal {
-        RowTotal::Exact(self.total())
+        if self.estimated {
+            RowTotal::Estimated(self.total())
+        } else {
+            RowTotal::Exact(self.total())
+        }
     }
 
     fn read_only_reason(&self) -> Option<&str> {

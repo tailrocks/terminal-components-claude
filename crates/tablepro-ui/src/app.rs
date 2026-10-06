@@ -2,7 +2,7 @@
 
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
-    Action, ActionKey, App, Chord, ColumnKey, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState,
+    Action, ActionKey, App, Button, Chord, ColumnKey, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState,
     Family, FgStep, Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction,
     GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
     LayerSize, LayerSpec, Modifier, NodeKind, Panel, PanelKind, Part, Phase, PickerAction,
@@ -14,6 +14,10 @@ use termrock::{
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
 use crate::domain::ResultGrid;
 use crate::model::SwitchTarget;
+use crate::filter_editor::{
+    Filter, FilterEditor, FilterFocus, FilterOp, FilterOutcome, FILTER_APPLY, FILTER_CANCEL,
+    FILTER_COL, FILTER_EDITOR, FILTER_OP, FILTER_VALUE, FILTER_VALUE2,
+};
 use crate::quick_switcher::{self, QuickSwitcher};
 use crate::safety_dialog::{
     Prop, SAFETY_CANCEL, SAFETY_CONFIRM, SAFETY_DIALOG, SAFETY_INPUT, SafetyDialog,
@@ -180,6 +184,7 @@ const FORM: ActionKey = ActionKey::application("tablepro.form");
 const HELP: ActionKey = ActionKey::application("tablepro.help");
 const TAB_LIST: ActionKey = ActionKey::application("tablepro.tab-list");
 const FILTER: ActionKey = ActionKey::application("tablepro.filter");
+const FILTER_EMPTY: ActionKey = ActionKey::application("tablepro.filter-empty");
 const SORT: ActionKey = ActionKey::application("tablepro.sort");
 const PREVIEW: ActionKey = ActionKey::application("tablepro.preview");
 const SAVE: ActionKey = ActionKey::application("tablepro.save");
@@ -480,6 +485,11 @@ fn keymap() -> KeyMap {
         )
         .bind(
             KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('f'), KeyModifiers::CONTROL),
+            FILTER_EMPTY,
+        )
+        .bind(
+            KeyPhase::Bubble,
             Chord::with(KeyCode::Char('s'), KeyModifiers::NONE),
             SORT,
         )
@@ -534,6 +544,7 @@ pub struct TableProApp {
     quit_state: DialogState,
     switcher: QuickSwitcher,
     pub safety_dialog: Option<SafetyDialog>,
+    pub filter_editor: Option<FilterEditor>,
     /// Current product screen.
     pub screen: Screen,
     /// Current visual matrix surface.
@@ -582,6 +593,7 @@ impl core::fmt::Debug for TableProApp {
             .field("quit_state", &self.quit_state)
             .field("switcher", &"<query and target snapshot>")
             .field("safety_dialog", &self.safety_dialog.is_some())
+            .field("filter_editor", &self.filter_editor.is_some())
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
@@ -638,6 +650,7 @@ impl TableProApp {
             quit_state: DialogState::default(),
             switcher: QuickSwitcher::default(),
             safety_dialog: None,
+            filter_editor: None,
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
@@ -830,6 +843,13 @@ impl TableProApp {
         }
         if surface == Surface::MaximisedTab {
             self.workbench.maximized = true;
+        }
+        if surface == Surface::FilterEditor {
+            if let Some(tab) = self.workbench.active_table() {
+                let columns = tab.result.columns.clone();
+                let editor = FilterEditor::new(columns, None, None, 0);
+                self.filter_editor = Some(editor);
+            }
         }
         self.surface = surface;
     }
@@ -1272,57 +1292,9 @@ impl TableProApp {
         columns: &'a [(String, ColType)],
         editable: bool,
         table: Option<&Table>,
+        filters: &[Filter],
     ) -> ([termrock::Column<'a>; termrock::GRID_MAX_COLUMNS], usize) {
-        let count = columns.len().min(termrock::GRID_MAX_COLUMNS);
-        let mut specs =
-            [termrock::Column::new(termrock::ColumnKey::num(0), ""); termrock::GRID_MAX_COLUMNS];
-        for (index, (name, ty)) in columns.iter().take(count).enumerate() {
-            let mut col = termrock::Column::new(
-                termrock::ColumnKey::num((index as u16).saturating_add(1)),
-                name.as_str(),
-            );
-            col.sortable = true;
-            col.editable = editable;
-            col.sticky = false;
-            match ty {
-                ColType::Uuid => {
-                    col.min_width = 9;
-                    col.max_width = 36;
-                }
-                ColType::Text => {
-                    col.min_width = 6;
-                    col.max_width = 40;
-                }
-                ColType::Int | ColType::Numeric => {
-                    col.min_width = 4;
-                    col.max_width = 22;
-                    col.align = termrock::Align::Right;
-                }
-                ColType::Bool => {
-                    col.min_width = 5;
-                    col.max_width = 5;
-                }
-                ColType::Timestamp | ColType::Date => {
-                    col.min_width = 10;
-                    col.max_width = 29;
-                }
-                ColType::Json => {
-                    col.min_width = 8;
-                    col.max_width = 40;
-                }
-                ColType::Enum => {
-                    col.min_width = 6;
-                    col.max_width = 16;
-                }
-            }
-            if table.is_some_and(|t| t.column(name).is_some_and(|c| c.primary)) {
-                col.prefix_glyph = Some(termrock::GlyphRole::PrimaryKey);
-            }
-            if let Some(slot) = specs.get_mut(index) {
-                *slot = col;
-            }
-        }
-        (specs, count)
+        crate::tabs::column_specs(columns, editable, table, filters)
     }
     fn connection_form<'a>(
         fields: &'a [termrock::FieldSpec<'a>],
@@ -1709,6 +1681,30 @@ impl TableProApp {
         })
     }
 
+    pub fn is_editing(&self) -> bool {
+        match self.screen {
+            Screen::Connections => self.connections_screen.filter_active || self.form_editing,
+            Screen::Workbench => {
+                if let Some(tab) = self.workbench.active() {
+                    match tab {
+                        Tab::Table(t) => {
+                            t.result.state.is_editing() || t.structure.state.is_editing()
+                        }
+                        Tab::Query(q) => {
+                            q.editor_state.is_editing()
+                                || q.result
+                                    .as_ref()
+                                    .is_some_and(|r| r.state.is_editing())
+                        }
+                        Tab::History(_) => false,
+                    }
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
     fn insert_defaults(&self) -> Option<Vec<bool>> {
         let (_, grid) = self.workbench.active_grid()?;
         let source = grid.model.source()?;
@@ -1734,7 +1730,8 @@ impl TableProApp {
         let Some((id, grid)) = self.workbench.active_grid_mut() else {
             return;
         };
-        let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable(), None);
+        let (columns, count) =
+            Self::column_specs(&grid.columns, grid.model.is_editable(), None, &[]);
         let Some(target) = columns
             .get(column)
             .filter(|_| column < count)
@@ -2079,6 +2076,151 @@ impl TableProApp {
         }
     }
 
+    fn open_filter_editor(
+        &mut self,
+        cx: &mut Cx<'_>,
+        index: Option<usize>,
+        prefill: Option<(usize, FilterOp, String)>,
+    ) {
+        let Some(Tab::Table(t)) = self.workbench.active() else {
+            return;
+        };
+        let columns = t.result.columns.clone();
+        let existing = index.and_then(|i| t.filters.get(i)).cloned();
+        let cursor_col = t
+            .result
+            .state
+            .cursor()
+            .map(|(_, col)| usize::from(col.raw()).saturating_sub(1))
+            .unwrap_or(0);
+        let actual_prefill = match (&existing, &prefill) {
+            (Some(f), _) => {
+                let col_i = columns.iter().position(|c| c.0 == f.column).unwrap_or(0);
+                Some((col_i, f.op, f.value.clone()))
+            }
+            (None, Some(p)) => Some(p.clone()),
+            _ => None,
+        };
+        let initial_focus = if actual_prefill.as_ref().is_some_and(|(_, _, v)| !v.is_empty()) {
+            FILTER_APPLY
+        } else {
+            FILTER_VALUE
+        };
+        let editor = FilterEditor::new(columns, index, actual_prefill, cursor_col);
+        let mut spec = LayerSpec::modal(FILTER_EDITOR);
+        spec.size = LayerSize::Fixed(64, 15);
+        spec.anchor = termrock::Anchor::Screen(termrock::ScreenAlign::UpperThird);
+        spec.initial_focus = Some(initial_focus);
+        spec.restore_focus = true;
+        cx.open_layer(FILTER_EDITOR, spec);
+        cx.focus(initial_focus);
+        self.surface = Surface::FilterEditor;
+        self.filter_editor = Some(editor);
+    }
+
+    fn update_filter_editor(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let Some(editor) = self.filter_editor.as_mut() else {
+            return Response::ignored();
+        };
+        if !cx.is_open(FILTER_EDITOR) {
+            self.filter_editor = None;
+            return Response::changed();
+        }
+        let mut outcome = None;
+        for (id, focus_variant) in [
+            (FILTER_COL, FilterFocus::Column),
+            (FILTER_OP, FilterFocus::Op),
+            (FILTER_VALUE, FilterFocus::Value),
+            (FILTER_VALUE2, FilterFocus::Value2),
+            (FILTER_CANCEL, FilterFocus::Cancel),
+            (FILTER_APPLY, FilterFocus::Apply),
+        ] {
+            for intent in cx.intents(id) {
+                match intent {
+                    Intent::FocusIn { .. } => {
+                        editor.focus = focus_variant;
+                    }
+                    Intent::Key(key) => {
+                        editor.focus = focus_variant;
+                        if outcome.is_none() {
+                            outcome = Some(editor.on_key(key));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        for intent in cx.intents(FILTER_EDITOR) {
+            if let Intent::Key(key) = intent {
+                if outcome.is_none() {
+                    outcome = Some(editor.on_key(key));
+                }
+            }
+        }
+        match outcome {
+            Some(FilterOutcome::Cancel) => {
+                self.filter_editor = None;
+                cx.close_layer(FILTER_EDITOR, None);
+                self.sync_active_tab();
+                if let Some(tab_key) = self.workbench.active_key() {
+                    let pf = match self.workbench.active() {
+                        Some(Tab::Table(t)) if t.is_structure() => {
+                            Some(tab_key.control("structure"))
+                        }
+                        Some(Tab::Table(_)) => Some(tab_key.control("data")),
+                        Some(Tab::Query(_)) => Some(tab_key.control("query")),
+                        Some(Tab::History(_)) => Some(tab_key.control("history")),
+                        None => None,
+                    };
+                    if let Some(pf) = pf {
+                        cx.focus(pf);
+                    } else {
+                        cx.focus(CONTENT_FRAME);
+                    }
+                } else {
+                    cx.focus(CONTENT_FRAME);
+                }
+                Response::changed()
+            }
+            Some(FilterOutcome::Apply(filter)) => {
+                let index = editor.index;
+                self.filter_editor = None;
+                cx.close_layer(FILTER_EDITOR, None);
+                if let Some(Tab::Table(table)) = self.workbench.active_mut() {
+                    match index {
+                        Some(i) if i < table.filters.len() => table.filters[i] = filter,
+                        _ => table.filters.push(filter),
+                    }
+                    table.reload(&self.catalog);
+                    let n = table.filters.iter().filter(|f| f.enabled).count();
+                    self.status = format!("{n} filter{} applied", if n == 1 { "" } else { "s" });
+                }
+                self.sync_active_tab();
+                if let Some(tab_key) = self.workbench.active_key() {
+                    let pf = match self.workbench.active() {
+                        Some(Tab::Table(t)) if t.is_structure() => {
+                            Some(tab_key.control("structure"))
+                        }
+                        Some(Tab::Table(_)) => Some(tab_key.control("data")),
+                        Some(Tab::Query(_)) => Some(tab_key.control("query")),
+                        Some(Tab::History(_)) => Some(tab_key.control("history")),
+                        None => None,
+                    };
+                    if let Some(pf) = pf {
+                        cx.focus(pf);
+                    } else {
+                        cx.focus(CONTENT_FRAME);
+                    }
+                } else {
+                    cx.focus(CONTENT_FRAME);
+                }
+                Response::changed()
+            }
+            Some(FilterOutcome::Keep) => Response::changed(),
+            None => Response::ignored(),
+        }
+    }
+
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         for (key, tab) in self.workbench.payloads_mut() {
@@ -2165,7 +2307,8 @@ impl TableProApp {
     }
 
     fn update_grid_view(cx: &mut Cx<'_>, id: Id, view: &mut GridView) -> Response<GridAction> {
-        let (columns, count) = Self::column_specs(&view.columns, view.model.is_editable(), None);
+        let (columns, count) =
+            Self::column_specs(&view.columns, view.model.is_editable(), None, &[]);
         let grid = result_grid(id, columns.get(..count).unwrap_or(&[]));
         let response = if view.model.is_editable() {
             grid.update_editable(cx, &mut view.state, &mut view.model)
@@ -2180,12 +2323,12 @@ impl TableProApp {
 
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         if let Some((id, grid)) = self.workbench.active_grid() {
-            let active_table = match self.workbench.active() {
-                Some(Tab::Table(t)) => Some(&t.table),
-                _ => None,
+            let (active_table, active_filters) = match self.workbench.active() {
+                Some(Tab::Table(t)) => (Some(&t.table), t.filters.as_slice()),
+                _ => (None, &[][..]),
             };
             let (columns, count) =
-                Self::column_specs(&grid.columns, grid.model.is_editable(), active_table);
+                Self::column_specs(&grid.columns, grid.model.is_editable(), active_table, active_filters);
             result_grid(id, columns.get(..count).unwrap_or(&[]))
                 .cell(&|cell, painter| {
                     let avail = painter.available_width();
@@ -4824,19 +4967,104 @@ impl TableProApp {
                         ui.paint_str(r2, &quiet, border_subtle_style);
                     }
 
-                    let grid_height = inner.height.saturating_sub(4);
+                    let has_filters = !table.filters.is_empty();
+                    let pending_total = table.result.pending_total();
+                    let pending_bar_h = if pending_total > 0 { 2 } else { 0 };
+                    let grid_y_offset = if has_filters { 5 } else { 3 };
+                    let grid_height_sub = (if has_filters { 6 } else { 4 }) + pending_bar_h;
+
+                    if has_filters {
+                        let chips_rect = termrock::Rect {
+                            x: inner.x,
+                            y: inner.y.saturating_add(3),
+                            width: inner.width,
+                            height: 1,
+                        };
+                        draw_filter_chips(ui, chips_rect, table);
+                    }
+
+                    let grid_height = inner.height.saturating_sub(grid_height_sub);
                     let grid_rect = termrock::Rect {
                         x: inner.x,
-                        y: inner.y.saturating_add(3),
+                        y: inner.y.saturating_add(grid_y_offset),
                         width: inner.width,
                         height: grid_height,
                     };
                     self.draw_result_grid(ui, grid_rect);
 
+                    if pending_total > 0 {
+                        let by = inner.bottom().saturating_sub(2);
+                        let bar_area = termrock::Rect::new(inner.x, by, inner.width, 1);
+                        ui.fill(bar_area, ui.surface_style());
+
+                        let (u, i, d) = table.result.pending_counts();
+                        let text = format!("• {pending_total} pending");
+                        let warning_style = ui.surface_style().patch(
+                            ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Warning)),
+                        );
+                        let _ = ui.paint_str(
+                            termrock::Rect::new(inner.x.saturating_add(1), by, termrock::width(&text), 1),
+                            &text,
+                            warning_style,
+                        );
+
+                        let mut parts = vec![];
+                        if u > 0 {
+                            parts.push(format!("{u} update{}", if u == 1 { "" } else { "s" }));
+                        }
+                        if i > 0 {
+                            parts.push(format!("{i} insert{}", if i == 1 { "" } else { "s" }));
+                        }
+                        if d > 0 {
+                            parts.push(format!("{d} delete{}", if d == 1 { "" } else { "s" }));
+                        }
+                        let detail = if parts.is_empty() {
+                            String::new()
+                        } else {
+                            format!("· {}", parts.join(" · "))
+                        };
+                        let muted_style = ui.surface_style().patch(
+                            ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Muted))),
+                        );
+                        let _ = ui.paint_str(
+                            termrock::Rect::new(
+                                inner.x.saturating_add(2).saturating_add(termrock::width(&text)),
+                                by,
+                                termrock::width(&detail),
+                                1,
+                            ),
+                            &detail,
+                            muted_style,
+                        );
+
+                        let active_key = self.workbench.active_key();
+                        let id = active_key.map_or_else(|| Id::root("tablepro.pending"), |k| k.control("pending"));
+                        let btn_save = Button::new(id.sub("save"), "Save").variant(Variant::PRIMARY);
+                        let btn_discard = Button::new(id.sub("discard"), "Discard").variant(Variant::SUBTLE);
+                        let btn_preview = Button::new(id.sub("preview"), "Preview SQL").variant(Variant::SUBTLE);
+
+                        let save_w = 6;
+                        let discard_w = 9;
+                        let preview_w = 13;
+
+                        let mut rx = inner.right().saturating_sub(1);
+                        rx = rx.saturating_sub(save_w);
+                        let save_rect = termrock::Rect::new(rx, by, save_w, 1);
+                        btn_save.draw(ui, save_rect);
+
+                        rx = rx.saturating_sub(1 + discard_w);
+                        let discard_rect = termrock::Rect::new(rx, by, discard_w, 1);
+                        btn_discard.draw(ui, discard_rect);
+
+                        rx = rx.saturating_sub(1 + preview_w);
+                        let preview_rect = termrock::Rect::new(rx, by, preview_w, 1);
+                        btn_preview.draw(ui, preview_rect);
+                    }
+
                     if let Some((id, grid)) = self.workbench.active_grid() {
                         let active_table = Some(&table.table);
                         let (columns, count) =
-                            Self::column_specs(&grid.columns, grid.model.is_editable(), active_table);
+                            Self::column_specs(&grid.columns, grid.model.is_editable(), active_table, &table.filters);
                         let grid_widget = result_grid(id, columns.get(..count).unwrap_or(&[]));
                         let mut parts: Vec<(String, u8)> = vec![];
                         if let Some((col_key, dir)) = grid.state.sort() {
@@ -5474,6 +5702,89 @@ fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
         })
 }
 
+fn draw_filter_chips(ui: &mut Ui<'_>, area: termrock::Rect, table: &TableTab) {
+    let mut x = area.x;
+    let y = area.y;
+    let muted_style = ui.surface_style().patch(
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+    );
+    let secondary_style = ui.surface_style().patch(
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+    );
+    let chip_bg_style = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary)),
+        ),
+    );
+    let chip_gutter_style = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Surface(termrock::Surface::Overlay))
+                .set_bg(Role::Surface(termrock::Surface::Overlay)),
+        ),
+    );
+    let button_gutter_style = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Surface(termrock::Surface::Canvas))
+                .set_bg(Role::Surface(termrock::Surface::Canvas)),
+        ),
+    );
+
+    // 1. " match all ▾ "
+    let lead_text = if table.match_all {
+        " match all ▾ "
+    } else {
+        " match any ▾ "
+    };
+    let lead_w = lead_text.chars().count() as u16;
+    ui.paint_str(termrock::Rect::new(x, y, lead_w, 1), lead_text, muted_style);
+    x = x.saturating_add(lead_w).saturating_add(1);
+
+    // 2. Chips
+    for f in &table.filters {
+        let label = f.chip_label();
+        let label_w = (label.chars().count() + 1) as u16;
+        let w = 1 + label_w + 1 + 2;
+        if x.saturating_add(w) > area.right() {
+            ui.paint_str(termrock::Rect::new(x, y, 1, 1), "…", muted_style);
+            return;
+        }
+        let chip_rect = termrock::Rect::new(x, y, w, 1);
+        ui.fill(chip_rect, chip_bg_style);
+        ui.paint_str(termrock::Rect::new(x, y, 1, 1), " ", chip_gutter_style);
+        let text_with_space = format!("{label} ");
+        ui.paint_str(
+            termrock::Rect::new(x.saturating_add(1), y, label_w, 1),
+            &text_with_space,
+            chip_bg_style,
+        );
+        let x_style = chip_bg_style.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+        );
+        ui.paint_str(
+            termrock::Rect::new(x.saturating_add(1).saturating_add(label_w), y, 1, 1),
+            "×",
+            x_style,
+        );
+        x = x.saturating_add(w).saturating_add(1);
+    }
+
+    // 3. "+ Add filter"
+    let add_text = "+ Add filter ";
+    let add_w = add_text.chars().count() as u16;
+    if x.saturating_add(add_w).saturating_add(1) <= area.right() {
+        ui.paint_str(termrock::Rect::new(x, y, 1, 1), " ", button_gutter_style);
+        ui.paint_str(
+            termrock::Rect::new(x.saturating_add(1), y, add_w, 1),
+            add_text,
+            secondary_style,
+        );
+    }
+}
+
 fn shell_parts(area: termrock::Rect) -> [termrock::Rect; 3] {
     let body_y = area.y.saturating_add(2);
     let body_height = area.height.saturating_sub(4);
@@ -5803,6 +6114,22 @@ struct KeyHint {
 }
 
 fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
+    if app.filter_editor.is_some() {
+        return &[
+            KeyHint {
+                key: "Tab",
+                action: "Next field",
+            },
+            KeyHint {
+                key: "Enter",
+                action: "Apply",
+            },
+            KeyHint {
+                key: "Esc",
+                action: "Cancel",
+            },
+        ];
+    }
     if let Some(dlg) = app.safety_dialog.as_ref() {
         if dlg.input_editing {
             return &[
@@ -5940,37 +6267,86 @@ fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
                 },
             ],
             Some(Tab::Table(t)) => {
-                if t.result.model.is_editable() {
-                    &[
-                        KeyHint {
-                            key: "↑↓←→",
-                            action: "Cell",
-                        },
+                if t.result.state.is_editing() || t.structure.state.is_editing() {
+                    return &[
                         KeyHint {
                             key: "Enter",
-                            action: "Edit",
+                            action: "Commit",
                         },
                         KeyHint {
-                            key: "Alt+D",
-                            action: "Duplicate row",
-                        },
-                        KeyHint {
-                            key: "s",
-                            action: "Sort",
-                        },
-                        KeyHint {
-                            key: "f",
-                            action: "Filter",
-                        },
-                        KeyHint {
-                            key: "Space",
-                            action: "Select row",
+                            key: "Esc",
+                            action: "Cancel",
                         },
                         KeyHint {
                             key: "Tab",
-                            action: "Next",
+                            action: "Next cell",
                         },
-                    ]
+                    ];
+                }
+                if t.result.model.is_editable() {
+                    if t.result.pending_total() > 0 {
+                        &[
+                            KeyHint {
+                                key: "↑↓←→",
+                                action: "Cell",
+                            },
+                            KeyHint {
+                                key: "Enter",
+                                action: "Edit",
+                            },
+                            KeyHint {
+                                key: "Alt+D",
+                                action: "Duplicate row",
+                            },
+                            KeyHint {
+                                key: "s",
+                                action: "Sort",
+                            },
+                            KeyHint {
+                                key: "f",
+                                action: "Filter",
+                            },
+                            KeyHint {
+                                key: "Ctrl+S",
+                                action: "Save",
+                            },
+                            KeyHint {
+                                key: "Tab",
+                                action: "Next",
+                            },
+                        ]
+                    } else {
+                        &[
+                            KeyHint {
+                                key: "↑↓←→",
+                                action: "Cell",
+                            },
+                            KeyHint {
+                                key: "Enter",
+                                action: "Edit",
+                            },
+                            KeyHint {
+                                key: "Alt+D",
+                                action: "Duplicate row",
+                            },
+                            KeyHint {
+                                key: "s",
+                                action: "Sort",
+                            },
+                            KeyHint {
+                                key: "f",
+                                action: "Filter",
+                            },
+                            KeyHint {
+                                key: "Space",
+                                action: "Select row",
+                            },
+                            KeyHint {
+                                key: "Tab",
+                                action: "Next",
+                            },
+                        ]
+                    }
                 } else {
                     &[
                         KeyHint {
@@ -6101,7 +6477,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
 
     let limit = area.right().saturating_sub(right_w);
     let mut x = area.x.saturating_add(1);
-    if app.screen == Screen::Connections && app.connections_screen.filter_active {
+    if app.is_editing() && app.safety_dialog.is_none() && app.filter_editor.is_none() {
         let badge = " EDIT ";
         let badge_w = termrock::width(badge);
         let badge_style = base.patch(
@@ -6417,9 +6793,12 @@ impl App for TableProApp {
             }
         }
         let switcher_was_open = cx.is_open(quick_switcher::ID);
-        let modal_was_open = self.destructive_intent.is_some() || self.safety_dialog.is_some();
+        let modal_was_open = self.destructive_intent.is_some()
+            || self.safety_dialog.is_some()
+            || self.filter_editor.is_some();
         let mut response = self.update_destructive_dialog(cx);
         response |= self.update_safety_dialog(cx);
+        response |= self.update_filter_editor(cx);
         response |= self.update_tab_controls(cx);
         if !self.status.is_empty() && self.status_since.is_none() {
             self.status_since = Some(cx.now());
@@ -6608,6 +6987,41 @@ impl App for TableProApp {
                         self.connections_screen.filter_active = true;
                         cx.focus(CONNECTION_FILTER);
                         response |= Response::changed();
+                    } else if self.screen == Screen::Workbench {
+                        if let Some(Tab::Table(table)) = self.workbench.active() {
+                            if !table.is_structure() {
+                                let (col_idx, cell_value) = if let Some((row_key, col_key)) =
+                                    table.result.state.cursor()
+                                {
+                                    let c_idx = usize::from(col_key.raw()).saturating_sub(1);
+                                    let row_idx = (0..table.result.model.row_count())
+                                        .find(|r| table.result.model.row_key(*r) == row_key);
+                                    let val = row_idx
+                                        .and_then(|r| table.result.model.cell(r, c_idx))
+                                        .map(|c| c.text.to_owned())
+                                        .unwrap_or_default();
+                                    (c_idx, val)
+                                } else {
+                                    (0, String::new())
+                                };
+                                let prefill = match cell_value.as_str() {
+                                    "" | "NULL" => (col_idx, FilterOp::IsNull, String::new()),
+                                    other => (col_idx, FilterOp::Eq, other.to_owned()),
+                                };
+                                self.open_filter_editor(cx, None, Some(prefill));
+                                response |= Response::changed();
+                            }
+                        }
+                    }
+                }
+                c if c == FILTER_EMPTY => {
+                    if self.screen == Screen::Workbench {
+                        if let Some(Tab::Table(table)) = self.workbench.active() {
+                            if !table.is_structure() {
+                                self.open_filter_editor(cx, None, None);
+                                response |= Response::changed();
+                            }
+                        }
                     }
                 }
                 c if c == SORT => {
@@ -6959,6 +7373,12 @@ impl App for TableProApp {
                 dialog.draw(ui, area);
             });
         }
+        if let Some(editor) = self.filter_editor.as_ref() {
+            ui.layer(FILTER_EDITOR, |ui, area| {
+                editor.draw(ui, area);
+            });
+        }
+        ui.suppress_cursor();
     }
     fn should_quit(&self) -> bool {
         self.quit
@@ -7109,6 +7529,34 @@ mod replacement_tests {
         eprintln!("Screen after s:\n{}", h.text());
         assert!(h.text().contains("sort created_at ▴"));
     }
+
+    #[test]
+    fn test_filtered_harness() {
+        let mut app = TableProApp::default();
+        let idx = app.connections.iter().position(|c| c.name == "Production").unwrap();
+        let _ = app.connect(idx);
+        let mut h = Harness::new(app, Theme::junie(), 120, 40);
+        for _ in 0..5 {
+            let _ = h.key(KeyCode::Down);
+        }
+        let _ = h.key(KeyCode::Enter);
+        let _ = h.key(KeyCode::Home);
+        for _ in 0..4 {
+            let _ = h.key(KeyCode::Right);
+        }
+        let _ = h.key(KeyCode::Char('f'));
+        let _ = h.key(KeyCode::BackTab);
+        let _ = h.key(KeyCode::BackTab);
+        let _ = h.key(KeyCode::Enter);
+        let _ = h.key_mod(KeyCode::Char('l'), termrock::KeyModifiers::CONTROL);
+        for c in "pending".chars() {
+            let _ = h.key(KeyCode::Char(c));
+        }
+        let _ = h.key(KeyCode::Enter);
+        let text = h.text();
+        assert!(text.contains("status = 'pending'"));
+        assert!(text.contains("filtered (1)"));
+    }
 }
 
 #[cfg(test)]
@@ -7159,3 +7607,4 @@ mod action_namespace_tests {
         }
     }
 }
+

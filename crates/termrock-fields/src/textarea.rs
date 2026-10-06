@@ -805,7 +805,7 @@ impl<'a> TextArea<'a> {
 
     /// The owned scroll region.
     const fn scroll_region(&self) -> ScrollRegion<'a> {
-        ScrollRegion::new(self.id)
+        ScrollRegion::new(self.id).fill_container(false)
     }
 
     fn validator(&self) -> Dyn<'_> {
@@ -1118,7 +1118,10 @@ impl<'a> TextArea<'a> {
         let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
             ov.style(ui, id, Family::TEXTAREA, Variant::DEFAULT, part, flags)
         };
-        let field = style(ui, Part::FIELD, live);
+        let mut field = style(ui, Part::FIELD, live);
+        if !editing {
+            field.style = field.style.remove_modifier(ratatui_core::style::Modifier::UNDERLINED);
+        }
         ui.fill(body, field.style);
         let shown = if editing {
             st.draft.text()

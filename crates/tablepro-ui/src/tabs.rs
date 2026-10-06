@@ -5,10 +5,73 @@ use tablepro_demo::{PlanNode, ROW_CAP, explain, run_select};
 use tablepro_domain::{Catalog, ColType, ObjectKind, ResultSet, Table, Value};
 use tablepro_domain::{History, HistoryEntry};
 use tablepro_sql as sql;
-use termrock::{ColumnKey, GridModel, GridState, Id, ItemKey, SortDir, TextInputState};
+use termrock::{
+    Align, Column, ColumnKey, GlyphRole, Grid, GridModel, GridState, Id, ItemKey, SortDir,
+    TextInputState, WidthSample, GRID_MAX_COLUMNS,
+};
 
 use crate::domain::ResultGrid;
 use crate::filter_editor::Filter;
+
+pub fn column_specs<'a>(
+    columns: &'a [(String, ColType)],
+    editable: bool,
+    table: Option<&Table>,
+    filters: &[Filter],
+) -> ([Column<'a>; GRID_MAX_COLUMNS], usize) {
+    let count = columns.len().min(GRID_MAX_COLUMNS);
+    let mut specs = [Column::new(ColumnKey::num(0), ""); GRID_MAX_COLUMNS];
+    for (index, (name, ty)) in columns.iter().take(count).enumerate() {
+        let mut col = Column::new(
+            ColumnKey::num((index as u16).saturating_add(1)),
+            name.as_str(),
+        );
+        col.sortable = true;
+        col.editable = editable;
+        col.sticky = false;
+        if filters.iter().any(|f| f.enabled && f.column == name.as_str()) {
+            col.filtered = true;
+        }
+        match ty {
+            ColType::Uuid => {
+                col.min_width = 9;
+                col.max_width = 36;
+            }
+            ColType::Text => {
+                col.min_width = 6;
+                col.max_width = 40;
+            }
+            ColType::Int | ColType::Numeric => {
+                col.min_width = 4;
+                col.max_width = 22;
+                col.align = Align::Right;
+            }
+            ColType::Bool => {
+                col.min_width = 5;
+                col.max_width = 5;
+            }
+            ColType::Timestamp | ColType::Date => {
+                col.min_width = 10;
+                col.max_width = 29;
+            }
+            ColType::Json => {
+                col.min_width = 8;
+                col.max_width = 40;
+            }
+            ColType::Enum => {
+                col.min_width = 6;
+                col.max_width = 16;
+            }
+        }
+        if table.is_some_and(|t| t.column(name).is_some_and(|c| c.primary)) {
+            col.prefix_glyph = Some(GlyphRole::PrimaryKey);
+        }
+        if let Some(slot) = specs.get_mut(index) {
+            *slot = col;
+        }
+    }
+    (specs, count)
+}
 
 /// Stable identity for an open workbench tab.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -112,6 +175,7 @@ pub struct TableTab {
     pub result: GridView,
     pub structure: Box<GridView>,
     pub filters: Vec<Filter>,
+    pub match_all: bool,
 }
 
 impl TableTab {
@@ -130,6 +194,7 @@ impl TableTab {
             result,
             structure: Box::new(GridView::empty()),
             filters: Vec::new(),
+            match_all: true,
         };
         tab.structure = Box::new(GridView::from_result(&ResultSet {
             columns: tab.structure_columns(),
@@ -139,6 +204,19 @@ impl TableTab {
             duration_ms: 0,
             editable: false,
         }));
+        let (columns, count) = column_specs(
+            &tab.result.columns,
+            tab.result.model.is_editable(),
+            Some(&tab.table),
+            &tab.filters,
+        );
+        let grid = Grid::new(
+            Id::root("tablepro").sub("grid"),
+            columns.get(..count).unwrap_or(&[]),
+        );
+        if let Ok(policy) = WidthSample::new(200, 95) {
+            grid.sample_column_widths(&mut tab.result.state, &tab.result.model, policy);
+        }
         tab
     }
 
@@ -200,9 +278,11 @@ impl TableTab {
             limit: Some(ROW_CAP),
             count_only: false,
         };
+        let has_filter = self.filters.iter().any(|f| f.enabled);
         if let Ok(rs) = run_select(catalog, &sel) {
             let saved_state = self.result.state.clone();
             self.result = GridView::from_result(&rs);
+            self.result.model.set_estimated(has_filter);
             self.result.state = saved_state;
         }
 
@@ -217,6 +297,39 @@ impl TableTab {
                 format!("Sorted by {name} {dir_str}")
             }
             None => "Sort cleared".to_string(),
+        }
+    }
+
+    pub fn reload(&mut self, catalog: &Catalog) {
+        let order = match self.result.state.sort() {
+            Some((col_key, dir)) => {
+                let col_idx = usize::from(col_key.raw()).saturating_sub(1);
+                self.result
+                    .columns
+                    .get(col_idx)
+                    .map(|(name, _)| (name.clone(), dir == SortDir::Asc))
+            }
+            None => None,
+        };
+        let mut predicates = Vec::new();
+        for f in self.filters.iter().filter(|f| f.enabled) {
+            predicates.extend(f.predicates());
+        }
+        let sel = sql::Select {
+            columns: vec!["*".into()],
+            schema: Some(self.table.schema.clone()),
+            table: self.table.name.clone(),
+            predicates,
+            order,
+            limit: Some(ROW_CAP),
+            count_only: false,
+        };
+        let has_filter = self.filters.iter().any(|f| f.enabled);
+        if let Ok(rs) = run_select(catalog, &sel) {
+            let saved_state = self.result.state.clone();
+            self.result = GridView::from_result(&rs);
+            self.result.model.set_estimated(has_filter);
+            self.result.state = saved_state;
         }
     }
 
@@ -322,7 +435,21 @@ impl QueryTab {
         };
         let result = run_select(catalog, &select).map_err(|error| error.message)?;
         let rows = result.rows.len();
-        self.result = Some(GridView::from_result(&result));
+        let mut grid_view = GridView::from_result(&result);
+        let (columns, count) = column_specs(
+            &grid_view.columns,
+            grid_view.model.is_editable(),
+            None,
+            &[],
+        );
+        let grid = Grid::new(
+            Id::root("tablepro").sub("grid"),
+            columns.get(..count).unwrap_or(&[]),
+        );
+        if let Ok(policy) = WidthSample::new(200, 95) {
+            grid.sample_column_widths(&mut grid_view.state, &grid_view.model, policy);
+        }
+        self.result = Some(grid_view);
         self.error = None;
         Ok(rows)
     }

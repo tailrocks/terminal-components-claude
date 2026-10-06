@@ -87,6 +87,7 @@ pub struct ScrollRegion<'a> {
     id: Id,
     family: Family,
     scrollbar_visible: bool,
+    fill_container: bool,
     focus_override: Option<bool>,
     ov: PartStyle<'a>,
 }
@@ -106,6 +107,7 @@ impl fmt::Debug for ScrollRegion<'_> {
             .field("id", &self.id)
             .field("family", &self.family)
             .field("scrollbar_visible", &self.scrollbar_visible)
+            .field("fill_container", &self.fill_container)
             .field("focus_override", &self.focus_override)
             .field("overrides", &self.ov)
             .finish()
@@ -122,9 +124,17 @@ impl<'a> ScrollRegion<'a> {
             id,
             family: Family::SCROLLBAR,
             scrollbar_visible: true,
+            fill_container: true,
             focus_override: None,
             ov: PartStyle::new(),
         }
+    }
+
+    /// Whether to fill the container area with `CONTAINER` style during draw. Default: true.
+    #[must_use]
+    pub const fn fill_container(mut self, fill: bool) -> Self {
+        self.fill_container = fill;
+        self
     }
 
     /// Explicitly override the focus state used for track/thumb styling.
@@ -326,7 +336,9 @@ impl<'a> ScrollRegion<'a> {
             Part::CONTAINER,
             StateFlags::empty(),
         );
-        ui.fill(area, container.style);
+        if self.fill_container {
+            ui.fill(area, container.style);
+        }
         ui.report_layout(
             self.id,
             LayoutFacts::new(

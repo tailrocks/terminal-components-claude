@@ -278,6 +278,8 @@ pub struct Column<'a> {
     pub prefix_glyph: Option<GlyphRole>,
     /// A short badge painted after the title.
     pub badge: Option<&'a str>,
+    /// Whether the column has an active filter applied.
+    pub filtered: bool,
 }
 
 impl<'a> Column<'a> {
@@ -295,6 +297,7 @@ impl<'a> Column<'a> {
             sticky: false,
             prefix_glyph: None,
             badge: None,
+            filtered: false,
         }
     }
 }
@@ -1729,6 +1732,27 @@ impl<'a> Grid<'a> {
             if has_actions {
                 w = w.saturating_add(2);
             }
+            let is_sorted = c.sortable
+                && (self.sort_indicator == GridSortIndicator::Always
+                    || st.sort.is_some_and(|(key, _)| key == c.key));
+            let is_filtered = c.filtered;
+            if is_sorted || is_filtered {
+                let need = width(c.title)
+                    .saturating_add(
+                        if c.prefix_glyph == Some(GlyphRole::PrimaryKey)
+                            || self.header_prefix(c.key).is_some()
+                        {
+                            2
+                        } else {
+                            0
+                        },
+                    )
+                    .saturating_add(if is_filtered { 2 } else { 0 })
+                    .saturating_add(if is_sorted { 2 } else { 0 })
+                    .saturating_add(1);
+                let need = need.min(c.max_width.max(c.min_width));
+                w = w.max(need);
+            }
             if let Some(slot) = widths.get_mut(i) {
                 *slot = match self.header_sizing {
                     GridHeaderSizing::Content => {
@@ -2103,6 +2127,7 @@ struct Pending {
 
 /// How an edit begins, extracted from [`EditIntent`] so the model's borrow
 /// ends before `apply_cycle` / `commit_cell` need `&mut`.
+#[derive(Debug)]
 enum Begin {
     Inline(String),
     Cycle,
@@ -2166,8 +2191,13 @@ impl Grid<'_> {
         s.push_str(" of ");
         push_grouped(&mut s, len);
         match model.total() {
-            RowTotal::Exact(t) | RowTotal::Estimated(t) if t > len => {
+            RowTotal::Exact(t) if t > len => {
                 s.push_str(" loaded \u{b7} ");
+                push_grouped(&mut s, t);
+                s.push_str(" total");
+            }
+            RowTotal::Estimated(t) if t > len => {
+                s.push_str(" loaded \u{b7} ~");
                 push_grouped(&mut s, t);
                 s.push_str(" total");
             }
@@ -3234,10 +3264,12 @@ impl Grid<'_> {
             if rect.width == 0 {
                 continue;
             }
+            let show_filter = col.filtered;
+            let filter_width = if show_filter { 2u16.min(rect.width) } else { 0 };
             let show_sort = col.sortable
                 && (self.sort_indicator == GridSortIndicator::Always
                     || st.sort.is_some_and(|(key, _)| key == col.key));
-            let sort_width = if show_sort { 2u16.min(rect.width) } else { 0 };
+            let sort_width = if show_sort { 2u16.min(rect.width.saturating_sub(filter_width)) } else { 0 };
             let title = Rect {
                 width: rect
                     .width
@@ -3245,13 +3277,14 @@ impl Grid<'_> {
                         col.badge
                             .map_or(0, |b| width(b).saturating_add(1).min(rect.width)),
                     )
-                    .saturating_sub(sort_width),
+                    .saturating_sub(sort_width)
+                    .saturating_sub(filter_width),
                 ..rect
             };
             let is_selected = (st.col == Some(col.key) || (st.col.is_none() && i == 0))
                 && live.contains(StateFlags::FOCUSED);
             let is_sorted = st.sort.is_some_and(|(key, _)| key == col.key);
-            let title_tone = if is_selected || is_sorted {
+            let title_tone = if is_selected || is_sorted || col.filtered {
                 Role::Fg(FgStep::Primary)
             } else {
                 Role::Fg(FgStep::Muted)
@@ -3259,15 +3292,46 @@ impl Grid<'_> {
             let title_style = hs
                 .style
                 .patch(ui.paint_patch(&StylePatch::new().set_fg(title_tone)));
+            ui.fill(rect, title_style);
             self.paint_header_title(ui, title, col, live, title_style);
             if let Some(badge) = col.badge {
                 let bw = width(badge).min(rect.width);
                 let at = Rect {
-                    x: rect.right().saturating_sub(sort_width).saturating_sub(bw),
+                    x: rect.right().saturating_sub(sort_width).saturating_sub(filter_width).saturating_sub(bw),
                     width: bw,
                     ..rect
                 };
                 paint_aligned(ui, at, badge, Align::Right, hs.style);
+            }
+            if show_filter {
+                let filter_x = match col.align {
+                    Align::Left => {
+                        let prefix_w: u16 = if col.prefix_glyph == Some(GlyphRole::PrimaryKey) {
+                            2
+                        } else {
+                            0
+                        };
+                        let title_w = prefix_w
+                            .saturating_add(width(col.title) as u16)
+                            .min(title.width);
+                        rect.x
+                            .saturating_add(title_w)
+                            .saturating_add(1)
+                            .min(rect.right().saturating_sub(1))
+                    }
+                    Align::Center | Align::Right => {
+                        rect.right().saturating_sub(sort_width).saturating_sub(1)
+                    }
+                };
+                ui.paint_str(
+                    Rect {
+                        x: filter_x,
+                        width: 1,
+                        ..rect
+                    },
+                    "\u{2207}",
+                    title_style,
+                );
             }
             if show_sort {
                 let glyph = match st.sort {
@@ -3286,7 +3350,7 @@ impl Grid<'_> {
                             .min(title.width);
                         rect.x
                             .saturating_add(title_w)
-                            .saturating_add(1)
+                            .saturating_add(if show_filter { 3 } else { 1 })
                             .min(rect.right().saturating_sub(1))
                     }
                     Align::Center | Align::Right => rect.right().saturating_sub(1),
@@ -3546,7 +3610,7 @@ impl Grid<'_> {
                 .then(|| state.edit_error())
                 .flatten();
             let mut cflags = rflags.difference(StateFlags::PRESSED);
-            if is_cursor && i == cursor.1 {
+            if is_cursor && i == cursor.1 && live.contains(StateFlags::FOCUSED) {
                 cflags |= StateFlags::ACTIVE;
             }
             if range
@@ -3602,7 +3666,7 @@ impl Grid<'_> {
                 .columns
                 .get(i)
                 .is_some_and(|c| c.prefix_glyph == Some(GlyphRole::PrimaryKey))
-                && !is_cursor
+                && !(is_cursor && i == cursor.1 && live.contains(StateFlags::FOCUSED))
             {
                 cell_delta = cell_delta.set_fg(Role::Fg(FgStep::Secondary));
             }
@@ -3662,7 +3726,7 @@ impl Grid<'_> {
                     },
                     &mut painter,
                 );
-            } else {
+            } else if !editing {
                 paint_aligned(ui, text_rect, text, align, style);
             }
             if !inert {
@@ -3701,11 +3765,19 @@ impl Grid<'_> {
                 // G6: the inline editor's Control region is registered after
                 // the cell's Part region, so a click inside it goes to the
                 // editor and not to the grid
-                TextInput::new(self.id.part(Part::TEXT))
+                const BOLD_PATCHES: [(Part, StylePatch); 2] = [
+                    (Part::TEXT, StylePatch::new().add(Modifier::BOLD)),
+                    (Part::FIELD, StylePatch::new().add(Modifier::BOLD)),
+                ];
+                let mut editor_input = TextInput::new(self.id.part(Part::TEXT))
                     .pointer_enabled(geometry.complete.get(i).copied().unwrap_or(false))
                     .disabled(self.disabled)
                     .value(cell.text)
-                    .draw(ui, rect, &state.editor);
+                    .inline(true);
+                if is_cursor && live.contains(StateFlags::FOCUSED) {
+                    editor_input = editor_input.patch_part(&BOLD_PATCHES);
+                }
+                editor_input.draw(ui, rect, &state.editor);
             }
         }
     }
@@ -3747,6 +3819,9 @@ impl Grid<'_> {
             StateFlags::empty()
         };
         let mut live = PartStyle::flags(ui.state(self.id), derived);
+        if !self.disabled && ui.state(self.editor_id()).contains(StateFlags::FOCUSED) {
+            live |= StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE;
+        }
         if self.disabled {
             live |= StateFlags::DISABLED;
             live.remove(
@@ -3770,7 +3845,10 @@ impl Grid<'_> {
         ui.fill(area, container.style);
         let (header, note, body, bar) = self.chrome(area, reason);
         let scroll = Self::scroll_for_view(st, usize::from(body.height));
-        let content = self.bar().draw(ui, body, &scroll, total);
+        let content = self
+            .bar()
+            .focused(live.contains(StateFlags::FOCUSED))
+            .draw(ui, body, &scroll, total);
         let rows = Self::window(st, content, total);
         ui.report_layout(
             self.id,
@@ -4038,6 +4116,7 @@ mod tests {
                 sticky: false,
                 prefix_glyph: None,
                 badge: None,
+                filtered: false,
             },
             Column {
                 key: ColumnKey::num(2),
@@ -4051,6 +4130,7 @@ mod tests {
                 sticky: false,
                 prefix_glyph: None,
                 badge: None,
+                filtered: false,
             },
         ]
     }
@@ -4423,6 +4503,7 @@ mod tests {
                 sticky: false,
                 prefix_glyph: None,
                 badge: None,
+                filtered: false,
             },
             Column {
                 key: ColumnKey::num(2),
@@ -4436,6 +4517,7 @@ mod tests {
                 sticky: false,
                 prefix_glyph: None,
                 badge: None,
+                filtered: false,
             },
         ];
         let model = Model::two();

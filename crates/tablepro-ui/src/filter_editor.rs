@@ -320,3 +320,720 @@ fn wildcard(value: &str, pattern: &str) -> bool {
     }
     pattern.ends_with('*') || at == value.len()
 }
+
+pub const FILTER_EDITOR: termrock::Id = termrock::Id::root("tablepro.filter-editor");
+pub const FILTER_COL: termrock::Id = termrock::Id::root("tablepro.filter.col");
+pub const FILTER_OP: termrock::Id = termrock::Id::root("tablepro.filter.op");
+pub const FILTER_VALUE: termrock::Id = termrock::Id::root("tablepro.filter.value");
+pub const FILTER_VALUE2: termrock::Id = termrock::Id::root("tablepro.filter.value2");
+pub const FILTER_CANCEL: termrock::Id = termrock::Id::root("tablepro.filter.cancel");
+pub const FILTER_APPLY: termrock::Id = termrock::Id::root("tablepro.filter.apply");
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FilterFocus {
+    Column,
+    Op,
+    Value,
+    Value2,
+    Cancel,
+    Apply,
+}
+
+#[derive(Debug, Clone)]
+pub struct FilterEditor {
+    pub index: Option<usize>,
+    pub columns: Vec<(String, ColType)>,
+    pub column_idx: usize,
+    pub column_open: bool,
+    pub column_cursor: usize,
+    pub op: FilterOp,
+    pub op_open: bool,
+    pub op_cursor: usize,
+    pub ops: Vec<FilterOp>,
+    pub value: String,
+    pub value_editing: bool,
+    pub value_selected_all: bool,
+    pub value2: String,
+    pub value2_editing: bool,
+    pub value2_selected_all: bool,
+    pub focus: FilterFocus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FilterOutcome {
+    Keep,
+    Apply(Filter),
+    Cancel,
+}
+
+impl FilterEditor {
+    pub fn new(
+        columns: Vec<(String, ColType)>,
+        index: Option<usize>,
+        prefill: Option<(usize, FilterOp, String)>,
+        cursor_col: usize,
+    ) -> Self {
+        let (col_idx, op, value, value2) = match prefill {
+            Some((c, op, v)) => (c.min(columns.len().saturating_sub(1)), op, v, String::new()),
+            None => (
+                cursor_col.min(columns.len().saturating_sub(1)),
+                FilterOp::Eq,
+                String::new(),
+                String::new(),
+            ),
+        };
+        let ty = columns
+            .get(col_idx)
+            .map(|(_, ty)| *ty)
+            .unwrap_or(ColType::Text);
+        let ops = FilterOp::ordered_for(ty);
+        let initial_focus = if value.is_empty() {
+            FilterFocus::Value
+        } else {
+            FilterFocus::Apply
+        };
+        Self {
+            index,
+            columns,
+            column_idx: col_idx,
+            column_open: false,
+            column_cursor: col_idx,
+            op,
+            op_open: false,
+            op_cursor: ops.iter().position(|&o| o == op).unwrap_or(0),
+            ops,
+            value,
+            value_editing: false,
+            value_selected_all: false,
+            value2,
+            value2_editing: false,
+            value2_selected_all: false,
+            focus: initial_focus,
+        }
+    }
+
+    pub fn to_filter(&self) -> Filter {
+        Filter {
+            column: self
+                .columns
+                .get(self.column_idx)
+                .map(|(c, _)| c.clone())
+                .unwrap_or_default(),
+            op: self.op,
+            value: self.value.trim().to_owned(),
+            value2: self.value2.trim().to_owned(),
+            enabled: true,
+        }
+    }
+
+    fn next_focus(&self) -> FilterFocus {
+        match self.focus {
+            FilterFocus::Column => FilterFocus::Op,
+            FilterFocus::Op => {
+                if self.op.needs_value() {
+                    FilterFocus::Value
+                } else {
+                    FilterFocus::Cancel
+                }
+            }
+            FilterFocus::Value => {
+                if self.op == FilterOp::Between {
+                    FilterFocus::Value2
+                } else {
+                    FilterFocus::Cancel
+                }
+            }
+            FilterFocus::Value2 => FilterFocus::Cancel,
+            FilterFocus::Cancel => FilterFocus::Apply,
+            FilterFocus::Apply => FilterFocus::Column,
+        }
+    }
+
+    fn prev_focus(&self) -> FilterFocus {
+        match self.focus {
+            FilterFocus::Column => FilterFocus::Apply,
+            FilterFocus::Op => FilterFocus::Column,
+            FilterFocus::Value => FilterFocus::Op,
+            FilterFocus::Value2 => FilterFocus::Value,
+            FilterFocus::Cancel => {
+                if self.op == FilterOp::Between {
+                    FilterFocus::Value2
+                } else if self.op.needs_value() {
+                    FilterFocus::Value
+                } else {
+                    FilterFocus::Op
+                }
+            }
+            FilterFocus::Apply => FilterFocus::Cancel,
+        }
+    }
+
+    fn update_ops(&mut self) {
+        if let Some((_, ty)) = self.columns.get(self.column_idx) {
+            self.ops = FilterOp::ordered_for(*ty);
+            if !self.ops.contains(&self.op) {
+                self.op = self.ops.first().copied().unwrap_or(FilterOp::Eq);
+            }
+            self.op_cursor = self.ops.iter().position(|&o| o == self.op).unwrap_or(0);
+        }
+    }
+
+    pub fn on_key(&mut self, key: termrock::Key) -> FilterOutcome {
+        if key.code == termrock::KeyCode::Esc {
+            if self.column_open {
+                self.column_open = false;
+                return FilterOutcome::Keep;
+            }
+            if self.op_open {
+                self.op_open = false;
+                return FilterOutcome::Keep;
+            }
+            if self.value_editing {
+                self.value_editing = false;
+                return FilterOutcome::Keep;
+            }
+            if self.value2_editing {
+                self.value2_editing = false;
+                return FilterOutcome::Keep;
+            }
+            return FilterOutcome::Cancel;
+        }
+
+        if !self.column_open && !self.op_open && !self.value_editing && !self.value2_editing {
+            match key.code {
+                termrock::KeyCode::Tab => {
+                    self.focus = self.next_focus();
+                    return FilterOutcome::Keep;
+                }
+                termrock::KeyCode::BackTab => {
+                    self.focus = self.prev_focus();
+                    return FilterOutcome::Keep;
+                }
+                _ => {}
+            }
+        }
+
+        match self.focus {
+            FilterFocus::Column => {
+                if self.column_open {
+                    match key.code {
+                        termrock::KeyCode::Up | termrock::KeyCode::Char('k') => {
+                            self.column_cursor = self.column_cursor.saturating_sub(1);
+                        }
+                        termrock::KeyCode::Down | termrock::KeyCode::Char('j') => {
+                            self.column_cursor = (self.column_cursor + 1)
+                                .min(self.columns.len().saturating_sub(1));
+                        }
+                        termrock::KeyCode::Enter | termrock::KeyCode::Char(' ') => {
+                            self.column_open = false;
+                            self.column_idx = self.column_cursor;
+                            self.update_ops();
+                        }
+                        _ => {}
+                    }
+                } else {
+                    match key.code {
+                        termrock::KeyCode::Enter | termrock::KeyCode::Char(' ') => {
+                            self.column_open = true;
+                            self.column_cursor = self.column_idx;
+                        }
+                        termrock::KeyCode::Left | termrock::KeyCode::Up => {
+                            self.column_idx = self.column_idx.saturating_sub(1);
+                            self.update_ops();
+                        }
+                        termrock::KeyCode::Right | termrock::KeyCode::Down => {
+                            self.column_idx =
+                                (self.column_idx + 1).min(self.columns.len().saturating_sub(1));
+                            self.update_ops();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            FilterFocus::Op => {
+                if self.op_open {
+                    match key.code {
+                        termrock::KeyCode::Up | termrock::KeyCode::Char('k') => {
+                            self.op_cursor = self.op_cursor.saturating_sub(1);
+                        }
+                        termrock::KeyCode::Down | termrock::KeyCode::Char('j') => {
+                            self.op_cursor =
+                                (self.op_cursor + 1).min(self.ops.len().saturating_sub(1));
+                        }
+                        termrock::KeyCode::Enter | termrock::KeyCode::Char(' ') => {
+                            self.op_open = false;
+                            if let Some(&op) = self.ops.get(self.op_cursor) {
+                                self.op = op;
+                            }
+                        }
+                        _ => {}
+                    }
+                } else {
+                    match key.code {
+                        termrock::KeyCode::Enter | termrock::KeyCode::Char(' ') => {
+                            self.op_open = true;
+                            self.op_cursor =
+                                self.ops.iter().position(|&o| o == self.op).unwrap_or(0);
+                        }
+                        termrock::KeyCode::Left | termrock::KeyCode::Up => {
+                            let idx = self
+                                .ops
+                                .iter()
+                                .position(|&o| o == self.op)
+                                .unwrap_or(0)
+                                .saturating_sub(1);
+                            if let Some(&op) = self.ops.get(idx) {
+                                self.op = op;
+                            }
+                        }
+                        termrock::KeyCode::Right | termrock::KeyCode::Down => {
+                            let idx = (self
+                                .ops
+                                .iter()
+                                .position(|&o| o == self.op)
+                                .unwrap_or(0)
+                                + 1)
+                            .min(self.ops.len().saturating_sub(1));
+                            if let Some(&op) = self.ops.get(idx) {
+                                self.op = op;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            FilterFocus::Value => {
+                if !self.value_editing {
+                    match key.code {
+                        termrock::KeyCode::Enter => {
+                            self.value_editing = true;
+                            self.value_selected_all = false;
+                        }
+                        termrock::KeyCode::Char(c) => {
+                            self.value_editing = true;
+                            self.value.clear();
+                            self.value.push(c);
+                            self.value_selected_all = false;
+                        }
+                        _ => {}
+                    }
+                } else {
+                    match key.code {
+                        termrock::KeyCode::Char('l')
+                            if key.mods.contains(termrock::KeyModifiers::CONTROL) =>
+                        {
+                            self.value.clear();
+                            self.value_selected_all = true;
+                        }
+                        termrock::KeyCode::Enter => {
+                            self.value_editing = false;
+                            return FilterOutcome::Apply(self.to_filter());
+                        }
+                        termrock::KeyCode::Backspace => {
+                            if self.value_selected_all {
+                                self.value.clear();
+                                self.value_selected_all = false;
+                            } else {
+                                self.value.pop();
+                            }
+                        }
+                        termrock::KeyCode::Char(c) => {
+                            if self.value_selected_all {
+                                self.value.clear();
+                                self.value_selected_all = false;
+                            }
+                            self.value.push(c);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            FilterFocus::Value2 => {
+                if !self.value2_editing {
+                    match key.code {
+                        termrock::KeyCode::Enter => {
+                            self.value2_editing = true;
+                            self.value2_selected_all = false;
+                        }
+                        termrock::KeyCode::Char(c) => {
+                            self.value2_editing = true;
+                            self.value2.clear();
+                            self.value2.push(c);
+                            self.value2_selected_all = false;
+                        }
+                        _ => {}
+                    }
+                } else {
+                    match key.code {
+                        termrock::KeyCode::Char('l')
+                            if key.mods.contains(termrock::KeyModifiers::CONTROL) =>
+                        {
+                            self.value2.clear();
+                            self.value2_selected_all = true;
+                        }
+                        termrock::KeyCode::Enter => {
+                            self.value2_editing = false;
+                            return FilterOutcome::Apply(self.to_filter());
+                        }
+                        termrock::KeyCode::Backspace => {
+                            if self.value2_selected_all {
+                                self.value2.clear();
+                                self.value2_selected_all = false;
+                            } else {
+                                self.value2.pop();
+                            }
+                        }
+                        termrock::KeyCode::Char(c) => {
+                            if self.value2_selected_all {
+                                self.value2.clear();
+                                self.value2_selected_all = false;
+                            }
+                            self.value2.push(c);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            FilterFocus::Cancel => {
+                if key.code == termrock::KeyCode::Enter {
+                    return FilterOutcome::Cancel;
+                }
+            }
+            FilterFocus::Apply => {
+                if key.code == termrock::KeyCode::Enter {
+                    return FilterOutcome::Apply(self.to_filter());
+                }
+            }
+        }
+        FilterOutcome::Keep
+    }
+
+    pub fn draw(&self, ui: &mut termrock::Ui<'_>, area: termrock::Rect) {
+        use termrock::{FgStep, Focusability, Modifier, Role, StylePatch, Surface, truncate};
+
+        let fill_bg = termrock::PaintStyle::new().bg(ui.theme_ref().bg(Surface::Elevated));
+        ui.fill(area, fill_bg);
+
+        let elevated_style = ui.surface_style().patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_bg(Role::Surface(Surface::Elevated)),
+            ),
+        );
+
+        let border_style = elevated_style.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)),
+        );
+        let w = area.width;
+        let h = area.height;
+        if w >= 2 && h >= 2 {
+            let mut top = String::with_capacity(w as usize);
+            top.push('╭');
+            for _ in 0..w.saturating_sub(2) {
+                top.push('─');
+            }
+            top.push('╮');
+            ui.paint_str(termrock::Rect::new(area.x, area.y, w, 1), &top, border_style);
+
+            let mut bot = String::with_capacity(w as usize);
+            bot.push('╰');
+            for _ in 0..w.saturating_sub(2) {
+                bot.push('─');
+            }
+            bot.push('╯');
+            ui.paint_str(
+                termrock::Rect::new(area.x, area.bottom().saturating_sub(1), w, 1),
+                &bot,
+                border_style,
+            );
+
+            for y in (area.y + 1)..area.bottom().saturating_sub(1) {
+                ui.paint_str(termrock::Rect::new(area.x, y, 1, 1), "│", border_style);
+                ui.paint_str(
+                    termrock::Rect::new(area.right().saturating_sub(1), y, 1, 1),
+                    "│",
+                    border_style,
+                );
+            }
+        }
+
+        // Title
+        let title_text = if self.index.is_some() {
+            "Edit filter"
+        } else {
+            "Add filter"
+        };
+        let title_style = elevated_style.patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .add(Modifier::BOLD),
+            ),
+        );
+        ui.paint_str(
+            termrock::Rect::new(area.x + 3, area.y + 1, area.width.saturating_sub(6), 1),
+            title_text,
+            title_style,
+        );
+
+        // Labels
+        let col_focused = self.focus == FilterFocus::Column;
+        let col_label_style = if col_focused {
+            elevated_style.patch(ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .add(Modifier::BOLD),
+            ))
+        } else {
+            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+        };
+        ui.paint_str(
+            termrock::Rect::new(area.x + 4, area.y + 3, 20, 1),
+            "Column",
+            col_label_style,
+        );
+
+        let op_focused = self.focus == FilterFocus::Op;
+        let op_label_style = if op_focused {
+            elevated_style.patch(ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .add(Modifier::BOLD),
+            ))
+        } else {
+            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+        };
+        ui.paint_str(
+            termrock::Rect::new(area.x + 34, area.y + 3, 20, 1),
+            "Operator",
+            op_label_style,
+        );
+
+        // Fields
+        let field_style = ui.surface_style().patch(
+            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Field))),
+        );
+        let accent_gutter =
+            field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+        let primary_fg =
+            field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+        let sec_fg =
+            field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+        let muted_fg =
+            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+
+        // Column select field
+        let col_rect = termrock::Rect::new(area.x + 2, area.y + 4, 28, 1);
+        ui.register_control(FILTER_COL, col_rect, Focusability::Focusable);
+        ui.fill(col_rect, field_style);
+        if col_focused {
+            ui.paint_str(termrock::Rect::new(area.x + 2, area.y + 4, 1, 1), "▎", accent_gutter);
+        } else {
+            let gutter_style = field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Field))));
+            ui.paint_str(termrock::Rect::new(area.x + 2, area.y + 4, 1, 1), " ", gutter_style);
+        }
+        let col_name = self
+            .columns
+            .get(self.column_idx)
+            .map(|(c, _)| c.as_str())
+            .unwrap_or("");
+        ui.paint_str(
+            termrock::Rect::new(area.x + 4, area.y + 4, 22, 1),
+            col_name,
+            primary_fg,
+        );
+        ui.paint_str(
+            termrock::Rect::new(area.x + 28, area.y + 4, 1, 1),
+            if self.column_open { "▴" } else { "▾" },
+            sec_fg,
+        );
+
+        // Operator select field
+        let op_rect = termrock::Rect::new(area.x + 32, area.y + 4, 29, 1);
+        ui.register_control(FILTER_OP, op_rect, Focusability::Focusable);
+        ui.fill(op_rect, field_style);
+        if op_focused {
+            ui.paint_str(termrock::Rect::new(area.x + 32, area.y + 4, 1, 1), "▎", accent_gutter);
+        } else {
+            let gutter_style = field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Field))));
+            ui.paint_str(termrock::Rect::new(area.x + 32, area.y + 4, 1, 1), " ", gutter_style);
+        }
+        ui.paint_str(
+            termrock::Rect::new(area.x + 34, area.y + 4, 23, 1),
+            self.op.label(),
+            primary_fg,
+        );
+        ui.paint_str(
+            termrock::Rect::new(area.x + 59, area.y + 4, 1, 1),
+            if self.op_open { "▴" } else { "▾" },
+            sec_fg,
+        );
+
+        // Operator help text
+        ui.paint_str(
+            termrock::Rect::new(area.x + 34, area.y + 5, 27, 1),
+            "Operators that fit the col…",
+            muted_fg,
+        );
+
+        // Value field
+        if self.op.needs_value() {
+            let val_focused = self.focus == FilterFocus::Value;
+            let val_label_style = if val_focused {
+                elevated_style.patch(ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD),
+                ))
+            } else {
+                elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+            };
+            let mut label_str = String::from("Value");
+            let target_w = 57usize;
+            if label_str.len() < target_w {
+                label_str.push_str(&" ".repeat(target_w - label_str.len()));
+            }
+            ui.paint_str(
+                termrock::Rect::new(area.x + 4, area.y + 6, target_w as u16, 1),
+                &label_str,
+                val_label_style,
+            );
+
+            let val_rect = termrock::Rect::new(area.x + 2, area.y + 7, 59, 1);
+            ui.register_control(FILTER_VALUE, val_rect, Focusability::Focusable);
+            ui.fill(val_rect, field_style);
+            if val_focused {
+                ui.paint_str(termrock::Rect::new(area.x + 2, area.y + 7, 1, 1), "▎", accent_gutter);
+            } else {
+                let gutter_style = field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Field))));
+                ui.paint_str(termrock::Rect::new(area.x + 2, area.y + 7, 1, 1), " ", gutter_style);
+            }
+            if self.value.is_empty() && !self.value_editing {
+                ui.paint_str(
+                    termrock::Rect::new(area.x + 4, area.y + 7, 56, 1),
+                    "value",
+                    field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)))),
+                );
+            } else {
+                ui.paint_str(
+                    termrock::Rect::new(area.x + 4, area.y + 7, 56, 1),
+                    &self.value,
+                    primary_fg,
+                );
+            }
+        } else {
+            ui.paint_str(
+                termrock::Rect::new(area.x + 4, area.y + 7, 56, 1),
+                "No value needed for this operator",
+                muted_fg,
+            );
+        }
+
+        // SQL Preview
+        let sql_filter = self.to_filter().to_sql();
+        let preview = format!("WHERE {sql_filter}");
+        let sec_elevated = elevated_style
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+        ui.paint_str(
+            termrock::Rect::new(area.x + 3, area.y + 10, area.width.saturating_sub(6), 1),
+            &truncate(&preview, 58),
+            sec_elevated,
+        );
+
+        // Buttons
+        let confirm_label = if self.index.is_some() {
+            "Update filter"
+        } else {
+            "Add filter"
+        };
+        let confirm_w = (confirm_label.len() + 2) as u16;
+        let cancel_w = 8u16;
+        let confirm_x = area.right().saturating_sub(3 + confirm_w);
+        let cancel_x = confirm_x.saturating_sub(1 + cancel_w);
+
+        let cancel_rect = termrock::Rect::new(cancel_x, area.y + 13, cancel_w, 1);
+        let confirm_rect = termrock::Rect::new(confirm_x, area.y + 13, confirm_w, 1);
+        ui.register_control(FILTER_CANCEL, cancel_rect, Focusability::Focusable);
+        ui.register_control(FILTER_APPLY, confirm_rect, Focusability::Focusable);
+
+        let cancel_focused = self.focus == FilterFocus::Cancel;
+        if cancel_focused {
+            let btn_bg = ui.surface_style().patch(
+                ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Overlay))),
+            );
+            ui.fill(termrock::Rect::new(cancel_x, area.y + 13, cancel_w, 1), btn_bg);
+            ui.paint_str(
+                termrock::Rect::new(cancel_x, area.y + 13, 1, 1),
+                "▎",
+                btn_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent))),
+            );
+            ui.paint_str(
+                termrock::Rect::new(cancel_x + 1, area.y + 13, cancel_w - 1, 1),
+                "Cancel ",
+                btn_bg.patch(ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD),
+                )),
+            );
+        } else {
+            let subtle_style = elevated_style.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+            );
+            let cancel_gutter = elevated_style.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Elevated))),
+            );
+            ui.paint_str(
+                termrock::Rect::new(cancel_x, area.y + 13, 1, 1),
+                " ",
+                cancel_gutter,
+            );
+            ui.paint_str(
+                termrock::Rect::new(cancel_x + 1, area.y + 13, cancel_w - 1, 1),
+                "Cancel ",
+                subtle_style,
+            );
+        }
+
+        let apply_focused = self.focus == FilterFocus::Apply;
+        let text = format!("{confirm_label} ");
+        let accent_style = ui.surface_style().patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_bg(Role::Accent)
+                    .set_fg(Role::OnAccent)
+                    .add(Modifier::BOLD),
+            ),
+        );
+        ui.fill(
+            termrock::Rect::new(confirm_x, area.y + 13, confirm_w, 1),
+            accent_style,
+        );
+        if apply_focused {
+            ui.paint_str(
+                termrock::Rect::new(confirm_x, area.y + 13, 1, 1),
+                "▎",
+                accent_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary)))),
+            );
+        } else {
+            let gutter_style = accent_style.patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Accent)
+                        .remove(Modifier::BOLD),
+                ),
+            );
+            ui.paint_str(
+                termrock::Rect::new(confirm_x, area.y + 13, 1, 1),
+                " ",
+                gutter_style,
+            );
+        }
+        ui.paint_str(
+            termrock::Rect::new(confirm_x + 1, area.y + 13, confirm_w - 1, 1),
+            &text,
+            accent_style,
+        );
+    }
+}
+

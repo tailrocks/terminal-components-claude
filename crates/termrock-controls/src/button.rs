@@ -417,7 +417,10 @@ impl<'a> Button<'a> {
                     ui.glyph(gutter_cell, glyph, gs);
                 }
                 Slot::Inherit | Slot::Clear => {
-                    let gs = container.style.with_fg_from_bg(container.style);
+                    let gs = container
+                        .style
+                        .with_fg_from_bg(container.style)
+                        .remove_modifier(ratatui_core::style::Modifier::BOLD);
                     ui.fill(gutter_cell, gs);
                 }
             }
