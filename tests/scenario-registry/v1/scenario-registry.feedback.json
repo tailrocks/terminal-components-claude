@@ -1,0 +1,2488 @@
+{
+ "version": "1",
+ "group": "feedback",
+ "ref_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+ "head_commit": "6007e9fdcbf353fef59177ed8b35d5801f1b0fe2",
+ "description": "FEEDBACK group slice: ProgressBar, Spinner, Meter, StatusBar, HintBar, KeyHint. Same stable IDs as v1/registry.json; ref_source lists reference source symbols verified present in the cited files. src/ tree is identical between ref_commit and head_commit, so cited lines hold for both. ProgressBar is render_bar, Spinner is spinner_frame plus render_spinner and render_indeterminate; StatusBar, HintBar, and KeyHint are the like-named widgets.",
+ "scenarios": [
+  {
+   "id": "PB-STATES-001",
+   "app": "showcase",
+   "component": "ProgressBar",
+   "part": "state samples + terminal glyphs",
+   "ref_symbols": [
+    {
+     "glyph": "✓",
+     "meaning": "done suffix in the 2-cell marker column"
+    },
+    {
+     "glyph": "!",
+     "meaning": "error suffix in the 2-cell marker column"
+    },
+    {
+     "glyph": "‖",
+     "meaning": "paused suffix in the 2-cell marker column"
+    },
+    {
+     "glyph": "━",
+     "meaning": "filled track cell in the status color"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "✓",
+     "meaning": "done suffix in the 2-cell marker column"
+    },
+    {
+     "glyph": "!",
+     "meaning": "error suffix in the 2-cell marker column"
+    },
+    {
+     "glyph": "‖",
+     "meaning": "paused suffix in the 2-cell marker column"
+    },
+    {
+     "glyph": "━",
+     "meaning": "filled track cell in the status color"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/progress.rs",
+     "symbols": [
+      "render_bar",
+      "ProgressStatus",
+      "track_w",
+      "filled"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "samples": [
+     "Queued",
+     "Halfway",
+     "Completed",
+     "Failed",
+     "Paused"
+    ],
+    "ratios": [
+     0.0,
+     0.5,
+     1.0,
+     0.64,
+     0.3
+    ]
+   },
+   "state": {
+    "status": "Done",
+    "ratio": 1.0
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase progress page"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "states",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the Completed row ends ' ✓', Failed ' !', Paused ' ‖', in success, error, and muted tones"
+     },
+     {
+      "id": "V2",
+      "text": "a running bar is white-70 (text_secondary); green is reserved for Done"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "ratio is clamped to 0..1 and the percent is rounded"
+     },
+     {
+      "id": "S2",
+      "text": "the label paints only when width exceeds label plus 8"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "sample rows take no input: they expose no focus stops"
+     },
+     {
+      "id": "A2",
+      "text": "Tab reaches only the Live Restart/Pause buttons"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "a bar narrower than 6 track cells shows the percent only: no label, no track"
+     },
+     {
+      "id": "N2",
+      "text": "green never paints an Active, Error, or Paused bar"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/progress.rs",
+      "lines": "22-80",
+      "note": "render_bar: label rule, suffix glyphs, narrow fallback, colors"
+     },
+     {
+      "path": "src/bin/showcase/pages/progress.rs",
+      "lines": "97-134",
+      "note": "States panel samples and the narrow-bar demo"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/progress/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "PB-LIVE-002",
+   "app": "showcase",
+   "component": "ProgressBar",
+   "part": "live build + pause/restart",
+   "ref_symbols": [
+    {
+     "glyph": "✓",
+     "meaning": "done marker in 'Build finished ✓'"
+    },
+    {
+     "glyph": "‖",
+     "meaning": "paused suffix while the build is paused"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "✓",
+     "meaning": "done marker in 'Build finished ✓'"
+    },
+    {
+     "glyph": "‖",
+     "meaning": "paused suffix while the build is paused"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/showcase/pages/progress.rs",
+     "symbols": [
+      "build",
+      "paused",
+      "render_bar",
+      "ProgressStatus"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "rate_per_tick": 0.006
+   },
+   "state": {
+    "build": 0.5,
+    "paused": false,
+    "running": true
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "playing",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase progress page"
+    },
+    {
+     "step": 2,
+     "action": "advance the build",
+     "ticks": 80
+    },
+    {
+     "step": 3,
+     "action": "pause the build",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "restart the build",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "mid",
+     "tick": 80,
+     "capture": true
+    },
+    {
+     "name": "done",
+     "tick": 167,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the Live bar fills left to right as the percent climbs"
+     },
+     {
+      "id": "V2",
+      "text": "pausing shows the ‖ suffix and relabels Pause to Resume"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "each Tick adds 0.006 to build, capped at 1.0"
+     },
+     {
+      "id": "S2",
+      "text": "reaching 1.0 reports status 'Build finished ✓' once"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Pause toggles paused and swaps the button label"
+     },
+     {
+      "id": "A2",
+      "text": "Restart resets build to 0 and resumes running"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "ticks past 1.0 keep Done: the bar never overflows"
+     },
+     {
+      "id": "N2",
+      "text": "pausing stops the advance but the page keeps animating"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/showcase/pages/progress.rs",
+      "lines": "44-66",
+      "note": "Live panel: status select and the Building bar"
+     },
+     {
+      "path": "src/bin/showcase/pages/progress.rs",
+      "lines": "180-212",
+      "note": "Tick advance with the 0.006 rate; pause/restart actions"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/progress/mid/80x24/truecolor.txt",
+     "snapshots/showcase/flows/progress/done/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "SPIN-FRAME-001",
+   "app": "showcase",
+   "component": "Spinner",
+   "part": "braille frames + compact activity row",
+   "ref_symbols": [
+    {
+     "glyph": "⠋",
+     "meaning": "busy spinner frame at tick 0",
+     "tick": 0
+    },
+    {
+     "glyph": "⠙",
+     "meaning": "busy spinner frame at tick 1",
+     "tick": 1
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "⠋",
+     "meaning": "busy spinner frame at tick 0",
+     "tick": 0
+    },
+    {
+     "glyph": "⠙",
+     "meaning": "busy spinner frame at tick 1",
+     "tick": 1
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/progress.rs",
+     "symbols": [
+      "SPINNER",
+      "spinner_frame",
+      "render_spinner"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "label": "Waiting for the test runner"
+   },
+   "state": {},
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "playing",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase progress page"
+    },
+    {
+     "step": 2,
+     "action": "advance one animation tick",
+     "ticks": 1
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "first-frame",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "second-frame",
+     "tick": 1,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the row shows '⠋ label': the glyph in accent, the label in secondary"
+     },
+     {
+      "id": "V2",
+      "text": "the count line shows the same frame plus 'N of M files'"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "frame(tick) is SPINNER[tick % 10]: ten braille frames"
+     },
+     {
+      "id": "S2",
+      "text": "an empty area draws nothing and consumes no tick"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "the spinner row takes no input and holds no focus"
+     },
+     {
+      "id": "A2",
+      "text": "Tab skips the Live readouts for the buttons"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the second capture must NOT equal the first: multi-frame, not frozen"
+     },
+     {
+      "id": "N2",
+      "text": "the label is never bold and never accent"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/progress.rs",
+      "lines": "8-12",
+      "note": "SPINNER table and the spinner_frame modulo"
+     },
+     {
+      "path": "src/widgets/progress.rs",
+      "lines": "376-390",
+      "note": "render_spinner: accent glyph plus secondary label"
+     },
+     {
+      "path": "src/bin/showcase/pages/progress.rs",
+      "lines": "74-88",
+      "note": "Live spinner row and the tick-driven count line"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/progress/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "SPIN-SWEEP-002",
+   "app": "showcase",
+   "component": "Spinner",
+   "part": "indeterminate sweep geometry",
+   "ref_symbols": [
+    {
+     "glyph": "━",
+     "meaning": "accent segment cell sweeping the track"
+    },
+    {
+     "glyph": "─",
+     "meaning": "subtle track cell outside the segment"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "━",
+     "meaning": "accent segment cell sweeping the track"
+    },
+    {
+     "glyph": "─",
+     "meaning": "subtle track cell outside the segment"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/progress.rs",
+     "symbols": [
+      "render_indeterminate",
+      "seg",
+      "period",
+      "pos"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "label": "Resolving"
+   },
+   "state": {},
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "playing",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase progress page"
+    },
+    {
+     "step": 2,
+     "action": "advance five animation ticks",
+     "ticks": 5
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "sweep-0",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "sweep-5",
+     "tick": 5,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "a short accent segment sweeps over the subtle track"
+     },
+     {
+      "id": "V2",
+      "text": "the label paints in primary when it fits the label rule"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "segment length is (track/5) clamped to 2..8"
+     },
+     {
+      "id": "S2",
+      "text": "position is (tick % (track+seg)) - seg: it wraps around"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "the sweep takes no input and holds no focus"
+     },
+     {
+      "id": "A2",
+      "text": "pause/restart buttons nearby do not move the sweep"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the segment never paints outside the track cells"
+     },
+     {
+      "id": "N2",
+      "text": "an empty area draws nothing"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/progress.rs",
+      "lines": "341-374",
+      "note": "render_indeterminate: segment, period, and wrap position"
+     },
+     {
+      "path": "src/bin/showcase/pages/progress.rs",
+      "lines": "67-73",
+      "note": "Live 'Resolving' indeterminate row"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/progress/mid/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "METER-TONES-001",
+   "app": "showcase",
+   "component": "Meter",
+   "part": "threshold levels + line visual",
+   "ref_symbols": [
+    {
+     "glyph": "━",
+     "meaning": "level-colored run cell of the line track"
+    },
+    {
+     "glyph": "─",
+     "meaning": "subtle remainder cell of the line track"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "━",
+     "meaning": "level-colored run cell of the line track"
+    },
+    {
+     "glyph": "─",
+     "meaning": "subtle remainder cell of the line track"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/progress.rs",
+     "symbols": [
+      "METER_LOW_MAX",
+      "METER_MEDIUM_MAX",
+      "MeterLevel",
+      "render_meter"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "samples": [
+     38,
+     72,
+     91
+    ]
+   },
+   "state": {
+    "tone": "Normal"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase progress page at 120x40"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "meters",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "low is the white ladder, medium is warning, high is error; the value and suffix sit right of the run"
+     },
+     {
+      "id": "V2",
+      "text": "low value text is primary; medium and high take the run color"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "of(pct) is Low at 59 and below, Medium to 84, High above"
+     },
+     {
+      "id": "S2",
+      "text": "ratio is used_pct capped at 100 over 100"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "meters take no input and hold no focus"
+     },
+     {
+      "id": "A2",
+      "text": "Tab skips the meter matrix for the Live buttons"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "green is never used: a quota is not a completion"
+     },
+     {
+      "id": "N2",
+      "text": "a track narrower than 6 cells shows the value only"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/progress.rs",
+      "lines": "82-106",
+      "note": "shared thresholds and MeterLevel::of"
+     },
+     {
+      "path": "src/widgets/progress.rs",
+      "lines": "249-274",
+      "note": "Line visual: track takes the leftover, then value+suffix"
+     },
+     {
+      "path": "src/bin/showcase/pages/progress.rs",
+      "lines": "135-153",
+      "note": "meter fixtures: three Normal levels plus domain tones"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/progress/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "METER-DOMAIN-002",
+   "app": "showcase",
+   "component": "Meter",
+   "part": "domain tones + block visual",
+   "ref_symbols": [
+    {
+     "glyph": "▲",
+     "meaning": "warning suffix of the Warning tone"
+    },
+    {
+     "glyph": "!",
+     "meaning": "bold exhausted suffix of the Exhausted tone"
+    },
+    {
+     "glyph": "—",
+     "meaning": "faint placeholder of the Unknown tone"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "▲",
+     "meaning": "warning suffix of the Warning tone"
+    },
+    {
+     "glyph": "!",
+     "meaning": "bold exhausted suffix of the Exhausted tone"
+    },
+    {
+     "glyph": "—",
+     "meaning": "faint placeholder of the Unknown tone"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/progress.rs",
+     "symbols": [
+      "MeterTone",
+      "MeterVisual",
+      "palette",
+      "Exhausted"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "tones": [
+     "Warning",
+     "Exhausted",
+     "Stale",
+     "Refreshing",
+     "Error",
+     "Unknown"
+    ]
+   },
+   "state": {
+    "tone": "Warning"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase progress page at 120x40"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "domain-meters",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "Warning ends ' ▲', Exhausted ends bold ' !', Stale is faint, Unknown is '—'"
+     },
+     {
+      "id": "V2",
+      "text": "Block fills the used share as background with the value inside it, starting one cell in"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "level() maps Warning to Medium and Exhausted to High; Stale and below map to None"
+     },
+     {
+      "id": "S2",
+      "text": "Refreshing shows the spinner frame plus 'refreshing' as the value"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "domain meters take no input and hold no focus"
+     },
+     {
+      "id": "A2",
+      "text": "a failed quota read leaves the run out, not stale"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "Error and Unknown draw no run: the message and marker only"
+     },
+     {
+      "id": "N2",
+      "text": "text on a Stale fill is secondary, never canvas"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/progress.rs",
+      "lines": "119-154",
+      "note": "MeterTone variants and the level() mapping"
+     },
+     {
+      "path": "src/widgets/progress.rs",
+      "lines": "193-218",
+      "note": "palette: run color, text color, suffix, run flag"
+     },
+     {
+      "path": "src/widgets/progress.rs",
+      "lines": "275-319",
+      "note": "Block visual: filled share, rest plane, value inside"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/progress/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "SB-GROUPS-001",
+   "app": "showcase",
+   "component": "StatusBar",
+   "part": "three groups + chips + hover",
+   "ref_symbols": [
+    {
+     "glyph": "·",
+     "meaning": "middle dot joining facts inside one status item"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "·",
+     "meaning": "middle dot joining facts inside one status item"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/statusbar.rs",
+     "symbols": [
+      "StatusBar",
+      "StatusItem",
+      "Emphasis",
+      "Group"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/chrome.rs",
+     "symbols": [
+      "status_bar",
+      "clickable",
+      "priority",
+      "strong",
+      "chip"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "left": 2,
+    "center": 1,
+    "right": 3
+   },
+   "state": {
+    "hovered": "usage",
+    "zoomed": false
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase chrome page"
+    },
+    {
+     "step": 2,
+     "action": "hover the Weekly usage chip",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "groups",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "hover",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "left, center, and right groups share one row with spacing only: no separator glyphs"
+     },
+     {
+      "id": "V2",
+      "text": "the surface name is bold; quota chips sit on the overlay plane"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "priorities run 9/7 on the left, 4 center, 6/3/2 right"
+     },
+     {
+      "id": "S2",
+      "text": "the row fills with surface_elevated outside the items"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "hovering a clickable chip lifts its plane and takes primary text"
+     },
+     {
+      "id": "A2",
+      "text": "clickable items register a one-row hit region"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "gaps between groups are never glyphs"
+     },
+     {
+      "id": "N2",
+      "text": "the center group never sits left of the left group"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/statusbar.rs",
+      "lines": "18-47",
+      "note": "Emphasis, StatusItem shape, and the inline meter track"
+     },
+     {
+      "path": "src/widgets/statusbar.rs",
+      "lines": "274-333",
+      "note": "render: plane fill, busy/meter adornments, hover, clicks"
+     },
+     {
+      "path": "src/bin/showcase/pages/chrome.rs",
+      "lines": "85-113",
+      "note": "chrome status_bar: groups, tones, chips, priorities"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/chrome/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "SB-COLLAPSE-002",
+   "app": "showcase",
+   "component": "StatusBar",
+   "part": "narrow collapse order + truncation",
+   "ref_symbols": [
+    {
+     "glyph": "…",
+     "meaning": "truncation marker of the surviving left item"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "…",
+     "meaning": "truncation marker of the surviving left item"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/statusbar.rs",
+     "symbols": [
+      "layout",
+      "GAP",
+      "EDGE",
+      "truncate",
+      "Placed"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "width": 72
+   },
+   "state": {
+    "center_kept": false
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 72,
+    "height": 20
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase chrome page at 72x20"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "narrow",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the center group is gone first at narrow widths"
+     },
+     {
+      "id": "V2",
+      "text": "the surviving strongest left item truncates with … and keeps its pad cells"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "eviction drops the lowest priority anywhere; ties leave center, then right, then left"
+     },
+     {
+      "id": "S2",
+      "text": "the last left item never leaves: it truncates instead"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "a resize recomputes placement from the same priorities"
+     },
+     {
+      "id": "A2",
+      "text": "the bar holds no focus stops at any width"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the strongest left item is never dropped"
+     },
+     {
+      "id": "N2",
+      "text": "right items are never truncated: only the left survivor clips"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/statusbar.rs",
+      "lines": "127-129",
+      "note": "GAP of 3 between items, EDGE of 1 at each side"
+     },
+     {
+      "path": "src/widgets/statusbar.rs",
+      "lines": "144-272",
+      "note": "layout: priority eviction, left truncation, centering"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/chrome/72x20/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "SB-SCREENS-003",
+   "app": "holla",
+   "component": "StatusBar",
+   "part": "screen bits + busy chip + disk meter",
+   "ref_symbols": [
+    {
+     "glyph": "⠋",
+     "meaning": "primary-tone spinner of a busy status item",
+     "tick": 0
+    },
+    {
+     "glyph": "━",
+     "meaning": "run cell of the inline disk meter"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "⠋",
+     "meaning": "primary-tone spinner of a busy status item",
+     "tick": 0
+    },
+    {
+     "glyph": "━",
+     "meaning": "run cell of the inline disk meter"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/holla/app.rs",
+     "symbols": [
+      "draw_status",
+      "truncate_middle",
+      "live_activities",
+      "MeterTone"
+     ]
+    },
+    {
+     "path": "src/widgets/statusbar.rs",
+     "symbols": [
+      "busy",
+      "meter",
+      "STATUS_METER_TRACK"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "cwd": "~/src",
+    "git": "main"
+   },
+   "state": {
+    "live": 2,
+    "disk_pct": 91
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot holla on the discovery screen"
+    },
+    {
+     "step": 2,
+     "action": "start two background activities",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "status",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the path item is strong at priority 10; the size cell is faint at priority 1"
+     },
+     {
+      "id": "V2",
+      "text": "live work shows a busy 'N running' chip; a disk at 85%+ shows an inline meter"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "center and extra right items come from the screen's StatusBits"
+     },
+     {
+      "id": "S2",
+      "text": "the busy spinner is always primary; the text keeps its own tone"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "path, git, and running items are clickable hit regions"
+     },
+     {
+      "id": "A2",
+      "text": "screens swap their bits without touching the shell items"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the disk meter hides below 85%"
+     },
+     {
+      "id": "N2",
+      "text": "no center item appears when the screen offers none"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/holla/app.rs",
+      "lines": "3161-3235",
+      "note": "draw_status: shell items plus screen bits, busy, meter"
+     },
+     {
+      "path": "src/bin/holla/screens/mod.rs",
+      "lines": "223-229",
+      "note": "StatusBits: the screen's center plus right contribution"
+     },
+     {
+      "path": "src/bin/holla/screens/plan.rs",
+      "lines": "1589-1598",
+      "note": "plan screen status bits across run phases"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/holla/parity/discovery/80x24/truecolor.txt",
+     "snapshots/holla/parity/disk-scan/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "HB-LAYERS-001",
+   "app": "showcase",
+   "component": "HintBar",
+   "part": "layer precedence + badge + status",
+   "ref_symbols": [
+    {
+     "glyph": "…",
+     "meaning": "cut marker when hints overflow the row"
+    },
+    {
+     "glyph": "ZOOM",
+     "meaning": "zoom badge text leading the chrome hints"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "…",
+     "meaning": "cut marker when hints overflow the row"
+    },
+    {
+     "glyph": "ZOOM",
+     "meaning": "zoom badge text leading the chrome hints"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/hintbar.rs",
+     "symbols": [
+      "HintBar",
+      "HintLayer",
+      "resolve"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/chrome.rs",
+     "symbols": [
+      "layer",
+      "badge",
+      "status"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "menu_open": false,
+    "zoomed": true
+   },
+   "state": {
+    "last": "View › Zoom pane"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase chrome page"
+    },
+    {
+     "step": 2,
+     "action": "open the View menu",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "toggle zoom and close the menu",
+     "key": "Esc",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "base",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "menu",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "an open menu swaps the footer to the menu layer: Move, Switch menu, Choose, Close"
+     },
+     {
+      "id": "V2",
+      "text": "the ZOOM badge leads the hints; 'last: …' keeps the right edge"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "resolve takes the first present layer: menu, context, screen"
+     },
+     {
+      "id": "S2",
+      "text": "zooming adds the badge without changing the hints"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "closing the menu restores the screen layer"
+     },
+     {
+      "id": "A2",
+      "text": "focus on the menu bar swaps to the bar layer"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "a modal never paints its own hint row"
+     },
+     {
+      "id": "N2",
+      "text": "the footer row never moves between layers"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/hintbar.rs",
+      "lines": "1-67",
+      "note": "one shell-owned hint surface; resolve and render"
+     },
+     {
+      "path": "src/bin/showcase/pages/chrome.rs",
+      "lines": "135-171",
+      "note": "chrome layer(): menu, context, and screen layers plus badge"
+     },
+     {
+      "path": "src/bin/showcase/pages/chrome.rs",
+      "lines": "229-242",
+      "note": "status row above the pinned hint row"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/chrome/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "HB-SHELL-002",
+   "app": "jackin-preview",
+   "component": "HintBar",
+   "part": "shell layers + fallback + centered",
+   "ref_symbols": [
+    {
+     "glyph": "…",
+     "meaning": "cut marker when shell hints overflow the row"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "…",
+     "meaning": "cut marker when shell hints overflow the row"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/app.rs",
+     "symbols": [
+      "draw_footer",
+      "modal_layer",
+      "fallback",
+      "BadgeKind"
+     ]
+    },
+    {
+     "path": "src/widgets/hintbar.rs",
+     "symbols": [
+      "resolve",
+      "centered"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "modal": true,
+    "route": "manager"
+   },
+   "state": {
+    "editing": true,
+    "status": "Workspace ada · review and save"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin on the manager route"
+    },
+    {
+     "step": 2,
+     "action": "open the new-workspace prelude modal",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "begin editing the destination input",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "screen-hints",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "modal-hints",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the modal layer wins: the prelude step hints replace the screen hints"
+     },
+     {
+      "id": "V2",
+      "text": "the EDIT badge leads while editing; the status keeps the right edge; the row is centered"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "editing covers screen edits plus Dialog, Form, and Browser modal edits"
+     },
+     {
+      "id": "S2",
+      "text": "still-inside feedback takes the status slot on the Manager route"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "closing the modal restores the screen layer"
+     },
+     {
+      "id": "A2",
+      "text": "an empty screen context falls back to '? Help, Esc Back'"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the footer is never blank: the fallback always applies"
+     },
+     {
+      "id": "N2",
+      "text": "the status never overlaps the hints: it reserves its own width"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/app.rs",
+      "lines": "2519-2541",
+      "note": "draw_footer: per-modal hint sets, picker first"
+     },
+     {
+      "path": "src/bin/jackin_preview/app.rs",
+      "lines": "2599-2610",
+      "note": "editing detection across screen and modals; EDIT badge"
+     },
+     {
+      "path": "src/bin/jackin_preview/app.rs",
+      "lines": "2625-2642",
+      "note": "layer order with fallback; centered render"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/usage/overview/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "KH-STATUS-001",
+   "app": "showcase",
+   "component": "KeyHint",
+   "part": "toned status keeps the right edge",
+   "ref_symbols": [
+    {
+     "glyph": "!",
+     "meaning": "bold error mark before an error status"
+    },
+    {
+     "glyph": "▲",
+     "meaning": "warning mark before a warning status"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "!",
+     "meaning": "bold error mark before an error status"
+    },
+    {
+     "glyph": "▲",
+     "meaning": "warning mark before a warning status"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/keyhint.rs",
+     "symbols": [
+      "render_toned",
+      "render_aligned",
+      "mark",
+      "right_w"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "status": "last: View › Zoom pane"
+   },
+   "state": {
+    "tone": "Secondary"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase chrome page"
+    },
+    {
+     "step": 2,
+     "action": "run a menu action so the status updates",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "footer",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "an error status renders '! message' in error with a bold mark; warning renders '▲ message'"
+     },
+     {
+      "id": "V2",
+      "text": "a plain secondary status renders unmarked in its tone"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the mark follows the tone: Error !, Warning ▲, else none"
+     },
+     {
+      "id": "S2",
+      "text": "the status reserves its width plus 3 from the hint limit"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "the status line takes no input"
+     },
+     {
+      "id": "A2",
+      "text": "a new menu action replaces the status text"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "a plain status never carries ▲ or !"
+     },
+     {
+      "id": "N2",
+      "text": "only the mark cell is bold, never the message"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/keyhint.rs",
+      "lines": "40-53",
+      "note": "render_toned: glyph weight that survives monochrome"
+     },
+     {
+      "path": "src/widgets/keyhint.rs",
+      "lines": "79-108",
+      "note": "status block: mark, truncate, right-edge pin, bold mark"
+     },
+     {
+      "path": "src/bin/showcase/pages/chrome.rs",
+      "lines": "158-165",
+      "note": "chrome screen layer with the secondary last-status"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/chrome/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "KH-DROP-002",
+   "app": "showcase",
+   "component": "KeyHint",
+   "part": "narrow drop + badge + centered + containment",
+   "ref_symbols": [
+    {
+     "glyph": "…",
+     "meaning": "faint cut marker where hints were dropped"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "…",
+     "meaning": "faint cut marker where hints were dropped"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/keyhint.rs",
+     "symbols": [
+      "render_aligned",
+      "centered",
+      "limit",
+      "drawn"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "badge": "ZOOM",
+    "centered": false
+   },
+   "state": {
+    "drawn": 2
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 72,
+    "height": 20
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase chrome page at 72x20"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "narrow-footer",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "hints drop from the right and a faint … marks the cut"
+     },
+     {
+      "id": "V2",
+      "text": "a badge renders as ' TEXT ' leading; centered rows sit mid-row"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "render returns the drawn count; two cells stay reserved while more hints follow"
+     },
+     {
+      "id": "S2",
+      "text": "centered start clamps between the badge and the status"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "the hint row takes no input at any width"
+     },
+     {
+      "id": "A2",
+      "text": "widening the terminal redraws the dropped hints"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "nothing paints outside the assigned area at any width"
+     },
+     {
+      "id": "N2",
+      "text": "a centered block never slides under the status"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/keyhint.rs",
+      "lines": "57-78",
+      "note": "area clamp and the leading badge block"
+     },
+     {
+      "path": "src/widgets/keyhint.rs",
+      "lines": "109-152",
+      "note": "centered measurement; drop-from-right with the … marker"
+     },
+     {
+      "path": "src/bin/jackin_preview/app.rs",
+      "lines": "2641-2642",
+      "note": "shells render centered: jackin sets centered=true"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/chrome/72x20/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  }
+ ],
+ "coverage": [
+  {
+   "component": "ProgressBar",
+   "rows": [
+    "PB-STATES-001",
+    "PB-LIVE-002"
+   ],
+   "handlers": [
+    "render_bar: label, track, percent, 2-cell suffix per status",
+    "Live page: build advance, pause/resume toggle, restart, done status"
+   ],
+   "flags": [
+    "Active",
+    "Done",
+    "Error",
+    "Paused",
+    "build",
+    "running",
+    "paused"
+   ],
+   "thresholds": [
+    "label needs width above label+8; track below 6 cells shows the percent only",
+    "build rate 0.006 per Tick: 167 ticks from 0 to Done"
+   ],
+   "timers": [
+    "Live build advances on Tick; samples are static"
+   ],
+   "early_returns": [
+    "empty area returns; tiny width drops label+track"
+   ],
+   "notes": [
+    "green is reserved for Done; running bars are white-70"
+   ]
+  },
+  {
+   "component": "Spinner",
+   "rows": [
+    "SPIN-FRAME-001",
+    "SPIN-SWEEP-002"
+   ],
+   "handlers": [
+    "render_spinner: accent frame plus secondary label",
+    "render_indeterminate: accent segment sweeping the subtle track"
+   ],
+   "flags": [
+    "tick (interaction clock)"
+   ],
+   "thresholds": [
+    "ten braille frames modulo tick; segment (track/5) clamped 2..8",
+    "sweep period is track+seg; label follows the bar label rule"
+   ],
+   "timers": [
+    "frame and sweep position both derive from the tick"
+   ],
+   "early_returns": [
+    "empty area draws nothing"
+   ],
+   "notes": [
+    "second captures must differ from first: never frozen"
+   ]
+  },
+  {
+   "component": "Meter",
+   "rows": [
+    "METER-TONES-001",
+    "METER-DOMAIN-002"
+   ],
+   "handlers": [
+    "Meter::render in Line and Block visuals via palette()",
+    "level() maps each tone to a level or to no run"
+   ],
+   "flags": [
+    "Normal",
+    "Level",
+    "Warning",
+    "Exhausted",
+    "Stale",
+    "Refreshing",
+    "Error",
+    "Unknown",
+    "Line",
+    "Block"
+   ],
+   "thresholds": [
+    "METER_LOW_MAX 59, METER_MEDIUM_MAX 84; used_pct capped at 100",
+    "Line track below 6 and Block bar below 4 show the value only"
+   ],
+   "timers": [
+    "Refreshing reads the spinner frame from the tick"
+   ],
+   "early_returns": [
+    "empty area returns; Error/Unknown draw no run at all"
+   ],
+   "notes": [
+    "a quota is never green; Block value starts one cell in; Exhausted suffix is bold"
+   ]
+  },
+  {
+   "component": "StatusBar",
+   "rows": [
+    "SB-GROUPS-001",
+    "SB-COLLAPSE-002",
+    "SB-SCREENS-003"
+   ],
+   "handlers": [
+    "layout: priority eviction, left truncation, group placement",
+    "render: plane fill, busy spinner, inline meter, hover, clicks",
+    "shell assembly: chrome demo, holla draw_status, capsule meters, screen StatusBits"
+   ],
+   "flags": [
+    "Plain",
+    "Strong",
+    "Chip",
+    "priority 0-10",
+    "busy",
+    "meter",
+    "clickable id"
+   ],
+   "thresholds": [
+    "GAP 3 between items, EDGE 1 at each side; inline meter track 10",
+    "holla disk meter appears at 85%+"
+   ],
+   "timers": [
+    "busy spinners read the tick; layout is static per width"
+   ],
+   "early_returns": [
+    "empty area returns; nothing left to drop ends eviction"
+   ],
+   "notes": [
+    "center leaves first, then right, then left; the last left item truncates with …; capsule freshness adds stale/error chips"
+   ]
+  },
+  {
+   "component": "HintBar",
+   "rows": [
+    "HB-LAYERS-001",
+    "HB-SHELL-002"
+   ],
+   "handlers": [
+    "resolve: first present layer wins, else the empty default",
+    "render: delegate to keyhint with badge, status, centered"
+   ],
+   "flags": [
+    "hints",
+    "badge",
+    "status",
+    "centered"
+   ],
+   "thresholds": [
+    "one row; shells truncate status to width minus 4 (holla minus 8 for the error prefix)"
+   ],
+   "timers": [
+    "none: the hint row is static per layer"
+   ],
+   "early_returns": [
+    "all-None layers resolve to the empty default"
+   ],
+   "notes": [
+    "chrome orders menu, context, screen; shells order modal, menu, screen, fallback and render centered"
+   ]
+  },
+  {
+   "component": "KeyHint",
+   "rows": [
+    "KH-STATUS-001",
+    "KH-DROP-002"
+   ],
+   "handlers": [
+    "render_aligned: badge, right status, hints or centered block",
+    "render_toned and render wrap it with default tone/align"
+   ],
+   "flags": [
+    "key",
+    "action",
+    "badge kind",
+    "status tone",
+    "centered"
+   ],
+   "thresholds": [
+    "two cells stay reserved while more hints follow; badge truncates to width minus 2"
+   ],
+   "timers": [
+    "none: the hint row is static per call"
+   ],
+   "early_returns": [
+    "empty intersection returns 0 drawn"
+   ],
+   "notes": [
+    "drop from the right with a faint …; Error ! and Warning ▲ survive monochrome; nothing paints outside the area"
+   ]
+  }
+ ],
+ "legacy_map": [
+  {
+   "old": "showcase/pages/progress",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PB-STATES-001",
+   "status": "mapped",
+   "also": [
+    "PB-LIVE-002",
+    "SPIN-FRAME-001",
+    "SPIN-SWEEP-002",
+    "METER-TONES-001",
+    "METER-DOMAIN-002"
+   ],
+   "note": "one page pins all five progress widgets"
+  },
+  {
+   "old": "showcase/flows/progress/mid",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PB-LIVE-002",
+   "status": "mapped",
+   "also": [
+    "SPIN-SWEEP-002"
+   ],
+   "note": "mid-build capture also pins the sweep frame"
+  },
+  {
+   "old": "showcase/flows/progress/done",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PB-LIVE-002",
+   "status": "mapped"
+  },
+  {
+   "old": "showcase/pages/chrome",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "SB-GROUPS-001",
+   "status": "mapped",
+   "also": [
+    "SB-COLLAPSE-002",
+    "HB-LAYERS-001",
+    "KH-STATUS-001",
+    "KH-DROP-002"
+   ],
+   "note": "shared with CONTROLS (brand) and OVERLAYS (menus); this group pins the status and hint rows"
+  },
+  {
+   "old": "jackin/usage/overview",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "HB-SHELL-002",
+   "status": "mapped",
+   "also": [],
+   "note": "pins the shell footer; usage meters share the Meter widget"
+  },
+  {
+   "old": "jackin/usage/detail",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "HB-SHELL-002",
+   "status": "mapped"
+  },
+  {
+   "old": "holla/parity/discovery",
+   "app": "holla",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "SB-SCREENS-003",
+   "status": "mapped"
+  },
+  {
+   "old": "holla/parity/disk-scan",
+   "app": "holla",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "SB-SCREENS-003",
+   "status": "mapped"
+  },
+  {
+   "old": "jackin/capsule/new_tab",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "HB-SHELL-002",
+   "status": "mapped",
+   "also": [],
+   "note": "shared with OVERLAYS, which pins palette and menus on capsule screens; this row pins the footer"
+  },
+  {
+   "old": "holla/parity/executor",
+   "app": "holla",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": null,
+   "status": "pending",
+   "also": [],
+   "note": "executor running chip has no row yet"
+  },
+  {
+   "old": "showcase/pages/taskrunner",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": null,
+   "status": "pending",
+   "also": [],
+   "note": "task-runner progress has no row yet; NAVIGATION pins its rail"
+  }
+ ]
+}

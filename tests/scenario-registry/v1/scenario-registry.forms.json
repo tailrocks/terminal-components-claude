@@ -1,0 +1,1497 @@
+{
+ "version": "1",
+ "group": "forms",
+ "ref_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+ "head_commit": "6007e9fdcbf353fef59177ed8b35d5801f1b0fe2",
+ "description": "FORMS group slice: Form, Wizard. Same stable IDs as v1/registry.json; ref_source lists reference source symbols verified present in the cited files. src/ tree is identical between ref_commit and head_commit, so cited lines hold for both. Wizard is the jackin five-step prelude chain (no Widget of that name exists); Form covers the showcase page, the jackin FormDialog modal, and the tablepro ConnForm.",
+ "scenarios": [
+  {
+   "id": "FORM-SUBMIT-001",
+   "app": "showcase",
+   "component": "Form",
+   "part": "action row + submission status message",
+   "ref_symbols": [
+    {
+     "glyph": "✓",
+     "meaning": "done marker in 'Task created ✓'"
+    },
+    {
+     "glyph": "…",
+     "meaning": "ellipsis in the 'Creating task…' busy message"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "✓",
+     "meaning": "done marker in 'Task created ✓'"
+    },
+    {
+     "glyph": "…",
+     "meaning": "ellipsis in the 'Creating task…' busy message"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/showcase/pages/forms.rs",
+     "symbols": [
+      "Submit",
+      "SUBMIT_TICKS",
+      "do_submit",
+      "attempted"
+     ]
+    },
+    {
+     "path": "src/widgets/button.rs",
+     "symbols": [
+      "busy"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "page": "forms",
+    "valid_name": "Seed the demo database",
+    "valid_reviewer": "ada@company.com"
+   },
+   "state": {
+    "attempted": true,
+    "submit_busy": true,
+    "errors": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "playing",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase forms page"
+    },
+    {
+     "step": 2,
+     "action": "fill a valid name and reviewer; both validators pass",
+     "key": "Tab",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "submit the form",
+     "key": "Ctrl+S",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "advance the submit countdown",
+     "ticks": 23
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "submitted",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "done",
+     "tick": 23,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "while Busy the action row shows 'Creating task…' in the secondary style right of the Reset button"
+     },
+     {
+      "id": "V2",
+      "text": "at Done the row shows 'Task created ✓' in the accent style"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "state is Busy(n) counting down from SUBMIT_TICKS (23)"
+     },
+     {
+      "id": "S2",
+      "text": "submit.busy is true until the countdown reaches Done"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Ctrl+S while idle commits drafts, validates, then enters Busy"
+     },
+     {
+      "id": "A2",
+      "text": "each Tick decrements; at 1 the page sets Done, clears busy, and reports status 'Task created ✓'"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no Busy countdown starts while any validator fails"
+     },
+     {
+      "id": "N2",
+      "text": "the message cell stays empty while Idle and unattempted"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/showcase/pages/forms.rs",
+      "lines": "37-42,85-111",
+      "note": "Submit enum; validate plus do_submit entry into Busy(23)"
+     },
+     {
+      "path": "src/bin/showcase/pages/forms.rs",
+      "lines": "203-242",
+      "note": "action-row message per state; Tick countdown to Done"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/forms/valid/80x24/truecolor.txt",
+     "snapshots/showcase/audit/forms/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "FORM-INVALID-002",
+   "app": "showcase",
+   "component": "Form",
+   "part": "validators + invalid focus + reset",
+   "ref_symbols": [
+    {
+     "glyph": "!",
+     "meaning": "bold error marker at the invalid field edge"
+    },
+    {
+     "glyph": "*",
+     "meaning": "required marker after the name label"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "!",
+     "meaning": "bold error marker at the invalid field edge"
+    },
+    {
+     "glyph": "*",
+     "meaning": "required marker after the name label"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/showcase/pages/forms.rs",
+     "symbols": [
+      "email",
+      "name",
+      "validate",
+      "do_reset"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "page": "forms",
+    "bad_name": "abc",
+    "bad_reviewer": "not-an-email"
+   },
+   "state": {
+    "attempted": true,
+    "errors": [
+     "name",
+     "reviewer"
+    ]
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase forms page"
+    },
+    {
+     "step": 2,
+     "action": "enter a short name and an invalid reviewer",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "submit the form",
+     "key": "Ctrl+S",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "activate the Reset button",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "invalid",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "reset",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "error rows appear under the name and reviewer fields with bold ! markers"
+     },
+     {
+      "id": "V2",
+      "text": "the action row shows 'Fix the highlighted fields' in error"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "validate() is false; attempted is true"
+     },
+     {
+      "id": "S2",
+      "text": "focus lands on the name field: the first invalid field"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Ctrl+S on invalid input focuses the first invalid field and reports 'Fix the highlighted fields'"
+     },
+     {
+      "id": "A2",
+      "text": "Reset rebuilds the page defaults, focuses name, and reports 'Form reset'"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "an invalid submit never sets submit.busy or enters Busy"
+     },
+     {
+      "id": "N2",
+      "text": "a lone reviewer error focuses the reviewer, never the name"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/showcase/pages/forms.rs",
+      "lines": "17-35",
+      "note": "email and name validators: messages and thresholds"
+     },
+     {
+      "path": "src/bin/showcase/pages/forms.rs",
+      "lines": "85-117",
+      "note": "validate, invalid-focus routing, and do_reset"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/forms/invalid/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "FORM-DIALOG-003",
+   "app": "jackin-preview",
+   "component": "Form",
+   "part": "modal field traversal + hidden + cancel",
+   "ref_symbols": [
+    {
+     "glyph": "▎",
+     "meaning": "focus gutter of the embedded input field"
+    },
+    {
+     "glyph": "*",
+     "meaning": "required marker of embedded required inputs"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "▎",
+     "meaning": "focus gutter of the embedded input field"
+    },
+    {
+     "glyph": "*",
+     "meaning": "required marker of embedded required inputs"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/modals.rs",
+     "symbols": [
+      "FormDialog",
+      "FormField",
+      "FormEvent",
+      "is_editing",
+      "dirty"
+     ]
+    },
+    {
+     "path": "src/widgets/input.rs",
+     "symbols": [
+      "gutter_symbol"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "modal": "accounts add form",
+    "kinds": [
+     "Input",
+     "Select",
+     "Check",
+     "Radio",
+     "Chooser",
+     "Note"
+    ]
+   },
+   "state": {
+    "editing": false,
+    "dirty": false,
+    "events": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "open the jackin accounts add form"
+    },
+    {
+     "step": 2,
+     "action": "Tab through the visible fields",
+     "key": "Tab",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "cancel the modal",
+     "key": "Esc",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "open",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "cancelled",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the modal card shows its title, one row per visible field, and the Cancel/Save action row"
+     },
+     {
+      "id": "V2",
+      "text": "hidden fields consume no row and no focus stop"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "is_editing is true while any embedded input edits"
+     },
+     {
+      "id": "S2",
+      "text": "a committed edit sets dirty and pushes Changed(name)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Tab and BackTab move focus through the ring in paint order"
+     },
+     {
+      "id": "A2",
+      "text": "Esc while navigating pushes Cancel without touching drafts"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "Esc while editing reverts the input; no Cancel event fires"
+     },
+     {
+      "id": "N2",
+      "text": "a hidden field is never focused, even by click"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/modals.rs",
+      "lines": "811-933",
+      "note": "FormField kinds with hidden flag; FormDialog shape and events"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/modals.rs",
+      "lines": "1053-1097",
+      "note": "is_editing; Esc/Tab handling; hidden fields are skipped"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/accounts/add_form/80x24/truecolor.txt",
+     "snapshots/jackin/accounts/add_form_required/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "FORM-CONN-004",
+   "app": "tablepro",
+   "component": "Form",
+   "part": "connection form + advanced section",
+   "ref_symbols": [
+    {
+     "glyph": "!",
+     "meaning": "bold error marker on the invalid name or port field"
+    },
+    {
+     "glyph": "*",
+     "meaning": "required marker after the Name label"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "!",
+     "meaning": "bold error marker on the invalid name or port field"
+    },
+    {
+     "glyph": "*",
+     "meaning": "required marker after the Name label"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/tablepro/connections.rs",
+     "symbols": [
+      "ConnForm",
+      "port_validator",
+      "name_validator",
+      "validate"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "form": "new connection",
+    "engines": [
+     "PostgreSQL",
+     "MySQL",
+     "SQLite"
+    ]
+   },
+   "state": {
+    "valid": false,
+    "advanced_open": true
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "open the tablepro new-connection form"
+    },
+    {
+     "step": 2,
+     "action": "enter an out-of-range port",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "attempt to save",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "open the advanced SSH section",
+     "key": "Tab",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "invalid-port",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "advanced",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "an out-of-range port shows 'Port must be 1–65535' with !"
+     },
+     {
+      "id": "V2",
+      "text": "the advanced section shows SSH host and user rows plus the Test/Cancel/Save/Save & connect actions"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "validate() is name.valid && port.valid"
+     },
+     {
+      "id": "S2",
+      "text": "an empty port is valid: the field is optional"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Save while invalid is blocked; the error stays visible"
+     },
+     {
+      "id": "A2",
+      "text": "Test connection runs without saving or closing the form"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no connection is persisted before validate() passes"
+     },
+     {
+      "id": "N2",
+      "text": "a blank name never validates: 'Required'"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/tablepro/connections.rs",
+      "lines": "89-105",
+      "note": "port range and name required validators"
+     },
+     {
+      "path": "src/bin/tablepro/connections.rs",
+      "lines": "139-210",
+      "note": "form fields, engine/safe radios, action buttons"
+     },
+     {
+      "path": "src/bin/tablepro/connections.rs",
+      "lines": "247-250",
+      "note": "ConnForm::validate conjoins name and port"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/connections/form_new/80x24/truecolor.txt",
+     "snapshots/tablepro/connections/form_new-filled/80x24/truecolor.txt",
+     "snapshots/tablepro/connections/form_advanced/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "WIZ-CHAIN-001",
+   "app": "jackin-preview",
+   "component": "Wizard",
+   "part": "five-step chain + stepper line",
+   "ref_symbols": [
+    {
+     "glyph": "✓",
+     "meaning": "done-step prefix in the stepper line"
+    },
+    {
+     "glyph": "·",
+     "meaning": "separator between stepper steps"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "✓",
+     "meaning": "done-step prefix in the stepper line"
+    },
+    {
+     "glyph": "·",
+     "meaning": "separator between stepper steps"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/prelude.rs",
+     "symbols": [
+      "PreludeScreen",
+      "stepper_line",
+      "open",
+      "dest_text",
+      "edit_used"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "steps": [
+     "Source",
+     "Destination",
+     "Edit",
+     "Working dir",
+     "Name"
+    ]
+   },
+   "state": {
+    "step": "Source",
+    "edit_used": false
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "open the new-workspace prelude from the manager"
+    },
+    {
+     "step": 2,
+     "action": "choose a host path in the browser",
+     "key": "Space",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "advance to the Destination choice",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "rewind one step",
+     "key": "Esc",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "step1-source",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "step2-destination",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "each modal title reads 'New workspace · step N of 5 · Name'"
+     },
+     {
+      "id": "V2",
+      "text": "the stepper reads '✓ Source · Destination · …': past steps carry ✓, the rest are plain"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "choosing a source opens Destination with the default set"
+     },
+     {
+      "id": "S2",
+      "text": "a rewind reopens the previous modal with cwd, dest_text, and name retained"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Chosen(source) advances; Cancelled rewinds one step"
+     },
+     {
+      "id": "A2",
+      "text": "Esc anywhere rewinds; at Source it cancels to the Manager"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "nothing is persisted before the final Create"
+     },
+     {
+      "id": "N2",
+      "text": "a rewind never drops an accepted value"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "96-138",
+      "note": "stepper_line with ✓ and Edit-skipped; per-step titles"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "140-182",
+      "note": "open() for the Source and Destination steps"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "299-318",
+      "note": "rewind routing, including the Source cancel path"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/manager/new_workspace_prelude/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "WIZ-VALIDATE-002",
+   "app": "jackin-preview",
+   "component": "Wizard",
+   "part": "step validation + cancel",
+   "ref_symbols": [
+    {
+     "glyph": "!",
+     "meaning": "bold error marker on the invalid destination/name input"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "!",
+     "meaning": "bold error marker on the invalid destination/name input"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/prelude.rs",
+     "symbols": [
+      "validate_destination",
+      "validate_name",
+      "rewind",
+      "create"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "bad_destination": "relative/path",
+    "bad_name": "has/slash"
+   },
+   "state": {
+    "step": "Edit",
+    "error": "Destination must be an absolute path"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "reach the Edit destination step"
+    },
+    {
+     "step": 2,
+     "action": "submit a relative destination",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "fix the destination and reach the Name step",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "submit a name containing a slash",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "edit-error",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "name-error",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "an invalid Next keeps the step open with the error under the input"
+     },
+     {
+      "id": "V2",
+      "text": "the modal title still names the same step after the error"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "validate_destination rejects blanks, relative paths, and empty segments"
+     },
+     {
+      "id": "S2",
+      "text": "validate_name rejects blanks, slashes, and duplicate names"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "the primary action validates; only Ok advances the chain"
+     },
+     {
+      "id": "A2",
+      "text": "Esc at Source reports 'Cancelled · nothing created' and goes to the Manager"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "an invalid Next never advances or emits a result"
+     },
+     {
+      "id": "N2",
+      "text": "create() without source, destination, and name returns silently"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "320-349",
+      "note": "destination and name validators with exact messages"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "351-369",
+      "note": "create() builds the pending workspace only from the triple"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "428-480",
+      "note": "modal results: invalid input reopens the step with the error"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/manager/new_workspace_prelude/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "WIZ-BRANCH-003",
+   "app": "jackin-preview",
+   "component": "Wizard",
+   "part": "destination branch + workdir + create",
+   "ref_symbols": [
+    {
+     "glyph": "▪",
+     "meaning": "glyph of the destination row in the workdir picker"
+    },
+    {
+     "glyph": "·",
+     "meaning": "glyph of the subdirectory rows"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "▪",
+     "meaning": "glyph of the destination row in the workdir picker"
+    },
+    {
+     "glyph": "·",
+     "meaning": "glyph of the subdirectory rows"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/prelude.rs",
+     "symbols": [
+      "default_destination",
+      "workdir_candidates",
+      "workdir_items",
+      "basename"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "source": "/home/ada/checkout"
+   },
+   "state": {
+    "dest_choice": 0,
+    "edit_used": false
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 100,
+    "height": 30
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "reach the Destination choice with a host source"
+    },
+    {
+     "step": 2,
+     "action": "keep the same path and advance",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "pick the destination row in the workdir picker",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "accept the default name and create",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "skipped-edit",
+     "tick": 0,
+     "capture": true
+    },
+    {
+     "name": "created",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "taking the same path shows 'Edit skipped' in the stepper"
+     },
+     {
+      "id": "V2",
+      "text": "the workdir picker lists the destination first with ▪, then sorted subdirectories with ·"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "choice 0 sets the destination and edit_used=false, skipping Edit"
+     },
+     {
+      "id": "S2",
+      "text": "Create hands the Editor a pending workspace with the mount"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Picked(i) stores the workdir row and opens the Name step"
+     },
+     {
+      "id": "A2",
+      "text": "Create on a valid name goes to the Editor with pending set"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "workdir candidates without a destination return empty"
+     },
+     {
+      "id": "N2",
+      "text": "choosing 'Edit destination…' never skips the Edit step"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "45-56",
+      "note": "default_destination for host and git sources"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "206-228",
+      "note": "Workdir picker setup: rows, cursor restore, width 72"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "255-297",
+      "note": "workdir candidates: destination first, then sorted subdirs"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/manager/new_workspace_prelude/100x30/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  }
+ ],
+ "coverage": [
+  {
+   "component": "Form",
+   "rows": [
+    "FORM-SUBMIT-001",
+    "FORM-INVALID-002",
+    "FORM-DIALOG-003",
+    "FORM-CONN-004"
+   ],
+   "handlers": [
+    "showcase submit: commit drafts, validate, Busy(23) countdown, Done with status",
+    "showcase invalid: focus the first invalid field, keep errors visible; Reset rebuilds defaults",
+    "jackin FormDialog: ring traversal, hidden skip, Esc cancel, commit sets dirty and Changed(name)",
+    "tablepro ConnForm: name/port validators gate Save; Test runs without saving"
+   ],
+   "flags": [
+    "attempted",
+    "editing (per embedded input)",
+    "submit.busy",
+    "error = validator.is_some()",
+    "dirty",
+    "pop_on_save",
+    "visible (per FormField)"
+   ],
+   "thresholds": [
+    "SUBMIT_TICKS = 23; name needs 4+ chars; port is 1-65535 or empty",
+    "inner below 11 rows or 40 cols renders nothing; below 17 rows the area compacts to 1 row"
+   ],
+   "timers": [
+    "submit countdown: one Tick per count; Done exactly at zero"
+   ],
+   "early_returns": [
+    "invalid submit returns before busy; tiny inner area returns; hidden fields are skipped in traversal"
+   ],
+   "notes": [
+    "Ctrl+S submits from anywhere on the showcase page; child TextInput/TextArea/Select semantics are untouched"
+   ]
+  },
+  {
+   "component": "Wizard",
+   "rows": [
+    "WIZ-CHAIN-001",
+    "WIZ-VALIDATE-002",
+    "WIZ-BRANCH-003"
+   ],
+   "handlers": [
+    "open(step): build the step modal from retained values",
+    "on_modal: advance on Ok results, reopen the step on validation errors, rewind on cancel",
+    "rewind: previous step by chain order with the Edit skip; Source cancels to the Manager",
+    "create: pending workspace from source, destination, and name"
+   ],
+   "flags": [
+    "step (Source..Name)",
+    "source",
+    "dest_choice",
+    "dest_text",
+    "destination",
+    "edit_used",
+    "workdir",
+    "workdir_rows",
+    "name"
+   ],
+   "thresholds": [
+    "five fixed steps; choice dialog width 58, prompt width 62, workdir picker width 72 with 8 rows max"
+   ],
+   "timers": [
+    "none: the wizard has no timer; child feedback owns its ticks"
+   ],
+   "early_returns": [
+    "Destination without a source and Workdir without a destination return; create without the triple returns"
+   ],
+   "notes": [
+    "stepper shows ✓ for past steps and 'Edit skipped' when choice 0 bypassed Edit; every rewind restores cwd, dest_text, and name"
+   ]
+  }
+ ],
+ "legacy_map": [
+  {
+   "old": "showcase/audit/forms",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "FORM-SUBMIT-001",
+   "status": "mapped",
+   "also": [
+    "FORM-INVALID-002"
+   ],
+   "note": "shared with CONTROLS, which pins the buttons on this page"
+  },
+  {
+   "old": "showcase/flows/forms/valid",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "FORM-SUBMIT-001",
+   "status": "mapped",
+   "also": [],
+   "note": "shared with CONTROLS; this row pins the submit lifecycle"
+  },
+  {
+   "old": "showcase/flows/forms/invalid",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "FORM-INVALID-002",
+   "status": "mapped",
+   "also": [],
+   "note": "shared with CONTROLS; this row pins validators and focus"
+  },
+  {
+   "old": "jackin/accounts/add_form",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "FORM-DIALOG-003",
+   "status": "mapped",
+   "also": [],
+   "note": "shared with FIELDS, which pins the inputs; this row pins the dialog traversal"
+  },
+  {
+   "old": "jackin/accounts/add_form_required",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "FORM-DIALOG-003",
+   "status": "mapped"
+  },
+  {
+   "old": "tablepro/connections/form_new",
+   "app": "tablepro",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "FORM-CONN-004",
+   "status": "mapped",
+   "also": [],
+   "note": "shared with FIELDS, which pins the inputs; this row pins the form validators and actions"
+  },
+  {
+   "old": "tablepro/connections/form_new-filled",
+   "app": "tablepro",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "FORM-CONN-004",
+   "status": "mapped"
+  },
+  {
+   "old": "tablepro/connections/form_advanced",
+   "app": "tablepro",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "FORM-CONN-004",
+   "status": "mapped"
+  },
+  {
+   "old": "jackin/manager/new_workspace_prelude",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "WIZ-CHAIN-001",
+   "status": "mapped",
+   "also": [
+    "WIZ-VALIDATE-002",
+    "WIZ-BRANCH-003"
+   ],
+   "note": "five-step prelude chain: titles, stepper, values retained"
+  },
+  {
+   "old": "jackin/settings/save_preview",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": null,
+   "status": "pending",
+   "also": [],
+   "note": "save preview form has no row yet"
+  },
+  {
+   "old": "jackin/editor/save_preview",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": null,
+   "status": "pending",
+   "also": [],
+   "note": "save preview form has no row yet"
+  }
+ ]
+}
