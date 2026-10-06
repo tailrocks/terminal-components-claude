@@ -964,6 +964,16 @@ impl GridState {
         self.col_offset
     }
 
+    /// Borrow the vertical scroll state.
+    pub fn scroll(&self) -> &crate::scroll::ScrollState {
+        self.core.scroll()
+    }
+
+    /// Mutably borrow the vertical scroll state.
+    pub fn scroll_mut(&mut self) -> &mut crate::scroll::ScrollState {
+        self.core.scroll_mut()
+    }
+
     /// Point the cursor at `(row, key)` in `col`, and reveal it.
     fn set_cursor(&mut self, row: usize, key: ItemKey, col_index: usize, col: ColumnKey) {
         self.fetch_row = None;

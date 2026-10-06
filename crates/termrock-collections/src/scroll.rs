@@ -140,6 +140,11 @@ impl ScrollState {
         self.reveal
     }
 
+    /// Clear any pending reveal request.
+    pub fn clear_reveal(&mut self) {
+        self.reveal = None;
+    }
+
     /// Apply known viewport geometry. A zero-height layout cannot reveal a
     /// row, so it retains the request until a usable viewport is available.
     pub fn apply_layout(&mut self, viewport_len: usize, content_len: usize) {

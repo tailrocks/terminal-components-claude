@@ -179,6 +179,28 @@ impl ResultGrid {
         Some(row)
     }
 
+    /// Duplicate an existing row, resetting primary/generated columns to DEFAULT.
+    pub fn duplicate_row(&mut self, src: usize, defaults: &[bool]) -> Option<usize> {
+        if !self.editable {
+            return None;
+        }
+        let before = self.pending.clone();
+        let mut values = Vec::with_capacity(self.types.len());
+        for col in 0..self.types.len() {
+            if defaults.get(col).copied().unwrap_or(false) {
+                values.push(Value::Default);
+            } else if let Some(val) = self.pending.value(src, col) {
+                values.push(val.clone());
+            } else {
+                values.push(Value::Null);
+            }
+        }
+        let row = self.pending.insert_values(values)?;
+        self.undo.push(before);
+        self.rebuild_display();
+        Some(row)
+    }
+
     /// Toggle a row deletion; marking deletion replaces existing cell updates.
     pub fn toggle_delete(&mut self, row: usize) -> bool {
         if !self.editable {

@@ -46,6 +46,7 @@ const QUERY_EMPTY: Id = Id::root("tablepro.workbench.query.empty");
 const RUN: ActionKey = ActionKey::application("tablepro.run");
 const UNDO: ActionKey = ActionKey::application("tablepro.undo");
 const INSERT_ROW: ActionKey = ActionKey::application("tablepro.insert-row");
+const DUPLICATE_ROW: ActionKey = ActionKey::application("tablepro.duplicate-row");
 const DELETE_ROW: ActionKey = ActionKey::application("tablepro.delete-row");
 const DISCARD_ROWS: ActionKey = ActionKey::application("tablepro.discard-rows");
 const QUIT: ActionKey = ActionKey::application("tablepro.quit");
@@ -370,6 +371,16 @@ fn keymap() -> KeyMap {
     quit_keymap()
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('d'), KeyModifiers::ALT),
+            DUPLICATE_ROW,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('D'), KeyModifiers::ALT),
+            DUPLICATE_ROW,
+        )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('-')), DELETE_ROW)
         .bind(
             KeyPhase::Bubble,
@@ -1749,6 +1760,33 @@ impl TableProApp {
         {
             let _ = grid.model.undo();
         }
+    }
+
+    fn duplicate_active_row(&mut self) {
+        let Some(defaults) = self.insert_defaults() else {
+            return;
+        };
+        let Some((id, grid)) = self.workbench.active_grid_mut() else {
+            return;
+        };
+        let Some((cursor_key, cursor_col)) = grid.state.cursor() else {
+            return;
+        };
+        let Some(src_row) = (0..grid.model.row_count()).find(|r| grid.model.row_key(*r) == cursor_key) else {
+            return;
+        };
+        let prev_viewport = grid.state.scroll().viewport_len();
+        let Some(new_row) = grid.model.duplicate_row(src_row, &defaults) else {
+            return;
+        };
+        let new_key = grid.model.row_key(new_row);
+        let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable(), None, &[]);
+        let _ = result_grid(id, columns.get(..count).unwrap_or(&[]))
+            .move_cursor_to(&mut grid.state, &grid.model, new_key, cursor_col);
+        let scroll = grid.state.scroll_mut();
+        scroll.set_content(grid.model.row_count());
+        scroll.scroll_to(new_row.saturating_add(1).saturating_sub(prev_viewport));
+        scroll.clear_reveal();
     }
 
     fn toggle_active_row(&mut self) {
@@ -6868,10 +6906,12 @@ impl App for TableProApp {
                     }
                     return self.request_quit(cx);
                 }
-                c if c == INSERT_ROW || c == DELETE_ROW || c == DISCARD_ROWS => {
+                c if c == INSERT_ROW || c == DUPLICATE_ROW || c == DELETE_ROW || c == DISCARD_ROWS => {
                     if self.active_row_action(cx) {
                         if c == INSERT_ROW {
                             self.insert_active_row();
+                        } else if c == DUPLICATE_ROW {
+                            self.duplicate_active_row();
                         } else if c == DELETE_ROW {
                             self.toggle_active_row();
                         } else {
@@ -7569,6 +7609,7 @@ mod action_namespace_tests {
             RUN,
             UNDO,
             INSERT_ROW,
+            DUPLICATE_ROW,
             DELETE_ROW,
             DISCARD_ROWS,
             QUIT,
