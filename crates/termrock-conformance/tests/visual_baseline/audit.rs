@@ -108,7 +108,7 @@ fn jackin_audit_accounts_matrix() {
             let name = case.name.to_string();
             if !support::collect_matrix(&name, || {
                 let mut s = support::spawn(&case);
-                support::boot(&mut s, JACKIN_BOOT);
+                support::boot(&mut s, JACKIN_BOOT, support::DEFAULT_WAIT);
                 if rows <= 30 {
                     s.wait_for_text("of 23")
                         .unwrap_or_else(|e| panic!("accounts badge never rendered: {e:#}"));
