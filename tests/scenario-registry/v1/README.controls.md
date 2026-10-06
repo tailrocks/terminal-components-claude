@@ -6,9 +6,10 @@ Each sentence holds one fact.
 
 ## Files
 
-- `scenario-registry.controls.json` holds 15 rows.
-  It covers 10 components: Brand, Button, Checkbox, Toggle,
-  RadioGroup, Panel, SplitPane, Props, Empty, TooSmall.
+- `scenario-registry.controls.json` holds 20 rows.
+  It covers 11 components: Brand, Button, Checkbox, Toggle,
+  RadioGroup, Panel, SplitPane, Props, Empty, TooSmall,
+  Inspector.
   It uses the same stable IDs as `registry.json`.
 - `validate-controls.py` checks the registry.
   Run it from the repo root: `python3 tests/scenario-registry/v1/validate-controls.py`.

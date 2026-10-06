@@ -38,7 +38,7 @@ V1_REQUIRED = ["id", "app", "component", "part", "ref_symbols", "cand_symbols",
                "adapters", "applicability", "results"]
 GROUP_REQUIRED = V1_REQUIRED + ["ref_source", "cand_source"]
 COMPONENTS = {"Grid", "CodeEditor", "DiffView", "TextViewport",
-              "TerminalView", "ScrollRegion"}
+              "TerminalView", "ScrollRegion", "DataTable"}
 APPS = {"showcase", "tablepro", "jackin-preview", "holla"}
 COLORS = {"truecolor", "256", "16", "none", "nocolor"}
 SIZE_RE = re.compile(r"^\d+x\d+$")
@@ -129,7 +129,7 @@ def main():
     check("join.registry_dataviews_covered", not missing_here, f"missing here: {missing_here}")
 
     cov = doc.get("coverage", [])
-    check("coverage.count", len(cov) == 6, f"got {len(cov)}")
+    check("coverage.count", len(cov) == 7, f"got {len(cov)}")
     cov_names = set()
     for c in cov:
         name = c.get("component", "<missing>")

@@ -3,7 +3,7 @@
  "group": "controls",
  "ref_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
  "head_commit": "3c5833cb1398da9151d8c1a8772a1330b6b73d29",
- "description": "CONTROLS group slice: Brand, Button, Checkbox, Toggle, RadioGroup, Panel, SplitPane, Props, Empty, TooSmall. Same stable IDs as v1/registry.json; test provenance corrected for the phase-3b harness move; ref_source lists reference source symbols verified present in the cited files.",
+ "description": "CONTROLS group slice: Brand, Button, Checkbox, Toggle, RadioGroup, Panel, SplitPane, Props, Empty, TooSmall. Inspector is the showcase state card. Same stable IDs as v1/registry.json; test provenance corrected for the phase-3b harness move; ref_source lists reference source symbols verified present in the cited files.",
  "scenarios": [
   {
    "id": "BTN-BUSY-FRAMES-001",
@@ -1855,6 +1855,197 @@
    }
   },
   {
+   "id": "PANEL-STATIC-002",
+   "app": "showcase",
+   "component": "Panel",
+   "part": "static reference cards on overview",
+   "ref_symbols": [
+    {
+     "glyph": "Tokens",
+     "meaning": "swatch card title"
+    },
+    {
+     "glyph": "State language",
+     "meaning": "legend card title"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Tokens",
+     "meaning": "swatch card title"
+    },
+    {
+     "glyph": "State language",
+     "meaning": "legend card title"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/panel.rs",
+     "symbols": [
+      "Panel",
+      "card",
+      "render",
+      "bg",
+      "TITLE_MIN",
+      "focused",
+      "meta"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/overview.rs",
+     "symbols": [
+      "swatches",
+      "PRINCIPLES",
+      "OverviewPage",
+      "two_col",
+      "legend"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/mod.rs",
+     "symbols": [
+      "columns",
+      "rows"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "page": "overview",
+    "cards": [
+     "Tokens",
+     "Principles",
+     "State language"
+    ],
+    "stacked": true
+   },
+   "state": {
+    "interactive": false,
+    "two_col_tokens": true,
+    "principles_rendered": false
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase overview page at 80x24"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "booted",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the Tokens card shows the swatches in two columns (canvas through popover beside text.muted through accent.bg); the State language legend shows the ▎/░/›/✓/! rows"
+     },
+     {
+      "id": "V2",
+      "text": "the content stacks vertically (60 under the 68-column gate); the Principles card takes zero rows"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "two_col holds: the token list exceeds the card height while its width clears 44"
+     },
+     {
+      "id": "S2",
+      "text": "the page handles nothing (Ignored); its hints name Pages and Inspector only"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "] cycles to the next page: the shell nav owns the keyboard here"
+     },
+     {
+      "id": "A2",
+      "text": "i opens the state inspector from any page"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no Principles title may render at 80x24: rows[0] takes zero height"
+     },
+     {
+      "id": "N2",
+      "text": "no focus bar may render inside the cards: nothing is focusable"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/panel.rs",
+      "lines": "29-29,42-60",
+      "note": "TITLE_MIN plus the card constructor"
+     },
+     {
+      "path": "src/widgets/panel.rs",
+      "lines": "105-130",
+      "note": "card render: title, margins, inner rect"
+     },
+     {
+      "path": "src/bin/showcase/pages/overview.rs",
+      "lines": "21-43,92-97",
+      "note": "swatch table plus the two-column rule"
+     },
+     {
+      "path": "src/bin/showcase/pages/overview.rs",
+      "lines": "131-136,163-171,182-184",
+      "note": "rows split, legend glyphs, Ignored input"
+     },
+     {
+      "path": "src/bin/showcase/pages/mod.rs",
+      "lines": "145-178",
+      "note": "rows (last takes rest) plus columns (stack when narrow)"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/overview/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
    "id": "SPLIT-SEAM-DRAG-001",
    "app": "showcase",
    "component": "SplitPane",
@@ -2676,6 +2867,384 @@
    }
   },
   {
+   "id": "TOOSMALL-GROWN-002",
+   "app": "showcase",
+   "component": "TooSmall",
+   "part": "healthy reflow after growing to 120x40",
+   "ref_symbols": [
+    {
+     "glyph": "truecolor · 120×40",
+     "meaning": "capability badge back after the grow"
+    },
+    {
+     "glyph": "Foundations",
+     "meaning": "nav section labels back after the grow"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "truecolor · 120×40",
+     "meaning": "capability badge back after the grow"
+    },
+    {
+     "glyph": "Foundations",
+     "meaning": "nav section labels back after the grow"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/showcase/app.rs",
+     "symbols": [
+      "compute_layout",
+      "MIN_WIDTH",
+      "MIN_HEIGHT",
+      "too_small",
+      "draw_sidebar",
+      "draw_header",
+      "compact"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/mod.rs",
+     "symbols": [
+      "columns",
+      "rows"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/overview.rs",
+     "symbols": [
+      "OverviewPage",
+      "swatches",
+      "PRINCIPLES"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "page": "overview",
+    "from": "80x24",
+    "to": "120x40"
+   },
+   "state": {
+    "too_small": false,
+    "compact": false,
+    "stacked": false
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase overview page at 80x24"
+    },
+    {
+     "step": 2,
+     "action": "resize the emulator to 120x40"
+    },
+    {
+     "step": 3,
+     "action": "send the ctrl+l redraw tick (wait Foundations / Overview)",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "grown",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the grown frame equals the static boot-at-120x40 frame cell for cell"
+     },
+     {
+      "id": "V2",
+      "text": "the cap badge, the nav section labels, and the Principles card all render above the compact gates"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "compute_layout reports too_small=false throughout: both sizes clear 72x20"
+     },
+     {
+      "id": "S2",
+      "text": "the nav scroll and content columns recompute for the grown grid (the resized flag re-reveals the cursor)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "the resize triggers reflow plus repaint; ctrl+l forces the redraw tick that paints the header into the grown grid"
+     },
+     {
+      "id": "A2",
+      "text": "growing never shows the notice: the threshold is strict below 72x20"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "Terminal too small must NOT appear at any matrix size: 72x20 already boots normally"
+     },
+     {
+      "id": "N2",
+      "text": "no stale 80-column truncation may persist: nav labels un-truncate (Editable tables in full)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "22-23,874-878",
+      "note": "MIN consts plus the strict too_small gate"
+     },
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "996-1002",
+      "note": "cap badge drawn only when the header has room"
+     },
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "1004-1011",
+      "note": "draw_sidebar: compact gate below 28 rows"
+     },
+     {
+      "path": "src/bin/showcase/pages/mod.rs",
+      "lines": "162-178",
+      "note": "columns side by side above 68, stacked below"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/resize/overview_grown/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "TOOSMALL-SHRUNK-003",
+   "app": "showcase",
+   "component": "TooSmall",
+   "part": "healthy reflow after shrinking to 80x24",
+   "ref_symbols": [
+    {
+     "glyph": "Tokens",
+     "meaning": "swatch card persists after the shrink"
+    },
+    {
+     "glyph": "State language",
+     "meaning": "legend card persists after the shrink"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Tokens",
+     "meaning": "swatch card persists after the shrink"
+    },
+    {
+     "glyph": "State language",
+     "meaning": "legend card persists after the shrink"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/showcase/app.rs",
+     "symbols": [
+      "compute_layout",
+      "MIN_WIDTH",
+      "MIN_HEIGHT",
+      "too_small",
+      "draw_sidebar",
+      "draw_header",
+      "compact"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/mod.rs",
+     "symbols": [
+      "columns",
+      "rows"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/overview.rs",
+     "symbols": [
+      "OverviewPage",
+      "swatches",
+      "PRINCIPLES"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "page": "overview",
+    "from": "120x40",
+    "to": "80x24"
+   },
+   "state": {
+    "too_small": false,
+    "compact": true,
+    "stacked": true
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase overview page at 120x40"
+    },
+    {
+     "step": 2,
+     "action": "resize the emulator to 80x24"
+    },
+    {
+     "step": 3,
+     "action": "send the ctrl+l redraw tick (wait Foundations / Overview)",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "shrunk",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the shrunk frame equals the static boot-at-80x24 frame cell for cell"
+     },
+     {
+      "id": "V2",
+      "text": "the cap badge, the section labels, and the Principles card drop out; the two-column Tokens and the legend persist"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "too_small stays false with compact (height under 28) and stacked (width under 68) both true"
+     },
+     {
+      "id": "S2",
+      "text": "only layout changes: no page content is lost in the shrink"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "the shrink reflows plus repaints; the ctrl+l tick repaints the header into the shrunk grid"
+     },
+     {
+      "id": "A2",
+      "text": "shrinking never shows the notice while both sizes clear 72x20"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the cap badge must NOT render: the header room gate fails at 80 columns"
+     },
+     {
+      "id": "N2",
+      "text": "Foundations/Components/Screens labels must NOT render: compact drops them"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "22-23,874-878",
+      "note": "MIN consts plus the strict too_small gate"
+     },
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "996-1002",
+      "note": "cap badge drawn only when the header has room"
+     },
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "1004-1011",
+      "note": "draw_sidebar: compact gate below 28 rows"
+     },
+     {
+      "path": "src/bin/showcase/pages/mod.rs",
+      "lines": "162-178",
+      "note": "columns side by side above 68, stacked below"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/resize/overview_shrunk/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
    "id": "CTRL-NARROW-CLIP-001",
    "app": "showcase",
    "component": "Button",
@@ -3023,6 +3592,369 @@
     "status": "unrun",
     "runs": []
    }
+  },
+  {
+   "id": "INSPECT-OPEN-001",
+   "app": "showcase",
+   "component": "Inspector",
+   "part": "state card open on overview",
+   "ref_symbols": [
+    {
+     "glyph": "State",
+     "meaning": "inspector card title"
+    },
+    {
+     "glyph": "last key    i",
+     "meaning": "toggle key recorded in the readout"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "State",
+     "meaning": "inspector card title"
+    },
+    {
+     "glyph": "last key    i",
+     "meaning": "toggle key recorded in the readout"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/showcase/app.rs",
+     "symbols": [
+      "inspector",
+      "draw_inspector",
+      "compute_layout",
+      "hover_suppressed",
+      "last_key",
+      "NAV"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/overview.rs",
+     "symbols": [
+      "hints",
+      "Inspector",
+      "OverviewPage"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "page": "overview",
+    "width": 120
+   },
+   "state": {
+    "inspector": true,
+    "mode": "NAV",
+    "focus_ring": 1,
+    "hit_regions": 26
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase overview page at 120x40"
+    },
+    {
+     "step": 2,
+     "action": "press i",
+     "key": "i",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "open",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the State card lists mode NAV, the focus rect, hover suppressed, pressed —, mouse —, last key i, focus ring 1 stops, hit regions 26, tick 0, colors truecolor; the header shows i Inspector · on"
+     },
+     {
+      "id": "V2",
+      "text": "the content columns narrow to fit the card: inspector_w is positive only at width 100 or more"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "plain i toggled the inspector flag false to true through the app key arm"
+     },
+     {
+      "id": "S2",
+      "text": "width 120 clears the 100-column gate, so the layout reserves the inspector rect"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "pressing i again closes the card (the flag toggles both ways)"
+     },
+     {
+      "id": "A2",
+      "text": "clicking the header Inspector label toggles through the HEADER_INSPECT arm; the card itself takes no focus"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "below width 100 the card must NOT render: at 80x24 only the header toggle flips"
+     },
+     {
+      "id": "N2",
+      "text": "hover must read suppressed: a key was pressed and no mouse motion followed"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "227-227,599-602",
+      "note": "inspector flag plus the plain-i toggle arm"
+     },
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "732-735",
+      "note": "HEADER_INSPECT click arm toggles too"
+     },
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "891-913",
+      "note": "inspector rect reserved only at width 100 or more"
+     },
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "1124-1143,1146-1174",
+      "note": "draw_inspector: State card setup plus the 10 state rows"
+     },
+     {
+      "path": "src/bin/showcase/pages/overview.rs",
+      "lines": "186-188",
+      "note": "page hints advertise the Inspector key"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/inspector/open/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
+  },
+  {
+   "id": "INSPECT-SCROLL-002",
+   "app": "showcase",
+   "component": "Inspector",
+   "part": "inspector repainted by a wheel scroll",
+   "ref_symbols": [
+    {
+     "glyph": "mouse       31·10",
+     "meaning": "pointer row set by the wheel position"
+    },
+    {
+     "glyph": "7–19 of 20",
+     "meaning": "lists window scrolled under the open card"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "mouse       31·10",
+     "meaning": "pointer row set by the wheel position"
+    },
+    {
+     "glyph": "7–19 of 20",
+     "meaning": "lists window scrolled under the open card"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/showcase/app.rs",
+     "symbols": [
+      "draw_inspector",
+      "mouse",
+      "hover_suppressed",
+      "on_mouse",
+      "inspector",
+      "HEADER_INSPECT"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/lists.rs",
+     "symbols": [
+      "ListsPage",
+      "Wheel",
+      "on_wheel",
+      "position_label"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "page": "lists",
+    "width": 120
+   },
+   "state": {
+    "inspector": true,
+    "mouse": "31·10",
+    "focus_ring": 4,
+    "hit_regions": 58,
+    "lists_offset": 6
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase lists page at 120x40"
+    },
+    {
+     "step": 2,
+     "action": "press i to open the inspector",
+     "key": "i",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "roll the wheel down twice over Python",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "scrolled",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the inspector mouse row reads 31·10 (the wheel pointer cell); the lists window reads 7–19 of 20"
+     },
+     {
+      "id": "V2",
+      "text": "the inspector repaints with the scrolled frame; the lists top edge fades at offset 6"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the wheel moved the lists offset 0 to 6 and set the mouse pos (on_mouse records every mouse kind); hover stays suppressed because only Move clears it"
+     },
+     {
+      "id": "S2",
+      "text": "the lists page owns 4 focus stops with 58 hit regions"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "the wheel over a scrollable region returns Changed, so the runtime repaints the inspector with the frame"
+     },
+     {
+      "id": "A2",
+      "text": "the wheel over the inspector card itself is Ignored: the card registers no scroll region, so a repaint needs a Changed from elsewhere"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "hover must NOT clear: a wheel event is not a Move"
+     },
+     {
+      "id": "N2",
+      "text": "the inspector must NOT scroll its own rows: a fixed 10-row readout clipped to the card"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "427-429,650-657",
+      "note": "keys set hover_suppressed; on_mouse records pos and only Move clears it"
+     },
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "1124-1143",
+      "note": "draw_inspector setup: State card plus focus/hover/mouse rects"
+     },
+     {
+      "path": "src/bin/showcase/pages/lists.rs",
+      "lines": "187-196",
+      "note": "wheel routing to the owning list"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/inspector/scrolled/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "unrun",
+    "runs": []
+   }
   }
  ],
  "coverage": [
@@ -3174,7 +4106,8 @@
    "component": "Panel",
    "rows": [
     "PANEL-FOCUS-READONLY-001",
-    "CTRL-NARROW-CLIP-001"
+    "CTRL-NARROW-CLIP-001",
+    "PANEL-STATIC-002"
    ],
    "handlers": [
     "Panel chrome: none (display-only)",
@@ -3196,7 +4129,8 @@
     "empty area; draw_meta skips framed widths <= 4"
    ],
    "notes": [
-    "container focus shows on border/title only (▎ in padding column for cards); follow = tail && at_end; any scroll settles follow"
+    "container focus shows on border/title only (▎ in padding column for cards); follow = tail && at_end; any scroll settles follow",
+    "the overview Tokens/Principles/legend cards are static: two-column token reflow at width 44 or more, stacked page columns below 68"
    ]
   },
   {
@@ -3286,16 +4220,20 @@
   {
    "component": "TooSmall",
    "rows": [
-    "TOOSMALL-NOTICE-001"
+    "TOOSMALL-NOTICE-001",
+    "TOOSMALL-GROWN-002",
+    "TOOSMALL-SHRUNK-003"
    ],
    "handlers": [
-    "none on the notice; the app input path is unchanged (q Quit hint is text)"
+    "none on the notice; the app input path is unchanged (q Quit hint is text)",
+    "healthy resize reflows through compute_layout; a ctrl+l tick repaints the header into the grown/shrunk grid"
    ],
    "flags": [
     "too_small bool (holla/tablepro/jackin field; showcase ShellLayout flag)"
    ],
    "thresholds": [
-    "too small iff width < 72 or height < 20 (strict; 72x20 boots normally); identical MIN consts in all four apps"
+    "too small iff width < 72 or height < 20 (strict; 72x20 boots normally); identical MIN consts in all four apps",
+    "resize matrices stay at or above 72x20: grown/shrunk frames equal the static boot-at-size frames"
    ],
    "timers": [
     "none"
@@ -3304,7 +4242,38 @@
     "compute_layout returns the too_small shell; draw renders the notice and returns"
    ],
    "notes": [
-    "centered 4-line notice: product line, 'Terminal too small', 'Need 72x20, have WxH', 'q Quit'"
+    "centered 4-line notice: product line, 'Terminal too small', 'Need 72x20, have WxH', 'q Quit'",
+    "resize family: overview_grown boots 80x24 and grows, overview_shrunk boots 120x40 and shrinks"
+   ]
+  },
+  {
+   "component": "Inspector",
+   "rows": [
+    "INSPECT-OPEN-001",
+    "INSPECT-SCROLL-002"
+   ],
+   "handlers": [
+    "plain i toggles the flag; a header Inspector click toggles too",
+    "no cursor, no scroll, no focus stop of its own (display-only card)"
+   ],
+   "flags": [
+    "inspector bool; hover_suppressed; mouse pos; last_key"
+   ],
+   "thresholds": [
+    "the pane renders iff the flag is set and the area is at least 100 wide",
+    "10 state rows (mode/focus/hover/pressed/mouse/last key/focus ring/hit regions/tick/colors), clipped to the card"
+   ],
+   "timers": [
+    "none; the tick row reads the app tick"
+   ],
+   "early_returns": [
+    "below width 100 the layout reserves no inspector rect (header toggle still flips)",
+    "empty area paints nothing"
+   ],
+   "notes": [
+    "State card via Panel::card; rects formatted as x·y WxH, missing as —",
+    "any key sets hover_suppressed; only a mouse Move clears it, so a wheel leaves it set",
+    "the card registers no scroll region: a wheel over it is Ignored and repaints need a Changed from elsewhere"
    ]
   }
  ],
@@ -3656,8 +4625,8 @@
     "120x40",
     "160x50"
    ],
-   "new": null,
-   "status": "pending",
+   "new": "TOOSMALL-GROWN-002",
+   "status": "mapped",
    "also": [],
    "note": "resize family; undersize boundary lives in TOOSMALL-NOTICE-001"
   },
@@ -3671,10 +4640,55 @@
     "120x40",
     "160x50"
    ],
-   "new": null,
-   "status": "pending",
+   "new": "TOOSMALL-SHRUNK-003",
+   "status": "mapped",
    "also": [],
    "note": "resize family; undersize boundary lives in TOOSMALL-NOTICE-001"
+  },
+  {
+   "old": "showcase/flows/inspector/open",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "INSPECT-OPEN-001",
+   "status": "mapped",
+   "also": [],
+   "note": "8A-S1: state card open on overview"
+  },
+  {
+   "old": "showcase/flows/inspector/scrolled",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "INSPECT-SCROLL-002",
+   "status": "mapped",
+   "also": [],
+   "note": "8A-S1: inspector repainted by a wheel scroll"
+  },
+  {
+   "old": "showcase/pages/overview",
+   "app": "showcase",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-STATIC-002",
+   "status": "mapped",
+   "also": [],
+   "note": "8A-S1: static reference cards on overview"
   }
  ]
 }

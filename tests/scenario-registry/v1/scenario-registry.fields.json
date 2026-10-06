@@ -468,6 +468,35 @@
    "adapters": ["headless-tick", "pty-capture"],
    "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection", "cursor-capture"]},
    "results": {"status": "unrun", "runs": []}
+  },
+  {
+   "id": "TA-WHEEL-004",
+   "app": "showcase",
+   "component": "TextArea",
+   "part": "wheel scroll + fade over the task description",
+   "ref_symbols": [{"glyph": "7–14 of 28", "meaning": "position label after two wheel notches"}, {"glyph": "Task description", "meaning": "scrolled area title"}],
+   "cand_symbols": [{"glyph": "7–14 of 28", "meaning": "position label after two wheel notches"}, {"glyph": "Task description", "meaning": "scrolled area title"}],
+   "ref_source": [{"path": "src/widgets/textarea.rs", "symbols": ["scroll_by", "page_up", "page_down", "jump_start", "jump_end", "on_wheel"]}, {"path": "src/core/scroll.rs", "symbols": ["ScrollState", "offset", "overflows"]}, {"path": "src/widgets/scrollbar.rs", "symbols": ["position_label", "render_vertical"]}, {"path": "src/bin/showcase/pages/textareas.rs", "symbols": ["TextAreasPage", "areas", "index_of", "Wheel"]}, {"path": "src/ui/fade.rs", "symbols": ["scroll_edges", "OUTER_KEEP", "INNER_KEEP", "DEEP_FROM", "MIN_ROWS"]}],
+   "cand_source": [],
+   "data": {"page": "textareas", "area": "Task description", "lines": 28, "rows": 8},
+   "state": {"offset": 6, "editing": false},
+   "env": {"TERM": "xterm-256color"},
+   "viewport": {"width": 80, "height": 24},
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [{"step": 1, "action": "boot the showcase textareas page"}, {"step": 2, "action": "roll the wheel down twice over the description", "ticks": 0}],
+   "checkpoints": [{"name": "wheel-faded", "tick": 0, "capture": true}],
+   "assertions": {
+    "visual": [{"id": "V1", "text": "lines 7–14 render with the label 7–14 of 28; no cursor and no cursor-line underline appear"}, {"id": "V2", "text": "both viewport edges fade: offset 6 hides lines above and line 14 of 28 hides lines below"}],
+    "state": [{"id": "S1", "text": "two down-notches moved the view offset 0 to 6; the buffer cursor_pos is untouched"}, {"id": "S2", "text": "editing stays false: the wheel never opens the editor"}],
+    "action": [{"id": "A1", "text": "wheel-down returns Changed while lines hide below; at the boundary it returns Consumed"}, {"id": "A2", "text": "view keys (Down/PageDown/End) move the offset from here without touching the buffer cursor"}],
+    "negative": [{"id": "N1", "text": "the buffer cursor_pos must NOT move: viewport and buffer cursors are separate"}, {"id": "N2", "text": "the Notes, transcript, and message areas must NOT move"}]
+   },
+   "provenance": {"sources": [{"path": "src/widgets/textarea.rs", "lines": "200-206", "note": "on_wheel: scroll_by, Changed iff moved"}, {"path": "src/widgets/textarea.rs", "lines": "355-365", "note": "scroll_edges over the body plus scrollbar paint"}, {"path": "src/bin/showcase/pages/textareas.rs", "lines": "20-37,133-142", "note": "28-line description fixture plus wheel routing by area"}, {"path": "src/ui/fade.rs", "lines": "26-32,44-60", "note": "fade ramp constants plus edge gates"}], "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"},
+   "snapshots": {"ref": ["snapshots/showcase/fade/textarea/wheel/80x24/truecolor.txt"], "cand": []},
+   "adapters": ["headless-tick", "pty-capture"],
+   "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["tick-control", "glyph-capture", "geometry-probe"]},
+   "results": {"status": "unrun", "runs": []}
   }
  ],
  "coverage": [
@@ -493,7 +522,7 @@
   },
   {
    "component": "TextArea",
-   "rows": ["TA-LIFECYCLE-001", "TA-VIEW-002", "TA-FOLLOW-003"],
+   "rows": ["TA-LIFECYCLE-001", "TA-VIEW-002", "TA-FOLLOW-003", "TA-WHEEL-004"],
    "handlers": ["on_key: navigation scroll arms (Up/Down/k/j/paging/jumps) vs editing edit_key map; Esc commits", "on_paste: requires editing (Ignored otherwise); on_click: begins editing at line/col; on_wheel: scroll_by with Consumed at bounds"],
    "flags": ["editing", "disabled", "error: Option<String> (owner-set via .error(), no validate() exists)", "follow_cursor", "last_cursor", "hscroll"],
    "thresholds": ["rows clamps to area height - 2; footer splits msg_w vs position label; hscroll follows cursor col within inner width", "ensure_visible runs when follow_cursor || cursor moved || resized; !editing resets hscroll to 0"],
@@ -513,6 +542,7 @@
   {"old": "tablepro/connections/form_new-filled", "app": "tablepro", "sizes": ["72x20", "80x24", "100x30", "120x40", "160x50"], "new": "TI-FORM-010", "status": "mapped", "note": "typed-name capture pins the filled form state"},
   {"old": "jackin/accounts/filter", "app": "jackin-preview", "sizes": ["72x20", "80x24", "100x30", "120x40", "160x50"], "new": null, "status": "pending", "note": "filter input flow (enter begins, second enter commits+applies) has no fields row yet"},
   {"old": "tablepro/connections/filter", "app": "tablepro", "sizes": ["72x20", "80x24", "100x30", "120x40", "160x50"], "new": null, "status": "pending", "note": "connection-list filter capture has no fields row yet"},
-  {"old": "tablepro/connections/form_advanced", "app": "tablepro", "sizes": ["72x20", "80x24", "100x30", "120x40", "160x50"], "new": null, "status": "pending", "note": "advanced tab (ssh fields + startup area) has no fields row yet"}
+  {"old": "tablepro/connections/form_advanced", "app": "tablepro", "sizes": ["72x20", "80x24", "100x30", "120x40", "160x50"], "new": null, "status": "pending", "note": "advanced tab (ssh fields + startup area) has no fields row yet"},
+  {"old": "showcase/fade/textarea/wheel", "app": "showcase", "sizes": ["72x20", "80x24", "100x30", "120x40", "160x50"], "new": "TA-WHEEL-004", "status": "mapped", "also": [], "note": "8A-S1: wheel scroll plus fade over the task description"}
  ]
 }
