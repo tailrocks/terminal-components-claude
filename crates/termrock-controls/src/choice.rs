@@ -16,7 +16,8 @@ use super::form::InheritedFormState;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::action::ActionKey;
 use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
+    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, index_of,
+    key_at,
 };
 use crate::event::{Chord, KeyCode};
 use crate::field_control::FieldControl;
@@ -1106,22 +1107,6 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
-    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
-        items
-            .get(i)
-            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
-    }
-
-    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
-        if let Some(h) = hint
-            && h < items.len()
-            && self.key_at(items, h) == key
-        {
-            return Some(h);
-        }
-        (0..items.len()).find(|&i| self.key_at(items, i) == key)
-    }
-
     fn move_cursor(
         &self,
         st: &mut RadioGroupState,
@@ -1134,7 +1119,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             return;
         }
         let to = to.min(items.len().saturating_sub(1));
-        let key = self.key_at(items, to);
+        let key = key_at(&self.key, items, to);
         st.core.set_cursor(to, key);
         // the cursor is not the value: moving it repaints and reports
         // nothing (§20.10 item 3)
@@ -1153,7 +1138,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             return;
         }
         let i = i.min(items.len().saturating_sub(1));
-        let key = self.key_at(items, i);
+        let key = key_at(&self.key, items, i);
         st.core.set_cursor(i, key);
         acc.action(RadioGroupAction::Chose(key));
     }
@@ -1169,15 +1154,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         let can = self.editable();
         let len = items.len();
         if !self.disabled {
-            let _ = st.core.reconcile(len, |i| self.key_at(items, i));
+            let _ = st.core.reconcile(len, |i| key_at(&self.key, items, i));
             if st.core.cursor().is_none() && len > 0 {
                 // the cursor starts on the value when there is one, else on
                 // the first option
                 let i = self
                     .value
-                    .and_then(|v| self.index_of(items, v, None))
+                    .and_then(|v| index_of(&self.key, items, v, None))
                     .unwrap_or(0);
-                let key = self.key_at(items, i);
+                let key = key_at(&self.key, items, i);
                 st.core.set_cursor(i, key);
             }
         }
@@ -1210,7 +1195,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                         },
                     ..
                 } if can => {
-                    let Some(i) = self.index_of(items, k, Some(st.core.cursor_index())) else {
+                    let Some(i) = index_of(&self.key, items, k, Some(st.core.cursor_index()))
+                    else {
                         acc.consumed();
                         continue;
                     };
@@ -1547,7 +1533,7 @@ mod tests {
         let mut st = RadioGroupState::default();
         let g: RadioGroup<'_, &str> = RadioGroup::new(RG);
         let mut acc = Acc::<RadioGroupAction>::new();
-        let _ = st.core.reconcile(3, |i| g.key_at(&items, i));
+        let _ = st.core.reconcile(3, |i| key_at(&g.key, &items, i));
         st.set_cursor(0, ItemKey::index(0));
         g.move_cursor(&mut st, &items, 1, &mut acc);
         g.move_cursor(&mut st, &items, 2, &mut acc);
@@ -1569,9 +1555,12 @@ mod tests {
         // the cursor also lands on the value when the group first draws
         let mut fresh = RadioGroupState::default();
         let valued: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(1));
-        let _ = fresh.core.reconcile(3, |i| valued.key_at(&items, i));
+        let _ = fresh.core.reconcile(3, |i| key_at(&valued.key, &items, i));
         assert!(fresh.cursor().is_none());
-        assert_eq!(valued.index_of(&items, ItemKey::index(1), None), Some(1));
+        assert_eq!(
+            index_of(&valued.key, &items, ItemKey::index(1), None),
+            Some(1)
+        );
     }
 
     #[test]
@@ -1634,7 +1623,7 @@ mod tests {
 
         let vanished_items = ["a"];
         let vanished_group: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(1));
-        let only_key = vanished_group.key_at(&vanished_items, 0);
+        let only_key = key_at(&vanished_group.key, &vanished_items, 0);
         assert!(
             !vanished_group
                 .row_flags(StateFlags::empty(), Some(only_key), only_key, false, false)

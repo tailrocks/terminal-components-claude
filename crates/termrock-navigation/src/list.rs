@@ -9,7 +9,7 @@ use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, shift};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, KeySet, Reconcile, Reconciliation,
-    RowFn, RowUi, SelectMode, Status,
+    RowFn, RowUi, SelectMode, Status, index_of, key_at,
 };
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
@@ -764,25 +764,8 @@ impl<'a, T, K, R> List<'a, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
-    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
-        items
-            .get(i)
-            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
-    }
-
     fn enabled_at(&self, items: &[T], i: usize) -> bool {
         items.get(i).is_some_and(|it| !self.is_disabled(it))
-    }
-
-    /// The index of `key` near `hint`, probing the hint before scanning.
-    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
-        if let Some(h) = hint
-            && h < items.len()
-            && self.key_at(items, h) == key
-        {
-            return Some(h);
-        }
-        (0..items.len()).find(|&i| self.key_at(items, i) == key)
     }
 
     fn move_cursor(
@@ -798,15 +781,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             return;
         }
         let to = to.min(len.saturating_sub(1));
-        let key = self.key_at(items, to);
+        let key = key_at(&self.key, items, to);
         if extend && !matches!(self.select_mode, SelectMode::Single | SelectMode::None) {
             let from = st.core.cursor_index();
             let anchor_i = st
                 .anchor
-                .and_then(|a| self.index_of(items, a, Some(from)))
+                .and_then(|a| index_of(&self.key, items, a, Some(from)))
                 .unwrap_or(from);
             if st.anchor.is_none() {
-                st.anchor = Some(self.key_at(items, from));
+                st.anchor = Some(key_at(&self.key, items, from));
             }
             if self.select_mode == SelectMode::Range {
                 st.core.checked_mut().none();
@@ -814,7 +797,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             let (a, b) = (anchor_i.min(to), anchor_i.max(to));
             for i in a..=b {
                 if self.enabled_at(items, i) {
-                    st.core.checked_mut().insert(self.key_at(items, i));
+                    st.core.checked_mut().insert(key_at(&self.key, items, i));
                 }
             }
             st.core.set_cursor(to, key);
@@ -829,7 +812,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
     fn toggle_all(&self, st: &mut ListState, items: &[T], acc: &mut Acc<ListAction>) {
         let all = (0..items.len())
             .filter(|&i| self.enabled_at(items, i))
-            .all(|i| st.core.checked().contains(self.key_at(items, i)));
+            .all(|i| st.core.checked().contains(key_at(&self.key, items, i)));
         if all {
             st.core.checked_mut().none();
         } else {
@@ -837,7 +820,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             checked.all();
             for i in 0..items.len() {
                 if !self.enabled_at(items, i) {
-                    checked.remove(self.key_at(items, i));
+                    checked.remove(key_at(&self.key, items, i));
                 }
             }
         }
@@ -849,7 +832,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        let key = self.key_at(items, i);
+        let key = key_at(&self.key, items, i);
         match self.select_mode {
             SelectMode::Single => {
                 st.chosen = Some(key);
@@ -882,27 +865,23 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         let _ = st.core.reconcile_with_extent(
             len,
             self.scroll_extent(len, st.core.scroll().viewport_len()),
-            |i| self.key_at(items, i),
+            |i| key_at(&self.key, items, i),
             |i| self.enabled_at(items, i),
         );
         if let Some(a) = st.anchor
-            && self
-                .index_of(items, a, Some(st.core.cursor_index()))
-                .is_none()
+            && index_of(&self.key, items, a, Some(st.core.cursor_index())).is_none()
         {
             st.anchor = None;
         }
         if let Some(c) = st.chosen
-            && self
-                .index_of(items, c, Some(st.core.cursor_index()))
-                .is_none()
+            && index_of(&self.key, items, c, Some(st.core.cursor_index())).is_none()
         {
             st.chosen = None;
         }
         if st.core.cursor().is_none()
             && let Some(i) = (0..len).find(|&i| self.enabled_at(items, i))
         {
-            let key = self.key_at(items, i);
+            let key = key_at(&self.key, items, i);
             st.core.set_cursor(i, key);
         }
         if self.stride() > 1 && prior_index != st.core.cursor_index() && st.core.cursor().is_some()
@@ -1008,7 +987,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Some(ListCmd::Choose) => self.choose(st, items, cur, &mut acc),
                         Some(ListCmd::Activate) => {
                             if self.enabled_at(items, cur) && len > 0 {
-                                acc.action(ListAction::Activated(self.key_at(items, cur)));
+                                acc.action(ListAction::Activated(key_at(&self.key, items, cur)));
                             } else {
                                 acc.consumed();
                             }
@@ -1041,7 +1020,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                                 .saturating_add(usize::from(pos.y.saturating_sub(a.y))),
                         )
                     });
-                    let Some(i) = self.index_of(items, k, hint) else {
+                    let Some(i) = index_of(&self.key, items, k, hint) else {
                         st.click_cursor = None;
                         acc.consumed();
                         continue;

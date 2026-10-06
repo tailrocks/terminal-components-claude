@@ -10,7 +10,7 @@ use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, s
 use crate::action::ActionKey;
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, RowFn, RowUi,
-    SelectMode,
+    SelectMode, index_of, key_at,
 };
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -534,22 +534,6 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
-    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
-        items
-            .get(i)
-            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
-    }
-
-    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
-        if let Some(h) = hint
-            && h < items.len()
-            && self.key_at(items, h) == key
-        {
-            return Some(h);
-        }
-        (0..items.len()).find(|&i| self.key_at(items, i) == key)
-    }
-
     /// Move the cursor to stop `to`; the stop after the last chip is the add
     /// affordance when there is one.
     fn move_cursor(
@@ -569,7 +553,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         if to >= len {
             st.on_add = true;
         } else {
-            st.set_cursor(to, self.key_at(items, to));
+            st.set_cursor(to, key_at(&self.key, items, to));
         }
         acc.changed();
     }
@@ -587,7 +571,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         let Some(cursor) = st.core.cursor() else {
             return;
         };
-        let Some(ci) = self.index_of(items, cursor, Some(st.core.cursor_index())) else {
+        let Some(ci) = index_of(&self.key, items, cursor, Some(st.core.cursor_index())) else {
             return;
         };
         if ci < st.first_index {
@@ -596,7 +580,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         } else if fit > 0 && ci >= st.first_index.saturating_add(fit) {
             let i = ci.saturating_add(1).saturating_sub(fit);
             st.first_index = i;
-            st.first = Some(self.key_at(items, i));
+            st.first = Some(key_at(&self.key, items, i));
         }
     }
 
@@ -617,7 +601,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             }
             return;
         }
-        let key = self.key_at(items, i);
+        let key = key_at(&self.key, items, i);
         st.set_cursor(i, key);
         acc.action(ChipBarAction::Activated(key));
     }
@@ -627,7 +611,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        let key = self.key_at(items, i);
+        let key = key_at(&self.key, items, i);
         st.set_cursor(i, key);
         st.core.checked_mut().toggle(key);
         acc.action(ChipBarAction::Toggled(key));
@@ -638,7 +622,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        let key = self.key_at(items, i);
+        let key = key_at(&self.key, items, i);
         st.set_cursor(i, key);
         acc.action(ChipBarAction::Closed(key));
     }
@@ -654,15 +638,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         let len = items.len();
         let can = self.editable();
         if !self.disabled {
-            let _ = st.reconcile(len, |i| self.key_at(items, i));
+            let _ = st.reconcile(len, |i| key_at(&self.key, items, i));
             if st.core.cursor().is_none() && len > 0 {
-                st.set_cursor(0, self.key_at(items, 0));
+                st.set_cursor(0, key_at(&self.key, items, 0));
             }
             if len == 0 && self.add.is_some() {
                 st.on_add = true;
             }
             if st.first.is_none() && len > 0 {
-                st.first = Some(self.key_at(items, 0));
+                st.first = Some(key_at(&self.key, items, 0));
                 st.first_index = 0;
             }
         }
@@ -695,7 +679,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                     ..
                 } if can => {
                     let hint = Some(Self::cursor_stop(st, items));
-                    let index = item.and_then(|key| self.index_of(items, key, hint));
+                    let index = item.and_then(|key| index_of(&self.key, items, key, hint));
                     match (phase, part, item, index) {
                         (Phase::Press, Part::LABEL, Some(_), Some(i)) => {
                             self.move_cursor(st, items, i, &mut acc);
@@ -773,7 +757,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         let right_limit = row0.right().saturating_sub(add_w);
         let first_index = st
             .first
-            .and_then(|f| self.index_of(items, f, Some(st.first_index)))
+            .and_then(|f| index_of(&self.key, items, f, Some(st.first_index)))
             .unwrap_or(0)
             .min(items.len());
         let mut x = row0.x;
@@ -1173,7 +1157,7 @@ mod tests {
         let items = ["a", "b"];
         let bar: ChipBar<'_, &str> = ChipBar::new(BAR).add("+ Add");
         let mut st = ChipBarState::default();
-        let _ = st.core.reconcile(2, |i| bar.key_at(&items, i));
+        let _ = st.core.reconcile(2, |i| key_at(&bar.key, &items, i));
         st.set_cursor(0, ItemKey::index(0));
         let mut acc = Acc::<ChipBarAction>::new();
         bar.move_cursor(&mut st, &items, 1, &mut acc);
@@ -1451,7 +1435,7 @@ mod tests {
         let items = ["a", "b", "c"];
         let bar: ChipBar<'_, &str> = ChipBar::new(BAR).closable(true);
         let mut st = ChipBarState::default();
-        let _ = st.core.reconcile(3, |i| bar.key_at(&items, i));
+        let _ = st.core.reconcile(3, |i| key_at(&bar.key, &items, i));
         let mut acc = Acc::<ChipBarAction>::new();
         bar.toggle(&mut st, &items, 1, &mut acc);
         assert_eq!(
@@ -1490,7 +1474,7 @@ mod tests {
         let head = ItemKey::text("alpha");
         let items = ["alpha", "beta", "gamma", "delta"];
         let mut st = ChipBarState::default();
-        let _ = st.reconcile(items.len(), |i| bar.key_at(&items, i));
+        let _ = st.reconcile(items.len(), |i| key_at(&bar.key, &items, i));
         st.set_cursor(0, head);
         st.first = Some(head);
 
@@ -1509,7 +1493,7 @@ mod tests {
         );
 
         let reversed = ["delta", "gamma", "beta", "alpha"];
-        let _ = st.reconcile(reversed.len(), |i| bar.key_at(&reversed, i));
+        let _ = st.reconcile(reversed.len(), |i| key_at(&bar.key, &reversed, i));
         assert_eq!(st.first(), Some(head), "the window head keeps its key");
         assert_eq!(st.first_index, 3, "and follows it to its new position");
         let mut buffer = Buffer::empty(STRIP);

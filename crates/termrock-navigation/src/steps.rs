@@ -19,7 +19,8 @@ use ratatui_core::layout::Rect;
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
 use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
+    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, index_of,
+    key_at,
 };
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -593,8 +594,8 @@ impl FrontierCache {
         items: &[T],
     ) -> Option<ItemKey> {
         let len = items.len();
-        let first = (!items.is_empty()).then(|| steps.key_at(items, 0));
-        let last = (!items.is_empty()).then(|| steps.key_at(items, len.saturating_sub(1)));
+        let first = (!items.is_empty()).then(|| key_at(&steps.key, items, 0));
+        let last = (!items.is_empty()).then(|| key_at(&steps.key, items, len.saturating_sub(1)));
         let stamp_matches = state.frontier_revision != u64::MAX
             && self.initialized
             && self.revision == state.frontier_revision
@@ -606,7 +607,7 @@ impl FrontierCache {
             match self.frontier_key {
                 Some(key)
                     if self.frontier_index < len
-                        && steps.key_at(items, self.frontier_index) == key =>
+                        && key_at(&steps.key, items, self.frontier_index) == key =>
                 {
                     let Some(item) = items.get(self.frontier_index) else {
                         return self.rebuild(steps, state, items, first, last, 0);
@@ -640,7 +641,7 @@ impl FrontierCache {
             .skip(start)
             .find(|(_, item)| !steps.state_of(item).terminal());
         let (frontier_index, frontier_key) = found.map_or((items.len(), None), |(index, _)| {
-            (index, Some(steps.key_at(items, index)))
+            (index, Some(key_at(&steps.key, items, index)))
         });
         *self = FrontierCache {
             initialized: true,
@@ -656,12 +657,6 @@ impl FrontierCache {
 }
 
 impl<T, K: KeyFn<T>, R> Steps<'_, T, K, R> {
-    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
-        items
-            .get(i)
-            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
-    }
-
     /// The first step that has not finished — the frontier. `None` when
     /// every step is terminal, which is how a caller knows the rail is done.
     /// This explicit query is O(n); [`Steps::draw`] uses the runtime cache.
@@ -669,29 +664,18 @@ impl<T, K: KeyFn<T>, R> Steps<'_, T, K, R> {
         items
             .iter()
             .position(|it| !self.state_of(it).terminal())
-            .map(|i| self.key_at(items, i))
+            .map(|i| key_at(&self.key, items, i))
     }
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
-    /// The index of `key`, probing `hint` before scanning.
-    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
-        if let Some(h) = hint
-            && h < items.len()
-            && self.key_at(items, h) == key
-        {
-            return Some(h);
-        }
-        (0..items.len()).find(|&i| self.key_at(items, i) == key)
-    }
-
     fn move_cursor(&self, st: &mut StepsState, items: &[T], to: usize, acc: &mut Acc<StepsAction>) {
         if items.is_empty() {
             acc.consumed();
             return;
         }
         let to = to.min(items.len().saturating_sub(1));
-        let key = self.key_at(items, to);
+        let key = key_at(&self.key, items, to);
         if st.core.cursor() == Some(key) {
             acc.consumed();
             return;
@@ -712,12 +696,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         }
         let mut acc = Acc::<StepsAction>::new();
         let len = items.len();
-        if let Reconciliation::CursorMoved(key) = st.core.reconcile(len, |i| self.key_at(items, i))
+        if let Reconciliation::CursorMoved(key) =
+            st.core.reconcile(len, |i| key_at(&self.key, items, i))
         {
             acc.action(StepsAction::Moved(key));
         }
         if self.navigable && st.core.cursor().is_none() && !items.is_empty() {
-            st.core.set_cursor(0, self.key_at(items, 0));
+            st.core.set_cursor(0, key_at(&self.key, items, 0));
         }
         let bar = self.scrollbar().update(cx, st.core.scroll_mut(), len);
         acc.fold(&bar);
@@ -746,7 +731,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                             if len == 0 {
                                 acc.consumed();
                             } else {
-                                acc.action(StepsAction::Activated(self.key_at(items, cur)));
+                                acc.action(StepsAction::Activated(key_at(&self.key, items, cur)));
                             }
                         }
                         None => {}
@@ -767,7 +752,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                         view.offset()
                             .saturating_add(usize::from(pos.y.saturating_sub(a.y)))
                     });
-                    let Some(i) = self.index_of(items, k, hint) else {
+                    let Some(i) = index_of(&self.key, items, k, hint) else {
                         acc.consumed();
                         continue;
                     };
@@ -839,7 +824,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         let pressed = ui.pressed_part(self.id);
         for (offset, i) in view.visible_range().enumerate() {
             let Some(item) = items.get(i) else { break };
-            let key = self.key_at(items, i);
+            let key = key_at(&self.key, items, i);
             let step = self.state_of(item);
             let mut flags = step.flags();
             if frontier == Some(key) {
@@ -1006,7 +991,7 @@ mod tests {
 
     use super::{FrontierCache, StepState, Steps, StepsAction, StepsState};
     use crate::action::ActionKey;
-    use crate::collection::{Reconcile, Reconciliation, RowUi};
+    use crate::collection::{Reconcile, Reconciliation, RowUi, key_at};
     use crate::components::Acc;
     use crate::event::{Chord, KeyCode, KeyModifiers};
     use crate::id::{Id, ItemKey, Part, PartRef};
@@ -1342,13 +1327,13 @@ mod tests {
         let mut state = StepsState::new();
         state.set_cursor(1, ItemKey::text("b"));
         assert_eq!(
-            state.reconcile(original.len(), |i| rail.key_at(&original, i)),
+            state.reconcile(original.len(), |i| key_at(&rail.key, &original, i)),
             Reconciliation::Unchanged
         );
 
         state.invalidate();
         assert_eq!(
-            state.reconcile(reordered.len(), |i| rail.key_at(&reordered, i)),
+            state.reconcile(reordered.len(), |i| key_at(&rail.key, &reordered, i)),
             Reconciliation::Unchanged,
             "a surviving cursor key is not a semantic move"
         );

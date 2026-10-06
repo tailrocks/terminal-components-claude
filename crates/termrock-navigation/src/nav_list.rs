@@ -19,7 +19,8 @@ use ratatui_core::layout::Rect;
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
 use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
+    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, index_of,
+    key_at,
 };
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -662,24 +663,8 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
-    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
-        items
-            .get(i)
-            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
-    }
-
     fn enabled_at(&self, items: &[T], i: usize) -> bool {
         items.get(i).is_some_and(|it| !self.is_disabled(it))
-    }
-
-    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
-        if let Some(h) = hint
-            && h < items.len()
-            && self.key_at(items, h) == key
-        {
-            return Some(h);
-        }
-        (0..items.len()).find(|&i| self.key_at(items, i) == key)
     }
 
     /// The nearest enabled entry at or after `from` when `forward`, at or
@@ -705,7 +690,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
     ) {
         match self.seek(items, from, forward) {
             Some(i) => {
-                let key = self.key_at(items, i);
+                let key = key_at(&self.key, items, i);
                 if st.core.cursor() == Some(key) {
                     acc.consumed();
                 } else {
@@ -722,7 +707,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        let key = self.key_at(items, i);
+        let key = key_at(&self.key, items, i);
         st.core.set_cursor(i, key);
         st.current = Some(key);
         st.current_index = i;
@@ -745,7 +730,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                 .and_then(|from| self.seek(items, from, false))
         };
         if let Some(index) = next {
-            let key = self.key_at(items, index);
+            let key = key_at(&self.key, items, index);
             if st.core.cursor() == Some(key) {
                 acc.consumed();
             } else {
@@ -774,7 +759,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        let key = self.key_at(items, i);
+        let key = key_at(&self.key, items, i);
         st.core.set_cursor(i, key);
         st.current = Some(key);
         st.current_index = i;
@@ -794,14 +779,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         let _ = st.core.reconcile_with_extent(
             len,
             extent,
-            |i| self.key_at(items, i),
+            |i| key_at(&self.key, items, i),
             |i| self.enabled_at(items, i),
         );
-        st.reconcile_current(len, &|i| self.key_at(items, i));
+        st.reconcile_current(len, &|i| key_at(&self.key, items, i));
         if st.core.cursor().is_none()
             && let Some(i) = self.seek(items, 0, true)
         {
-            st.core.set_cursor(i, self.key_at(items, i));
+            st.core.set_cursor(i, key_at(&self.key, items, i));
         }
         if self.scrollable
             && st.core.cursor().is_some()
@@ -811,7 +796,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                 .seek(items, st.core.cursor_index(), true)
                 .or_else(|| self.seek(items, st.core.cursor_index(), false))
             {
-                st.core.set_cursor(i, self.key_at(items, i));
+                st.core.set_cursor(i, key_at(&self.key, items, i));
             } else {
                 st.core.clear_cursor();
             }
@@ -877,7 +862,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                         },
                     ..
                 } => {
-                    let Some(i) = self.index_of(items, k, None) else {
+                    let Some(i) = index_of(&self.key, items, k, None) else {
                         acc.consumed();
                         continue;
                     };
@@ -1050,7 +1035,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             let Some(item) = items.get(i) else {
                 continue;
             };
-            let key = self.key_at(items, i);
+            let key = key_at(&self.key, items, i);
             let mut flags = StateFlags::empty();
             let is_cursor = st.core.cursor() == Some(key);
             if is_cursor {

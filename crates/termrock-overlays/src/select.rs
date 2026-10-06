@@ -13,7 +13,8 @@ use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::action::ActionKey;
 use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
+    ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, Reconcile, Reconciliation, RowFn,
+    RowUi, index_of, key_at,
 };
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -548,22 +549,6 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
-    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
-        items
-            .get(i)
-            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
-    }
-
-    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
-        if let Some(h) = hint
-            && h < items.len()
-            && self.key_at(items, h) == key
-        {
-            return Some(h);
-        }
-        (0..items.len()).find(|&i| self.key_at(items, i) == key)
-    }
-
     /// The size this popup asks its layer for (§26 N1): the field's width
     /// clamped into the design's popup band, and one row per option up to
     /// `popup_rows`, plus the pad row above and below.
@@ -610,7 +595,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             return;
         }
         let to = to.min(items.len().saturating_sub(1));
-        st.core.set_cursor(to, self.key_at(items, to));
+        st.core.set_cursor(to, key_at(&self.key, items, to));
         // the cursor is not the value (§15): moving it repaints and reports
         // nothing, open or closed
         acc.changed();
@@ -624,8 +609,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         acc: &mut Acc<SelectAction>,
     ) {
         st.open = true;
-        if let Some(i) = st.value.and_then(|v| self.index_of(items, v, None)) {
-            st.core.set_cursor(i, self.key_at(items, i));
+        if let Some(i) = st.value.and_then(|v| index_of(&self.key, items, v, None)) {
+            st.core.set_cursor(i, key_at(&self.key, items, i));
         }
         cx.open_layer(self.id, self.layer(cx, items));
         acc.action(SelectAction::Opened);
@@ -635,8 +620,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
     /// Esc contract (`select::escape_closes_and_restores_the_cursor`).
     fn close_restoring(&self, st: &mut SelectState, items: &[T]) {
         st.open = false;
-        if let Some(i) = st.value.and_then(|v| self.index_of(items, v, None)) {
-            st.core.set_cursor(i, self.key_at(items, i));
+        if let Some(i) = st.value.and_then(|v| index_of(&self.key, items, v, None)) {
+            st.core.set_cursor(i, key_at(&self.key, items, i));
         }
     }
 
@@ -653,7 +638,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             return;
         }
         let i = i.min(items.len().saturating_sub(1));
-        let key = self.key_at(items, i);
+        let key = key_at(&self.key, items, i);
         st.core.set_cursor(i, key);
         st.value = Some(key);
         if st.open {
@@ -675,13 +660,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         if self.disabled {
             return;
         }
-        let _ = st.reconcile(items.len(), |i| self.key_at(items, i));
+        let _ = st.reconcile(items.len(), |i| key_at(&self.key, items, i));
         if st.core.cursor().is_none() && !items.is_empty() {
             let i = st
                 .value
-                .and_then(|v| self.index_of(items, v, None))
+                .and_then(|v| index_of(&self.key, items, v, None))
                 .unwrap_or(0);
-            st.core.set_cursor(i, self.key_at(items, i));
+            st.core.set_cursor(i, key_at(&self.key, items, i));
         }
     }
 
@@ -764,13 +749,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                     ..
                 } if can => match (phase, part, item) {
                     (Phase::Click | Phase::DoubleClick, Part::ROW, Some(k)) => {
-                        match self.index_of(items, k, Some(st.core.cursor_index())) {
+                        match index_of(&self.key, items, k, Some(st.core.cursor_index())) {
                             Some(i) => self.choose(cx, st, items, i, &mut acc),
                             None => acc.consumed(),
                         }
                     }
                     (Phase::Press, Part::ROW, Some(k)) => {
-                        match self.index_of(items, k, Some(st.core.cursor_index())) {
+                        match index_of(&self.key, items, k, Some(st.core.cursor_index())) {
                             Some(i) => self.move_cursor(st, items, i, &mut acc),
                             None => acc.consumed(),
                         }
@@ -881,7 +866,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         }
         let chosen = st
             .value
-            .and_then(|v| self.index_of(items, v, None))
+            .and_then(|v| index_of(&self.key, items, v, None))
             .and_then(|i| items.get(i).map(|it| (i, it)));
         let Some((i, item)) = chosen else {
             if let Some(p) = self.placeholder {
@@ -1302,7 +1287,7 @@ mod tests {
         let items = ["a", "b", "c"];
         let s: Select<'_, &str> = Select::new(SEL);
         let mut st = SelectState::default();
-        let _ = st.reconcile(3, |i| s.key_at(&items, i));
+        let _ = st.reconcile(3, |i| key_at(&s.key, &items, i));
         st.set_value(Some(ItemKey::index(1)));
         st.core.set_cursor(1, ItemKey::index(1));
         st.open = true;
@@ -1333,7 +1318,7 @@ mod tests {
         let items = ["a", "b", "c"];
         let s: Select<'_, &str> = Select::new(SEL);
         let mut st = SelectState::default();
-        let _ = st.reconcile(3, |i| s.key_at(&items, i));
+        let _ = st.reconcile(3, |i| key_at(&s.key, &items, i));
         st.set_value(Some(ItemKey::index(0)));
         st.core.set_cursor(0, ItemKey::index(0));
         assert!(!st.is_open());
@@ -1377,7 +1362,7 @@ mod tests {
         let s = Select::new(SEL).key(key).row(row).placeholder("Engine");
         let mut st = SelectState::default();
         st.set_value(Some(ItemKey::num(9)));
-        let _ = st.reconcile(engines.len(), |i| s.key_at(&engines, i));
+        let _ = st.reconcile(engines.len(), |i| key_at(&s.key, &engines, i));
         assert_eq!(st.value(), Some(ItemKey::num(9)));
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
@@ -1394,7 +1379,7 @@ mod tests {
         assert!(row0.contains("sqlite"), "{row0}");
         // an item that vanishes takes the value with it
         let shrunk: Vec<Engine> = Vec::new();
-        let _ = st.reconcile(shrunk.len(), |i| s.key_at(&shrunk, i));
+        let _ = st.reconcile(shrunk.len(), |i| key_at(&s.key, &shrunk, i));
         assert_eq!(st.value(), None);
     }
 

@@ -46,6 +46,57 @@ impl<T> KeyFn<T> for ByIndex {
     }
 }
 
+/// The shared key lookup for `KeyFn` collections: the key of `items[i]`,
+/// or `ItemKey::index(i)` when `i` is out of bounds.
+///
+/// Every keyed component resolves out-of-range indexes to the positional
+/// fallback instead of panicking, so cursor math can probe freely.
+pub fn key_at<T, K: KeyFn<T>>(key: &K, items: &[T], i: usize) -> ItemKey {
+    items.get(i).map_or(ItemKey::index(i), |it| key.key(it, i))
+}
+
+/// The shared reverse lookup for `KeyFn` collections: the index of `item`,
+/// probing `hint` before scanning from the front.
+///
+/// The hint makes the common case — the key did not move — O(1); the scan
+/// keeps reconcile correct after reorder.
+pub fn index_of<T, K: KeyFn<T>>(
+    key: &K,
+    items: &[T],
+    item: ItemKey,
+    hint: Option<usize>,
+) -> Option<usize> {
+    if let Some(h) = hint
+        && h < items.len()
+        && key_at(key, items, h) == item
+    {
+        return Some(h);
+    }
+    (0..items.len()).find(|&i| key_at(key, items, i) == item)
+}
+
+/// [`key_at`] with an explicit accessor, for items without a [`KeyFn`]
+/// (e.g. `AsItem` semantic items whose key lives on the borrowed view).
+pub fn key_at_with<T>(items: &[T], i: usize, f: impl Fn(&T) -> ItemKey) -> ItemKey {
+    items.get(i).map_or(ItemKey::index(i), f)
+}
+
+/// [`index_of`] with an explicit accessor, for items without a [`KeyFn`].
+pub fn index_of_with<T>(
+    items: &[T],
+    item: ItemKey,
+    hint: Option<usize>,
+    f: impl Fn(&T) -> ItemKey,
+) -> Option<usize> {
+    if let Some(h) = hint
+        && let Some(it) = items.get(h)
+        && f(it) == item
+    {
+        return Some(h);
+    }
+    items.iter().position(|it| f(it) == item)
+}
+
 /// A selection set with an inverted representation, so "select all" never
 /// materialises every key. The `Vec` is kept sorted; `contains` is a binary
 /// search.
@@ -229,6 +280,25 @@ mod tests {
         assert!(cmps <= 11, "{cmps} comparisons for 1024 keys");
         let (found, cmps) = s.contains_counting(k(5000));
         assert!(!found && cmps <= 11);
+    }
+
+    #[test]
+    fn shared_lookups_fall_back_to_positional_and_probe_hint() {
+        let items: &[&str] = &["a", "b", "c"];
+        let id = |s: &&str| ItemKey::text(s);
+        assert_eq!(key_at(&id, items, 1), ItemKey::text("b"));
+        assert_eq!(key_at(&id, items, 9), ItemKey::index(9));
+        assert_eq!(index_of(&id, items, ItemKey::text("c"), None), Some(2));
+        assert_eq!(index_of(&id, items, ItemKey::text("a"), Some(2)), Some(0));
+        assert_eq!(index_of(&id, items, ItemKey::text("zzz"), Some(1)), None);
+        let view = |s: &&str| ItemKey::text(s);
+        assert_eq!(key_at_with(items, 0, view), ItemKey::text("a"));
+        assert_eq!(key_at_with(items, 9, view), ItemKey::index(9));
+        assert_eq!(
+            index_of_with(items, ItemKey::text("b"), Some(0), view),
+            Some(1)
+        );
+        assert_eq!(index_of_with(items, ItemKey::text("zzz"), None, view), None);
     }
 
     #[test]

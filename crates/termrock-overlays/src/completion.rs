@@ -8,7 +8,9 @@ use super::picker::{AsItem, Item, ItemRow};
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
-use crate::collection::{CollectionCore, EmptyState, Reconcile, RowFn, RowUi};
+use crate::collection::{
+    CollectionCore, EmptyState, Reconcile, RowFn, RowUi, index_of_with, key_at_with,
+};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
@@ -422,11 +424,6 @@ impl<'a, T, R> Completion<'a, T, R> {
 }
 
 impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
-    fn key_at(items: &[T], i: usize) -> ItemKey {
-        items
-            .get(i)
-            .map_or(ItemKey::index(i), |item| item.as_item().key)
-    }
     fn move_to(
         state: &mut CompletionState,
         items: &[T],
@@ -438,7 +435,7 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
             return;
         }
         let i = target.min(items.len().saturating_sub(1));
-        let key = Self::key_at(items, i);
+        let key = key_at_with(items, i, |item| item.as_item().key);
         if state.core.cursor() == Some(key) {
             acc.consumed();
             return;
@@ -549,11 +546,13 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
             return Response::ignored();
         }
         state.owner = Some(owner);
-        let _ = state
-            .core
-            .reconcile(items.len(), |i| Self::key_at(items, i));
+        let _ = state.core.reconcile(items.len(), |i| {
+            key_at_with(items, i, |item| item.as_item().key)
+        });
         if state.core.cursor().is_none() && !items.is_empty() {
-            state.core.set_cursor(0, Self::key_at(items, 0));
+            state
+                .core
+                .set_cursor(0, key_at_with(items, 0, |item| item.as_item().key));
         }
         cx.resize_layer(self.id, self.measured_size(cx, items));
         cx.reanchor_layer(
@@ -588,7 +587,7 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                             item: Some(key),
                         },
                     ..
-                } => match items.iter().position(|item| item.as_item().key == key) {
+                } => match index_of_with(items, key, None, |item| item.as_item().key) {
                     Some(i) if !items.get(i).is_some_and(|item| item.as_item().disabled) => {
                         state.core.set_cursor(i, key);
                         acc.action(CompletionAction::Accepted(key));

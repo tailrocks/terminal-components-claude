@@ -8,6 +8,7 @@ use ratatui_core::layout::{Position, Rect};
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, Status,
+    index_of, key_at,
 };
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -493,29 +494,13 @@ fn digits(n: usize, buf: &mut [u8; 2]) -> &str {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
-    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
-        items
-            .get(i)
-            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
-    }
-
-    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
-        if let Some(h) = hint
-            && h < items.len()
-            && self.key_at(items, h) == key
-        {
-            return Some(h);
-        }
-        (0..items.len()).find(|&i| self.key_at(items, i) == key)
-    }
-
     fn activate(&self, st: &mut TabsState, items: &[T], i: usize, acc: &mut Acc<TabsAction>) {
         if items.is_empty() {
             acc.consumed();
             return;
         }
         let i = i.min(items.len().saturating_sub(1));
-        let key = self.key_at(items, i);
+        let key = key_at(&self.key, items, i);
         st.set_active(i, key);
         acc.action(TabsAction::Activated(key));
     }
@@ -523,7 +508,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
     /// Keep the active tab inside the window, using last frame's `fit`.
     fn follow(&self, st: &mut TabsState, items: &[T], fit: usize) {
         let Some(active) = st.active else { return };
-        let Some(ai) = self.index_of(items, active, Some(st.core.cursor_index())) else {
+        let Some(ai) = index_of(&self.key, items, active, Some(st.core.cursor_index())) else {
             return;
         };
         if ai < st.first_index {
@@ -532,23 +517,23 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         } else if fit > 0 && ai >= st.first_index.saturating_add(fit) {
             let i = ai.saturating_add(1).saturating_sub(fit);
             st.first_index = i;
-            st.first = Some(self.key_at(items, i));
+            st.first = Some(key_at(&self.key, items, i));
         }
     }
 
     /// The update phase: reconcile, then drain keys and pointer intents.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TabsState, items: &[T]) -> Response<TabsAction> {
         let len = items.len();
-        let _ = st.reconcile(len, |i| self.key_at(items, i));
+        let _ = st.reconcile(len, |i| key_at(&self.key, items, i));
         if st.core.cursor().is_none() && len > 0 {
-            let key = self.key_at(items, 0);
+            let key = key_at(&self.key, items, 0);
             st.core.set_cursor(0, key);
         }
         if st.active.is_none() {
             st.active = st.core.cursor();
         }
         if st.first.is_none() && len > 0 {
-            st.first = Some(self.key_at(items, 0));
+            st.first = Some(key_at(&self.key, items, 0));
             st.first_index = 0;
         }
         let mut acc = Acc::<TabsAction>::new();
@@ -575,7 +560,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         }
                         Some(TabsCmd::Close) => {
                             if len > 0 {
-                                acc.action(TabsAction::Close(self.key_at(items, cur)));
+                                acc.action(TabsAction::Close(key_at(&self.key, items, cur)));
                             } else {
                                 acc.consumed();
                             }
@@ -586,13 +571,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 }
                 Intent::Pointer { phase, part, .. } => match (phase, part.part, part.item) {
                     (Phase::Press, Part::TAB, Some(k)) => {
-                        if let Some(i) = self.index_of(items, k, Some(st.core.cursor_index())) {
+                        if let Some(i) = index_of(&self.key, items, k, Some(st.core.cursor_index()))
+                        {
                             st.core.set_cursor(i, k);
                         }
                         acc.changed();
                     }
                     (Phase::Click | Phase::DoubleClick, Part::TAB, Some(k)) => {
-                        match self.index_of(items, k, Some(st.core.cursor_index())) {
+                        match index_of(&self.key, items, k, Some(st.core.cursor_index())) {
                             Some(i) => self.activate(st, items, i, &mut acc),
                             None => acc.consumed(),
                         }
@@ -602,13 +588,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(0))) => {
                         let i = st.first_index.saturating_sub(1);
                         st.first_index = i;
-                        st.first = (len > 0).then(|| self.key_at(items, i));
+                        st.first = (len > 0).then(|| key_at(&self.key, items, i));
                         acc.changed();
                     }
                     (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(_))) => {
                         let i = st.first_index.saturating_add(1).min(len.saturating_sub(1));
                         st.first_index = i;
-                        st.first = (len > 0).then(|| self.key_at(items, i));
+                        st.first = (len > 0).then(|| key_at(&self.key, items, i));
                         acc.changed();
                     }
                     _ => acc.consumed(),
@@ -616,15 +602,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 _ => {}
             }
         }
-        if let Some(l) = cx.layout(self.id) {
-            if l.viewport_len < l.content_len
+        if let Some(l) = cx.layout(self.id)
+            && (l.viewport_len < l.content_len
                 || st
                     .active
-                    .and_then(|a| self.index_of(items, a, Some(st.core.cursor_index())))
-                    .is_some_and(|ai| ai < st.first_index)
-            {
-                self.follow(st, items, l.viewport_len);
-            }
+                    .and_then(|a| index_of(&self.key, items, a, Some(st.core.cursor_index())))
+                    .is_some_and(|ai| ai < st.first_index))
+        {
+            self.follow(st, items, l.viewport_len);
         }
         acc.finish(self.id)
     }
@@ -698,7 +683,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         let overflow_last = last.is_some_and(|l| l.viewport_len < l.content_len);
         let first_index = st
             .first
-            .and_then(|f| self.index_of(items, f, Some(st.first_index)))
+            .and_then(|f| index_of(&self.key, items, f, Some(st.first_index)))
             .unwrap_or(0)
             .min(len);
         let status_w: u16 = if matches!(self.status, Status::Ready) {
@@ -953,14 +938,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if pressed == Some(new_part) {
                 new_flags |= StateFlags::PRESSED;
             }
-            let ns = ov.style(
-                ui,
-                id,
-                Family::TABS,
-                Variant::DEFAULT,
-                Part::NEW,
-                new_flags,
-            );
+            let ns = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::NEW, new_flags);
             let btn = Rect {
                 width: 3.min(cell.width),
                 ..cell
