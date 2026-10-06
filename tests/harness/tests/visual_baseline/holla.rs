@@ -662,7 +662,11 @@ fn holla_fade_cleanup_list_wheel_matrix() {
         "enter",
         "wait:18 categories",
     ]);
-    support::run_canonical_live(&case, |s, case| {
+    // Content-stable settle: the cleanup review rebuilds on every tick, so
+    // PTY output never quiets under the running reduced-motion clock and
+    // the quiet-window settle times out by design. The churn is invisible
+    // (identical digest across ticks); gate the live frame at that phase.
+    support::run_canonical_live_content_stable(&case, |s, case| {
         // Rows are clickable children and shadow the list's scroll region in
         // hit_scroll's topmost-wins lookup, so the wheel lands on the blank
         // line below the needle (no child region there) instead.

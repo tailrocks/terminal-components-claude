@@ -1044,6 +1044,32 @@ pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut S
     finish_matrix(&failures);
 }
 
+/// Expand a live pointer/keyboard root whose end state ticks forever
+/// through the same matrix, settling each combo by content stability
+/// ([`settle_live_and_gate`]) instead of output quiet. `interact` runs
+/// after the centrally driven boot + case sends, as in
+/// [`run_canonical_live`].
+pub fn run_canonical_live_content_stable(
+    representative: &Case,
+    mut interact: impl FnMut(&mut Session, &Case),
+) {
+    let mut failures = Vec::new();
+    for &(cols, rows) in &CANONICAL_SIZES {
+        for color in CANONICAL_COLORS {
+            let case = representative.variant(cols, rows, color);
+            let name = case.name.to_string();
+            if !collect_matrix(&name, || {
+                let mut session = spawn_boot(&case);
+                interact(&mut session, &case);
+                settle_live_and_gate(&mut session, &case);
+            }) {
+                failures.push(name);
+            }
+        }
+    }
+    finish_matrix(&failures);
+}
+
 /// Expand a representative live root, substituting a compact send chain for
 /// terminal widths at or below `max_cols`. This is for responsive layouts
 /// that need an explicit drawer/detail step which the wide representative's
@@ -1296,6 +1322,82 @@ fn cells_between(from: (u16, u16), to: (u16, u16)) -> Vec<(u16, u16)> {
             (col as u16, row as u16)
         })
         .collect()
+}
+
+/// Content-stability window for live-ticking screens: spans 2+ runtime
+/// ticks at the 200 ms idle cadence, so a stable digest proves the repaint
+/// churn carries no visible change.
+pub const LIVE_STABLE: Duration = Duration::from_millis(500);
+/// Poll cadence for the live-stability wait: a wake interval, never a verdict.
+const LIVE_POLL: Duration = Duration::from_millis(25);
+
+/// Settle a live-ticking screen by content stability and gate the capture.
+///
+/// For screens whose `on_tick` repaints on every tick (the holla cleanup
+/// review under `--motion reduced` rebuilds unconditionally): PTY output
+/// never quiets, so [`settle_and_gate`]'s quiet window times out by design
+/// (`state_waits` documents the same rule). Instead this waits for two
+/// phases, both bounded by the case timeout:
+/// 1. liveness — a revision newer than the interaction, proving ticks flow
+///    (a wedged PTY with a static screen must not pass as "stable");
+/// 2. stability — an identical [`Frame::digest`] (cells, colors, cursor)
+///    across [`LIVE_STABLE`] while revisions keep arriving, proving the
+///    churn is invisible.
+/// Then it gates the latest frame. The capture happens DURING the live
+/// clock at a content-stable phase — the animation is not waited out.
+/// Every bound fails loudly with the last frame text; no sleep is a verdict.
+pub fn settle_live_and_gate(session: &mut Session, case: &Case) {
+    let timeout = Duration::from_millis(case.timeout_ms);
+    let deadline = Instant::now() + timeout;
+    // 1. liveness: the clock must advance past the interaction.
+    let rev0 = session
+        .observe_now()
+        .unwrap_or_else(|e| panic!("`{}` live sample failed: {e:#}", case.name))
+        .revision;
+    session
+        .wait_predicate_timeout(
+            |o| o.revision > rev0,
+            deadline.saturating_duration_since(Instant::now()),
+        )
+        .unwrap_or_else(|e| panic!("`{}` live clock never advanced: {e:#}", case.name));
+    // 2. stability: identical digest across LIVE_STABLE with ticks flowing.
+    // Any visible change restarts the window; a stall fails at the deadline.
+    let obs = session
+        .observe_now()
+        .unwrap_or_else(|e| panic!("`{}` live sample failed: {e:#}", case.name));
+    let mut frame = frame_from_screen(&obs.screen, pty_provenance(case));
+    let mut digest = frame.digest();
+    let mut window_start = Instant::now();
+    let mut window_rev = obs.revision;
+    loop {
+        if Instant::now() >= deadline {
+            panic!(
+                "`{}` content never stabilized after {} ms; last frame:\n{}",
+                case.name,
+                timeout.as_millis(),
+                frame.text()
+            );
+        }
+        std::thread::sleep(LIVE_POLL);
+        let obs = session
+            .observe_now()
+            .unwrap_or_else(|e| panic!("`{}` live sample failed: {e:#}", case.name));
+        let next = frame_from_screen(&obs.screen, pty_provenance(case));
+        let next_digest = next.digest();
+        if next_digest != digest {
+            digest = next_digest;
+            frame = next;
+            window_start = Instant::now();
+            window_rev = obs.revision;
+            continue;
+        }
+        frame = next;
+        if window_start.elapsed() >= LIVE_STABLE && obs.revision > window_rev {
+            break;
+        }
+    }
+    // 3. gate the latest content-stable frame.
+    assert_gated(&gate(&case.name, &frame));
 }
 
 /// Settle the screen and return the settled frame: no new output for
