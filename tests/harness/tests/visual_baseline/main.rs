@@ -43,6 +43,7 @@ mod control_states;
 mod holla;
 mod holla_journeys;
 mod jackin;
+mod jackin_journeys;
 mod negative_controls;
 mod negative_controls_phase6a;
 mod pointer;
