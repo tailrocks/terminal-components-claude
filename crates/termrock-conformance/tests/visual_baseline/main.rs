@@ -1,19 +1,21 @@
 //! Visual-baseline suite: every capturable surface of the four binaries,
-//! driven as real processes in PTYs via the tuisnap library and gated
+//! driven as real processes in PTYs via the tuiscotti library and gated
 //! cell-exact (`.ansi`), content (`.txt`), render-level (`.html`) and
-//! pixel-exact (`.png`) against the approved frames in `snapshots/`
-//! (the grouped multi-artifact store; scratch under `target/tuisnap/`).
+//! pixel-exact (`.png`) against the approved frames in
+//! `baselines/tuiscotti-v1` (the grouped multi-artifact store; scratch
+//! under `target/tuiscotti/`).
 //!
-//! This suite replaces the retired `tools/tuisnap_baseline.sh`; the capture
-//! matrix and its rationale live in `docs/baseline/tuisnap-coverage.md` and
-//! `docs/baseline/snapshots-v2.md` (grouped taxonomy). Capture names are
-//! grouped paths (`<app>/<sub_group>/<leaf>`); argv, boot needles, send steps
-//! and per-capture timeouts are the bash runner's, verbatim (via
-//! [`tuisnap::pty::run_once`], the same runner the `tuisnap run` CLI used);
-//! the `pointer` module adds the mouse/resize group the CLI could not
-//! express (hover, drag-select, wheel scroll-fade, resize sequences). The
-//! `audit` module generates the 10-fixture × 5 sizes × 5 colours audit
-//! matrix data-drivenly; the audit-flow variant matrices live in
+//! The capture matrix is the vendored case registry
+//! (`tests/conformance/required_cases.json`: 302 `LEGACY:` roots × 5 sizes
+//! × 5 colours); [`support::suite_capture_names`] expands it, and the
+//! [`store_integrity`] gate proves store==suite registry coverage. Capture
+//! names are screen-first grouped paths
+//! (`<app>/<screen>/.../<cols>x<rows>/<color>`); argv, boot needles, send
+//! steps and per-capture timeouts are the ported runner's, verbatim (via
+//! [`support::run_canonical`]); the `pointer` module adds the mouse/resize
+//! group (hover, drag-select, wheel scroll-fade, resize sequences). The
+//! `audit` module drives the 10-fixture × 5 sizes × 5 colours audit
+//! matrices data-drivenly; the audit-flow variant matrices live in
 //! `showcase.rs` (keyboard) and `pointer.rs` (drag-select).
 //!
 //! Every capture test is `#[ignore]`d: default `cargo nextest run` compiles
@@ -28,8 +30,8 @@
 //!
 //! Gate policy (fail-closed): only `matched` passes. Pending and
 //! missing-approval captures fail until the whole suite is generated and
-//! explicitly blessed with `tuisnap accept --grouped --store snapshots
-//! --all`; drift after approval or a capture error also fails.
+//! explicitly blessed out-of-band into `baselines/tuiscotti-v1`; drift
+//! after approval or a capture error also fails.
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 

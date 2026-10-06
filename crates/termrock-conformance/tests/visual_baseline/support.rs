@@ -75,18 +75,6 @@ pub const AUDIT_PREFIX_SHOWCASE_TEXTAREAS: &str = "showcase/audit/textareas";
 pub const AUDIT_PREFIX_TABLEPRO_PRODUCTION: &str = "tablepro/audit/production";
 pub const AUDIT_PREFIX_JACKIN_ACCOUNTS: &str = "jackin/audit/accounts";
 
-pub const AUDIT_MATRIX_PREFIXES: [&str; 9] = [
-    AUDIT_PREFIX_HOLLA_RUST,
-    AUDIT_PREFIX_HOLLA_UPGRADE,
-    AUDIT_PREFIX_JACKIN_CAPSULE,
-    AUDIT_PREFIX_SHOWCASE_BUTTONS,
-    AUDIT_PREFIX_SHOWCASE_DIFF,
-    AUDIT_PREFIX_SHOWCASE_FORMS,
-    AUDIT_PREFIX_SHOWCASE_INPUTS,
-    AUDIT_PREFIX_SHOWCASE_TEXTAREAS,
-    AUDIT_PREFIX_TABLEPRO_PRODUCTION,
-];
-
 #[derive(serde::Deserialize)]
 struct RootMapEntry {
     legacy_root: String,
@@ -129,33 +117,52 @@ pub fn audit_default_name(prefix: &str, cols: u16, rows: u16, color: Color) -> S
     format!("{prefix}/{cols}x{rows}/{}", color.suffix())
 }
 
-/// Every capture name the suite produces: the canonical 5×5 expansion of each
-/// Case::new root and the data-driven audit matrices.
+/// Every capture name the suite produces: the dimensions × capabilities
+/// expansion of each `LEGACY:` root in the vendored case registry
+/// (`tests/conformance/required_cases.json`, copied from the
+/// `origin/termrock-refactor` planning history), mapped to screen-first
+/// paths. The suite never parses its own sources or the store, so the
+/// `store_integrity` store==suite check proves registry coverage.
 pub fn suite_capture_names() -> BTreeSet<String> {
-    let mut names = parse_case_new_names();
-    names.extend(generated_matrix_names());
-    names.into_iter().map(|n| screen_first_path(&n)).collect()
-}
-
-fn generated_matrix_names() -> BTreeSet<String> {
+    const REGISTRY_JSON: &str = include_str!("../../../../tests/conformance/required_cases.json");
+    let manifest: serde_json::Value =
+        serde_json::from_str(REGISTRY_JSON).expect("parse required_cases.json");
+    assert_eq!(
+        manifest["legacy_roots_count"].as_u64(),
+        Some(302),
+        "registry must declare exactly 302 legacy roots"
+    );
+    let cases = manifest["cases"].as_array().expect("registry cases array");
     let mut names = BTreeSet::new();
-    for prefix in AUDIT_MATRIX_PREFIXES {
-        for &(cols, rows) in &CANONICAL_SIZES {
-            for color in CANONICAL_COLORS {
-                names.insert(audit_default_name(prefix, cols, rows, color));
+    let mut roots = 0u64;
+    for case in cases {
+        let id = case["id"].as_str().expect("registry case id");
+        let Some(legacy_root) = id.strip_prefix("LEGACY:") else {
+            continue;
+        };
+        roots += 1;
+        let dimensions = case["dimensions"]
+            .as_array()
+            .expect("registry case dimensions");
+        let capabilities = case["capabilities"]
+            .as_array()
+            .expect("registry case capabilities");
+        for dim in dimensions {
+            let cols = dim[0].as_u64().expect("dimension cols");
+            let rows = dim[1].as_u64().expect("dimension rows");
+            for capability in capabilities {
+                let capability = capability.as_str().expect("capability");
+                names.insert(screen_first_path(&format!(
+                    "{legacy_root}/{cols}x{rows}/{capability}"
+                )));
             }
         }
     }
-    for &(cols, rows) in &CANONICAL_SIZES {
-        for color in CANONICAL_COLORS {
-            names.insert(audit_default_name(
-                AUDIT_PREFIX_JACKIN_ACCOUNTS,
-                cols,
-                rows,
-                color,
-            ));
-        }
-    }
+    assert_eq!(roots, 302, "registry must carry exactly 302 LEGACY cases");
+    assert!(
+        !names.is_empty(),
+        "no capture names expanded from the registry"
+    );
     names
 }
 
@@ -169,140 +176,6 @@ fn canonical_root(name: &str) -> Option<&str> {
 
 fn canonical_name(root: &str, cols: u16, rows: u16, color: Color) -> String {
     format!("{root}/{cols}x{rows}/{}", color.suffix())
-}
-
-fn parse_case_new_names() -> BTreeSet<String> {
-    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/visual_baseline");
-    let mut names = BTreeSet::new();
-    let mut declared_roots = BTreeSet::new();
-    let entries = std::fs::read_dir(&dir).unwrap_or_else(|e| panic!("read {}: {e}", dir.display()));
-    for entry in entries {
-        let path = entry
-            .unwrap_or_else(|e| panic!("read {}: {e}", dir.display()))
-            .path();
-        let file_name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
-        if path.extension().and_then(|s| s.to_str()) != Some("rs")
-            || file_name == "support.rs"
-            || file_name == "main.rs"
-        {
-            continue;
-        }
-        let src = std::fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
-        extract_case_new_roots(&src, &mut names, &mut declared_roots);
-    }
-    assert!(
-        !names.is_empty(),
-        "no Case::new names parsed from {}",
-        dir.display()
-    );
-    names
-}
-
-fn extract_case_new_roots(
-    src: &str,
-    names: &mut BTreeSet<String>,
-    declared_roots: &mut BTreeSet<String>,
-) {
-    const MACRO_MARK: &str = "crate::baseline_case";
-    const MARK: &str = "Case::new(";
-    let mut rest = src;
-    while let Some(macro_i) = rest.find(MACRO_MARK) {
-        extract_raw_case_new_roots(&rest[..macro_i], names, declared_roots);
-        let invocation_end = baseline_invocation_end(&rest[macro_i..]);
-        let invocation = &rest[macro_i..macro_i + invocation_end];
-        let Some(case_i) = invocation.find(MARK) else {
-            rest = &rest[macro_i + MACRO_MARK.len()..];
-            continue;
-        };
-        let body = invocation[case_i + MARK.len()..].trim_start();
-        let Some(body) = body.strip_prefix('"') else {
-            panic!("baseline_case representative is missing its name literal");
-        };
-        let Some(end) = body.find('"') else {
-            panic!("unterminated Case::new string literal");
-        };
-        let name = &body[..end];
-        if let Some(root) = canonical_root(name) {
-            assert!(
-                declared_roots.insert(root.to_string()),
-                "duplicate representative declaration for canonical root `{root}`"
-            );
-            for &(cols, rows) in &CANONICAL_SIZES {
-                for color in CANONICAL_COLORS {
-                    names.insert(canonical_name(root, cols, rows, color));
-                }
-            }
-        } else {
-            names.insert(name.to_string());
-        }
-        rest = &rest[macro_i + invocation_end..];
-    }
-    extract_raw_case_new_roots(rest, names, declared_roots);
-}
-
-fn baseline_invocation_end(src: &str) -> usize {
-    let open = src.find('(').expect("baseline_case invocation missing `(`");
-    let mut depth = 1;
-    let mut in_string = false;
-    let mut escaped = false;
-    for (relative, byte) in src[open + 1..].char_indices() {
-        if in_string {
-            if escaped {
-                escaped = false;
-            } else if byte == '\\' {
-                escaped = true;
-            } else if byte == '"' {
-                in_string = false;
-            }
-            continue;
-        }
-        match byte {
-            '"' => in_string = true,
-            '(' => depth += 1,
-            ')' => {
-                depth -= 1;
-                if depth == 0 {
-                    return open + 1 + relative + byte.len_utf8();
-                }
-            }
-            _ => {}
-        }
-    }
-    panic!("unterminated baseline_case invocation");
-}
-
-fn extract_raw_case_new_roots(
-    src: &str,
-    names: &mut BTreeSet<String>,
-    declared_roots: &mut BTreeSet<String>,
-) {
-    const MARK: &str = "Case::new(";
-    let mut rest = src;
-    while let Some(i) = rest.find(MARK) {
-        rest = rest[i + MARK.len()..].trim_start();
-        let Some(body) = rest.strip_prefix('"') else {
-            continue;
-        };
-        let Some(end) = body.find('"') else {
-            panic!("unterminated Case::new string literal");
-        };
-        let name = &body[..end];
-        if let Some(root) = canonical_root(name) {
-            assert!(
-                declared_roots.insert(root.to_string()),
-                "duplicate representative declaration for canonical root `{root}`"
-            );
-            for &(cols, rows) in &CANONICAL_SIZES {
-                for color in CANONICAL_COLORS {
-                    names.insert(canonical_name(root, cols, rows, color));
-                }
-            }
-        } else {
-            names.insert(name.to_string());
-        }
-        rest = &body[end + 1..];
-    }
 }
 
 pub fn is_macos_platform_metadata(path: &Path) -> bool {
