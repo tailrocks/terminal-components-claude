@@ -428,6 +428,10 @@ pub fn bind_inherited(
 /// Pinned Holla theme.rs:362: compare resolved colors in this exact order.
 /// This authored policy deliberately retains quantized alias behavior; it does
 /// not identify a semantic role from an arbitrary painted RGB value.
+///
+/// The single surface-lift mechanism (Q65-S3): both `RaisedSurface` and
+/// `HoverSurface` bind through this post-quantization comparison — the legacy
+/// `lift()` formula — so quantization collapse yields the tag values.
 fn reference_lift(theme: &Theme, surface: Surface) -> Color {
     let bg = theme.bg(surface);
     if bg == theme.bg(Surface::Canvas) {
@@ -447,13 +451,7 @@ pub fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<Color> {
     let fg = |i: usize| c.fg.get(i).copied().unwrap_or(Color::Reset);
     let color = match role {
         Role::CurrentSurface => theme.bg(surface),
-        Role::RaisedSurface => theme.bg(theme.raise(surface)),
-        Role::HoverSurface => theme.bg(match surface {
-            Surface::Canvas => Surface::Elevated,
-            Surface::Surface | Surface::Elevated => Surface::Overlay,
-            Surface::Field => Surface::FieldHover,
-            Surface::Overlay | Surface::Popover | Surface::FieldHover => Surface::Popover,
-        }),
+        Role::RaisedSurface | Role::HoverSurface => reference_lift(theme, surface),
         Role::Surface(s) => theme.bg(s),
         Role::Fg(step) => fg(step.index()),
         Role::OnAccent => c.on_accent,
@@ -973,9 +971,10 @@ mod tests {
             &[],
             Some(&inst),
         );
-        // the same role resolves against the surface passed at bind time
+        // the same role resolves against the surface passed at bind time;
+        // RaisedSurface is the reference lift, not the depth ladder (Q65-S3)
         assert_eq!(r.style.fg, Some(t.bg(Surface::Surface)));
-        assert_eq!(r.style.bg, Some(t.bg(Surface::Elevated)));
+        assert_eq!(r.style.bg, Some(t.bg(Surface::Overlay)));
         let clear = StylePatch::new().clear_fg();
         let r = resolve_uncached(
             &t,
@@ -988,6 +987,339 @@ mod tests {
             Some(&clear),
         );
         assert_eq!(r.style.fg, None);
+    }
+
+    /// Q65-S3 (G5): every plane the reference lift can see.
+    fn q65s3_surfaces() -> [Surface; 7] {
+        [
+            Surface::Canvas,
+            Surface::Surface,
+            Surface::Elevated,
+            Surface::Overlay,
+            Surface::Popover,
+            Surface::Field,
+            Surface::FieldHover,
+        ]
+    }
+
+    /// Q65-S3 (G5): the recipe arm whose HOVERED patch names `RaisedSurface`.
+    fn q65s3_quiet_arm() -> [Variant; 3] {
+        [Variant::SUBTLE, Variant::QUIET, Variant::GHOST]
+    }
+
+    /// Q65-S3 (G5): the QUIET-arm HOVERED container through the whole chain.
+    fn q65s3_hovered(theme: &Theme, v: Variant, surface: Surface) -> Resolved {
+        theme.resolve(
+            Family::BUTTON,
+            v,
+            Part::CONTAINER,
+            StateFlags::HOVERED,
+            surface,
+        )
+    }
+
+    /// G5 oracle (Q64): forced-hover confirm/Cancel on the Ansi16 dialog
+    /// plane renders all 8 cells bg Black, label fg White. `RaisedSurface`
+    /// must collapse through the reference lift, not `raise()`.
+    #[test]
+    fn q65s3_g5_quiet_hover_dialog_plane_ansi16_is_black() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Ansi16);
+        for v in q65s3_quiet_arm() {
+            let r = q65s3_hovered(&theme, v, Surface::Elevated);
+            assert_eq!(r.style.bg, Some(Color::Black), "{v:?} hovered bg");
+            assert_eq!(r.style.fg, Some(Color::White), "{v:?} hovered fg");
+        }
+    }
+
+    /// G5 TC half: QUIET hover on chrome is OVERLAY (frozen
+    /// `buttons/audit/120x40/truecolor.ansi:25`), reached through the binding
+    /// with no recipe change (G5a evaporates).
+    #[test]
+    fn q65s3_g5_quiet_hover_tc_chrome_is_overlay() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for v in q65s3_quiet_arm() {
+            let r = q65s3_hovered(&theme, v, Surface::Surface);
+            assert_eq!(r.style.bg, Some(Color::Rgb(39, 39, 42)), "{v:?} hovered bg");
+        }
+    }
+
+    /// G5 TC half on the page plane: QUIET hover on canvas is CARD
+    /// (`lift(canvas)`), not CHROME (`raise(canvas)`).
+    #[test]
+    fn q65s3_g5_quiet_hover_tc_canvas_is_card() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for v in q65s3_quiet_arm() {
+            let r = q65s3_hovered(&theme, v, Surface::Canvas);
+            assert_eq!(r.style.bg, Some(Color::Rgb(24, 24, 27)), "{v:?} hovered bg");
+        }
+    }
+
+    /// G5 256-colour half: QUIET hover is 235 on chrome, 233 on canvas.
+    #[test]
+    fn q65s3_g5_quiet_hover_256_chrome_canvas() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Ansi256);
+        for v in q65s3_quiet_arm() {
+            let chrome = q65s3_hovered(&theme, v, Surface::Surface);
+            assert_eq!(
+                chrome.style.bg,
+                Some(Color::Indexed(235)),
+                "{v:?} chrome hovered bg"
+            );
+            let canvas = q65s3_hovered(&theme, v, Surface::Canvas);
+            assert_eq!(
+                canvas.style.bg,
+                Some(Color::Indexed(233)),
+                "{v:?} canvas hovered bg"
+            );
+        }
+    }
+
+    /// C2 single mechanism: after the rebind both roles are the reference
+    /// lift on every plane at every level, so the G5a recipe word would be a
+    /// no-op — nothing can land half.
+    #[test]
+    fn q65s3_g5_single_mechanism_raised_equals_hover() {
+        use crate::ColorLevel;
+
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie().for_level(level);
+            for s in q65s3_surfaces() {
+                assert_eq!(
+                    bind_role(&theme, Role::RaisedSurface, s),
+                    bind_role(&theme, Role::HoverSurface, s),
+                    "{level:?} {s:?}"
+                );
+            }
+        }
+    }
+
+    /// S0(c) convergence: `RaisedSurface` matches the legacy `lift()` column
+    /// on all seven planes (Canvas/Surface/FieldHover diverge under `raise()`).
+    #[test]
+    fn q65s3_g5_s0c_convergence_table() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        let card = Color::Rgb(24, 24, 27);
+        let overlay = Color::Rgb(39, 39, 42);
+        let popover = Color::Rgb(63, 63, 70);
+        let field_hover = Color::Rgb(35, 35, 40);
+        for (surface, want) in [
+            (Surface::Canvas, card),
+            (Surface::Surface, overlay),
+            (Surface::Elevated, overlay),
+            (Surface::Overlay, popover),
+            (Surface::Popover, popover),
+            (Surface::Field, field_hover),
+            (Surface::FieldHover, popover),
+        ] {
+            assert_eq!(
+                bind_role(&theme, Role::RaisedSurface, surface),
+                Some(want),
+                "{surface:?}"
+            );
+            assert_eq!(
+                bind_role(&theme, Role::HoverSurface, surface),
+                Some(want),
+                "{surface:?}"
+            );
+        }
+    }
+
+    /// Collapse generality beyond the dialog plane: at Ansi16 the Field plane
+    /// (Black) lifts to Elevated (Black); at 256 Field/FieldHover alias to
+    /// 234, so the field arm answers 234 — the lift-coherent value.
+    #[test]
+    fn q65s3_g5_field_planes_collapse() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let t16 = Theme::junie().for_level(ColorLevel::Ansi16);
+        for role in [Role::RaisedSurface, Role::HoverSurface] {
+            assert_eq!(
+                bind_role(&t16, role, Surface::Field),
+                Some(Color::Black),
+                "{role:?} field @16"
+            );
+            assert_eq!(
+                bind_role(&t16, role, Surface::FieldHover),
+                Some(Color::DarkGray),
+                "{role:?} field-hover @16"
+            );
+        }
+        let t256 = Theme::junie().for_level(ColorLevel::Ansi256);
+        for role in [Role::RaisedSurface, Role::HoverSurface] {
+            assert_eq!(
+                bind_role(&t256, role, Surface::Field),
+                Some(Color::Indexed(234)),
+                "{role:?} field @256"
+            );
+            assert_eq!(
+                bind_role(&t256, role, Surface::FieldHover),
+                Some(Color::Indexed(234)),
+                "{role:?} field-hover @256"
+            );
+        }
+    }
+
+    /// HOLD: Ansi16 QUIET hover on chrome/canvas is already Black at base
+    /// (`raise()` lands on a Black plane); the rebind must keep it there.
+    #[test]
+    fn q65s3_hold_ansi16_chrome_canvas_hover_stays_black() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Ansi16);
+        for v in q65s3_quiet_arm() {
+            for s in [Surface::Surface, Surface::Canvas] {
+                let r = q65s3_hovered(&theme, v, s);
+                assert_eq!(r.style.bg, Some(Color::Black), "{v:?} {s:?} bg");
+                assert_eq!(r.style.fg, Some(Color::White), "{v:?} {s:?} fg");
+            }
+        }
+    }
+
+    /// HOLD: the rebind moves backgrounds only; the hovered fg stays the
+    /// primary step at every level on every page plane.
+    #[test]
+    fn q65s3_hold_quiet_hover_fg_is_primary() {
+        use crate::ColorLevel;
+
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie().for_level(level);
+            for v in q65s3_quiet_arm() {
+                for s in [Surface::Canvas, Surface::Surface, Surface::Elevated] {
+                    let r = q65s3_hovered(&theme, v, s);
+                    assert_eq!(r.style.fg, Some(theme.color.fg[0]), "{level:?} {v:?} {s:?}");
+                }
+            }
+        }
+    }
+
+    /// HOLD: `RaisedSurface` planes where lift and `raise()` already agree.
+    #[test]
+    fn q65s3_hold_tc_match_planes_unchanged() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for (surface, want) in [
+            (Surface::Elevated, Color::Rgb(39, 39, 42)),
+            (Surface::Overlay, Color::Rgb(63, 63, 70)),
+            (Surface::Popover, Color::Rgb(63, 63, 70)),
+            (Surface::Field, Color::Rgb(35, 35, 40)),
+        ] {
+            assert_eq!(
+                bind_role(&theme, Role::RaisedSurface, surface),
+                Some(want),
+                "{surface:?}"
+            );
+        }
+    }
+
+    /// HOLD: `HoverSurface` is already lift-equivalent at TrueColor; the
+    /// rebind must not move any of its seven planes.
+    #[test]
+    fn q65s3_hold_hoversurface_tc_table() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for (surface, want) in [
+            (Surface::Canvas, Color::Rgb(24, 24, 27)),
+            (Surface::Surface, Color::Rgb(39, 39, 42)),
+            (Surface::Elevated, Color::Rgb(39, 39, 42)),
+            (Surface::Overlay, Color::Rgb(63, 63, 70)),
+            (Surface::Popover, Color::Rgb(63, 63, 70)),
+            (Surface::Field, Color::Rgb(35, 35, 40)),
+            (Surface::FieldHover, Color::Rgb(63, 63, 70)),
+        ] {
+            assert_eq!(
+                bind_role(&theme, Role::HoverSurface, surface),
+                Some(want),
+                "{surface:?}"
+            );
+        }
+    }
+
+    /// HOLD: 256-colour planes where the lift and the old bindings agree.
+    #[test]
+    fn q65s3_hold_256_match_planes() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Ansi256);
+        for (surface, want) in [
+            (Surface::Elevated, Color::Indexed(235)),
+            (Surface::Overlay, Color::Indexed(237)),
+            (Surface::Popover, Color::Indexed(237)),
+            (Surface::Field, Color::Indexed(234)),
+        ] {
+            for role in [Role::RaisedSurface, Role::HoverSurface] {
+                assert_eq!(
+                    bind_role(&theme, role, surface),
+                    Some(want),
+                    "{role:?} {surface:?}"
+                );
+            }
+        }
+    }
+
+    /// HOLD: Mono page planes stay Black under the rebind.
+    #[test]
+    fn q65s3_hold_mono_page_planes_black() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Mono);
+        for s in [
+            Surface::Canvas,
+            Surface::Surface,
+            Surface::Elevated,
+            Surface::Field,
+        ] {
+            for role in [Role::RaisedSurface, Role::HoverSurface] {
+                assert_eq!(
+                    bind_role(&theme, role, s),
+                    Some(Color::Black),
+                    "{role:?} {s:?}"
+                );
+            }
+        }
+    }
+
+    /// HOLD: Mono Popover (DarkGray) lifts to itself under the rebind.
+    #[test]
+    fn q65s3_hold_mono_popover_stays_darkgray() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Mono);
+        for role in [Role::RaisedSurface, Role::HoverSurface] {
+            assert_eq!(
+                bind_role(&theme, role, Surface::Popover),
+                Some(Color::DarkGray),
+                "{role:?}"
+            );
+        }
     }
 
     #[test]
