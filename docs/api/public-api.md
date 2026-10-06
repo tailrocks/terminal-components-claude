@@ -2,6 +2,17 @@
 
 Status: proposed target for the in-place refactor. This is a Rustdoc-style design contract, not a claim that the current crate compiles these signatures. The implementation phase starts by qualifying the contract against external consumer examples in P1.
 
+## Current versus proposed signatures
+
+Signatures in this document are the proposed target unless stated otherwise.
+They do not describe current source.
+For example, the `TextInput::new(id, value, revision)` constructor below is proposed.
+The current source at `4d117b48` uses `TextInput::new(id)` with phase-specific value access
+(`crates/termrock-fields/src/input.rs:980`).
+Ordinary consumer examples with verified status labels live in
+[consumer recipes](consumer-recipes.md) and its [example catalog](example-catalog.json).
+Reconcile one signature per component in its canonical contract before implementation.
+
 ## Design boundary
 
 Termrock is a reusable Rust terminal UI library. A caller supplies domain data, durable component state, event timing, and application effects. A component interprets normalized runtime input, publishes a typed intent, measures itself, and paints from immutable inputs. It does not own a product router, persistence, provider client, PTY, shell, or database.
