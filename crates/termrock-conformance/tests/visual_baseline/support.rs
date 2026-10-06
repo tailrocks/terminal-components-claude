@@ -834,6 +834,15 @@ fn press_chord(
     inner.press(&chord)
 }
 
+/// Press one send step as a complete key press, failing the case loudly on
+/// refusal. Journey helper mirroring the VB harness `press_step` (VB
+/// commit `e9428745`): same chord grammar via [`press_chord`], same loud
+/// failure — no text fallback.
+pub fn press_step(session: &Session, step: &str) {
+    press_chord(&session.inner, step)
+        .unwrap_or_else(|e| panic!("key `{step}` failed: {e:#}"));
+}
+
 #[allow(dead_code)]
 pub fn drive(session: &mut Session, steps: &[&str]) {
     drive_with_timeout(session, steps, 8_000);
