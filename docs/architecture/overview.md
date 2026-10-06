@@ -60,12 +60,14 @@ meaning when data reorders or changes. Shared ownership details are in the
 
 ## Package and dependency boundary
 
-The in-place target has one public Termrock library crate and one nonpublished
-conformance crate in this repository's Cargo workspace. The existing four
-applications remain consumers in this same project. Keep reusable production
-code in the library; do not create a crate per component. Split production
-crates only when measured compile-time or dependency-isolation evidence shows a
-concrete benefit.
+The workspace uses the multi-crate layout in [CRATES.md](../../CRATES.md):
+Termrock library crates under `crates/termrock-*` with the `termrock` facade,
+several functionality crates per preview application, and verification crates.
+This supersedes the earlier one-public-library-crate limit.
+The existing four applications remain consumers in this same project.
+Keep reusable production code in the library crates.
+Crate counts never prove reusable component adoption; the
+[component-only contract](component-composition.md) owns that rule.
 
 Keep the production dependency graph small: Ratatui core types, Unicode width
 and grapheme handling, a reviewed zeroization primitive for secret buffers,

@@ -19,6 +19,14 @@ universal boxed `Widget` trait. There is no `show()` method mixing event
 semantics with painting. The API applies to this repository's future in-place
 Termrock library; it does not claim a completed source or package rename.
 
+Only a reusable declared component or a constrained visual part inside its
+owning library crate may use this surface.
+Preview route, shell, domain, and simulation code must not use it.
+Raw buffer access through `termrock::author` or an alias in preview code
+violates the [component-only contract](../architecture/component-composition.md).
+A component renderer may legitimately draw cells; that permission never extends
+to arbitrary preview screen painting.
+
 ## Proposed calls
 
 These Rustdoc-style declarations name the public extension surface. P1 must

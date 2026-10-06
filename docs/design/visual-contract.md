@@ -25,7 +25,9 @@ Visual parity has three explicit evidence lanes:
    frame. It is tested separately and is never used to alter an ExistingOracle.
 
 The candidate implementation cannot create, accept, or bless its own expected
-output. The exact capture, provenance, comparator, and tool limits belong to
+output. Custom themes and parts use the separate [customization contract](../architecture/component-composition.md#arc-008--customization-contract).
+A custom theme never excuses default-theme drift.
+The exact capture, provenance, comparator, and tool limits belong to
 the [oracle and provenance contract](../verification/oracle-and-provenance.md)
 and [conformance contract](../verification/conformance.md). A snapshot that
 looks better to a reviewer is still a regression if it differs from the

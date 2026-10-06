@@ -10,9 +10,11 @@ API, component, visual, interaction, or oracle contracts linked below.
   `mise.toml` for local work and CI. The P0 package establishes and records
   this entry point; this documentation phase does not add or change runtime
   configuration.
-- Keep the target package shape to one public Termrock library crate and one
-  nonpublished conformance crate in this repository's Cargo workspace. Do not
-  split production code by widget. A production crate split needs measured
+- Keep the target package shape in [CRATES.md](../../CRATES.md): Termrock library
+  crates with the `termrock` facade, several functionality crates per preview
+  application, and nonpublished conformance crates. This supersedes the earlier
+  one-public-library-crate limit. Do not split production code by widget.
+  A further production crate split needs measured
   compile-time or dependency-isolation benefit.
 - Keep terminal session support optional. PTY, `tui-snap`, raster, font,
   report, and case-manifest tools must remain outside the production library

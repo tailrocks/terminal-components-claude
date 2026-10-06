@@ -2,6 +2,11 @@
 
 This is a target architecture proposal, not the current repository layout. It supersedes the earlier one-library-crate limit. All packages are immediate children of `crates/`; all production, app, test and tooling Rust source lives within those packages. The root is a virtual Cargo workspace; documentation/configuration/baseline artifacts may remain at root.
 
+Status note: the current workspace already uses this multi-crate shape.
+Crate presence never proves reusable component adoption.
+Functional ownership is proved only through the [component-only contract](docs/architecture/component-composition.md)
+and the [ownership proof](docs/verification/ownership-and-parity.md).
+
 The 44 packages below are not a quota to satisfy with empty wrappers. Freeze a source-reconciled ownership map before moving code. Refine a boundary only with documented dependency/consumer evidence, matching checklist updates and independent review; no refinement may collapse the requested multiple library crates or multiple functionality crates per application. Extra crate splits need real ownership or measured build benefits.
 
 Facades and binary entry points are intentionally thin; every other crate must own meaningful code, tests and responsibilities. Consumer crates use the public `termrock` facade; lower library crates use narrow sibling contracts and never depend back on the facade. All app-only packages and conformance/tools are `publish = false` unless an explicit later release policy says otherwise.
