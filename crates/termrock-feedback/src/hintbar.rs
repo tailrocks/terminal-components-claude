@@ -150,6 +150,9 @@ pub struct HintBar<'a> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
+    container_slot: Option<SlotFn<'a>>,
+    key_slot: Option<SlotFn<'a>>,
+    action_slot: Option<SlotFn<'a>>,
 }
 
 impl fmt::Debug for HintBar<'_> {
@@ -193,6 +196,9 @@ impl<'a> HintBar<'a> {
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
+            container_slot: None,
+            key_slot: None,
+            action_slot: None,
         }
     }
 
@@ -247,6 +253,27 @@ impl<'a> HintBar<'a> {
         self
     }
 
+    /// Override the layer's status text with a borrowed message.
+    #[must_use]
+    pub const fn status_text(mut self, text: Option<&'a str>) -> Self {
+        self.status_text_override = MetadataOverride::Set(text);
+        self
+    }
+
+    /// Override the layer's badge with borrowed text.
+    #[must_use]
+    pub const fn badge(mut self, text: Option<&'a str>) -> Self {
+        self.badge_override = MetadataOverride::Set(text);
+        self
+    }
+
+    /// Override centering for this bar instance.
+    #[must_use]
+    pub const fn centered(mut self, centered: bool) -> Self {
+        self.centered_override = Some(centered);
+        self
+    }
+
     /// The animation frame the spinner reads.
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
@@ -273,7 +300,12 @@ impl<'a> HintBar<'a> {
     /// Replace one part's painting.
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
-        self.ov = self.ov.slot(p, f);
+        match p {
+            Part::CONTAINER => self.container_slot = Some(f),
+            Part::KEY => self.key_slot = Some(f),
+            Part::ACTION => self.action_slot = Some(f),
+            _ => self.ov = self.ov.slot(p, f),
+        }
         self
     }
 
@@ -296,9 +328,10 @@ impl<'a> HintBar<'a> {
         if let Some(p) = self.patch {
             k = k.patch(p);
         }
-        if let Some(f) = self.ov.slot_for(Part::KEY) {
+        if let Some(f) = self.key_slot.or_else(|| self.ov.slot_for(Part::KEY)) {
             k = k.slot(Part::KEY, f);
-        } else if let Some(f) = self.ov.slot_for(Part::ACTION) {
+        }
+        if let Some(f) = self.action_slot.or_else(|| self.ov.slot_for(Part::ACTION)) {
             k = k.slot(Part::ACTION, f);
         }
         Some(k)
@@ -413,8 +446,12 @@ impl<'a> HintBar<'a> {
         let live = PartStyle::flags(StateFlags::empty(), self.status.flags());
         let ov = self.ov;
         let id = self.id;
-        let container = ov.style(ui, id, Family::HINTBAR, self.variant, Part::CONTAINER, live);
-        ui.fill(area, container.style);
+        if let Some(f) = self.container_slot.or_else(|| ov.slot_for(Part::CONTAINER)) {
+            f(ui, area);
+        } else {
+            let container = ov.style(ui, id, Family::HINTBAR, self.variant, Part::CONTAINER, live);
+            ui.fill(area, container.style);
+        }
 
         // the status message keeps the right edge and wins the space
         let status_w = self.status_width(ui, live);
@@ -488,7 +525,8 @@ impl<'a> HintBar<'a> {
         if self.centered_override.unwrap_or(self.layer.centered) {
             // the block sits mid-row, never past the badge and never under
             // the status
-            let free = area.width.saturating_sub(used);
+            let span = used.saturating_add(Self::HINT_GAP);
+            let free = area.width.saturating_sub(span);
             let mid = area.x.saturating_add(free / 2);
             x = mid.max(x).min(right_limit.saturating_sub(used).max(x));
         }

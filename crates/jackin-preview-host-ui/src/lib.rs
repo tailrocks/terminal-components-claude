@@ -8,6 +8,7 @@ pub mod accounts;
 pub mod cockpit;
 pub mod manager;
 pub mod manager_actions;
+pub mod prelude;
 pub mod settings;
 pub mod usage;
 
