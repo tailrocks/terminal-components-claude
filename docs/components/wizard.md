@@ -1,24 +1,17 @@
 # Wizard
 
+Status: proposed target.
+Owner: termrock-forms.
+Visual authority: visual-baseline 4a79c0a2 (commit `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`).
+Component ID: W27 · Group: Composition helpers · Phase: P4 · Legacy family: C34 (`wizard`).
+Capture plan: [`../reference/capture-plans/wizard.json`](../reference/capture-plans/wizard.json).
+Current source evidence: [`src/bin/jackin_preview/screens/prelude.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/prelude.rs), [`screens/modals.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/modals.rs).
+
 Canonical Termrock contract for W27. `Wizard` is a generic step navigation and
 retention helper with a body slot. It is a target Termrock component for the
 in-place refactor on `termrock-implementation`; it is not a product workflow.
 
-| Field | Value |
-|---|---|
-| Group / phase | Composition helpers / P4 |
-| Legacy family | C34 (`wizard`) |
-| Oracle | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` (`visual-baseline`) |
-| Capture plan | [`../reference/capture-plans/wizard.json`](../reference/capture-plans/wizard.json) |
-| Current source evidence | [`src/bin/jackin_preview/screens/prelude.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/prelude.rs), [`screens/modals.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/modals.rs) |
-
-No Rust `Wizard` implementation exists in the frozen source under that name.
-The Jackin Preview five-step prelude and its Dialog, ChoiceDialog, Picker and
-FileBrowser composition are the visual/interaction oracle. That source still
-uses legacy `junie_tui`, `WidgetId`, `Outcome` and app-owned modal types. They
-are evidence for parity, not future public API requirements.
-
-## Purpose and boundary
+## Purpose and exclusions
 
 `Wizard` retains a stable current step and visited path while the caller
 supplies borrowed step descriptors, per-step validation, child components and
@@ -28,7 +21,7 @@ meaning of a step, values, persistence, effects and whether a step is eligible.
 The body is a slot of real Termrock components. `Wizard` supplies shared
 heading/chrome and actions while runtime supplies focus/capture/layer behavior.
 
-### Non-goals
+Exclusions:
 
 - clone operations, process execution, account/provider calls or persistence;
 - domain-specific fields, automatic saving, route transitions or launch logic;
@@ -36,35 +29,7 @@ heading/chrome and actions while runtime supplies focus/capture/layer behavior.
 - creating a product-specific prelude screen or redesigning Jackin Preview;
 - a universal boxed widget abstraction or semantic work in `draw`.
 
-## Oracle and preserved consumers
-
-The frozen Jackin Preview prelude is a five-step modal chain:
-
-1. Source (file browser or Git URL),
-2. Destination (choice),
-3. Edit destination (prompt/validation),
-4. Working directory (picker),
-5. Name (prompt/validation).
-
-Titles identify the current step (`step 1 of 5` through `step 5 of 5`). Back
-retains prior values, invalid Next leaves the current step open with the error,
-and a valid final Create hands the caller a pending workspace. The chain can be
-rewound and reopened without losing accepted values. The same target contracts
-also cover nested form/choice flows where earlier choices alter later steps.
-
-Evidence includes:
-
-- prelude construction and result handling in
-  [`src/bin/jackin_preview/screens/prelude.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/prelude.rs);
-- modal chrome and child composition in
-  [`src/bin/jackin_preview/screens/modals.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/modals.rs);
-- prelude application tests and frozen snapshots under `snapshots/jackin`;
-- baseline case `jackin/manager/new_workspace_prelude` at 120x40 and 80x24.
-
-This component is a library-only contract. Application migration onto it is a
-future parity task and must preserve all four frozen consumers.
-
-## Target public API
+## Public API
 
 Rustdoc-style target declarations; P1 external-consumer probes freeze the
 precise spelling.
@@ -120,7 +85,40 @@ The action reports intent with stable step identity and activation origin where
 the shared response contract requires it. It never persists or executes the
 result.
 
-## Ownership and update/draw rules
+No Rust `Wizard` implementation exists in the frozen source under that name.
+The Jackin Preview five-step prelude and its Dialog, ChoiceDialog, Picker and
+FileBrowser composition are the visual/interaction oracle. That source still
+uses legacy `junie_tui`, `WidgetId`, `Outcome` and app-owned modal types. They
+are evidence for parity, not future public API requirements.
+
+## Ordinary use
+
+Consumer recipe: [EX-16 — Jackin workspace prelude composition](../api/consumer-recipes.md) (`proposed_target`).
+
+The frozen Jackin Preview prelude is a five-step modal chain:
+
+1. Source (file browser or Git URL),
+2. Destination (choice),
+3. Edit destination (prompt/validation),
+4. Working directory (picker),
+5. Name (prompt/validation).
+
+Titles identify the current step (`step 1 of 5` through `step 5 of 5`). Back
+retains prior values, invalid Next leaves the current step open with the error,
+and a valid final Create hands the caller a pending workspace. The chain can be
+rewound and reopened without losing accepted values. The same target contracts
+also cover nested form/choice flows where earlier choices alter later steps.
+
+Evidence includes:
+
+- prelude construction and result handling in
+  [`src/bin/jackin_preview/screens/prelude.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/prelude.rs);
+- modal chrome and child composition in
+  [`src/bin/jackin_preview/screens/modals.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/modals.rs);
+- prelude application tests and frozen snapshots under `snapshots/jackin`;
+- baseline case `jackin/manager/new_workspace_prelude` at 120x40 and 80x24.
+
+## Ownership
 
 - `update` reconciles `steps` at `Revision`, dispatches child responses and
   applies eligibility/busy policy. Next/Finish emit only when the caller says
@@ -138,26 +136,26 @@ result.
 - Runtime owns focus, hover, pointer capture, layer order and feedback time.
   Wizard owns current/visited semantic state only.
 
-## Visual contract
+Shared dependencies:
+
+- [`form`](./form.md), [`button`](./button.md),
+  [`dialog`](./dialog.md), [`picker`](./picker.md),
+  [`runtime`](../foundations/runtime.md),
+  [`layers`](../foundations/layers.md),
+  [`input-actions`](../foundations/input-actions.md),
+  [`identity`](../foundations/identity.md),
+  [`layout`](../foundations/layout.md), [`theme`](../foundations/theme.md),
+  [`collections`](../foundations/collections.md),
+  [`author`](../foundations/author.md),
+  [`conformance`](../foundations/conformance.md).
+
+## Customization
 
 Advertised parts are `container`, `step-heading`, `body` and `actions`. A
 supported patch/slot is confined to its declared rectangle and cannot replace
 step identity, action ownership, focus/capture, or runtime chrome.
 
-The default recipe must preserve the prelude oracle and each migrated consumer:
-
-- modal/elevated surface, title/step count, body spacing and action row;
-- current/visited/available step representation supplied by the recipe;
-- child Dialog, Picker, Choice and Form visuals exactly as their own contracts
-  specify; Wizard must not paint over them;
-- disabled/busy/error status hierarchy, narrow-width clipping and terminal
-  minimum/degenerate geometry;
-- display-cell-safe Unicode labels and body content;
-- semantic colors across truecolor, 256, 16, explicit `none` and `NO_COLOR`;
-- no invented animation. Child feedback (such as a button's 140 ms activation)
-  follows the shared clock, and paused/reduced motion remains deterministic.
-
-## Interaction contract
+## Behavior
 
 ### Focus and keyboard
 
@@ -197,7 +195,20 @@ The default recipe must preserve the prelude oracle and each migrated consumer:
   use shared time/motion policy; paused mode still accepts supplied data and
   completion/cancellation updates.
 
-## Applicable state matrix
+## Visual matrix
+
+The default recipe must preserve the prelude oracle and each migrated consumer:
+
+- modal/elevated surface, title/step count, body spacing and action row;
+- current/visited/available step representation supplied by the recipe;
+- child Dialog, Picker, Choice and Form visuals exactly as their own contracts
+  specify; Wizard must not paint over them;
+- disabled/busy/error status hierarchy, narrow-width clipping and terminal
+  minimum/degenerate geometry;
+- display-cell-safe Unicode labels and body content;
+- semantic colors across truecolor, 256, 16, explicit `none` and `NO_COLOR`;
+- no invented animation. Child feedback (such as a button's 140 ms activation)
+  follows the shared clock, and paused/reduced motion remains deterministic.
 
 | Axis | Required cases | Applicability |
 |---|---|---|
@@ -212,7 +223,7 @@ The default recipe must preserve the prelude oracle and each migrated consumer:
 Do not assign a generic pressed state to the wizard frame or fabricate a
 scroll/animation state when only a child component supports it.
 
-## Required parity and capture cases
+## Verification
 
 Use plan dimensions `72x20`, `80x24`, `100x30`, `120x40`, `160x50` and
 capabilities `truecolor`, `256`, `16`, `none`, `nocolor`. Bind expected output
@@ -231,15 +242,6 @@ owners, current/visited step keys, child draft/commit state, busy/eligibility
 flags and typed action count/target. Missing oracle setup is blocked, never a
 pass.
 
-## Dependencies and negative tests
-
-Dependencies: [`form`](./form.md), [`button`](./button.md),
-[`dialog`](./dialog.md), [`picker`](./picker.md), [`runtime`](../foundations/runtime.md),
-[`layers`](../foundations/layers.md), [`input-actions`](../foundations/input-actions.md),
-[`identity`](../foundations/identity.md), [`layout`](../foundations/layout.md),
-[`theme`](../foundations/theme.md), [`collections`](../foundations/collections.md),
-[`author`](../foundations/author.md), and [`conformance`](../foundations/conformance.md).
-
 Required negative tests include:
 
 - draw and measure cannot advance, validate, persist or mutate child state;
@@ -255,3 +257,50 @@ Required negative tests include:
   controls; dead-call/custom-paint mutation fails;
 - one cell, cursor, step key, focus/capture owner or action trace difference
   fails exact comparison.
+
+## Rejected use
+
+Forbidden: preview implements its own step screens with padded fields and a
+step counter instead of using `Wizard` with real child components.
+
+```rust
+// Forbidden: preview owns step screens and the step counter.
+ui.paint_str(title_row, 2, "step 2 of 5: Destination");
+ui.paint_str(field_row, 2, "  Path: /tmp/demo          ");
+if next_pressed { step += 1; }
+```
+
+Rule: [ARC-012](../architecture/component-composition.md). Preview code must
+not recreate component rendering or generic interaction. The following
+patterns are prohibited in preview drawing paths:
+
+```text
+historical full-screen painters
+snapshot files or exported frame data used as application output
+hardcoded answer tables for 72x20, 80x24, 100x30, 120x40, or 160x50
+fixture/scenario IDs that select a different painter
+paused mode that bypasses component updates or layers
+raw buffer access through termrock::author or an alias
+direct ui.paint_str, ui.fill, set_string, or equivalent rendering of controls
+padded strings that simulate columns, selection, fields, menus, or buttons
+manual borders, focus gutters, scrollbars, or widget cursors
+normal component drawing followed by a historical overlay
+app-specific screens moved into a termrock crate under a generic name
+fake state flags that display success without the normal component action
+```
+
+Use `Wizard::new` with a body slot of real components and handle the typed
+`WizardAction`.
+
+## Known gaps
+
+- This component is a library-only contract. Application migration onto it is
+  a future parity task and must preserve all four frozen consumers.
+- [FIX-001](../implementation/code-remediation-backlog.md) (pending): replace
+  reachable historical Prelude painters with component composition using
+  Picker, fields, choices, Wizard/Dialog, and actions.
+- [FIX-007](../implementation/code-remediation-backlog.md) (pending): resolve
+  public signature drift against this contract; compile external examples and
+  check the accepted state/action model.
+- Capture cases W27-01–W27-04 await expected-artifact binding before candidate
+  comparison; candidate code cannot bless its own expected output.

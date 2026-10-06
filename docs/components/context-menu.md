@@ -1,24 +1,18 @@
 # ContextMenu
 
+Status: proposed target.
+Owner: termrock-overlays.
+Visual authority: visual-baseline 4a79c0a2 (commit `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`).
+Component ID: W24 · Group: Overlays · Phase: P4 · Legacy family: C32 (`menu-context-menubar`).
+Capture plan: [`../reference/capture-plans/context-menu.json`](../reference/capture-plans/context-menu.json).
+Current source: [`src/widgets/menu.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/menu.rs).
+
 Canonical Termrock contract for W24. `ContextMenu` is a thin anchored
 composition over the shared [`Menu`](./menu.md) engine; it does not create a
 second item interaction mechanism. This page describes the future API on
 `termrock-implementation`; the current applications remain unchanged.
 
-| Field | Value |
-|---|---|
-| Group / phase | Overlays / P4 |
-| Legacy family | C32 (`menu-context-menubar`) |
-| Oracle | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` (`visual-baseline`) |
-| Capture plan | [`../reference/capture-plans/context-menu.json`](../reference/capture-plans/context-menu.json) |
-| Current source | [`src/widgets/menu.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/menu.rs) |
-
-The current source calls the legacy surface `ContextMenu` and stores a
-positional `cursor`, `Rect` anchor and `WidgetId`. Those fields document the
-frozen starting behavior only. The Termrock target uses stable item identity,
-borrowed props, shared `MenuState`, runtime-owned placement and typed actions.
-
-## Purpose and boundary
+## Purpose and exclusions
 
 `ContextMenu` presents a command list at a pointer or keyboard anchor. The
 caller supplies the stable target `ItemKey`, current action data and menu
@@ -31,7 +25,7 @@ The surface supports the same disabled, separator, danger, shortcut and
 submenu behavior as [`Menu`](./menu.md). It may add a title or anchor metadata
 for the caller, but it does not fork row painting or navigation.
 
-### Non-goals
+Exclusions:
 
 - executing a context command, mutating caller data or deciding what a target
   means;
@@ -42,33 +36,7 @@ for the caller, but it does not fork row painting or navigation.
 - changing product behavior or visual design in Showcase, TablePro, Jackin
   Preview or Holla.
 
-## Oracle and preserved consumers
-
-The frozen source uses ContextMenu in Showcase Chrome. A secondary click on a
-session row selects that row, captures its anchor and opens a rounded popover
-with a title and Change title, Move left/right, and danger Close commands.
-Keyboard `m` opens the selected row's menu; disabled edge moves stay visible
-and inert. Jackin Preview's capsule menu is another preserved context-like
-composition, opened by the prefix command and anchored to the active tab.
-
-Read-only evidence includes:
-
-- [`src/widgets/menu.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/menu.rs), including
-  `anchor`, pointer-position placement, title, row IDs, hover cursor movement,
-  disabled barriers and edge flip/clamp;
-- Showcase [`src/bin/showcase/pages/chrome.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/showcase/pages/chrome.rs)
-  and its context-menu tests;
-- Jackin Preview capsule source and
-  [`src/bin/jackin_preview/app_tests_chrome.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/app_tests_chrome.rs);
-- frozen snapshot roots under `snapshots/showcase/pages/chrome` and
-  `snapshots/jackin/capsule`, plus the baseline drivers for Showcase and
-  Jackin.
-
-The frozen baseline is the only visual authority. New stable-target and
-reorder safety behavior is an `Extension` until an unchanged source state is
-captured and approved.
-
-## Target public API
+## Public API
 
 Rustdoc-style target declarations; exact spelling is frozen by the P1
 external-consumer probes.
@@ -121,7 +89,36 @@ If the target's revision makes it unavailable, the action is dismissed or
 disabled according to the declared policy; it is never transferred to an old
 display index.
 
-## Ownership and update/draw rules
+The current source calls the legacy surface `ContextMenu` and stores a
+positional `cursor`, `Rect` anchor and `WidgetId`. Those fields document the
+frozen starting behavior only. The Termrock target uses stable item identity,
+borrowed props, shared `MenuState`, runtime-owned placement and typed actions.
+
+## Ordinary use
+
+Consumer recipe: [EX-09 — Menus, context menus, and a command palette](../api/consumer-recipes.md) (`proposed_target`).
+
+The frozen source uses ContextMenu in Showcase Chrome. A secondary click on a
+session row selects that row, captures its anchor and opens a rounded popover
+with a title and Change title, Move left/right, and danger Close commands.
+Keyboard `m` opens the selected row's menu; disabled edge moves stay visible
+and inert. Jackin Preview's capsule menu is another preserved context-like
+composition, opened by the prefix command and anchored to the active tab.
+
+Read-only evidence includes:
+
+- [`src/widgets/menu.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/menu.rs), including
+  `anchor`, pointer-position placement, title, row IDs, hover cursor movement,
+  disabled barriers and edge flip/clamp;
+- Showcase [`src/bin/showcase/pages/chrome.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/showcase/pages/chrome.rs)
+  and its context-menu tests;
+- Jackin Preview capsule source and
+  [`src/bin/jackin_preview/app_tests_chrome.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/app_tests_chrome.rs);
+- frozen snapshot roots under `snapshots/showcase/pages/chrome` and
+  `snapshots/jackin/capsule`, plus the baseline drivers for Showcase and
+  Jackin.
+
+## Ownership
 
 - `update` receives pointer/keyboard context intent through `Cx`, reconciles
   target and items at `Revision`, and returns at most one typed action. The
@@ -136,25 +133,25 @@ display index.
 - Menu, ContextMenu and MenuBar use the same identity, eligibility, submenu and
   scroll contracts; only anchoring and chrome differ.
 
-## Visual contract
+Shared dependencies:
+
+- [`menu`](./menu.md), [`runtime`](../foundations/runtime.md),
+  [`layers`](../foundations/layers.md),
+  [`input-actions`](../foundations/input-actions.md),
+  [`identity`](../foundations/identity.md), [`layout`](../foundations/layout.md),
+  [`theme`](../foundations/theme.md),
+  [`collections`](../foundations/collections.md),
+  [`author`](../foundations/author.md),
+  [`conformance`](../foundations/conformance.md),
+  [`scroll-region`](./scroll-region.md).
+
+## Customization
 
 Advertised parts are `container`, `row`, `marker`, `label`, `shortcut`,
 `submenu` and `separator`. A supported part patch changes only its reserved
 cells under the shared [`theme`](../foundations/theme.md) precedence.
 
-Preserve the baseline's rounded popover surface, title text, row spacing,
-selected highlight, hover lift, danger tone, disabled styling, separator
-glyph, shortcut alignment and clipping. The pointer anchor may be a one-cell
-position or a caller rectangle; placement flips/clamps at terminal boundaries
-without changing the rendered menu recipe. Unicode labels and shortcuts use
-display-cell width, preserving wide-cell continuation.
-
-Color capability lanes are truecolor, 256, 16, explicit `none` and `NO_COLOR`.
-No component painter hardcodes RGB values. Context menus have no independent
-animation; child activation feedback uses the shared 140 ms clock where the
-baseline supplies it. Reduced/paused motion must not change action semantics.
-
-## Interaction contract
+## Behavior
 
 ### Focus and keyboard
 
@@ -196,7 +193,19 @@ baseline supplies it. Reduced/paused motion must not change action semantics.
   is no longer eligible, dismiss or disable it by policy. Never use the new
   occupant of the target's former index, even if its label matches.
 
-## Applicable state matrix
+## Visual matrix
+
+Preserve the baseline's rounded popover surface, title text, row spacing,
+selected highlight, hover lift, danger tone, disabled styling, separator
+glyph, shortcut alignment and clipping. The pointer anchor may be a one-cell
+position or a caller rectangle; placement flips/clamps at terminal boundaries
+without changing the rendered menu recipe. Unicode labels and shortcuts use
+display-cell width, preserving wide-cell continuation.
+
+Color capability lanes are truecolor, 256, 16, explicit `none` and `NO_COLOR`.
+No component painter hardcodes RGB values. Context menus have no independent
+animation; child activation feedback uses the shared 140 ms clock where the
+baseline supplies it. Reduced/paused motion must not change action semantics.
 
 | Axis | Required cases | Applicability |
 |---|---|---|
@@ -212,7 +221,11 @@ baseline supplies it. Reduced/paused motion must not change action semantics.
 Editing and modal acknowledgement states are not applicable to ContextMenu
 itself. If a menu action opens an editor, that child owns its editing states.
 
-## Required parity and capture cases
+## Verification
+
+The frozen baseline is the only visual authority. New stable-target and
+reorder safety behavior is an `Extension` until an unchanged source state is
+captured and approved.
 
 Use the plan sizes `72x20`, `80x24`, `100x30`, `120x40`, `160x50` and all five
 capability lanes. Classify expected output as `ExistingOracle`, `ExtractedOracle`
@@ -231,15 +244,6 @@ cursor, focus owner, capture owner, layer path, target `ItemKey`, selected
 menu key, navigation key and action count/target. Invalid oracle setup is
 blocked, never a pass.
 
-## Dependencies and negative tests
-
-Dependencies: [`menu`](./menu.md), [`runtime`](../foundations/runtime.md),
-[`layers`](../foundations/layers.md), [`input-actions`](../foundations/input-actions.md),
-[`identity`](../foundations/identity.md), [`layout`](../foundations/layout.md),
-[`theme`](../foundations/theme.md), [`collections`](../foundations/collections.md),
-[`author`](../foundations/author.md), [`conformance`](../foundations/conformance.md),
-and [`scroll-region`](./scroll-region.md).
-
 Required negative tests include:
 
 - the captured target cannot change because a row moved, disappeared or reused
@@ -255,3 +259,48 @@ Required negative tests include:
   barrier; dead-call/custom-paint mutation is rejected;
 - one cell, cursor, focus/capture owner, target key or action trace difference
   fails exact comparison.
+
+## Rejected use
+
+Forbidden: preview draws an anchored option box with padded rows and resolves
+the target from the visual row index instead of using `ContextMenu`.
+
+```rust
+// Forbidden: preview owns the popup and retargets by row position.
+ui.paint_str(popup_row, x, "  Change title   ");
+ui.paint_str(popup_row + 1, x, "  Close          ");
+model.invoke(selected_row_index);
+```
+
+Rule: [ARC-012](../architecture/component-composition.md). Preview code must
+not recreate component rendering or generic interaction. The following
+patterns are prohibited in preview drawing paths:
+
+```text
+historical full-screen painters
+snapshot files or exported frame data used as application output
+hardcoded answer tables for 72x20, 80x24, 100x30, 120x40, or 160x50
+fixture/scenario IDs that select a different painter
+paused mode that bypasses component updates or layers
+raw buffer access through termrock::author or an alias
+direct ui.paint_str, ui.fill, set_string, or equivalent rendering of controls
+padded strings that simulate columns, selection, fields, menus, or buttons
+manual borders, focus gutters, scrollbars, or widget cursors
+normal component drawing followed by a historical overlay
+app-specific screens moved into a termrock crate under a generic name
+fake state flags that display success without the normal component action
+```
+
+Use `ContextMenu::new` with a captured `ItemKey` target and handle the shared
+typed `MenuAction`.
+
+## Known gaps
+
+- [FIX-002](../implementation/code-remediation-backlog.md) (pending): replace
+  historical Manager, menu, inspect, help, and quit screens; the context-menu
+  slice must use the real `ContextMenu` over the shared `Menu` engine.
+- [FIX-007](../implementation/code-remediation-backlog.md) (pending): resolve
+  public signature drift against this contract; compile external examples and
+  check the accepted state/action model.
+- Capture cases W24-01–W24-04 await expected-artifact binding before candidate
+  comparison; new stable-target and reorder safety behavior is an `Extension`.

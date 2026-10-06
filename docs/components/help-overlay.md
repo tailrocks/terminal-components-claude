@@ -1,25 +1,18 @@
 # HelpOverlay
 
+Status: proposed target.
+Owner: termrock-overlays.
+Visual authority: visual-baseline 4a79c0a2 (commit `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`).
+Component ID: W26 · Group: Overlays · Phase: P5 · Legacy family: C33 (`help-overlay`).
+Capture plan: [`../reference/capture-plans/help-overlay.json`](../reference/capture-plans/help-overlay.json).
+Current source: [`src/bin/jackin_preview/screens/modals.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/modals.rs).
+
 Canonical Termrock contract for W26. `HelpOverlay` is a read-only, scrollable
 modal composition over shared Dialog, TextViewport and KeyHint infrastructure.
 It describes the target API on `termrock-implementation`; current app-local help
 surfaces and frozen output remain unchanged.
 
-| Field | Value |
-|---|---|
-| Group / phase | Overlays / P5 |
-| Legacy family | C33 (`help-overlay`) |
-| Oracle | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` (`visual-baseline`) |
-| Capture plan | [`../reference/capture-plans/help-overlay.json`](../reference/capture-plans/help-overlay.json) |
-| Current source | [`src/bin/jackin_preview/screens/modals.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/modals.rs) |
-
-The current source type is app-local `HelpOverlay` and still uses legacy
-`WidgetId`, `Outcome`, `RenderCtx`, `ScrollState` and hardcoded section tuples.
-Those names are source/oracle evidence. The target borrows sections and the
-effective binding view from the caller; it does not preserve a second static
-keybinding catalog as a public requirement.
-
-## Purpose and boundary
+## Purpose and exclusions
 
 `HelpOverlay` explains the currently effective commands in a modal, scrollable
 surface. The caller supplies explanatory sections and a resolved
@@ -32,7 +25,7 @@ Descriptions may be explanatory text rather than runnable actions, but any
 displayed chord must agree with the same effective binding resolution used by
 menus, HintBar and handlers.
 
-### Non-goals
+Exclusions:
 
 - a second keybinding source, command registry or application help database;
 - editable text, selection ownership, domain state or provider/network data;
@@ -41,32 +34,7 @@ menus, HintBar and handlers.
 - redesigning the help appearance or content of Showcase, TablePro, Jackin
   Preview or Holla.
 
-## Oracle and preserved consumers
-
-The frozen Jackin Preview overlay uses `modal_frame` to dim the page, center a
-rounded elevated frame titled “Keyboard shortcuts”, show a scope label, lay
-out section blocks in one to three 36-cell columns, and provide a scrollbar,
-edge fades and “↑↓ Scroll · Esc Close” hint. `Esc`, `?`, `q` and Enter close
-the current app-local overlay; wheel and PageUp/PageDown/Up/Down scroll. The
-overlay is opened only when no other modal is active and restores the prior
-focus when dismissed.
-
-Other baseline applications use Dialog compositions for their help pages:
-
-- Jackin [`src/bin/jackin_preview/app.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/app.rs),
-  including manager/capsule scope-specific sections;
-- Showcase `src/bin/showcase/app.rs` “Keyboard & mouse” dialog;
-- TablePro `src/bin/tablepro/app.rs` “Keyboard” dialog;
-- Holla `src/bin/holla/app.rs` context-adaptive help modal;
-- frozen help snapshots under `snapshots/jackin`, `snapshots/showcase`,
-  `snapshots/tablepro` and `snapshots/holla` where present, plus the baseline
-  drivers for all four applications.
-
-These consumers are reference applications and conformance fixtures. The
-future shared component must reproduce their approved output when migrated;
-this page does not authorize product help rewrites.
-
-## Target public API
+## Public API
 
 Rustdoc-style target declarations; exact spelling is frozen by P1 external
 consumer probes.
@@ -113,7 +81,41 @@ enum HelpAction {
 There is no generic Help action that executes the displayed command. A caller
 may reopen the effective binding owner after dismissal.
 
-## Ownership and update/draw rules
+The current source type is app-local `HelpOverlay` and still uses legacy
+`WidgetId`, `Outcome`, `RenderCtx`, `ScrollState` and hardcoded section tuples.
+Those names are source/oracle evidence. The target borrows sections and the
+effective binding view from the caller; it does not preserve a second static
+keybinding catalog as a public requirement.
+
+## Ordinary use
+
+The frozen Jackin Preview overlay uses `modal_frame` to dim the page, center a
+rounded elevated frame titled “Keyboard shortcuts”, show a scope label, lay
+out section blocks in one to three 36-cell columns, and provide a scrollbar,
+edge fades and “↑↓ Scroll · Esc Close” hint. `Esc`, `?`, `q` and Enter close
+the current app-local overlay; wheel and PageUp/PageDown/Up/Down scroll. The
+overlay is opened only when no other modal is active and restores the prior
+focus when dismissed.
+
+Other baseline applications use Dialog compositions for their help pages:
+
+- Jackin [`src/bin/jackin_preview/app.rs`](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/app.rs),
+  including manager/capsule scope-specific sections;
+- Showcase `src/bin/showcase/app.rs` “Keyboard & mouse” dialog;
+- TablePro `src/bin/tablepro/app.rs` “Keyboard” dialog;
+- Holla `src/bin/holla/app.rs` context-adaptive help modal;
+- frozen help snapshots under `snapshots/jackin`, `snapshots/showcase`,
+  `snapshots/tablepro` and `snapshots/holla` where present, plus the baseline
+  drivers for all four applications.
+
+These consumers are reference applications and conformance fixtures. The
+future shared component must reproduce their approved output when migrated;
+this page does not authorize product help rewrites.
+
+Displayed chords resolve through the same effective binding view as the
+[EX-09](../api/consumer-recipes.md) menu surfaces, HintBar and handlers.
+
+## Ownership
 
 - `update` consumes one input/cause. Escape and the effective close bindings
   request dismissal; Up/Down, PageUp/PageDown and wheel alter scroll state;
@@ -130,29 +132,25 @@ may reopen the effective binding owner after dismissal.
 - Binding resolution is shared with Menu, MenuBar and HintBar. A remap or
   disabled action is reflected consistently in every surface.
 
-## Visual contract
+Shared dependencies:
+
+- [`dialog`](./dialog.md), [`text-viewport`](./text-viewport.md),
+  [`key-hint`](./key-hint.md), [`scroll-region`](./scroll-region.md),
+  [`runtime`](../foundations/runtime.md), [`layers`](../foundations/layers.md),
+  [`input-actions`](../foundations/input-actions.md),
+  [`identity`](../foundations/identity.md),
+  [`layout`](../foundations/layout.md), [`theme`](../foundations/theme.md),
+  [`text`](../foundations/text.md), [`author`](../foundations/author.md),
+  [`conformance`](../foundations/conformance.md).
+
+## Customization
 
 Advertised parts are `container`, `title`, `section`, `chord`, `description`,
 `scrollbar` and `fade`. Parts use shared [`theme`](../foundations/theme.md)
 roles and reserved rectangles; a patch cannot change layer ownership or
 install a command dispatcher.
 
-The default recipe preserves the baseline:
-
-- dimmed page and rounded elevated frame with title and scope metadata;
-- section headings and key/description hierarchy, including the exact
-  display-cell column spacing and surface;
-- responsive columns: wide layouts may show up to three columns; narrow
-  layouts collapse columns while keeping rows readable and in source order;
-- scrollbar, edge fade and protected footer/hint rows only when content
-  overflows;
-- Unicode descriptions and key labels clip at grapheme/display-cell
-  boundaries, preserving wide-cell continuation;
-- truecolor, 256, 16, explicit `none` and `NO_COLOR` capability lanes use
-  semantic roles. Help has no invented animation; paused/reduced motion keeps
-  content and scroll behavior identical.
-
-## Interaction contract
+## Behavior
 
 ### Focus and keyboard
 
@@ -191,7 +189,22 @@ The default recipe preserves the baseline:
   revision. Removed rows cannot leave stale scroll or focus targets; displayed
   bindings update atomically with handler eligibility.
 
-## Applicable state matrix
+## Visual matrix
+
+The default recipe preserves the baseline:
+
+- dimmed page and rounded elevated frame with title and scope metadata;
+- section headings and key/description hierarchy, including the exact
+  display-cell column spacing and surface;
+- responsive columns: wide layouts may show up to three columns; narrow
+  layouts collapse columns while keeping rows readable and in source order;
+- scrollbar, edge fade and protected footer/hint rows only when content
+  overflows;
+- Unicode descriptions and key labels clip at grapheme/display-cell
+  boundaries, preserving wide-cell continuation;
+- truecolor, 256, 16, explicit `none` and `NO_COLOR` capability lanes use
+  semantic roles. Help has no invented animation; paused/reduced motion keeps
+  content and scroll behavior identical.
 
 | Axis | Required cases | Applicability |
 |---|---|---|
@@ -206,7 +219,7 @@ The default recipe preserves the baseline:
 Do not fabricate pointer activation, editing, disabled-control or animation
 states for explanatory prose. Record explicit non-applicability.
 
-## Required parity and capture cases
+## Verification
 
 Use the plan dimensions `72x20`, `80x24`, `100x30`, `120x40`, `160x50` and
 capabilities `truecolor`, `256`, `16`, `none`, `nocolor`. Expected artifacts
@@ -225,16 +238,6 @@ cursor, focus/capture/layer owners, viewport offset, binding revision and
 typed dismissal count/target. Missing or invalid oracle setup is blocked,
 never a pass.
 
-## Dependencies and negative tests
-
-Dependencies: [`dialog`](./dialog.md), [`text-viewport`](./text-viewport.md),
-[`key-hint`](./key-hint.md), [`scroll-region`](./scroll-region.md),
-[`runtime`](../foundations/runtime.md), [`layers`](../foundations/layers.md),
-[`input-actions`](../foundations/input-actions.md), [`identity`](../foundations/identity.md),
-[`layout`](../foundations/layout.md), [`theme`](../foundations/theme.md),
-[`text`](../foundations/text.md), [`author`](../foundations/author.md), and
-[`conformance`](../foundations/conformance.md).
-
 Required negative tests include:
 
 - draw twice cannot mutate scroll, source sections, bindings or focus;
@@ -249,3 +252,48 @@ Required negative tests include:
   backdrop or focus barriers; dead-call/custom-paint mutation fails;
 - one cell, scroll offset, cursor, focus/capture/layer owner or dismissal
   trace difference fails exact comparison.
+
+## Rejected use
+
+Forbidden: preview prints a padded shortcut table with its own scroll offset
+instead of using `HelpOverlay`.
+
+```rust
+// Forbidden: preview owns the help grid and its scroll position.
+ui.paint_str(row, 2, "  Esc      Close          ");
+ui.paint_str(row + 1, 2, "  ?        Show help      ");
+if pressed_down { help_offset += 1; }
+```
+
+Rule: [ARC-012](../architecture/component-composition.md). Preview code must
+not recreate component rendering or generic interaction. The following
+patterns are prohibited in preview drawing paths:
+
+```text
+historical full-screen painters
+snapshot files or exported frame data used as application output
+hardcoded answer tables for 72x20, 80x24, 100x30, 120x40, or 160x50
+fixture/scenario IDs that select a different painter
+paused mode that bypasses component updates or layers
+raw buffer access through termrock::author or an alias
+direct ui.paint_str, ui.fill, set_string, or equivalent rendering of controls
+padded strings that simulate columns, selection, fields, menus, or buttons
+manual borders, focus gutters, scrollbars, or widget cursors
+normal component drawing followed by a historical overlay
+app-specific screens moved into a termrock crate under a generic name
+fake state flags that display success without the normal component action
+```
+
+Use `HelpOverlay::new` with borrowed sections and the shared `BindingView`;
+it emits dismissal intent only.
+
+## Known gaps
+
+- [FIX-002](../implementation/code-remediation-backlog.md) (pending): replace
+  historical Manager, menu, inspect, help, and quit screens; the help slice
+  must use the real `HelpOverlay` with the shared binding view.
+- [FIX-007](../implementation/code-remediation-backlog.md) (pending): resolve
+  public signature drift against this contract; compile external examples and
+  check the accepted state/action model.
+- Capture cases W26-01–W26-04 await expected-artifact binding before candidate
+  comparison; candidate code cannot create its own baseline.
