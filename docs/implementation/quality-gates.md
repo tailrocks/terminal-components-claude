@@ -55,6 +55,9 @@ parity gate to meet the target. The P7 performance task owns the measurements.
 Run each review against the committed candidate and the canonical contracts.
 Record the reviewed commit, toolchain, evidence digests, results, and unresolved
 findings.
+The exact-subject procedure for every work item and every commit lives in
+[per-commit review](../process/per-commit-review.md).
+These packets do not replace per-commit receipts.
 
 | Reviewer | Required inspection |
 | --- | --- |
