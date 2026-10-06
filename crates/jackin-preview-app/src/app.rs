@@ -3531,7 +3531,7 @@ impl App {
         }
         let menu = Self::capsule_menu_bar();
         let menu_intents = cx.intents(CAPSULE_MENU_BAR).collect::<Vec<_>>();
-        let menu_state_before = self.capsule_menu_state;
+        let menu_state_before = self.capsule_menu_state.clone();
         let menu_response = menu.update(cx, &mut self.capsule_menu_state);
         if let Some(open) = menu_state_before.open_menu() {
             let count = CAPSULE_MENUS.len();

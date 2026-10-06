@@ -21,13 +21,18 @@
 //! re-add `NO_COLOR=1` instead of a `--color` flag (backend rule, not app
 //! rule).
 
+pub mod scoped_targets;
+pub mod state_waits;
+pub mod typed_input;
+
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use sha2::{Digest, Sha256};
+use unicode_width::UnicodeWidthStr;
 
 use tuiscotti::formats::{
     assert_no_escapes, assert_normalized_sgr, assert_opaque_rgb, assert_seven_bit,
@@ -38,8 +43,8 @@ use tuiscotti::render::frame_from_screen;
 use tuiscotti::snapshot::Status;
 pub use tuiscotti::tui::MouseButton;
 use tuiscotti::tui::Tui;
-use tuiscotti::tui::{CancelToken, MouseMods, Wheel};
-pub use tuiscotti::{Frame, Profile, Renderer, VENDORED_FACES};
+use tuiscotti::tui::{CancelToken, MouseMods, WaitError, Wheel};
+pub use tuiscotti::{Frame, Observation, Profile, Renderer, Screen, VENDORED_FACES};
 
 pub const SHOWCASE: &str = "showcase";
 pub const TABLEPRO: &str = "tablepro";
@@ -51,6 +56,9 @@ pub const SETTLE: Duration = Duration::from_millis(400);
 /// TIMEOUT_MS default; boot-streaming screens override it per capture
 /// ([`Case::timeout`], the bash `CAP_TIMEOUT=` prefix).
 pub const TIMEOUT_MS: u64 = 8_000;
+/// Wait bound where no case timeout applies (helper-level waits). Matches
+/// the session deadline the old helpers inherited.
+pub const DEFAULT_WAIT: Duration = Duration::from_millis(TIMEOUT_MS);
 
 /// Canonical matrix axes: every canonical capture root and audit fixture is
 /// captured at all 5 sizes × 5 colours.
@@ -540,6 +548,70 @@ impl ScreenExt for tuiscotti::Screen {
     }
 }
 
+/// One row of visible text: continuation cells skipped, symbols
+/// concatenated. Callers trim; matching never depends on trailing blanks.
+pub fn row_text(screen: &Screen, row: u16) -> String {
+    let mut s = String::new();
+    for x in 0..screen.cols() {
+        if let Some(c) = screen.get(x, row)
+            && !c.continuation
+        {
+            s.push_str(&c.symbol);
+        }
+    }
+    s
+}
+
+/// Full visible text: rows joined with `\n` (the `wait_for_text` surface).
+pub fn screen_text(screen: &Screen) -> String {
+    (0..screen.rows())
+        .map(|y| row_text(screen, y))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// First occurrence of `needle` as `(row, col)` — top-to-bottom, leftmost
+/// per row. The byte offset becomes a display column via the prefix width,
+/// so wide-cell rows resolve exactly.
+pub fn screen_find(screen: &Screen, needle: &str) -> Option<(u16, u16)> {
+    if needle.is_empty() {
+        return None;
+    }
+    for row in 0..screen.rows() {
+        let line = row_text(screen, row);
+        if let Some(off) = line.find(needle) {
+            let col = UnicodeWidthStr::width(&line[..off]) as u16;
+            return Some((row, col));
+        }
+    }
+    None
+}
+
+/// Bounded wait until `pred` holds, returning the outcome for callers
+/// that report their own timeout evidence.
+pub fn try_wait_screen(
+    s: &mut Session,
+    timeout: Duration,
+    pred: impl FnMut(&Screen) -> bool,
+) -> Result<Observation, WaitError> {
+    // The poll loop calls the predicate sequentially (no reentrancy), so a
+    // RefCell bridges the FnMut caller surface to the Fn wait surface.
+    let pred = RefCell::new(pred);
+    s.inner
+        .wait_predicate_timeout(|o| pred.borrow_mut()(&o.screen), timeout)
+}
+
+/// Bounded wait until `pred` holds on a fresh observation. Returns the
+/// matching observation; the predicate sees the live screen, as before.
+pub fn wait_screen(
+    s: &mut Session,
+    timeout: Duration,
+    what: &str,
+    pred: impl FnMut(&Screen) -> bool,
+) -> Observation {
+    try_wait_screen(s, timeout, pred).unwrap_or_else(|e| panic!("{what}: {e:#}"))
+}
+
 pub struct Session {
     pub inner: tuiscotti::tui::Session,
     pub cols: u16,
@@ -645,6 +717,46 @@ impl Session {
     }
 }
 
+/// Primary-button drag from `from` to `to`: press, one held-motion
+/// report per cell crossed (straight-line interpolation, as a terminal
+/// sends), release. Applications may act along the path, not just on
+/// its ends, so a single endpoint hop would under-report.
+pub fn drag_path(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
+    s.inner
+        .mouse_down(MouseButton::Left, from.0, from.1, MouseMods::NONE)
+        .unwrap_or_else(|e| panic!("drag press at {from:?} failed: {e:#}"));
+    for (col, row) in cells_between(from, to) {
+        s.inner
+            .mouse_drag(MouseButton::Left, col, row, MouseMods::NONE)
+            .unwrap_or_else(|e| panic!("drag motion to ({col}, {row}) failed: {e:#}"));
+    }
+    s.inner
+        .mouse_up(MouseButton::Left, to.0, to.1, MouseMods::NONE)
+        .unwrap_or_else(|e| panic!("drag release at {to:?} failed: {e:#}"));
+}
+
+/// Cells on the straight line from `from` to `to`, exclusive of `from`,
+/// inclusive of `to`: round-to-nearest on both axes so the short axis
+/// turns over mid-run. A drag to the same cell still reports one motion.
+fn cells_between(from: (u16, u16), to: (u16, u16)) -> Vec<(u16, u16)> {
+    let (from_col, from_row) = (i64::from(from.0), i64::from(from.1));
+    let (to_col, to_row) = (i64::from(to.0), i64::from(to.1));
+    let d_col = to_col - from_col;
+    let d_row = to_row - from_row;
+    let steps = d_col.abs().max(d_row.abs());
+    if steps == 0 {
+        return vec![to];
+    }
+    (1..=steps)
+        .map(|step| {
+            let col = from_col + (d_col * step + d_col.signum() * steps / 2) / steps;
+            let row = from_row + (d_row * step + d_row.signum() * steps / 2) / steps;
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+            (col as u16, row as u16)
+        })
+        .collect()
+}
+
 pub fn spawn(case: &Case) -> Session {
     let argv = argv_for(case);
     let mut builder = Tui::new(&argv).size(case.cols, case.rows);
@@ -669,37 +781,35 @@ pub fn spawn(case: &Case) -> Session {
 }
 
 pub fn spawn_boot(case: &Case) -> Session {
+    let timeout = Duration::from_millis(case.timeout_ms);
     let mut session = spawn(case);
-    boot(&mut session, case.needle);
+    boot(&mut session, case.needle, timeout);
     if !case.sends.is_empty() {
         drive_with_timeout(&mut session, case.sends, case.timeout_ms);
     }
     session
 }
 
-pub fn boot(session: &mut Session, needle: &str) {
+/// Boot: needle first, on the case deadline. Live clocks starve a
+/// quiet-window wait.
+pub fn boot(session: &mut Session, needle: &str, timeout: Duration) {
     if !needle.is_empty() {
-        let deadline = std::time::Instant::now() + Duration::from_secs(8);
-        let cancel = CancelToken::new();
-        session
-            .inner
-            .wait_predicate(
-                |obs| {
-                    frame_from_screen(&obs.screen, "default")
-                        .text()
-                        .contains(needle)
-                },
-                deadline,
-                &cancel,
-            )
-            .unwrap_or_else(|e| panic!("boot needle `{needle}` never appeared: {e:#}"));
+        wait_screen(
+            session,
+            timeout,
+            &format!("boot needle `{needle}` never appeared"),
+            |screen| screen_text(screen).contains(needle),
+        );
         return;
     }
-    let deadline = std::time::Instant::now() + Duration::from_secs(8);
     let cancel = CancelToken::new();
     session
         .inner
-        .wait_stable_quiet(deadline, Duration::from_millis(200), &cancel)
+        .wait_stable_quiet(
+            Instant::now() + timeout,
+            Duration::from_millis(200),
+            &cancel,
+        )
         .unwrap_or_else(|e| panic!("boot idle failed: {e:#}"));
 }
 
@@ -786,6 +896,22 @@ pub fn drive_with_timeout(session: &mut Session, steps: &[&str], timeout_ms: u64
             std::thread::sleep(Duration::from_millis(120));
         }
     }
+}
+
+/// Settle the screen and return the settled frame: no new output for
+/// `quiet`, bounded by `timeout`.
+pub fn settle_frame(
+    session: &mut Session,
+    quiet: Duration,
+    timeout: Duration,
+    name: &str,
+) -> Frame {
+    let cancel = CancelToken::new();
+    let obs = session
+        .inner
+        .wait_stable_quiet(Instant::now() + timeout, quiet, &cancel)
+        .unwrap_or_else(|e| panic!("`{name}` never settled: {e:#}"));
+    frame_from_screen(&obs.screen, "default")
 }
 
 #[allow(dead_code)]
