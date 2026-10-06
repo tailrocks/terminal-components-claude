@@ -589,6 +589,17 @@ impl<'f> Ui<'f> {
             .push((owner, family, variant, part, resolved));
     }
 
+    /// Record that `owner` named `part` in a per-instance override while the
+    /// part is outside the component's declared `PARTS` (R8). One entry per
+    /// `(owner, part)` per frame; the override itself is ignored.
+    #[cfg(feature = "testing")]
+    pub fn note_unknown_part(&mut self, owner: Id, part: Part) {
+        let hit = Diagnostic::UnknownPart { owner, part };
+        if !self.frame.diagnostics.contains(&hit) {
+            self.frame.diagnostics.push(hit);
+        }
+    }
+
     /// The `(owner, part)` pairs styled this frame — the declared-parts check.
     #[cfg(feature = "testing")]
     pub fn styled_parts(&self) -> &[(Id, Part)] {

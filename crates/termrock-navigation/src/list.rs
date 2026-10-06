@@ -716,17 +716,25 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     }
 
     /// Per-part instance patches.
+    ///
+    /// Every named part must be a member of [`Self::PARTS`]; an unknown
+    /// part fails a `debug_assert`, and in testing builds it is recorded as
+    /// an `UnknownPart` diagnostic at resolve time instead of being applied.
     #[must_use]
     pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
-        self.ov = self.ov.part(ps);
+        self.ov = self.ov.declare(Self::PARTS).part(ps);
         self
     }
 
     /// Replace one part's painting.
+    ///
+    /// `p` must be a member of [`Self::PARTS`]; an unknown part fails a
+    /// `debug_assert`, and in testing builds it is recorded as an
+    /// `UnknownPart` diagnostic at resolve time instead of being installed.
     #[must_use]
     pub fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
-        self.ov = self.ov.slot(p, f);
+        self.ov = self.ov.declare(Self::PARTS).slot(p, f);
         self
     }
 
@@ -1496,6 +1504,68 @@ mod tests {
             })
             .commit_presented();
         assert_eq!(seen.get(), Some(Rect::new(0, 0, 1, 1)));
+    }
+
+    /// R8: a patch naming a part outside `List::PARTS` is rejected at the
+    /// builder instead of being silently dropped.
+    #[test]
+    #[should_panic(expected = "outside the component's PARTS")]
+    fn patch_part_on_undeclared_part_is_rejected() {
+        let bad = [(Part::TITLE, StylePatch::new().add(Modifier::BOLD))];
+        let _ = List::<&str>::new(ID).patch_part(&bad);
+    }
+
+    /// R8: a slot naming a part outside `List::PARTS` is rejected at the
+    /// builder instead of being silently dropped.
+    #[test]
+    #[should_panic(expected = "outside the component's PARTS")]
+    fn slot_on_undeclared_part_is_rejected() {
+        let paint = |_ui: &mut Ui<'_>, _area: Rect| {};
+        let _ = List::<&str>::new(ID).slot(Part::TITLE, &paint);
+    }
+
+    /// R8 conformance: a declared-part patch alters only that part. Every
+    /// other member of `List::PARTS` resolves identically with and without
+    /// the patch, so a leak into any sibling fails here. `ICON` under
+    /// `Status::Busy` is the patched part: the readiness rail test proves
+    /// it resolves and paints.
+    #[test]
+    fn declared_part_patch_alters_only_that_part() {
+        use crate::theme::Resolved;
+
+        fn draw(patches: &[(Part, StylePatch)]) -> (Buffer, Vec<(Part, Resolved)>) {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(AREA);
+            let state = ListState::default();
+            runtime
+                .draw_scene(AREA, &mut buffer, |ui, area| {
+                    List::new(ID).status(Status::Busy).patch_part(patches).draw(
+                        ui,
+                        area,
+                        &state,
+                        &["one"],
+                    );
+                })
+                .commit_presented();
+            let queries = List::<&str>::PARTS
+                .iter()
+                .map(|part| (*part, runtime.resolved(ID, *part)))
+                .collect();
+            (buffer, queries)
+        }
+
+        let (plain_buf, plain) = draw(&[]);
+        let icon = [(Part::ICON, StylePatch::new().add(Modifier::BOLD))];
+        let (patched_buf, patched) = draw(&icon);
+
+        assert_ne!(patched_buf, plain_buf, "the ICON patch must paint");
+        for ((part, before), (_, after)) in plain.iter().zip(patched.iter()) {
+            if *part == Part::ICON {
+                assert_ne!(after, before, "the ICON patch must resolve");
+            } else {
+                assert_eq!(after, before, "patching ICON leaked into {part:?}");
+            }
+        }
     }
 
     #[test]

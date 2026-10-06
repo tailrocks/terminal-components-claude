@@ -16,11 +16,40 @@ pub type PartPainter<'a> = dyn Fn(&mut Ui<'_>, Rect) + 'a;
 pub type SlotFn<'a> = &'a dyn Fn(&mut Ui<'_>, Rect);
 
 /// Borrowed per-instance styling and painting overrides.
+///
+/// ## Override precedence
+///
+/// For a resolved part `P`, weakest to strongest:
+///
+/// 1. The theme chain (§11.3): family recipe, variant, state flags, live
+///    overlays, surface binding.
+/// 2. The global patch ([`PartStyle::global`]): one [`StylePatch`] applied
+///    to every part this instance resolves.
+/// 3. The per-part patches ([`PartStyle::part`]), applied in declaration
+///    order: each entry matching `P` merges over the previous result, so a
+///    later entry wins where it speaks ([`StylePatch::merge`]).
+///
+/// Layers 2 and 3 are the §11.3 instance layer (precedence 6); a part with
+/// no matching override resolves exactly as if the instance carried none.
+/// [`PartStyle::slot`] replaces painting for exactly one part and never
+/// changes resolution precedence.
+///
+/// ## Declared parts (R8)
+///
+/// A component declares its contract once with [`PartStyle::declare`]
+/// (its `PARTS` constant, before `part()`/`slot()`). A patch or slot
+/// naming any other part is rejected: it fails a `debug_assert` at the
+/// builder, and in testing builds it is recorded as an `UnknownPart`
+/// diagnostic when the component resolves styles. Slot *eligibility* is
+/// narrower than declaration — each component documents which declared
+/// parts accept a slot — and an ineligible-but-declared slot keeps its
+/// silently-ignored behavior.
 #[derive(Clone, Copy)]
 pub struct PartStyle<'a> {
     pub patch: Option<&'a StylePatch>,
     pub parts: &'a [(Part, StylePatch)],
     pub slot: Option<(Part, &'a PartPainter<'a>)>,
+    declared: Option<&'a [Part]>,
 }
 
 impl fmt::Debug for PartStyle<'_> {
@@ -40,7 +69,27 @@ impl<'a> PartStyle<'a> {
             patch: None,
             parts: &[],
             slot: None,
+            declared: None,
         }
+    }
+
+    /// Declare the component's `PARTS` contract: the only parts `part()`
+    /// and `slot()` may name. Call this before either builder; a component
+    /// that receives forwarded patch arrays (an embedded scrollbar, a
+    /// viewport, an inner list) must stay undeclared, because the producer's
+    /// parts are legitimately outside its own contract.
+    #[must_use]
+    pub const fn declare(mut self, declared: &'a [Part]) -> Self {
+        let slot_ok = match self.slot {
+            Some((part, _)) => is_declared(declared, part),
+            None => true,
+        };
+        debug_assert!(
+            patches_are_declared(declared, self.parts) && slot_ok,
+            "PartStyle::declare: an override names a part outside the component's PARTS",
+        );
+        self.declared = Some(declared);
+        self
     }
 
     /// Apply `patch` to every part this instance resolves.
@@ -51,16 +100,34 @@ impl<'a> PartStyle<'a> {
     }
 
     /// Apply the matching patches to their named parts in declaration order.
+    ///
+    /// Every named part must be a member of the declared contract (see
+    /// [`PartStyle::declare`]); an unknown part fails a `debug_assert`, and
+    /// in testing builds it is recorded as an `UnknownPart` diagnostic at
+    /// resolve time instead of being applied.
     #[must_use]
     pub const fn part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
+        debug_assert!(
+            patches_are_known(self.declared, patches),
+            "PartStyle::part: a patch names a part outside the component's PARTS",
+        );
         self.parts = patches;
         self
     }
 
     /// Replace the painter for `part` while preserving the component's geometry
     /// and interaction registrations.
+    ///
+    /// `part` must be a member of the declared contract (see
+    /// [`PartStyle::declare`]); an unknown part fails a `debug_assert`, and
+    /// in testing builds it is recorded as an `UnknownPart` diagnostic at
+    /// resolve time instead of being installed.
     #[must_use]
     pub const fn slot(mut self, part: Part, painter: &'a PartPainter<'a>) -> Self {
+        debug_assert!(
+            slot_is_known(self.declared, part),
+            "PartStyle::slot: the slot names a part outside the component's PARTS",
+        );
         self.slot = Some((part, painter));
         self
     }
@@ -108,6 +175,7 @@ impl<'a> PartStyle<'a> {
             None => ui.style(family, variant, part, flags),
         };
         self.note(ui, owner, family, variant, part, resolved);
+        self.note_rejected(ui, owner);
         resolved
     }
 
@@ -125,6 +193,66 @@ impl<'a> PartStyle<'a> {
         ui.note_styled(owner, family, variant, part, resolved);
         #[cfg(not(feature = "testing"))]
         let _ = (ui, owner, family, variant, part, resolved);
+    }
+
+    /// Record every named-but-undeclared override as an `UnknownPart`
+    /// diagnostic in testing builds; a no-op otherwise. `style()` calls
+    /// this once per resolved part and `Ui` dedupes per frame, so one draw
+    /// reports each unknown part exactly once however many parts the
+    /// component resolves.
+    fn note_rejected(&self, ui: &mut Ui<'_>, owner: Id) {
+        #[cfg(feature = "testing")]
+        {
+            let Some(declared) = self.declared else {
+                return;
+            };
+            for (part, _) in self.parts {
+                if !declared.contains(part) {
+                    ui.note_unknown_part(owner, *part);
+                }
+            }
+            if let Some((part, _)) = self.slot
+                && !declared.contains(&part)
+            {
+                ui.note_unknown_part(owner, part);
+            }
+        }
+        #[cfg(not(feature = "testing"))]
+        let _ = (ui, owner);
+    }
+}
+
+/// Const membership: `PartialEq` is not const, so parts compare by number.
+const fn is_declared(declared: &[Part], part: Part) -> bool {
+    match declared {
+        [] => false,
+        [head, tail @ ..] => head.raw() == part.raw() || is_declared(tail, part),
+    }
+}
+
+/// Const conjunction over a patch array.
+const fn patches_are_declared(declared: &[Part], patches: &[(Part, StylePatch)]) -> bool {
+    match patches {
+        [] => true,
+        [(part, _), tail @ ..] => {
+            is_declared(declared, *part) && patches_are_declared(declared, tail)
+        }
+    }
+}
+
+/// An undeclared override set skips validation (see [`PartStyle::declare`]).
+const fn patches_are_known(declared: Option<&[Part]>, patches: &[(Part, StylePatch)]) -> bool {
+    match declared {
+        None => true,
+        Some(known) => patches_are_declared(known, patches),
+    }
+}
+
+/// An undeclared override set skips validation (see [`PartStyle::declare`]).
+const fn slot_is_known(declared: Option<&[Part]>, part: Part) -> bool {
+    match declared {
+        None => true,
+        Some(known) => is_declared(known, part),
     }
 }
 
@@ -287,7 +415,14 @@ impl<A> Default for Acc<A> {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::style::Modifier;
+
     use super::*;
+    use crate::diagnostics::Diagnostic;
+    use crate::runtime::stub::{Stub, SCREEN};
+    use crate::runtime::Runtime;
+    use crate::theme::Theme;
 
     const AREA: Rect = Rect {
         x: 4,
@@ -295,6 +430,97 @@ mod tests {
         width: 3,
         height: 2,
     };
+
+    const OWNER: Id = Id::root("author.tests.unknown-part");
+    const DECLARED: &[Part] = &[Part::CONTAINER, Part::BORDER];
+
+    /// Paint shared chrome under `ov` and return the buffer plus the frame's
+    /// diagnostics. Chrome resolves exactly the declared parts.
+    fn paint_chrome(ov: PartStyle<'_>) -> (Buffer, Vec<Diagnostic>) {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                overlay_chrome(
+                    ui,
+                    OWNER,
+                    area,
+                    Family::DIALOG,
+                    Surface::Elevated,
+                    ov,
+                    StateFlags::empty(),
+                    StateFlags::empty(),
+                    |_, _| {},
+                );
+            })
+            .commit_presented();
+        (buffer, runtime.diagnostics().to_vec())
+    }
+
+    /// R8: a patch on an undeclared part is recorded once per frame and
+    /// changes nothing on screen. The override set is built literally to
+    /// bypass `part()`, whose `debug_assert` fires first by design.
+    #[test]
+    fn style_reports_an_undeclared_patch_part_once_and_ignores_it() {
+        let (plain_buf, plain_diags) = paint_chrome(PartStyle::new().declare(DECLARED));
+        assert!(plain_diags.is_empty());
+
+        let bold = StylePatch::new().add(Modifier::BOLD);
+        let patches = [(Part::TITLE, bold)];
+        let rejected = PartStyle {
+            patch: None,
+            parts: &patches,
+            slot: None,
+            declared: Some(DECLARED),
+        };
+        let (bad_buf, bad_diags) = paint_chrome(rejected);
+        assert_eq!(bad_buf, plain_buf, "an undeclared patch must not paint");
+        assert_eq!(
+            bad_diags,
+            &[Diagnostic::UnknownPart {
+                owner: OWNER,
+                part: Part::TITLE
+            }],
+            "one frame reports each unknown part exactly once",
+        );
+    }
+
+    /// R8: a slot on an undeclared part is recorded and never installed.
+    #[test]
+    fn style_reports_an_undeclared_slot_part_and_ignores_it() {
+        let (plain_buf, _) = paint_chrome(PartStyle::new().declare(DECLARED));
+
+        let paint = |_ui: &mut Ui<'_>, _area: Rect| {};
+        let rejected = PartStyle {
+            patch: None,
+            parts: &[],
+            slot: Some((Part::TITLE, &paint)),
+            declared: Some(DECLARED),
+        };
+        let (bad_buf, bad_diags) = paint_chrome(rejected);
+        assert_eq!(bad_buf, plain_buf, "an undeclared slot must not paint");
+        assert_eq!(
+            bad_diags,
+            &[Diagnostic::UnknownPart {
+                owner: OWNER,
+                part: Part::TITLE
+            }],
+        );
+    }
+
+    /// R8: validation only runs against a declared contract; an undeclared
+    /// override set (a forwarded patch array) keeps its silent behavior.
+    #[test]
+    fn undeclared_override_sets_skip_validation() {
+        let bold = StylePatch::new().add(Modifier::BOLD);
+        let patches = [(Part::TITLE, bold)];
+        let paint = |_ui: &mut Ui<'_>, _area: Rect| {};
+        let forwarded = PartStyle::new().part(&patches).slot(Part::TITLE, &paint);
+        let (buf, diags) = paint_chrome(forwarded);
+        let (plain_buf, _) = paint_chrome(PartStyle::new());
+        assert_eq!(buf, plain_buf);
+        assert!(diags.is_empty());
+    }
 
     #[test]
     fn cell_at_is_empty_for_every_x_outside_the_area_on_either_side() {

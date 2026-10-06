@@ -9,7 +9,7 @@ use ratatui_core::layout::Rect;
 
 use crate::action::ActionKey;
 use crate::event::Chord;
-use crate::id::Id;
+use crate::id::{Id, Part};
 use crate::keys::KeyPhase;
 use crate::layer_types::LayerId;
 
@@ -82,6 +82,15 @@ pub enum Diagnostic {
     DuplicateLayerDraw {
         /// The layer id.
         id: Id,
+    },
+    /// A per-instance patch or slot named a part outside the component's
+    /// `PARTS` (R8). The override is ignored; the component keeps its
+    /// declared geometry and interaction.
+    UnknownPart {
+        /// The component that owns the rejected override.
+        owner: Id,
+        /// The undeclared part.
+        part: Part,
     },
 }
 
