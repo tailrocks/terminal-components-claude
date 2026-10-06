@@ -77,6 +77,51 @@ const MANIFEST_ARTIFACT_KEYS: [&str; 9] = [
     "txt",
 ];
 
+/// Expected admission pins, compiled from frozen evidence (Q04/FIX-012 A2).
+/// Each value cites its source; `store_integrity` re-proves every pin against
+/// the full 7550-capture corpus on each run, so a wrong constant fails loudly.
+mod expected {
+    /// Evidence: `git rev-parse 'visual-baseline^{commit}'` (tag object 1ee5ebdc
+    /// points at this commit; tag itself is frozen, never moved) and
+    /// `baselines/tuiscotti-v1/corpus-index.json` (`historical_oracle_commit`) /
+    /// `admission-record.json` (`historical_oracle_commit`).
+    pub const HISTORICAL_ORACLE_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
+    /// Evidence: `baselines/tuiscotti-v1/corpus-index.json`
+    /// (`historical_oracle_tag`).
+    pub const HISTORICAL_ORACLE_TAG: &str = "visual-baseline";
+    /// Evidence: `baselines/tuiscotti-v1/corpus-index.json` and
+    /// `admission-record.json` (`reference_app_sha`).
+    pub const REFERENCE_APP_SHA: &str = "7bd6a331721737514a2477c894d922cb262ef07b";
+    /// Evidence: workspace `Cargo.lock` tuiscotti source rev
+    /// (`git+https://github.com/tailrocks/tuiscotti?rev=a47c9aae…`), matching
+    /// `corpus-index.json` (`tuiscotti_source_sha`) and `admission-record.json`
+    /// (`tuiscotti_pin`).
+    pub const TUISCOTTI_PIN: &str = "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274";
+    /// Evidence: `baselines/tuiscotti-v1/admission-record.json` (`status`).
+    pub const ADMISSION_STATUS: &str = "admitted";
+    /// Evidence: `baselines/tuiscotti-v1/admission-record.json` (`schema`).
+    pub const ADMISSION_SCHEMA: &str = "termrock-spec/tuiscotti-admission-record-v1";
+    /// Evidence: `baselines/tuiscotti-v1/corpus-index.json` (`schema`).
+    pub const CORPUS_INDEX_SCHEMA: &str = "termrock-spec/tuiscotti-corpus-index-v1";
+    /// Evidence: `profile` field uniform across all 7550
+    /// `*.manifest.json` and all 7550 `*.png.fidelity.json` files.
+    pub const RENDER_PROFILE: &str = "tuiscotti-default";
+    /// Evidence: `font_sha256` uniform across all 7550 `*.png.fidelity.json`.
+    pub const FONT_SHA256: &str =
+        "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a";
+    /// Evidence: `font_desc` uniform across all 7550 `*.png.fidelity.json`.
+    pub const FONT_DESC: &str = "vendored JetBrainsMonoNerdFontMono-Regular (SIL OFL 1.1)";
+    /// Evidence: `scale` uniform across all 7550 `*.png.fidelity.json`.
+    pub const RENDER_SCALE: u32 = 2;
+    /// Evidence: `provenance.tool` uniform across sampled `*.observations.json`
+    /// (re-proved for every capture by `store_integrity`).
+    pub const PROVENANCE_TOOL: &str = "tuiscotti";
+    /// Evidence: `provenance.tool_version` uniform across sampled
+    /// `*.observations.json`; matches the `tuiscotti 0.2.0` entry in
+    /// `Cargo.lock`.
+    pub const PROVENANCE_TOOL_VERSION: &str = "0.2.0";
+}
+
 #[derive(Debug, Deserialize)]
 struct CorpusIndex {
     #[serde(default)]
@@ -84,12 +129,19 @@ struct CorpusIndex {
     total_artifacts: usize,
     total_captures: usize,
     total_screens: usize,
+    schema: String,
+    historical_oracle_commit: String,
+    historical_oracle_tag: String,
+    reference_app_sha: String,
+    tuiscotti_source_sha: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct ScenarioManifest {
     schema_version: u32,
     complete: bool,
+    generation: String,
+    profile: String,
     dimensions: ManifestDimensions,
     artifacts: BTreeMap<String, ArtifactEntry>,
     ansi_sha256: String,
@@ -151,10 +203,56 @@ fn verify_corpus_index(approved_root: &Path) -> Result<(CorpusIndex, Vec<u8>), S
             index.total_screens
         ));
     }
+    if index.schema != expected::CORPUS_INDEX_SCHEMA {
+        return Err(format!(
+            "unexpected corpus-index schema: expected '{}', got '{}'",
+            expected::CORPUS_INDEX_SCHEMA,
+            index.schema
+        ));
+    }
+    if index.historical_oracle_commit != expected::HISTORICAL_ORACLE_COMMIT {
+        return Err(format!(
+            "unexpected corpus-index historical_oracle_commit: expected '{}', got '{}'",
+            expected::HISTORICAL_ORACLE_COMMIT,
+            index.historical_oracle_commit
+        ));
+    }
+    if index.historical_oracle_tag != expected::HISTORICAL_ORACLE_TAG {
+        return Err(format!(
+            "unexpected corpus-index historical_oracle_tag: expected '{}', got '{}'",
+            expected::HISTORICAL_ORACLE_TAG,
+            index.historical_oracle_tag
+        ));
+    }
+    if index.reference_app_sha != expected::REFERENCE_APP_SHA {
+        return Err(format!(
+            "unexpected corpus-index reference_app_sha: expected '{}', got '{}'",
+            expected::REFERENCE_APP_SHA,
+            index.reference_app_sha
+        ));
+    }
+    if index.tuiscotti_source_sha != expected::TUISCOTTI_PIN {
+        return Err(format!(
+            "unexpected corpus-index tuiscotti_source_sha: expected '{}', got '{}'",
+            expected::TUISCOTTI_PIN,
+            index.tuiscotti_source_sha
+        ));
+    }
     Ok((index, bytes))
 }
 
-fn verify_admission(approved_root: &Path, corpus_index_bytes: &[u8]) -> Result<(), String> {
+fn admission_str<'a>(admission: &'a serde_json::Value, field: &str) -> Result<&'a str, String> {
+    admission
+        .get(field)
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| format!("admission-record.json missing {field}"))
+}
+
+fn verify_admission(
+    approved_root: &Path,
+    corpus_index: &CorpusIndex,
+    corpus_index_bytes: &[u8],
+) -> Result<(), String> {
     let admission_path = approved_root.join("admission-record.json");
     if !admission_path.is_file() {
         return Err("missing admission-record.json".to_string());
@@ -165,10 +263,7 @@ fn verify_admission(approved_root: &Path, corpus_index_bytes: &[u8]) -> Result<(
         serde_json::from_slice(&bytes).map_err(|e| format!("parse admission-record.json: {e}"))?;
 
     let expected_corpus_sha256 = sha256_hex(corpus_index_bytes);
-    let recorded_sha256 = admission
-        .get("corpus_index_sha256")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "admission-record.json missing corpus_index_sha256".to_string())?;
+    let recorded_sha256 = admission_str(&admission, "corpus_index_sha256")?;
 
     if recorded_sha256 != expected_corpus_sha256 {
         return Err(format!(
@@ -176,23 +271,75 @@ fn verify_admission(approved_root: &Path, corpus_index_bytes: &[u8]) -> Result<(
         ));
     }
 
-    let acquisition_method = admission
-        .get("acquisition_method")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "admission-record.json missing acquisition_method".to_string())?;
+    let acquisition_method = admission_str(&admission, "acquisition_method")?;
     if acquisition_method != "legacy_replayed_conversion" {
         return Err(format!(
             "unexpected acquisition_method: expected 'legacy_replayed_conversion', got '{acquisition_method}'"
         ));
     }
 
-    let working_branch = admission
-        .get("working_branch")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "admission-record.json missing working_branch".to_string())?;
+    let working_branch = admission_str(&admission, "working_branch")?;
     if working_branch != "termrock-refactor" {
         return Err(format!(
             "unexpected working_branch: expected 'termrock-refactor', got '{working_branch}'"
+        ));
+    }
+
+    let schema = admission_str(&admission, "schema")?;
+    if schema != expected::ADMISSION_SCHEMA {
+        return Err(format!(
+            "unexpected admission schema: expected '{}', got '{schema}'",
+            expected::ADMISSION_SCHEMA
+        ));
+    }
+
+    let status = admission_str(&admission, "status")?;
+    if status != expected::ADMISSION_STATUS {
+        return Err(format!(
+            "unexpected admission status: expected '{}', got '{status}'",
+            expected::ADMISSION_STATUS
+        ));
+    }
+
+    let oracle_commit = admission_str(&admission, "historical_oracle_commit")?;
+    if oracle_commit != expected::HISTORICAL_ORACLE_COMMIT {
+        return Err(format!(
+            "unexpected admission historical_oracle_commit: expected '{}', got '{oracle_commit}'",
+            expected::HISTORICAL_ORACLE_COMMIT
+        ));
+    }
+    if oracle_commit != corpus_index.historical_oracle_commit {
+        return Err(format!(
+            "admission/corpus-index historical_oracle_commit disagreement: admission '{oracle_commit}' != index '{}'",
+            corpus_index.historical_oracle_commit
+        ));
+    }
+
+    let reference_app_sha = admission_str(&admission, "reference_app_sha")?;
+    if reference_app_sha != expected::REFERENCE_APP_SHA {
+        return Err(format!(
+            "unexpected admission reference_app_sha: expected '{}', got '{reference_app_sha}'",
+            expected::REFERENCE_APP_SHA
+        ));
+    }
+    if reference_app_sha != corpus_index.reference_app_sha {
+        return Err(format!(
+            "admission/corpus-index reference_app_sha disagreement: admission '{reference_app_sha}' != index '{}'",
+            corpus_index.reference_app_sha
+        ));
+    }
+
+    let tuiscotti_pin = admission_str(&admission, "tuiscotti_pin")?;
+    if tuiscotti_pin != expected::TUISCOTTI_PIN {
+        return Err(format!(
+            "unexpected admission tuiscotti_pin: expected '{}', got '{tuiscotti_pin}'",
+            expected::TUISCOTTI_PIN
+        ));
+    }
+    if tuiscotti_pin != corpus_index.tuiscotti_source_sha {
+        return Err(format!(
+            "admission/corpus-index tuiscotti sha disagreement: admission '{tuiscotti_pin}' != index '{}'",
+            corpus_index.tuiscotti_source_sha
         ));
     }
 
@@ -233,6 +380,31 @@ fn verify_scenario_manifest(
         return Err(format!("manifest complete is false in {scenario_name}"));
     }
 
+    // Corpus-wide render-profile pin: every manifest must carry the admitted
+    // profile, so a mixed-profile corpus fails instead of passing silently.
+    if manifest.profile != expected::RENDER_PROFILE {
+        return Err(format!(
+            "profile mismatch in {scenario_name}: expected '{}', got '{}'",
+            expected::RENDER_PROFILE,
+            manifest.profile
+        ));
+    }
+
+    // Per-capture generation digest must be well-formed: 64 lowercase hex.
+    // Uniqueness-per-capture is by design (content digest); binding to the
+    // rendered html below is what makes a mixed-generation corpus fail.
+    if manifest.generation.len() != 64
+        || !manifest
+            .generation
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+    {
+        return Err(format!(
+            "malformed generation digest in {scenario_name}: expected 64 lowercase hex, got '{}'",
+            manifest.generation
+        ));
+    }
+
     let mut parts = scenario_name.rsplit('/');
     let _color = parts
         .next()
@@ -249,6 +421,10 @@ fn verify_scenario_manifest(
             expected_cols, expected_rows, manifest.dimensions.cols, manifest.dimensions.rows
         ));
     }
+
+    let mut html_bytes: Option<Vec<u8>> = None;
+    let mut fidelity_bytes: Option<Vec<u8>> = None;
+    let mut observations_bytes: Option<Vec<u8>> = None;
 
     for key in MANIFEST_ARTIFACT_KEYS {
         let entry = manifest.artifacts.get(key).ok_or_else(|| {
@@ -299,8 +475,126 @@ fn verify_scenario_manifest(
                 entry.sha256
             ));
         }
+
+        match key {
+            "html" => html_bytes = Some(bytes),
+            "png_fidelity_json" => fidelity_bytes = Some(bytes),
+            "observations_json" => observations_bytes = Some(bytes),
+            _ => {}
+        }
     }
 
+    verify_generation_binding(scenario_name, &manifest, &html_bytes)?;
+    verify_render_identity(scenario_name, &fidelity_bytes, &observations_bytes)?;
+
+    Ok(())
+}
+
+/// Bind the manifest `generation` digest to the generation marker embedded in
+/// the rendered html artifact (`<!-- generation: <hex> -->`). A manifest
+/// spliced in from another capture or corpus (mixed generation) carries a
+/// digest the html does not contain, so the mix fails here.
+fn verify_generation_binding(
+    scenario_name: &str,
+    manifest: &ScenarioManifest,
+    html_bytes: &Option<Vec<u8>>,
+) -> Result<(), String> {
+    let html = html_bytes
+        .as_ref()
+        .ok_or_else(|| format!("missing html bytes for generation binding in {scenario_name}"))?;
+    let marker = format!("<!-- generation: {} -->", manifest.generation);
+    if !html
+        .windows(marker.len())
+        .any(|window| window == marker.as_bytes())
+    {
+        return Err(format!(
+            "generation binding mismatch in {scenario_name}: html artifact does not embed manifest generation '{}'",
+            manifest.generation
+        ));
+    }
+    Ok(())
+}
+
+/// Pin renderer/font/provenance identity recorded in the companion artifacts:
+/// fidelity profile, font sha/desc, render scale, and the observations
+/// provenance tool identity. A capture rendered with a different
+/// renderer/font/toolchain fails here even if its pixels hash-match.
+fn verify_render_identity(
+    scenario_name: &str,
+    fidelity_bytes: &Option<Vec<u8>>,
+    observations_bytes: &Option<Vec<u8>>,
+) -> Result<(), String> {
+    let fidelity_bytes = fidelity_bytes
+        .as_ref()
+        .ok_or_else(|| format!("missing fidelity bytes for render identity in {scenario_name}"))?;
+    let fidelity: serde_json::Value = serde_json::from_slice(fidelity_bytes)
+        .map_err(|e| format!("parse fidelity json in {scenario_name}: {e}"))?;
+    let fidelity_str = |field: &str| -> Result<&str, String> {
+        fidelity
+            .get(field)
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| format!("fidelity json in {scenario_name} missing {field}"))
+    };
+    if fidelity_str("profile")? != expected::RENDER_PROFILE {
+        return Err(format!(
+            "fidelity profile mismatch in {scenario_name}: expected '{}'",
+            expected::RENDER_PROFILE
+        ));
+    }
+    if fidelity_str("font_sha256")? != expected::FONT_SHA256 {
+        return Err(format!(
+            "fidelity font_sha256 mismatch in {scenario_name}: expected '{}'",
+            expected::FONT_SHA256
+        ));
+    }
+    if fidelity_str("font_desc")? != expected::FONT_DESC {
+        return Err(format!(
+            "fidelity font_desc mismatch in {scenario_name}: expected '{}'",
+            expected::FONT_DESC
+        ));
+    }
+    let scale = fidelity
+        .get("scale")
+        .and_then(|v| v.as_u64())
+        .ok_or_else(|| format!("fidelity json in {scenario_name} missing scale"))?;
+    if scale != u64::from(expected::RENDER_SCALE) {
+        return Err(format!(
+            "fidelity scale mismatch in {scenario_name}: expected {}, got {scale}",
+            expected::RENDER_SCALE
+        ));
+    }
+    if fidelity.get("approximate").and_then(|v| v.as_bool()) != Some(false) {
+        return Err(format!(
+            "fidelity approximate must be false in {scenario_name}"
+        ));
+    }
+
+    let observations_bytes = observations_bytes.as_ref().ok_or_else(|| {
+        format!("missing observations bytes for render identity in {scenario_name}")
+    })?;
+    let observations: serde_json::Value = serde_json::from_slice(observations_bytes)
+        .map_err(|e| format!("parse observations json in {scenario_name}: {e}"))?;
+    let provenance = observations
+        .get("provenance")
+        .ok_or_else(|| format!("observations json in {scenario_name} missing provenance"))?;
+    let provenance_str = |field: &str| -> Result<&str, String> {
+        provenance
+            .get(field)
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| format!("observations provenance in {scenario_name} missing {field}"))
+    };
+    if provenance_str("tool")? != expected::PROVENANCE_TOOL {
+        return Err(format!(
+            "provenance tool mismatch in {scenario_name}: expected '{}'",
+            expected::PROVENANCE_TOOL
+        ));
+    }
+    if provenance_str("tool_version")? != expected::PROVENANCE_TOOL_VERSION {
+        return Err(format!(
+            "provenance tool_version mismatch in {scenario_name}: expected '{}'",
+            expected::PROVENANCE_TOOL_VERSION
+        ));
+    }
     Ok(())
 }
 
@@ -409,7 +703,7 @@ fn store_integrity() {
     let (corpus_index, corpus_index_bytes) = verify_corpus_index(&approved)
         .unwrap_or_else(|e| panic!("corpus-index verification failed: {e}"));
 
-    verify_admission(&approved, &corpus_index_bytes)
+    verify_admission(&approved, &corpus_index, &corpus_index_bytes)
         .unwrap_or_else(|e| panic!("admission-record verification failed: {e}"));
 
     let failures: Vec<String> = store_names
@@ -529,8 +823,9 @@ fn mismatched_corpus_index_digest_fails_verification() {
     let admission_path = tmp.path().join("admission-record.json");
     std::fs::copy(approved.join("admission-record.json"), &admission_path).expect("copy admission");
 
+    let (corpus_index, _) = verify_corpus_index(&approved).expect("real corpus-index parses");
     let tampered_corpus_index_bytes = b"{\"tampered\": true}";
-    let result = verify_admission(tmp.path(), tampered_corpus_index_bytes);
+    let result = verify_admission(tmp.path(), &corpus_index, tampered_corpus_index_bytes);
     assert!(
         result.is_err(),
         "verification must fail when corpus index digest mismatches"
@@ -539,6 +834,216 @@ fn mismatched_corpus_index_digest_fails_verification() {
     assert!(
         err.contains("corpus_index_sha256 mismatch"),
         "expected corpus_index_sha256 mismatch error, got: {err}"
+    );
+}
+
+/// Copy the real admission record into a tempdir, patch one field with a
+/// synthetic value, and run the admission gate against the real corpus index.
+/// The frozen `baselines/` tree is only read, never written.
+fn verify_admission_with_patched_field(field: &str, value: &str) -> Result<(), String> {
+    let approved = support::baseline_store_root();
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let src = std::fs::read(approved.join("admission-record.json")).expect("read admission");
+    let mut admission: serde_json::Value = serde_json::from_slice(&src).expect("parse admission");
+    admission[field] = serde_json::Value::String(value.to_string());
+    std::fs::write(
+        tmp.path().join("admission-record.json"),
+        serde_json::to_vec_pretty(&admission).expect("encode admission"),
+    )
+    .expect("write patched admission");
+    let (corpus_index, corpus_index_bytes) =
+        verify_corpus_index(&approved).expect("real corpus-index parses");
+    verify_admission(tmp.path(), &corpus_index, &corpus_index_bytes)
+}
+
+#[test]
+fn tampered_admission_oracle_commit_fails_verification() {
+    let bogus = "0000000000000000000000000000000000000000";
+    let err = verify_admission_with_patched_field("historical_oracle_commit", bogus)
+        .expect_err("verification must fail when historical_oracle_commit is tampered");
+    assert!(
+        err.contains("historical_oracle_commit"),
+        "expected historical_oracle_commit error, got: {err}"
+    );
+}
+
+#[test]
+fn tampered_admission_reference_app_sha_fails_verification() {
+    let bogus = "1111111111111111111111111111111111111111";
+    let err = verify_admission_with_patched_field("reference_app_sha", bogus)
+        .expect_err("verification must fail when reference_app_sha is tampered");
+    assert!(
+        err.contains("reference_app_sha"),
+        "expected reference_app_sha error, got: {err}"
+    );
+}
+
+#[test]
+fn tampered_admission_tuiscotti_pin_fails_verification() {
+    let bogus = "2222222222222222222222222222222222222222";
+    let err = verify_admission_with_patched_field("tuiscotti_pin", bogus)
+        .expect_err("verification must fail when tuiscotti_pin is tampered");
+    assert!(
+        err.contains("tuiscotti_pin"),
+        "expected tuiscotti_pin error, got: {err}"
+    );
+}
+
+#[test]
+fn non_admitted_status_fails_verification() {
+    let err = verify_admission_with_patched_field("status", "pending")
+        .expect_err("verification must fail when status is not admitted");
+    assert!(
+        err.contains("admission status"),
+        "expected admission status error, got: {err}"
+    );
+}
+
+#[test]
+fn admission_index_tuiscotti_disagreement_fails_verification() {
+    // Admission record is genuine; the corpus index presented alongside it
+    // carries a different tuiscotti sha, so the cross-check must fail.
+    let approved = support::baseline_store_root();
+    let tmp = tempfile::tempdir().expect("tempdir");
+    std::fs::copy(
+        approved.join("admission-record.json"),
+        tmp.path().join("admission-record.json"),
+    )
+    .expect("copy admission");
+    let (corpus_index, corpus_index_bytes) =
+        verify_corpus_index(&approved).expect("real corpus-index parses");
+    let mut tampered: serde_json::Value =
+        serde_json::from_slice(&corpus_index_bytes).expect("parse index");
+    tampered["tuiscotti_source_sha"] =
+        serde_json::Value::String("3333333333333333333333333333333333333333".to_string());
+    let tampered_index: CorpusIndex =
+        serde_json::from_value(tampered).expect("tampered index parses");
+    assert_ne!(
+        tampered_index.tuiscotti_source_sha,
+        corpus_index.tuiscotti_source_sha
+    );
+    let err = verify_admission(tmp.path(), &tampered_index, &corpus_index_bytes)
+        .expect_err("verification must fail when admission and index disagree on tuiscotti sha");
+    assert!(
+        err.contains("tuiscotti"),
+        "expected tuiscotti disagreement error, got: {err}"
+    );
+}
+
+/// Copy one scenario into a tempdir and patch a top-level manifest field with
+/// a synthetic value. Callers pass `None` as the expected manifest hash so
+/// only content checks run.
+fn copy_scenario_with_patched_manifest(
+    scenario_name: &str,
+    field: &str,
+    value: &str,
+) -> tempfile::TempDir {
+    let approved = support::baseline_store_root();
+    let tmp = copy_scenario_to_tempdir(&approved, scenario_name);
+    let manifest_path = tmp.path().join(format!("{scenario_name}.manifest.json"));
+    let src = std::fs::read(&manifest_path).expect("read manifest");
+    let mut manifest: serde_json::Value = serde_json::from_slice(&src).expect("parse manifest");
+    manifest[field] = serde_json::Value::String(value.to_string());
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).expect("encode manifest"),
+    )
+    .expect("write patched manifest");
+    tmp
+}
+
+fn read_manifest_field(scenario_name: &str, field: &str) -> String {
+    let approved = support::baseline_store_root();
+    let src = std::fs::read(approved.join(format!("{scenario_name}.manifest.json")))
+        .expect("read donor manifest");
+    let manifest: serde_json::Value = serde_json::from_slice(&src).expect("parse donor manifest");
+    manifest
+        .get(field)
+        .and_then(|v| v.as_str())
+        .expect("donor field present")
+        .to_string()
+}
+
+#[test]
+fn mixed_profile_fails_verification() {
+    let scenario = "jackin/settings/mounts/72x20/16";
+    let tmp = copy_scenario_with_patched_manifest(scenario, "profile", "foreign-profile");
+    let result = verify_scenario_manifest(tmp.path(), scenario, None);
+    let err = result.expect_err("verification must fail when manifest profile is mixed");
+    assert!(
+        err.contains("profile mismatch"),
+        "expected profile mismatch error, got: {err}"
+    );
+}
+
+#[test]
+fn mixed_generation_fails_verification() {
+    // Splice the generation digest of a *different* real capture into this
+    // manifest: a genuinely mixed-generation corpus. The html binding must fail.
+    let scenario = "jackin/settings/mounts/72x20/16";
+    let donor = "holla/upgrade/excluded/72x20/truecolor";
+    let foreign_generation = read_manifest_field(donor, "generation");
+    let own_generation = read_manifest_field(scenario, "generation");
+    assert_ne!(
+        foreign_generation, own_generation,
+        "donor must have a distinct generation digest"
+    );
+    let tmp = copy_scenario_with_patched_manifest(scenario, "generation", &foreign_generation);
+    let result = verify_scenario_manifest(tmp.path(), scenario, None);
+    let err = result.expect_err("verification must fail when manifest generation is mixed");
+    assert!(
+        err.contains("generation binding mismatch"),
+        "expected generation binding mismatch error, got: {err}"
+    );
+}
+
+#[test]
+fn malformed_generation_fails_verification() {
+    let scenario = "jackin/settings/mounts/72x20/16";
+    let tmp = copy_scenario_with_patched_manifest(scenario, "generation", "not-a-hex-digest");
+    let result = verify_scenario_manifest(tmp.path(), scenario, None);
+    let err = result.expect_err("verification must fail when manifest generation is malformed");
+    assert!(
+        err.contains("malformed generation"),
+        "expected malformed generation error, got: {err}"
+    );
+}
+
+#[test]
+fn tampered_font_identity_fails_verification() {
+    // Rewrite the fidelity companion with a foreign font_sha256, patching the
+    // manifest artifact entry (hash + length) so only the identity pin fires.
+    let scenario = "jackin/settings/mounts/72x20/16";
+    let approved = support::baseline_store_root();
+    let tmp = copy_scenario_to_tempdir(&approved, scenario);
+    let fidelity_path = tmp.path().join(format!("{scenario}.png.fidelity.json"));
+    let src = std::fs::read(&fidelity_path).expect("read fidelity");
+    let mut fidelity: serde_json::Value = serde_json::from_slice(&src).expect("parse fidelity");
+    fidelity["font_sha256"] = serde_json::Value::String("0".repeat(64));
+    let patched = serde_json::to_vec_pretty(&fidelity).expect("encode fidelity");
+    std::fs::write(&fidelity_path, &patched).expect("write patched fidelity");
+
+    let manifest_path = tmp.path().join(format!("{scenario}.manifest.json"));
+    let manifest_src = std::fs::read(&manifest_path).expect("read manifest");
+    let mut manifest: serde_json::Value =
+        serde_json::from_slice(&manifest_src).expect("parse manifest");
+    let entry = manifest
+        .get_mut("artifacts")
+        .and_then(|v| v.get_mut("png_fidelity_json"))
+        .expect("fidelity entry present");
+    entry["sha256"] = serde_json::Value::String(sha256_hex(&patched));
+    entry["bytes"] = serde_json::Value::from(patched.len() as u64);
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).expect("encode manifest"),
+    )
+    .expect("write patched manifest");
+
+    let result = verify_scenario_manifest(tmp.path(), scenario, None);
+    let err = result.expect_err("verification must fail when font identity is tampered");
+    assert!(
+        err.contains("font_sha256 mismatch"),
+        "expected font_sha256 mismatch error, got: {err}"
     );
 }
 
