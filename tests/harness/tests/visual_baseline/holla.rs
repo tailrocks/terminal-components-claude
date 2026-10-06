@@ -17,7 +17,7 @@
 
 use std::time::Duration;
 
-use tuisnap::pty::{Scroll, Session};
+use tuiscotti::tui::{MouseMods, Session, Wheel};
 
 use crate::pointer::wheel_below;
 use crate::support::{self, Case, Color, HOLLA};
@@ -589,22 +589,27 @@ crate::baseline_case!(holla_flows_docker_drift_120x40_truecolor => Case::new("ho
 // Wheel scroll-fade over live sessions, centrally expanded by the shared
 // canonical live matrix.
 
+fn case_timeout(case: &Case) -> Duration {
+    Duration::from_millis(case.timeout_ms)
+}
+
 /// First occurrence of `needle` as `(row, col)`, waiting until it appears.
-fn find(s: &mut Session, needle: &str) -> (u16, u16) {
-    let mut hit = None;
-    s.wait_until(|screen| {
-        hit = screen.find(needle);
-        hit.is_some()
-    })
-    .unwrap_or_else(|e| panic!("`{needle}` never appeared: {e:#}"));
-    hit.expect("wait_until passed with the needle on screen")
+fn find(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
+    let obs = support::wait_screen(
+        s,
+        timeout,
+        &format!("`{needle}` never appeared"),
+        |screen| support::screen_find(screen, needle).is_some(),
+    );
+    support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
 /// `notches` wheel-down steps over `needle`'s cell, paced like a send step.
-fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
-    let (row, col) = find(s, needle);
+fn wheel_down(s: &mut Session, needle: &str, notches: u32, timeout: Duration) {
+    let (row, col) = find(s, needle, timeout);
     for _ in 0..notches {
-        s.scroll(col, row, Scroll::Down).expect("wheel scroll");
+        s.mouse_wheel(Wheel::Down, col, row, MouseMods::NONE)
+            .expect("wheel scroll");
         std::thread::sleep(Duration::from_millis(120));
     }
 }
@@ -630,9 +635,9 @@ fn holla_fade_trust_body_wheel_matrix() {
     ]);
     support::run_canonical_live(&case, |s, variant| {
         if variant.rows <= 24 {
-            wheel_down(s, "Trust scope", 2);
+            wheel_down(s, "Trust scope", 2, case_timeout(variant));
         } else {
-            wheel_down(s, "id = \"deploy.preview\"", 2);
+            wheel_down(s, "id = \"deploy.preview\"", 2, case_timeout(variant));
         }
     });
 }
@@ -662,9 +667,9 @@ fn holla_fade_cleanup_list_wheel_matrix() {
         // hit_scroll's topmost-wins lookup, so the wheel lands on the blank
         // line below the needle (no child region there) instead.
         if case.rows <= 24 {
-            wheel_below(s, "Xcode DerivedData", 2);
+            wheel_below(s, "Xcode DerivedData", 2, case_timeout(case));
         } else {
-            wheel_below(s, "Yarn cache", 2);
+            wheel_below(s, "Yarn cache", 2, case_timeout(case));
         }
     });
 }

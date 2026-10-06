@@ -1,20 +1,51 @@
 //! Typed pointer/keyboard input. Replaces raw SGR-1006 escapes.
 //!
-//! [`Input`] builders (`move_to`/`down`/`up`/`drag`/`wheel`/`focus`/`key`,
-//! the tuiscotti verb set) check the terminal's reporting mode *before*
-//! any byte is sent and fail the case on refused input — never silently.
-//! Gestures termlens models (`drag`, `wheel`) delegate to [`Session`], which
-//! encodes per the app-enabled mode; the gaps it leaves (button-less move,
-//! split press/release, focus) are emitted as SGR here, mode-gated first.
+//! [`Input`] builders (`move_to`/`down`/`up`/`drag`/`wheel`/`focus`/`key`)
+//! check the terminal's reporting mode *before* any byte is sent and fail
+//! the case on refused input — never silently. Delivery goes through the
+//! typed [`Session`] calls, which encode per the app-enabled mode and
+//! refuse with their own mode errors as backstop; the gaps the old
+//! engine left (button-less move, split press/release, focus) are
+//! first-class calls now, so no raw SGR remains.
 //!
 //! Coordinates are `(col, row)`, 0-based, like every [`Session`] input call.
 //! This module never sleeps: pace with [`super::state_waits`], not pauses.
 
-use tuisnap::pty::{MouseButton, Scroll, Session};
-use tuisnap::termlens::{MouseMode, MouseModes};
+use tuiscotti::tui::{MouseButton, MouseMods, Session, Wheel};
 
-/// Button-less motion report code: release-all (3) + motion flag (32).
-const MOTION_CODE: u8 = 35;
+use super::key_chord;
+
+/// Enabled DEC tracking modes, sampled live (for assertions).
+pub type MouseModes = Vec<u16>;
+
+/// Collapsed reporting protocol (for assertions): the finest tracking the
+/// application enabled. Derived from the live DEC mode set.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MouseMode {
+    /// No mouse tracking.
+    None,
+    /// Click tracking (`?1000`): press + release, no motion.
+    Press,
+    /// Press-release tracking (`?1002`; button-motion collapses here —
+    /// the backend reports one number for both).
+    PressRelease,
+    /// Any-motion tracking (`?1003`).
+    AnyMotion,
+}
+
+impl MouseMode {
+    fn collapse(modes: &[u16]) -> Self {
+        if modes.contains(&1003) {
+            Self::AnyMotion
+        } else if modes.contains(&1002) {
+            Self::PressRelease
+        } else if modes.contains(&1000) {
+            Self::Press
+        } else {
+            Self::None
+        }
+    }
+}
 
 /// One typed input. Build with the verbs, deliver with [`Input::send`].
 #[derive(Debug, Clone, Copy)]
@@ -37,14 +68,14 @@ pub enum Input {
     Drag { from: (u16, u16), to: (u16, u16) },
     /// `notches` wheel steps at `(col, row)` (≥1). Needs any tracking.
     Wheel {
-        dir: Scroll,
+        dir: Wheel,
         col: u16,
         row: u16,
         notches: u32,
     },
     /// Focus in (`gained`) or out. Needs focus reporting (`?1004`).
     Focus { gained: bool },
-    /// Named key ([`Session::send_key`] vocabulary). No reporting mode.
+    /// Named key (the send-step vocabulary). No reporting mode.
     Key { name: &'static str },
 }
 
@@ -75,7 +106,7 @@ impl Input {
 
     /// One wheel notch at `(col, row)`; chain [`.notches(n)`](Self::notches).
     #[must_use]
-    pub fn wheel(dir: Scroll, col: u16, row: u16) -> Self {
+    pub fn wheel(dir: Wheel, col: u16, row: u16) -> Self {
         Self::Wheel {
             dir,
             col,
@@ -124,25 +155,25 @@ impl Input {
             Self::Move { col, row } => {
                 let modes = require_mode(s, "hover", ModeNeed::Motion);
                 require_in_grid("hover", modes.size, &[(col, row)]);
-                s.type_text(&sgr_report(MOTION_CODE, col, row, true))
+                s.mouse_move(col, row, MouseMods::NONE)
                     .unwrap_or_else(|e| panic!("hover to ({col}, {row}) failed: {e:#}"));
             }
             Self::Down { button, col, row } => {
                 let modes = require_mode(s, "press", ModeNeed::AnyTracking);
                 require_in_grid("press", modes.size, &[(col, row)]);
-                s.type_text(&sgr_report(button_code(button), col, row, true))
+                s.mouse_down(button, col, row, MouseMods::NONE)
                     .unwrap_or_else(|e| panic!("press at ({col}, {row}) failed: {e:#}"));
             }
             Self::Up { button, col, row } => {
                 let modes = require_mode(s, "release", ModeNeed::Release);
                 require_in_grid("release", modes.size, &[(col, row)]);
-                s.type_text(&sgr_report(button_code(button), col, row, false))
+                s.mouse_up(button, col, row, MouseMods::NONE)
                     .unwrap_or_else(|e| panic!("release at ({col}, {row}) failed: {e:#}"));
             }
             Self::Drag { from, to } => {
-                require_mode(s, "drag", ModeNeed::Release);
-                s.drag(from.0, from.1, to.0, to.1)
-                    .unwrap_or_else(|e| panic!("drag {from:?}→{to:?} failed: {e:#}"));
+                let modes = require_mode(s, "drag", ModeNeed::Release);
+                require_in_grid("drag", modes.size, &[from, to]);
+                super::drag_path(s, from, to);
             }
             Self::Wheel {
                 dir,
@@ -150,25 +181,27 @@ impl Input {
                 row,
                 notches,
             } => {
-                require_mode(s, "wheel", ModeNeed::AnyTracking);
+                let modes = require_mode(s, "wheel", ModeNeed::AnyTracking);
+                require_in_grid("wheel", modes.size, &[(col, row)]);
                 for n in 0..notches {
-                    s.scroll(col, row, dir).unwrap_or_else(|e| {
-                        panic!(
-                            "wheel notch {}/{notches} at ({col}, {row}) failed: {e:#}",
-                            n + 1
-                        )
-                    });
+                    s.mouse_wheel(dir, col, row, MouseMods::NONE)
+                        .unwrap_or_else(|e| {
+                            panic!(
+                                "wheel notch {}/{notches} at ({col}, {row}) failed: {e:#}",
+                                n + 1
+                            )
+                        });
                 }
             }
             Self::Focus { gained } => {
                 require_focus(s, gained);
                 let what = if gained { "focus-in" } else { "focus-out" };
-                let bytes = if gained { "\x1b[I" } else { "\x1b[O" };
-                s.type_text(bytes)
-                    .unwrap_or_else(|e| panic!("{what} failed: {e:#}"));
+                let outcome = if gained { s.focus_in() } else { s.focus_out() };
+                outcome.unwrap_or_else(|e| panic!("{what} failed: {e:#}"));
             }
             Self::Key { name } => {
-                s.send_key(name)
+                let chord = key_chord(name);
+                s.press(&chord)
                     .unwrap_or_else(|e| panic!("key `{name}` failed: {e:#}"));
             }
         }
@@ -178,11 +211,12 @@ impl Input {
 /// What reporting mode an input needs from the application.
 #[derive(Debug, Clone, Copy)]
 enum ModeNeed {
-    /// Any tracking at all (termlens `click`/`scroll` rule).
+    /// Any tracking at all (`?1000`/`?1002`/`?1003`).
     AnyTracking,
     /// Any-motion (`?1003`): only it reports button-less motion.
     Motion,
-    /// Press-release or finer (termlens `drag` rule: X10 has no release).
+    /// Press-release or finer (`?1000`/`?1002`/`?1003`): X10-style
+    /// press-only tracking has no release.
     Release,
 }
 
@@ -194,21 +228,19 @@ struct Sampled {
     size: (u16, u16),
 }
 
-/// Sample the live reporting state. The always-true predicate returns the
-/// current screen at once (termlens evaluates before any wait).
+/// Sample the live reporting state from one fresh observation.
 fn sample(s: &mut Session) -> Sampled {
-    let mut out = None;
-    s.wait_until(|screen| {
-        out = Some(Sampled {
-            modes: screen.mouse_modes(),
-            mode: screen.mouse_mode(),
-            focus: screen.focus_events(),
-            size: screen.size(),
-        });
-        true
-    })
-    .expect("sample live screen");
-    out.expect("always-true predicate samples the screen")
+    let obs = s
+        .observe_now()
+        .unwrap_or_else(|e| panic!("sample live screen: {e:#}"));
+    let mut modes = obs.state.modes.known().cloned().unwrap_or_default();
+    modes.sort_unstable();
+    Sampled {
+        mode: MouseMode::collapse(&modes),
+        focus: modes.contains(&1004),
+        size: (obs.screen.cols(), obs.screen.rows()),
+        modes,
+    }
 }
 
 /// Enabled tracking set (for assertions). See [`sample`].
@@ -236,14 +268,11 @@ fn require_mode(s: &mut Session, what: &str, need: ModeNeed) -> Sampled {
     let ok = match need {
         ModeNeed::AnyTracking => sampled.mode != MouseMode::None,
         ModeNeed::Motion => sampled.mode == MouseMode::AnyMotion,
-        ModeNeed::Release => matches!(
-            sampled.mode,
-            MouseMode::PressRelease | MouseMode::ButtonMotion | MouseMode::AnyMotion
-        ),
+        ModeNeed::Release => !matches!(sampled.mode, MouseMode::None),
     };
     assert!(
         ok,
-        "{what} refused: app reports in {:?} (set {:?}), needs {need:?}",
+        "{what} refused: app reports in {:?} (modes {:?}), needs {need:?}",
         sampled.mode, sampled.modes,
     );
     sampled
@@ -258,8 +287,7 @@ fn require_focus(s: &mut Session, gained: bool) {
     );
 }
 
-/// Fail the case when any point is outside the sampled grid (mirrors
-/// termlens `check_mouse_in_grid`, which raw SGR bypasses).
+/// Fail the case when any point is outside the sampled grid.
 fn require_in_grid(what: &str, (cols, rows): (u16, u16), pts: &[(u16, u16)]) {
     for &(col, row) in pts {
         assert!(
@@ -267,39 +295,6 @@ fn require_in_grid(what: &str, (cols, rows): (u16, u16), pts: &[(u16, u16)]) {
             "{what} at ({col}, {row}) is outside the {cols}x{rows} grid"
         );
     }
-}
-
-/// SGR-1006 report, byte-identical to termlens `mouse_sgr`: press is `M`,
-/// release keeps the button code with `m` (only the legacy form maps the
-/// release to 3). 1-based coordinates.
-fn sgr_report(code: u8, col: u16, row: u16, press: bool) -> String {
-    let suffix = if press { 'M' } else { 'm' };
-    format!(
-        "\x1b[<{code};{};{}{suffix}",
-        u32::from(col) + 1,
-        u32::from(row) + 1
-    )
-}
-
-/// xterm button code: Left 0, Middle 1, Right 2.
-fn button_code(button: MouseButton) -> u8 {
-    match button {
-        MouseButton::Left => 0,
-        MouseButton::Middle => 1,
-        MouseButton::Right => 2,
-        _ => panic!("unsupported mouse button: {button:?}"),
-    }
-}
-
-#[test]
-fn sgr_vectors_match_termlens() {
-    assert_eq!(sgr_report(0, 9, 6, true), "\x1b[<0;10;7M");
-    assert_eq!(sgr_report(0, 9, 6, false), "\x1b[<0;10;7m");
-    assert_eq!(sgr_report(64, 0, 0, true), "\x1b[<64;1;1M");
-    assert_eq!(sgr_report(MOTION_CODE, 4, 2, true), "\x1b[<35;5;3M");
-    assert_eq!(button_code(MouseButton::Left), 0);
-    assert_eq!(button_code(MouseButton::Middle), 1);
-    assert_eq!(button_code(MouseButton::Right), 2);
 }
 
 /// Live smoke: one session through all three helpers (PTY, ignored like
@@ -360,7 +355,7 @@ fn smoke_typed_helpers() {
     Input::move_to(col, row).send(&mut s);
 
     // Typed wheel + re-resolve after scroll.
-    Input::wheel(Scroll::Down, col, row).notches(2).send(&mut s);
+    Input::wheel(Wheel::Down, col, row).notches(2).send(&mut s);
     target.refresh(&mut s);
 
     // Typed key + target stability across focus motion.

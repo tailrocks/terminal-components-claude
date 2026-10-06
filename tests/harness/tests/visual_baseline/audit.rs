@@ -107,13 +107,18 @@ fn jackin_audit_accounts_matrix() {
             );
             let name = case.name.to_string();
             if !support::collect_matrix(&name, || {
+                let timeout = std::time::Duration::from_millis(case.timeout_ms);
                 let mut s = support::spawn(&case);
-                support::boot(&mut s, JACKIN_BOOT);
+                support::boot(&mut s, JACKIN_BOOT, timeout);
                 if rows <= 30 {
-                    s.wait_for_text("of 23")
-                        .unwrap_or_else(|e| panic!("accounts badge never rendered: {e:#}"));
+                    support::wait_screen(
+                        &mut s,
+                        timeout,
+                        "accounts badge never rendered",
+                        |screen| support::screen_text(screen).contains("of 23"),
+                    );
                 }
-                support::settle_and_gate(&mut s, &case.name);
+                support::settle_and_gate(&mut s, &case);
             }) {
                 failures.push(name);
             }

@@ -12,7 +12,7 @@
 //! buffer, so any 1-cell shift or overflow outside the widget area fails the
 //! surrounding-region check. Narrow fixtures (widths 4/3/2/1) pin clipping.
 //! Frames also go through the component capture path
-//! (`tuisnap::ratatui::from_buffer`) so state deltas are digest-exact.
+//! ([`support::capture_buffer`]) so state deltas are digest-exact.
 //!
 //! States a control cannot express are pinned as N/A with the reason, not
 //! silently skipped: Brand has no disabled/focus of its own (clickable-only),
@@ -29,7 +29,7 @@
 //!
 //! Evidence: every test writes its captured frames and a human-readable
 //! record under a unique run dir in `target/tuiscotti-actuals/` (gitignored
-//! scratch, like `target/tuisnap/`). The dir is printed via `eprintln`.
+//! scratch, like `target/tuiscotti/`). The dir is printed via `eprintln`.
 //!
 //! No snapshot gating here on purpose: these are headless contract tests in
 //! the default nextest run, plus ignored PTY needle probes for TooSmall.
@@ -57,9 +57,9 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
-use tuisnap::{Frame, Provenance};
+use tuiscotti::{Frame, Provenance};
 
-use crate::support::{HOLLA, JACKIN, SHOWCASE, TABLEPRO};
+use crate::support::{self, HOLLA, JACKIN, SHOWCASE, TABLEPRO};
 
 // ------------------------------------------------------------ harness --
 
@@ -134,14 +134,7 @@ fn row_text(buf: &Buffer, y: u16) -> String {
 }
 
 fn capture(buf: &Buffer) -> Frame {
-    let (cols, rows) = (buf.area.width, buf.area.height);
-    tuisnap::ratatui::from_buffer(
-        buf,
-        cols,
-        rows,
-        None,
-        Provenance::now("default", "control_states", vec![]),
-    )
+    support::capture_buffer(buf, Provenance::now("default", "control_states", vec![]))
 }
 
 /// Unique evidence dir for this process run (shared by the tests in this
@@ -2611,7 +2604,7 @@ fn hovered_delta_for_every_hoverable_control() {
 
 // ------------------------------------------------- TooSmall (PTY) --
 
-use tuisnap::pty::{PtyOptions, Session};
+use tuiscotti::tui::{Session, Tui};
 
 /// Spawn `bin` at `cols`x`rows`, wait for `needle`, settle and return the
 /// frame. Deliberately not a ported-matrix capture: no inventory names, no
@@ -2622,24 +2615,33 @@ fn spawn_frame(bin: &str, cols: u16, rows: u16, needle: &str) -> Frame {
         "--color".to_string(),
         "truecolor".to_string(),
     ];
-    let opts = PtyOptions {
-        cols,
-        rows,
-        timeout: Duration::from_millis(8_000),
-        ..PtyOptions::default()
-    }
-    .without_env("NO_COLOR")
-    .without_env("HOLLA_NO_MOTION")
-    .without_env("JACKIN_NO_MOTION")
-    .without_env("CLICOLOR_FORCE")
-    .without_env("FORCE_COLOR")
-    .with_env("HOLLA_NO_HISTORY", "1");
-    let mut s = Session::spawn(&argv, &opts)
+    let timeout = Duration::from_millis(8_000);
+    let mut s: Session = Tui::new(argv.clone())
+        .size(cols, rows)
+        .env("COLORTERM", "truecolor")
+        .env("LINES", rows.to_string())
+        .env("COLUMNS", cols.to_string())
+        .env_remove("NO_COLOR")
+        .env_remove("HOLLA_NO_MOTION")
+        .env_remove("JACKIN_NO_MOTION")
+        .env_remove("CLICOLOR_FORCE")
+        .env_remove("FORCE_COLOR")
+        .env("HOLLA_NO_HISTORY", "1")
+        .spawn()
         .unwrap_or_else(|e| panic!("spawn {bin} at {cols}x{rows} failed: {e:#}"));
-    s.wait_for_text(needle)
-        .unwrap_or_else(|e| panic!("{bin}: needle `{needle}` missing: {e:#}"));
-    s.wait_stable(Duration::from_millis(400))
-        .unwrap_or_else(|e| panic!("{bin}: never settled: {e:#}"))
+    support::wait_screen(
+        &mut s,
+        timeout,
+        &format!("{bin}: needle `{needle}` missing"),
+        |screen| support::screen_text(screen).contains(needle),
+    );
+    support::settle_frame(
+        &mut s,
+        Duration::from_millis(400),
+        timeout,
+        needle,
+        Provenance::now("tuiscotti-default", "pty", argv),
+    )
 }
 
 /// TooSmall is app-level (w < 72 or h < 20 in all four binaries): the notice

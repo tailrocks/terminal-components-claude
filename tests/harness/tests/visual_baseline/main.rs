@@ -1,26 +1,28 @@
 //! Visual-baseline suite: every capturable surface of the four binaries,
-//! driven as real processes in PTYs via the tuisnap library and gated
+//! driven as real processes in PTYs via the tuiscotti library and gated
 //! cell-exact (`.ansi`), content (`.txt`), render-level (`.html`) and
-//! pixel-exact (`.png`) against the approved frames in `snapshots/`
-//! (the grouped multi-artifact store; scratch under `target/tuisnap/`).
+//! pixel-exact (`.png`) against the approved frames in the repo-root
+//! `snapshots/` (the grouped multi-artifact store; scratch under this
+//! harness crate's `target/tuiscotti/`). Run from `tests/harness/`.
 //!
 //! This suite replaces the retired `tools/tuisnap_baseline.sh`; the capture
 //! matrix and its rationale live in `docs/baseline/tuisnap-coverage.md` and
 //! `docs/baseline/snapshots-v2.md` (grouped taxonomy). Capture names are
 //! grouped paths (`<app>/<sub_group>/<leaf>`); argv, boot needles, send steps
-//! and per-capture timeouts are the bash runner's, verbatim (via
-//! [`tuisnap::pty::run_once`], the same runner the `tuisnap run` CLI used);
-//! the `pointer` module adds the mouse/resize group the CLI could not
-//! express (hover, drag-select, wheel scroll-fade, resize sequences). The
-//! `audit` module generates the 10-fixture × 5 sizes × 5 colours audit
-//! matrix data-drivenly; the audit-flow variant matrices live in
-//! `showcase.rs` (keyboard) and `pointer.rs` (drag-select).
+//! and per-capture timeouts are the bash runner's, verbatim (via the
+//! [`support`] spawn/boot/drive/settle flow); the `pointer` module adds the
+//! mouse/resize group scripted runs could not express (hover, drag-select,
+//! wheel scroll-fade, resize sequences). The `audit` module generates the
+//! 10-fixture × 5 sizes × 5 colours audit matrix data-drivenly; the
+//! audit-flow variant matrices live in `showcase.rs` (keyboard) and
+//! `pointer.rs` (drag-select).
 //!
 //! Every capture test is `#[ignore]`d: default `cargo nextest run` compiles
 //! the suite and runs only the cheap non-PTY [`store_integrity`] check. Run
 //! the PTY baseline explicitly:
 //!
 //! ```sh
+//! cd tests/harness
 //! cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
 //! cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
 //! cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
@@ -28,8 +30,9 @@
 //!
 //! Gate policy (fail-closed): only `matched` passes. Pending and
 //! missing-approval captures fail until the whole suite is generated and
-//! explicitly blessed with `tuisnap accept --grouped --store snapshots
-//! --all`; drift after approval or a capture error also fails.
+//! explicitly blessed with `tuiscotti accept --grouped --store
+//! ../../snapshots --all` (from `tests/harness/`); drift after approval or
+//! a capture error also fails.
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
@@ -47,8 +50,8 @@ mod tablepro;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use tuisnap::grouped::{self, GroupedStore};
-use tuisnap::{Profile, VENDORED_FACES};
+use tuiscotti::grouped::{self, GroupedStore};
+use tuiscotti::{Profile, VENDORED_FACES};
 
 const STORE_EXTS: [&str; 4] = ["ansi", "txt", "png", "html"];
 
@@ -58,7 +61,7 @@ const STORE_EXTS: [&str; 4] = ["ansi", "txt", "png", "html"];
 #[test]
 fn store_integrity() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let approved = manifest.join("snapshots");
+    let approved = manifest.join("../../snapshots");
     let store = GroupedStore::new(&approved);
     let store_names: BTreeSet<String> = store
         .approved_names()
@@ -139,7 +142,7 @@ fn store_integrity() {
     );
 
     assert!(
-        !Path::new("shots").exists(),
+        !manifest.join("../../shots").exists(),
         "legacy shots/ corpus must be deleted"
     );
 }
@@ -197,18 +200,18 @@ fn posix_rel(root: &Path, path: &Path) -> String {
         .join("/")
 }
 
-/// Write a fast file-link index at `target/tuisnap/report.html`. Does not
-/// re-render PNGs and does not embed them. Per-capture `#[ignore]` tests are
-/// the gate; this only indexes on-disk actual vs approved bytes.
+/// Write a fast file-link index at `target/tuiscotti/report.html`. Does
+/// not re-render PNGs and does not embed them. Per-capture `#[ignore]`
+/// tests are the gate; this only indexes on-disk actual vs approved bytes.
 #[test]
-#[ignore = "rebuilds target/tuisnap/report.html; run after accept; skip with --skip rebuild_review_html"]
+#[ignore = "rebuilds target/tuiscotti/report.html; run after accept; skip with --skip rebuild_review_html"]
 fn rebuild_review_html() {
     let store = support::store();
     let mut renderer = Profile::default_profile()
         .renderer(&VENDORED_FACES)
         .expect("vendored faces parse");
     let report = store
-        .report_with(&mut renderer, 1.0, "tuisnap visual report")
+        .report_with(&mut renderer, 1.0, "tuiscotti visual report")
         .expect("report generation");
     eprintln!(
         "report: {} ({} captures, {} failed)",

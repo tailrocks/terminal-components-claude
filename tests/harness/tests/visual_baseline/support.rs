@@ -2,15 +2,18 @@
 //!
 //! One PTY per capture: spawn → boot needle (or idle if none) → send
 //! steps (120 ms pacing) → `wait_stable`(SETTLE) → frame → store gate.
-//! [`run_once`] runs the ported matrix; [`boot`]/[`drive`] mirror it for
-//! the pointer group, which needs the live session afterwards. A leading
-//! `wait:` needle is readiness — live clocks skip the 200 ms quiet window.
+//! [`run_and_assert`] runs the ported matrix; [`boot`]/[`drive`] mirror it
+//! for the pointer group, which needs the live session afterwards. A
+//! leading `wait:` needle is readiness — live clocks skip the 200 ms quiet
+//! window.
 //!
-//! Store: the grouped multi-artifact store (`tuisnap::grouped`). Approved
-//! frames live at `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}`
-//! (committed, exactly four artifacts per scenario); actuals, diffs and the
-//! HTML report are scratch under `target/tuisnap/` (gitignored). The capture
-//! name is the grouped path, e.g. `holla/parity/discovery/120x40/truecolor`.
+//! Store: the grouped multi-artifact store (`tuiscotti::grouped`). Approved
+//! frames live at the repo-root
+//! `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}` (committed,
+//! exactly four artifacts per scenario); actuals, diffs and the HTML report
+//! are scratch under this harness crate's `target/tuiscotti/` (gitignored).
+//! The capture name is the grouped path, e.g.
+//! `holla/parity/discovery/120x40/truecolor`.
 //!
 //! Colour hygiene per capture: ambient `NO_COLOR` is stripped (crossterm
 //! honours it by *presence* and would silently flatten every colour frame —
@@ -29,12 +32,12 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use tuisnap::grouped::{GroupedOutcome, GroupedStore};
-use tuisnap::pty::{PtyOptions, Session, run_once};
-use tuisnap::snapshot::Status;
-use tuisnap::{Frame, Profile, Renderer, VENDORED_FACES};
+use tuiscotti::grouped::{GroupedOutcome, GroupedStore};
+use tuiscotti::snapshot::Status;
+use tuiscotti::tui::{CancelToken, MouseButton, MouseMods, Session, Tui, WaitError};
+use tuiscotti::{Frame, Observation, Profile, Provenance, Renderer, Screen, VENDORED_FACES};
 
 pub const SHOWCASE: &str = env!("CARGO_BIN_EXE_showcase");
 pub const TABLEPRO: &str = env!("CARGO_BIN_EXE_tablepro");
@@ -46,6 +49,9 @@ pub const SETTLE: Duration = Duration::from_millis(400);
 /// TIMEOUT_MS default; boot-streaming screens override it per capture
 /// ([`Case::timeout`], the bash `CAP_TIMEOUT=` prefix).
 pub const TIMEOUT_MS: u64 = 8_000;
+/// Wait bound where no case timeout applies (helper-level waits). Matches
+/// the session deadline the old helpers inherited.
+pub const DEFAULT_WAIT: Duration = Duration::from_millis(TIMEOUT_MS);
 
 /// Canonical matrix axes: every canonical capture root and audit fixture is
 /// captured at all 5 sizes × 5 colours.
@@ -442,34 +448,81 @@ pub fn argv_for(case: &Case) -> Vec<String> {
     argv
 }
 
-pub fn opts_for(case: &Case) -> PtyOptions {
-    let opts = PtyOptions {
-        cols: case.cols,
-        rows: case.rows,
-        timeout: Duration::from_millis(case.timeout_ms),
-        ..PtyOptions::default()
+/// PTY builder for a case: geometry, the `TERM` preset from the default
+/// profile (`xterm-256color`, as before), the `COLORTERM`/`LINES`/`COLUMNS`
+/// presets, and the colour-hygiene env (see the module docs). Waits take
+/// their bound from [`Case::timeout_ms`] explicitly — sessions no longer
+/// carry a default deadline.
+pub fn tui_for(case: &Case) -> Tui {
+    let mut tui = Tui::new(argv_for(case))
+        .size(case.cols, case.rows)
+        .env("COLORTERM", "truecolor")
+        .env("LINES", case.rows.to_string())
+        .env("COLUMNS", case.cols.to_string())
+        .env_remove("NO_COLOR")
+        .env_remove("HOLLA_NO_MOTION")
+        .env_remove("JACKIN_NO_MOTION")
+        .env_remove("CLICOLOR_FORCE")
+        .env_remove("FORCE_COLOR")
+        .env("HOLLA_NO_HISTORY", "1");
+    if matches!(case.color, Color::NoColorEnv) {
+        tui = tui.env("NO_COLOR", "1");
     }
-    .without_env("NO_COLOR")
-    .without_env("HOLLA_NO_MOTION")
-    .without_env("JACKIN_NO_MOTION")
-    .without_env("CLICOLOR_FORCE")
-    .without_env("FORCE_COLOR")
-    .with_env("HOLLA_NO_HISTORY", "1");
-    match case.color {
-        Color::NoColorEnv => opts.with_env("NO_COLOR", "1"),
-        _ => opts,
-    }
+    tui
 }
 
-/// Boot needle first (a `wait:` step), then the sends — the bash runner's
-/// step order.
-fn steps_for(case: &Case) -> Vec<String> {
-    let mut steps = Vec::with_capacity(case.sends.len() + 1);
-    if !case.needle.is_empty() {
-        steps.push(format!("wait:{}", case.needle));
+/// One row of visible text: continuation cells skipped, symbols
+/// concatenated. Callers trim; matching never depends on trailing blanks.
+pub fn row_text(screen: &Screen, row: u16) -> String {
+    let mut s = String::new();
+    for x in 0..screen.cols() {
+        if let Some(c) = screen.get(x, row)
+            && !c.continuation
+        {
+            s.push_str(&c.symbol);
+        }
     }
-    steps.extend(case.sends.iter().map(|s| s.to_string()));
-    steps
+    s
+}
+
+/// Full visible text: rows joined with `\n` (the `wait_for_text` surface).
+pub fn screen_text(screen: &Screen) -> String {
+    (0..screen.rows())
+        .map(|y| row_text(screen, y))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// First occurrence of `needle` as `(row, col)` — top-to-bottom, leftmost
+/// per row. The byte offset becomes a display column via the prefix width,
+/// so wide-cell rows resolve exactly.
+pub fn screen_find(screen: &Screen, needle: &str) -> Option<(u16, u16)> {
+    if needle.is_empty() {
+        return None;
+    }
+    for row in 0..screen.rows() {
+        let line = row_text(screen, row);
+        if let Some(off) = line.find(needle) {
+            let col = unicode_width::UnicodeWidthStr::width(&line[..off]) as u16;
+            return Some((row, col));
+        }
+    }
+    None
+}
+
+/// Canonical frame from a live screen: cells copied verbatim (grid-local
+/// coordinates at origin (0,0)), cursor carried over. Provenance is
+/// informational (excluded from digests).
+pub fn frame_from_screen(screen: &Screen, provenance: Provenance) -> Frame {
+    let mut frame = Frame::blank(screen.cols(), screen.rows(), provenance);
+    frame.cells = screen.cells().to_vec();
+    frame.cursor = *screen.cursor();
+    frame
+}
+
+/// PTY capture provenance for a case (argv pinned, profile renamed).
+pub fn pty_provenance(case: &Case) -> Provenance {
+    Provenance::now("tuiscotti-default", "pty", argv_for(case))
 }
 
 thread_local! {
@@ -482,18 +535,25 @@ thread_local! {
     );
 }
 
-/// The grouped store: approved tree at `snapshots/` (committed), scratch
-/// (actuals, diffs, report) under `target/tuisnap/` (gitignored).
+/// The grouped store: approved tree at the repo-root `snapshots/`
+/// (committed), scratch (actuals, diffs, report) under this harness
+/// crate's `target/tuiscotti/` (gitignored). Both are anchored on
+/// `CARGO_MANIFEST_DIR`, never on the process working directory.
 pub fn store() -> GroupedStore {
-    GroupedStore::new(Path::new("snapshots"))
-        .with_actual_root(Path::new("target/tuisnap/actual"))
-        .with_diff_root(Path::new("target/tuisnap/diff"))
-        .with_report_path(Path::new("target/tuisnap/report.html"))
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let approved = root.join("../../snapshots");
+    let actual = root.join("target/tuiscotti/actual");
+    let diff = root.join("target/tuiscotti/diff");
+    let report = root.join("target/tuiscotti/report.html");
+    GroupedStore::new(&approved)
+        .with_actual_root(&actual)
+        .with_diff_root(&diff)
+        .with_report_path(&report)
 }
 
 /// Cell-exact (ansi) + content (txt) + render-level (html) byte gates +
 /// pixel-exact gate at threshold 1.0 through the thread's cached renderer.
-/// Writes `target/tuisnap/actual/` artifacts even when unmatched.
+/// Writes `target/tuiscotti/actual/` artifacts even when unmatched.
 pub fn gate(name: &str, frame: &Frame) -> GroupedOutcome {
     RENDERER
         .with(|r| store().check_with(&mut r.borrow_mut(), name, frame, 1.0))
@@ -502,9 +562,9 @@ pub fn gate(name: &str, frame: &Frame) -> GroupedOutcome {
 
 /// Fail-closed assertion: only `matched` passes. Missing approval remains
 /// pending after capture, but the test fails until the full suite is
-/// generated and explicitly blessed (`tuisnap accept --grouped` is the only
-/// bless, never the test); drift, dimension mismatch and corrupt approval
-/// also fail.
+/// generated and explicitly blessed (`tuiscotti accept --grouped` is the
+/// only bless, never the test); drift, dimension mismatch and corrupt
+/// approval also fail.
 pub fn assert_gated(outcome: &GroupedOutcome) {
     match outcome.status() {
         Status::Matched => eprintln!("baseline matched   {}", outcome.outcome.name),
@@ -516,11 +576,14 @@ pub fn assert_gated(outcome: &GroupedOutcome) {
     }
 }
 
-/// A ported-matrix capture: the same runner the `tuisnap run` CLI used.
+/// A ported-matrix capture: the bash runner's flow (boot needle or idle,
+/// sends, settle, gate) on one fresh session per capture.
 pub fn run_and_assert(case: &Case) {
-    let frame = run_once(&argv_for(case), &opts_for(case), &steps_for(case), SETTLE)
-        .unwrap_or_else(|e| panic!("capture `{}` failed: {e:#}", case.name));
-    assert_gated(&gate(&case.name, &frame));
+    let timeout = Duration::from_millis(case.timeout_ms);
+    let mut session = spawn(case);
+    boot(&mut session, case.needle, timeout);
+    drive(&mut session, case.sends, timeout);
+    settle_and_gate(&mut session, case);
 }
 
 /// Expand one representative static Case::new root through the full canonical
@@ -615,7 +678,7 @@ pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut S
             if !collect_matrix(&name, || {
                 let mut session = spawn_boot(&case);
                 interact(&mut session, &case);
-                settle_and_gate(&mut session, &case.name);
+                settle_and_gate(&mut session, &case);
             }) {
                 failures.push(name);
             }
@@ -645,7 +708,7 @@ pub fn run_canonical_live_with_compact_sends(
             if !collect_matrix(&name, || {
                 let mut session = spawn_boot(&case);
                 interact(&mut session, &case);
-                settle_and_gate(&mut session, &case.name);
+                settle_and_gate(&mut session, &case);
             }) {
                 failures.push(name);
             }
@@ -683,63 +746,263 @@ pub fn finish_matrix(failures: &[String]) {
     );
 }
 
+/// Bounded wait until `pred` holds, returning the outcome for callers
+/// that report their own timeout evidence.
+pub fn try_wait_screen(
+    s: &mut Session,
+    timeout: Duration,
+    pred: impl FnMut(&Screen) -> bool,
+) -> Result<Observation, WaitError> {
+    // The poll loop calls the predicate sequentially (no reentrancy), so a
+    // RefCell bridges the FnMut caller surface to the Fn wait surface.
+    let pred = RefCell::new(pred);
+    s.wait_predicate_timeout(|o| pred.borrow_mut()(&o.screen), timeout)
+}
+
+/// Bounded wait until `pred` holds on a fresh observation. Returns the
+/// matching observation; the predicate sees the live screen, as before.
+pub fn wait_screen(
+    s: &mut Session,
+    timeout: Duration,
+    what: &str,
+    pred: impl FnMut(&Screen) -> bool,
+) -> Observation {
+    try_wait_screen(s, timeout, pred).unwrap_or_else(|e| panic!("{what}: {e:#}"))
+}
+
+/// Bounded wait until the visible text contains `needle`.
+pub fn wait_for_text(s: &mut Session, needle: &str, timeout: Duration) {
+    wait_screen(
+        s,
+        timeout,
+        &format!("`{needle}` never appeared"),
+        |screen| screen_text(screen).contains(needle),
+    );
+}
+
+/// Translate one send step to the chord grammar: the old `ctrl-`/`alt-`/
+/// `shift-` modifier form becomes `ctrl+`/`alt+`/`shift+`, and `backtab`
+/// becomes `shift+tab` (same CSI Z bytes). All other names — lowercase
+/// keys, single chars, f1..f12 — parse verbatim.
+pub fn key_chord(step: &str) -> Cow<'_, str> {
+    if step.eq_ignore_ascii_case("backtab") {
+        return Cow::Borrowed("shift+tab");
+    }
+    if let Some((mods, _)) = step.rsplit_once('-')
+        && !mods.is_empty()
+        && mods
+            .split('-')
+            .all(|m| matches!(m.to_ascii_lowercase().as_str(), "ctrl" | "alt" | "shift"))
+    {
+        return Cow::Owned(step.replace('-', "+"));
+    }
+    Cow::Borrowed(step)
+}
+
 /// Spawn a case's session for the pointer group (mouse/resize captures need
 /// the live session after boot).
 pub fn spawn(case: &Case) -> Session {
-    Session::spawn(&argv_for(case), &opts_for(case))
+    tui_for(case)
+        .spawn()
         .unwrap_or_else(|e| panic!("spawn `{}` failed: {e:#}", case.name))
 }
 
 /// Central live-session setup: boot needle first, then all case sends. This
-/// mirrors [`run_once`] while handing the connected session back for pointer
-/// or manual-flow assertions.
+/// mirrors [`run_and_assert`] while handing the connected session back for
+/// pointer or manual-flow assertions.
 pub fn spawn_boot(case: &Case) -> Session {
+    let timeout = Duration::from_millis(case.timeout_ms);
     let mut session = spawn(case);
-    boot(&mut session, case.needle);
+    boot(&mut session, case.needle, timeout);
     if !case.sends.is_empty() {
-        drive(&mut session, case.sends);
+        drive(&mut session, case.sends, timeout);
     }
     session
 }
 
-/// Boot: needle first. Live clocks starve a quiet-window wait_idle.
-pub fn boot(session: &mut Session, needle: &str) {
+/// Boot: needle first. Live clocks starve a quiet-window wait.
+pub fn boot(session: &mut Session, needle: &str, timeout: Duration) {
     if !needle.is_empty() {
-        session
-            .wait_for_text(needle)
-            .unwrap_or_else(|e| panic!("boot needle `{needle}` never appeared: {e:#}"));
+        wait_for_text(session, needle, timeout);
         return;
     }
+    let cancel = CancelToken::new();
     session
-        .wait_idle(Duration::from_millis(200))
+        .wait_stable_quiet(
+            Instant::now() + timeout,
+            Duration::from_millis(200),
+            &cancel,
+        )
         .unwrap_or_else(|e| panic!("boot idle failed: {e:#}"));
 }
 
-/// `run_once`'s step loop on a live session, pacing included.
-pub fn drive(session: &mut Session, steps: &[&str]) {
+/// The step loop on a live session, pacing included: key names (chord
+/// grammar), `type:<text>`, `sleep:<ms>`, `wait:<needle>`.
+pub fn drive(session: &mut Session, steps: &[&str], timeout: Duration) {
     for step in steps {
         if let Some(ms) = step.strip_prefix("sleep:") {
             std::thread::sleep(Duration::from_millis(ms.parse().expect("sleep:<ms>")));
         } else if let Some(needle) = step.strip_prefix("wait:") {
-            session
-                .wait_for_text(needle)
-                .unwrap_or_else(|e| panic!("`wait:{needle}` timed out: {e:#}"));
+            wait_screen(
+                session,
+                timeout,
+                &format!("`wait:{needle}` timed out"),
+                |screen| screen_text(screen).contains(needle),
+            );
         } else if let Some(text) = step.strip_prefix("type:") {
-            session.type_text(text).expect("type_text");
+            session.send_text(text).expect("type_text");
             std::thread::sleep(Duration::from_millis(120));
         } else {
-            session.send_key(step).expect("send_key");
+            let chord = key_chord(step);
+            session
+                .press(&chord)
+                .unwrap_or_else(|e| panic!("key `{step}` failed: {e:#}"));
             std::thread::sleep(Duration::from_millis(120));
         }
     }
 }
 
-/// Settle the screen and gate the capture.
-pub fn settle_and_gate(session: &mut Session, name: &str) {
-    let frame = session
-        .wait_stable(SETTLE)
+/// Primary-button drag from `from` to `to`: press, one held-motion
+/// report per cell crossed (straight-line interpolation, as a terminal
+/// sends), release. Applications may act along the path, not just on
+/// its ends, so a single endpoint hop would under-report.
+pub fn drag_path(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
+    s.mouse_down(MouseButton::Left, from.0, from.1, MouseMods::NONE)
+        .unwrap_or_else(|e| panic!("drag press at {from:?} failed: {e:#}"));
+    for (col, row) in cells_between(from, to) {
+        s.mouse_drag(MouseButton::Left, col, row, MouseMods::NONE)
+            .unwrap_or_else(|e| panic!("drag motion to ({col}, {row}) failed: {e:#}"));
+    }
+    s.mouse_up(MouseButton::Left, to.0, to.1, MouseMods::NONE)
+        .unwrap_or_else(|e| panic!("drag release at {to:?} failed: {e:#}"));
+}
+
+/// Cells on the straight line from `from` to `to`, exclusive of `from`,
+/// inclusive of `to`: round-to-nearest on both axes so the short axis
+/// turns over mid-run. A drag to the same cell still reports one motion.
+fn cells_between(from: (u16, u16), to: (u16, u16)) -> Vec<(u16, u16)> {
+    let (from_col, from_row) = (i64::from(from.0), i64::from(from.1));
+    let (to_col, to_row) = (i64::from(to.0), i64::from(to.1));
+    let d_col = to_col - from_col;
+    let d_row = to_row - from_row;
+    let steps = d_col.abs().max(d_row.abs());
+    if steps == 0 {
+        return vec![to];
+    }
+    (1..=steps)
+        .map(|step| {
+            let col = from_col + (d_col * step + d_col.signum() * steps / 2) / steps;
+            let row = from_row + (d_row * step + d_row.signum() * steps / 2) / steps;
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+            (col as u16, row as u16)
+        })
+        .collect()
+}
+
+/// Settle the screen and return the settled frame: no new output for
+/// `quiet`, bounded by `timeout`.
+pub fn settle_frame(
+    session: &mut Session,
+    quiet: Duration,
+    timeout: Duration,
+    name: &str,
+    provenance: Provenance,
+) -> Frame {
+    let cancel = CancelToken::new();
+    let obs = session
+        .wait_stable_quiet(Instant::now() + timeout, quiet, &cancel)
         .unwrap_or_else(|e| panic!("`{name}` never settled: {e:#}"));
-    assert_gated(&gate(name, &frame));
+    frame_from_screen(&obs.screen, provenance)
+}
+
+/// Settle the screen and gate the capture.
+pub fn settle_and_gate(session: &mut Session, case: &Case) {
+    let frame = settle_frame(
+        session,
+        SETTLE,
+        Duration::from_millis(case.timeout_ms),
+        &case.name,
+        pty_provenance(case),
+    );
+    assert_gated(&gate(&case.name, &frame));
+}
+
+/// Capture a production (ratatui 0.30) buffer through the component path.
+/// tuiscotti 0.2.0 pins ratatui =0.29.0, so cells are adapted field-by-field
+/// onto a legacy buffer first; the canonical conversion (wide cells,
+/// continuations, cursor) stays inside `tuiscotti::ratatui::from_buffer`.
+pub fn capture_buffer(buf: &ratatui::buffer::Buffer, provenance: Provenance) -> Frame {
+    let area = buf.area;
+    let mut legacy = ratatui029::buffer::Buffer::empty(ratatui029::layout::Rect::new(
+        area.x,
+        area.y,
+        area.width,
+        area.height,
+    ));
+    for y in 0..area.height {
+        for x in 0..area.width {
+            let src = &buf[(x, y)];
+            let dst = &mut legacy[(x, y)];
+            dst.set_symbol(src.symbol());
+            dst.fg = map_color(src.fg);
+            dst.bg = map_color(src.bg);
+            dst.underline_color = map_color(src.underline_color);
+            dst.modifier = map_modifier(src.modifier);
+            dst.set_skip(matches!(
+                src.diff_option,
+                ratatui::buffer::CellDiffOption::Skip
+            ));
+        }
+    }
+    tuiscotti::ratatui::from_buffer(&legacy, area.width, area.height, None, provenance)
+}
+
+fn map_color(c: ratatui::style::Color) -> ratatui029::style::Color {
+    use ratatui::style::Color as New;
+    use ratatui029::style::Color as Old;
+    match c {
+        New::Reset => Old::Reset,
+        New::Black => Old::Black,
+        New::Red => Old::Red,
+        New::Green => Old::Green,
+        New::Yellow => Old::Yellow,
+        New::Blue => Old::Blue,
+        New::Magenta => Old::Magenta,
+        New::Cyan => Old::Cyan,
+        New::Gray => Old::Gray,
+        New::DarkGray => Old::DarkGray,
+        New::LightRed => Old::LightRed,
+        New::LightGreen => Old::LightGreen,
+        New::LightYellow => Old::LightYellow,
+        New::LightBlue => Old::LightBlue,
+        New::LightMagenta => Old::LightMagenta,
+        New::LightCyan => Old::LightCyan,
+        New::White => Old::White,
+        New::Rgb(r, g, b) => Old::Rgb(r, g, b),
+        New::Indexed(i) => Old::Indexed(i),
+    }
+}
+
+fn map_modifier(m: ratatui::style::Modifier) -> ratatui029::style::Modifier {
+    use ratatui::style::Modifier as New;
+    use ratatui029::style::Modifier as Old;
+    let mut out = Old::empty();
+    for (new, old) in [
+        (New::BOLD, Old::BOLD),
+        (New::DIM, Old::DIM),
+        (New::ITALIC, Old::ITALIC),
+        (New::UNDERLINED, Old::UNDERLINED),
+        (New::SLOW_BLINK, Old::SLOW_BLINK),
+        (New::RAPID_BLINK, Old::RAPID_BLINK),
+        (New::REVERSED, Old::REVERSED),
+        (New::HIDDEN, Old::HIDDEN),
+        (New::CROSSED_OUT, Old::CROSSED_OUT),
+    ] {
+        if m.contains(new) {
+            out.insert(old);
+        }
+    }
+    out
 }
 
 /// One `#[test]` per canonical root, generated from the representative static

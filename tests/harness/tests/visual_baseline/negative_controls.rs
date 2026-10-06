@@ -8,13 +8,13 @@
 //! states, a dropped input, and a timestamp-only change.
 //!
 //! Isolation contract: all checks run against small synthetic [`Frame`]s and
-//! temp artifact copies under `target/tuisnap-negative/` (gitignored
+//! temp artifact copies under `target/tuiscotti-negative/` (gitignored
 //! scratch). Nothing here reads `snapshots/` as approval state and nothing
 //! writes outside its own temp dir. No production code is mutated.
 //!
 //! Gate reference: grouped store (`.ansi` cell-exact + `.txt` content +
 //! `.html` render-level + `.png` pixel-exact at threshold 1.0) and the
-//! classic [`Store`] (frame JSON + PNG). See `tuisnap::grouped` docs.
+//! classic [`Store`] (frame JSON + PNG). See `tuiscotti::grouped` docs.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -28,10 +28,12 @@ use junie_tui::widgets::button::Button;
 use junie_tui::widgets::progress::SPINNER;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use tuisnap::grouped::GroupedStore;
-use tuisnap::pty::{PtyOptions, Session};
-use tuisnap::snapshot::{Status, Store};
-use tuisnap::{Cell, Color, CursorStyle, Frame, Profile, Provenance, Renderer, VENDORED_FACES};
+use tuiscotti::grouped::GroupedStore;
+use tuiscotti::snapshot::{Status, Store};
+use tuiscotti::tui::{MouseButton, MouseMods, Tui};
+use tuiscotti::{Cell, Color, CursorStyle, Frame, Profile, Provenance, Renderer, VENDORED_FACES};
+
+use crate::support;
 
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -42,7 +44,7 @@ fn scratch_dir(test: &str) -> PathBuf {
         .unwrap_or(0);
     let n = COUNTER.fetch_add(1, Ordering::Relaxed);
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("target/tuisnap-negative")
+        .join("target/tuiscotti-negative")
         .join(format!("{test}_{}_{nanos}_{n}", std::process::id()));
     std::fs::create_dir_all(&dir).expect("create scratch dir");
     dir
@@ -50,7 +52,7 @@ fn scratch_dir(test: &str) -> PathBuf {
 
 fn prov(source: &str) -> Provenance {
     Provenance {
-        tool: "tuisnap".to_string(),
+        tool: "tuiscotti".to_string(),
         tool_version: "test".to_string(),
         profile: "test".to_string(),
         source: source.to_string(),
@@ -536,23 +538,29 @@ fn cat_binary() -> &'static str {
 
 #[test]
 fn negative_input_without_terminal_mode_fails_usefully() {
-    // `cat` never enables bracketed paste, so a literal paste must fail
-    // with a mode error instead of silently injecting input.
-    let opts = PtyOptions {
-        cols: 80,
-        rows: 24,
-        timeout: Duration::from_secs(2),
-        ..PtyOptions::default()
-    };
-    let mut s = Session::spawn(&[cat_binary().to_string()], &opts).expect("spawn cat");
-    let err = s.paste_literal("hello").unwrap_err().to_string();
+    // `cat` never enables focus tracking or mouse reporting, so focus and
+    // click input must fail with a mode error instead of silently
+    // injecting input.
+    let s = Tui::new([cat_binary()])
+        .size(80, 24)
+        .spawn()
+        .expect("spawn cat");
+    let err = s.focus_in().unwrap_err().to_string();
     assert!(
-        err.contains("bracketed paste is not enabled"),
+        err.contains("focus tracking (DEC 1004) not enabled"),
         "useful mode error: {err}"
+    );
+    let err_click = s
+        .click(MouseButton::Left, 0, 0, MouseMods::NONE)
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err_click.contains("mouse reporting (DEC 1000/1002/1003) not enabled"),
+        "useful mode error: {err_click}"
     );
 
     // Unknown key names are rejected loudly, never swallowed.
-    let err2 = s.send_key("bogus-key-xyz-123").unwrap_err().to_string();
+    let err2 = s.press("bogus-key-xyz-123").unwrap_err().to_string();
     assert!(err2.contains("unknown key"), "useful key error: {err2}");
 }
 
@@ -579,20 +587,24 @@ fn negative_ambiguous_target_fails_usefully() {
 fn negative_bounded_readiness_timeout_fails_fast() {
     // A needle that never appears must fail on the bounded deadline with
     // screen evidence, never hang and never pass silently.
-    let opts = PtyOptions {
-        cols: 80,
-        rows: 24,
-        timeout: Duration::from_millis(400),
-        ..PtyOptions::default()
-    };
-    let mut s = Session::spawn(&[cat_binary().to_string()], &opts).expect("spawn cat");
+    let s = Tui::new([cat_binary()])
+        .size(80, 24)
+        .spawn()
+        .expect("spawn cat");
     let start = Instant::now();
     let err = s
-        .wait_for_text("needle-never-appears-xyz-123")
+        .wait_predicate_timeout(
+            |o| support::screen_text(&o.screen).contains("needle-never-appears-xyz-123"),
+            Duration::from_millis(400),
+        )
         .unwrap_err()
         .to_string();
     let elapsed = start.elapsed();
     assert!(!err.is_empty(), "timeout error carries evidence");
+    assert!(
+        err.contains("timed out"),
+        "timeout error names itself: {err}"
+    );
     assert!(
         elapsed < Duration::from_secs(10),
         "readiness wait must be bounded, took {elapsed:?}"
@@ -627,7 +639,7 @@ fn render_button(tick: u64, on: Option<bool>, busy: bool) -> Frame {
         &mut ring,
     );
     button.render(area, &mut buf, &mut ctx, theme.canvas);
-    tuisnap::ratatui::from_buffer(&buf, 24, 1, None, prov("negative-button"))
+    support::capture_buffer(&buf, prov("negative-button"))
 }
 
 #[test]
@@ -671,12 +683,11 @@ fn negative_dropped_input_fails_postcondition() {
     assert!(err.contains("cell count"), "{err}");
 
     // Dropped command: empty argv never spawns.
-    let opts = PtyOptions::default();
-    let err2 = Session::spawn(&[], &opts)
-        .err()
-        .expect("empty argv must fail")
+    let err2 = Tui::new(Vec::<String>::new())
+        .spawn()
+        .expect_err("empty argv must fail")
         .to_string();
-    assert!(err2.contains("empty command"), "{err2}");
+    assert!(err2.contains("empty argv"), "{err2}");
 
     // Dropped actuals: accept with nothing captured fails.
     let dir = scratch_dir("accept-empty");

@@ -1,74 +1,75 @@
 //! State/frame waits. Replaces fixed sleeps-as-success.
 //!
 //! Every wait is bounded and fail-closed: presence/absence/geometry waits
-//! ride the session deadline, [`wait_frame_where`] and the phase checks
-//! take an explicit per-call deadline. Sleeps appear only as the 25 ms
-//! poll interval inside [`wait_frame_where`] — never as success.
+//! ride [`DEFAULT_WAIT`](super::DEFAULT_WAIT), [`wait_frame_where`] and the
+//! phase checks take an explicit per-call deadline. Sleeps appear only as
+//! the 25 ms poll interval inside [`wait_frame_where`] — never as success.
 //!
 //! Quiet-screen waits are for quiet states only: [`wait_quiet`] on a
 //! live-clock/spinner screen times out *by design* — assert animated
 //! states with [`wait_phase`]/[`wait_phase_change`] instead.
+//!
+//! Repaint counting has no backend: synchronized output (DEC 2026) is
+//! unsupported, so there is no repaint-wait helper — poll frames instead.
 
 use std::time::{Duration, Instant};
 
-use tuisnap::pty::Session;
-use tuisnap::Frame;
+use tuiscotti::tui::Session;
+use tuiscotti::{Frame, Provenance};
+
+use super::{DEFAULT_WAIT, frame_from_screen, screen_text, wait_screen};
 
 /// Poll interval for the [`Frame`]-based waits. A wake cadence, not a verdict.
 const POLL: Duration = Duration::from_millis(25);
 
-/// Wait (session deadline) for `needle` on screen. `what` names the state.
-pub fn wait_state(s: &mut Session, needle: &str, what: &str) {
-    s.wait_for_text(needle)
-        .unwrap_or_else(|e| panic!("{what}: `{needle}` never appeared: {e:#}"));
+fn polled_provenance() -> Provenance {
+    Provenance::now("tuiscotti-default", "state-waits", vec![])
 }
 
-/// Wait (session deadline) for `needle` to leave the screen. Fails when
+/// Wait ([`DEFAULT_WAIT`]) for `needle` on screen. `what` names the state.
+pub fn wait_state(s: &mut Session, needle: &str, what: &str) {
+    wait_screen(
+        s,
+        DEFAULT_WAIT,
+        &format!("{what}: `{needle}` never appeared"),
+        |screen| screen_text(screen).contains(needle),
+    );
+}
+
+/// Wait ([`DEFAULT_WAIT`]) for `needle` to leave the screen. Fails when
 /// it never appeared first — a wait on an absence that was never present
 /// passes vacuously and proves nothing.
 pub fn wait_gone(s: &mut Session, needle: &str, what: &str) {
-    let mut seen = false;
-    s.wait_until(|screen| {
-        seen = screen.contains(needle);
-        true
-    })
-    .expect("sample live screen");
+    let seen = screen_text(
+        &s.snapshot()
+            .unwrap_or_else(|e| panic!("{what}: live sample failed: {e:#}")),
+    )
+    .contains(needle);
     assert!(
         seen,
         "{what}: `{needle}` never appeared — nothing to expire (vacuous absence)"
     );
-    s.wait_until(|screen| !screen.contains(needle))
-        .unwrap_or_else(|e| panic!("{what}: `{needle}` never expired: {e:#}"));
+    wait_screen(
+        s,
+        DEFAULT_WAIT,
+        &format!("{what}: `{needle}` never expired"),
+        |screen| !screen_text(screen).contains(needle),
+    );
 }
 
-/// Wait (session deadline) for the emulator to report `cols`×`rows`.
+/// Wait ([`DEFAULT_WAIT`]) for the emulator to report `cols`×`rows`.
 pub fn wait_size(s: &mut Session, cols: u16, rows: u16, what: &str) {
-    s.wait_until(|screen| screen.size() == (cols, rows))
-        .unwrap_or_else(|e| panic!("{what}: never reached {cols}x{rows}: {e:#}"));
-}
-
-/// Wait (session deadline) for the repaint count to advance by `n` — the
-/// proof an input made the app paint. Counts DEC 2026 synchronized
-/// updates only: the current apps never emit them (measured: no advance
-/// after key input on showcase), so this is for future DEC 2026 emitters —
-/// the timeout names that (not a hang, a diagnosis).
-pub fn wait_repaints(s: &mut Session, n: u64, what: &str) {
-    assert!(n >= 1, "{what}: wait_repaints needs ≥1 repaint, got {n}");
-    let mut before = 0;
-    s.wait_until(|screen| {
-        before = screen.repaints();
-        true
-    })
-    .expect("sample live screen");
-    s.wait_until(|screen| screen.repaints() >= before + n)
-        .unwrap_or_else(|e| {
-            panic!("{what}: no {n} repaint(s) after {before} (app may not emit DEC 2026): {e:#}")
-        });
+    wait_screen(
+        s,
+        DEFAULT_WAIT,
+        &format!("{what}: never reached {cols}x{rows}"),
+        |screen| screen.cols() == cols && screen.rows() == rows,
+    );
 }
 
 /// Poll [`Session::snapshot`] until `pred` holds or `timeout` passes.
-/// The bounded primitive for [`Frame`]-shaped assertions termlens
-/// predicates cannot name; returns the matching frame. `what` names it.
+/// The bounded primitive for [`Frame`]-shaped assertions predicates
+/// cannot name; returns the matching frame. `what` names it.
 pub fn wait_frame_where(
     s: &mut Session,
     timeout: Duration,
@@ -76,7 +77,14 @@ pub fn wait_frame_where(
     mut pred: impl FnMut(&Frame) -> bool,
 ) -> Frame {
     let deadline = Instant::now() + timeout;
-    let mut frame = s.snapshot();
+    let sample = |s: &Session| {
+        frame_from_screen(
+            &s.snapshot()
+                .unwrap_or_else(|e| panic!("{what}: live sample failed: {e:#}")),
+            polled_provenance(),
+        )
+    };
+    let mut frame = sample(s);
     loop {
         if pred(&frame) {
             return frame;
@@ -89,7 +97,7 @@ pub fn wait_frame_where(
             );
         }
         std::thread::sleep(POLL);
-        frame = s.snapshot();
+        frame = sample(s);
     }
 }
 
@@ -140,11 +148,9 @@ pub fn wait_phase_change(
         .unwrap_or_else(|| panic!("{what}: cell ({col}, {row}) vanished after changing"))
 }
 
-/// Settle a quiet state and return the gated frame. Call only when the
+/// Settle a quiet state and return the settled frame. Call only when the
 /// target state is quiet (no clocks, spinners, streams): on an animated
 /// screen this times out by design — use the phase checks there.
 pub fn wait_quiet(s: &mut Session, quiet: Duration, what: &str) -> Frame {
-    s.wait_stable(quiet).unwrap_or_else(|e| {
-        panic!("{what}: never settled (animated state? use phase waits): {e:#}")
-    })
+    super::settle_frame(s, quiet, DEFAULT_WAIT, what, polled_provenance())
 }
