@@ -152,7 +152,9 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         )
         .when(
             StateFlags::DISABLED,
-            p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),
+            p().set_fg(Role::DisabledFg)
+                .set_bg(Role::CurrentSurface)
+                .remove(Modifier::BOLD),
         ),
         _ => part(
             m,
@@ -937,21 +939,17 @@ mod tests {
     /// Parts where a hovered, disabled control **loses its disabled background
     /// to the hover plane today**, found by the test below.
     ///
-    /// These three variants declare a `DISABLED` rule that sets no background,
-    /// so the background they show when disabled comes from the family-level
-    /// `DISABLED` rule — and §11.3 applies every *family* rule before every
-    /// *variant* rule, so the variant's own `HOVERED` background lands after
-    /// it. Declaration order inside this file cannot fix that; only a recipe
-    /// change can, and a recipe change is a visual change needing a numbered
-    /// §20.10 classification.
+    /// Empty: every QUIET-arm (`SUBTLE`/`QUIET`/`GHOST`) `BUTTON/CONTAINER`
+    /// `DISABLED` rule now sets its own background (`CurrentSurface`, Q65-S2
+    /// G4), so the variant rule — applied after the family rules per §11.3,
+    /// and after the variant's own `HOVERED` rule by declaration order —
+    /// wins the bg slot over both the family `DisabledBg` and the hover
+    /// plane. Non-listed parts with a speaking `DISABLED` bg take the
+    /// `both.bg == only.bg` arm of the test below.
     ///
     /// The list can only shrink: the test asserts each entry is **still**
     /// broken, so fixing one without deleting its entry fails.
-    const DISABLED_BG_LOST_TO_HOVER: [(Family, Variant, Part); 3] = [
-        (Family::BUTTON, Variant::SUBTLE, Part::CONTAINER),
-        (Family::BUTTON, Variant::QUIET, Part::CONTAINER),
-        (Family::BUTTON, Variant::GHOST, Part::CONTAINER),
-    ];
+    const DISABLED_BG_LOST_TO_HOVER: [(Family, Variant, Part); 0] = [];
 
     /// The shipped consequence of the ordering above: a hovered *and* disabled
     /// part keeps every slot its `DISABLED` rules write.
@@ -1657,6 +1655,153 @@ mod tests {
         for live in q65s1_pressed_live() {
             let r = q65s1_container(&theme, Variant::PRIMARY, live);
             assert_eq!(r.style.fg, Some(Color::Black), "Ansi16 PRIMARY pressed fg");
+        }
+    }
+
+    // Q65-S2: QUIET-arm DISABLED bg = CurrentSurface (G4). Each test resolves
+    // `Family::BUTTON / Part::CONTAINER` through `Theme::junie()`. The dialog
+    // plane is `Surface::Elevated` (CARD) — `Dialog` draws its content under
+    // `with_surface(Surface::Elevated, …)` (`dialog.rs:782`, asserted `:1059`).
+    // Oracle: forced-disabled confirm/Cancel @TrueColor — label bg CARD
+    // `Rgb(24,24,27)`, fg `Rgb(77,77,77)` (Q64 G4 MATCH-LEGACY). Label cells
+    // inherit the container fill through paint (`button.rs` fill + LABEL
+    // overlay; Q63 C4 400/400), so the CONTAINER resolve is the pin.
+    fn q65s2_container(
+        theme: &Theme,
+        v: Variant,
+        live: StateFlags,
+        surface: Surface,
+    ) -> crate::Resolved {
+        theme.resolve(Family::BUTTON, v, Part::CONTAINER, live, surface)
+    }
+
+    fn q65s2_quiet_arm() -> [Variant; 3] {
+        [Variant::SUBTLE, Variant::QUIET, Variant::GHOST]
+    }
+
+    /// G4: QUIET-arm DISABLED bg is the dialog plane (CARD), not the family
+    /// DEFAULT DISABLED `DisabledBg` (OVERLAY). The QUIET-arm patch is fg-only
+    /// at base, so the family bg wins by default.
+    #[test]
+    fn q65s2_g4_quiet_disabled_bg_is_dialog_plane_card() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for v in q65s2_quiet_arm() {
+            let r = q65s2_container(&theme, v, StateFlags::DISABLED, Surface::Elevated);
+            assert_eq!(
+                r.style.bg,
+                Some(Color::Rgb(24, 24, 27)),
+                "{v:?} disabled bg on the dialog plane"
+            );
+            assert_eq!(
+                r.style.fg,
+                Some(Color::Rgb(77, 77, 77)),
+                "{v:?} disabled fg on the dialog plane"
+            );
+        }
+    }
+
+    /// G4 reconciled with S0(b): legacy disabled-Subtle keeps `bg` on every
+    /// plane (`src/theme.rs:408-415`; probed canvas→canvas, CARD→CARD,
+    /// CHROME→CHROME), while non-Subtle takes `lift(bg)`. The fix matches
+    /// the keep-`bg` half exactly; the `lift(bg)` half is G7 (binding layer,
+    /// S5 slice), deliberately not pinned here.
+    #[test]
+    fn q65s2_g4_quiet_disabled_keeps_bg_on_every_plane() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for (surface, want) in [
+            (Surface::Canvas, Color::Rgb(0, 0, 0)),
+            (Surface::Surface, Color::Rgb(17, 17, 17)),
+            (Surface::Elevated, Color::Rgb(24, 24, 27)),
+        ] {
+            for v in q65s2_quiet_arm() {
+                let r = q65s2_container(&theme, v, StateFlags::DISABLED, surface);
+                assert_eq!(r.style.bg, Some(want), "{v:?} disabled bg on {surface:?}");
+            }
+        }
+    }
+
+    /// HOLD: DISABLED fg is untouched by the bg fix, on every variant.
+    #[test]
+    fn q65s2_hold_disabled_fg_unchanged() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for v in [
+            Variant::DEFAULT,
+            Variant::PRIMARY,
+            Variant::SECONDARY,
+            Variant::DANGER,
+            Variant::SUBTLE,
+            Variant::QUIET,
+            Variant::GHOST,
+            Variant::TOGGLE,
+        ] {
+            let r = q65s2_container(&theme, v, StateFlags::DISABLED, Surface::Elevated);
+            assert_eq!(
+                r.style.fg,
+                Some(Color::Rgb(77, 77, 77)),
+                "{v:?} disabled fg"
+            );
+        }
+    }
+
+    /// HOLD: non-QUIET arms keep the `DisabledBg` (OVERLAY) binding on the
+    /// dialog plane. Their canvas value (`lift(canvas)` = CARD per S0(b)) is
+    /// G7 territory — the binding layer is untouched in this slice.
+    #[test]
+    fn q65s2_hold_nonquiet_disabled_bg_stays_overlay() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for v in [
+            Variant::DEFAULT,
+            Variant::PRIMARY,
+            Variant::SECONDARY,
+            Variant::DANGER,
+            Variant::TOGGLE,
+        ] {
+            let r = q65s2_container(&theme, v, StateFlags::DISABLED, Surface::Elevated);
+            assert_eq!(
+                r.style.bg,
+                Some(Color::Rgb(39, 39, 42)),
+                "{v:?} disabled bg"
+            );
+        }
+    }
+
+    /// HOLD: QUIET-arm enabled states are untouched (the fix adds a bg slot
+    /// to the DISABLED patch only). Base fg is Secondary (`WHITE_70`);
+    /// HOVERED bg is `RaisedSurface` = `raise(Elevated)` = OVERLAY.
+    #[test]
+    fn q65s2_hold_quiet_enabled_states_unchanged() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for v in q65s2_quiet_arm() {
+            let base = q65s2_container(&theme, v, StateFlags::empty(), Surface::Elevated);
+            assert_eq!(
+                base.style.fg,
+                Some(Color::Rgb(179, 179, 179)),
+                "{v:?} base fg"
+            );
+            assert_eq!(base.style.bg, Some(Color::Rgb(24, 24, 27)), "{v:?} base bg");
+            let hov = q65s2_container(&theme, v, StateFlags::HOVERED, Surface::Elevated);
+            assert_eq!(
+                hov.style.fg,
+                Some(Color::Rgb(255, 255, 255)),
+                "{v:?} hovered fg"
+            );
+            assert_eq!(
+                hov.style.bg,
+                Some(Color::Rgb(39, 39, 42)),
+                "{v:?} hovered bg"
+            );
+            let foc = q65s2_container(&theme, v, StateFlags::FOCUSED, Surface::Elevated);
+            assert!(q65s1_bold_on(&foc), "{v:?} focused keeps BOLD");
         }
     }
 }
