@@ -935,7 +935,7 @@ impl<'a> Dialog<'a> {
                                 width: key_width,
                                 ..r
                             };
-                            let style = ui.resolve(
+                            let style = ui.style(
                                 Family::BUTTON,
                                 self.variant_of(a),
                                 Part::LABEL,
@@ -1645,6 +1645,43 @@ mod tests {
             .remove_component(dialog().action_id(0), QUICK);
         let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(5)));
         assert_eq!(runtime.app().chosen, None);
+    }
+
+    /// The chord hint paints with the memoized [`Ui::style`] path, reusing
+    /// the entry `Button::draw` already resolved for
+    /// `(BUTTON, variant, LABEL, state)`: adding a chord costs one memo hit
+    /// and zero misses.
+    #[test]
+    fn chord_hint_reuses_the_button_label_memo_entry() {
+        const SAVE: ActionKey = ActionKey::custom("dialog.save");
+        const PLAIN: [Action<'static>; 1] = [Action::new(SAVE, "Save")];
+        const CHORDED: [Action<'static>; 1] =
+            [Action::new(SAVE, "Save").chord(Chord::key(KeyCode::F(2)))];
+
+        fn stats(actions: &[Action<'static>]) -> (u64, u64) {
+            let (mut rt, mut buf) = scene();
+            let st = DialogState::default();
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                Dialog::new(DLG)
+                    .actions(actions)
+                    .body_rows(0)
+                    .draw(ui, SCREEN, &st, |_, _| {});
+            })
+            .commit_presented();
+            rt.style_cache_stats()
+        }
+
+        let (plain_hits, plain_misses) = stats(&PLAIN);
+        let (chord_hits, chord_misses) = stats(&CHORDED);
+        assert_eq!(
+            chord_misses, plain_misses,
+            "the chord hint resolved a new entry instead of reusing the button label one"
+        );
+        assert_eq!(
+            chord_hits,
+            plain_hits + 1,
+            "the chord hint missed the button label memo entry"
+        );
     }
 
     /// A reference rendering is a picture, not a control at any depth. The
