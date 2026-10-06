@@ -1,13 +1,16 @@
 //! Multi-column key-reference overlay (`COMPONENT_ARCHITECTURE.md` §14.2
 //! J5, §18.3 #18, Appendix A 4F).
 
+extern crate alloc;
+
+use alloc::format;
 use core::fmt;
 
 use ratatui_core::layout::Rect;
 
 use super::keyhint::HintText;
 use super::scroll_region::ScrollRegion;
-use super::{Acc, PartStyle, SlotFn, first_row, shift};
+use super::{Acc, PartStyle, SlotFn, first_row};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -229,6 +232,7 @@ pub struct HelpOverlay<'a> {
     id: Id,
     scope: &'a str,
     sections: &'a [HelpSection<'a>],
+    size: Option<(u16, u16)>,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -270,10 +274,18 @@ impl<'a> HelpOverlay<'a> {
             id,
             scope,
             sections,
+            size: None,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
         }
+    }
+
+    /// Override the layer size.
+    #[must_use]
+    pub const fn size(mut self, width: u16, height: u16) -> Self {
+        self.size = Some((width, height));
+        self
     }
 
     /// Instance patch.
@@ -301,8 +313,11 @@ impl<'a> HelpOverlay<'a> {
 
     /// Fixed request supplied to the one layer resolver.
     pub fn measured_size(&self, cx: &Cx<'_>) -> LayerSize {
+        if let Some((width, height)) = self.size {
+            return LayerSize::Fixed(width, height);
+        }
         let d = cx.design();
-        let cols = columns_for(d.size.dialog_width_wide.saturating_sub(2));
+        let cols = columns_for(d.size.dialog_width_wide.saturating_sub(6));
         let content = self.column_rows(cols).min(usize::from(u16::MAX)) as u16;
         let max_body = d.size.popup_max_rows.saturating_mul(2).max(8);
         LayerSize::Fixed(
@@ -408,32 +423,106 @@ impl<'a> HelpOverlay<'a> {
             if inner.is_empty() {
                 return;
             }
-            let title_row = first_row(inner);
-            self.paint_text(ui, Part::TITLE, title_row, "Keyboard shortcuts", live);
-            let scope_row = first_row(Rect {
-                y: inner.y.saturating_add(1),
-                ..inner
-            });
-            self.paint_text(ui, Part::DETAIL, scope_row, self.scope, live);
-            let body = Rect {
-                y: inner.y.saturating_add(2),
-                height: inner.height.saturating_sub(2),
-                ..inner
-            };
-            let scrollbar = self.scrollbar();
-            let columns = columns_for(body.width);
+
+            let content_area = Rect::new(
+                area.x.saturating_add(3),
+                area.y.saturating_add(1),
+                area.width.saturating_sub(6),
+                area.height.saturating_sub(2),
+            );
+            if content_area.is_empty() {
+                return;
+            }
+            let body_h = content_area.height.saturating_sub(1);
+            let hint_row = Rect::new(
+                content_area.x,
+                content_area.bottom().saturating_sub(1),
+                content_area.width,
+                1,
+            );
+            self.paint_text(
+                ui,
+                Part::DETAIL,
+                hint_row,
+                "↑↓ Scroll · Esc Close",
+                StateFlags::empty(),
+            );
+            ui.register_decor(self.id, PartRef::of(Part::DETAIL), hint_row);
+
+            let columns = columns_for(content_area.width);
             let content_len = self.column_rows(columns);
-            let content = scrollbar.draw(ui, body, &st.scroll, content_len);
-            let view = ScrollRegion::view(&st.scroll, content, content_len);
-            self.draw_columns(ui, content, &view, columns, live);
-            ui.register_decor(self.id, PartRef::of(Part::TITLE), title_row);
-            ui.register_decor(self.id, PartRef::of(Part::DETAIL), scope_row);
+            let scrollbar = self.scrollbar();
+            let scroll_area = Rect::new(
+                content_area.x,
+                content_area.y,
+                area.right().saturating_sub(1).saturating_sub(content_area.x),
+                body_h,
+            );
+            let content = scrollbar.draw(ui, scroll_area, &st.scroll, content_len);
+            let view = ScrollRegion::view(&st.scroll, scroll_area, content_len);
+            self.draw_columns(ui, content, &view, columns, StateFlags::empty());
+            if view.overflows() {
+                ui.scroll_edges(
+                    Rect::new(
+                        area.x,
+                        content_area.y,
+                        (area.right().saturating_sub(2)).saturating_sub(area.x),
+                        body_h,
+                    ),
+                    &view,
+                );
+            }
+
+            if area.width > 6 {
+                let title = " Keyboard shortcuts ";
+                let tw = title.len() as u16;
+                let title_rect = Rect::new(
+                    area.x.saturating_add(2),
+                    area.y,
+                    tw.min(area.width.saturating_sub(6)),
+                    1,
+                );
+                self.paint_text(ui, Part::TITLE, title_rect, title, StateFlags::empty());
+                ui.register_decor(self.id, PartRef::of(Part::TITLE), title_rect);
+
+                let meta_text = if view.overflows() {
+                    let offset = view.offset();
+                    let end = (offset.saturating_add(view.viewport_len())).min(content_len);
+                    Some(format!(" {}–{} of {} ", offset + 1, end, content_len))
+                } else if !self.scope.is_empty() {
+                    Some(format!(" {} ", self.scope))
+                } else {
+                    None
+                };
+
+                if let Some(meta) = meta_text {
+                    let mw = termrock_text::width(&meta) as u16;
+                    if area.width > tw.saturating_add(mw).saturating_add(4) {
+                        let meta_rect = Rect::new(
+                            area.right().saturating_sub(2 + mw),
+                            area.y,
+                            mw,
+                            1,
+                        );
+                        self.paint_text(
+                            ui,
+                            Part::DETAIL,
+                            meta_rect,
+                            &meta,
+                            StateFlags::empty(),
+                        );
+                        ui.register_decor(self.id, PartRef::of(Part::DETAIL), meta_rect);
+                    }
+                }
+            }
         });
         area
     }
 
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut scrollbar = ScrollRegion::new(self.id)
+            .focused(true)
+            .fill_container(false)
             .inherit_family(Family::HELP)
             .patch_part(self.parts);
         if let Some(patch) = self.patch {
@@ -466,20 +555,17 @@ impl<'a> HelpOverlay<'a> {
         columns: usize,
         flags: StateFlags,
     ) {
-        let column_width = area.width.checked_div(columns as u16).unwrap_or(0);
         for column in 0..columns {
+            let col_x = area
+                .x
+                .saturating_add((column as u16).saturating_mul(Self::COLUMN_WIDTH));
+            if col_x >= area.right() {
+                break;
+            }
+            let col_w = Self::COLUMN_WIDTH.min(area.right().saturating_sub(col_x));
             let column_area = Rect {
-                x: area
-                    .x
-                    .saturating_add((column as u16).saturating_mul(column_width)),
-                width: if column.saturating_add(1) == columns {
-                    area.right().saturating_sub(
-                        area.x
-                            .saturating_add((column as u16).saturating_mul(column_width)),
-                    )
-                } else {
-                    column_width
-                },
+                x: col_x,
+                width: col_w,
                 ..area
             };
             self.draw_column(ui, column_area, view, columns, column, flags);
@@ -519,14 +605,21 @@ impl<'a> HelpOverlay<'a> {
                         .y
                         .saturating_add(virtual_row.saturating_sub(start) as u16);
                     let row = first_row(Rect { y, ..area });
+                    let chord = HintText::of(hint.key);
+                    let key_text = termrock_text::truncate(chord.as_str(), 12);
                     let key = Rect {
                         width: row.width.min(12),
                         ..row
                     };
-                    let action = shift(row, 13);
-                    let chord = HintText::of(hint.key);
-                    self.paint_text(ui, Part::KEY, key, chord.as_str(), flags);
-                    self.paint_text(ui, Part::ACTION, action, hint.label, flags);
+                    let action = Rect {
+                        x: row.x.saturating_add(13),
+                        y: row.y,
+                        width: row.width.saturating_sub(13).min(21),
+                        height: 1,
+                    };
+                    let action_text = termrock_text::truncate(hint.label, action.width);
+                    self.paint_text(ui, Part::KEY, key, key_text.as_ref(), flags);
+                    self.paint_text(ui, Part::ACTION, action, action_text.as_ref(), flags);
                     ui.register_decor(self.id, PartRef::of(Part::KEY), key);
                     ui.register_decor(self.id, PartRef::of(Part::ACTION), action);
                 }
@@ -566,8 +659,11 @@ impl<'a> HelpOverlay<'a> {
 
     /// Preferred modal size.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
+        if let Some((width, height)) = self.size {
+            return Size::exact(width, height).fit(c);
+        }
         let width = ui.design().size.dialog_width_wide;
-        let columns = columns_for(width.saturating_sub(2));
+        let columns = columns_for(width.saturating_sub(6));
         let height = self.column_rows(columns).min(usize::from(u16::MAX)) as u16;
         Size::exact(width, height.saturating_add(4)).fit(c)
     }

@@ -5,7 +5,7 @@
 //! returns, so z-order is the layer order and never the call order.
 //! Placement is one resolver: anchor, flip, then clamp (`Rect::clamp`).
 
-use ratatui_core::layout::{Constraint, Position, Rect};
+use ratatui_core::layout::{Position, Rect};
 
 use crate::focus::ScopeId;
 use crate::id::Id;
@@ -289,10 +289,11 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
     };
     let raw = match anchor {
         Anchor::Screen(align) => {
-            let x = screen.centered_horizontally(Constraint::Length(w)).x;
+            let free_w = screen.width.saturating_sub(w);
+            let x = screen.x.saturating_add(free_w / 2);
             let free = screen.height.saturating_sub(h);
             let y = match align {
-                ScreenAlign::Center => screen.centered_vertically(Constraint::Length(h)).y,
+                ScreenAlign::Center => screen.y.saturating_add(free / 2),
                 ScreenAlign::UpperThird => screen.y.saturating_add(free / 3),
                 ScreenAlign::Bottom => screen.y.saturating_add(free),
             };

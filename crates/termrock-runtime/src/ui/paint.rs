@@ -238,6 +238,11 @@ impl Ui<'_> {
     }
 
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
+        if let Target::Layer(i) = self.target
+            && let Some(d) = self.frame.layers.active_mut().get_mut(i)
+        {
+            d.fade_rows.push((y, keep, container));
+        }
         let outer = keep <= FADE_OUTER_KEEP;
         // Fading changes only physical cell attributes for this frame. Keep
         // semantic provenance intact for later composition (for example, a

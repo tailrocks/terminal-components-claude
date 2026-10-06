@@ -402,6 +402,41 @@ fn help(r: &mut Recipe) {
         p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
     )
     .when(StateFlags::FOCUSED, p().add(Modifier::UNDERLINED));
+    part(
+        &mut r.parts,
+        Part::DETAIL,
+        p().set_fg(Role::Fg(FgStep::Faint)),
+    );
+    part(
+        &mut r.parts,
+        Part::HEADER,
+        p().set_fg(Role::Fg(FgStep::Secondary)).add(Modifier::BOLD),
+    );
+    part(
+        &mut r.parts,
+        Part::KEY,
+        p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+    );
+    part(
+        &mut r.parts,
+        Part::ACTION,
+        p().set_fg(Role::Fg(FgStep::Muted)),
+    );
+    part(
+        &mut r.parts,
+        Part::TRACK,
+        p().set_fg(Role::BorderSubtle)
+            .set_glyph(GlyphRole::ScrollTrack),
+    );
+    part(
+        &mut r.parts,
+        Part::THUMB,
+        p().set_fg(Role::Fg(FgStep::Muted))
+            .set_glyph(GlyphRole::ScrollThumb),
+    )
+    .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Secondary)))
+    .when(StateFlags::FOCUSED, p().set_fg(Role::Fg(FgStep::Primary)))
+    .when(StateFlags::PRESSED, p().set_fg(Role::Accent));
 }
 
 fn scrollbar(m: &mut PartMap<PartRecipe>) {

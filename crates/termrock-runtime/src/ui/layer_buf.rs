@@ -2,11 +2,13 @@
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::{Color, Modifier};
 
 use super::CellRoles;
 use crate::id::Id;
 use crate::layer::{LayerId, LayerSpec};
 use crate::theme::PaintStyle;
+use crate::theme::builder::{FadeOutcome, fade_mix};
 
 /// One open layer's draw target for the frame.
 #[derive(Debug, Clone)]
@@ -21,6 +23,7 @@ pub(crate) struct LayerDraw {
     pub(crate) written: Vec<bool>,
     roles: Vec<CellRoles>,
     pub(crate) drawn: bool,
+    pub(crate) fade_rows: Vec<(u16, f32, Color)>,
 }
 
 impl LayerDraw {
@@ -34,6 +37,7 @@ impl LayerDraw {
             written: vec![false; screen.area() as usize],
             roles: vec![CellRoles::default(); screen.area() as usize],
             drawn: false,
+            fade_rows: Vec::new(),
         }
     }
 
@@ -51,6 +55,7 @@ impl LayerDraw {
         self.spec = spec;
         self.area = area;
         self.drawn = false;
+        self.fade_rows.clear();
         if *self.buf.area() == screen {
             self.buf.reset();
         } else {
@@ -139,6 +144,24 @@ impl LayerDraw {
                     .saturating_add(usize::from(pos.x.saturating_sub(screen.x)));
                 if let Some(target) = roles.get_mut(index) {
                     *target = self.roles_at(pos);
+                }
+            }
+        }
+        for &(y, keep, container) in &self.fade_rows {
+            let row = Rect::new(screen.x, y, screen.width, 1).intersection(area);
+            for pos in row.positions() {
+                if !self.is_written(pos) {
+                    continue;
+                }
+                let (Some(src), Some(dst)) = (self.buf.cell(pos), page.cell_mut(pos)) else {
+                    continue;
+                };
+                if src.symbol() != " " || src.fg != Color::Reset || dst.bg != container {
+                    continue;
+                }
+                if let FadeOutcome::Blended(color) = fade_mix(dst.fg, container, keep) {
+                    dst.set_fg(color);
+                    dst.modifier.remove(Modifier::DIM);
                 }
             }
         }
