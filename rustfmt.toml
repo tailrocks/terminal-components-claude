@@ -1,0 +1,6 @@
+# Style contract: rustfmt 2024 style, matching the workspace Cargo edition.
+# Presence of this file is also the Velnor explicit_fmt trigger that emits
+# per-crate `cargo fmt --check` Format steps. Without it rustfmt falls back
+# to style_edition 2015, which contradicts this tree (565 legacy diffs vs
+# 223 under 2024 style at introduction time).
+style_edition = "2024"

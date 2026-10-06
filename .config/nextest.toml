@@ -39,3 +39,6 @@ threads-required = 2
 [profile.ci]
 fail-fast = false
 slow-timeout = { period = "60s", terminate-after = 10 }
+# Staging/admission writers are never CI verification: exclude them even
+# when ignored tests are selected explicitly (mirrors profile.default).
+default-filter = "not test(rebuild_review_html)"
