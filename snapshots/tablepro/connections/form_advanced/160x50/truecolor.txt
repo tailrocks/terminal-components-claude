@@ -1,50 +1,50 @@
  ▪  TablePro  Connections  6 saved                                                                                                   truecolor · 160×50  ? help
 
-                                             New connection                                                       Ctrl+S Save
-
-                                              Basic    Advanced
-                                             ─────────━━━━━━━━━━━────────────────────────────────────────────────────────────
-
-                                              ○── Use SSL / TLS off                            Startup commands
-                                                                                               SET statement_timeout = '60…
-                                              ○── SSH tunnel off
-                                               SSH host  optional
-                                               bastion.example.com                             Run after every connect, one …
-
-                                               SSH user  optional                              External clients: read only
-                                               deploy
-
-                                              ○── Local only (no iCloud sync) off
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                              Test connection    Cancel    Save    Save & connect
-
+ ╭─ Connections ──────────────────── 6 ─╮    New connection                                                       Ctrl+S Save
+ │                                      │
+ │   Filter connections                 │     Basic    Advanced
+ │  ▾ Personal                          │    ─────────━━━━━━━━━━━────────────────────────────────────────────────────────────
+ │      · Local PostgreSQL          pg  │
+ │      · Scratch               sqlite  │     ○── Use SSL / TLS off                            Startup commands
+ │  ▾ Acme                              │                                                      SET statement_timeout = '60…
+ │      · Development               pg  │     ○── SSH tunnel off
+ │      ◇ Staging                   pg  │      SSH host  optional
+ │      ◆ Analytics              mysql  │      bastion.example.com                             Run after every connect, one …
+ │      ◆ Production                pg  │
+ │                                      │      SSH user  optional                              External clients: read only
+ │                                      │      deploy
+ │                                      │
+ │                                      │     ○── Local only (no iCloud sync) off
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │
+ │                                      │     Test connection    Cancel    Save    Save & connect
+ ╰──────────────────────────────────────╯
 
  Enter Edit  ← → Basic / Advanced  Ctrl+S Save  Tab Next

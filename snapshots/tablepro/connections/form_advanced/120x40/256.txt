@@ -1,40 +1,40 @@
  ▪  TablePro  Connections  6 saved                                                          256 colors · 120×40  ? help
 
-                                            New connection                                                Ctrl+S Save
-
-                                             Basic    Advanced
-                                            ─────────━━━━━━━━━━━─────────────────────────────────────────────────────
-
-                                             ○── Use SSL / TLS off                        Startup commands
-                                                                                          SET statement_timeout = …
-                                             ○── SSH tunnel off
-                                              SSH host  optional
-                                              bastion.example.com                         Run after every connect, o…
-
-                                              SSH user  optional                          External clients: read only
-                                              deploy
-
-                                             ○── Local only (no iCloud sync) off
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                             Test connection    Cancel    Save    Save & connect
-
+ ╭─ Connections ─────────────────── 6 ─╮    New connection                                                Ctrl+S Save
+ │                                     │
+ │   Filter connections                │     Basic    Advanced
+ │  ▾ Personal                         │    ─────────━━━━━━━━━━━─────────────────────────────────────────────────────
+ │      · Local PostgreSQL         pg  │
+ │      · Scratch              sqlite  │     ○── Use SSL / TLS off                        Startup commands
+ │  ▾ Acme                             │                                                  SET statement_timeout = …
+ │      · Development              pg  │     ○── SSH tunnel off
+ │      ◇ Staging                  pg  │      SSH host  optional
+ │      ◆ Analytics             mysql  │      bastion.example.com                         Run after every connect, o…
+ │      ◆ Production               pg  │
+ │                                     │      SSH user  optional                          External clients: read only
+ │                                     │      deploy
+ │                                     │
+ │                                     │     ○── Local only (no iCloud sync) off
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │     Test connection    Cancel    Save    Save & connect
+ ╰─────────────────────────────────────╯
 
  Enter Edit  ← → Basic / Advanced  Ctrl+S Save  Tab Next
