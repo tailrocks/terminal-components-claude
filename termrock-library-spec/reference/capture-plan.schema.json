@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:termrock:capture-plan:v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "component_id",
+    "component",
+    "oracle_commit",
+    "status",
+    "authority_policy",
+    "source_urls",
+    "snapshot_discovery_roots",
+    "dimensions",
+    "capabilities",
+    "state_axes",
+    "cases",
+    "expected_artifacts"
+  ],
+  "properties": {
+    "schema": {
+      "const": "termrock-spec/capture-plan-v1"
+    },
+    "component_id": {
+      "type": "string",
+      "pattern": "^W[0-9]{2}$"
+    },
+    "component": {
+      "type": "string"
+    },
+    "oracle_commit": {
+      "const": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "status": {
+      "const": "planned_not_captured"
+    },
+    "authority_policy": {
+      "type": "string"
+    },
+    "source_urls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "snapshot_discovery_roots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dimensions": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "capabilities": {
+      "const": [
+        "truecolor",
+        "256",
+        "16",
+        "none",
+        "nocolor"
+      ]
+    },
+    "state_axes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object"
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "requirement",
+          "required",
+          "execution_status",
+          "authority_lane"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "requirement": {
+            "type": "string"
+          },
+          "required": {
+            "const": true
+          },
+          "execution_status": {
+            "const": "not_executed"
+          },
+          "authority_lane": {
+            "enum": [
+              "bind_existing_or_extract_oracle_before_candidate",
+              "extension_or_oracle_component_subregion"
+            ]
+          }
+        }
+      }
+    },
+    "expected_artifacts": {
+      "type": "null"
+    }
+  }
+}

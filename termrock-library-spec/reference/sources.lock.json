@@ -1,0 +1,420 @@
+{
+  "schema": "termrock-spec/sources-v1",
+  "date": "2026-09-27",
+  "visual_repository": "donbeave/terminal-components-claude",
+  "visual_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "visual_annotated_tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+  "api_reference_commit": "f758dc3f88196c3b93d70994dc7095edbfce1c93",
+  "functional_requirements_only": {
+    "repo": "jackin-project/jackin",
+    "commit": "07e290f894eccfab785c698aafbaeeaa6e1c092d",
+    "implementation_in_scope": false
+  },
+  "toolchain": {
+    "original_tuisnap_revision": "2d43458ad2bc37d76653c22d56e61ee74512d893",
+    "candidate_tuisnap_revision": "9dc86daff1dcbf20805b145916e8f04e9515f929",
+    "qualification_status": "not_executed"
+  },
+  "architecture_sources": [
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/docs/architecture/component-architecture.md",
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/docs/refactoring-plan/component-parity.tsv",
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/docs/refactoring-plan/task-index.tsv",
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/refactoring-tasks/README.md",
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/docs/baseline/snapshots-v2.md",
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/docs/design/DESIGN.md",
+    "https://github.com/donbeave/terminal-components-claude/blob/f758dc3f88196c3b93d70994dc7095edbfce1c93/crates/tui/src/lib.rs"
+  ],
+  "source_files": [
+    {
+      "path": "docs/refactoring-plan/component-parity.tsv",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/docs/refactoring-plan/component-parity.tsv",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/jackin_preview/app.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/app.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/jackin_preview/rain.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/rain.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/jackin_preview/screens/capsule.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/capsule.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/jackin_preview/screens/editor.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/editor.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/jackin_preview/screens/inspect.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/inspect.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/manager.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/jackin_preview/screens/modals.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/modals.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/prelude.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/jackin_preview/screens/usage.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/usage.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/jackin_preview/sim/pty.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/sim/pty.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/bin/showcase/app.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/showcase/app.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/core/event.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/core/event.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/core/focus.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/core/focus.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/core/hit.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/core/hit.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/core/id.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/core/id.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/core/scroll.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/core/scroll.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/core/text.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/core/text.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/lib.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/lib.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/runtime.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/runtime.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/theme.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/theme.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/ui/ctx.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/ui/ctx.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/ui/fade.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/ui/fade.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/ui/layout.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/ui/layout.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/ui/popup.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/ui/popup.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/ui/text.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/ui/text.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/brand.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/brand.rs",
+      "blob_sha_if_observed": "709dfe6233f5cc16042c5f70432ede57ffd09024",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/button.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/button.rs",
+      "blob_sha_if_observed": "d2c52e75084ff783a9b3bf5d95f736870f480051",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/chips.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/chips.rs",
+      "blob_sha_if_observed": "36cb21bf1be548c39544cef2916669a0a4f55b30",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/choice.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/choice.rs",
+      "blob_sha_if_observed": "9405acf87c152c0766ae9bbcd71c01c9d5db4e80",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/code.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/code.rs",
+      "blob_sha_if_observed": "3c653fc1e7f76563b92ff702abeec00fd3574bbb",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/completion.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/completion.rs",
+      "blob_sha_if_observed": "89c9e468c89dfc91c1afa69e11fefe951bcddade",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/dialog.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/dialog.rs",
+      "blob_sha_if_observed": "229fc76e481f39e5bc51a784761d5cf41b70056d",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/diff.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/diff.rs",
+      "blob_sha_if_observed": "e0b5bdefa3b7fa514295a245de80ebf0f3bcf438",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/empty.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/empty.rs",
+      "blob_sha_if_observed": "64461371f93156e78a54eff5ab6f14a6d4be246b",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/field_common.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/field_common.rs",
+      "blob_sha_if_observed": "bd41cdd85e9c2605c356f7468dc0de3e3c50e54b",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/grid.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/grid.rs",
+      "blob_sha_if_observed": "f68c75c3d09d828c23cdf4a85faf57cdc8427b05",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/hintbar.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/hintbar.rs",
+      "blob_sha_if_observed": "4c5dbca8f9e82fd1d3cebb0df58f6e79acec9070",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/input.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/input.rs",
+      "blob_sha_if_observed": "f440b74c7d305e987ec31bf04d34afd993844bb0",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/keyhint.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/keyhint.rs",
+      "blob_sha_if_observed": "a43d2152e7c4cf927cd9ad16473425dd42efa6d9",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/list.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/list.rs",
+      "blob_sha_if_observed": "44cbbab4fdd3a04f67a2712f2be241264a966ee1",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/menu.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/menu.rs",
+      "blob_sha_if_observed": "87934aaabeefb7dd37aa8ea2d093f005f643abf4",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/mod.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/mod.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/panel.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/panel.rs",
+      "blob_sha_if_observed": "14a9edef27f16e463a635f314fa37d5825f57fd9",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/picker.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/picker.rs",
+      "blob_sha_if_observed": "084bdb1edaf6142d8a99ad404a8e612e40ef6662",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/progress.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/progress.rs",
+      "blob_sha_if_observed": "3efc6b4f9d9eb84eec34da27e65f8c98bef3db6c",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/props.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/props.rs",
+      "blob_sha_if_observed": "e8baae6d3b5dd72911b1cbd3ee77c6c05da2b7d8",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/scrollbar.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/scrollbar.rs",
+      "blob_sha_if_observed": "fa0132637370da4afe2e40a07fb558c135e188df",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/segments.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/segments.rs",
+      "blob_sha_if_observed": "78add23bb5f5ef1e2abc6f79631f53b27da71004",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/select.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/select.rs",
+      "blob_sha_if_observed": "3b6f43f8f642ccce512ac53754d114dc978bd149",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/splitter.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/splitter.rs",
+      "blob_sha_if_observed": "80c113f7585827d340da45921011c2a1953a8b34",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/statusbar.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/statusbar.rs",
+      "blob_sha_if_observed": "79b6c1617fe3e6b9a928725469568567f769789d",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/steps.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/steps.rs",
+      "blob_sha_if_observed": "8bf98f38e7745631eb3ec8a526523fcf4032abec",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/table.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/table.rs",
+      "blob_sha_if_observed": "d9a718082697cd77a904f89725247908c8227e00",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/tabs.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/tabs.rs",
+      "blob_sha_if_observed": "b04be08ec68b890a644ed59513d45dac12c4b13c",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/textarea.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/textarea.rs",
+      "blob_sha_if_observed": "5bfa5148a8b335c28ed52a5af305fa9df39917e5",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/tree.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/tree.rs",
+      "blob_sha_if_observed": "1df281b10a46ab0f62038df46da9a47e3ee5ea07",
+      "materialized": false
+    },
+    {
+      "path": "src/widgets/viewport.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/viewport.rs",
+      "blob_sha_if_observed": "da21128c721fc9d748386441f12aac2b9647f8c8",
+      "materialized": false
+    },
+    {
+      "path": "tests/visual_baseline/audit.rs",
+      "url": "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/tests/visual_baseline/audit.rs",
+      "blob_sha_if_observed": null,
+      "materialized": false
+    }
+  ],
+  "baseline_widget_blobs": {
+    "src/widgets/brand.rs": "709dfe6233f5cc16042c5f70432ede57ffd09024",
+    "src/widgets/button.rs": "d2c52e75084ff783a9b3bf5d95f736870f480051",
+    "src/widgets/chips.rs": "36cb21bf1be548c39544cef2916669a0a4f55b30",
+    "src/widgets/choice.rs": "9405acf87c152c0766ae9bbcd71c01c9d5db4e80",
+    "src/widgets/code.rs": "3c653fc1e7f76563b92ff702abeec00fd3574bbb",
+    "src/widgets/completion.rs": "89c9e468c89dfc91c1afa69e11fefe951bcddade",
+    "src/widgets/dialog.rs": "229fc76e481f39e5bc51a784761d5cf41b70056d",
+    "src/widgets/diff.rs": "e0b5bdefa3b7fa514295a245de80ebf0f3bcf438",
+    "src/widgets/empty.rs": "64461371f93156e78a54eff5ab6f14a6d4be246b",
+    "src/widgets/field_common.rs": "bd41cdd85e9c2605c356f7468dc0de3e3c50e54b",
+    "src/widgets/grid.rs": "f68c75c3d09d828c23cdf4a85faf57cdc8427b05",
+    "src/widgets/hintbar.rs": "4c5dbca8f9e82fd1d3cebb0df58f6e79acec9070",
+    "src/widgets/input.rs": "f440b74c7d305e987ec31bf04d34afd993844bb0",
+    "src/widgets/keyhint.rs": "a43d2152e7c4cf927cd9ad16473425dd42efa6d9",
+    "src/widgets/list.rs": "44cbbab4fdd3a04f67a2712f2be241264a966ee1",
+    "src/widgets/menu.rs": "87934aaabeefb7dd37aa8ea2d093f005f643abf4",
+    "src/widgets/panel.rs": "14a9edef27f16e463a635f314fa37d5825f57fd9",
+    "src/widgets/picker.rs": "084bdb1edaf6142d8a99ad404a8e612e40ef6662",
+    "src/widgets/progress.rs": "3efc6b4f9d9eb84eec34da27e65f8c98bef3db6c",
+    "src/widgets/props.rs": "e8baae6d3b5dd72911b1cbd3ee77c6c05da2b7d8",
+    "src/widgets/scrollbar.rs": "fa0132637370da4afe2e40a07fb558c135e188df",
+    "src/widgets/segments.rs": "78add23bb5f5ef1e2abc6f79631f53b27da71004",
+    "src/widgets/select.rs": "3b6f43f8f642ccce512ac53754d114dc978bd149",
+    "src/widgets/splitter.rs": "80c113f7585827d340da45921011c2a1953a8b34",
+    "src/widgets/statusbar.rs": "79b6c1617fe3e6b9a928725469568567f769789d",
+    "src/widgets/steps.rs": "8bf98f38e7745631eb3ec8a526523fcf4032abec",
+    "src/widgets/table.rs": "d9a718082697cd77a904f89725247908c8227e00",
+    "src/widgets/tabs.rs": "b04be08ec68b890a644ed59513d45dac12c4b13c",
+    "src/widgets/textarea.rs": "5bfa5148a8b335c28ed52a5af305fa9df39917e5",
+    "src/widgets/tree.rs": "1df281b10a46ab0f62038df46da9a47e3ee5ea07",
+    "src/widgets/viewport.rs": "da21128c721fc9d748386441f12aac2b9647f8c8"
+  },
+  "reading_status": "Source paths, metadata and selected implementation excerpts inspected. This is not a claim that every source line or snapshot was reviewed.",
+  "rust_apis": "proposed; not compiled",
+  "new_snapshots": "not captured",
+  "fonts_in_pack": false
+}

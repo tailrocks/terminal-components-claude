@@ -1,0 +1,122 @@
+{
+  "schema": "termrock-spec/capture-plan-v1",
+  "component_id": "W38",
+  "component": "Spinner",
+  "oracle_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "status": "planned_not_captured",
+  "authority_policy": "Classify and bind expected output before candidate testing. Existing/ExtractedOracle preserve old behavior; newly introduced robustness or API behavior is Extension. Source directory links are discovery roots, not proof of all-state coverage.",
+  "source_urls": [
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/progress.rs"
+  ],
+  "snapshot_discovery_roots": [
+    "https://github.com/donbeave/terminal-components-claude/tree/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/snapshots/showcase/pages/progress",
+    "https://github.com/donbeave/terminal-components-claude/tree/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/snapshots/jackin/cockpit"
+  ],
+  "dimensions": [
+    [
+      72,
+      20
+    ],
+    [
+      80,
+      24
+    ],
+    [
+      100,
+      30
+    ],
+    [
+      120,
+      40
+    ],
+    [
+      160,
+      50
+    ]
+  ],
+  "capabilities": [
+    "truecolor",
+    "256",
+    "16",
+    "none",
+    "nocolor"
+  ],
+  "state_axes": [
+    {
+      "axis": "geometry",
+      "applies_to": "component",
+      "states": [
+        "normal",
+        "zero_area",
+        "tiny_area",
+        "nonzero_origin",
+        "exact_fit",
+        "one_cell_short",
+        "unicode_long_content",
+        "narrow_then_wide"
+      ]
+    },
+    {
+      "axis": "focus_hover",
+      "applies_to": "no independent focus stop",
+      "states": [],
+      "not_applicable_reason": "Display-only surface; Field/Panel may reflect child focus but do not create independent interactive state."
+    },
+    {
+      "axis": "activation",
+      "applies_to": "none at this surface",
+      "states": [],
+      "not_applicable_reason": "No generic whole-surface activation. Text/scroll/selection gestures and child actions are covered by their own cases."
+    },
+    {
+      "axis": "motion",
+      "applies_to": "explicit animation sample; static completion/failure is tested only where the supplied status supports it",
+      "states": [
+        "all_unique_phases",
+        "phase_wrap",
+        "before_at_after_boundary",
+        "paused",
+        "reduced",
+        "same_time_repaint"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "W38-01",
+      "requirement": "all ten phases plus wrap from9 to0",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W38-02",
+      "requirement": "immediately before/at/after each owner cadence boundary",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W38-03",
+      "requirement": "same time rendered twice produces identical cells",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W38-04",
+      "requirement": "spinner inside StatusBar and Meter with exact separator gaps",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W38-05",
+      "requirement": "paused/reduced/stopped state semantics",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    }
+  ],
+  "expected_artifacts": null
+}

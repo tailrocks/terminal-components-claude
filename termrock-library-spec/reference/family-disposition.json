@@ -1,0 +1,578 @@
+{
+  "C01": {
+    "old_family": "identity",
+    "destinations": [
+      {
+        "id": "F01",
+        "file": "foundations/identity.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C02": {
+    "old_family": "event-response",
+    "destinations": [
+      {
+        "id": "F02",
+        "file": "foundations/input-actions.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C03": {
+    "old_family": "focus-hit-capture",
+    "destinations": [
+      {
+        "id": "F03",
+        "file": "foundations/runtime.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C04": {
+    "old_family": "runtime-session-time",
+    "destinations": [
+      {
+        "id": "F03",
+        "file": "foundations/runtime.md"
+      },
+      {
+        "id": "F12",
+        "file": "foundations/session.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C05": {
+    "old_family": "layout-measure",
+    "destinations": [
+      {
+        "id": "F05",
+        "file": "foundations/layout.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C06": {
+    "old_family": "theme-paint",
+    "destinations": [
+      {
+        "id": "F06",
+        "file": "foundations/theme.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C07": {
+    "old_family": "text-core",
+    "destinations": [
+      {
+        "id": "F07",
+        "file": "foundations/text.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C08": {
+    "old_family": "scroll-state-region",
+    "destinations": [
+      {
+        "id": "W45",
+        "file": "components/scroll-region.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C09": {
+    "old_family": "layers-popups",
+    "destinations": [
+      {
+        "id": "F04",
+        "file": "foundations/layers.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C10": {
+    "old_family": "collection-core",
+    "destinations": [
+      {
+        "id": "F08",
+        "file": "foundations/collections.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C11": {
+    "old_family": "button",
+    "destinations": [
+      {
+        "id": "W02",
+        "file": "components/button.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C12": {
+    "old_family": "brand",
+    "destinations": [
+      {
+        "id": "W01",
+        "file": "components/brand.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C13": {
+    "old_family": "checkbox-toggle",
+    "destinations": [
+      {
+        "id": "W03",
+        "file": "components/checkbox.md"
+      },
+      {
+        "id": "W04",
+        "file": "components/toggle.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C14": {
+    "old_family": "radio-group",
+    "destinations": [
+      {
+        "id": "W05",
+        "file": "components/radio-group.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C15": {
+    "old_family": "chips",
+    "destinations": [
+      {
+        "id": "W06",
+        "file": "components/chip-bar.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C16": {
+    "old_family": "field-chrome",
+    "destinations": [
+      {
+        "id": "W07",
+        "file": "components/field.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C17": {
+    "old_family": "text-input",
+    "destinations": [
+      {
+        "id": "W08",
+        "file": "components/text-input.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C18": {
+    "old_family": "text-area",
+    "destinations": [
+      {
+        "id": "W09",
+        "file": "components/text-area.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C19": {
+    "old_family": "secret-validation",
+    "destinations": [
+      {
+        "id": "W08",
+        "file": "components/text-input.md"
+      },
+      {
+        "id": "W09",
+        "file": "components/text-area.md"
+      },
+      {
+        "id": "F09",
+        "file": "foundations/secret-validation.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C20": {
+    "old_family": "select",
+    "destinations": [
+      {
+        "id": "W10",
+        "file": "components/select.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C21": {
+    "old_family": "form",
+    "destinations": [
+      {
+        "id": "W11",
+        "file": "components/form.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C22": {
+    "old_family": "list",
+    "destinations": [
+      {
+        "id": "W12",
+        "file": "components/list.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C23": {
+    "old_family": "filter-list",
+    "destinations": [
+      {
+        "id": "W13",
+        "file": "components/filter-list.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C24": {
+    "old_family": "nav-list",
+    "destinations": [
+      {
+        "id": "W14",
+        "file": "components/nav-list.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C25": {
+    "old_family": "tree",
+    "destinations": [
+      {
+        "id": "W15",
+        "file": "components/tree.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C26": {
+    "old_family": "steps",
+    "destinations": [
+      {
+        "id": "W16",
+        "file": "components/steps.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C27": {
+    "old_family": "tabs",
+    "destinations": [
+      {
+        "id": "W17",
+        "file": "components/tabs.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C28": {
+    "old_family": "picker-command-palette",
+    "destinations": [
+      {
+        "id": "W18",
+        "file": "components/picker.md"
+      },
+      {
+        "id": "W19",
+        "file": "components/command-palette.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C29": {
+    "old_family": "picker-chain",
+    "destinations": [
+      {
+        "id": "W20",
+        "file": "components/picker-chain.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C30": {
+    "old_family": "completion",
+    "destinations": [
+      {
+        "id": "W21",
+        "file": "components/completion.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C31": {
+    "old_family": "dialog",
+    "destinations": [
+      {
+        "id": "W22",
+        "file": "components/dialog.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C32": {
+    "old_family": "menu-context-menubar",
+    "destinations": [
+      {
+        "id": "W23",
+        "file": "components/menu.md"
+      },
+      {
+        "id": "W24",
+        "file": "components/context-menu.md"
+      },
+      {
+        "id": "W25",
+        "file": "components/menu-bar.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C33": {
+    "old_family": "help-overlay",
+    "destinations": [
+      {
+        "id": "W26",
+        "file": "components/help-overlay.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C34": {
+    "old_family": "wizard",
+    "destinations": [
+      {
+        "id": "W27",
+        "file": "components/wizard.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C35": {
+    "old_family": "grid",
+    "destinations": [
+      {
+        "id": "W28",
+        "file": "components/grid.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C36": {
+    "old_family": "table",
+    "destinations": [
+      {
+        "id": "W28",
+        "file": "components/grid.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C37": {
+    "old_family": "code-editor",
+    "destinations": [
+      {
+        "id": "W29",
+        "file": "components/code-editor.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C38": {
+    "old_family": "diff-view",
+    "destinations": [
+      {
+        "id": "W30",
+        "file": "components/diff-view.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C39": {
+    "old_family": "text-viewport",
+    "destinations": [
+      {
+        "id": "W31",
+        "file": "components/text-viewport.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C40": {
+    "old_family": "scroll-panel",
+    "destinations": [
+      {
+        "id": "W31",
+        "file": "components/text-viewport.md"
+      },
+      {
+        "id": "W32",
+        "file": "components/panel.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C41": {
+    "old_family": "panel",
+    "destinations": [
+      {
+        "id": "W32",
+        "file": "components/panel.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C42": {
+    "old_family": "split-pane",
+    "destinations": [
+      {
+        "id": "W33",
+        "file": "components/split-pane.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C43": {
+    "old_family": "props",
+    "destinations": [
+      {
+        "id": "W34",
+        "file": "components/props.md"
+      },
+      {
+        "id": "W35",
+        "file": "components/props-list.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C44": {
+    "old_family": "empty-readiness",
+    "destinations": [
+      {
+        "id": "W36",
+        "file": "components/empty.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C45": {
+    "old_family": "progress-bar",
+    "destinations": [
+      {
+        "id": "W37",
+        "file": "components/progress-bar.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C46": {
+    "old_family": "spinner",
+    "destinations": [
+      {
+        "id": "W38",
+        "file": "components/spinner.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C47": {
+    "old_family": "meter",
+    "destinations": [
+      {
+        "id": "W39",
+        "file": "components/meter.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C48": {
+    "old_family": "statusbar-segments",
+    "destinations": [
+      {
+        "id": "W40",
+        "file": "components/status-bar.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C49": {
+    "old_family": "hintbar",
+    "destinations": [
+      {
+        "id": "W41",
+        "file": "components/hint-bar.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C50": {
+    "old_family": "keyhint",
+    "destinations": [
+      {
+        "id": "W42",
+        "file": "components/key-hint.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C51": {
+    "old_family": "too-small",
+    "destinations": [
+      {
+        "id": "W43",
+        "file": "components/too-small.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C52": {
+    "old_family": "custom-author-api",
+    "destinations": [
+      {
+        "id": "F10",
+        "file": "foundations/author.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C53": {
+    "old_family": "testing-registry",
+    "destinations": [
+      {
+        "id": "F11",
+        "file": "foundations/conformance.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  },
+  "C54": {
+    "old_family": "public-compatibility-removal",
+    "destinations": [
+      {
+        "id": "F11",
+        "file": "foundations/conformance.md"
+      }
+    ],
+    "status": "specified_not_implemented"
+  }
+}

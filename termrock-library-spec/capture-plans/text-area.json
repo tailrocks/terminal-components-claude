@@ -1,0 +1,154 @@
+{
+  "schema": "termrock-spec/capture-plan-v1",
+  "component_id": "W09",
+  "component": "TextArea",
+  "oracle_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "status": "planned_not_captured",
+  "authority_policy": "Classify and bind expected output before candidate testing. Existing/ExtractedOracle preserve old behavior; newly introduced robustness or API behavior is Extension. Source directory links are discovery roots, not proof of all-state coverage.",
+  "source_urls": [
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/textarea.rs",
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/field_common.rs"
+  ],
+  "snapshot_discovery_roots": [
+    "https://github.com/donbeave/terminal-components-claude/tree/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/snapshots/showcase/audit"
+  ],
+  "dimensions": [
+    [
+      72,
+      20
+    ],
+    [
+      80,
+      24
+    ],
+    [
+      100,
+      30
+    ],
+    [
+      120,
+      40
+    ],
+    [
+      160,
+      50
+    ]
+  ],
+  "capabilities": [
+    "truecolor",
+    "256",
+    "16",
+    "none",
+    "nocolor"
+  ],
+  "state_axes": [
+    {
+      "axis": "geometry",
+      "applies_to": "component",
+      "states": [
+        "normal",
+        "zero_area",
+        "tiny_area",
+        "nonzero_origin",
+        "exact_fit",
+        "one_cell_short",
+        "unicode_long_content",
+        "narrow_then_wide"
+      ]
+    },
+    {
+      "axis": "focus_hover",
+      "applies_to": "interactive owner or child; Brand only in interactive mode; Steps only in navigable mode; no decorative focus stop",
+      "states": [
+        "unfocused",
+        "focused",
+        "hovered",
+        "focus_and_hover",
+        "keyboard_suppresses_hover",
+        "pointer_motion_restores_hover"
+      ]
+    },
+    {
+      "axis": "activation",
+      "applies_to": "none at this surface",
+      "states": [],
+      "not_applicable_reason": "No generic whole-surface activation. Text/scroll/selection gestures and child actions are covered by their own cases."
+    },
+    {
+      "axis": "editing",
+      "applies_to": "editable specialization",
+      "states": [
+        "navigation",
+        "editing",
+        "selected_text",
+        "invalid",
+        "read_only",
+        "commit",
+        "cancel_or_finish_per_component",
+        "blur",
+        "tab_traversal",
+        "source_revision_conflict"
+      ]
+    },
+    {
+      "axis": "scroll",
+      "applies_to": "component scroll region; horizontal strips use start/end; fade/protection only on applicable content rows",
+      "states": [
+        "no_overflow",
+        "start",
+        "middle",
+        "end",
+        "wheel_boundary",
+        "thumb_drag",
+        "resize_while_scrolled",
+        "edge_fade",
+        "protected_row"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "W09-01",
+      "requirement": "edit Enter inserts newline; Escape commits and leaves edit mode",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W09-02",
+      "requirement": "navigation-mode paste ignored; edit-mode bracketed paste preserves newlines",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W09-03",
+      "requirement": "PageUp/PageDown and Home/End in navigation versus editing",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W09-04",
+      "requirement": "selection spans newline, tab and grapheme boundaries",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W09-05",
+      "requirement": "wheel while editing followed by caret movement; follow-caret resumes correctly",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W09-06",
+      "requirement": "height 0/1 and rows+2 Field layout",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    }
+  ],
+  "expected_artifacts": null
+}

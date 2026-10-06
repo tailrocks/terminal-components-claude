@@ -1,0 +1,1230 @@
+{
+  "schema": "termrock-spec/public-api-v1",
+  "status": "proposed_uncompiled",
+  "components": [
+    {
+      "id": "W01",
+      "name": "Brand",
+      "constructor": "Brand::new(id: Id, label: &'a str) -> Brand<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>) -> Response<Activated>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "meta(&'a str)",
+        "interactive(bool) // default false; baseline click-only mode",
+        "patch(StylePatch)"
+      ],
+      "state": null,
+      "actions": "Activated { origin: ActivationOrigin }",
+      "parts": [
+        "container",
+        "label",
+        "meta"
+      ]
+    },
+    {
+      "id": "W02",
+      "name": "Button",
+      "constructor": "Button::new(id: Id, label: &'a str) -> Button<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>) -> Response<Activated>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "variant(ButtonVariant) // Secondary default; Primary, Subtle, Danger, Toggle, Quiet, Ghost",
+        "disabled(bool)",
+        "status(ControlStatus)",
+        "checked(Option<bool>)",
+        "icon(Option<Glyph>)",
+        "autofocus(bool)",
+        "patch(StylePatch)",
+        "patch_part(Part, StylePatch)",
+        "slot(Part, &SlotPainter)"
+      ],
+      "state": null,
+      "actions": "Activated { origin: ActivationOrigin }",
+      "parts": [
+        "container",
+        "gutter",
+        "icon",
+        "marker",
+        "label"
+      ]
+    },
+    {
+      "id": "W03",
+      "name": "Checkbox",
+      "constructor": "Checkbox::new(id: Id, label: &'a str, checked: bool) -> Checkbox<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>) -> Response<ValueChanged<bool>>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "disabled(bool)",
+        "status(ControlStatus)",
+        "patch(StylePatch)",
+        "patch_part(Part, StylePatch)"
+      ],
+      "state": null,
+      "actions": "ValueChanged<bool> { value: bool, origin: ActivationOrigin }",
+      "parts": [
+        "container",
+        "gutter",
+        "marker",
+        "label"
+      ]
+    },
+    {
+      "id": "W04",
+      "name": "Toggle",
+      "constructor": "Toggle::new(id: Id, label: &'a str, on: bool) -> Toggle<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>) -> Response<ValueChanged<bool>>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "disabled(bool)",
+        "patch(StylePatch)",
+        "patch_part(Part, StylePatch)"
+      ],
+      "state": null,
+      "actions": "ValueChanged<bool> { value: bool, origin: ActivationOrigin }",
+      "parts": [
+        "container",
+        "gutter",
+        "marker",
+        "label"
+      ]
+    },
+    {
+      "id": "W05",
+      "name": "RadioGroup",
+      "constructor": "RadioGroup::new(id: Id, options: &'a [ChoiceItem<'a>], revision: Revision) -> RadioGroup<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut RadioGroupState) -> Response<RadioAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &RadioGroupState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "selected(Option<ItemKey>)",
+        "orientation(Axis)",
+        "disabled(bool)",
+        "patch(StylePatch)",
+        "row(&ChoiceRowPainter)"
+      ],
+      "state": "RadioGroupState",
+      "actions": "RadioAction::Choose { key: ItemKey, origin: ActivationOrigin }",
+      "parts": [
+        "container",
+        "gutter",
+        "marker",
+        "label"
+      ]
+    },
+    {
+      "id": "W06",
+      "name": "ChipBar",
+      "constructor": "ChipBar::new(id: Id, chips: &'a [ChipItem<'a>], revision: Revision) -> ChipBar<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut ChipBarState) -> Response<ChipAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &ChipBarState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "add_action(Option<ActionMeta<'a>>)",
+        "disabled(bool)",
+        "patch(StylePatch)",
+        "row(&ChipRowPainter)"
+      ],
+      "state": "ChipBarState",
+      "actions": "ChipAction::{Activate { key, origin }, SetChecked { key, checked, origin }, Close { key, origin }, Add { origin }}",
+      "parts": [
+        "container",
+        "gutter",
+        "marker",
+        "label",
+        "close",
+        "add",
+        "overflow"
+      ]
+    },
+    {
+      "id": "W07",
+      "name": "Field",
+      "constructor": "Field::new(label: &'a str) -> Field<'a>",
+      "signatures": [
+        "draw<R>(&self, ui: &mut Ui<'_>, area: Rect, body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R",
+        "measure(&self, cx: &MeasureCx<'_>, child: Size, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "help(&'a str)",
+        "error(Option<&'a ValidationMessage>)",
+        "required(bool)",
+        "plain_label(bool)",
+        "child_id(Id)",
+        "patch(StylePatch)"
+      ],
+      "state": null,
+      "actions": "None; child responses pass through unchanged.",
+      "parts": [
+        "label",
+        "required",
+        "help",
+        "error"
+      ]
+    },
+    {
+      "id": "W08",
+      "name": "TextInput",
+      "constructor": "TextInput::new(id: Id, value: &'a str, revision: Revision) -> TextInput<'a, Plain>\nTextInput::secret(id: Id, value: &'a Secret, revision: Revision) -> TextInput<'a, SecretText>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut TextInputState<M>) -> Response<TextAction<M::Value>>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &TextInputState<M>) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "label(&'a str)",
+        "placeholder(&'a str)",
+        "help(&'a str)",
+        "required(bool)",
+        "disabled(bool)",
+        "read_only(bool)",
+        "validation(Option<&'a ValidationMessage>)",
+        "validator(&Validator)",
+        "blur(BlurPolicy) // Commit baseline",
+        "secret_policy(SecretPolicy) // secret specialization only",
+        "patch(StylePatch)",
+        "conflict_policy(ConflictPolicy) // default PreserveDraftAndReport"
+      ],
+      "state": "TextInputState<M>",
+      "actions": "TextAction<V>::{Edited, Commit { value: V }, Cancelled, Conflict}; V is String for Plain or Secret for SecretText. Conflict is a payload-free notification; resolve through explicit state conflict policy.",
+      "parts": [
+        "container",
+        "label",
+        "gutter",
+        "text",
+        "placeholder",
+        "selection",
+        "cursor",
+        "help",
+        "error",
+        "marker"
+      ]
+    },
+    {
+      "id": "W09",
+      "name": "TextArea",
+      "constructor": "TextArea::new(id: Id, value: &'a str, revision: Revision) -> TextArea<'a, Plain>\nTextArea::secret(id: Id, value: &'a Secret, revision: Revision) -> TextArea<'a, SecretText>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut TextAreaState<M>) -> Response<TextAction<M::Value>>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &TextAreaState<M>) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "label(&'a str)",
+        "help(&'a str)",
+        "rows(u16)",
+        "disabled(bool)",
+        "read_only(bool)",
+        "validation(Option<&'a ValidationMessage>)",
+        "wrap(WrapMode)",
+        "patch(StylePatch)",
+        "conflict_policy(ConflictPolicy) // default PreserveDraftAndReport"
+      ],
+      "state": "TextAreaState<M>",
+      "actions": "TextAction<V>::{Edited, Commit { value: V }, Cancelled, Conflict}; explicit cancel command is distinct from the baseline Escape binding.",
+      "parts": [
+        "container",
+        "label",
+        "gutter",
+        "text",
+        "selection",
+        "cursor",
+        "help",
+        "error",
+        "scrollbar",
+        "fade"
+      ]
+    },
+    {
+      "id": "W10",
+      "name": "Select",
+      "constructor": "Select::new(id: Id, options: &'a [ChoiceItem<'a>], revision: Revision) -> Select<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut SelectState) -> Response<SelectAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &SelectState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "selected(Option<ItemKey>)",
+        "label(&'a str)",
+        "placeholder(&'a str)",
+        "disabled(bool)",
+        "validation(Option<&'a ValidationMessage>)",
+        "patch(StylePatch)"
+      ],
+      "state": "SelectState",
+      "actions": "SelectAction::{Choose { key: ItemKey, origin: ActivationOrigin }, Dismissed}",
+      "parts": [
+        "container",
+        "label",
+        "gutter",
+        "value",
+        "disclosure",
+        "popup",
+        "row",
+        "marker",
+        "help",
+        "error"
+      ]
+    },
+    {
+      "id": "W11",
+      "name": "Form",
+      "constructor": "Form::new(id: Id, fields: &'a [FieldSpec<'a>], actions: &'a [ActionMeta<'a>]) -> Form<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut FormState, controls: &mut dyn FormControls) -> Response<FormAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &FormState, controls: &dyn FormControls) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "validation(&'a [FieldError])",
+        "dirty(bool)",
+        "busy(bool)",
+        "patch(StylePatch)"
+      ],
+      "state": "FormState",
+      "actions": "FormAction::{Submit, Cancel, Auxiliary { action: ActionKey }}",
+      "parts": [
+        "container",
+        "field-group",
+        "validation-summary",
+        "actions"
+      ]
+    },
+    {
+      "id": "W12",
+      "name": "List",
+      "constructor": "List::new(id: Id, rows: &'a [T], revision: Revision) -> List<'a, T> where T: Keyed",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut ListState) -> Response<ListAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &ListState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "selected(&'a [ItemKey])",
+        "selection_mode(SelectionMode)",
+        "row(&'a RowPainter<T>)",
+        "readiness(Readiness<'a>)",
+        "disabled(bool)",
+        "patch(StylePatch)"
+      ],
+      "state": "ListState",
+      "actions": "ListAction::{Activate { key, origin }, SelectionRequested(SelectionRequest)}",
+      "parts": [
+        "container",
+        "row",
+        "gutter",
+        "marker",
+        "label",
+        "meta",
+        "status",
+        "scrollbar",
+        "fade",
+        "empty"
+      ]
+    },
+    {
+      "id": "W13",
+      "name": "FilterList",
+      "constructor": "FilterList::new(id: Id, rows: &'a [T], revision: Revision) -> FilterList<'a, T> where T: Keyed",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut FilterListState) -> Response<FilterListAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &FilterListState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "query(&'a str)",
+        "filter(&'a dyn Fn(&T, &str) -> MatchResult)",
+        "row(&'a RowPainter<T>)",
+        "readiness(Readiness<'a>)",
+        "patch(StylePatch)"
+      ],
+      "state": "FilterListState",
+      "actions": "FilterListAction::{QueryChanged, Activate { key, origin }, SelectionRequested(SelectionRequest)}",
+      "parts": [
+        "query",
+        "results",
+        "row",
+        "match",
+        "empty",
+        "scrollbar",
+        "fade"
+      ]
+    },
+    {
+      "id": "W14",
+      "name": "NavList",
+      "constructor": "NavList::new(id: Id, items: &'a [NavItem<'a>], revision: Revision) -> NavList<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut NavListState) -> Response<NavAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &NavListState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "active(Option<ItemKey>)",
+        "mode(NavMode) // full or compact",
+        "patch(StylePatch)",
+        "row(&NavRowPainter)"
+      ],
+      "state": "NavListState",
+      "actions": "NavAction::{Navigate { key, origin }, EnterContent { key }}",
+      "parts": [
+        "container",
+        "section",
+        "row",
+        "gutter",
+        "marker",
+        "icon",
+        "label",
+        "badge",
+        "scrollbar",
+        "fade"
+      ]
+    },
+    {
+      "id": "W15",
+      "name": "Tree",
+      "constructor": "Tree::new(id: Id, source: &'a dyn TreeSource) -> Tree<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut TreeState) -> Response<TreeAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &TreeState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "selected(&'a [ItemKey])",
+        "branch_activation(BranchActivation)",
+        "row(&TreeRowPainter)",
+        "readiness(Readiness<'a>)",
+        "patch(StylePatch)"
+      ],
+      "state": "TreeState",
+      "actions": "TreeAction::{Activate { key, origin }, ExpansionChanged { key, expanded }, LoadChildren { key }, SelectionRequested(SelectionRequest)}",
+      "parts": [
+        "container",
+        "row",
+        "indent",
+        "disclosure",
+        "gutter",
+        "marker",
+        "label",
+        "badge",
+        "status",
+        "scrollbar",
+        "fade",
+        "empty"
+      ]
+    },
+    {
+      "id": "W16",
+      "name": "Steps",
+      "constructor": "Steps::new(id: Id, steps: &'a [StepItem<'a>], revision: Revision) -> Steps<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut StepsState) -> Response<StepsAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &StepsState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "mode(StepsMode) // Display or Navigable",
+        "animation(AnimationSample)",
+        "patch(StylePatch)",
+        "row(&StepRowPainter)"
+      ],
+      "state": "StepsState",
+      "actions": "StepsAction::Activate { key: ItemKey, origin: ActivationOrigin }",
+      "parts": [
+        "container",
+        "row",
+        "gutter",
+        "marker",
+        "label",
+        "detail",
+        "status",
+        "scrollbar",
+        "fade"
+      ]
+    },
+    {
+      "id": "W17",
+      "name": "Tabs",
+      "constructor": "Tabs::new(id: Id, tabs: &'a [TabItem<'a>], revision: Revision) -> Tabs<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut TabsState) -> Response<TabsAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &TabsState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "active(Option<ItemKey>)",
+        "closable(bool)",
+        "reorderable(bool)",
+        "part_painter(&TabPartPainter)",
+        "patch(StylePatch)"
+      ],
+      "state": "TabsState",
+      "actions": "TabsAction::{Activate { key, origin }, Close { key, origin }, Reorder { key, before: Option<ItemKey> }, Context { key, anchor: Anchor }}",
+      "parts": [
+        "container",
+        "tab",
+        "gutter",
+        "marker",
+        "label",
+        "meta",
+        "status",
+        "close",
+        "underline",
+        "overflow"
+      ]
+    },
+    {
+      "id": "W18",
+      "name": "Picker",
+      "constructor": "Picker::new(id: Id, items: &'a [PickerItem<'a>], revision: Revision) -> Picker<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut PickerState) -> Response<PickerAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &PickerState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "title(&'a str)",
+        "query(&'a str)",
+        "searchable(bool)",
+        "readiness(Readiness<'a>)",
+        "row(&PickerRowPainter)",
+        "patch(StylePatch)"
+      ],
+      "state": "PickerState",
+      "actions": "PickerAction::{Accept { key, alternate: bool, origin }, ScopeNext, Dismissed}",
+      "parts": [
+        "container",
+        "title",
+        "query",
+        "breadcrumb",
+        "row",
+        "gutter",
+        "marker",
+        "label",
+        "detail",
+        "status",
+        "footer",
+        "scrollbar",
+        "fade",
+        "empty"
+      ]
+    },
+    {
+      "id": "W19",
+      "name": "CommandPalette",
+      "constructor": "CommandPalette::new(id: Id, commands: &'a [CommandItem<'a>], revision: Revision) -> CommandPalette<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut PickerState) -> Response<CommandPaletteAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &PickerState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "query(&'a str)",
+        "readiness(Readiness<'a>)",
+        "patch(StylePatch)"
+      ],
+      "state": "PickerState",
+      "actions": "CommandPaletteAction::{Execute { action: ActionKey, origin }, Dismissed}",
+      "parts": [
+        "container",
+        "title",
+        "query",
+        "row",
+        "label",
+        "shortcut",
+        "detail",
+        "status",
+        "empty"
+      ]
+    },
+    {
+      "id": "W20",
+      "name": "PickerChain",
+      "constructor": "PickerChain::new(id: Id, stages: &'a [PickerStage<'a>], revision: Revision) -> PickerChain<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut PickerChainState) -> Response<PickerChainAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &PickerChainState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "current(ItemKey)",
+        "readiness(Readiness<'a>)",
+        "patch(StylePatch)"
+      ],
+      "state": "PickerChainState",
+      "actions": "PickerChainAction::{Accept { stage: ItemKey, key: ItemKey }, Back, Retry { stage: ItemKey }, Cancel}",
+      "parts": [
+        "container",
+        "breadcrumb",
+        "title",
+        "query",
+        "row",
+        "footer",
+        "empty",
+        "status"
+      ]
+    },
+    {
+      "id": "W21",
+      "name": "Completion",
+      "constructor": "Completion::new(id: Id, owner: Id, items: &'a [CompletionItem<'a>], revision: Revision) -> Completion<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut CompletionState) -> Response<CompletionAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &CompletionState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "anchor(Anchor)",
+        "replacement(TextRange)",
+        "patch(StylePatch)"
+      ],
+      "state": "CompletionState",
+      "actions": "CompletionAction::{Apply { key, edit: TextEdit }, Dismissed}",
+      "parts": [
+        "container",
+        "row",
+        "kind",
+        "label",
+        "detail",
+        "match",
+        "scrollbar",
+        "fade"
+      ]
+    },
+    {
+      "id": "W22",
+      "name": "Dialog",
+      "constructor": "Dialog::new(id: Id, title: &'a str, actions: &'a [ActionMeta<'a>]) -> Dialog<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut DialogState) -> Response<DialogAction>",
+        "draw<R>(&self, ui: &mut Ui<'_>, area: Rect, state: &DialogState, body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "tone(DialogTone)",
+        "dismiss(DismissPolicy)",
+        "default_action(Option<ActionKey>)",
+        "body_size(Size)",
+        "patch(StylePatch)"
+      ],
+      "state": "DialogState",
+      "actions": "DialogAction::{Choose { action: ActionKey, origin }, Dismiss { reason: DismissReason }}",
+      "parts": [
+        "container",
+        "border",
+        "title",
+        "body",
+        "actions",
+        "status"
+      ]
+    },
+    {
+      "id": "W23",
+      "name": "Menu",
+      "constructor": "Menu::new(id: Id, items: &'a [MenuItem<'a>], revision: Revision) -> Menu<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut MenuState) -> Response<MenuAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &MenuState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "patch(StylePatch)",
+        "patch_part(Part, StylePatch)"
+      ],
+      "state": "MenuState",
+      "actions": "MenuAction::{Invoke { action: ActionKey, origin }, Dismissed}",
+      "parts": [
+        "container",
+        "row",
+        "marker",
+        "label",
+        "shortcut",
+        "submenu",
+        "separator",
+        "status"
+      ]
+    },
+    {
+      "id": "W24",
+      "name": "ContextMenu",
+      "constructor": "ContextMenu::new(id: Id, target: ItemKey, items: &'a [MenuItem<'a>], revision: Revision) -> ContextMenu<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut MenuState) -> Response<MenuAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &MenuState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "anchor(Anchor)",
+        "patch(StylePatch)"
+      ],
+      "state": "MenuState",
+      "actions": "MenuAction::{Invoke { action: ActionKey, origin }, Dismissed}",
+      "parts": [
+        "container",
+        "row",
+        "marker",
+        "label",
+        "shortcut",
+        "submenu",
+        "separator"
+      ]
+    },
+    {
+      "id": "W25",
+      "name": "MenuBar",
+      "constructor": "MenuBar::new(id: Id, menus: &'a [TopMenu<'a>], revision: Revision) -> MenuBar<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut MenuBarState) -> Response<MenuAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &MenuBarState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "leading(Option<Brand<'a>>)",
+        "trailing(StyledText<'a>)",
+        "patch(StylePatch)"
+      ],
+      "state": "MenuBarState",
+      "actions": "MenuAction::{Invoke { action: ActionKey, origin }, Dismissed}",
+      "parts": [
+        "container",
+        "brand",
+        "title",
+        "menu-label",
+        "dropdown",
+        "metadata"
+      ]
+    },
+    {
+      "id": "W26",
+      "name": "HelpOverlay",
+      "constructor": "HelpOverlay::new(id: Id, sections: &'a [HelpSection<'a>]) -> HelpOverlay<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut HelpOverlayState) -> Response<HelpAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &HelpOverlayState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "bindings(&'a BindingView)",
+        "patch(StylePatch)"
+      ],
+      "state": "HelpOverlayState",
+      "actions": "HelpAction::Dismissed",
+      "parts": [
+        "container",
+        "title",
+        "section",
+        "chord",
+        "description",
+        "scrollbar",
+        "fade"
+      ]
+    },
+    {
+      "id": "W27",
+      "name": "Wizard",
+      "constructor": "Wizard::new(id: Id, steps: &'a [WizardStep<'a>], revision: Revision) -> Wizard<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut WizardState) -> Response<WizardAction>",
+        "draw<R>(&self, ui: &mut Ui<'_>, area: Rect, state: &WizardState, body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "can_advance(bool)",
+        "can_finish(bool)",
+        "busy(bool)",
+        "patch(StylePatch)"
+      ],
+      "state": "WizardState",
+      "actions": "WizardAction::{Next { from: ItemKey }, Back { from: ItemKey }, Finish, Cancel}",
+      "parts": [
+        "container",
+        "step-heading",
+        "body",
+        "actions"
+      ]
+    },
+    {
+      "id": "W28",
+      "name": "Grid",
+      "constructor": "Grid::new(id: Id) -> Grid<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut GridState, model: &dyn GridModel) -> Response<GridAction>",
+        "update_editable(&self, cx: &mut Cx<'_>, state: &mut GridState, model: &mut dyn GridEditor) -> Response<GridAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &GridState, model: &dyn GridModel) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, model: &dyn GridModel, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "navigation(NavUnit) // Row or Cell",
+        "presentation(GridPresentation) // Table or DataGrid recipes",
+        "selection_mode(SelectionMode)",
+        "cell(&GridCellPainter)",
+        "column_fit(ColumnFit)",
+        "readiness(Readiness<'a>)",
+        "patch(StylePatch)"
+      ],
+      "state": "GridState",
+      "actions": "GridAction::{Activate { cell: CellKey, origin }, SortRequested { column: ColumnKey, direction: SortDirection }, SelectionRequested(GridSelection), Edited { cell: CellKey }, CopyRequested(GridSelection), FetchMore}",
+      "parts": [
+        "container",
+        "header",
+        "row",
+        "gutter",
+        "cell",
+        "cursor",
+        "selection",
+        "editor",
+        "sort-marker",
+        "footer",
+        "scrollbar",
+        "fade",
+        "empty"
+      ]
+    },
+    {
+      "id": "W29",
+      "name": "CodeEditor",
+      "constructor": "CodeEditor::new(id: Id, document: &'a dyn TextSource) -> CodeEditor<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut CodeEditorState) -> Response<CodeAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &CodeEditorState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "read_only(bool)",
+        "highlighter(&'a Highlighter)",
+        "segmenter(&'a Segmenter)",
+        "diagnostics(&'a [Diagnostic])",
+        "tab_behavior(TabBehavior)",
+        "line_numbers(bool)",
+        "patch(StylePatch)"
+      ],
+      "state": "CodeEditorState",
+      "actions": "CodeAction::{Edited, Commit { text: String }, Cancelled, SelectionChanged, CompletionRequested { position: TextPosition }, SegmentActivated { key: ItemKey }}",
+      "parts": [
+        "container",
+        "gutter",
+        "line-number",
+        "current-line",
+        "text",
+        "syntax",
+        "selection",
+        "cursor",
+        "diagnostic",
+        "find",
+        "completion",
+        "scrollbar",
+        "fade"
+      ]
+    },
+    {
+      "id": "W30",
+      "name": "DiffView",
+      "constructor": "DiffView::new(id: Id, source: &'a dyn DiffSource) -> DiffView<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut DiffViewState) -> Response<DiffAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &DiffViewState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "mode(DiffMode) // Unified or Review",
+        "wrap(WrapMode)",
+        "patch(StylePatch)"
+      ],
+      "state": "DiffViewState",
+      "actions": "DiffAction::{SelectionChanged, CopyRequested(TextSelection), HunkActivated { key: ItemKey }}",
+      "parts": [
+        "container",
+        "header",
+        "old-gutter",
+        "new-gutter",
+        "context",
+        "addition",
+        "deletion",
+        "emphasis",
+        "selection",
+        "scrollbar",
+        "fade",
+        "empty"
+      ]
+    },
+    {
+      "id": "W31",
+      "name": "TextViewport",
+      "constructor": "TextViewport::new(id: Id, source: &'a dyn TextSource) -> TextViewport<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut ViewportState) -> Response<ViewportAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &ViewportState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "mode(ViewportMode) // Prose or Log",
+        "wrap(WrapMode)",
+        "selectable(bool)",
+        "marks(&'a [TextMark])",
+        "patch(StylePatch)"
+      ],
+      "state": "ViewportState",
+      "actions": "ViewportAction::{CopyRequested(TextSelection), SelectionChanged, FollowChanged(bool), MarkChanged { key: ItemKey }}",
+      "parts": [
+        "container",
+        "text",
+        "selection",
+        "cursor",
+        "mark",
+        "prefix",
+        "scrollbar",
+        "fade",
+        "empty"
+      ]
+    },
+    {
+      "id": "W32",
+      "name": "Panel",
+      "constructor": "Panel::new(id: Id) -> Panel<'a>",
+      "signatures": [
+        "draw<R>(&self, ui: &mut Ui<'_>, area: Rect, body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R",
+        "measure(&self, cx: &MeasureCx<'_>, child: Size, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "kind(PanelKind) // Card or Framed",
+        "title(&'a str)",
+        "meta(StyledText<'a>)",
+        "badge(Option<Badge<'a>>)",
+        "focus_within(bool)",
+        "patch(StylePatch)"
+      ],
+      "state": null,
+      "actions": "None; child response remains the child response.",
+      "parts": [
+        "container",
+        "border",
+        "title",
+        "meta",
+        "badge",
+        "body"
+      ]
+    },
+    {
+      "id": "W33",
+      "name": "SplitPane",
+      "constructor": "SplitPane::new(id: Id, axis: Axis) -> SplitPane",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut SplitPaneState) -> Response<SplitAction>",
+        "draw<R>(&self, ui: &mut Ui<'_>, area: Rect, state: &SplitPaneState, body: impl FnOnce(&mut Ui<'_>, SplitAreas) -> R) -> R",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "minima(first: u16, second: u16)",
+        "seam_width(u16)",
+        "resizable(bool)",
+        "patch(StylePatch)"
+      ],
+      "state": "SplitPaneState",
+      "actions": "SplitAction::{Resized { ratio: SplitRatio }, Maximized { child: Option<ItemKey> }}",
+      "parts": [
+        "container",
+        "first-body",
+        "seam",
+        "second-body"
+      ]
+    },
+    {
+      "id": "W34",
+      "name": "Props",
+      "constructor": "Props::new(id: Id, rows: &'a [PropsRow<'a>]) -> Props<'a>",
+      "signatures": [
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "label_width(LabelWidth)",
+        "patch(StylePatch)",
+        "patch_part(Part, StylePatch)"
+      ],
+      "state": null,
+      "actions": "None.",
+      "parts": [
+        "container",
+        "label",
+        "value",
+        "separator",
+        "status"
+      ]
+    },
+    {
+      "id": "W35",
+      "name": "PropsList",
+      "constructor": "PropsList::new(id: Id, rows: &'a [PropsRow<'a>], revision: Revision) -> PropsList<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut PropsState) -> Response<PropsAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &PropsState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "label_width(LabelWidth)",
+        "copy_policy(CopyPolicy)",
+        "patch(StylePatch)"
+      ],
+      "state": "PropsState",
+      "actions": "PropsAction::CopyRequested { key: ItemKey }",
+      "parts": [
+        "container",
+        "row",
+        "gutter",
+        "marker",
+        "label",
+        "value",
+        "status",
+        "scrollbar",
+        "fade"
+      ]
+    },
+    {
+      "id": "W36",
+      "name": "Empty",
+      "constructor": "Empty::new(id: Id, state: Readiness<'a>) -> Empty<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>) -> Response<EmptyAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "title(&'a str)",
+        "detail(&'a str)",
+        "action(Option<ActionMeta<'a>>)",
+        "patch(StylePatch)"
+      ],
+      "state": null,
+      "actions": "EmptyAction::Invoke { action: ActionKey, origin: ActivationOrigin }",
+      "parts": [
+        "container",
+        "icon",
+        "title",
+        "detail",
+        "action"
+      ]
+    },
+    {
+      "id": "W37",
+      "name": "ProgressBar",
+      "constructor": "ProgressBar::new(id: Id, value: ProgressValue) -> ProgressBar<'a>",
+      "signatures": [
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "label(&'a str)",
+        "status(ProgressStatus) // Active, Done, Error, Paused",
+        "animation(AnimationSample)",
+        "patch(StylePatch)"
+      ],
+      "state": null,
+      "actions": "None. Cancel/retry/pause controls are separate Buttons.",
+      "parts": [
+        "container",
+        "label",
+        "fill",
+        "rest",
+        "percentage",
+        "suffix"
+      ]
+    },
+    {
+      "id": "W38",
+      "name": "Spinner",
+      "constructor": "Spinner::new(id: Id, sample: AnimationSample) -> Spinner",
+      "signatures": [
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "status(SpinnerStatus)",
+        "patch(StylePatch)"
+      ],
+      "state": null,
+      "actions": "None.",
+      "parts": [
+        "container",
+        "glyph"
+      ]
+    },
+    {
+      "id": "W39",
+      "name": "Meter",
+      "constructor": "Meter::new(id: Id, value: Option<Percent>) -> Meter<'a>",
+      "signatures": [
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "readout(&'a str)",
+        "visual(MeterVisual) // Line or Block",
+        "tone(MeterTone)",
+        "animation(AnimationSample)",
+        "patch(StylePatch)"
+      ],
+      "state": null,
+      "actions": "None.",
+      "parts": [
+        "container",
+        "fill",
+        "rest",
+        "value",
+        "suffix"
+      ]
+    },
+    {
+      "id": "W40",
+      "name": "StatusBar",
+      "constructor": "StatusBar::new(id: Id, groups: &'a [StatusGroup<'a>], revision: Revision) -> StatusBar<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>) -> Response<StatusAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "animation(AnimationSample)",
+        "patch(StylePatch)",
+        "patch_part(Part, StylePatch)"
+      ],
+      "state": null,
+      "actions": "StatusAction::Invoke { key: ItemKey, action: ActionKey, origin: ActivationOrigin }",
+      "parts": [
+        "container",
+        "group",
+        "item",
+        "label",
+        "value",
+        "icon",
+        "separator"
+      ]
+    },
+    {
+      "id": "W41",
+      "name": "HintBar",
+      "constructor": "HintBar::new(id: Id, hints: &'a [Hint<'a>]) -> HintBar<'a>\nHintBar::from_bindings(id: Id, bindings: &'a BindingView) -> HintBar<'a>",
+      "signatures": [
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "alignment(Alignment)",
+        "patch(StylePatch)"
+      ],
+      "state": null,
+      "actions": "None by default; hints describe handled actions rather than becoming duplicate controls.",
+      "parts": [
+        "container",
+        "chord",
+        "label",
+        "separator",
+        "editing-badge"
+      ]
+    },
+    {
+      "id": "W42",
+      "name": "KeyHint",
+      "constructor": "KeyHint::new(chord: &'a Chord, label: &'a str) -> KeyHint<'a>",
+      "signatures": [
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "patch(StylePatch)"
+      ],
+      "state": null,
+      "actions": "None.",
+      "parts": [
+        "chord",
+        "modifier",
+        "key",
+        "label"
+      ]
+    },
+    {
+      "id": "W43",
+      "name": "TooSmall",
+      "constructor": "TooSmall::new(minimum: Size, message: &'a str) -> TooSmall<'a>",
+      "signatures": [
+        "draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "patch(StylePatch)"
+      ],
+      "state": null,
+      "actions": "None; exit handling remains in the host binding scope.",
+      "parts": [
+        "container",
+        "message",
+        "dimensions"
+      ]
+    },
+    {
+      "id": "W44",
+      "name": "TerminalView",
+      "constructor": "TerminalView::new(id: Id, source: &'a dyn TerminalSource) -> TerminalView<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut TerminalViewState) -> Response<TerminalAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &TerminalViewState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "interaction(TerminalInteraction)",
+        "selection(Option<TerminalSelection>)",
+        "dimmed(bool)",
+        "patch(StylePatch) // chrome only; child cell colors preserved"
+      ],
+      "state": "TerminalViewState",
+      "actions": "TerminalAction::{Forward { token: InputToken }, CopyRequested(TerminalSelection), OpenLink { key: LinkKey }}",
+      "parts": [
+        "container",
+        "terminal-cell",
+        "cursor",
+        "selection",
+        "link"
+      ]
+    },
+    {
+      "id": "W45",
+      "name": "ScrollRegion",
+      "constructor": "ScrollRegion::new(owner: Id, axis: Axis, content: Extent) -> ScrollRegion<'a>",
+      "signatures": [
+        "update(&self, cx: &mut Cx<'_>, state: &mut ScrollState) -> Response<ScrollAction>",
+        "draw(&self, ui: &mut Ui<'_>, area: Rect, state: &ScrollState) -> Rect",
+        "measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size"
+      ],
+      "builders": [
+        "bars(ScrollbarPolicy)",
+        "fade(FadePolicy)",
+        "protected(&'a [ProtectedRange])"
+      ],
+      "state": "ScrollState",
+      "actions": "ScrollAction::{OffsetChanged, FollowChanged(bool)}",
+      "parts": [
+        "viewport",
+        "track",
+        "thumb",
+        "start-fade",
+        "end-fade"
+      ]
+    }
+  ]
+}

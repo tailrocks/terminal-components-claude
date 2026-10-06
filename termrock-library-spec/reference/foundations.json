@@ -1,0 +1,360 @@
+{
+  "schema": "termrock-spec/foundations-v1",
+  "visual_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "foundations": [
+    {
+      "id": "F01",
+      "slug": "identity",
+      "title": "Identity and revisions",
+      "legacy_families": [
+        "C01"
+      ],
+      "sources": [
+        "src/core/id.rs"
+      ],
+      "api": "Id::new(namespace: &'static str) -> Id\nId::child(&self, key: ItemKey) -> Id\nItemKey::new(value: u64) -> ItemKey\nColumnKey::new(value: u64) -> ColumnKey\nFieldKey::new(value: u64) -> FieldKey\nActionKey::new(name: &'static str) -> ActionKey\nRevision::new(value: u64) -> Revision\nPartRef::new(owner: Id, part: Part, item: Option<ItemKey>) -> PartRef\ntrait Keyed { fn key(&self) -> ItemKey; }",
+      "contract": [
+        "Id is control identity; ItemKey is source identity; ColumnKey identifies a column; ActionKey identifies behavior. Do not interchange these types or use labels as keys.",
+        "Use structured/length-delimited identity composition. A hash may optimize lookup but must not silently define equality across concatenation collisions. Duplicate IDs/keys are diagnosed before publishing interactive geometry; production behavior fails closed rather than dispatching ambiguously.",
+        "Keys survive reorder, insertions, filtering, renaming and refresh. Positional keys are forbidden for dynamic collections; no implicit ByIndex fallback.",
+        "Revision means accepted source content/order changed. Constructors for dynamic sources require it, or read it from a source trait. A caller that mutates data must advance revision before update/draw; this remains a caller contract, not a claim that a borrowed slice can enforce revision discipline by itself.",
+        "Reconciliation happens during update. Retain surviving cursor/selection anchors; when a cursor is removed choose the nearest eligible successor, then predecessor, then None. Never transfer pending activation/edit ownership to that fallback item."
+      ],
+      "tests": [
+        "namespace/child collision negative test",
+        "duplicate live ID, duplicate row key and duplicate column key rejected",
+        "rename/reorder retains key and command target",
+        "remove captured target then reuse old display index",
+        "source revision change invalidates stale derived data"
+      ]
+    },
+    {
+      "id": "F02",
+      "slug": "input-actions",
+      "title": "Input, responses and effective key bindings",
+      "legacy_families": [
+        "C02"
+      ],
+      "sources": [
+        "src/core/event.rs",
+        "src/widgets/keyhint.rs",
+        "src/widgets/hintbar.rs"
+      ],
+      "api": "enum Flow { Bubble, Consumed }\nenum Invalidate { None, Paint, Layout }\nstruct Response<A> { id: Id, flow: Flow, invalidate: Invalidate, state: VisualState, action: Option<A> }\nenum ActivationOrigin { Keyboard, Pointer, Programmatic }\nstruct Activated { origin: ActivationOrigin }\nstruct ValueChanged<T> { value: T, origin: ActivationOrigin }\nstruct Binding<'a> { action: ActionKey, chord: Option<Chord>, label: &'a str, enabled: bool, visible: bool, priority: u16 }\nBindingView::resolve(scope: ScopeId, bindings: &[Binding<'_>]) -> BindingView\nCx::intents(&mut self, owner: Id) -> IntentIter<'_>",
+      "contract": [
+        "Normalize terminal input once. Preserve modifiers, repeat/release information, paste boundaries and pointer coordinates. InputToken can preserve an opaque link to original bytes when the host needs lossless forwarding.",
+        "Consumption, visual invalidation, state change and domain intent are independent. A boundary wheel event can be consumed without paint; a display tick can repaint without an action.",
+        "A widget update processes one dispatched input/cause, yielding at most one caller-facing action. Focus traversal, layer closing and geometry invalidation are runtime requests, not duplicate business actions. Replayed/repeated releases cannot activate twice.",
+        "Use one effective binding catalog for handlers, hints, menus, command palette and help. Resolve modal/editor scopes before ordinary application commands; global emergency quit is explicit policy. Keep text input from accidentally invoking background y/n, q or other shortcuts.",
+        "The uniform naming/signature convention does not imply a universal dynamic Widget trait. Keep typed actions; do not erase all actions to strings or Any."
+      ],
+      "tests": [
+        "keyboard and pointer yield same action target with correct origin",
+        "repeat key policy versus duplicate release",
+        "consumed-without-repaint case",
+        "modal-first paste and editor-first typing",
+        "remapping changes handler and every displayed chord together"
+      ]
+    },
+    {
+      "id": "F03",
+      "slug": "runtime",
+      "title": "Frame driver, focus, pointer capture and time",
+      "legacy_families": [
+        "C03",
+        "C04"
+      ],
+      "sources": [
+        "src/core/focus.rs",
+        "src/core/hit.rs",
+        "src/ui/ctx.rs",
+        "src/runtime.rs"
+      ],
+      "api": "trait Scene {\n    fn update(&mut self, cx: &mut Cx<'_>, cause: UpdateCause);\n    fn draw(&self, ui: &mut Ui<'_>, area: Rect);\n}\nRuntime::new(scene: A, theme: Theme) -> Runtime<A> where A: Scene\nRuntime::handle(&mut self, cause: UpdateCause, moment: Moment) -> Result<UpdateReport, RuntimeError>\nRuntime::draw(&mut self, area: Rect) -> Result<PaintedFrame, RuntimeError>\nRuntime::presented(&mut self, token: FrameToken) -> Result<(), RuntimeError>\nMoment::from_millis(value: u64) -> Moment\nAnimationSample::phase(index: u64) -> AnimationSample\nAnimationSample::timed(now: Moment, epoch: Moment, cadence: Duration, policy: MotionPolicy) -> Result<AnimationSample, ClockError>",
+      "contract": [
+        "Scene is only a minimal update/draw adapter for a gallery or future consumer. It is not a Jackin app, router, executor framework, async runtime, DI container or service layer. No navigation tree or business state lives in Runtime.",
+        "First initialize/reconcile, then draw and publish geometry before accepting pointer input. Each update uses the last committed, still-valid frame geometry. Resize or topology changes invalidate it and require a fresh layout publication before coordinate-dependent input can be dispatched.",
+        "Paint and hit regions have one source. Frame publication is transactional: failed draw/registration must not leave half-new hitboxes. Disabled/inert overlays still block underlying targets where required. Invisible or removed owners cannot keep focus or capture.",
+        "Tab order follows visible enabled controls in render order. Focus is distinct from active selection and edit state. Modals trap, save and restore focus to the surviving owner; no owner means a documented valid fallback.",
+        "Hover is suppressed by keyboard input until pointer motion resumes. Press capture, completed-click eligibility, scrollbar drag and double-click recognition are runtime-owned. Revalidate stable target and eligibility at release.",
+        "Time is supplied and monotonic. Glyph phase and elapsed interaction feedback are separate inputs; no draw-count clocks. Baseline activation feedback is 140 ms under the characterized clock mapping. Present the changed activation frame before draining a later event that would erase it; presentation acknowledgement tests cover delayed output.",
+        "Preserve public update/draw purity using immutable state/model references and confined APIs. Rust signatures alone cannot stop side effects hidden behind arbitrary Fn closures or interior mutability; add state-before/after tests and restricted callback review. Do not claim a type signature is a complete purity proof.",
+        "Ui may publish geometry/layout facts, cursor intent and paint data, but not mutate semantic widget state. Reconciliation from those facts happens in an explicit update before the next render/input as needed. Do not run unbounded update/draw stabilization loops."
+      ],
+      "tests": [
+        "boot without geometry cannot dispatch pointer event",
+        "resize during drag and disappearance of captured row",
+        "focus+hover suppression and restoration",
+        "input flood does not starve animation deadlines or presentation",
+        "draw twice does not change semantic state",
+        "modal close with removed prior focus target",
+        "nonmonotonic time rejected; paused glyph phase still permits data updates"
+      ]
+    },
+    {
+      "id": "F04",
+      "slug": "layers",
+      "title": "Layers, modal ownership and anchored popups",
+      "legacy_families": [
+        "C09"
+      ],
+      "sources": [
+        "src/ui/popup.rs",
+        "src/widgets/dialog.rs",
+        "src/widgets/menu.rs"
+      ],
+      "api": "Cx::open_layer(id: Id, spec: LayerSpec) -> Result<(), LayerError>\nCx::close_layer(id: Id, reason: DismissReason)\nUi::layer<R>(id: Id, body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> Option<R>\nstruct LayerSpec { owner: Id, kind: LayerKind, anchor: Anchor, size: LayerSize, dismiss: DismissPolicy, backdrop: Backdrop, inert_below: bool }\nenum LayerKind { Modal, Popover, Menu }\nenum DismissReason { Escape, OutsidePointer, OwnerRemoved, Programmatic }",
+      "contract": [
+        "One runtime layer stack provides placement, Z order, capture barriers and focus restoration for Dialog, Picker, Select, Menu, Completion and help.",
+        "Component measures a size; runtime resolves the rectangle against current viewport and anchor. No shared popup.surface ID. Popovers can trap pointer without trapping normal editor typing; modal focus stays confined.",
+        "App content is a borrowed slot closure invoked immediately in draw. Do not box a static callback or require a cloned application model simply to open a dialog.",
+        "Backdrop and overlay rendering preserve baseline cell colors/dimming; layer compositing uses written-cell ownership and proper clipping so transparency cannot overwrite unrelated cells.",
+        "Click outside is one dismissal gesture, not dismissal plus activation of a button below. Escape closes only the top applicable level. Remove the owner and release capture/keyboard ownership deterministically."
+      ],
+      "tests": [
+        "nested modal -> picker -> submenu with one-level Escape",
+        "outside click never passes through after close",
+        "reanchor on resize and deleted anchor",
+        "popover completion retains editor cursor/typing",
+        "transparent/partial layer leaves lower cells correct"
+      ]
+    },
+    {
+      "id": "F05",
+      "slug": "layout",
+      "title": "Measurement, surfaces and responsive layout",
+      "legacy_families": [
+        "C05"
+      ],
+      "sources": [
+        "src/ui/layout.rs",
+        "src/widgets/splitter.rs",
+        "src/widgets/panel.rs"
+      ],
+      "api": "struct Size { width: u16, height: u16 }\nstruct Constraints { min: Size, max: Size }\nenum Track { Fixed(u16), Flex(u16), Auto }\ntrait Measure { fn measure(&self, cx: &MeasureCx<'_>, constraints: Constraints) -> Size; }\nlayout::rows(area: Rect, tracks: &[Track], gap: u16) -> Vec<Rect>\nlayout::columns(area: Rect, tracks: &[Track], gap: u16) -> Vec<Rect>\nlayout::action_row(area: Rect, sizes: &[Size], align: Alignment, gap: u16) -> Vec<Rect>\nlayout::responsive_columns(area: Rect, spec: ResponsiveSpec) -> ResponsiveAreas\nUi::with_surface<R>(surface: Surface, body: impl FnOnce(&mut Ui<'_>) -> R) -> R\nUi::clip<R>(area: Rect, body: impl FnOnce(&mut Ui<'_>) -> R) -> R",
+      "contract": [
+        "One geometry calculation serves draw and hit registration. All arithmetic handles zero size, nonzero origins and available-space exhaustion without panics or wrapping.",
+        "Pure measure reads props, theme design metrics and constraints; state-dependent models have an explicit immutable model/state parameter. Never mutate text, focus or active choices while measuring.",
+        "Containers establish an inherited surface. Children do not accept a trailing raw background color, and widgets do not infer surface identity by comparing RGB values.",
+        "Responsive layout yields allocation facts (side-by-side versus overlay/drawer) and leaves content/focus decisions to the caller. Do not add a domain-specific WorkspaceShell API.",
+        "The 72x20 limit belongs to a baseline composed fixture, not all widgets. Library tests include local 0x0/1x1 allocations; finite proportions and minima are validated before layout."
+      ],
+      "tests": [
+        "all helpers on0/1 extents and nonzero origins",
+        "exact-fit/one-cell-short action rows",
+        "horizontal/vertical split symmetry",
+        "nested clipping with wide glyph at right edge",
+        "responsive breakpoint roundtrip retains caller state"
+      ]
+    },
+    {
+      "id": "F06",
+      "slug": "theme",
+      "title": "Semantic themes, recipes, parts and color capability",
+      "legacy_families": [
+        "C06"
+      ],
+      "sources": [
+        "src/theme.rs",
+        "src/ui/fade.rs",
+        "src/ui/text.rs"
+      ],
+      "api": "Theme::termrock() -> Theme\nTheme::paper() -> Theme\nTheme::with_palette(self, level: ColorLevel, tokens: ColorTokens) -> Theme\nTheme::patch(self, family: Family, variant: Variant, part: Part, patch: StylePatch) -> Theme\nenum ColorLevel { TrueColor, Ansi256, Ansi16, Mono }\nenum Surface { Canvas, Surface, Elevated, Overlay, Popover, Field, FieldHover }\nenum PatchSlot<T> { Inherit, Set(T), Clear }\nstruct StylePatch { foreground: PatchSlot<Role>, background: PatchSlot<Role>, modifiers: ModifierPatch }\nUi::with_patch<R>(patch: ScopedPatch, body: impl FnOnce(&mut Ui<'_>) -> R) -> R",
+      "contract": [
+        "Theme::termrock preserves the pinned default visual tokens. Initial anchors include canvas #000000, surface #111111, elevated #18181b, overlay #27272a, field #1e1e22, field-hover #232328, popover #3f3f46 and accent #48e054. Complete values/recipes are extracted from the pinned source; these anchors alone are not a full palette.",
+        "Keep colors, spacing, borders, glyphs, density and timing in concrete theme data, not widget literals or a theme trait. A small Paper palette demonstrates separation; its new visuals are extension conformance, not claimed baseline parity.",
+        "Override order is explicit: base recipe -> variant -> state rules -> monochrome fallback -> global override -> subtree override -> instance patch -> more-specific instance part patch. Inherit, Set and Clear are distinct. Bind semantic roles to capability/surface colors last.",
+        "Part slots are borrowed, immediate paint callbacks within reserved rectangles. A slot replaces only its declared part; it cannot erase the whole component, alter hitboxes or install its own focus router.",
+        "Preserve truecolor, 256,16, explicit none and environment NO_COLOR capture lanes. None and NO_COLOR can produce equivalent palettes while testing different input policy paths. User-requested capability cannot silently exceed the terminal ceiling.",
+        "Baseline focus uses a gutter; hover lifts one plane; selection/check markers remain distinct; errors and warning tones do not remove focus. Green budget and progress-versus-capacity roles remain separate.",
+        "Raw terminal cell blitting is a qualified adapter exception: child terminal colors remain terminal data, not semantic Termrock roles."
+      ],
+      "tests": [
+        "same component across all five capability lanes",
+        "focus/hover/disabled precedence painted-cell tests",
+        "Clear versus Inherit part patch",
+        "custom row/cell slots use owner patch",
+        "Paper sentinel theme exposes hardcoded baseline colors",
+        "no Color literals in standard component painters outside documented adapter exceptions"
+      ]
+    },
+    {
+      "id": "F07",
+      "slug": "text",
+      "title": "Shared text editing and source/display projection",
+      "legacy_families": [
+        "C07"
+      ],
+      "sources": [
+        "src/core/text.rs",
+        "src/ui/text.rs",
+        "src/widgets/field_common.rs",
+        "src/widgets/viewport.rs"
+      ],
+      "api": "trait TextSource {\n    fn revision(&self) -> Revision;\n    fn line_count(&self) -> usize;\n    fn line(&self, index: usize) -> Option<TextLine<'_>>;\n}\nstruct TextLine<'a> { key: ItemKey, text: &'a str, spans: &'a [StyleSpan] }\nstruct TextPosition { line: ItemKey, byte: usize }\nstruct TextRange { revision: Revision, start: TextPosition, end: TextPosition }\nTextEditorCore::new() -> TextEditorCore\nTextEditorCore::apply(&mut self, edit: TextCommand) -> EditOutcome\ntext::width(text: &str) -> usize\ntext::truncate(text: &str, columns: usize) -> Cow<'_, str>\ntext::fuzzy(query: &str, text: &str) -> MatchResult",
+      "contract": [
+        "One engine handles grapheme motion, word motion, deletion, selection, undo/edit history, paste and source/display coordinates. Higher-level widgets choose commit/cancel/tab/newline policy rather than forking text operations.",
+        "Segment a logical grapheme before splitting style spans. Tabs expand for display only; copy uses source text. Controls displayed safely must not rewrite the original copied content without an explicit copy policy.",
+        "Every editable range belongs to a source revision and valid grapheme boundary; reject stale or invalid completion/edit ranges. Selection crossing a newline preserves actual newline semantics.",
+        "Account for double-width glyph continuation cells and zero-width combining marks. Document the supported Unicode width policy; no unverified blanket BiDi or terminal-font fidelity claim.",
+        "Cache keys include source revision, available width, tab/wrap policy and metric/theme changes relevant to layout. Append/replace/eviction have distinct reconciliation tests.",
+        "Fields may keep a draft String during editing; borrowed output views must not clone a whole log/document per frame. Bound undo/history allocations explicitly."
+      ],
+      "tests": [
+        "styled grapheme split across spans",
+        "combining and CJK cursor movement, selection and deletion",
+        "tabs/control display versus source copy",
+        "revision-tagged stale completion rejected",
+        "eviction preserves surviving marks and invalidates removed selection",
+        "input Escape cancels while textarea Escape commits"
+      ]
+    },
+    {
+      "id": "F08",
+      "slug": "collections",
+      "title": "Borrowed collections, presenters and model traits",
+      "legacy_families": [
+        "C10"
+      ],
+      "sources": [
+        "src/widgets/list.rs",
+        "src/widgets/tree.rs",
+        "src/widgets/grid.rs",
+        "src/widgets/table.rs"
+      ],
+      "api": "trait TreeSource { fn revision(&self) -> Revision; fn roots(&self) -> &[ItemKey]; fn node(&self, key: ItemKey) -> Option<TreeNode<'_>>; }\ntrait GridModel {\n    fn revision(&self) -> Revision;\n    fn row_count(&self) -> usize;\n    fn row_key(&self, index: usize) -> Option<ItemKey>;\n    fn columns(&self) -> &[GridColumn<'_>];\n    fn cell(&self, row: ItemKey, column: ColumnKey) -> Option<CellValue<'_>>;\n}\ntrait GridEditor: GridModel {\n    fn editable(&self, cell: CellKey) -> bool;\n    fn validate(&self, request: &CellEdit) -> Result<(), ValidationMessage>;\n    fn commit(&mut self, request: CellEdit) -> Result<(), ValidationMessage>;\n}\ntrait DiffSource { fn revision(&self) -> Revision; fn rows(&self) -> &[DiffRow<'_>]; }\ntype RowPainter<T> = dyn Fn(&mut RowUi<'_>, Rect, &T, RowState);\ntype GridCellPainter = dyn Fn(&mut CellUi<'_>, Rect, CellValue<'_>, CellState);",
+      "contract": [
+        "Borrowed data and stable keys are mandatory. Custom presenters are Fn callbacks with no global Buffer, geometry mutation or event routing access. They paint a reserved row/cell through constrained author interfaces.",
+        "Use one reconciliation algorithm for stable cursors and anchors. Removal never turns a previously armed action into an action on a fallback row. Disabled/readiness state is checked on the actual live target.",
+        "GridEditor mutates only the caller-provided local model during update. Its implementations may not perform blocking IO in a UI callback. Saving a database/workspace is a separate application action, not grid behavior.",
+        "For indexed slices, accept a source Revision in the constructor and cache key lookup/projection by revision. Building an index after a source change may be O(n); ordinary draw targets O(visible rows/cells plus measured overscan). Do not falsely claim every operation is O(1).",
+        "Type-specific row adapters retain rich parts, selection markers, errors and copy semantics. A ListRow with only a label must not erase the functionality of the baseline custom rows.",
+        "Keep unbounded domain data out of library-owned state; bound cached projections and invalidate them when revision, dimensions or styling metrics change."
+      ],
+      "tests": [
+        "100k-row visible-only render callback counter",
+        "insert/remove/reorder/filter with duplicate labels",
+        "ragged grid/missing cell/removed column safety",
+        "read-only model fails compilation on editing entry point",
+        "row/cell override reaches actual pixels",
+        "draw never calls GridEditor::commit"
+      ]
+    },
+    {
+      "id": "F09",
+      "slug": "secret-validation",
+      "title": "Secret-aware fields and validation",
+      "legacy_families": [
+        "C19"
+      ],
+      "sources": [
+        "src/widgets/input.rs",
+        "src/widgets/textarea.rs",
+        "src/widgets/dialog.rs"
+      ],
+      "api": "Secret::new(value: String) -> Secret\nSecret::expose<R>(&self, read: impl FnOnce(&str) -> R) -> R\nSecret::clear(&mut self)\nstruct SecretPolicy { reveal_tail: u8, allow_copy: bool }\nstruct Plain;\nstruct SecretText;\nstruct TextInputState<Mode = Plain> { /* private, mode-dependent storage */ }\nenum TextAction<V> { Edited, Commit { value: V }, Cancelled, Conflict }\nstruct ValidationMessage { code: &'static str, display: String }\nstruct FieldError { field: FieldKey, message: ValidationMessage }\ntrait Validator { fn validate(&self, value: &str) -> Result<(), ValidationMessage>; }",
+      "contract": [
+        "Plain and secret editing share one text engine/painter but different storage/permission specializations. Secret and secret-bearing state have redacted Debug, no Clone, no general serialization and no plain draft getter.",
+        "Zeroize owned active/rollback secret drafts on replacement/cancel/drop using a reviewed zeroization primitive. This reduces owned-buffer exposure; it is not a guarantee that the OS, allocator or application never copied a secret.",
+        "Default secret policy is no copy and no tail reveal. The baseline synthetic four-character tail is an explicit oracle fixture policy. Never capture real credentials in conformance artifacts.",
+        "Validation is caller-supplied and deterministic. Standard messages never echo secret input. Domain validators must return safe display text; the type system cannot prove an arbitrary String contains no secret, so negative leak tests are required.",
+        "Commit transfers a Secret value to the caller without making the action freely cloneable. Edited is payload-free. Cancellation/hidden/disabled transitions clear drafts according to the documented mode policy.",
+        "Form validation decides whether Submit is eligible after field commits. A required/custom validation error is a separate visual state from editing/focus, not permission to perform persistence."
+      ],
+      "tests": [
+        "compile-fail Clone/serde/ordinary draft access for secrets",
+        "synthetic secret absent from Debug and all generated artifact text",
+        "no copy/tail reveal without explicit policy",
+        "cancel/drop/replacement invoke clearing path",
+        "masked wide-grapheme hit mapping"
+      ]
+    },
+    {
+      "id": "F10",
+      "slug": "author",
+      "title": "Public component-author surface",
+      "legacy_families": [
+        "C52"
+      ],
+      "sources": [
+        "src/ui/ctx.rs",
+        "src/bin/jackin_preview/rain.rs"
+      ],
+      "api": "author::register(ui: &mut Ui<'_>, region: RegionSpec)\nauthor::paint(ui: &mut Ui<'_>, area: Rect, text: StyledText<'_>, part: Part)\nauthor::request_cursor(ui: &mut Ui<'_>, owner: Id, cursor: CursorSpec)\nauthor::blit_terminal(ui: &mut Ui<'_>, area: Rect, source: &dyn TerminalSource)\nUi::part<R>(owner: Id, part: Part, area: Rect, painter: impl FnOnce(&mut PartUi<'_>) -> R) -> R",
+      "contract": [
+        "Application-author facade exposes curated standard widgets; author facade exposes only the constrained vocabulary needed to implement a new generic component or product artwork.",
+        "Public component authors get borrowed styles, clipped part/row/cell paint, region registration and normalized intents. They do not get raw access to mutable runtime focus/hit/layer storage.",
+        "Never duplicate Button/List/Grid/Menu painting in a custom component that visually presents one of those controls. Missing styling or behavior belongs in the standard component API.",
+        "Product rain, warp phrases, logos and instance-entry/exit policies remain outside core. Test-only baseline artwork fixtures may exercise clipping/time APIs; do not grow a particle engine or JackinBrand widget.",
+        "TerminalView is the narrowly specified raw-cell exception. It preserves child cell data while participating in runtime clip/cursor/input ownership. Standard UI surfaces must not use raw blitting to conceal broken standard widgets.",
+        "Draw purity includes custom slots: review callbacks for hidden mutable captures/IO and test before/after model snapshots. Fn is an API constraint, not a complete side-effect prohibition."
+      ],
+      "tests": [
+        "external consumer crate defines keyed custom component without private imports",
+        "custom part cannot paint outside reserved rect",
+        "custom author reorder/remove behavior shares runtime hit semantics",
+        "mutation test on standard Button changes every composition that contains it",
+        "terminal raw-cell path cannot overwrite outer modal"
+      ]
+    },
+    {
+      "id": "F11",
+      "slug": "conformance",
+      "title": "Conformance registry and public-surface checks",
+      "legacy_families": [
+        "C53",
+        "C54"
+      ],
+      "sources": [
+        "docs/refactoring-plan/component-parity.tsv",
+        "tests/visual_baseline/audit.rs",
+        "src/lib.rs",
+        "src/widgets/mod.rs"
+      ],
+      "api": "// Test-only crate; not a dependency of termrock.\nstruct ComponentCase { component: &'static str, scenario: &'static str, authority: AuthorityLane, program: SealedProgram }\nenum AuthorityLane { ExistingOracle, ExtractedOracle, Extension }\nHarness::dispatch(&mut self, event: Input, at: Moment)\nHarness::checkpoint(&mut self, name: &str) -> CanonicalObservation\ncompare_exact(expected: &CanonicalObservation, actual: &CanonicalObservation) -> Comparison\n// CanonicalObservation includes cells, cursor, semantic trace, focus, capture and provenance.",
+      "contract": [
+        "A registry is test data, not a production plugin system. The production library does not depend on tui-snap, PTYs, fonts, PNG/HTML libraries, discovery tools or filesystem manifests.",
+        "Every component has source references, proposed public signatures, applicable state cases and explicit non-applicability. Every source-family ledger row maps to at least one component/foundation/verification reference.",
+        "ExistingOracle means imported pinned approved output. ExtractedOracle means trusted capture from unchanged pinned source at a newly isolated state. Extension means newly specified robustness or adapter behavior. Never disguise Extension as old baseline parity.",
+        "Trusted oracle capture and approval are outside candidate authority. Missing required approval fails; disabled cases cannot silently reduce the denominator. Candidate has read-only expected artifacts.",
+        "Public API tests compile only against external consumer dependencies. No source-level include! into candidate internals, copied baseline painters, pub(crate) shortcuts or size-specific snapshot replicas.",
+        "Compile-fail tests cover read-only editing, illegal secret operations and private runtime access. Mutation tests verify painting and action trace gates actually fail; a successful Rust build alone is not parity.",
+        "This package specification and its manifests are not the implemented harness. Concrete Rust test drivers and sealed numeric capture programs are P0/P1 deliverables."
+      ],
+      "tests": [
+        "all 54 legacy families dispositioned",
+        "missing/changed expected artifact fails closed",
+        "one cell color/cursor/target/action mutation fails",
+        "unavailable scenario reports blocked rather than passes",
+        "dead widget replaced by paint-over rejected",
+        "all documented public examples compile after implementation"
+      ]
+    },
+    {
+      "id": "F12",
+      "slug": "session",
+      "title": "Optional terminal/session adapter",
+      "legacy_families": [
+        "C04"
+      ],
+      "sources": [
+        "src/runtime.rs"
+      ],
+      "api": "// Available only behind the crossterm feature.\nTerminalSession::enter(options: SessionOptions) -> Result<TerminalSession, SessionError>\nTerminalSession::read(&mut self, deadline: Option<Moment>) -> Result<Option<Input>, SessionError>\nTerminalSession::present(&mut self, frame: &PaintedFrame) -> Result<(), SessionError>\nTerminalSession::restore(&mut self) -> Result<(), SessionError>\nSessionOptions { mouse: bool, bracketed_paste: bool, alternate_screen: bool }",
+      "contract": [
+        "Components and Runtime work headlessly without this feature. Adapter maps terminal events, presents cells and scopes raw mode/alternate screen/mouse/paste/cursor settings.",
+        "Normal exit, initialization failure, draw failure, panic/unwind and supported suspend/resume paths restore owned terminal state. Signal behavior belongs to the platform adapter, not widget code.",
+        "Capabilities and motion policy are explicit. Detect/accept a capability ceiling at the edge; core rendering never reads environment variables or real clocks.",
+        "OSC clipboard, links, title and pointer-shape emission are host policy. The adapter must not turn untrusted text into arbitrary escape sequences or automatically copy protected data.",
+        "PTY tests run a tiny component gallery or micro-scene executable, not a new Jackin application. Child PTY processing/emulation for a future product is not part of this session adapter."
+      ],
+      "tests": [
+        "cleanup after every failure point and unwind",
+        "mouse/paste mode enabled and restored exactly once",
+        "resize/focus events correctly normalized",
+        "shutdown while component capture/layer active",
+        "headless core builds with no backend/default features"
+      ]
+    }
+  ]
+}
