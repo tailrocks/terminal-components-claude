@@ -373,69 +373,6 @@
     },
     {
       "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/choice.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 4,
-      "path": "crates/holla-ui/src/tui/widgets/choice.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 5,
-      "path": "crates/holla-ui/src/tui/widgets/choice.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-11"
-    },
-    {
-      "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/code.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 3,
-      "path": "crates/holla-ui/src/tui/widgets/code.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 5,
-      "path": "crates/holla-ui/src/tui/widgets/code.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-11"
-    },
-    {
-      "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/completion.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 4,
-      "path": "crates/holla-ui/src/tui/widgets/completion.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/completion.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-11"
-    },
-    {
-      "max": 1,
       "path": "crates/holla-ui/src/tui/widgets/dialog.rs",
       "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
@@ -451,20 +388,6 @@
     {
       "max": 1,
       "path": "crates/holla-ui/src/tui/widgets/dialog.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-11"
-    },
-    {
-      "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/diff.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 4,
-      "path": "crates/holla-ui/src/tui/widgets/diff.rs",
       "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-11"
@@ -482,27 +405,6 @@
       "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-02"
-    },
-    {
-      "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/grid.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 17,
-      "path": "crates/holla-ui/src/tui/widgets/grid.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 5,
-      "path": "crates/holla-ui/src/tui/widgets/grid.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-11"
     },
     {
       "max": 1,
@@ -542,20 +444,6 @@
     {
       "max": 6,
       "path": "crates/holla-ui/src/tui/widgets/keyhint.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/list.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 5,
-      "path": "crates/holla-ui/src/tui/widgets/list.rs",
       "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-02"
@@ -716,20 +604,6 @@
     },
     {
       "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/splitter.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/splitter.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 1,
       "path": "crates/holla-ui/src/tui/widgets/statusbar.rs",
       "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
@@ -741,41 +615,6 @@
       "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-02"
-    },
-    {
-      "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/steps.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 5,
-      "path": "crates/holla-ui/src/tui/widgets/steps.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/table.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 10,
-      "path": "crates/holla-ui/src/tui/widgets/table.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 3,
-      "path": "crates/holla-ui/src/tui/widgets/table.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-11"
     },
     {
       "max": 1,
@@ -794,27 +633,6 @@
     {
       "max": 3,
       "path": "crates/holla-ui/src/tui/widgets/tabs.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-11"
-    },
-    {
-      "max": 1,
-      "path": "crates/holla-ui/src/tui/widgets/textarea.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 12,
-      "path": "crates/holla-ui/src/tui/widgets/textarea.rs",
-      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 8,
-      "path": "crates/holla-ui/src/tui/widgets/textarea.rs",
       "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-11"

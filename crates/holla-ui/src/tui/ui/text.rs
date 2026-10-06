@@ -8,15 +8,6 @@ use unicode_width::UnicodeWidthStr;
 /// TextViewport renders each tab as four spaces, independent of column.
 pub(crate) const TAB_SPACES: &str = "    ";
 
-/// Match viewport tab geometry before constructing fixed-width styled spans.
-pub(crate) fn expand_tabs(text: &str) -> std::borrow::Cow<'_, str> {
-    if text.contains('\t') {
-        text.replace('\t', TAB_SPACES).into()
-    } else {
-        text.into()
-    }
-}
-
 pub fn width(s: &str) -> usize {
     UnicodeWidthStr::width(s)
 }
