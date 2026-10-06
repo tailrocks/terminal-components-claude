@@ -1303,13 +1303,6 @@
       "rule": "OWN-02"
     },
     {
-      "max": 7,
-      "path": "crates/showcase-demos/src/pages/scrolling.rs",
-      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-11"
-    },
-    {
       "max": 12,
       "path": "crates/showcase-demos/src/pages/settings.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",

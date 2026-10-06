@@ -1,8 +1,8 @@
 //! Three independent scroll surfaces: prose, a long list, and a following log.
 
 use termrock::{
-    Cx, FrameRead, Id, Panel, Rect, Response, ScrollRegion, ScrollState, StateFlags, TextViewport,
-    Track, Ui, ViewportAction, ViewportLine, ViewportState, id, layout,
+    Cx, FrameRead, Id, Panel, Rect, Response, StateFlags, TextViewport, Ui, ViewportAction,
+    ViewportLine, ViewportState, id,
 };
 
 use showcase_data::{PROSE, SCROLL_ROWS, log_lines};
@@ -15,9 +15,6 @@ const LOG_VIEW: Id = id!("scrolling.log");
 const PROSE_PANEL: Id = id!("scrolling.prose.panel");
 const LIST_PANEL: Id = id!("scrolling.list.panel");
 const LOG_PANEL: Id = id!("scrolling.log.panel");
-const REGION_PANEL: Id = id!("scrolling.region.panel");
-const REGION: Id = id!("scrolling.region");
-const REGION_LEN: usize = 48;
 
 fn prose_view() -> TextViewport<'static> {
     TextViewport::new(PROSE_VIEW).wrap(true)
@@ -74,34 +71,6 @@ fn log_panel(meta: &str) -> Panel<'_> {
     Panel::new(LOG_PANEL).title("Log").meta(meta)
 }
 
-/// One raw `ScrollRegion` under the three viewports: the caller paints the
-/// content rows itself and the component owns only the scrollbar.
-fn region() -> ScrollRegion<'static> {
-    ScrollRegion::new(REGION)
-}
-
-fn region_panel(meta: &str) -> Panel<'_> {
-    Panel::new(REGION_PANEL).title("Raw region").meta(meta)
-}
-
-fn region_lines() -> Vec<String> {
-    (1..=REGION_LEN)
-        .map(|number| format!("region row {number:03} — scroll me with the wheel"))
-        .collect()
-}
-
-fn range_label(state: &ScrollState) -> String {
-    if !state.overflows() {
-        return format!("showing all {REGION_LEN} rows");
-    }
-    let range = state.visible_range();
-    format!(
-        "rows {}–{} of {REGION_LEN}",
-        range.start.saturating_add(1),
-        range.end
-    )
-}
-
 fn columns(area: Rect) -> [Rect; 3] {
     let third = area.width / 3;
     [
@@ -134,11 +103,9 @@ pub struct ScrollingPage {
     prose: Vec<ViewportLine<'static>>,
     list: Vec<ViewportLine<'static>>,
     log: Vec<String>,
-    region: Vec<String>,
     prose_state: ViewportState,
     list_state: ViewportState,
     log_state: ViewportState,
-    region_state: ScrollState,
     last: &'static str,
 }
 
@@ -160,11 +127,9 @@ impl ScrollingPage {
             list: list_lines(),
             // The capture starts at the historical follow-tail window.
             log: log_lines(409),
-            region: region_lines(),
             prose_state,
             list_state,
             log_state,
-            region_state: ScrollState::default(),
             last: "top of document",
         }
     }
@@ -215,19 +180,11 @@ impl Page for ScrollingPage {
         let log = log_view().update(cx, &mut self.log_state, &log_lines);
         self.note(log.action_ref());
         response |= log.erase();
-        let region_offset = self.region_state.offset();
-        response |= region()
-            .update(cx, &mut self.region_state, REGION_LEN)
-            .erase();
-        if self.region_state.offset() != region_offset {
-            self.last = "region scrolled";
-        }
-        // The update pass builds the same four pane cards draw will render (§13).
+        // The update pass builds the same three pane cards draw will render (§13).
         let log_meta = position_label(&self.log_state);
         let _ = prose_panel(&position_label(&self.prose_state));
         let _ = list_panel(&position_label(&self.list_state));
         let _ = log_panel(&log_meta);
-        let _ = region_panel(&range_label(&self.region_state));
         response.into()
     }
 
@@ -238,9 +195,7 @@ impl Page for ScrollingPage {
             self.title(),
             "Wheel under the pointer, keys on the focused container, thumb shows where you are",
             |ui, body| {
-                let strips =
-                    layout::rows(body, &[Track::Flex(1), Track::Fixed(1), Track::Fixed(7)]);
-                let top = strips.first().copied().unwrap_or(body);
+                let top = body;
                 let cols = columns(top);
                 prose_panel(&position_label(&self.prose_state))
                     .draw(ui, cols[0], |ui, inner| self.draw_prose(ui, inner));
@@ -258,12 +213,6 @@ impl Page for ScrollingPage {
                 log_panel(&log_meta).draw(ui, cols[2], |ui, inner| {
                     log_view().draw(ui, inner, &self.log_state, &log);
                 });
-
-                if let Some(strip) = strips.get(2).copied() {
-                    region_panel(&range_label(&self.region_state)).draw(ui, strip, |ui, inner| {
-                        self.draw_region(ui, inner);
-                    });
-                }
 
                 if self.last != "top of document" {
                     let _ = ui.paint_str(
@@ -298,31 +247,6 @@ impl Page for ScrollingPage {
 }
 
 impl ScrollingPage {
-    /// The raw region's rows are caller-painted: the component returns the
-    /// content rect and the page walks the visible range inside it.
-    fn draw_region(&self, ui: &mut Ui<'_>, inner: Rect) {
-        let content = region().draw(ui, inner, &self.region_state, REGION_LEN);
-        let view = ScrollRegion::view(&self.region_state, content, REGION_LEN);
-        for index in view.visible_range() {
-            let Some(line) = self.region.get(index) else {
-                break;
-            };
-            let Ok(offset) = u16::try_from(index.saturating_sub(view.offset())) else {
-                break;
-            };
-            if offset >= content.height {
-                break;
-            }
-            let row = Rect {
-                y: content.y.saturating_add(offset),
-                height: 1,
-                ..content
-            };
-            let _ = ui.paint_str(row, line, ui.surface_style());
-        }
-        ui.scroll_edges(content, &view);
-    }
-
     fn draw_prose(&self, ui: &mut Ui<'_>, inner: Rect) {
         prose_view().draw(ui, inner, &self.prose_state, &self.prose);
     }
@@ -379,7 +303,7 @@ mod motion_tests {
 
         let mut h = Harness::new(PageApp(ScrollingPage::new()), Theme::junie(), W, H);
         // An unbound key: runs `update` (follow jumps to the tail) and draws.
-        h.key(KeyCode::Null);
+        let _ = h.key(KeyCode::Null);
 
         // First inner row of the log pane: frame title + blank (2) plus the
         // titled-card top inset (2).
