@@ -41,6 +41,7 @@ mod button_busy_frames;
 mod button_busy_live;
 mod control_states;
 mod holla;
+mod holla_journeys;
 mod jackin;
 mod negative_controls;
 mod negative_controls_phase6a;
