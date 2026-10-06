@@ -29,7 +29,7 @@ use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
 use crate::collection::{
     CellDecor, CellUi, CollectionCore, EmptyState, KeySet, Reconcile, Reconciliation, RowDecor,
-    RowTotal, SelectMode,
+    RowTotal, ScrollState, SelectMode,
 };
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
@@ -828,8 +828,11 @@ pub struct GridState {
     col_index: usize,
     /// The rectangular range anchor, keyed on both axes.
     anchor: Option<RangeAnchor>,
-    /// First non-sticky column shown.
-    col_offset: usize,
+    /// The horizontal window over non-sticky columns: content is the
+    /// movable-column count, the offset the first shown movable ordinal.
+    /// `Whole` keeps no column viewport (target-first reveal is unclamped);
+    /// `CompleteWithPreview` maintains the complete-column count.
+    col_scroll: ScrollState,
     pending_column: Option<ColumnKey>,
     /// The cell being edited, keyed.
     edit: Option<(ItemKey, ColumnKey)>,
@@ -863,7 +866,7 @@ impl Default for GridState {
             col: None,
             col_index: 0,
             anchor: None,
-            col_offset: 0,
+            col_scroll: ScrollState::new(0),
             pending_column: None,
             edit: None,
             editor,
@@ -961,7 +964,7 @@ impl GridState {
 
     /// Number of non-sticky columns hidden on the left.
     pub const fn col_offset(&self) -> usize {
-        self.col_offset
+        self.col_scroll.offset()
     }
 
     /// Borrow the vertical scroll state.
@@ -1651,6 +1654,14 @@ impl<'a> Grid<'a> {
         self.columns.get(i).map(|c| c.key)
     }
 
+    /// Movable (non-sticky) columns in the capped column list: the content
+    /// length of the horizontal window.
+    fn movable_columns(&self) -> usize {
+        self.columns
+            .get(..self.column_count())
+            .map_or(0, |cs| cs.iter().filter(|c| !c.sticky).count())
+    }
+
     /// The cursor column index, re-derived from the stored key so a column
     /// reorder cannot move it (§33: identity is keyed, not positional).
     fn cursor_col(&self, st: &GridState) -> usize {
@@ -1811,13 +1822,19 @@ impl<'a> Grid<'a> {
             return self.place_columns(
                 body,
                 [0; GRID_MAX_COLUMNS],
-                st.col_offset,
+                st.col_scroll.offset(),
                 gutter_width,
                 number_width,
             );
         }
         let widths = self.column_widths(st, model, rows);
-        let mut g = self.place_columns(body, widths, st.col_offset, gutter_width, number_width);
+        let mut g = self.place_columns(
+            body,
+            widths,
+            st.col_scroll.offset(),
+            gutter_width,
+            number_width,
+        );
         if self.column_fit == GridColumnFit::Whole {
             return g;
         }
@@ -1854,13 +1871,15 @@ impl<'a> Grid<'a> {
         // Reference navigation uses the current viewport's complete-column count.
         // Wider columns can leave the new cursor in the painted preview; that
         // preview remains keyboard editable but does not accept body clicks.
-        let offset = if ordinal < g.offset {
-            ordinal
-        } else if ordinal >= g.offset.saturating_add(count) {
-            ordinal.saturating_add(1).saturating_sub(count)
-        } else {
-            g.offset
-        };
+        // The minimal shift over movable ordinals is `ensure_visible` with
+        // the complete count as the viewport. No clamp can fire: `count > 0`
+        // here, `g.offset <= movable - count` (every complete column sits at
+        // or past the window start) and `ordinal < movable`.
+        let mut h = ScrollState::new(self.movable_columns());
+        h.set_viewport(count);
+        h.scroll_to(g.offset);
+        h.ensure_visible(ordinal);
+        let offset = h.offset();
         if offset != g.offset {
             g = self.place_columns(body, widths, offset, gutter_width, number_width);
         }
@@ -1872,7 +1891,21 @@ impl<'a> Grid<'a> {
         if self.column_fit == GridColumnFit::Whole || g.body.is_empty() {
             return;
         }
-        st.col_offset = g.offset;
+        // Persist the window: content is the movable count, the viewport the
+        // complete movable count, the offset the window start. The sizing
+        // clamps cannot matter — `scroll_to` overwrites with `g.offset`,
+        // which is always in range because every complete column sits at or
+        // past the window start.
+        let complete = self
+            .columns
+            .iter()
+            .enumerate()
+            .take(g.n)
+            .filter(|(i, c)| !c.sticky && g.complete.get(*i).copied().unwrap_or(false))
+            .count();
+        st.col_scroll.set_content(self.movable_columns());
+        st.col_scroll.set_viewport(complete);
+        st.col_scroll.scroll_to(g.offset);
         st.col_index = self.cursor_col(st);
         let target_complete = st
             .pending_column
@@ -2442,7 +2475,12 @@ impl Grid<'_> {
             .columns
             .get(..col)
             .map_or(0, |cs| cs.iter().filter(|c| !c.sticky).count());
-        st.col_offset = scroll_index;
+        // `Whole` keeps no column viewport: the reveal is target-first and
+        // unclamped, so the viewport stays zero and `scroll_to` with the
+        // movable count as content can never clamp a live ordinal.
+        st.col_scroll.set_viewport(0);
+        st.col_scroll.set_content(self.movable_columns());
+        st.col_scroll.scroll_to(scroll_index);
     }
 
     /// Toggle the cursor row's selection under the current select mode.
@@ -2544,7 +2582,7 @@ impl Grid<'_> {
         if column_count == 0 {
             st.col = None;
             st.col_index = 0;
-            st.col_offset = 0;
+            st.col_scroll.set_content(0);
             st.anchor = None;
             st.cancel_editor();
         } else if st.col.is_none() {
@@ -4212,9 +4250,11 @@ mod tests {
         let model = Model::two();
         let mut state = GridState {
             anchor: Some(RangeAnchor::Cell(ItemKey::num(20), ColumnKey::num(2))),
-            col_offset: 1,
             ..GridState::default()
         };
+        // Two movable columns (column 0 is sticky); window starts at 1.
+        state.col_scroll.set_content(2);
+        state.col_scroll.scroll_to(1);
         state.core.checked_mut().insert(ItemKey::num(20));
         assert_eq!(
             grid.move_cursor_to(&mut state, &model, ItemKey::num(10), ColumnKey::num(1)),
@@ -4222,7 +4262,7 @@ mod tests {
         );
         assert_eq!(state.anchor, None);
         assert!(state.core.checked().contains(ItemKey::num(20)));
-        assert_eq!(state.col_offset, 1);
+        assert_eq!(state.col_offset(), 1);
         assert_eq!(state.core.scroll().pending_reveal(), Some(0));
     }
 
@@ -4782,7 +4822,8 @@ mod tests {
         let mut state = GridState::default();
         state.set_cursor(1, ItemKey::num(20), 1, ColumnKey::num(2));
         state.core.checked_mut().insert(ItemKey::num(20));
-        state.col_offset = 3;
+        state.col_scroll.set_content(4);
+        state.col_scroll.scroll_to(3);
         state.edit = Some((ItemKey::num(20), ColumnKey::num(2)));
         state
             .editor
@@ -5731,6 +5772,47 @@ mod tests {
         let mut state = GridState::default();
         grid.reveal_column(&mut state, 5);
         assert_eq!(state.col_offset(), 5);
+    }
+
+    #[test]
+    fn complete_preview_window_persists_the_shift_exactly() {
+        let mut many = [Column::new(ColumnKey::num(0), "c"); 6];
+        for (i, column) in many.iter_mut().enumerate() {
+            column.key = ColumnKey::num(i as u16);
+            column.min_width = 4;
+            column.max_width = 4;
+        }
+        let grid =
+            Grid::new(ID, &many).column_fit(GridColumnFit::CompleteWithPreview { min_width: 2 });
+        let model = Model::two();
+        let body = Rect::new(0, 0, 30, 4);
+        for target in 0..6usize {
+            let mut state = GridState::default();
+            grid.move_cursor_to(
+                &mut state,
+                &model,
+                ItemKey::num(10),
+                ColumnKey::num(target as u16),
+            )
+            .expect("target column exists");
+            let g = grid.geometry(body, &state, &model, 0..model.row_count());
+            grid.apply_column_geometry(&mut state, &g);
+            // The persist never clamps: the reader is the placed offset.
+            assert_eq!(state.col_offset(), g.offset, "target {target}");
+            // Content is the movable count, the viewport the complete count.
+            assert_eq!(state.col_scroll.content_len(), 6);
+            let complete = (0..g.n).filter(|&i| g.complete[i]).count();
+            assert_eq!(state.col_scroll.viewport_len(), complete);
+            // The window holds the target (complete or preview), minimally:
+            // it starts at or before the target and the target is at most
+            // just past the complete run.
+            assert!(
+                target >= g.offset && target <= g.offset + complete,
+                "target {target} outside {offset}..{}",
+                g.offset + complete,
+                offset = g.offset,
+            );
+        }
     }
 
     #[test]

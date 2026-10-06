@@ -11,6 +11,18 @@ use crate::response::Response;
 use termrock_core::geometry::Headroom;
 
 /// Offset, content length and viewport length on one axis.
+///
+/// A second instance models the other axis: the grid's column window and
+/// the tab strip's window are each a `ScrollState` over item ordinals while
+/// the vertical state stays untouched. Size `content_len`/`viewport_len` so
+/// `max_offset` is the window's legal range. A full window that always shows
+/// `viewport` items uses `content_len = len`; a window that may rest
+/// partially past the end — first index in `0..len`, as the tab strip's
+/// trailing window does — uses `content_len = len + viewport_len - 1` so
+/// `max_offset` is `len - 1` and `ensure_visible`/`scroll_by` never clamp a
+/// legal window. A target-first reveal with no meaningful viewport (the
+/// grid's `Whole` fit) keeps `viewport_len` zero and reveals with
+/// `scroll_to`, which then cannot clamp a live ordinal either.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct ScrollState {
     offset: usize,

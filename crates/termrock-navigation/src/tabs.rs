@@ -17,6 +17,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
+use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
@@ -214,7 +215,10 @@ pub struct TabsState {
     core: CollectionCore,
     active: Option<ItemKey>,
     first: Option<ItemKey>,
-    first_index: usize,
+    /// The strip window's horizontal scroll: `offset` is the first visible
+    /// tab. The window may rest partially past the end (`first` in `0..len`),
+    /// so content is sized `len + viewport - 1` and `max_offset` is `len - 1`.
+    tab_scroll: ScrollState,
 }
 
 impl TabsState {
@@ -248,17 +252,25 @@ impl Reconcile for TabsState {
         {
             self.active = self.core.cursor();
         }
+        // Size the strip window before resolving: `apply_layout` sets
+        // content and viewport atomically, so no transient clamp can fire.
+        self.tab_scroll.apply_layout(
+            self.tab_scroll.viewport_len(),
+            len.saturating_add(self.tab_scroll.viewport_len())
+                .saturating_sub(1),
+        );
+        let offset = self.tab_scroll.offset();
         match self.first {
             Some(f) => {
                 if let Some(i) = (0..len).find(|&i| key(i) == f) {
-                    self.first_index = i;
+                    self.tab_scroll.scroll_to(i);
                 } else {
-                    let i = self.first_index.min(len.saturating_sub(1));
-                    self.first_index = i;
+                    let i = offset.min(len.saturating_sub(1));
+                    self.tab_scroll.scroll_to(i);
                     self.first = (len > 0).then(|| key(i));
                 }
             }
-            None => self.first_index = 0,
+            None => self.tab_scroll.jump_start(),
         }
         r
     }
@@ -506,18 +518,24 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
     }
 
     /// Keep the active tab inside the window, using last frame's `fit`.
+    /// A zero-`fit` layout still moves the window down; `ensure_visible` is
+    /// a no-op without a viewport, so that case stays explicit.
     fn follow(&self, st: &mut TabsState, items: &[T], fit: usize) {
         let Some(active) = st.active else { return };
         let Some(ai) = index_of(&self.key, items, active, Some(st.core.cursor_index())) else {
             return;
         };
-        if ai < st.first_index {
-            st.first_index = ai;
-            st.first = Some(active);
-        } else if fit > 0 && ai >= st.first_index.saturating_add(fit) {
-            let i = ai.saturating_add(1).saturating_sub(fit);
-            st.first_index = i;
-            st.first = Some(key_at(&self.key, items, i));
+        let len = items.len();
+        st.tab_scroll
+            .apply_layout(fit, len.saturating_add(fit).saturating_sub(1));
+        let before = st.tab_scroll.offset();
+        if fit == 0 {
+            st.tab_scroll.scroll_to(before.min(ai));
+        } else {
+            st.tab_scroll.ensure_visible(ai);
+        }
+        if st.tab_scroll.offset() != before {
+            st.first = Some(key_at(&self.key, items, st.tab_scroll.offset()));
         }
     }
 
@@ -534,7 +552,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         }
         if st.first.is_none() && len > 0 {
             st.first = Some(key_at(&self.key, items, 0));
-            st.first_index = 0;
+            st.tab_scroll.jump_start();
         }
         let mut acc = Acc::<TabsAction>::new();
         let table = self.table();
@@ -586,15 +604,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     (Phase::Click, Part::CLOSE, Some(k)) => acc.action(TabsAction::Close(k)),
                     (Phase::Click, Part::NEW, _) => acc.action(TabsAction::New),
                     (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(0))) => {
-                        let i = st.first_index.saturating_sub(1);
-                        st.first_index = i;
-                        st.first = (len > 0).then(|| key_at(&self.key, items, i));
+                        st.tab_scroll.scroll_by(-1);
+                        st.first =
+                            (len > 0).then(|| key_at(&self.key, items, st.tab_scroll.offset()));
                         acc.changed();
                     }
                     (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(_))) => {
-                        let i = st.first_index.saturating_add(1).min(len.saturating_sub(1));
-                        st.first_index = i;
-                        st.first = (len > 0).then(|| key_at(&self.key, items, i));
+                        st.tab_scroll.scroll_by(1);
+                        st.first =
+                            (len > 0).then(|| key_at(&self.key, items, st.tab_scroll.offset()));
                         acc.changed();
                     }
                     _ => acc.consumed(),
@@ -607,7 +625,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 || st
                     .active
                     .and_then(|a| index_of(&self.key, items, a, Some(st.core.cursor_index())))
-                    .is_some_and(|ai| ai < st.first_index))
+                    .is_some_and(|ai| ai < st.tab_scroll.offset()))
         {
             self.follow(st, items, l.viewport_len);
         }
@@ -683,7 +701,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         let overflow_last = last.is_some_and(|l| l.viewport_len < l.content_len);
         let first_index = st
             .first
-            .and_then(|f| index_of(&self.key, items, f, Some(st.first_index)))
+            .and_then(|f| index_of(&self.key, items, f, Some(st.tab_scroll.offset())))
             .unwrap_or(0)
             .min(len);
         let status_w: u16 = if matches!(self.status, Status::Ready) {
@@ -1094,7 +1112,7 @@ mod tests {
         assert_eq!(st.active(), Some(ItemKey::num(2)));
         assert_eq!(st.cursor(), Some(ItemKey::num(2)));
         assert_eq!(st.first(), Some(ItemKey::num(1)));
-        assert_eq!(st.first_index, 3);
+        assert_eq!(st.tab_scroll.offset(), 3);
         // the active tab vanishes: the cursor's neighbour becomes active
         let c = keys(&[9, 3, 1]);
         let _ = st.reconcile(3, |i| c[i]);
@@ -1104,6 +1122,50 @@ mod tests {
         assert_eq!(digits(7, &mut buf), "7");
         assert_eq!(digits(42, &mut buf), "42");
         assert_eq!(digits(500, &mut buf), "99");
+    }
+
+    #[test]
+    fn follow_keeps_the_partial_trailing_window_and_zero_fit_down_move() {
+        let tabs = Tabs::new(TABS);
+        let items = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
+        let mut st = TabsState::default();
+        let _ = st.reconcile(items.len(), ItemKey::index);
+        // Minimal shift, active last: first lands at `ai + 1 - fit`.
+        st.set_active(9, ItemKey::index(9));
+        tabs.follow(&mut st, &items, 3);
+        assert_eq!(st.tab_scroll.offset(), 7);
+        assert_eq!(st.first(), Some(ItemKey::index(7)));
+        // Active inside the window: no move, key untouched.
+        st.set_active(8, ItemKey::index(8));
+        tabs.follow(&mut st, &items, 3);
+        assert_eq!(st.tab_scroll.offset(), 7);
+        assert_eq!(st.first(), Some(ItemKey::index(7)));
+        // Active above the window: down to the active tab itself.
+        st.set_active(5, ItemKey::index(5));
+        tabs.follow(&mut st, &items, 3);
+        assert_eq!(st.tab_scroll.offset(), 5);
+        assert_eq!(st.first(), Some(ItemKey::index(5)));
+        // Trailing window past `len - fit`: never clamped back.
+        st.tab_scroll.scroll_to(9);
+        st.set_active(9, ItemKey::index(9));
+        tabs.follow(&mut st, &items, 3);
+        assert_eq!(st.tab_scroll.offset(), 9);
+        st.set_active(8, ItemKey::index(8));
+        tabs.follow(&mut st, &items, 3);
+        assert_eq!(st.tab_scroll.offset(), 8);
+        // Overflow steps cap at `len - 1`, not `len - fit`.
+        st.tab_scroll.scroll_by(5);
+        assert_eq!(st.tab_scroll.offset(), 9);
+        st.tab_scroll.scroll_by(-20);
+        assert_eq!(st.tab_scroll.offset(), 0);
+        // A zero-fit layout still moves the window down, never up.
+        st.tab_scroll.scroll_to(5);
+        st.set_active(3, ItemKey::index(3));
+        tabs.follow(&mut st, &items, 0);
+        assert_eq!(st.tab_scroll.offset(), 3);
+        st.set_active(9, ItemKey::index(9));
+        tabs.follow(&mut st, &items, 0);
+        assert_eq!(st.tab_scroll.offset(), 3);
     }
 
     #[test]
