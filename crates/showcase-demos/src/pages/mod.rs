@@ -80,6 +80,11 @@ pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
     PageFrame::NOTES.draw_lines(ui, area, text);
 }
 
+/// Paint faint annotation lines with one-cell spacing, clipping at the body edge.
+pub fn lines_faint(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
+    PageFrame::NOTES.draw_faint_lines(ui, area, text);
+}
+
 /// Stable identity for the page-chrome component. The shell shows one page
 /// at a time, so a single id never collides across pages.
 const FRAME_ID: Id = id!("showcase.page.frame");
@@ -88,8 +93,18 @@ const FRAME_FAMILY: Family = Family::custom("showcase-page-frame");
 const FRAME_PARTS: &[Part] = &[Part::CONTAINER, Part::TITLE, Part::DETAIL, Part::TEXT];
 const TITLE_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
 const DETAIL_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-const FRAME_PART_PATCHES: &[(Part, StylePatch)] =
-    &[(Part::TITLE, TITLE_PATCH), (Part::DETAIL, DETAIL_PATCH)];
+const TEXT_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+const FAINT_TEXT_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Faint));
+const FRAME_PART_PATCHES: &[(Part, StylePatch)] = &[
+    (Part::TITLE, TITLE_PATCH),
+    (Part::DETAIL, DETAIL_PATCH),
+    (Part::TEXT, TEXT_PATCH),
+];
+const FAINT_FRAME_PART_PATCHES: &[(Part, StylePatch)] = &[
+    (Part::TITLE, TITLE_PATCH),
+    (Part::DETAIL, DETAIL_PATCH),
+    (Part::TEXT, FAINT_TEXT_PATCH),
+];
 
 /// Page chrome as a downstream-authored reusable component, following the
 /// [`AuthorBadge`](author::AuthorBadge) reference shape: only
@@ -132,6 +147,12 @@ impl PageFrame {
             .part(FRAME_PART_PATCHES)
     }
 
+    fn faint_styles() -> PartStyle<'static> {
+        PartStyle::new()
+            .declare(FRAME_PARTS)
+            .part(FAINT_FRAME_PART_PATCHES)
+    }
+
     /// Resolve one part layered over the current surface (§11.3 final
     /// layering, as `Panel` does): unpatched slots inherit the surface, so
     /// `TITLE`/`DETAIL`/`TEXT` bind exactly the legacy styles. Empty flags:
@@ -139,6 +160,20 @@ impl PageFrame {
     fn part_style(ui: &mut Ui<'_>, part: Part) -> PaintStyle {
         let base = ui.surface_style();
         Self::styles()
+            .style(
+                ui,
+                FRAME_ID,
+                FRAME_FAMILY,
+                Variant::DEFAULT,
+                part,
+                StateFlags::empty(),
+            )
+            .over(base)
+    }
+
+    fn faint_part_style(ui: &mut Ui<'_>, part: Part) -> PaintStyle {
+        let base = ui.surface_style();
+        Self::faint_styles()
             .style(
                 ui,
                 FRAME_ID,
@@ -206,6 +241,16 @@ impl PageFrame {
     /// Paint annotation lines with one-cell spacing, clipping at the edge.
     pub(crate) fn draw_lines(&self, ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
         let style = Self::part_style(ui, Part::TEXT);
+        self.draw_styled_lines(ui, area, text, style);
+    }
+
+    /// Paint faint annotation lines with one-cell spacing, clipping at the edge.
+    pub(crate) fn draw_faint_lines(&self, ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
+        let style = Self::faint_part_style(ui, Part::TEXT);
+        self.draw_styled_lines(ui, area, text, style);
+    }
+
+    fn draw_styled_lines(&self, ui: &mut Ui<'_>, area: Rect, text: &[&str], style: PaintStyle) {
         ui.register_decor(FRAME_ID, PartRef::of(Part::TEXT), area);
         for (offset, line) in text.iter().enumerate() {
             let Ok(offset) = u16::try_from(offset) else {
@@ -214,13 +259,14 @@ impl PageFrame {
             if offset >= area.height {
                 break;
             }
+            let text_to_paint = truncate(line, area.width);
             let _ = ui.paint_str(
                 Rect {
                     y: area.y.saturating_add(offset),
                     height: 1,
                     ..area
                 },
-                line,
+                &text_to_paint,
                 style,
             );
         }

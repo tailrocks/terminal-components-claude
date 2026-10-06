@@ -407,6 +407,8 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
+    focused: Option<bool>,
+    hovered_key: Option<ItemKey>,
     _t: PhantomData<fn(&T)>,
 }
 
@@ -459,6 +461,8 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
+            focused: None,
+            hovered_key: None,
             _t: PhantomData,
         }
     }
@@ -615,6 +619,8 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
+            focused: self.focused,
+            hovered_key: self.hovered_key,
             _t: PhantomData,
         }
     }
@@ -639,6 +645,8 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
+            focused: self.focused,
+            hovered_key: self.hovered_key,
             _t: PhantomData,
         }
     }
@@ -704,6 +712,20 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     #[must_use]
     pub fn status(mut self, s: Status) -> Self {
         self.status = s;
+        self
+    }
+
+    /// Override the visual focus state of the list.
+    #[must_use]
+    pub const fn focused(mut self, yes: bool) -> Self {
+        self.focused = Some(yes);
+        self
+    }
+
+    /// Override the hovered item key.
+    #[must_use]
+    pub const fn hovered_key(mut self, key: Option<ItemKey>) -> Self {
+        self.hovered_key = key;
         self
     }
 
@@ -1120,7 +1142,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         if !ui.is_inert() {
             ui.register_control(self.id, area, Focusability::Focusable);
         }
-        let live = PartStyle::flags(ui.state(self.id), self.status.flags());
+        let live_flags = if let Some(yes) = self.focused {
+            if yes {
+                ui.state(self.id) | StateFlags::FOCUSED
+            } else {
+                ui.state(self.id).difference(StateFlags::FOCUSED)
+            }
+        } else {
+            ui.state(self.id)
+        };
+        let live = PartStyle::flags(live_flags, self.status.flags());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
         }
@@ -1226,7 +1257,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
             }
             let row_part = PartRef::item(Part::ROW, key);
-            if pointer_eligible && hovered == Some(row_part) {
+            if pointer_eligible && (hovered == Some(row_part) || self.hovered_key == Some(key)) {
                 flags |= StateFlags::HOVERED;
             }
             if (pointer_eligible && pressed == Some(row_part))
@@ -1301,12 +1332,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Slot::Set(glyph) => {
                             ui.glyph(marker_cell, glyph, m.style);
                         }
-                        Slot::Inherit | Slot::Clear => ui.fill(marker_cell, m.style),
+                        Slot::Inherit | Slot::Clear => {}
                     }
                 }
                 let rest = Rect {
                     x: row.x.saturating_add(3),
-                    width: row.width.saturating_sub(3),
+                    width: row.width.saturating_sub(4),
                     ..row
                 };
                 if !rest.is_empty() {

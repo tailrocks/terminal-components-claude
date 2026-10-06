@@ -31,7 +31,7 @@ fn row_like(m: &mut PartMap<PartRecipe>) {
         p().set_fg(Role::Fg(FgStep::Primary))
             .set_bg(Role::CurrentSurface),
     )
-    .when(StateFlags::HOVERED, p().set_bg(Role::RaisedSurface))
+    .when(StateFlags::HOVERED, p().set_bg(Role::HoverSurface))
     .when(StateFlags::BUSY, p().set_fg(Role::Fg(FgStep::Secondary)))
     .when(StateFlags::ERROR, p().set_fg(Role::Danger))
     .when(
@@ -302,18 +302,14 @@ fn dialog(r: &mut Recipe) {
 fn tabs(m: &mut PartMap<PartRecipe>) {
     row_like(m);
     part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Secondary)))
-        .when(
-            StateFlags::HOVERED,
-            p().set_fg(Role::Fg(FgStep::Primary)),
-        )
+        .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)))
         .when(
             StateFlags::DISABLED,
             p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),
         )
         .when(
             StateFlags::ACTIVE,
-            p().set_fg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
+            p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
         );
     part(m, Part::TAB, p().set_fg(Role::Fg(FgStep::Secondary)))
         .when(
@@ -363,9 +359,14 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
 fn menu(r: &mut Recipe) {
     let m = &mut r.parts;
     row_like(m);
-    part(m, Part::CONTAINER, p().clear_fg().set_bg(Role::CurrentSurface));
+    part(
+        m,
+        Part::CONTAINER,
+        p().clear_fg().set_bg(Role::CurrentSurface),
+    );
     part(m, Part::BORDER, p().set_fg(Role::BorderSubtle));
     part(m, Part::RULE, p().set_fg(Role::BorderSubtle));
+    part(m, Part::HEADER, p().set_fg(Role::Fg(FgStep::Muted)));
     part(m, Part::ROW, p().set_fg(Role::Fg(FgStep::Primary)))
         .when(
             StateFlags::ACTIVE,
@@ -377,6 +378,7 @@ fn menu(r: &mut Recipe) {
             StateFlags::HOVERED,
             p().set_bg(Role::HighlightBg).set_fg(Role::HighlightFg),
         )
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg))
         .when(
             StateFlags::PRESSED,
             p().set_fg(Role::Surface(Surface::Canvas))
@@ -390,10 +392,7 @@ fn menu(r: &mut Recipe) {
                 .set_bg(Role::Surface(Surface::Popover))
                 .add(Modifier::BOLD),
         )
-        .when(
-            StateFlags::HOVERED,
-            p().set_fg(Role::Fg(FgStep::Primary)),
-        )
+        .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)))
         .when(
             StateFlags::FOCUSED,
             p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
@@ -527,7 +526,7 @@ fn bars(m: &mut PartMap<PartRecipe>) {
     part(
         m,
         Part::CONTAINER,
-        p().set_fg(Role::Fg(FgStep::Secondary))
+        p().set_fg(Role::Fg(FgStep::Primary))
             .set_bg(Role::Surface(Surface::Surface)),
     );
     part(
@@ -549,7 +548,10 @@ fn bars(m: &mut PartMap<PartRecipe>) {
         .when(StateFlags::WARNING, p().set_fg(Role::Warning));
     part(m, Part::MARKER, p())
         .when(StateFlags::ERROR, p().set_fg(Role::Danger))
-        .when(StateFlags::WARNING, p().set_fg(Role::Warning).add(Modifier::BOLD));
+        .when(
+            StateFlags::WARNING,
+            p().set_fg(Role::Warning).add(Modifier::BOLD),
+        );
 }
 
 fn keyhint(m: &mut PartMap<PartRecipe>) {
@@ -695,12 +697,11 @@ fn grid(m: &mut PartMap<PartRecipe>) {
                 .add(Modifier::BOLD)
                 .remove(Modifier::REVERSED),
         );
-    part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Faint)))
-        .when(
-            StateFlags::HOVERED,
-            p().set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(Role::HoverSurface),
-        );
+    part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Faint))).when(
+        StateFlags::HOVERED,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::HoverSurface),
+    );
     part(m, Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Muted)))
         .when(StateFlags::FOCUSED, p().add(Modifier::BOLD));
 }
@@ -759,10 +760,29 @@ pub(crate) fn default_recipes() -> Recipes {
             Family::VIEWPORT | Family::DIFF => viewport(&mut r.parts),
             Family::STATUSBAR => {
                 bars(&mut r.parts);
+                part(
+                    &mut r.parts,
+                    Part::CONTAINER,
+                    p().set_fg(Role::Fg(FgStep::Primary))
+                        .set_bg(Role::Surface(Surface::Elevated)),
+                );
                 part(&mut r.parts, Part::LABEL, p())
                     .when(StateFlags::HOVERED, p().set_bg(Role::RaisedSurface));
             }
-            Family::HINTBAR => bars(&mut r.parts),
+            Family::HINTBAR => {
+                bars(&mut r.parts);
+                part(
+                    &mut r.parts,
+                    Part::CONTAINER,
+                    p().set_fg(Role::Fg(FgStep::Primary))
+                        .set_bg(Role::Surface(Surface::Canvas)),
+                );
+                part(
+                    &mut r.parts,
+                    Part::LABEL,
+                    p().set_fg(Role::Fg(FgStep::Secondary)),
+                );
+            }
             Family::KEYHINT => keyhint(&mut r.parts),
             Family::PROGRESS => progress(&mut r.parts),
             Family::METER => {

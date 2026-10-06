@@ -482,6 +482,7 @@ impl<'a> ContextMenu<'a> {
         Part::CONTAINER,
         Part::BORDER,
         Part::TITLE,
+        Part::HEADER,
         Part::ROW,
         Part::LABEL,
         Part::KEY,
@@ -815,17 +816,22 @@ impl<'a> ContextMenu<'a> {
             ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
             let mut y = inner.y;
             if let Some(title) = self.title {
-                let row = first_row(Rect { y, ..inner });
+                let row = Rect {
+                    x: inner.x.saturating_add(2),
+                    y,
+                    width: inner.width.saturating_sub(3),
+                    height: 1,
+                };
                 let style = self.ov.style(
                     ui,
                     self.id,
                     Family::MENU,
                     Variant::DEFAULT,
-                    Part::TITLE,
-                    live,
+                    Part::HEADER,
+                    StateFlags::empty(),
                 );
-                paint_or_slot(ui, &self.ov, Part::TITLE, row, title, style.style);
-                ui.register_decor(self.id, PartRef::of(Part::TITLE), row);
+                paint_or_slot(ui, &self.ov, Part::HEADER, row, title, style.style);
+                ui.register_decor(self.id, PartRef::of(Part::HEADER), row);
                 y = y.saturating_add(1);
             }
             for (index, item) in self.items.iter().enumerate() {
@@ -953,7 +959,9 @@ impl<'a> ContextMenu<'a> {
             let mut key_style = self
                 .ov
                 .style(ui, self.id, Family::MENU, variant, Part::KEY, flags);
-            key_style.style = key_style.style.remove_modifier(ratatui::style::Modifier::BOLD);
+            key_style.style = key_style
+                .style
+                .remove_modifier(ratatui::style::Modifier::BOLD);
             paint_or_slot(ui, &self.ov, Part::KEY, key, text.as_str(), key_style.style);
         }
         ui.register_part(

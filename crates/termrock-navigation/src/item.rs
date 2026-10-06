@@ -5,6 +5,7 @@ use termrock_core::response::StateFlags;
 use termrock_layout::Track;
 use termrock_runtime::{RowFn, RowUi};
 use termrock_text::width;
+use termrock_theme::{FgStep, Role, StylePatch};
 
 /// Borrowed semantic data shared by picker and completion rows.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -163,6 +164,11 @@ impl ItemColumns {
             if !icon.authored_modifiers().contains(Modifier::BOLD) {
                 icon.remove_modifier(Modifier::BOLD);
             }
+            if focused {
+                icon.patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary)));
+            } else {
+                icon.patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
+            }
             icon.text(item.glyph);
         }
         {
@@ -184,6 +190,7 @@ impl ItemColumns {
             if !tag.authored_modifiers().contains(Modifier::BOLD) {
                 tag.remove_modifier(Modifier::BOLD);
             }
+            tag.patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
             tag.text(item.tag.unwrap_or(""));
         }
         if show_group {
@@ -191,6 +198,7 @@ impl ItemColumns {
             if !group.authored_modifiers().contains(Modifier::BOLD) {
                 group.remove_modifier(Modifier::BOLD);
             }
+            group.patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));
             group.text(item.group.unwrap_or(""));
         }
     }

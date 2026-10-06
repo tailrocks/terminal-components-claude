@@ -241,12 +241,12 @@ impl Page for TextAreasPage {
                     });
                 },
             );
-            if let Some(states) = regions.get(2).copied() {
-                if !states.is_empty() {
-                    states_panel().draw(ui, states, |ui, inner| {
-                        Self::draw_states(ui, inner);
-                    });
-                }
+            if let Some(states) = regions.get(2).copied()
+                && !states.is_empty()
+            {
+                states_panel().draw(ui, states, |ui, inner| {
+                    Self::draw_states(ui, inner);
+                });
             }
         });
     }

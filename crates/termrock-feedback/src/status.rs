@@ -23,7 +23,7 @@ use crate::intent::{Intent, Phase};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// Items per group laid out without allocating.
@@ -413,6 +413,9 @@ impl<'a> StatusBar<'a> {
         Part::THUMB,
         Part::OVERFLOW,
     ];
+
+    /// Cells between items within a group and between groups.
+    pub const GAP: u16 = 3;
 
     /// An empty strip.
     pub const fn new(id: Id) -> Self {
@@ -833,126 +836,128 @@ impl<'a> StatusBar<'a> {
         if area.is_empty() {
             return area;
         }
-        let live = PartStyle::flags(ui.state(self.id), self.status.flags());
-        let ov = self.ov;
-        let id = self.id;
-        let d = ui.design();
-        let gap = d.space.gap.max(1);
-        let edge = d.space.gutter.max(1);
-        let metrics = ItemMetrics {
-            meter_columns: Self::meter_columns(ui),
-            spinner_frames: ui.design().motion.spinner_frames,
-        };
-        let container = ov.style(
-            ui,
-            id,
-            Family::STATUSBAR,
-            self.variant,
-            Part::CONTAINER,
-            live,
-        );
-        ui.fill(area, container.style);
-
-        // the readiness affordance leads the strip
-        let ready = self.readiness(ui, live);
-        let lead = ready.map_or(0, |g| width(g).saturating_add(1));
-        if let Some(g) = ready {
-            // one cell, two parts: the spinner is `ICON` and the error or
-            // warning marker is `MARKER`. The slot is consulted before
-            // `spinner_frames` (§45.4) — a slot is substitution, not
-            // suppression, so `lead` reserves the same columns either way.
-            let part = if self.busy() {
-                Part::ICON
-            } else {
-                Part::MARKER
+        ui.with_surface(Surface::Elevated, |ui| {
+            let live = PartStyle::flags(ui.state(self.id), self.status.flags());
+            let ov = self.ov;
+            let id = self.id;
+            let d = ui.design();
+            let gap = Self::GAP;
+            let edge = d.space.gutter.max(1);
+            let metrics = ItemMetrics {
+                meter_columns: Self::meter_columns(ui),
+                spinner_frames: ui.design().motion.spinner_frames,
             };
-            let cell = Rect {
-                x: area.x.saturating_add(edge),
-                width: area.width.saturating_sub(edge),
-                ..area
-            };
-            if let Some(f) = ov.slot_for(part) {
-                f(ui, cell);
-            } else {
-                let s = ov.style(ui, id, Family::STATUSBAR, self.variant, part, live);
-                ui.paint_str(cell, g, s.style);
-            }
-        }
+            let container = ov.style(
+                ui,
+                id,
+                Family::STATUSBAR,
+                self.variant,
+                Part::CONTAINER,
+                live,
+            );
+            ui.fill(area, container.style);
 
-        let keep = self.survivors(area.width, metrics, gap, edge, lead);
-        let inner_left = area.x.saturating_add(edge).saturating_add(lead);
-        let inner_right = area.right().saturating_sub(edge);
+            // the readiness affordance leads the strip
+            let ready = self.readiness(ui, live);
+            let lead = ready.map_or(0, |g| width(g).saturating_add(1));
+            if let Some(g) = ready {
+                // one cell, two parts: the spinner is `ICON` and the error or
+                // warning marker is `MARKER`. The slot is consulted before
+                // `spinner_frames` (§45.4) — a slot is substitution, not
+                // suppression, so `lead` reserves the same columns either way.
+                let part = if self.busy() {
+                    Part::ICON
+                } else {
+                    Part::MARKER
+                };
+                let cell = Rect {
+                    x: area.x.saturating_add(edge),
+                    width: area.width.saturating_sub(edge),
+                    ..area
+                };
+                if let Some(f) = ov.slot_for(part) {
+                    f(ui, cell);
+                } else {
+                    let s = ov.style(ui, id, Family::STATUSBAR, self.variant, part, live);
+                    ui.paint_str(cell, g, s.style);
+                }
+            }
 
-        // left, from the leading edge
-        let mut x = inner_left;
-        let left_mask = keep.first().copied().unwrap_or(0);
-        for (i, it) in self.group(Group::Left).iter().enumerate() {
-            if left_mask & (1 << i) == 0 {
-                continue;
-            }
-            let room = inner_right.saturating_sub(x);
-            if room == 0 {
-                break;
-            }
-            let cell = Rect {
-                x,
-                width: it.columns(metrics).min(room),
-                ..area
-            };
-            let used = self.paint_item(ui, it, cell, live, metrics);
-            x = x.saturating_add(used).saturating_add(gap);
-        }
-        let left_end = x.saturating_sub(gap);
+            let keep = self.survivors(area.width, metrics, gap, edge, lead);
+            let inner_left = area.x.saturating_add(edge).saturating_add(lead);
+            let inner_right = area.right().saturating_sub(edge);
 
-        // right, from the trailing edge backwards
-        let right_mask = keep.get(2).copied().unwrap_or(0);
-        let mut rx = inner_right;
-        let right_items = self.group(Group::Right);
-        for (i, it) in right_items.iter().enumerate().rev() {
-            if right_mask & (1 << i) == 0 {
-                continue;
+            // left, from the leading edge
+            let mut x = inner_left;
+            let left_mask = keep.first().copied().unwrap_or(0);
+            for (i, it) in self.group(Group::Left).iter().enumerate() {
+                if left_mask & (1 << i) == 0 {
+                    continue;
+                }
+                let room = inner_right.saturating_sub(x);
+                if room == 0 {
+                    break;
+                }
+                let cell = Rect {
+                    x,
+                    width: it.columns(metrics).min(room),
+                    ..area
+                };
+                let used = self.paint_item(ui, it, cell, live, metrics);
+                x = x.saturating_add(used).saturating_add(gap);
             }
-            let w = it.columns(metrics);
-            if rx.saturating_sub(w) <= left_end {
-                break;
-            }
-            rx = rx.saturating_sub(w);
-            let cell = Rect {
-                x: rx,
-                width: w,
-                ..area
-            };
-            self.paint_item(ui, it, cell, live, metrics);
-            rx = rx.saturating_sub(gap);
-        }
-        let right_start = if right_mask == 0 {
-            inner_right
-        } else {
-            rx.saturating_add(gap)
-        };
+            let left_end = x.saturating_sub(gap);
 
-        // centre, in the free span between the two
-        let cw = self.group_columns(Group::Center, keep, metrics, gap);
-        if cw > 0 {
-            let lo = left_end.saturating_add(gap);
-            let hi = right_start.saturating_sub(gap);
-            let free = hi.saturating_sub(lo);
-            let mut cx = lo.saturating_add(free.saturating_sub(cw) / 2);
-            let center_mask = keep.get(1).copied().unwrap_or(0);
-            for (i, it) in self.group(Group::Center).iter().enumerate() {
-                if center_mask & (1 << i) == 0 {
+            // right, from the trailing edge backwards
+            let right_mask = keep.get(2).copied().unwrap_or(0);
+            let mut rx = inner_right;
+            let right_items = self.group(Group::Right);
+            for (i, it) in right_items.iter().enumerate().rev() {
+                if right_mask & (1 << i) == 0 {
                     continue;
                 }
                 let w = it.columns(metrics);
+                if rx.saturating_sub(w) <= left_end {
+                    break;
+                }
+                rx = rx.saturating_sub(w);
                 let cell = Rect {
-                    x: cx,
-                    width: hi.saturating_sub(cx).min(w),
+                    x: rx,
+                    width: w,
                     ..area
                 };
                 self.paint_item(ui, it, cell, live, metrics);
-                cx = cx.saturating_add(w).saturating_add(gap);
+                rx = rx.saturating_sub(gap);
             }
-        }
+            let right_start = if right_mask == 0 {
+                inner_right
+            } else {
+                rx.saturating_add(gap)
+            };
+
+            // centre, in the free span between the two
+            let cw = self.group_columns(Group::Center, keep, metrics, gap);
+            if cw > 0 {
+                let lo = left_end.saturating_add(gap);
+                let hi = right_start.saturating_sub(gap);
+                let free = hi.saturating_sub(lo);
+                let mut cx = lo.saturating_add(free.saturating_sub(cw) / 2);
+                let center_mask = keep.get(1).copied().unwrap_or(0);
+                for (i, it) in self.group(Group::Center).iter().enumerate() {
+                    if center_mask & (1 << i) == 0 {
+                        continue;
+                    }
+                    let w = it.columns(metrics);
+                    let cell = Rect {
+                        x: cx,
+                        width: hi.saturating_sub(cx).min(w),
+                        ..area
+                    };
+                    self.paint_item(ui, it, cell, live, metrics);
+                    cx = cx.saturating_add(w).saturating_add(gap);
+                }
+            }
+        });
         area
     }
 
@@ -962,7 +967,7 @@ impl<'a> StatusBar<'a> {
             meter_columns: Self::meter_columns(ui),
             spinner_frames: ui.design().motion.spinner_frames,
         };
-        let gap = ui.design().space.gap.max(1);
+        let gap = Self::GAP;
         let edge = ui.design().space.gutter.max(1);
         let full = self.all_alive_keep();
         let preferred = self.needed(full, metrics, gap, edge, 0);

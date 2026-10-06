@@ -43,12 +43,10 @@ pub const TREE: &[TreeNode] = &[
 use super::{Page, PageUpdate, frame};
 
 const PROJECT: Id = id!("trees.project");
-const PANEL_PARTS: &[(Part, StylePatch)] = &[
-    (
-        Part::DETAIL,
-        StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
-    ),
-];
+const PANEL_PARTS: &[(Part, StylePatch)] = &[(
+    Part::DETAIL,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+)];
 
 fn node_key(node: &TreeNode) -> ItemKey {
     node.key().unwrap_or(ItemKey::Num(0))
@@ -261,7 +259,7 @@ impl Page for TreesPage {
                 project_panel(&meta, focused).draw(ui, project, |ui, inner| {
                     project_tree(&[]).draw(ui, inner, &self.state, TREE);
                     if (inner.height as usize) < self.state.scroll().content_len().max(16) {
-                        let mut scroll = self.state.scroll().clone();
+                        let mut scroll = *self.state.scroll();
                         scroll.set_content(self.state.scroll().content_len().max(16));
                         scroll.set_viewport(inner.height as usize);
                         let cursor_row = cursor_visible_row(&self.state);
@@ -270,7 +268,9 @@ impl Page for TreesPage {
                             && cursor_row < scroll.offset().saturating_add(inner.height as usize)
                         {
                             keep.push(
-                                inner.y.saturating_add((cursor_row - scroll.offset()) as u16),
+                                inner
+                                    .y
+                                    .saturating_add((cursor_row - scroll.offset()) as u16),
                             );
                         }
                         let fade_rect = Rect {
@@ -298,12 +298,12 @@ impl Page for TreesPage {
                     let secondary = ui.surface_style().patch(
                         ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
                     );
-                    let muted = ui.surface_style().patch(
-                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-                    );
-                    let faint = ui.surface_style().patch(
-                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
-                    );
+                    let muted = ui
+                        .surface_style()
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+                    let faint = ui
+                        .surface_style()
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
                     let sel = self.chosen.and_then(path_and_depth_for);
                     let mut y = inner_y;
                     match sel {

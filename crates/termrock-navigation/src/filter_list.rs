@@ -831,6 +831,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             )
         });
         let mut last_group = "";
+        let mut keep = Vec::new();
         let view = ScrollRegion::view(st.core.scroll(), content, visible_len);
         for (row_i, filtered_i) in view.visible_range().enumerate() {
             let source = if identity {
@@ -861,8 +862,11 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 width: content.width,
                 height: 1,
             };
+            if st.core.cursor() == Some(semantic.key) {
+                keep.push(row.y);
+            }
             let visible = !row.intersection(ui.full()).is_empty();
-            let mut row_ui = RowUi::new(
+            let mut row_ui = RowUi::new_with_patches(
                 ui,
                 self.id,
                 Family::PICKER,
@@ -870,6 +874,8 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 flags,
                 semantic.key,
                 row,
+                self.ov.part_patch(Part::CONTAINER),
+                self.ov.part_patch(Part::LABEL),
             );
             if let Some(columns) = &columns {
                 let group = semantic.group.unwrap_or("");
@@ -886,6 +892,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             }
             ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
         }
+        ui.scroll_edges_except(content, st.core.scroll(), &keep);
     }
 
     /// Draw the last computed filtered rows.

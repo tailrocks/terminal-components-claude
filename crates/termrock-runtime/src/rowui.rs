@@ -110,10 +110,7 @@ impl<'u> RowUi<'u> {
             Part::CONTAINER
         };
         let container = match container_patch {
-            Some(patch) => {
-                ui.style_patched(family, variant, part, flags, &patch)
-                    .style
-            }
+            Some(patch) => ui.style_patched(family, variant, part, flags, &patch).style,
             None => ui.style(family, variant, part, flags).style,
         };
         ui.fill(row, container);
@@ -641,9 +638,10 @@ impl<'u> CellUi<'u> {
     /// A trailing glyph.
     pub fn suffix(&mut self, g: GlyphRole) -> &mut Self {
         let area = self.free();
-        let s = self
-            .style
-            .patch(self.ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        let s = self.style.patch(
+            self.ui
+                .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+        );
         let used = self.ui.glyph(area, g, s);
         self.used = self.used.saturating_add(used);
         self
@@ -657,12 +655,14 @@ impl<'u> CellUi<'u> {
         self
     }
 
-    /// An instance patch over the cell's style (applied on drop).
+    /// An instance patch over the cell's style (applies to later writes
+    /// immediately and to the painted range on drop).
     pub fn patch(&mut self, p: &StylePatch) -> &mut Self {
         self.patch = Some(match self.patch {
             Some(cur) => cur.merge(*p),
             None => *p,
         });
+        self.style = self.style.patch(self.ui.paint_patch(p));
         self
     }
 }
@@ -708,7 +708,7 @@ impl Drop for CellUi<'_> {
             self.ui.fill(lead, self.style);
         }
         let trail_x = self.area.x.saturating_add(shift).saturating_add(used);
-        if trail_x < self.area.right() {
+        if trail_x < self.area.right() && self.style.into_style().bg.is_some() {
             let trail = Rect {
                 x: trail_x,
                 y,

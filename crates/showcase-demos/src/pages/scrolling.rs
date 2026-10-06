@@ -332,7 +332,7 @@ mod motion_tests {
         let end = head.find('s').map(|i| i + 1).unwrap_or(head.len());
         let needle = &head[..end];
         assert!(
-            row.contains(&needle),
+            row.contains(needle),
             "log row 0 must show the live tail line {offset} ({needle:?}), got {row:?}"
         );
         assert!(

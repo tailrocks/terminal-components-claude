@@ -118,6 +118,7 @@ impl ThemeColors {
         }
     }
 
+    #[expect(clippy::if_same_then_else)]
     fn lift(&self, bg: Color) -> Color {
         if bg == self.canvas {
             self.surface_elevated
