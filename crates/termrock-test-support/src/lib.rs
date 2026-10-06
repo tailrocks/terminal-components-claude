@@ -25,6 +25,9 @@
 pub mod conformance;
 pub mod digest;
 pub mod harness;
+pub mod harness_scoped_targets;
+pub mod harness_state_waits;
+pub mod harness_typed_input;
 pub mod perf;
 
 pub use conformance::{Caps, Conformance, Fixture, FixtureRow};
