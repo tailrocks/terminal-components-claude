@@ -1,9 +1,37 @@
-//! Control-state parity mirror: candidate-`termrock` rendering of the reference
-//! control-state matrix (`tests/conformance/required_cases.json` cases
-//! `W01-01..W24-04` at `origin/termrock-refactor`, plus the pinned reference
-//! behavior in `tests/focus_gutter.rs` and `tests/choice_containment.rs`).
+//! Control-state parity mirror: candidate-`termrock` rendering of the W01-W24
+//! control-state slice of the vendored case registry.
 //!
-//! Reference contract (117 required cases, W01-W24):
+//! Single W vocabulary (Q03 reconcile). There is exactly one W namespace and
+//! it lives in the vendored registry `tests/conformance/required_cases.json`
+//! (read-only reference, sha256 `04ebb893bdf4f900…`). Every `Wxx-yy` id cited
+//! anywhere in this file is a registry case id; no suite-side numbering
+//! exists. The two counts seen in earlier docs describe one registry:
+//!
+//! * **222** = every registry W case, components W01-W45
+//!   (`component_cases_count: 222`).
+//! * **117** = the W01-W24 control-states slice mirrored by this suite:
+//!   W01:4 W02:5 W03:4 W04:4 W05:4 W06:5 W07:4 W08:7 W09:6 W10:5 W11:5 W12:6
+//!   W13:5 W14:5 W15:5 W16:5 W17:5 W18:5 W19:4 W20:5 W21:5 W22:5 W23:5 W24:4.
+//!   The remaining 105 registry W cases (W25-W45) belong to other suites.
+//!
+//! Mirror status within the 117-case slice (see `parity_burndown.rs`, which
+//! gates these counts executably):
+//!
+//! * 84 registry ids (W01-W17, every id cited at least once) have a
+//!   behavioral mirror in this file.
+//! * 33 registry ids (W18-W24) resolve through the ownership gate below but
+//!   have no behavioral mirror yet.
+//! * 24 mirror tests are `#[ignore]`d, deferring 26 registry-case references
+//!   (22 single-case plus the dual-case `W05-02/W05-04` and `W06-02/W06-05`
+//!   records). Each ignore maps to one `BD-xx` burndown item.
+//!
+//! No W coverage is claimed while any ignore remains: passing the
+//! non-ignored subset proves nothing about the deferred cases, and the
+//! W18-W24 slice is ownership-gated only. (Grep-count note: raw `PARITY`
+//! matches exceed 26 because they also hit this doc template and two
+//! `panic!` bodies inside already-ignored tests; those are not deferrals.)
+//!
+//! Reference contract (states, combinations, precedence):
 //!
 //! * same control states: normal, focus, hover, focus+hover, pressed and
 //!   disabled, plus the component-owned axes (checked/on, busy/loading/error,
