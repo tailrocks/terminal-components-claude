@@ -16,55 +16,52 @@
 
 use std::time::Duration;
 
-use crate::support::{MouseButton, ScreenExt, Scroll, Session};
+use tuiscotti::tui::Wheel;
+
+use crate::support::scoped_targets::Target;
+use crate::support::state_waits as waits;
+use crate::support::typed_input::Input;
+use crate::support::{MouseButton, Session};
 
 use crate::support::{self, Case, Color, HOLLA, SHOWCASE, TABLEPRO};
 
 const SHOWCASE_BOOT: &str = "Junie Design system";
 const HOLLA_BOOT: &str = "holla❯";
 
-/// First occurrence of `needle` as `(row, col)` — `Screen::find` order —
-/// waiting until it appears. The hand-off to the pointer calls swaps the
-/// axes (they take `(col, row)`).
-fn find(s: &mut Session, needle: &str) -> (u16, u16) {
-    let mut hit = None;
-    s.wait_until(|screen| {
-        hit = screen.find(needle);
-        hit.is_some()
-    })
-    .unwrap_or_else(|e| panic!("`{needle}` never appeared: {e:#}"));
-    hit.expect("wait_until passed with the needle on screen")
+fn case_timeout(case: &Case) -> Duration {
+    Duration::from_millis(case.timeout_ms)
 }
 
-/// Bare-pointer move. termlens models clicks, drags and the wheel but has no
-/// button-less motion report, so the bytes a real terminal sends for one are
-/// written verbatim: every app enables SGR any-motion tracking
-/// (`?1003h` + `?1006h` via crossterm's `EnableMouseCapture`), where a move
-/// to `(col, row)` is `CSI < 35 ; col+1 ; row+1 M`.
-fn mouse_move(s: &mut Session, col: u16, row: u16) {
-    s.type_text(&format!("\x1b[<35;{};{}M", col + 1, row + 1))
-        .expect("mouse move report");
-}
-
+/// Hover two cells into the needle's row. Every app enables SGR any-motion
+/// tracking (`?1003h` + `?1006h` via crossterm's `EnableMouseCapture`); the
+/// typed hover refuses unless the app did.
 fn hover_over(s: &mut Session, needle: &str) {
-    let (row, col) = find(s, needle);
-    mouse_move(s, col + 2, row);
+    let target = Target::resolve(s, needle);
+    let (col, row) = target.offset(2, 0);
+    Input::move_to(col, row).send(s);
 }
 
 /// `notches` wheel-down steps over `needle`'s cell, paced like a send step.
-fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
-    let (row, col) = find(s, needle);
+/// The target re-resolves after every notch: scrolled content moves.
+pub(crate) fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
+    let mut target = Target::resolve(s, needle);
     for _ in 0..notches {
-        s.scroll(col, row, Scroll::Down).expect("wheel scroll");
+        let (col, row) = target.point();
+        Input::wheel(Wheel::Down, col, row).send(s);
         std::thread::sleep(Duration::from_millis(120));
+        target.refresh(s);
     }
 }
 
+/// `notches` wheel-down steps on the blank line below `needle`'s cell —
+/// for needles shadowed by clickable children in the scroll lookup.
 pub(crate) fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
-    let (row, col) = find(s, needle);
+    let mut target = Target::resolve(s, needle);
     for _ in 0..notches {
-        s.scroll(col, row + 1, Scroll::Down).expect("wheel scroll");
+        let (col, row) = target.offset(0, 1);
+        Input::wheel(Wheel::Down, col, row).send(s);
         std::thread::sleep(Duration::from_millis(120));
+        target.refresh(s);
     }
 }
 
@@ -72,34 +69,41 @@ pub(crate) fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
 /// surfaces (log, terminal viewport) move off the tail and reveal the
 /// bottom fade.
 fn wheel_up(s: &mut Session, needle: &str, notches: u32) {
-    let (row, col) = find(s, needle);
+    let mut target = Target::resolve(s, needle);
     for _ in 0..notches {
-        s.scroll(col, row, Scroll::Up).expect("wheel scroll");
+        let (col, row) = target.point();
+        Input::wheel(Wheel::Up, col, row).send(s);
         std::thread::sleep(Duration::from_millis(120));
+        target.refresh(s);
     }
 }
 
 /// Resize `from` → `to`, waiting until the emulator reports the new geometry
 /// before settling (the reflowed frame is the gated state).
 fn resize_case(case: &Case, cols: u16, rows: u16) {
+    let timeout = case_timeout(case);
     let mut s = support::spawn_boot(case);
-    resize_to(&mut s, cols, rows);
-    find(&mut s, case.needle);
+    resize_to(&mut s, cols, rows, timeout);
+    waits::wait_state(&mut s, case.needle, "post-resize boot needle");
     support::settle_and_gate(&mut s, &case.name);
 }
 
-fn resize_to(s: &mut Session, cols: u16, rows: u16) {
-    resize_geometry(s, cols, rows);
+fn resize_to(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
+    resize_geometry(s, cols, rows, timeout);
     // emulator blanks/scrolls the alt-screen on resize and reports the new
     // geometry before the app redraws (~300 ms): without this pause settle
     // can gate the blank post-resize frame
     std::thread::sleep(Duration::from_millis(700));
 }
 
-fn resize_geometry(s: &mut Session, cols: u16, rows: u16) {
+fn resize_geometry(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
     s.resize(cols, rows).expect("resize");
-    s.wait_until(|screen| screen.size() == (cols, rows))
-        .unwrap_or_else(|e| panic!("never reached {cols}x{rows}: {e:#}"));
+    support::wait_screen(
+        s,
+        timeout,
+        &format!("never reached {cols}x{rows}"),
+        |screen| screen.cols() == cols && screen.rows() == rows,
+    );
 }
 
 fn run_resize_matrix(representative: &Case, mut capture: impl FnMut(&Case, u16, u16)) {
@@ -189,8 +193,8 @@ fn showcase_flows_diff_drag_selected_matrix() {
     )
     .sends(&["tab", "enter", "wait:● Review"]);
     support::run_canonical_live(&case, |s, _| {
-        let (row, col) = find(s, "attempts = 3");
-        s.drag(col, row, col + 11, row).expect("drag select");
+        let target = Target::resolve(s, "attempts = 3");
+        Input::drag(target.point(), target.span_end()).send(s);
     });
 }
 
@@ -211,9 +215,10 @@ fn showcase_flows_chrome_context_matrix() {
         SHOWCASE_BOOT,
     );
     support::run_canonical_live(&case, |s, _| {
-        let (row, col) = find(s, "Codex (Primary)");
-        s.click_with(MouseButton::Right, col, row)
-            .expect("right click");
+        let target = Target::resolve(s, "Codex (Primary)");
+        let (col, row) = target.point();
+        Input::down(MouseButton::Right, col, row).send(s);
+        Input::up(MouseButton::Right, col, row).send(s);
     });
 }
 
@@ -541,14 +546,19 @@ fn showcase_resize_overview_shrunk_80x24_truecolor() {
     )
     .timeout(15_000);
     run_resize_matrix(&case, |case, cols, rows| {
+        let timeout = case_timeout(case);
         let mut s = support::spawn_boot(case);
-        resize_geometry(&mut s, cols, rows);
+        resize_geometry(&mut s, cols, rows, timeout);
         // Shrinking rows keeps the bottom of the old grid until the app
         // redraws; a no-op key forces an event-loop tick so the header
         // (previously above the new viewport) is painted again.
         s.send_key("ctrl-l").expect("redraw tick");
         std::thread::sleep(Duration::from_millis(700));
-        find(&mut s, "Foundations / Overview");
+        waits::wait_state(
+            &mut s,
+            "Foundations / Overview",
+            "overview header after shrink",
+        );
         support::settle_and_gate(&mut s, &case.name);
     });
 }
@@ -567,14 +577,19 @@ fn showcase_resize_overview_grown_120x40_truecolor() {
     )
     .timeout(15_000);
     run_resize_matrix(&case, |case, cols, rows| {
+        let timeout = case_timeout(case);
         let mut s = support::spawn_boot(case);
-        resize_geometry(&mut s, cols, rows);
+        resize_geometry(&mut s, cols, rows, timeout);
         // Growing the grid reports the new size before the app paints the
         // extra cells; a no-op key forces an event-loop tick so the header
         // is drawn into the grown viewport.
         s.send_key("ctrl-l").expect("redraw tick");
         std::thread::sleep(Duration::from_millis(700));
-        find(&mut s, "Foundations / Overview");
+        waits::wait_state(
+            &mut s,
+            "Foundations / Overview",
+            "overview header after grow",
+        );
         support::settle_and_gate(&mut s, &case.name);
     });
 }
@@ -650,11 +665,16 @@ fn tablepro_resize_workbench_shrunk_80x24_truecolor() {
     .sends(&["wait:S audit"])
     .timeout(15000);
     run_resize_matrix(&case, |case, cols, rows| {
+        let timeout = case_timeout(case);
         let mut s = support::spawn_boot(case);
-        resize_to(&mut s, cols, rows);
-        s.wait_until(|screen| !screen.text().contains("Connected to"))
-            .unwrap_or_else(|e| panic!("`Connected to` status never expired: {e:#}"));
-        find(&mut s, "TablePro");
+        resize_to(&mut s, cols, rows, timeout);
+        support::wait_screen(
+            &mut s,
+            timeout,
+            "`Connected to` status never expired",
+            |screen| !support::screen_text(screen).contains("Connected to"),
+        );
+        waits::wait_state(&mut s, "TablePro", "tablepro brand after shrink");
         support::settle_and_gate(&mut s, &case.name);
     });
 }
@@ -680,18 +700,23 @@ fn tablepro_resize_workbench_grown_120x40_truecolor() {
     )
     .timeout(15000);
     run_resize_matrix(&case, |case, cols, rows| {
+        let timeout = case_timeout(case);
         let mut s = support::spawn_boot(case);
-        resize_to(&mut s, cols, rows);
+        resize_to(&mut s, cols, rows, timeout);
         if cols >= 120 {
-            find(&mut s, "No results yet");
+            waits::wait_state(&mut s, "No results yet", "docked results marker after grow");
         }
         if cols >= 100 {
-            find(&mut s, "S audit");
+            waits::wait_state(&mut s, "S audit", "audit marker after grow");
         } else {
-            find(&mut s, "S public");
+            waits::wait_state(&mut s, "S public", "public marker after grow");
         }
-        s.wait_until(|screen| !screen.text().contains("Connected to"))
-            .unwrap_or_else(|e| panic!("`Connected to` status never expired: {e:#}"));
+        support::wait_screen(
+            &mut s,
+            timeout,
+            "`Connected to` status never expired",
+            |screen| !support::screen_text(screen).contains("Connected to"),
+        );
         support::settle_and_gate(&mut s, &case.name);
     });
 }
