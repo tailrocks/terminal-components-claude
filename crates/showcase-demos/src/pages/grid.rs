@@ -383,8 +383,8 @@ fn paint_rows(ui: &mut Ui<'_>, body: Rect) {
             row,
             5,
             &format!("{:>2}", row.saturating_sub(2)),
-            termrock::Family::VIEWPORT,
-            Part::GUTTER,
+            termrock::Family::GRID,
+            Part::OVERFLOW,
         );
         paint_part(
             ui,
@@ -412,5 +412,64 @@ fn paint_rows(ui: &mut Ui<'_>, body: Rect) {
                 Part::BORDER
             },
         );
+    }
+}
+
+#[cfg(test)]
+mod row_number_tests {
+    use super::*;
+    use termrock::{App, Family, FgStep, KeyCode, Response, StylePatch, Theme};
+    use termrock_test_support::Harness;
+
+    struct PageApp(GridPage);
+
+    impl App for PageApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.0.update(cx).response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let full = ui.full();
+            self.0.draw(ui, full);
+        }
+    }
+
+    /// Row numbers must bind the GRID-owned faint address. Poison
+    /// (VIEWPORT, GUTTER) and require the digits to stay faint: any
+    /// row number still resolved from the viewport gutter fails.
+    #[test]
+    fn row_numbers_resolve_from_grid_overflow() {
+        let mut theme = Theme::junie();
+        theme
+            .recipes
+            .get_mut(Family::VIEWPORT)
+            .parts
+            .entry(Part::GUTTER)
+            .base = StylePatch::new().set_fg(Role::Danger);
+        let faint = theme.color.fg.get(FgStep::Faint.index()).copied();
+        assert_ne!(Some(theme.color.danger), faint);
+        let poisoned = theme.resolve(
+            Family::VIEWPORT,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            StateFlags::empty(),
+            Surface::Surface,
+        );
+        assert_eq!(poisoned.style.fg, Some(theme.color.danger));
+        let owned = theme.resolve(
+            Family::GRID,
+            Variant::DEFAULT,
+            Part::OVERFLOW,
+            StateFlags::empty(),
+            Surface::Surface,
+        );
+        assert_eq!(owned.style.fg, faint);
+
+        let mut h = Harness::new(PageApp(GridPage::new()), theme, 120, 40);
+        let _ = h.key(KeyCode::Null);
+        let (x, y) = h.find("1001").expect("datagrid id column renders");
+        let cell = h.cell(x - 2, y);
+        assert_eq!(cell.symbol(), "1");
+        assert_eq!(Some(cell.fg), faint, "row number must stay faint");
     }
 }
