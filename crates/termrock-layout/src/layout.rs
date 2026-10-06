@@ -66,8 +66,58 @@ impl Insets {
     }
 }
 
+/// Share `avail` over the weighted tracks in `tracks`, writing into `out`
+/// (parallel to `tracks`).
+/// Deterministic round-all-but-last: every weighted track but the last
+/// takes its half-up rounded share (`round(avail·w/Σw)`, clamped to what
+/// is left); the last weighted track takes the rest, so the shares always
+/// sum to exactly `avail`. Unweighted tracks are untouched. Shared by
+/// [`distribute`] and [`distribute_into`] so the remainder policy cannot
+/// drift between them again; it allocates nothing so [`distribute_into`]
+/// keeps its no-allocation contract on hot paths.
+fn deal_remainder(
+    avail: u16,
+    tracks: &[Track],
+    weight_of: impl Fn(&Track) -> u32,
+    out: &mut [u16],
+) {
+    let total: u32 = tracks.iter().map(|t| weight_of(t)).sum();
+    let mut last = None;
+    for (i, t) in tracks.iter().enumerate() {
+        if weight_of(t) > 0 {
+            last = Some(i);
+        }
+    }
+    let Some(last) = last else {
+        return;
+    };
+    let mut remaining = avail;
+    for (i, t) in tracks.iter().enumerate() {
+        let w = weight_of(t);
+        if w == 0 {
+            continue;
+        }
+        let share = if i == last {
+            remaining
+        } else {
+            u32::from(avail)
+                .saturating_mul(w)
+                .saturating_add(total / 2)
+                .checked_div(total)
+                .unwrap_or(0)
+                .min(u32::from(remaining)) as u16
+        };
+        if let Some(slot) = out.get_mut(i) {
+            *slot = share;
+        }
+        remaining = remaining.saturating_sub(share);
+    }
+}
+
 /// Distribute `total` cells over `tracks` with `spacing` between them.
-/// Deterministic: leftover cells go to the earliest flexible tracks.
+/// Deterministic: every flexible track but the last takes its half-up
+/// rounded share, clamped to what is left; the last flexible track takes
+/// the rest.
 pub fn distribute(total: u16, tracks: &[Track], spacing: u16, natural: Option<&[u16]>) -> Vec<u16> {
     let n = tracks.len() as u16;
     let gaps = spacing.saturating_mul(n.saturating_sub(1));
@@ -99,36 +149,7 @@ pub fn distribute(total: u16, tracks: &[Track], spacing: u16, natural: Option<&[
             _ => 0,
         }
     };
-    let weights: u32 = tracks.iter().map(weight_of).sum();
-    if weights == 0 {
-        return out;
-    }
-    let mut remainder = avail;
-    for (i, t) in tracks.iter().enumerate() {
-        let w = weight_of(t);
-        if w == 0 {
-            continue;
-        }
-        let share = (u32::from(avail).saturating_mul(w))
-            .checked_div(weights)
-            .unwrap_or(0) as u16;
-        if let Some(slot) = out.get_mut(i) {
-            *slot = share;
-        }
-        remainder = remainder.saturating_sub(share);
-    }
-    for (i, t) in tracks.iter().enumerate() {
-        if remainder == 0 {
-            break;
-        }
-        if weight_of(t) == 0 {
-            continue;
-        }
-        if let Some(slot) = out.get_mut(i) {
-            *slot = slot.saturating_add(1);
-        }
-        remainder = remainder.saturating_sub(1);
-    }
+    deal_remainder(avail, tracks, weight_of, &mut out);
     out
 }
 
@@ -159,36 +180,7 @@ pub fn distribute_into(total: u16, tracks: &[Track], spacing: u16, out: &mut [u1
             _ => 0,
         }
     };
-    let weights: u32 = tracks.iter().map(weight_of).sum();
-    if weights == 0 {
-        return;
-    }
-    let mut remainder = avail;
-    for (i, t) in tracks.iter().enumerate() {
-        let w = weight_of(t);
-        if w == 0 {
-            continue;
-        }
-        let share = (u32::from(avail).saturating_mul(w))
-            .checked_div(weights)
-            .unwrap_or(0) as u16;
-        if let Some(slot) = out.get_mut(i) {
-            *slot = share;
-        }
-        remainder = remainder.saturating_sub(share);
-    }
-    for (i, t) in tracks.iter().enumerate() {
-        if remainder == 0 {
-            break;
-        }
-        if weight_of(t) == 0 {
-            continue;
-        }
-        if let Some(slot) = out.get_mut(i) {
-            *slot = slot.saturating_add(1);
-        }
-        remainder = remainder.saturating_sub(1);
-    }
+    deal_remainder(avail, tracks, weight_of, out);
 }
 
 fn stack(area: Rect, sizes: &[u16], spacing: u16, vertical: bool) -> Vec<Rect> {
@@ -622,10 +614,15 @@ mod tests {
             &[Track::Flex(1), Track::Flex(1), Track::Flex(1)],
             2,
         );
-        // 20 - 4 gaps = 16 → 5,5,5 + 1 leftover to the first
+        // 20 - 4 gaps = 16 → round-all-but-last: round(16/3) = 5 for the
+        // first two tracks, the last takes the rest (6). The old floor +
+        // extras-first policy dealt the leftover cell to the front
+        // ([6,5,5]); the rounded policy is exactly the legacy thirds
+        // formula in avail-space (round, round, rest) at every residue,
+        // which extras-first misses when `avail % 3 == 1`.
         assert_eq!(
             c.iter().map(|r| (r.x, r.width)).collect::<Vec<_>>(),
-            vec![(0, 6), (8, 5), (15, 5)]
+            vec![(0, 5), (7, 5), (14, 6)]
         );
         assert_eq!(
             columns(
@@ -635,6 +632,31 @@ mod tests {
             ),
             c
         );
+    }
+
+    #[test]
+    fn four_flex_small_avail_rounds_with_last_taking_rest() {
+        // 8 - 3 gaps = 5 over 4 equal flex: round(5/4) = 1 each for the
+        // first three, the last takes the rest (2). Floor + extras-first
+        // would deal the leftover to the front ([2,1,1,1]).
+        assert_eq!(
+            distribute(8, &[Track::Flex(1); 4], 1, None),
+            vec![1, 1, 1, 2]
+        );
+        // `distribute_into` shares the same remainder helper: identical case,
+        // identical shares.
+        let mut into = [0; 4];
+        distribute_into(8, &[Track::Flex(1); 4], 1, &mut into);
+        assert_eq!(into, [1, 1, 1, 2]);
+        // No over-allocation: naive per-track rounding of 2 over 3 equal
+        // flex would give [1,1,1] (sum 3 > 2); last-takes-rest plus the
+        // clamp to what is left hold the sum at exactly `avail`.
+        // (This case also passes under floor-shares — floor never
+        // over-allocates either — so it pins the invariant rather than
+        // the deal order; the [1,1,1,2] case above is the order witness.)
+        let tight = distribute(2, &[Track::Flex(1); 3], 0, None);
+        assert_eq!(tight, vec![1, 1, 0]);
+        assert_eq!(tight.iter().sum::<u16>(), 2);
     }
 
     #[test]

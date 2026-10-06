@@ -303,9 +303,6 @@ impl Page for ListsPage {
                 let height = body.height.min(18);
                 let language_column = columns.first().copied().unwrap_or(body);
                 let language = Rect {
-                    width: language_column
-                        .width
-                        .saturating_sub(u16::from(body.width < 90)),
                     height,
                     ..language_column
                 };
@@ -329,12 +326,6 @@ impl Page for ListsPage {
                 self.draw_files(ui, body, &columns, height, detail);
                 let search_column = columns.get(2).copied().unwrap_or(body);
                 let search = Rect {
-                    x: if body.width >= 90 {
-                        search_column.x
-                    } else {
-                        search_column.x.saturating_sub(1)
-                    },
-                    width: search_column.width.saturating_add(1),
                     height,
                     ..search_column
                 };
@@ -393,11 +384,6 @@ impl ListsPage {
     ) {
         let files_column = columns.get(1).copied().unwrap_or(body);
         let files = Rect {
-            x: if body.width >= 90 {
-                files_column.x
-            } else {
-                files_column.x.saturating_sub(1)
-            },
             height,
             ..files_column
         };
