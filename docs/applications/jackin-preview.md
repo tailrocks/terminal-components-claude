@@ -1,5 +1,7 @@
 # Jackin Preview
 
+Jackin Preview composes reusable Termrock components under the [component-only contract](../architecture/component-composition.md). Its ordinary consumer shape is [EX-16](../api/consumer-recipes.md#ex-16--jackin-workspace-prelude-composition).
+
 ## Role
 
 Jackin Preview is the conformance consumer for a large composed host-control

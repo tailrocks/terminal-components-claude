@@ -1,5 +1,7 @@
 # TablePro
 
+TablePro composes reusable Termrock components under the [component-only contract](../architecture/component-composition.md). Its ordinary consumer shape is [EX-17](../api/consumer-recipes.md#ex-17--tablepro-workbench-composition).
+
 ## Role
 
 TablePro is the complex workbench conformance consumer. It exercises Grid and

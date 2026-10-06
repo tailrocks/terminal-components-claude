@@ -1,5 +1,7 @@
 # Showcase
 
+Showcase composes reusable Termrock components under the [component-only contract](../architecture/component-composition.md). Its ordinary consumer shape is [EX-19](../api/consumer-recipes.md#ex-19--showcase-proves-ordinary-consumer-use).
+
 ## Role
 
 Showcase is the reference laboratory for Termrock components. It exposes

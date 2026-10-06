@@ -1,5 +1,7 @@
 # Holla
 
+Holla composes reusable Termrock components under the [component-only contract](../architecture/component-composition.md). Its ordinary consumer shape is [EX-18](../api/consumer-recipes.md#ex-18--holla-finder-and-activity-composition).
+
 ## Role
 
 Holla is the context-adaptive composition reference. It exercises a finder,
