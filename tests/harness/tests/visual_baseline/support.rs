@@ -36,7 +36,7 @@ use std::time::{Duration, Instant};
 
 use tuiscotti::grouped::{GroupedOutcome, GroupedStore};
 use tuiscotti::snapshot::Status;
-use tuiscotti::tui::{CancelToken, MouseButton, MouseMods, Session, Tui, WaitError};
+use tuiscotti::tui::{CancelToken, Key, KeyMods, MouseButton, MouseMods, Session, Tui, WaitError};
 use tuiscotti::{Frame, Observation, Profile, Provenance, Renderer, Screen, VENDORED_FACES};
 
 pub const SHOWCASE: &str = env!("CARGO_BIN_EXE_showcase");
@@ -1156,6 +1156,51 @@ pub fn key_chord(step: &str) -> Cow<'_, str> {
     Cow::Borrowed(step)
 }
 
+/// Press one send step as a complete key press. Steps whose key name is a
+/// bare `f`/`F` — with no modifier or ctrl only — bypass the chord string
+/// and go through the typed [`Session::press_key`] call instead: tuiscotti
+/// 0.2.0 `parse_chord` matches any key name starting with `f`/`F` as a
+/// function key before trying the single-char branch, so `"f"` and
+/// `"ctrl+f"` always fail with `bad function key "f"`. The typed call
+/// feeds the same encoder (`Key::Char('f')` → `f` byte; with ctrl →
+/// `0x06`), needs no terminal reporting mode, and still fails the case on
+/// refusal — there is no text fallback. Every other step keeps the exact
+/// `press` string path, including its loud failure on genuinely bad chords.
+pub fn press_step(session: &Session, step: &str) {
+    let chord = key_chord(step);
+    if let Some((key, mods)) = typed_f_key(&chord) {
+        session
+            .press_key(key, mods)
+            .unwrap_or_else(|e| panic!("key `{step}` failed: {e:#}"));
+        return;
+    }
+    session
+        .press(&chord)
+        .unwrap_or_else(|e| panic!("key `{step}` failed: {e:#}"));
+}
+
+/// Map a normalized chord to a typed `(Key, KeyMods)` when — and only
+/// when — it hits the `parse_chord` bare-`f` trap: single-char key name
+/// `f`/`F` with no modifier or ctrl only. Returns `None` for everything
+/// else so the caller keeps the string `press` path.
+fn typed_f_key(chord: &str) -> Option<(Key, KeyMods)> {
+    let mut parts: Vec<&str> = chord.split('+').collect();
+    let name = parts.pop().unwrap_or_default();
+    let c = match name {
+        "f" => 'f',
+        "F" => 'F',
+        _ => return None,
+    };
+    let mut mods = KeyMods::NONE;
+    for m in parts {
+        match m.to_ascii_lowercase().as_str() {
+            "ctrl" | "control" | "ctl" => mods.ctrl = true,
+            _ => return None,
+        }
+    }
+    Some((Key::Char(c), mods))
+}
+
 /// Spawn a case's session for the pointer group (mouse/resize captures need
 /// the live session after boot).
 pub fn spawn(case: &Case) -> Session {
@@ -1210,10 +1255,7 @@ pub fn drive(session: &mut Session, steps: &[&str], timeout: Duration) {
             session.send_text(text).expect("type_text");
             std::thread::sleep(Duration::from_millis(120));
         } else {
-            let chord = key_chord(step);
-            session
-                .press(&chord)
-                .unwrap_or_else(|e| panic!("key `{step}` failed: {e:#}"));
+            press_step(session, step);
             std::thread::sleep(Duration::from_millis(120));
         }
     }

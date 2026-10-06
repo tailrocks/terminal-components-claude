@@ -13,8 +13,6 @@
 
 use tuiscotti::tui::{MouseButton, MouseMods, Session, Wheel};
 
-use super::key_chord;
-
 /// Enabled DEC tracking modes, sampled live (for assertions).
 pub type MouseModes = Vec<u16>;
 
@@ -200,9 +198,7 @@ impl Input {
                 outcome.unwrap_or_else(|e| panic!("{what} failed: {e:#}"));
             }
             Self::Key { name } => {
-                let chord = key_chord(name);
-                s.press(&chord)
-                    .unwrap_or_else(|e| panic!("key `{name}` failed: {e:#}"));
+                super::press_step(s, name);
             }
         }
     }
