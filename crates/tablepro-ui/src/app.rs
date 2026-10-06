@@ -907,11 +907,11 @@ impl TableProApp {
             .slot(Part::GUTTER, &preserve_frame_gutter)
     }
 
-    fn content_panel<'a>(title: &'a str, meta: Option<&'a str>) -> Panel<'a> {
+    fn content_panel<'a>(title: &'a str, meta: Option<&'a str>, focused: bool) -> Panel<'a> {
         let panel = Panel::new(CONTENT_FRAME)
             .kind(PanelKind::Framed)
             .title(title)
-            .focused(true)
+            .focused(focused)
             .patch_part(&FRAMED_PANEL_PATCH)
             .slot(Part::GUTTER, &preserve_frame_gutter);
         match meta {
@@ -4402,7 +4402,6 @@ impl TableProApp {
                 ..body
             };
             let show_meta = {
-                let row_w = tree_area.width;
                 let mut visible_nodes = Vec::new();
                 let mut ancestors_expanded = Vec::new();
                 for item in &self.explorer_nodes {
@@ -4417,7 +4416,11 @@ impl TableProApp {
                         ancestors_expanded.push(self.explorer_tree_state.is_expanded(explorer_node_key(item)));
                     }
                 }
-                self.explorer_tree_state.scroll().visible_range().all(|ri| {
+                let offset = self.explorer_tree_state.scroll().offset();
+                let limit = (offset + usize::from(tree_area.height)).min(visible_nodes.len());
+                let has_sb = visible_nodes.len() > usize::from(tree_area.height);
+                let row_w = tree_area.width.saturating_sub(if has_sb { 1 } else { 0 });
+                (offset..limit).all(|ri| {
                     let Some(node) = visible_nodes.get(ri) else {
                         return true;
                     };
@@ -4606,7 +4609,10 @@ impl TableProApp {
             ),
             None => ("Workbench".to_owned(), None),
         };
-        let panel = Self::content_panel(&title, meta.as_deref());
+        let focused = self.safety_dialog.is_none()
+            && self.destructive_intent.is_none()
+            && !ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED);
+        let panel = Self::content_panel(&title, meta.as_deref(), focused);
         panel.draw(ui, area, |ui, inner| match self.workbench.active() {
             Some(Tab::Query(query)) => {
                 let (editor_h, bottom_rect) = {
@@ -4670,55 +4676,82 @@ impl TableProApp {
                     )
                 } else {
                     field_style.patch(
-                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
                     )
                 };
 
-                if is_focused {
+                let bar_style = if is_focused {
+                    field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
+                } else {
+                    field_style.patch(ui.paint_patch(
+                        &StylePatch::new().set_fg(Role::Surface(termrock::Surface::Field)),
+                    ))
+                };
+                ui.paint_str(
+                    termrock::Rect::new(inner.x, inner.y, 1, 1),
+                    if is_focused { "▎" } else { " " },
+                    bar_style,
+                );
+                let query_text = query.editor_state.draft_text().unwrap_or(&query.query);
+                if !query_text.is_empty() {
                     ui.paint_str(
-                        termrock::Rect::new(inner.x, inner.y, 1, 1),
-                        "▎",
+                        termrock::Rect::new(inner.x + 1, inner.y, 1, 1),
+                        "›",
                         gutter_style,
                     );
-                } else {
-                    ui.fill(termrock::Rect::new(inner.x, inner.y, 1, 1), field_style);
                 }
                 ui.paint_str(
-                    termrock::Rect::new(inner.x + 1, inner.y, 1, 1),
-                    "›",
-                    gutter_style,
-                );
-                ui.paint_str(
-                    termrock::Rect::new(inner.x + 4, inner.y, 1, 1),
-                    "1",
+                    termrock::Rect::new(inner.x + 3, inner.y, 2, 1),
+                    " 1",
                     num_style,
                 );
 
                 let text_x = inner.x + 6;
                 let text_avail = (inner.width as usize).saturating_sub(6);
-                let query_text = query.editor_state.draft_text().unwrap_or(&query.query);
-                let display_query = if query_text.len() > text_avail {
-                    if let Some(pos) = query_text.find("FROM ") {
-                        format!("… {}", &query_text[pos..])
+                if query_text.is_empty() && !query.editor_state.is_editing() {
+                    let placeholder = "Type SQL. Ctrl+R runs the statement under the cursor.";
+                    let display_ph = if placeholder.len() > text_avail {
+                        &placeholder[..text_avail]
+                    } else {
+                        placeholder
+                    };
+                    let ph_style = field_style.patch(
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+                    );
+                    ui.paint_str(
+                        termrock::Rect::new(
+                            text_x,
+                            inner.y,
+                            display_ph.chars().count() as u16,
+                            1,
+                        ),
+                        display_ph,
+                        ph_style,
+                    );
+                } else {
+                    let display_query = if query_text.len() > text_avail {
+                        if let Some(pos) = query_text.find("FROM ") {
+                            format!("… {}", &query_text[pos..])
+                        } else {
+                            query_text.to_owned()
+                        }
                     } else {
                         query_text.to_owned()
-                    }
-                } else {
-                    query_text.to_owned()
-                };
-                Self::draw_sql_highlighted(ui, text_x, inner.y, &display_query, field_style);
+                    };
+                    Self::draw_sql_highlighted(ui, text_x, inner.y, &display_query, field_style);
+                }
 
-                if self.safety_dialog.is_none() && query.editor_state.is_editing() {
+                if self.safety_dialog.is_none() && (is_focused || query.editor_state.is_editing()) {
                     let cursor_col = if query_text.is_empty() {
                         1
                     } else {
                         query_text.len() + 1
                     };
-                    let readout = format!("ln 1/1 · col {cursor_col}  ");
-                    let readout_w = readout.len() as u16;
-                    let readout_x = inner.right().saturating_sub(readout_w);
+                    let readout = format!("ln 1/1 · col {cursor_col}");
+                    let readout_w = termrock::width(&readout) as u16;
+                    let readout_x = inner.right().saturating_sub(1).saturating_sub(readout_w);
                     let muted_field = field_style
-                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
                     ui.paint_str(
                         termrock::Rect::new(
                             readout_x,
@@ -5492,12 +5525,16 @@ fn explorer_row(
 ) {
     match node {
         ExplorerNode::Database { name } => row.label_spans(&[
-            Span::new("D").role(Role::Fg(FgStep::Muted)),
+            Span::new("D")
+                .role(Role::Fg(FgStep::Muted))
+                .remove_modifier(Modifier::BOLD),
             Span::new(" "),
             Span::new(name),
         ]),
         ExplorerNode::Schema { name } => row.label_spans(&[
-            Span::new("S").role(Role::Fg(FgStep::Muted)),
+            Span::new("S")
+                .role(Role::Fg(FgStep::Muted))
+                .remove_modifier(Modifier::BOLD),
             Span::new(" "),
             Span::new(name),
         ]),
@@ -5523,13 +5560,17 @@ fn explorer_row(
                 let pad = (rem as usize).saturating_sub(used_before_pad);
                 let padded_name = format!("{}{}", item.name, " ".repeat(pad));
                 row.label_spans(&[
-                    Span::new(prefix).role(Role::Fg(FgStep::Muted)),
+                    Span::new(prefix)
+                        .role(Role::Fg(FgStep::Muted))
+                        .remove_modifier(Modifier::BOLD),
                     Span::new(" "),
                     Span::new(&padded_name).role(Role::Accent),
                 ]);
             } else {
                 row.label_spans(&[
-                    Span::new(prefix).role(Role::Fg(FgStep::Muted)),
+                    Span::new(prefix)
+                        .role(Role::Fg(FgStep::Muted))
+                        .remove_modifier(Modifier::BOLD),
                     Span::new(" "),
                     Span::new(&item.name),
                 ]);
@@ -6151,7 +6192,7 @@ struct KeyHint {
     action: &'static str,
 }
 
-fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
+fn footer_hints(app: &TableProApp, explorer_focused: bool) -> &'static [KeyHint] {
     if app.filter_editor.is_some() {
         return &[
             KeyHint {
@@ -6289,6 +6330,34 @@ fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
             },
         ]
     } else {
+        if explorer_focused {
+            return &[
+                KeyHint {
+                    key: "↑ ↓",
+                    action: "Move",
+                },
+                KeyHint {
+                    key: "Enter",
+                    action: "Open",
+                },
+                KeyHint {
+                    key: "→",
+                    action: "Expand",
+                },
+                KeyHint {
+                    key: "/",
+                    action: "Filter",
+                },
+                KeyHint {
+                    key: "Ctrl+O",
+                    action: "Quick open",
+                },
+                KeyHint {
+                    key: "Tab",
+                    action: "Next",
+                },
+            ];
+        }
         match app.workbench.active() {
             Some(Tab::Table(t)) if t.is_structure() => &[
                 KeyHint {
@@ -6562,7 +6631,12 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         )
     };
 
-    let hints = footer_hints(app);
+    let explorer_focused = !ui.is_inert()
+        && app.safety_dialog.is_none()
+        && app.destructive_intent.is_none()
+        && (ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED)
+            || (area.width < 100 && app.workbench.active().is_none()));
+    let hints = footer_hints(app, explorer_focused);
     let mut drawn = 0usize;
     for (i, h) in hints.iter().enumerate() {
         let kw = termrock::width(h.key);
@@ -6881,7 +6955,7 @@ impl App for TableProApp {
         let _ = Self::connections_panel("", None, true);
         let _ = Self::connection_details_panel("");
         let _ = Self::explorer_panel(self.workbench.schema_caption(), false);
-        let _ = Self::content_panel("", None);
+        let _ = Self::content_panel("", None, false);
         if matches!(
             cx.update_cause(),
             UpdateCause::Bootstrap | UpdateCause::Event
@@ -6966,6 +7040,9 @@ impl App for TableProApp {
                 }
                 c if c == NEW_QUERY => {
                     self.new_query("");
+                    if let Some(tab_key) = self.workbench.active_key() {
+                        cx.focus(tab_key.control("query"));
+                    }
                     response |= Response::changed();
                 }
                 c if c == HISTORY => {
@@ -7316,7 +7393,12 @@ impl App for TableProApp {
                         self.request_close_tab(cx, tab.key());
                     }
                 }
-                TabsAction::New => self.new_query(""),
+                TabsAction::New => {
+                    self.new_query("");
+                    if let Some(tab_key) = self.workbench.active_key() {
+                        cx.focus(tab_key.control("query"));
+                    }
+                }
             }
         }
         response |= tabs_response.erase();
