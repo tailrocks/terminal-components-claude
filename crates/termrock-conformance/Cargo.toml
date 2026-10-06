@@ -23,6 +23,9 @@ sha2.workspace = true
 rayon.workspace = true
 ratatui.workspace = true
 
+[dev-dependencies]
+unicode-width.workspace = true
+
 [[test]]
 name = "visual_baseline"
 path = "tests/visual_baseline/main.rs"
