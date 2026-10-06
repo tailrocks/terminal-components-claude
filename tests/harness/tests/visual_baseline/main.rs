@@ -38,6 +38,7 @@
 
 mod audit;
 mod button_busy_frames;
+mod button_busy_live;
 mod control_states;
 mod holla;
 mod jackin;
