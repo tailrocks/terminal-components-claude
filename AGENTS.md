@@ -96,32 +96,22 @@ Keep expected snapshots read-only during candidate verification.
 Do not change expected output, tests, or thresholds to hide a regression.
 Report not-run, failed, skipped, and passed checks separately.
 
-## Current Documentation-Only Task
+## Active Implementation Task
 
-The current task may change only its approved documentation paths.
-This section is the canonical home of that path allowlist:
+Stage B implementation is active exclusively on `termrock-implementation`.
+This task finishes the Rust Termrock refactor across all 44 workspace crates,
+all four preview applications, the required test coverage, and reproducible CI.
 
-```text
-AGENTS.md
-GOAL.md
-README.md
-SPECIFICATION.md
-CRATES.md
-CHECKLIST.md
-checklist.json
-crate-map.json
-component-ownership.json
-docs/**
-refactoring-tasks/** documentation and non-executable planning records
-existing or necessary scoped AGENTS.md and README.md files
-.github/pull_request_template.md
-CLAUDE.md symlinks adjacent to approved AGENTS.md files
-```
+Authorized write scope includes:
+- Rust source (`crates/**/src/**`, `Cargo.toml`, `Cargo.lock`)
+- Integration, characterization, and conformance tests (`crates/**/tests/**`)
+- Repository tools and xtasks (`crates/termrock-xtask/**`, `.velnor/**`)
+- Generated CI configurations and workflows (`.github/**`)
+- Documentation, specifications, recipes, and checklists (`docs/**`, `SPECIFICATION.md`, `CRATES.md`, `CHECKLIST.md`, `checklist.json`, `component-ownership.json`, `crate-map.json`, `GOAL.md`, `AGENTS.md`)
+- Review receipts (`docs/implementation/review-receipts/**`)
 
-Do not modify source, tests, workflows, dependencies, or baseline artifacts.
+Do not modify frozen baseline artifacts (`baselines/**`) or retarget the `visual-baseline` tag.
 Do not stage or commit the `termrock-doc-guardrails/` input pack.
-Write future enforcement requirements as pending work.
-Do not claim that these instructions install hooks or CI checks.
 
 ## Invariant Rules
 

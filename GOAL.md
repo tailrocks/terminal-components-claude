@@ -1,48 +1,58 @@
 /goal
-# Repair the Termrock specifications and agent rules
+# Finish Termrock through reusable components and exact visual-baseline parity
 
 ## 1. Active task
 
-This file carries the active documentation-only task.
-Repair the documentation that governs the remaining refactor.
-Define reusable Termrock components as the only way to build preview interfaces.
-Require independent review for each work item and each commit.
-Make the visual, interaction, API, and ownership requirements explicit.
+Finish the real Rust refactor across all 44 workspace crates, all four preview applications
+(`showcase`, `jackin-preview`, `holla`, and `tablepro`), the required test coverage, and reproducible CI.
+Execute exclusively on `termrock-implementation`.
 
-This task changes documentation only.
-Do not fix, revert, rename, or refactor source code.
-Do not regenerate or approve snapshots.
-Record code defects as pending implementation work.
+Acceptance requires satisfying every condition conjunctively:
 
-The implementation mission is preserved verbatim, but inactive, at
-[docs/implementation/implementation-goal.md](docs/implementation/implementation-goal.md).
-Do not follow it until this task restores it through its recorded restoration procedure.
+```text
+exact default visual parity
+AND observable interaction parity
+AND reusable component ownership
+AND simple, coherent public APIs
+AND supported customization
+AND one implementation of each shared mechanism
+AND independently reviewed, executable evidence
+```
+
+Preserve the 44-member functionality-based workspace under `crates/`.
+Preserve preview application flows, state transitions, CLI contracts, and visible content
+using fixture data and simulated operations. Do not connect real external providers, credentials,
+databases, Docker, or services.
 
 ## 2. Authorities
 
 Work only on the existing `termrock-implementation` branch.
-Do not merge `main` or reset the branch.
-Do not move the `visual-baseline` tag or release.
+Do not reset/rebase the branch, merge `main`, force-push, or rewrite history.
+Do not move, delete, recreate, or retarget the frozen `visual-baseline` tag or release.
 
 | Reference | Purpose |
 | --- | --- |
-| Frozen `visual-baseline` tag (`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`) | Visual and observable interaction authority. |
-| `origin/visual-baseline` branch | Compare with the frozen tag. Test reference only. |
-| `termrock-refactor` | Intended architecture and preparation requirements. |
-| `termrock-implementation` | Current APIs, implementation defects, documentation gaps. |
-| `main` | Structural reference only. Never a visual authority. |
+| Frozen `visual-baseline` tag (`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, object `1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5`) | Immutable visual and observable interaction authority. |
+| `origin/visual-baseline` branch | Test/scenario reference only after proving tag relation; never expected output. |
+| `termrock-refactor` | Planning and preparation history. |
+| `termrock-implementation` | Active candidate implementation branch. |
+| `main` | Structural and API comparison only. Never visual authority. |
 
-Research identities and the branch-versus-tag comparison live in the
-[research record](docs/implementation/findings-record.md).
+Research identities and branch-versus-tag comparison live in
+[docs/implementation/findings-record.md](docs/implementation/findings-record.md).
 
 ## 3. Write scope
 
-The canonical path allowlist lives in [AGENTS.md](AGENTS.md).
-Change only approved document classes.
-Keep scripts, Rust files, baseline files, and test fixtures read-only.
-Do not change verifier commands, workflow YAML, manifests, locks, or settings.
+Authorized write scope:
+- Rust source (`crates/**/src/**`, `Cargo.toml`, `Cargo.lock`)
+- Integration, characterization, and conformance tests (`crates/**/tests/**`)
+- Repository tools and xtasks (`crates/termrock-xtask/**`, `.velnor/**`)
+- Generated CI configurations and workflows (`.github/**`)
+- Documentation, specifications, recipes, and checklists (`docs/**`, `SPECIFICATION.md`, `CRATES.md`, `CHECKLIST.md`, `checklist.json`, `component-ownership.json`, `crate-map.json`, `GOAL.md`, `AGENTS.md`)
+- Review receipts (`docs/implementation/review-receipts/**`)
+
+Do not modify frozen baseline artifacts (`baselines/**`) or retarget the `visual-baseline` tag.
 Do not stage or commit the `termrock-doc-guardrails/` input pack.
-Preserve unrelated dirty files.
 
 ## 4. Canonical owners
 
@@ -51,49 +61,39 @@ Preserve unrelated dirty files.
 | Agent entry rules | Root `AGENTS.md`. |
 | Component-only composition | [docs/architecture/component-composition.md](docs/architecture/component-composition.md). |
 | Public signatures and ownership | [docs/api/public-api.md](docs/api/public-api.md) and [types.md](docs/api/types.md). |
-| Consumer examples | [docs/api/consumer-recipes.md](docs/api/consumer-recipes.md) and its example catalog. |
+| Consumer examples | [docs/api/consumer-recipes.md](docs/api/consumer-recipes.md) and [example-catalog.json](docs/api/example-catalog.json). |
 | Per-work and per-commit review | [docs/process/per-commit-review.md](docs/process/per-commit-review.md). |
 | Visual and ownership verification | [docs/verification/ownership-and-parity.md](docs/verification/ownership-and-parity.md). |
 | Individual component contracts | [docs/components/](docs/components/README.md) files. |
 | Research record and findings | [docs/implementation/findings-record.md](docs/implementation/findings-record.md). |
-| Current implementation status | `checklist.json`. |
+| Remediation backlog | [docs/implementation/code-remediation-backlog.md](docs/implementation/code-remediation-backlog.md). |
+| Current implementation status | `checklist.json` and derived `CHECKLIST.md`. |
 
-Merge guardrail requirements into these owners.
-Do not install a second competing documentation system.
+## 5. Central rule: Component ownership
 
-## 5. Central rule
+A preview screen is a composition of reusable Termrock components.
+The component owns its pixels, geometry, interaction, measurement, and state rules.
+The preview supplies domain data, layout choices, durable component state, and typed application actions.
 
-> A preview screen is a composition of reusable Termrock components.
-> The component owns its pixels, geometry, interaction, and state rules.
-> The preview supplies data, layout choices, component state, and typed application actions.
+Low-level painting belongs strictly inside reusable library components.
+Preview code must not use raw cell writes, full-screen historical painters, scenario/size bypasses,
+or painted-over components.
 
-This rule applies to Showcase, Jackin Preview, Holla, and TablePro.
-These previews show how a real interface uses the library.
-They are not separate product redevelopment projects.
+## 6. Execution discipline and per-commit review
 
-Acceptance requires all of these outcomes together:
+Follow [docs/process/per-commit-review.md](docs/process/per-commit-review.md) for every work item and every proposed commit:
 
 ```text
-visual parity
-AND observable interaction parity
-AND reusable component ownership
-AND usable public APIs
-AND customization through supported contracts
-AND valid review evidence
+approved small work plan
+→ implement one coherent change
+→ verify the exact candidate
+→ independent review
+→ commit immediately
+→ push promptly
+→ continue
 ```
 
-## 6. Review and stop line
-
-Apply the [per-commit review procedure](docs/process/per-commit-review.md) to this task.
-Assign a reviewer who did not author each change.
-Freeze each staged change, record its exact subject, and review every line.
-Bind each review receipt to its commit SHA outside that commit.
-Review the complete work item again after integration.
-
-Accept this task only when all documentation checklist rows have current evidence.
-Verify the task diff against the allowlist.
-Verify that source, tests, build inputs, workflows, and baseline bytes are unchanged.
-Commit and push the reviewed document changes on `termrock-implementation`.
-Do not merge the pull request.
-Do not begin code repairs after the documentation gate passes.
-Do not call the Termrock implementation complete.
+Freeze the parent SHA, proposed Git tree, and SHA-256 of the full staged binary diff before review.
+The reviewer must not author the submitted change.
+Commits must strictly use sign-off: `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>`.
+All Rust test runs must use `cargo nextest`, never `cargo test`.
