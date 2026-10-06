@@ -3670,18 +3670,19 @@ impl Grid<'_> {
                 cflags,
             );
             let mut cell_delta = StylePatch::new();
-            if let Some(role) = cdecor.tone.or(cell.tone) {
-                cell_delta = cell_delta.set_fg(role);
-            } else if self
-                .columns
-                .get(i)
-                .is_some_and(|c| c.prefix_glyph == Some(GlyphRole::PrimaryKey))
-                && !(is_cursor && i == cursor.1 && live.contains(StateFlags::FOCUSED))
-            {
-                cell_delta = cell_delta.set_fg(Role::Fg(FgStep::Secondary));
-            }
-            if cdecor.italic {
-                cell_delta = cell_delta.add(Modifier::ITALIC);
+            if !(is_cursor && i == cursor.1 && live.contains(StateFlags::FOCUSED)) {
+                if let Some(role) = cdecor.tone.or(cell.tone) {
+                    cell_delta = cell_delta.set_fg(role);
+                } else if self
+                    .columns
+                    .get(i)
+                    .is_some_and(|c| c.prefix_glyph == Some(GlyphRole::PrimaryKey))
+                {
+                    cell_delta = cell_delta.set_fg(Role::Fg(FgStep::Secondary));
+                }
+                if cdecor.italic {
+                    cell_delta = cell_delta.add(Modifier::ITALIC);
+                }
             }
             let style = apply_style_delta(ui, row_style.patch(cs.style), cell_delta);
             let mut text_rect = rect;
