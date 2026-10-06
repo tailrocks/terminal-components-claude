@@ -21,6 +21,10 @@
 //! re-add `NO_COLOR=1` instead of a `--color` flag (backend rule, not app
 //! rule).
 
+pub mod scoped_targets;
+pub mod state_waits;
+pub mod typed_input;
+
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
