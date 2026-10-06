@@ -496,7 +496,6 @@ fn viewport(m: &mut PartMap<PartRecipe>) {
         StateFlags::SELECTED,
         p().set_bg(Role::SelectionBg).set_fg(Role::SelectionFg),
     );
-    part(m, Part::GUTTER, p().set_fg(Role::Fg(FgStep::Faint)));
     part(
         m,
         Part::TRACK,
@@ -1351,6 +1350,92 @@ mod tests {
                     assert_eq!(idle, Some(Color::Gray));
                     assert_eq!(hovered, Some(Color::Gray));
                     assert_eq!(focused, Some(Color::White));
+                }
+            }
+        }
+    }
+
+    /// `VIEWPORT`/`DIFF` declare no `GUTTER` part: no component resolves
+    /// that address (`TextViewport::PARTS` is
+    /// `CONTAINER/TEXT/TRACK/THUMB`, `DiffView` forwards to it, and the
+    /// grid row numbers resolve `(GRID, OVERFLOW)`), so the faint rule is
+    /// gone rather than shadowed.
+    ///
+    /// The fall-through is the documented undeclared-part default, not the
+    /// neutral recipe: the families *are* declared, so `get_or_neutral`
+    /// returns the family recipe, `apply_recipe` skips the missing part,
+    /// and the query accumulates `StylePatch::new()` — every slot
+    /// `Inherit`, no modifiers — which binds to `Style::new()` (`fg`/`bg`
+    /// `None`, no modifiers; `glyph`/`size`/`align` `Inherit`/`None`).
+    /// Empty flags fire no generic mono rule either (`FOCUSED`/`DISABLED`
+    /// are not live), so the default holds at all four color levels.
+    #[test]
+    fn viewport_and_diff_gutter_is_undeclared_and_resolves_to_the_empty_patch() {
+        use crate::ColorLevel;
+
+        let recipes = default_recipes();
+        for family in [Family::VIEWPORT, Family::DIFF] {
+            let recipe = recipes
+                .get(family)
+                .expect("VIEWPORT/DIFF must keep a dedicated built-in recipe");
+            assert!(
+                recipe.parts.get(Part::GUTTER).is_none(),
+                "{family:?} declares a GUTTER part no component owns"
+            );
+        }
+
+        let levels = [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ];
+        for base in [Theme::junie(), Theme::paper()] {
+            for level in levels {
+                let theme = base.clone().downgrade(level);
+                for family in [Family::VIEWPORT, Family::DIFF] {
+                    for surface in [Surface::Canvas, Surface::Surface] {
+                        let resolved = theme.resolve(
+                            family,
+                            Variant::DEFAULT,
+                            Part::GUTTER,
+                            StateFlags::empty(),
+                            surface,
+                        );
+                        assert_eq!(
+                            resolved.style.fg, None,
+                            "{family:?} GUTTER fg at {level:?}/{surface:?}"
+                        );
+                        assert_eq!(
+                            resolved.style.bg, None,
+                            "{family:?} GUTTER bg at {level:?}/{surface:?}"
+                        );
+                        assert_eq!(
+                            resolved.style.underline_color, None,
+                            "{family:?} GUTTER underline at {level:?}/{surface:?}"
+                        );
+                        assert!(
+                            resolved.style.add_modifier.is_empty(),
+                            "{family:?} GUTTER adds modifiers at {level:?}/{surface:?}"
+                        );
+                        assert!(
+                            resolved.style.sub_modifier.is_empty(),
+                            "{family:?} GUTTER removes modifiers at {level:?}/{surface:?}"
+                        );
+                        assert_eq!(
+                            resolved.glyph,
+                            Slot::Inherit,
+                            "{family:?} GUTTER glyph at {level:?}/{surface:?}"
+                        );
+                        assert_eq!(
+                            resolved.size, None,
+                            "{family:?} GUTTER size at {level:?}/{surface:?}"
+                        );
+                        assert_eq!(
+                            resolved.align, None,
+                            "{family:?} GUTTER align at {level:?}/{surface:?}"
+                        );
+                    }
                 }
             }
         }
