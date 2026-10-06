@@ -24,6 +24,7 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap};
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -37,11 +38,11 @@ use tuiscotti::formats::{
 };
 use tuiscotti::grouped::{GroupedOutcome, GroupedStore};
 use tuiscotti::render::frame_from_screen;
-use tuiscotti::snapshot::Status;
+use tuiscotti::snapshot::{CellDiff, MAX_CELL_DIFFS, Status};
 pub use tuiscotti::tui::MouseButton;
 use tuiscotti::tui::Tui;
 use tuiscotti::tui::{CancelToken, MouseMods, Wheel};
-pub use tuiscotti::{Frame, Profile, Renderer, VENDORED_FACES};
+pub use tuiscotti::{Cell, Frame, Mods, Profile, Renderer, Rgb, UnderlineStyle, VENDORED_FACES};
 
 pub const SHOWCASE: &str = "showcase";
 pub const TABLEPRO: &str = "tablepro";
@@ -745,7 +746,10 @@ fn normalize_chord(step: &str) -> String {
     step.to_string()
 }
 
-fn press_chord(inner: &tuiscotti::tui::Session, chord_str: &str) -> Result<(), tuiscotti::tui::TuiError> {
+fn press_chord(
+    inner: &tuiscotti::tui::Session,
+    chord_str: &str,
+) -> Result<(), tuiscotti::tui::TuiError> {
     let chord = normalize_chord(chord_str);
     let mut parts: Vec<&str> = chord.split('+').collect();
     let key_name = parts.pop().unwrap_or_default();
@@ -1149,18 +1153,279 @@ pub fn write_10_artifact_bundle(
     Ok(())
 }
 
-pub fn check_baseline_bundle(
+/// Every manifest-pinned artifact the actual-vs-approved gate compares, as
+/// `(manifest key, file extension)`.
+///
+/// Six primary formats (implementation-goal §7: "ANSI, HTML, PNG, ASCII, TXT
+/// and canonical frame JSON from the same observation") plus three companions
+/// ("loss/fidelity/semantic metadata"). The tenth bundle member — the
+/// manifest itself — is the pin source: it authenticates both sides and is
+/// never compared across sides (`timestamp_utc` legitimately differs per
+/// write, and artifact hashes are comparison inputs, not outputs).
+///
+/// `.ascii` is both a §7 format and a lossy diagnostic. Here it is gated
+/// byte-exact as an exporter-determinism check (same frame + same exporter
+/// must emit the same bytes); it is never the Unicode/style oracle — that
+/// role belongs to `.frame.json` (decoded cell structure) and `.ansi`
+/// (normalized SGR), per §7 "ASCII is lossy diagnostic output, never a
+/// Unicode/style equality oracle".
+const COMPARED_ARTIFACTS: [(&str, &str); 9] = [
+    ("frame_json", "frame.json"),
+    ("ansi", "ansi"),
+    ("txt", "txt"),
+    ("png", "png"),
+    ("html", "html"),
+    ("ascii", "ascii"),
+    ("ascii_loss_json", "ascii.loss.json"),
+    ("png_fidelity_json", "png.fidelity.json"),
+    ("observations_json", "observations.json"),
+];
+
+/// Maximum JSON field-difference lines folded into one failure note.
+const MAX_JSON_DIFF_LINES: usize = 10;
+
+/// Human summary of one cell for failure diagnostics: glyph plus resolved
+/// colors, modifiers, underline color, and continuation state.
+///
+/// Mirrors the native tuiscotti gate's cell summary (same fields, same
+/// tokens) so harness diagnostics read exactly like native ones; the native
+/// helper is private, hence this local mirror.
+fn summarize_cell(cell: &Cell) -> String {
+    if cell.continuation {
+        return "…".to_string();
+    }
+    let (fg, bg) = Frame::resolve_cell(cell, Rgb::new(0xd0, 0xd0, 0xd0), Rgb::new(0, 0, 0));
+    let mut mods = String::new();
+    if cell.mods.hidden {
+        mods.push_str("+hidden");
+    }
+    if cell.mods.blink {
+        mods.push_str("+blink");
+    }
+    if cell.mods.bold {
+        mods.push_str("+bold");
+    }
+    if cell.mods.dim {
+        mods.push_str("+dim");
+    }
+    if cell.mods.italic {
+        mods.push_str("+italic");
+    }
+    match cell.mods.effective_underline_style() {
+        UnderlineStyle::None => {}
+        UnderlineStyle::Single => mods.push_str("+ul"),
+        UnderlineStyle::Double => mods.push_str("+ul2"),
+        UnderlineStyle::Curly => mods.push_str("+ulcurl"),
+        UnderlineStyle::Dotted => mods.push_str("+uldot"),
+        UnderlineStyle::Dashed => mods.push_str("+uldash"),
+    }
+    if cell.mods.strikethrough {
+        mods.push_str("+strike");
+    }
+    if cell.mods.reverse {
+        mods.push_str("+rev");
+    }
+    if !cell.underline_color.is_default() {
+        let uc = match cell.underline_color {
+            tuiscotti::Color::Default => fg,
+            tuiscotti::Color::Indexed(i) => Rgb::from_indexed(i),
+            tuiscotti::Color::Rgb(r) => r,
+        };
+        write!(mods, "+ulc={}", uc.to_hex()).ok();
+    }
+    let symbol = &cell.symbol;
+    let fg_hex = fg.to_hex();
+    let bg_hex = bg.to_hex();
+    format!("{symbol:?} fg={fg_hex} bg={bg_hex}{mods}")
+}
+
+/// Decoded cell-structure comparison between the live actual frame and the
+/// approved frame: the full differing-cell count plus the FIRST N [`CellDiff`]s
+/// in row-major order (N = [`MAX_CELL_DIFFS`], the native cap).
+///
+/// Cursor-only drift reports cursor state instead of cell text: every
+/// reported position holds equal cells, so cell summaries would print the
+/// same string twice — the diagnostic must say what actually changed
+/// (mirrors the native gate). Returns `None` on dimension mismatch (a
+/// status, not a diff); the caller reports dimensions + digests instead.
+fn first_cell_diffs(actual: &Frame, approved: &Frame) -> Option<(Vec<CellDiff>, usize)> {
+    let positions = actual.diff_cells(approved).ok()?;
+    let total = positions.len();
+    let mut diffs = Vec::new();
+    let cells_equal = positions.iter().all(|(x, y)| {
+        approved.get(*x, *y).map(summarize_cell) == actual.get(*x, *y).map(summarize_cell)
+    });
+    if cells_equal && total > 0 {
+        diffs.push(CellDiff {
+            x: actual.cursor.x,
+            y: actual.cursor.y,
+            expected: Frame::summarize_cursor(&approved.cursor),
+            actual: Frame::summarize_cursor(&actual.cursor),
+        });
+    } else {
+        for (x, y) in positions.into_iter().take(MAX_CELL_DIFFS) {
+            let expected = approved
+                .get(x, y)
+                .map_or_else(|| "∅".to_string(), summarize_cell);
+            let actual_text = actual
+                .get(x, y)
+                .map_or_else(|| "∅".to_string(), summarize_cell);
+            diffs.push(CellDiff {
+                x,
+                y,
+                expected,
+                actual: actual_text,
+            });
+        }
+    }
+    Some((diffs, total))
+}
+
+/// Render a JSON value compactly for diagnostics, truncated to stay readable.
+fn json_snippet(value: &serde_json::Value) -> String {
+    const LIMIT: usize = 160;
+    let text = serde_json::to_string(value).unwrap_or_else(|_| "?".to_string());
+    if text.chars().count() > LIMIT {
+        let head: String = text.chars().take(LIMIT).collect();
+        format!("{head}…")
+    } else {
+        text
+    }
+}
+
+/// Collect `path: expected <e> | actual <a>` lines for values that differ,
+/// recursing through objects (union of keys; absent reads as `∅`) and arrays
+/// (by index; length mismatch noted). Stops after [`MAX_JSON_DIFF_LINES`].
+fn json_diffs(
+    expected: &serde_json::Value,
+    actual: &serde_json::Value,
+    path: &str,
+    out: &mut Vec<String>,
+) {
+    if out.len() >= MAX_JSON_DIFF_LINES || expected == actual {
+        return;
+    }
+    match (expected, actual) {
+        (serde_json::Value::Object(expected_map), serde_json::Value::Object(actual_map)) => {
+            let keys: BTreeSet<&String> = expected_map.keys().chain(actual_map.keys()).collect();
+            for key in keys {
+                let child = if path.is_empty() {
+                    key.clone()
+                } else {
+                    format!("{path}.{key}")
+                };
+                match (expected_map.get(key), actual_map.get(key)) {
+                    (Some(expected_value), Some(actual_value)) => {
+                        json_diffs(expected_value, actual_value, &child, out);
+                    }
+                    (Some(expected_value), None) => out.push(format!(
+                        "{child}: expected {} | actual ∅",
+                        json_snippet(expected_value)
+                    )),
+                    (None, Some(actual_value)) => out.push(format!(
+                        "{child}: expected ∅ | actual {}",
+                        json_snippet(actual_value)
+                    )),
+                    (None, None) => {}
+                }
+                if out.len() >= MAX_JSON_DIFF_LINES {
+                    return;
+                }
+            }
+        }
+        (serde_json::Value::Array(expected_items), serde_json::Value::Array(actual_items)) => {
+            if expected_items.len() != actual_items.len() {
+                out.push(format!(
+                    "{path}: array length differs: expected {} | actual {}",
+                    expected_items.len(),
+                    actual_items.len()
+                ));
+            }
+            for (index, (expected_value, actual_value)) in
+                expected_items.iter().zip(actual_items.iter()).enumerate()
+            {
+                json_diffs(
+                    expected_value,
+                    actual_value,
+                    &format!("{path}[{index}]"),
+                    out,
+                );
+                if out.len() >= MAX_JSON_DIFF_LINES {
+                    return;
+                }
+            }
+        }
+        _ => out.push(format!(
+            "{path}: expected {} | actual {}",
+            json_snippet(expected),
+            json_snippet(actual)
+        )),
+    }
+}
+
+/// Project `.observations.json` onto the stable semantic subset compared
+/// actual-vs-approved: dimensions, cursor, cell counts, frame digest, and
+/// renderer/tool identity. Deliberately excluded:
+/// - `name` / `legacy_name`: bundle identity (fixed by path), not state;
+/// - `provenance.argv` / `provenance.created_unix`: volatile per-run metadata
+///   (`Provenance` documents `created_unix` as informational only; argv carries
+///   machine-specific binary paths in general).
+fn stable_observations(value: &serde_json::Value) -> serde_json::Value {
+    let provenance = value.get("provenance");
+    let provenance_field = |field: &str| {
+        provenance
+            .and_then(|provenance| provenance.get(field))
+            .cloned()
+            .unwrap_or(serde_json::Value::Null)
+    };
+    serde_json::json!({
+        "cols": value.get("cols"),
+        "rows": value.get("rows"),
+        "cursor": value.get("cursor"),
+        "cell_count": value.get("cell_count"),
+        "non_empty_cells": value.get("non_empty_cells"),
+        "frame_digest": value.get("frame_digest"),
+        "provenance": {
+            "tool": provenance_field("tool"),
+            "tool_version": provenance_field("tool_version"),
+            "profile": provenance_field("profile"),
+            "source": provenance_field("source"),
+        },
+    })
+}
+
+/// Gate one actual bundle against its approved bundle: all six formats plus
+/// all three companions, after manifest-pin authentication of both sides.
+///
+/// Comparison semantics per artifact (see [`COMPARED_ARTIFACTS`]):
+/// - `.ansi` / `.txt` / `.ascii` / `.html`: exact byte equality;
+/// - `.png`: exact decoded-pixel identity via native `compare_png`
+///   (dimensions plus `pixels_equal`; the score is diagnostic only, never a
+///   threshold);
+/// - `.frame.json`: decoded cell-structure comparison (`diff_cells`) of the
+///   approved bytes against the LIVE actual frame — the in-memory execution
+///   subject, not its serialization — yielding real first-N diagnostics; the
+///   actual file must also describe the live frame (skew is
+///   `CaptureIncomplete`, never a pass);
+/// - `.ascii.loss.json` / `.png.fidelity.json`: exact recorded-value equality
+///   (parsed JSON; no tolerance invented);
+/// - `.observations.json`: exact equality over the stable semantic subset
+///   ([`stable_observations`]; volatile provenance excluded).
+///
+/// Fail-closed hierarchy: missing approved artifacts → `MissingApproval`;
+/// approved bytes failing their manifest pin, or unparseable approved JSON →
+/// `CorruptApproval` (never compare against unauthenticated bytes); actual
+/// bundle inconsistent with its own manifest or frame → `CaptureIncomplete`
+/// (our write skewed, never a pass). Content drift → `CellsDiffer`
+/// (cell/semantic level) or `PixelsDiffer` (render level), with first-N cell
+/// diagnostics plus a state summary in the note.
+pub fn compare_bundle_dirs(
     name: &str,
-    frame: &Frame,
-    renderer: &mut Renderer,
+    actual_frame: &Frame,
+    actual_root: &Path,
+    approved_root: &Path,
+    diff_root: &Path,
 ) -> Result<GroupedOutcome, String> {
-    let ws_root = workspace_root();
-    let actual_root = ws_root.join("target/tuiscotti/actual");
-    let diff_root = ws_root.join("target/tuiscotti/diff");
-    let approved_root = baseline_store_root();
-
-    write_10_artifact_bundle(&actual_root, name, frame, renderer)?;
-
     let actual_paths = tuiscotti::grouped::ArtifactPaths {
         ansi: actual_root.join(format!("{name}.ansi")),
         txt: actual_root.join(format!("{name}.txt")),
@@ -1177,63 +1442,294 @@ pub fn check_baseline_bundle(
         frame_json: approved_root.join(format!("{name}.frame.json")),
     };
 
-    let approved_ansi_bytes = match std::fs::read(&approved_paths.ansi) {
-        Ok(b) => b,
+    let shell = |status: Status, note: String| GroupedOutcome {
+        outcome: tuiscotti::snapshot::CompareOutcome {
+            name: name.to_string(),
+            status,
+            cell_diffs: Vec::new(),
+            cell_diff_total: 0,
+            pixel_score: None,
+            approved_png_regenerated: false,
+            digest_expected: None,
+            digest_actual: actual_frame.digest().to_string(),
+            actual_frame: actual_paths.frame_json.clone(),
+            actual_png: actual_paths.png.clone(),
+            expected_frame: approved_paths.frame_json.clone(),
+            expected_png: None,
+            expected_png_bytes: None,
+            diff_png: None,
+            note,
+        },
+        ansi_match: None,
+        txt_match: None,
+        html_match: None,
+        actual: actual_paths.clone(),
+        approved: approved_paths.clone(),
+    };
+
+    // Authenticate both sides against their manifest pins BEFORE comparing.
+    let approved_manifest_path = approved_root.join(format!("{name}.manifest.json"));
+    let approved_manifest_bytes = match std::fs::read(&approved_manifest_path) {
+        Ok(bytes) => bytes,
         Err(_) => {
-            return Ok(GroupedOutcome {
-                outcome: tuiscotti::snapshot::CompareOutcome {
-                    name: name.to_string(),
-                    status: Status::MissingApproval,
-                    cell_diffs: Vec::new(),
-                    cell_diff_total: 0,
-                    pixel_score: None,
-                    approved_png_regenerated: false,
-                    digest_expected: None,
-                    digest_actual: frame.digest().to_string(),
-                    actual_frame: actual_paths.frame_json.clone(),
-                    actual_png: actual_paths.png.clone(),
-                    expected_frame: approved_paths.frame_json.clone(),
-                    expected_png: None,
-                    expected_png_bytes: None,
-                    diff_png: None,
-                    note: "missing approved ansi".to_string(),
-                },
-                ansi_match: None,
-                txt_match: None,
-                html_match: None,
-                actual: actual_paths,
-                approved: approved_paths,
-            });
+            return Ok(shell(
+                Status::MissingApproval,
+                format!("missing approved {name}.manifest.json"),
+            ));
+        }
+    };
+    let approved_manifest: serde_json::Value =
+        match serde_json::from_slice(&approved_manifest_bytes) {
+            Ok(manifest) => manifest,
+            Err(e) => {
+                return Ok(shell(
+                    Status::CorruptApproval,
+                    format!("approved {name}.manifest.json unparseable: {e}"),
+                ));
+            }
+        };
+    let actual_manifest_path = actual_root.join(format!("{name}.manifest.json"));
+    let actual_manifest_bytes = match std::fs::read(&actual_manifest_path) {
+        Ok(bytes) => bytes,
+        Err(_) => {
+            return Ok(shell(
+                Status::CaptureIncomplete,
+                format!("missing actual {name}.manifest.json"),
+            ));
+        }
+    };
+    let actual_manifest: serde_json::Value = match serde_json::from_slice(&actual_manifest_bytes) {
+        Ok(manifest) => manifest,
+        Err(e) => {
+            return Ok(shell(
+                Status::CaptureIncomplete,
+                format!("actual {name}.manifest.json unparseable: {e}"),
+            ));
         }
     };
 
-    let approved_txt_bytes =
-        std::fs::read(&approved_paths.txt).map_err(|e| format!("read approved txt: {e}"))?;
-    let approved_png_bytes =
-        std::fs::read(&approved_paths.png).map_err(|e| format!("read approved png: {e}"))?;
-    let approved_html_bytes =
-        std::fs::read(&approved_paths.html).map_err(|e| format!("read approved html: {e}"))?;
-    let approved_frame_bytes = std::fs::read(&approved_paths.frame_json)
-        .map_err(|e| format!("read approved frame.json: {e}"))?;
+    let pin_for = |manifest: &serde_json::Value, key: &str| -> Option<String> {
+        manifest
+            .get("artifacts")?
+            .get(key)?
+            .get("sha256")?
+            .as_str()
+            .map(str::to_string)
+    };
 
-    let actual_ansi_bytes =
-        std::fs::read(&actual_paths.ansi).map_err(|e| format!("read actual ansi: {e}"))?;
-    let actual_txt_bytes =
-        std::fs::read(&actual_paths.txt).map_err(|e| format!("read actual txt: {e}"))?;
-    let actual_png_bytes =
-        std::fs::read(&actual_paths.png).map_err(|e| format!("read actual png: {e}"))?;
-    let actual_html_bytes =
-        std::fs::read(&actual_paths.html).map_err(|e| format!("read actual html: {e}"))?;
+    // Read + pin-authenticate all nine artifacts on both sides.
+    let mut approved_bytes: HashMap<&str, Vec<u8>> = HashMap::new();
+    let mut actual_bytes_map: HashMap<&str, Vec<u8>> = HashMap::new();
+    for (key, ext) in COMPARED_ARTIFACTS {
+        let file = format!("{name}.{ext}");
+        let approved = match std::fs::read(approved_root.join(&file)) {
+            Ok(bytes) => bytes,
+            Err(_) => {
+                return Ok(shell(
+                    Status::MissingApproval,
+                    format!("missing approved {file}"),
+                ));
+            }
+        };
+        match pin_for(&approved_manifest, key) {
+            Some(pin) if sha256_hex(&approved) == pin => {}
+            Some(pin) => {
+                return Ok(shell(
+                    Status::CorruptApproval,
+                    format!(
+                        "approved {file} fails manifest pin: pinned {pin}, got {}",
+                        sha256_hex(&approved)
+                    ),
+                ));
+            }
+            None => {
+                return Ok(shell(
+                    Status::CorruptApproval,
+                    format!("approved manifest missing pin for '{key}' ({file})"),
+                ));
+            }
+        }
+        let actual = match std::fs::read(actual_root.join(&file)) {
+            Ok(bytes) => bytes,
+            Err(_) => {
+                return Ok(shell(
+                    Status::CaptureIncomplete,
+                    format!("missing actual {file}"),
+                ));
+            }
+        };
+        match pin_for(&actual_manifest, key) {
+            Some(pin) if sha256_hex(&actual) == pin => {}
+            Some(pin) => {
+                return Ok(shell(
+                    Status::CaptureIncomplete,
+                    format!(
+                        "actual {file} fails manifest pin: pinned {pin}, got {}",
+                        sha256_hex(&actual)
+                    ),
+                ));
+            }
+            None => {
+                return Ok(shell(
+                    Status::CaptureIncomplete,
+                    format!("actual manifest missing pin for '{key}' ({file})"),
+                ));
+            }
+        }
+        approved_bytes.insert(key, approved);
+        actual_bytes_map.insert(key, actual);
+    }
 
-    let ansi_matched = approved_ansi_bytes == actual_ansi_bytes;
-    let txt_matched = approved_txt_bytes == actual_txt_bytes;
-    let html_matched = approved_html_bytes == actual_html_bytes;
+    let byte_match = |key: &str| actual_bytes_map[key] == approved_bytes[key];
+    let ansi_matched = byte_match("ansi");
+    let txt_matched = byte_match("txt");
+    let ascii_matched = byte_match("ascii");
+    let html_matched = byte_match("html");
 
-    let verdict = tuiscotti::diff::compare_png(&approved_png_bytes, &actual_png_bytes)
+    let verdict = tuiscotti::diff::compare_png(&approved_bytes["png"], &actual_bytes_map["png"])
         .map_err(|e| format!("compare png: {e}"))?;
 
-    let approved_frame: Frame = serde_json::from_slice(&approved_frame_bytes)
-        .map_err(|e| format!("parse approved frame: {e}"))?;
+    let approved_frame: Frame = match std::str::from_utf8(&approved_bytes["frame_json"])
+        .ok()
+        .and_then(|text| serde_json::from_str::<Frame>(text).ok())
+    {
+        Some(frame) => frame,
+        None => {
+            return Ok(shell(
+                Status::CorruptApproval,
+                format!("approved {name}.frame.json is not valid frame JSON"),
+            ));
+        }
+    };
+    if let Err(e) = approved_frame.validate() {
+        return Ok(shell(
+            Status::CorruptApproval,
+            format!("approved {name}.frame.json failed validation: {e}"),
+        ));
+    }
+
+    // The actual frame file must describe the gated live frame; a skew is an
+    // interrupted write, never a pass. Parsed without normalization (same as
+    // the approved side) so raw modifiers compare symmetrically.
+    let actual_file_frame: Option<Frame> = std::str::from_utf8(&actual_bytes_map["frame_json"])
+        .ok()
+        .and_then(|text| serde_json::from_str::<Frame>(text).ok());
+    match actual_file_frame {
+        Some(file_frame) => match file_frame.diff_cells(actual_frame) {
+            Ok(positions) if positions.is_empty() => {}
+            Ok(positions) => {
+                return Ok(shell(
+                    Status::CaptureIncomplete,
+                    format!(
+                        "actual {name}.frame.json skews from the gated frame: {} cell(s) differ",
+                        positions.len()
+                    ),
+                ));
+            }
+            Err(e) => {
+                return Ok(shell(
+                    Status::CaptureIncomplete,
+                    format!("actual {name}.frame.json skews from the gated frame: {e}"),
+                ));
+            }
+        },
+        None => {
+            return Ok(shell(
+                Status::CaptureIncomplete,
+                format!("actual {name}.frame.json is not valid frame JSON"),
+            ));
+        }
+    }
+
+    let (cell_diffs, cell_diff_total, frame_dims_match) =
+        match first_cell_diffs(actual_frame, &approved_frame) {
+            Some((diffs, total)) => (diffs, total, true),
+            None => (Vec::new(), 0, false),
+        };
+
+    let loss_approved: serde_json::Value =
+        match serde_json::from_slice(&approved_bytes["ascii_loss_json"]) {
+            Ok(value) => value,
+            Err(e) => {
+                return Ok(shell(
+                    Status::CorruptApproval,
+                    format!("approved {name}.ascii.loss.json unparseable: {e}"),
+                ));
+            }
+        };
+    let loss_actual: serde_json::Value =
+        match serde_json::from_slice(&actual_bytes_map["ascii_loss_json"]) {
+            Ok(value) => value,
+            Err(e) => {
+                return Ok(shell(
+                    Status::CaptureIncomplete,
+                    format!("actual {name}.ascii.loss.json unparseable: {e}"),
+                ));
+            }
+        };
+    let mut loss_diffs = Vec::new();
+    json_diffs(
+        &loss_approved,
+        &loss_actual,
+        "ascii.loss.json",
+        &mut loss_diffs,
+    );
+
+    let fidelity_approved: serde_json::Value =
+        match serde_json::from_slice(&approved_bytes["png_fidelity_json"]) {
+            Ok(value) => value,
+            Err(e) => {
+                return Ok(shell(
+                    Status::CorruptApproval,
+                    format!("approved {name}.png.fidelity.json unparseable: {e}"),
+                ));
+            }
+        };
+    let fidelity_actual: serde_json::Value =
+        match serde_json::from_slice(&actual_bytes_map["png_fidelity_json"]) {
+            Ok(value) => value,
+            Err(e) => {
+                return Ok(shell(
+                    Status::CaptureIncomplete,
+                    format!("actual {name}.png.fidelity.json unparseable: {e}"),
+                ));
+            }
+        };
+    let mut fidelity_diffs = Vec::new();
+    json_diffs(
+        &fidelity_approved,
+        &fidelity_actual,
+        "png.fidelity.json",
+        &mut fidelity_diffs,
+    );
+
+    let observations_approved: serde_json::Value =
+        match serde_json::from_slice(&approved_bytes["observations_json"]) {
+            Ok(value) => value,
+            Err(e) => {
+                return Ok(shell(
+                    Status::CorruptApproval,
+                    format!("approved {name}.observations.json unparseable: {e}"),
+                ));
+            }
+        };
+    let observations_actual: serde_json::Value =
+        match serde_json::from_slice(&actual_bytes_map["observations_json"]) {
+            Ok(value) => value,
+            Err(e) => {
+                return Ok(shell(
+                    Status::CaptureIncomplete,
+                    format!("actual {name}.observations.json unparseable: {e}"),
+                ));
+            }
+        };
+    let mut observations_diffs = Vec::new();
+    json_diffs(
+        &stable_observations(&observations_approved),
+        &stable_observations(&observations_actual),
+        "observations",
+        &mut observations_diffs,
+    );
 
     let mut status = Status::Matched;
     let mut notes = Vec::new();
@@ -1242,21 +1738,47 @@ pub fn check_baseline_bundle(
     if !txt_matched {
         status = Status::CellsDiffer;
         notes.push("txt differs".to_string());
-    } else if !ansi_matched {
+    }
+    if !ansi_matched {
         status = Status::CellsDiffer;
         notes.push("ansi differs".to_string());
-    } else if approved_frame.digest() != frame.digest() {
+    }
+    if !ascii_matched {
         status = Status::CellsDiffer;
-        notes.push("frame digest differs".to_string());
+        notes.push("ascii differs".to_string());
+    }
+    if !frame_dims_match {
+        status = Status::DimensionMismatch;
+        notes.push(format!(
+            "frame dimensions differ: {}x{} vs {}x{}",
+            approved_frame.cols, approved_frame.rows, actual_frame.cols, actual_frame.rows
+        ));
+    } else if cell_diff_total > 0 {
+        status = Status::CellsDiffer;
+        notes.push(format!("frame cells differ: {cell_diff_total} cell(s)"));
+    }
+    if !loss_diffs.is_empty() {
+        status = Status::CellsDiffer;
+        notes.push(format!(
+            "ascii.loss.json differs: {}",
+            loss_diffs.join("; ")
+        ));
+    }
+    if !observations_diffs.is_empty() {
+        status = Status::CellsDiffer;
+        notes.push(format!(
+            "observations.json differs: {}",
+            observations_diffs.join("; ")
+        ));
     }
 
     if !verdict.dims_equal {
         status = Status::DimensionMismatch;
         notes.push(format!(
-            "dimensions differ: {:?} vs {:?}",
+            "png dimensions differ: {:?} vs {:?}",
             verdict.expected_dims, verdict.actual_dims
         ));
-    } else if verdict.score < 1.0 {
+    } else if !verdict.pixels_equal {
         if status.matched() {
             status = Status::PixelsDiffer;
         }
@@ -1275,22 +1797,45 @@ pub fn check_baseline_bundle(
         }
         notes.push("html differs".to_string());
     }
+    if !fidelity_diffs.is_empty() {
+        if status.matched() {
+            status = Status::PixelsDiffer;
+        }
+        notes.push(format!(
+            "png.fidelity.json differs: {}",
+            fidelity_diffs.join("; ")
+        ));
+    }
+
+    if !status.matched() {
+        notes.push(format!(
+            "state: dims expected {}x{} vs actual {}x{}; digest expected {} vs actual {}; cursor expected {} vs actual {}; {cell_diff_total} differing cell(s)",
+            approved_frame.cols,
+            approved_frame.rows,
+            actual_frame.cols,
+            actual_frame.rows,
+            approved_frame.digest(),
+            actual_frame.digest(),
+            Frame::summarize_cursor(&approved_frame.cursor),
+            Frame::summarize_cursor(&actual_frame.cursor),
+        ));
+    }
 
     Ok(GroupedOutcome {
         outcome: tuiscotti::snapshot::CompareOutcome {
             name: name.to_string(),
             status,
-            cell_diffs: Vec::new(),
-            cell_diff_total: 0,
+            cell_diffs,
+            cell_diff_total,
             pixel_score: Some(verdict.score),
             approved_png_regenerated: false,
             digest_expected: Some(approved_frame.digest().to_string()),
-            digest_actual: frame.digest().to_string(),
+            digest_actual: actual_frame.digest().to_string(),
             actual_frame: actual_paths.frame_json.clone(),
             actual_png: actual_paths.png.clone(),
             expected_frame: approved_paths.frame_json.clone(),
             expected_png: Some(approved_paths.png.clone()),
-            expected_png_bytes: Some(approved_png_bytes),
+            expected_png_bytes: approved_bytes.remove("png"),
             diff_png,
             note: notes.join("; "),
         },
@@ -1300,6 +1845,21 @@ pub fn check_baseline_bundle(
         actual: actual_paths,
         approved: approved_paths,
     })
+}
+
+pub fn check_baseline_bundle(
+    name: &str,
+    frame: &Frame,
+    renderer: &mut Renderer,
+) -> Result<GroupedOutcome, String> {
+    let ws_root = workspace_root();
+    let actual_root = ws_root.join("target/tuiscotti/actual");
+    let diff_root = ws_root.join("target/tuiscotti/diff");
+    let approved_root = baseline_store_root();
+
+    write_10_artifact_bundle(&actual_root, name, frame, renderer)?;
+
+    compare_bundle_dirs(name, frame, &actual_root, &approved_root, &diff_root)
 }
 
 pub fn gate(name: &str, frame: &Frame) -> GroupedOutcome {
@@ -1736,5 +2296,587 @@ mod execution_subject_tests {
             .unwrap_or_default();
         assert!(msg.contains("termrockq05nosuchbinresolve"), "{msg}");
         assert!(msg.contains(MIDTEST_BUILD_ENV), "{msg}");
+    }
+}
+
+/// Q06 (FIX-012 A1/A5): full-bundle gate + first-N diagnostics.
+///
+/// All fixtures are synthetic tempdir bundles built with the real exporter
+/// (`write_10_artifact_bundle`); nothing here reads or writes `baselines/`
+/// or any real expected-output file.
+#[cfg(test)]
+mod bundle_gate_tests {
+    use super::*;
+    use tuiscotti::Provenance;
+
+    const PROBE_NAME: &str = "q06/probe/16x8/truecolor";
+
+    fn probe_provenance() -> Provenance {
+        Provenance {
+            tool: "tuiscotti".to_string(),
+            tool_version: "0.2.0".to_string(),
+            profile: "default".to_string(),
+            source: "screen".to_string(),
+            argv: Vec::new(),
+            created_unix: 0,
+        }
+    }
+
+    fn plain_cell(x: u16, y: u16, symbol: &str) -> Cell {
+        Cell {
+            x,
+            y,
+            symbol: symbol.to_string(),
+            width: 1,
+            continuation: false,
+            fg: tuiscotti::Color::Default,
+            bg: tuiscotti::Color::Default,
+            mods: Mods::default(),
+            underline_color: tuiscotti::Color::Default,
+        }
+    }
+
+    /// Small deterministic frame with styled + non-ASCII content (exercises
+    /// the glyph, color, modifier, and ascii-substitution paths).
+    fn probe_frame_a() -> Frame {
+        let mut frame = Frame::blank(16, 8, probe_provenance());
+        frame.set(Cell {
+            x: 2,
+            y: 1,
+            symbol: "A".to_string(),
+            width: 1,
+            continuation: false,
+            fg: tuiscotti::Color::Indexed(1),
+            bg: tuiscotti::Color::Default,
+            mods: Mods {
+                bold: true,
+                ..Mods::default()
+            },
+            underline_color: tuiscotti::Color::Default,
+        });
+        frame.set(plain_cell(5, 2, "─"));
+        frame.set(plain_cell(6, 2, "❯"));
+        frame
+    }
+
+    struct BundlePair {
+        _tmp: tempfile::TempDir,
+        actual_root: PathBuf,
+        approved_root: PathBuf,
+        diff_root: PathBuf,
+    }
+
+    fn write_pair(approved_frame: &Frame, actual_frame: &Frame) -> BundlePair {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let actual_root = tmp.path().join("actual");
+        let approved_root = tmp.path().join("approved");
+        let diff_root = tmp.path().join("diff");
+        let mut renderer = Profile::default_profile()
+            .renderer(&VENDORED_FACES)
+            .expect("vendored faces parse");
+        write_10_artifact_bundle(&approved_root, PROBE_NAME, approved_frame, &mut renderer)
+            .expect("write approved bundle");
+        write_10_artifact_bundle(&actual_root, PROBE_NAME, actual_frame, &mut renderer)
+            .expect("write actual bundle");
+        BundlePair {
+            _tmp: tmp,
+            actual_root,
+            approved_root,
+            diff_root,
+        }
+    }
+
+    fn compare(pair: &BundlePair, actual_frame: &Frame) -> GroupedOutcome {
+        compare_bundle_dirs(
+            PROBE_NAME,
+            actual_frame,
+            &pair.actual_root,
+            &pair.approved_root,
+            &pair.diff_root,
+        )
+        .expect("compare bundles")
+    }
+
+    fn artifact_bytes(root: &Path, ext: &str) -> Vec<u8> {
+        std::fs::read(root.join(format!("{PROBE_NAME}.{ext}"))).expect("read artifact")
+    }
+
+    /// Rewrite one artifact file, then re-pin its manifest entry (bytes +
+    /// sha256) so the bundle stays internally consistent: the gate must fail
+    /// on the cross-side difference, not on the pin.
+    fn rewrite_pinned(root: &Path, key: &str, ext: &str, bytes: &[u8]) {
+        let path = root.join(format!("{PROBE_NAME}.{ext}"));
+        std::fs::write(&path, bytes).expect("rewrite artifact");
+        let manifest_path = root.join(format!("{PROBE_NAME}.manifest.json"));
+        let manifest_bytes = std::fs::read(&manifest_path).expect("read manifest");
+        let mut manifest: serde_json::Value =
+            serde_json::from_slice(&manifest_bytes).expect("parse manifest");
+        let entry = manifest
+            .get_mut("artifacts")
+            .and_then(|artifacts| artifacts.get_mut(key))
+            .expect("manifest entry");
+        entry["sha256"] = serde_json::Value::String(sha256_hex(bytes));
+        entry["bytes"] = serde_json::Value::Number(serde_json::Number::from(bytes.len()));
+        std::fs::write(
+            &manifest_path,
+            serde_json::to_vec_pretty(&manifest).expect("encode manifest"),
+        )
+        .expect("write manifest");
+    }
+
+    fn rewrite_json_pinned(
+        root: &Path,
+        key: &str,
+        ext: &str,
+        patch: impl Fn(&mut serde_json::Value),
+    ) {
+        let mut value: serde_json::Value =
+            serde_json::from_slice(&artifact_bytes(root, ext)).expect("parse artifact json");
+        patch(&mut value);
+        let bytes = serde_json::to_vec_pretty(&value).expect("encode patched json");
+        rewrite_pinned(root, key, ext, &bytes);
+    }
+
+    fn flip_first_byte_and_repin(pair: &BundlePair, key: &str, ext: &str) {
+        let mut bytes = artifact_bytes(&pair.actual_root, ext);
+        assert!(
+            !bytes.is_empty(),
+            "fixture artifact {ext} must be non-empty"
+        );
+        bytes[0] ^= 0xff;
+        rewrite_pinned(&pair.actual_root, key, ext, &bytes);
+    }
+
+    #[test]
+    fn identical_bundles_match() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        let outcome = compare(&pair, &frame);
+        assert!(
+            outcome.matched(),
+            "identical bundles must match: {}",
+            outcome.outcome.note
+        );
+        assert_eq!(outcome.outcome.cell_diff_total, 0);
+        assert!(outcome.outcome.cell_diffs.is_empty());
+        assert_eq!(outcome.outcome.pixel_score, Some(1.0));
+        assert_eq!(outcome.ansi_match, Some(true));
+        assert_eq!(outcome.txt_match, Some(true));
+        assert_eq!(outcome.html_match, Some(true));
+    }
+
+    #[test]
+    fn observations_volatile_fields_ignored() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        rewrite_json_pinned(
+            &pair.actual_root,
+            "observations_json",
+            "observations.json",
+            |value| {
+                value["provenance"]["created_unix"] = serde_json::json!(1_700_000_000u64);
+                value["provenance"]["argv"] = serde_json::json!(["/machine/specific/bin"]);
+                value["legacy_name"] = serde_json::json!("ignored-alias");
+            },
+        );
+        let outcome = compare(&pair, &frame);
+        assert!(
+            outcome.matched(),
+            "volatile observations fields must not fail the gate: {}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn txt_mismatch_detected() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        flip_first_byte_and_repin(&pair, "txt", "txt");
+        let outcome = compare(&pair, &frame);
+        assert_eq!(outcome.status(), Status::CellsDiffer);
+        assert!(
+            outcome.outcome.note.contains("txt differs"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn ansi_mismatch_detected() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        flip_first_byte_and_repin(&pair, "ansi", "ansi");
+        let outcome = compare(&pair, &frame);
+        assert_eq!(outcome.status(), Status::CellsDiffer);
+        assert!(
+            outcome.outcome.note.contains("ansi differs"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn ascii_mismatch_detected() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        flip_first_byte_and_repin(&pair, "ascii", "ascii");
+        let outcome = compare(&pair, &frame);
+        assert_eq!(outcome.status(), Status::CellsDiffer);
+        assert!(
+            outcome.outcome.note.contains("ascii differs"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn html_mismatch_detected() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        flip_first_byte_and_repin(&pair, "html", "html");
+        let outcome = compare(&pair, &frame);
+        assert_eq!(outcome.status(), Status::PixelsDiffer);
+        assert!(
+            outcome.outcome.note.contains("html differs"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn png_mismatch_detected_with_diff_artifact() {
+        let approved = probe_frame_a();
+        let mut other = probe_frame_a();
+        other.set(plain_cell(9, 6, "Z"));
+        let pair = write_pair(&approved, &approved);
+        // Splice in a valid-but-different PNG rendered from another frame.
+        let scratch = write_pair(&other, &other);
+        let other_png = artifact_bytes(&scratch.approved_root, "png");
+        rewrite_pinned(&pair.actual_root, "png", "png", &other_png);
+        let outcome = compare(&pair, &approved);
+        assert_eq!(outcome.status(), Status::PixelsDiffer);
+        assert!(
+            outcome.outcome.note.contains("pixel similarity"),
+            "{}",
+            outcome.outcome.note
+        );
+        assert!(
+            outcome.outcome.pixel_score.is_some_and(|score| score < 1.0),
+            "pixel score must record the sub-1.0 verdict"
+        );
+        assert!(
+            pair.diff_root.join(format!("{PROBE_NAME}.png")).is_file(),
+            "pixel mismatch must write a diff png"
+        );
+    }
+
+    #[test]
+    fn frame_cell_mismatch_reports_first_n_with_coordinates() {
+        let approved = probe_frame_a();
+        let mut actual = probe_frame_a();
+        // Glyph change at (2,1), keeping the bold red style.
+        let mut changed = actual.get(2, 1).cloned().expect("cell (2,1)");
+        changed.symbol = "B".to_string();
+        actual.set(changed);
+        // Color-only change at (7,4): blank cell with a green foreground.
+        actual.set(Cell {
+            x: 7,
+            y: 4,
+            symbol: " ".to_string(),
+            width: 1,
+            continuation: false,
+            fg: tuiscotti::Color::Indexed(2),
+            bg: tuiscotti::Color::Default,
+            mods: Mods::default(),
+            underline_color: tuiscotti::Color::Default,
+        });
+        let pair = write_pair(&approved, &actual);
+        let outcome = compare(&pair, &actual);
+        assert_eq!(outcome.status(), Status::CellsDiffer);
+        assert!(
+            outcome.outcome.note.contains("frame cells differ"),
+            "{}",
+            outcome.outcome.note
+        );
+        assert_eq!(outcome.outcome.cell_diff_total, 2);
+        let coords: Vec<(u16, u16)> = outcome
+            .outcome
+            .cell_diffs
+            .iter()
+            .map(|diff| (diff.x, diff.y))
+            .collect();
+        assert_eq!(coords, vec![(2, 1), (7, 4)], "row-major first-N order");
+        let glyph_diff = &outcome.outcome.cell_diffs[0];
+        assert!(
+            glyph_diff.expected.contains("\"A\"") && glyph_diff.actual.contains("\"B\""),
+            "expected vs actual glyphs must be reported: {glyph_diff:?}"
+        );
+        assert!(
+            glyph_diff.actual.contains("+bold"),
+            "modifiers must be reported: {glyph_diff:?}"
+        );
+        // The failure itself must carry the diagnostic, not just a verdict.
+        let message = outcome.ensure_matched().unwrap_err().to_string();
+        assert!(
+            message.contains("2 differing cell(s), first 2"),
+            "{message}"
+        );
+        assert!(message.contains("(2,1)"), "{message}");
+        assert!(message.contains("(7,4)"), "{message}");
+        assert!(message.contains("\"A\""), "{message}");
+        assert!(message.contains("\"B\""), "{message}");
+    }
+
+    #[test]
+    fn cell_diagnostic_cap_respected() {
+        let approved = Frame::blank(16, 8, probe_provenance());
+        let mut actual = Frame::blank(16, 8, probe_provenance());
+        for y in 0..8 {
+            for x in 0..16 {
+                actual.set(plain_cell(x, y, "Z"));
+            }
+        }
+        let pair = write_pair(&approved, &actual);
+        let outcome = compare(&pair, &actual);
+        assert_eq!(outcome.outcome.cell_diff_total, 128);
+        assert_eq!(outcome.outcome.cell_diffs.len(), MAX_CELL_DIFFS);
+        assert!(
+            outcome.outcome.cell_diffs.len() < outcome.outcome.cell_diff_total,
+            "stored diagnostics must be capped while the total stays exact"
+        );
+        let first = &outcome.outcome.cell_diffs[0];
+        assert_eq!((first.x, first.y), (0, 0), "first-N starts row-major");
+    }
+
+    #[test]
+    fn cursor_only_drift_reported_as_state() {
+        let approved = probe_frame_a();
+        let mut actual = probe_frame_a();
+        actual.cursor.x = 4;
+        actual.cursor.y = 5;
+        actual.cursor.visible = true;
+        let pair = write_pair(&approved, &actual);
+        let outcome = compare(&pair, &actual);
+        assert_eq!(outcome.status(), Status::CellsDiffer);
+        assert_eq!(outcome.outcome.cell_diff_total, 1);
+        assert_eq!(outcome.outcome.cell_diffs.len(), 1);
+        let diff = &outcome.outcome.cell_diffs[0];
+        assert!(
+            diff.expected.contains("cursor") && diff.actual.contains("cursor"),
+            "cursor-only drift must report cursor state, not identical cell text: {diff:?}"
+        );
+        assert!(
+            outcome.outcome.note.contains("cursor"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn modifier_and_continuation_in_diagnostics() {
+        let approved = probe_frame_a();
+        let mut actual = probe_frame_a();
+        // Modifier-only change at (2,1): bold red 'A' becomes dim
+        // double-underlined 'A'.
+        let mut changed = actual.get(2, 1).cloned().expect("cell (2,1)");
+        changed.mods = Mods {
+            dim: true,
+            underline: true,
+            underline_style: UnderlineStyle::Double,
+            ..Mods::default()
+        };
+        actual.set(changed);
+        // Wide glyph at (10,3) with its continuation at (11,3).
+        actual.set(Cell {
+            x: 10,
+            y: 3,
+            symbol: "漢".to_string(),
+            width: 2,
+            continuation: false,
+            fg: tuiscotti::Color::Default,
+            bg: tuiscotti::Color::Default,
+            mods: Mods::default(),
+            underline_color: tuiscotti::Color::Default,
+        });
+        actual.set(Cell {
+            x: 11,
+            y: 3,
+            symbol: String::new(),
+            width: 0,
+            continuation: true,
+            fg: tuiscotti::Color::Default,
+            bg: tuiscotti::Color::Default,
+            mods: Mods::default(),
+            underline_color: tuiscotti::Color::Default,
+        });
+        let pair = write_pair(&approved, &actual);
+        let outcome = compare(&pair, &actual);
+        assert_eq!(outcome.outcome.cell_diff_total, 3);
+        let by_coord: HashMap<(u16, u16), &CellDiff> = outcome
+            .outcome
+            .cell_diffs
+            .iter()
+            .map(|diff| ((diff.x, diff.y), diff))
+            .collect();
+        let modifier_diff = by_coord[&(2, 1)];
+        assert!(
+            modifier_diff.actual.contains("+dim") && modifier_diff.actual.contains("+ul2"),
+            "modifier tokens must be reported: {modifier_diff:?}"
+        );
+        let wide_diff = by_coord[&(10, 3)];
+        assert!(
+            wide_diff.actual.contains("漢"),
+            "wide glyph must be reported: {wide_diff:?}"
+        );
+        let continuation_diff = by_coord[&(11, 3)];
+        assert_eq!(
+            continuation_diff.actual, "…",
+            "continuation cells must be reported as continuations: {continuation_diff:?}"
+        );
+    }
+
+    #[test]
+    fn actual_frame_json_skew_is_capture_incomplete() {
+        let approved = probe_frame_a();
+        let mut live = probe_frame_a();
+        live.set(plain_cell(1, 1, "Q"));
+        // Actual files describe A while the gated live frame is different.
+        let pair = write_pair(&approved, &approved);
+        let outcome = compare(&pair, &live);
+        assert_eq!(outcome.status(), Status::CaptureIncomplete);
+        assert!(
+            outcome.outcome.note.contains("skews from the gated frame"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn loss_mismatch_detected() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        rewrite_json_pinned(
+            &pair.actual_root,
+            "ascii_loss_json",
+            "ascii.loss.json",
+            |value| {
+                let count = value["substitutions_count"].as_u64().expect("count");
+                value["substitutions_count"] = serde_json::json!(count + 1);
+            },
+        );
+        let outcome = compare(&pair, &frame);
+        assert_eq!(outcome.status(), Status::CellsDiffer);
+        assert!(
+            outcome.outcome.note.contains("ascii.loss.json differs"),
+            "{}",
+            outcome.outcome.note
+        );
+        assert!(
+            outcome.outcome.note.contains("substitutions_count"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn fidelity_mismatch_detected() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        rewrite_json_pinned(
+            &pair.actual_root,
+            "png_fidelity_json",
+            "png.fidelity.json",
+            |value| {
+                value["approximate"] = serde_json::json!(true);
+            },
+        );
+        let outcome = compare(&pair, &frame);
+        assert_eq!(outcome.status(), Status::PixelsDiffer);
+        assert!(
+            outcome.outcome.note.contains("png.fidelity.json differs"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn observations_mismatch_detected() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        rewrite_json_pinned(
+            &pair.actual_root,
+            "observations_json",
+            "observations.json",
+            |value| {
+                value["cursor"]["x"] = serde_json::json!(7u64);
+            },
+        );
+        let outcome = compare(&pair, &frame);
+        assert_eq!(outcome.status(), Status::CellsDiffer);
+        assert!(
+            outcome.outcome.note.contains("observations.json differs"),
+            "{}",
+            outcome.outcome.note
+        );
+        assert!(
+            outcome.outcome.note.contains("cursor.x"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn approved_pin_mismatch_is_corrupt_approval() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        // Tamper without re-pinning: the pin must catch it.
+        let path = pair.approved_root.join(format!("{PROBE_NAME}.txt"));
+        let mut bytes = std::fs::read(&path).expect("read approved txt");
+        bytes[0] ^= 0xff;
+        std::fs::write(&path, bytes).expect("tamper approved txt");
+        let outcome = compare(&pair, &frame);
+        assert_eq!(outcome.status(), Status::CorruptApproval);
+        assert!(
+            outcome.outcome.note.contains("manifest pin"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn actual_pin_mismatch_is_capture_incomplete() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        let path = pair.actual_root.join(format!("{PROBE_NAME}.txt"));
+        let mut bytes = std::fs::read(&path).expect("read actual txt");
+        bytes[0] ^= 0xff;
+        std::fs::write(&path, bytes).expect("tamper actual txt");
+        let outcome = compare(&pair, &frame);
+        assert_eq!(outcome.status(), Status::CaptureIncomplete);
+        assert!(
+            outcome.outcome.note.contains("manifest pin"),
+            "{}",
+            outcome.outcome.note
+        );
+    }
+
+    #[test]
+    fn missing_approved_artifact_is_missing_approval() {
+        let frame = probe_frame_a();
+        let pair = write_pair(&frame, &frame);
+        std::fs::remove_file(pair.approved_root.join(format!("{PROBE_NAME}.html")))
+            .expect("remove approved html");
+        let outcome = compare(&pair, &frame);
+        assert_eq!(outcome.status(), Status::MissingApproval);
+        assert!(
+            outcome.outcome.note.contains("missing approved"),
+            "{}",
+            outcome.outcome.note
+        );
+        assert!(
+            outcome.outcome.note.contains("html"),
+            "{}",
+            outcome.outcome.note
+        );
     }
 }
