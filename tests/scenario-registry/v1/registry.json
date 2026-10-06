@@ -294,6 +294,2063 @@
         "status": "unrun",
         "runs": []
       }
+    },
+    {
+      "id": "BRAND-HOVER-001",
+      "app": "showcase",
+      "component": "Brand",
+      "part": "clickable lockup row",
+      "ref_symbols": [
+        {
+          "glyph": "holla❯",
+          "meaning": "brand mark text on the accent fill"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "holla❯",
+          "meaning": "brand mark text on the accent fill"
+        }
+      ],
+      "data": {
+        "text": "holla❯",
+        "compact": false
+      },
+      "state": {
+        "hovered": true,
+        "pressed": false,
+        "focused": false,
+        "disabled": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render the clickable lockup idle"
+        },
+        {
+          "step": 2,
+          "action": "move the pointer over the lockup row"
+        },
+        {
+          "step": 3,
+          "action": "press the pointer button down over the lockup"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "idle",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "hovered",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "pressed",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "idle fill is accent with on-accent bold text; padded width is text width + 2"
+          },
+          {
+            "id": "V2",
+            "text": "hover lifts the fill to accent_hover; press (or flash) moves it to accent_pressed; press without hover renders idle"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "clickable lockup registers a hit region and never a focus-ring stop"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "pointer down+up over the region reports the brand click; the plain render has no handlers"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the plain (non-clickable) render must NOT change under hover: it takes no interaction"
+          },
+          {
+            "id": "N2",
+            "text": "no disabled/focus/selected rendering exists: Lockup has no such flags"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/brand.rs",
+            "lines": "57-86",
+            "note": "plain render is interaction-free; clickable lifts on hovered() and pressed()"
+          },
+          {
+            "path": "src/ui/ctx.rs",
+            "lines": "17-41",
+            "note": "pressed() requires hover (or flash)"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "183-301",
+            "note": "brand_state_matrix: idle/hover/press/flash, hit+no-ring, plain stateless"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/chrome/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "BTN-STATE-FOCUS-003",
+      "app": "showcase",
+      "component": "Button",
+      "part": "label row + gutter cell",
+      "ref_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "focus bar in the gutter cell"
+        },
+        {
+          "glyph": "●",
+          "meaning": "toggle-on marker"
+        },
+        {
+          "glyph": "○",
+          "meaning": "toggle-off marker"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "focus bar in the gutter cell"
+        },
+        {
+          "glyph": "●",
+          "meaning": "toggle-on marker"
+        },
+        {
+          "glyph": "○",
+          "meaning": "toggle-off marker"
+        }
+      ],
+      "data": {
+        "label": "Run task",
+        "kind": "Secondary"
+      },
+      "state": {
+        "focused": true,
+        "hovered": true,
+        "hover_suppressed": false,
+        "focus_hidden": false,
+        "pressed": false,
+        "on": true,
+        "disabled": false,
+        "busy": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render the button idle"
+        },
+        {
+          "step": 2,
+          "action": "Tab-focus the button (keyboard: hover suppressed)",
+          "key": "Tab"
+        },
+        {
+          "step": 3,
+          "action": "move the pointer over the focused button (pointer focus)"
+        },
+        {
+          "step": 4,
+          "action": "press down over the button"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "idle",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "kbd-focus",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "pointer-focus",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "pressed",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "kbd-focus shows the ▎ bar (focus tone) + bold with no hover lift; pointer-focus shows bar + bold + hover lift; hidden focus renders exactly idle"
+          },
+          {
+            "id": "V2",
+            "text": "primary hover lifts accent to accent_hover; secondary hover lifts overlay to popover; press/flash inverts to canvas-on-text_primary; Danger renders error text with error inversion on press"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "toggle on shows ● in accent and off shows ○ muted; marker slot is shared (width +2 once)"
+          },
+          {
+            "id": "S2",
+            "text": "enabled button registers both a hit region and a focus-ring stop"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter/Space while focused returns (Changed, true); other keys return (Ignored, false); click returns true"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "press without hover must NOT invert: renders exactly idle"
+          },
+          {
+            "id": "N2",
+            "text": "no read-only/error/warning/empty rendering exists: Button has no such flags"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/button.rs",
+            "lines": "61-69,101-163",
+            "note": "width/can_activate gates; render resolves hover/focus/press/disabled/busy"
+          },
+          {
+            "path": "src/theme.rs",
+            "lines": "340-471",
+            "note": "row/button/gutter resolvers: lifts, bar symbol, inversions"
+          },
+          {
+            "path": "src/bin/showcase/app.rs",
+            "lines": "422-430,650-662",
+            "note": "Key input suppresses hover; pointer Move clears suppression"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "392-765",
+            "note": "button_state_matrix: focus/hover/press/hidden, kinds, markers, actions"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/audit/buttons/80x24/truecolor.txt",
+          "snapshots/showcase/flows/buttons/focus/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "BTN-DISABLED-PRECEDENCE-004",
+      "app": "showcase",
+      "component": "Button",
+      "part": "label row + toggle marker (disabled + combos)",
+      "ref_symbols": [
+        {
+          "glyph": "●",
+          "meaning": "toggle-on marker kept (unaccented) under disabled"
+        },
+        {
+          "glyph": "⠋",
+          "meaning": "spinner wins the marker cell while busy+checked",
+          "tick": 0
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "●",
+          "meaning": "toggle-on marker kept (unaccented) under disabled"
+        },
+        {
+          "glyph": "⠋",
+          "meaning": "spinner wins the marker cell while busy+checked",
+          "tick": 0
+        }
+      ],
+      "data": {
+        "label": "Run task",
+        "kind": "Toggle"
+      },
+      "state": {
+        "on": true,
+        "disabled": true,
+        "busy": false,
+        "focused": true,
+        "hovered": true,
+        "pressed": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render the toggle-on button disabled with all interaction set"
+        },
+        {
+          "step": 2,
+          "action": "attempt keyboard activation",
+          "key": "Enter"
+        },
+        {
+          "step": 3,
+          "action": "attempt pointer activation over the button"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "disabled-allset",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "disabled-idle",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "disabled renders muted text on one plane up with a blank gutter and never bold; disabled+all-interaction-set is cell-exact equal to disabled-idle"
+          },
+          {
+            "id": "V2",
+            "text": "selected+disabled keeps the ● glyph but loses the accent; busy keeps hover lift while clearing the pressed inversion; busy+checked keeps the single marker slot"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "disabled button registers its hit area but no focus-ring stop"
+          },
+          {
+            "id": "S2",
+            "text": "can_activate() is false when disabled or busy"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter while disabled/busy returns (Consumed, false) and the toggle never flips; click returns false"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no hover lift, focus bar, or pressed inversion may appear while disabled"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/button.rs",
+            "lines": "67-69,115-130",
+            "note": "can_activate gates on disabled/busy; disabled clears hover+press, busy clears press"
+          },
+          {
+            "path": "src/ui/ctx.rs",
+            "lines": "86-94",
+            "note": "control() registers hits always but the ring only when enabled"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "392-765,2032-2239",
+            "note": "button_state_matrix + state_precedence_matrix: digest-exact precedence"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/audit/buttons/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "CHK-STATE-MATRIX-001",
+      "app": "showcase",
+      "component": "Checkbox",
+      "part": "mark + label row",
+      "ref_symbols": [
+        {
+          "glyph": "[✓]",
+          "meaning": "checked mark"
+        },
+        {
+          "glyph": "[ ]",
+          "meaning": "unchecked mark"
+        },
+        {
+          "glyph": "✓",
+          "meaning": "compact checked mark below 4 cells"
+        },
+        {
+          "glyph": "□",
+          "meaning": "compact unchecked mark below 4 cells"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus bar in the gutter cell"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "[✓]",
+          "meaning": "checked mark"
+        },
+        {
+          "glyph": "[ ]",
+          "meaning": "unchecked mark"
+        },
+        {
+          "glyph": "✓",
+          "meaning": "compact checked mark below 4 cells"
+        },
+        {
+          "glyph": "□",
+          "meaning": "compact unchecked mark below 4 cells"
+        },
+        {
+          "glyph": "▎",
+          "meaning": "focus bar in the gutter cell"
+        }
+      ],
+      "data": {
+        "label": "Run tests",
+        "checked": true
+      },
+      "state": {
+        "checked": true,
+        "disabled": false,
+        "focused": true,
+        "hovered": true,
+        "pressed": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render the checkbox idle unchecked"
+        },
+        {
+          "step": 2,
+          "action": "focus and hover the checkbox, then check it",
+          "key": " "
+        },
+        {
+          "step": 3,
+          "action": "render at 3 cells and at 1 cell wide"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "idle",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "focused-hovered-checked",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "narrow",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "unchecked shows muted [ ]; checked shows accent [✓]; focus adds ▎ + bold; hover lifts one plane; press/flash inverts; hidden focus renders idle"
+          },
+          {
+            "id": "V2",
+            "text": "below 4 cells the mark compacts to ✓/□; one cell shows the focus bar only"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "disabled keeps the ✓/□ glyph in the uniform disabled style with no lift and no focus stop; disabled+all-set equals disabled-idle"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Space/Enter flips checked (Changed); click flips (Changed); disabled Space ignores and disabled click consumes without flipping"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no busy/loading/read-only/error/warning rendering exists: Checkbox has no such flags"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/choice.rs",
+            "lines": "31-115",
+            "note": "Checkbox actions, mark variants, disabled hover clearing"
+          },
+          {
+            "path": "src/theme.rs",
+            "lines": "340-406",
+            "note": "row/gutter resolvers: lift, bar, inversion, disabled early-return"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "773-979",
+            "note": "checkbox_state_matrix: full matrix, combos, actions, compact marks"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/audit/forms/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "TGL-STATE-MATRIX-001",
+      "app": "showcase",
+      "component": "Toggle",
+      "part": "switch + label + state word",
+      "ref_symbols": [
+        {
+          "glyph": "──●",
+          "meaning": "on switch"
+        },
+        {
+          "glyph": "○──",
+          "meaning": "off switch"
+        },
+        {
+          "glyph": "●",
+          "meaning": "compact on mark below 4 cells"
+        },
+        {
+          "glyph": "○",
+          "meaning": "compact off mark below 4 cells"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "──●",
+          "meaning": "on switch"
+        },
+        {
+          "glyph": "○──",
+          "meaning": "off switch"
+        },
+        {
+          "glyph": "●",
+          "meaning": "compact on mark below 4 cells"
+        },
+        {
+          "glyph": "○",
+          "meaning": "compact off mark below 4 cells"
+        }
+      ],
+      "data": {
+        "label": "Auto-merge",
+        "on": true
+      },
+      "state": {
+        "on": true,
+        "disabled": false,
+        "focused": true,
+        "hovered": true,
+        "pressed": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render the toggle off"
+        },
+        {
+          "step": 2,
+          "action": "focus and hover the toggle, then switch it on",
+          "key": " "
+        },
+        {
+          "step": 3,
+          "action": "render at 3 cells wide"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "off",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "focused-hovered-on",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "narrow",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "off shows muted ○── + 'off'; on shows accent ──● + 'on' at label width + 6; focus adds ▎ + bold; hover lifts; press inverts; hidden renders idle"
+          },
+          {
+            "id": "V2",
+            "text": "below 4 cells the switch compacts to a single ●/○"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "disabled keeps the on/off glyphs in the uniform disabled style with no lift and no focus stop; disabled+all-set equals disabled-idle"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Space/Enter flips on (Changed); click flips (Changed); disabled input never flips (Ignored keys, Consumed click)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no busy/loading/read-only/error/warning rendering exists: Toggle has no such flags"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/choice.rs",
+            "lines": "257-358",
+            "note": "Toggle actions, switch glyphs, state word placement, disabled clearing"
+          },
+          {
+            "path": "src/theme.rs",
+            "lines": "340-406",
+            "note": "row/gutter resolvers shared with Checkbox"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "987-1115",
+            "note": "toggle_state_matrix: full matrix, combos, actions, compact marks"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/audit/forms/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "RADIO-STATE-MATRIX-001",
+      "app": "showcase",
+      "component": "RadioGroup",
+      "part": "label row + option rows",
+      "ref_symbols": [
+        {
+          "glyph": "(●)",
+          "meaning": "selected option mark"
+        },
+        {
+          "glyph": "( )",
+          "meaning": "unselected option mark"
+        },
+        {
+          "glyph": "●",
+          "meaning": "compact selected mark below 4 cells"
+        },
+        {
+          "glyph": "○",
+          "meaning": "compact unselected mark below 4 cells"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "(●)",
+          "meaning": "selected option mark"
+        },
+        {
+          "glyph": "( )",
+          "meaning": "unselected option mark"
+        },
+        {
+          "glyph": "●",
+          "meaning": "compact selected mark below 4 cells"
+        },
+        {
+          "glyph": "○",
+          "meaning": "compact unselected mark below 4 cells"
+        }
+      ],
+      "data": {
+        "label": "Mode",
+        "options": ["Fast", "Safe", "Full"],
+        "selected": 1
+      },
+      "state": {
+        "selected": 1,
+        "cursor": 1,
+        "disabled": false,
+        "focused": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render the group idle with option 1 selected"
+        },
+        {
+          "step": 2,
+          "action": "focus the group and hover option 0"
+        },
+        {
+          "step": 3,
+          "action": "move the cursor down",
+          "key": "Down"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "idle",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "focused-option-hover",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "moved",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "idle label is secondary; selected row shows accent (●), others muted ( ); focused group shows bold-primary label and ▎ on the cursor row only"
+          },
+          {
+            "id": "V2",
+            "text": "hovering one option (child id) lifts exactly that row; selected+hovered keeps lift + accent; below 4 cells marks compact to ●/○; hidden focus renders idle"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "group is a single focus stop; option rows are click targets; disabled shows a faint label with unaccented marks, no hover and no stop"
+          },
+          {
+            "id": "S2",
+            "text": "empty options render the label only with cleared areas and no focus stop"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Up/Down/k/j move cursor+selected (Changed); Space/Enter commits cursor (Changed); click selects (Changed); disabled and out-of-range never change"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no busy/loading rendering exists: RadioGroup has no such flags"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/choice.rs",
+            "lines": "118-254",
+            "note": "group focus stop, per-option child ids, cursor/selected, empty + narrow paths"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "1123-1269",
+            "note": "radio_state_matrix: label/rows, per-option hover, disabled, empty, actions"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/audit/forms/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "PANEL-FOCUS-READONLY-001",
+      "app": "showcase",
+      "component": "Panel",
+      "part": "card/framed chrome + scroll content",
+      "ref_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "container focus bar in the card padding column"
+        },
+        {
+          "glyph": "╭",
+          "meaning": "framed rounded corner"
+        },
+        {
+          "glyph": "…",
+          "meaning": "title truncation when the meta competes"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "container focus bar in the card padding column"
+        },
+        {
+          "glyph": "╭",
+          "meaning": "framed rounded corner"
+        },
+        {
+          "glyph": "…",
+          "meaning": "title truncation when the meta competes"
+        }
+      ],
+      "data": {
+        "title": "Log",
+        "meta": "1–2 of 9",
+        "kind": "Card"
+      },
+      "state": {
+        "focused": true,
+        "scroll_offset": 0,
+        "follow": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render the card idle with title and meta"
+        },
+        {
+          "step": 2,
+          "action": "focus the container"
+        },
+        {
+          "step": 3,
+          "action": "scroll the read-only content down",
+          "key": "Down"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "idle",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "focused",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "scrolled",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "card idle shows a secondary title; focused card shows ▎ in the padding column + bold-primary title; framed idle uses a subtle border, focused a strong border with the same corner glyphs"
+          },
+          {
+            "id": "V2",
+            "text": "meta is right-aligned and never dropped: the title yields first (…); badge sits between title and meta; framed chrome at w<=4 draws the border with no title row"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "card inner sits below the title row (margin + 1); frameless-title card and framed inners follow the margin math; draw_meta repaints the row after content settles"
+          },
+          {
+            "id": "S2",
+            "text": "scroll content is read-only: scroll keys move (Changed), edit-ish keys ignore, and no key sequence mutates the lines; empty content renders blank safely"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Up/Down/PageUp/PageDown/Home/End scroll; f toggles following only on a tailing panel; Enter/Space/typing keys ignore"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no hover/pressed/selected/disabled/busy rendering exists on chrome: container focus shows on border/title only"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31-150,224-304",
+            "note": "card/framed chrome + inners, title/meta/badge yielding, read-only scroll actions"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "1282-1427",
+            "note": "panel_state_matrix: chrome states, title rows, narrow chrome, read-only scroll"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/panels/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "SPLIT-SEAM-DRAG-001",
+      "app": "showcase",
+      "component": "SplitPane",
+      "part": "gap-strip handle + pane geometry",
+      "ref_symbols": [
+        {
+          "glyph": "│",
+          "meaning": "idle/hover side-by-side rule"
+        },
+        {
+          "glyph": "┃",
+          "meaning": "dragged (heavy) side-by-side rule"
+        },
+        {
+          "glyph": "─",
+          "meaning": "idle stacked rule"
+        },
+        {
+          "glyph": "━",
+          "meaning": "dragged (heavy) stacked rule"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "│",
+          "meaning": "idle/hover side-by-side rule"
+        },
+        {
+          "glyph": "┃",
+          "meaning": "dragged (heavy) side-by-side rule"
+        },
+        {
+          "glyph": "─",
+          "meaning": "idle stacked rule"
+        },
+        {
+          "glyph": "━",
+          "meaning": "dragged (heavy) stacked rule"
+        }
+      ],
+      "data": {
+        "percent": 50,
+        "min_first": 10,
+        "min_second": 10,
+        "gap": 1,
+        "direction": "Horizontal"
+      },
+      "state": {
+        "hovered": true,
+        "pressed": false,
+        "maximized": "None"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "lay out the split at 50/50 with a 1-cell gap"
+        },
+        {
+          "step": 2,
+          "action": "hover the gap strip"
+        },
+        {
+          "step": 3,
+          "action": "press and drag the seam to 70%"
+        },
+        {
+          "step": 4,
+          "action": "nudge the seam by one cell"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "laid-out",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "hovered",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "dragged",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "nudged",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "idle handle is a quiet │/─ rule in border-subtle spanning the strip; hover keeps the glyph and strengthens to border-strong; drag draws the heavy ┃/━ rule"
+          },
+          {
+            "id": "V2",
+            "text": "panes + gap exactly fill the container; maximized or collapsed splits have an empty handle and the handle draws nothing"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "drag moves the seam clamped to the minima (Changed) and repeats consume; nudge moves whole cells (exactly +-1 on 1%-per-cell); grow clamps to 5..95; maximize round-trips"
+          },
+          {
+            "id": "S2",
+            "text": "handle registers a click hit and never a focus-ring stop (mouse-only)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "handle drag repositions the seam through drag_to; keyboard resize stays a chord on the owning pane, never on the handle"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "focus and flash must NOT change the handle: it reads raw pressed only (press-without-hover still draws heavy)"
+          },
+          {
+            "id": "N2",
+            "text": "no disabled/selected/busy rendering exists: the handle is a mouse-only affordance"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/ui/layout.rs",
+            "lines": "23-149",
+            "note": "Split geometry: layout/handle/drag_to/nudge/grow/maximize/collapse"
+          },
+          {
+            "path": "src/widgets/splitter.rs",
+            "lines": "15-63",
+            "note": "handle reads raw pressed, ignores flash; clickable-only registration"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "1436-1647",
+            "note": "splitpane_state_matrix: geometry, handle states, drag, composed panes"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/terminal/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "PROPS-CURSOR-TONE-001",
+      "app": "showcase",
+      "component": "Props",
+      "part": "fact rows + cursor + copy hint",
+      "ref_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "focus bar on the cursor row"
+        },
+        {
+          "glyph": "y copy",
+          "meaning": "copy hint on the focused copyable row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "focus bar on the cursor row"
+        },
+        {
+          "glyph": "y copy",
+          "meaning": "copy hint on the focused copyable row"
+        }
+      ],
+      "data": {
+        "props": [
+          {"label": "Host", "value": "db-1"},
+          {"label": "Token", "value": "abc", "copyable": true},
+          {"label": "State", "value": "failed", "tone": "Error"},
+          {"label": "Quota", "value": "91%", "tone": "Warning"}
+        ],
+        "cursor": 1
+      },
+      "state": {
+        "cursor": 1,
+        "focused": true,
+        "hovered_row": 1
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render the sheet idle"
+        },
+        {
+          "step": 2,
+          "action": "focus the list and move the cursor to the copyable row",
+          "key": "Down"
+        },
+        {
+          "step": 3,
+          "action": "copy the row",
+          "key": "y"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "idle",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "cursor-copyable",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "copied",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "labels are muted at x+2, values sit at the shared label width in their tone (error/warning included); cursor row shows ▎ + bold; copyable cursor row shows 'y copy'; hover lifts exactly the hovered (child-id) row; pressed rows invert the bg while keeping tone fgs"
+          },
+          {
+            "id": "V2",
+            "text": "narrow rows truncate the value but the copy hint always wins its cells; below the label width the label tail spills right and the hint underflows left (pinned overflow)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "list is one focus stop with a row cursor; empty sheet renders blank, still registers, and ignores keys"
+          },
+          {
+            "id": "S2",
+            "text": "static sheet measure() agrees with render() row usage including wrapped values"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "y on a copyable row emits Copy, on other rows consumes; Enter emits Activate; click moves the cursor and activates; no action mutates values (read-only)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no disabled/checked/busy rendering exists: PropsList has no such flags; the hint must NOT appear on non-copyable or unfocused rows"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/props.rs",
+            "lines": "95-121,176-210,251-336",
+            "note": "static sheet, cursor/copy/activate actions, per-row hover, hint layout, unclipped labels"
+          },
+          {
+            "path": "src/theme.rs",
+            "lines": "517-529",
+            "note": "Tone mapping for values (error/warning/success ladder)"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "1656-1857",
+            "note": "props_state_matrix: cursor/hover/tones, read-only, empty, narrow spills"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/datagrid/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "EMPTY-KIND-NARROW-001",
+      "app": "showcase",
+      "component": "Empty",
+      "part": "centered title + hint block",
+      "ref_symbols": [
+        {
+          "glyph": "!",
+          "meaning": "bold error marker before an error title"
+        },
+        {
+          "glyph": "…",
+          "meaning": "title truncation at narrow widths"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "!",
+          "meaning": "bold error marker before an error title"
+        },
+        {
+          "glyph": "…",
+          "meaning": "title truncation at narrow widths"
+        }
+      ],
+      "data": {
+        "title": "No rows",
+        "hint": "Add one to begin",
+        "kind": "Empty"
+      },
+      "state": {
+        "kind": "Empty"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render the empty state with title and hint"
+        },
+        {
+          "step": 2,
+          "action": "render the error variant"
+        },
+        {
+          "step": 3,
+          "action": "render a long title at 10 cells wide and in a 1-row area"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "empty",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "error",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "narrow",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "empty shows a muted centered title with a faint hint two rows below; error shows '! <title>' in the error tone with a bold '!' only"
+          },
+          {
+            "id": "V2",
+            "text": "long titles truncate with … to the area width with centering intact; a 1-row area shows the title and skips the hint; empty content renders nothing"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "block is vertically centered from title+hint height; hint wraps to the area width minus 4 (min 8)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "no handlers exist: EmptyState takes no input by construction"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no interaction state may render: display-only, no flags and no handlers; nothing may write outside the area"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/empty.rs",
+            "lines": "9-93",
+            "note": "Empty/Error kinds, centering, hint wrap, clipping guards"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "1865-1931",
+            "note": "empty_state_matrix: kinds, centering, narrow, degenerate content"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/pages/chips/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "TOOSMALL-NOTICE-001",
+      "app": "showcase",
+      "component": "TooSmall",
+      "part": "undersize notice screen",
+      "ref_symbols": [
+        {
+          "glyph": "Terminal too small",
+          "meaning": "notice headline"
+        },
+        {
+          "glyph": "Need 72×20, have 60×10",
+          "meaning": "exact size report at a 60x10 viewport"
+        },
+        {
+          "glyph": "q Quit",
+          "meaning": "quit line"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Terminal too small",
+          "meaning": "notice headline"
+        },
+        {
+          "glyph": "Need 72×20, have 60×10",
+          "meaning": "exact size report at a 60x10 viewport"
+        },
+        {
+          "glyph": "q Quit",
+          "meaning": "quit line"
+        }
+      ],
+      "data": {
+        "min_width": 72,
+        "min_height": 20
+      },
+      "state": {
+        "too_small": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 60,
+        "height": 10
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "launch each app at a 60x10 viewport"
+        },
+        {
+          "step": 2,
+          "action": "launch showcase at exactly 72x20"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "notice",
+          "tick": 0,
+          "capture": true
+        },
+        {
+          "name": "boundary",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "all four apps show 'Terminal too small' + 'Need 72×20, have WxH' + 'q Quit' below the threshold"
+          },
+          {
+            "id": "V2",
+            "text": "exactly 72x20 boots the normal shell: the predicate is strict (w < 72 || h < 20)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "MIN_WIDTH=72 and MIN_HEIGHT=20 are identical in showcase, tablepro, jackin-preview and holla"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "q quits from the notice screen"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the notice must NOT appear at or above 72x20; no shell controls render while undersize"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/showcase/app.rs",
+            "lines": "22-23,875,938-958",
+            "note": "MIN consts, strict predicate, centered 4-line notice"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "34-35,2129-2140",
+            "note": "same MIN consts, predicate and notice shape"
+          },
+          {
+            "path": "src/bin/jackin_preview/app.rs",
+            "lines": "41-42,2284-2300",
+            "note": "same MIN consts, predicate and notice shape"
+          },
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "51-52,2964-2980",
+            "note": "same MIN consts, predicate and notice shape"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "2417-2484",
+            "note": "toosmall PTY needle probes: all-app notice + 72x20 boundary"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [],
+        "cand": []
+      },
+      "adapters": [
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "pty-spawn",
+          "needle-wait"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "CTRL-NARROW-CLIP-001",
+      "app": "showcase",
+      "component": "Button",
+      "part": "widget area at 6/4/3/2/1 cells",
+      "ref_symbols": [
+        {
+          "glyph": "…",
+          "meaning": "label truncation at narrow widths"
+        },
+        {
+          "glyph": "·",
+          "meaning": "sentinel proving the surround is untouched"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "…",
+          "meaning": "label truncation at narrow widths"
+        },
+        {
+          "glyph": "·",
+          "meaning": "sentinel proving the surround is untouched"
+        }
+      ],
+      "data": {
+        "widths": [6, 4, 3, 2, 1],
+        "controls": ["Button", "Checkbox", "Toggle", "RadioGroup", "Props", "Empty", "Panel", "SplitPane"]
+      },
+      "state": {
+        "focused": false,
+        "hovered": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 12,
+        "height": 6
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render each control at 6, 4, 3, 2 and 1 cells wide inside a sentinel buffer"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "narrow-sweep",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "every control renders without panic at every swept width; recorded areas stay in bounds; surrounding sentinels are untouched (no 1-cell overflow)"
+          },
+          {
+            "id": "V2",
+            "text": "documented narrow glyphs hold: … truncation, compact ✓/□/●/○ marks, gutter-only 1-cell rows, border-only w<=4 framed chrome"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "button clips to min(logical, area) width; PropsList label spill and hint underflow are pinned as-is below the label width"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "narrow rendering changes no widget state: areas record, flags untouched"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no control may write outside its area except the pinned PropsList label/hint spill"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/button.rs",
+            "lines": "108-114",
+            "note": "width clipping to the area; empty-area early return"
+          },
+          {
+            "path": "src/widgets/choice.rs",
+            "lines": "18-28",
+            "note": "row_part bounds every optional row segment"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "1940-2021",
+            "note": "narrow_clipping_contract: uniform surround-intact sweep"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/audit/buttons/80x24/truecolor.txt",
+          "snapshots/showcase/audit/forms/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
+    },
+    {
+      "id": "CTRL-HOVER-COVERAGE-001",
+      "app": "showcase",
+      "component": "Button",
+      "part": "hover delta per hoverable control",
+      "ref_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "absent: hover alone never shows the focus bar"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎",
+          "meaning": "absent: hover alone never shows the focus bar"
+        }
+      ],
+      "data": {
+        "hoverable": ["Brand", "Button", "Checkbox", "Toggle", "RadioGroup-option", "SplitPane", "Props-row"],
+        "insensitive": ["Panel", "Empty", "ScrollPanel"]
+      },
+      "state": {
+        "hovered": true,
+        "focused": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "render each hoverable control idle, then hovered"
+        },
+        {
+          "step": 2,
+          "action": "render each insensitive surface idle, then with hover set"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "idle-vs-hovered",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "idle-vs-hovered frames differ for Brand (accent lift), Button (accent/popover lift), Checkbox/Toggle (one plane), RadioGroup option and Props row (exactly that row), Splitter (border strengthen, same glyph)"
+          },
+          {
+            "id": "V2",
+            "text": "hover alone never shows the ▎ bar on any control"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "ScrollPanel ignores hover (focus only); Panel chrome, EmptyState and the static Brand take no interaction, so hover-insensitivity is structural"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "hover changes rendering only: no widget flags, ring entries, or hit regions move under hover"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "hover must NOT lift a disabled control, a suppressed pointer (keyboard mode), or any insensitive surface"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/ui/ctx.rs",
+            "lines": "17-41",
+            "note": "hovered() folds hover_suppressed; pressed() needs hover"
+          },
+          {
+            "path": "src/theme.rs",
+            "lines": "373-390",
+            "note": "lift(): hover is exactly one plane up, never a colour"
+          },
+          {
+            "path": "tests/visual_baseline/control_states.rs",
+            "lines": "2248-2408",
+            "note": "hovered_delta_for_every_hoverable_control: named per-control deltas"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/showcase/audit/buttons/80x24/truecolor.txt",
+          "snapshots/showcase/audit/forms/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture"
+        ]
+      },
+      "results": {
+        "status": "unrun",
+        "runs": []
+      }
     }
   ],
   "legacy_roots": [
