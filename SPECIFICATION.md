@@ -5,6 +5,19 @@
 **Status:** specification and source review, not an implemented migration or a parity certificate.  
 **Supersession:** the user's new many-crate requirement replaces the previous one-public-library/one-test-crate limit. Previous preparation-only stop lines no longer define completion.
 
+## 0. Canonical contract owners
+
+This document summarizes the target. It does not duplicate full rules.
+Agent entry rules live in [AGENTS.md](AGENTS.md).
+The active task lives in [GOAL.md](GOAL.md).
+Component-only composition lives in [docs/architecture/component-composition.md](docs/architecture/component-composition.md).
+Public signatures live in [docs/api/public-api.md](docs/api/public-api.md) and [types.md](docs/api/types.md).
+Consumer examples live in [docs/api/consumer-recipes.md](docs/api/consumer-recipes.md).
+Review procedure lives in [docs/process/per-commit-review.md](docs/process/per-commit-review.md).
+Ownership and parity proof lives in [docs/verification/ownership-and-parity.md](docs/verification/ownership-and-parity.md).
+Component details live in [docs/components/](docs/components/README.md).
+Implementation status lives in [checklist.json](checklist.json).
+
 ## 1. Completion means all three outcomes together
 
 The result is one Termrock implementation, a genuinely decomposed Cargo workspace, and all four migrated applications demonstrably preserving the immutable `visual-baseline` behavior. Neither new type declarations, namespace replacements, package counts, passing old applications, nor a green ordinary test run establish this result separately.
