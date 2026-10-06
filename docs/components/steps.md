@@ -106,7 +106,7 @@ ui.paint_str(row, 0, "✓ fetch  ◌ build");
 if done { status = "done"; }
 ```
 
-Rule: [ARC-012](../architecture/component-composition.md) prohibits direct `ui.paint_str` rendering of controls and padded strings that simulate status. Use `Steps::new` with stable step keys and handle the typed `StepsAction`.
+Rule: [ARC-012](../architecture/component-composition.md) prohibits direct `ui.paint_str` rendering of controls and padded strings that simulate control content. Use `Steps::new` with stable step keys and handle the typed `StepsAction`.
 
 ## Known gaps
 
