@@ -20,7 +20,7 @@ pub use account::{
     RecoverableIssue, ValidationLevel, ValidationState,
 };
 pub use agent::{Agent, Provider, UsageSurface};
-pub use clock::{Clock, EPOCH_SECS};
+pub use clock::{Clock, EPOCH_SECS, format_duration};
 pub use instance::{
     AgentState, DaemonSnapshot, Instance, InstanceId, InstanceStatus, PaneSnapshot, RunId,
     SessionRecord, SessionStatus, TabSnapshot,

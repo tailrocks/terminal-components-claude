@@ -699,7 +699,7 @@ fn review_instance(
     }
 }
 
-fn role_label<'a>(world: &'a World, key: &'a str) -> &'a str {
+pub fn role_label<'a>(world: &'a World, key: &'a str) -> &'a str {
     world
         .roles
         .iter()

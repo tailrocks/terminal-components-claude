@@ -372,12 +372,20 @@ fn menu(r: &mut Recipe) {
                 .set_bg(Role::Fg(FgStep::Primary))
                 .add(Modifier::BOLD),
         );
-    part(m, Part::TITLE, p())
+    part(m, Part::TITLE, p().set_fg(Role::Fg(FgStep::Secondary)))
         .when(
             StateFlags::ACTIVE,
             p().set_fg(Role::Fg(FgStep::Primary))
                 .set_bg(Role::Surface(Surface::Popover))
                 .add(Modifier::BOLD),
+        )
+        .when(
+            StateFlags::HOVERED,
+            p().set_fg(Role::Fg(FgStep::Primary)),
+        )
+        .when(
+            StateFlags::FOCUSED,
+            p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
         )
         .when(
             StateFlags::PRESSED,
@@ -518,6 +526,7 @@ fn bars(m: &mut PartMap<PartRecipe>) {
         p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
     );
     part(m, Part::ACTION, p().set_fg(Role::Fg(FgStep::Muted)));
+    part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Faint)));
     part(
         m,
         Part::BADGE,

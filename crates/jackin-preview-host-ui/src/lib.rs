@@ -14,7 +14,7 @@ pub mod usage;
 
 pub use accounts::AccountsState;
 pub use cockpit::{AccountLine, CockpitState, HandoffState};
-pub use manager::{LaunchCandidate, ManagerRowKey, ManagerState};
+pub use manager::{LaunchCandidate, ManagerRowKey, ManagerScreen, ManagerState};
 pub use manager_actions::{
     Action as ManagerAction, Effect as ManagerEffect, Fact as ManagerFact,
     FactTone as ManagerFactTone, InstanceTarget, LaunchTarget, ManagerActions, RepositoryError,

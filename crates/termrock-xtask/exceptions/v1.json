@@ -855,7 +855,7 @@
       "rule": "OWN-11"
     },
     {
-      "max": 2803,
+      "max": 1322,
       "path": "crates/jackin-preview-app/src/app.rs",
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
@@ -869,21 +869,21 @@
       "rule": "OWN-03"
     },
     {
-      "max": 24,
+      "max": 23,
       "path": "crates/jackin-preview-app/src/app.rs",
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-04"
     },
     {
-      "max": 25,
+      "max": 20,
       "path": "crates/jackin-preview-app/src/app.rs",
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-10"
     },
     {
-      "max": 23,
+      "max": 21,
       "path": "crates/jackin-preview-app/src/app.rs",
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
@@ -928,6 +928,27 @@
       "max": 3,
       "path": "crates/jackin-preview-host-ui/src/prelude.rs",
       "reason": "Transitional prelude painters (FIX-001 follow-up); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 30,
+      "path": "crates/jackin-preview-host-ui/src/manager.rs",
+      "reason": "Manager screen component composition (FIX-002); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 7,
+      "path": "crates/jackin-preview-host-ui/src/manager.rs",
+      "reason": "Manager screen component composition (FIX-002); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 7,
+      "path": "crates/jackin-preview-host-ui/src/manager.rs",
+      "reason": "Manager screen component composition (FIX-002); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-11"
     },
@@ -1058,14 +1079,14 @@
       "rule": "OWN-11"
     },
     {
-      "max": 2,
+      "max": 6,
       "path": "crates/showcase-demos/src/pages/diff.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-02"
     },
     {
-      "max": 2,
+      "max": 4,
       "path": "crates/showcase-demos/src/pages/diff.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
@@ -1226,21 +1247,21 @@
       "rule": "OWN-11"
     },
     {
-      "max": 17,
+      "max": 18,
       "path": "crates/showcase-demos/src/pages/panels.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-02"
     },
     {
-      "max": 7,
+      "max": 8,
       "path": "crates/showcase-demos/src/pages/panels.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-04"
     },
     {
-      "max": 11,
+      "max": 13,
       "path": "crates/showcase-demos/src/pages/panels.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",

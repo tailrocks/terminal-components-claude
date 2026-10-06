@@ -343,6 +343,16 @@ impl World {
         })
     }
 
+    /// Shorten with `~` if the path starts with the home directory.
+    pub fn tilde(&self, path: &str) -> String {
+        if let Some(rest) = path.strip_prefix(&self.home) {
+            format!("~{rest}")
+        } else {
+            path.to_owned()
+        }
+    }
+
+
     /// Find an instance by stable identifier.
     pub fn instance(&self, id: &str) -> Option<&Instance> {
         self.instances.iter().find(|instance| instance.id == id)

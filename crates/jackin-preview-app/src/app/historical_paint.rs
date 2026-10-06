@@ -8,6 +8,7 @@ use termrock::{
 
 const FAMILY: Family = Family::custom("jackin.historical");
 
+#[allow(dead_code)]
 pub(super) struct HistoricalPalette {
     pub(super) accent_on_accent_tint_bold: PaintStyle,
     pub(super) accent_on_canvas: PaintStyle,

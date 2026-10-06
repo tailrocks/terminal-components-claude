@@ -1357,7 +1357,6 @@ impl<'a> MenuBar<'a> {
                 ui.paint_str(focus_cell, "▎", gutter.style);
             } else if st.open != Some(index) && !flags.contains(StateFlags::HOVERED) {
                 style.style = style.style.remove_modifier(ratatui::style::Modifier::BOLD);
-                style.style = style.style.fg(ui.theme().color.fg[1]);
             }
             let label = shift(rect, 1);
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {

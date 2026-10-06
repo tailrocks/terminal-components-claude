@@ -113,7 +113,7 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
 
 /// Human duration with spaced units: `38 s`, `3 min 2 s`, `2 h 14 min`,
 /// `1 d 2 h`. Two most significant units, never more.
-fn format_duration(secs: u64) -> String {
+pub fn format_duration(secs: u64) -> String {
     let d = secs / 86_400;
     let h = (secs % 86_400) / 3600;
     let m = (secs % 3600) / 60;

@@ -119,6 +119,7 @@ pub struct Panel<'a> {
     meta: Option<&'a str>,
     badge: Option<&'a str>,
     focused: bool,
+    custom_inset: Option<Insets>,
     ov: PartStyle<'a>,
 }
 
@@ -131,6 +132,7 @@ impl fmt::Debug for Panel<'_> {
             .field("meta", &self.meta)
             .field("badge", &self.badge)
             .field("focused", &self.focused)
+            .field("custom_inset", &self.custom_inset)
             .field("overrides", &self.ov)
             .finish()
     }
@@ -156,6 +158,7 @@ impl<'a> Panel<'a> {
             meta: None,
             badge: None,
             focused: false,
+            custom_inset: None,
             ov: PartStyle::new(),
         }
     }
@@ -226,6 +229,13 @@ impl<'a> Panel<'a> {
         self
     }
 
+    /// Explicitly override the inner content insets (§10).
+    #[must_use]
+    pub const fn inner_inset(mut self, insets: Insets) -> Self {
+        self.custom_inset = Some(insets);
+        self
+    }
+
     /// The state the panel's own props imply.
     const fn derived(&self) -> StateFlags {
         if self.focused {
@@ -261,6 +271,18 @@ impl<'a> Panel<'a> {
     /// a child, or to decide whether the content fits — reads it here
     /// instead of guessing.
     pub fn inner(&self, ui: &Ui<'_>, area: Rect) -> Rect {
+        if let Some(ins) = self.custom_inset {
+            let r = inset(area, ins);
+            if r.is_empty() {
+                return Rect {
+                    x: area.x,
+                    y: area.y,
+                    width: 0,
+                    height: 0,
+                };
+            }
+            return r;
+        }
         let (l, r) = match self.kind {
             PanelKind::Card => (ui.design().space.card_inset, ui.design().space.card_inset),
             PanelKind::Framed => (
@@ -320,12 +342,19 @@ impl<'a> Panel<'a> {
 
     /// The natural size: the chrome plus one content cell.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let side = match self.kind {
-            PanelKind::Card => ui.design().space.card_inset,
-            PanelKind::Framed => ui.design().space.frame_inset,
+        let (side, top) = if let Some(ins) = self.custom_inset {
+            (ins.l.max(ins.r), ins.t)
+        } else {
+            (
+                match self.kind {
+                    PanelKind::Card => ui.design().space.card_inset,
+                    PanelKind::Framed => ui.design().space.frame_inset,
+                },
+                self.top_inset(),
+            )
         };
         let chrome_w = side.saturating_mul(2);
-        let chrome_h = self.top_inset().saturating_add(1);
+        let chrome_h = top.saturating_add(1);
         let title_w = self.title.map_or(0, crate::text::width);
         let meta_w = self.meta.map_or(0, crate::text::width);
         let head = title_w
