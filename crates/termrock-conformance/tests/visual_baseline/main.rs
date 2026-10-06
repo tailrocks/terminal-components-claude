@@ -40,6 +40,7 @@ mod button_busy_live;
 mod holla;
 mod holla_journeys;
 mod jackin;
+mod jackin_journeys;
 mod negative_controls_phase6a;
 mod pointer;
 mod showcase;
