@@ -20,14 +20,22 @@ pub const GLITCH_PASSES: u64 = 5;
 /// Warp duration in 33 ms ticks.
 pub const WARP_TICKS: u64 = 95;
 
-const POOL: &[u8] = b" .,:;+=*#%@";
+const POOL: &[u8; 78] =
+    b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@#$%&*<>{}[]|/\\~";
 
-/// Stable integer mixer used for atmosphere placement.
-pub const fn mix(mut a: u64, b: u64, c: u64) -> u64 {
-    a ^= b.wrapping_mul(0x9E37_79B9_7F4A_7C15);
-    a = a.rotate_left(17).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-    a ^= c.wrapping_mul(0x94D0_49BB_1331_11EB);
-    a ^ (a >> 31)
+/// Stateless mixer over three keyed lanes: the only randomness source.
+#[inline]
+pub const fn mix(a: u64, b: u64, c: u64) -> u64 {
+    let mut z = a.wrapping_mul(0x9E37_79B9_7F4A_7C15)
+        ^ b.wrapping_mul(0xD1B5_4A32_D192_ED03)
+        ^ c.wrapping_mul(0x2545_F491_4F6C_DD1D)
+        ^ MOTION_SEED;
+    z ^= z >> 30;
+    z = z.wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z ^= z >> 27;
+    z = z.wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^= z >> 31;
+    z
 }
 
 /// Map a mixed value to a percentage without floating point.
@@ -37,9 +45,7 @@ pub const fn pct(value: u64) -> u64 {
 
 /// Stable atmosphere glyph.
 pub fn glyph(x: u64, y: u64, epoch: u64) -> char {
-    POOL.get((mix(x, y, epoch) as usize) % POOL.len())
-        .copied()
-        .unwrap_or(b' ') as char
+    POOL[(mix(x, y, epoch) % 78) as usize] as char
 }
 
 /// Semantic tone accepted by the compatibility painting helpers.
@@ -544,45 +550,50 @@ pub const fn handoff_stage(frame: u64) -> HandoffStage {
 /// Number of handoff frames.
 pub const HANDOFF_LEN: u64 = 12;
 
-/// Paint deterministic atmosphere cells outside excluded rectangles.
+/// Restrained signal field behind the launch cockpit: ghost/faint bodies,
+/// at most one accent head per column, frozen on failure.
 pub fn paint_atmosphere(
     buf: &mut Buffer,
     area: Rect,
     exclude: &[Rect],
-    frame: u64,
+    t_local: u64,
     running: bool,
     frozen: bool,
-    theme: &Theme,
+    t: &Theme,
 ) {
-    for column in area.columns() {
-        let x = column.x;
-        if pct(mix(u64::from(x), 11, 0)) >= 18 {
+    for x in area.left()..area.right() {
+        if pct(mix(x as u64, 11, 0)) >= 18 {
             continue;
         }
-        let head = (frame + (mix(u64::from(x), 12, 0) % u64::from(area.height.max(1))))
-            % u64::from(area.height.max(1));
-        for row in area.rows() {
-            let y = row.y;
-            if exclude.iter().any(|rect| rect.contains((x, y).into())) {
+        let m = mix(x as u64, 12, 0);
+        let period_t = 2 + m % 2;
+        let trail = 6 + (m >> 8) % 5;
+        let gap = 6 + (m >> 16) % 19;
+        let period = area.height as u64 + trail + gap;
+        let phase = (m >> 24) % period;
+        let signal = (m >> 40).is_multiple_of(10);
+        let head = (t_local / period_t + phase) % period;
+        let head_y = head as i64 - gap as i64;
+        for y in area.top()..area.bottom() {
+            if exclude.iter().any(|r| r.contains((x, y).into())) {
                 continue;
             }
-            let distance = (u64::from(y.saturating_sub(area.y)) + u64::from(area.height) - head)
-                % u64::from(area.height.max(1));
-            if distance > 2 {
+            let age = head_y - (y - area.y) as i64;
+            if !(0..=3).contains(&age) {
                 continue;
             }
-            let tone = if distance == 0 && running && !frozen && frame >= 15 {
-                Tone::Accent
+            let tone = if age == 0 {
+                if signal && running && !frozen && t_local >= 15 {
+                    Tone::Accent
+                } else {
+                    Tone::Ladder(1)
+                }
             } else {
-                Tone::Ladder(1u8.saturating_sub(distance as u8))
+                Tone::Ladder(0)
             };
-            if let Some(resolved) = style(theme, tone, 0) {
-                buf.set_string(
-                    x,
-                    y,
-                    glyph(u64::from(x), u64::from(y), frame >> 3).to_string(),
-                    resolved,
-                );
+            let tone = if t_local < 15 { Tone::Ladder(0) } else { tone };
+            if let Some(st) = style(t, tone, 0) {
+                put(buf, x, y, glyph(x as u64, y as u64, t_local >> 3), st);
             }
         }
     }

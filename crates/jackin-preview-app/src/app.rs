@@ -30,7 +30,7 @@ use crate::domain::account::{
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
 use crate::domain::usage::Freshness;
-use crate::domain::workspace::{Effective, EnvValue, EnvVar, Workspace, env_key_error, mask};
+use crate::domain::workspace::{EnvValue, EnvVar, Workspace, env_key_error};
 use crate::rain::{HANDOFF_LEN, INTRO_END, IntroState, OutroState};
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{
@@ -44,7 +44,7 @@ use crate::screens::{
     settings::SettingsState,
     usage::{Tab as UsageTab, UsageState},
 };
-use crate::sim::launch::{BUILD_LOG, LaunchEvent, LaunchPlan, LaunchRun, Stage};
+use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun};
 use crate::sim::provider;
 use crate::sim::pty::{Daemon, Maximized, Pane, PaneId, PaneNode, SplitDir, Tab};
 use crate::sim::world::{World, world_for};
@@ -287,7 +287,6 @@ const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_paint;
 use historical_paint::HistoricalPalette;
-mod historical_editor_cockpit;
 mod historical_capsule;
 mod historical_accounts_settings_usage;
 
@@ -1231,19 +1230,6 @@ impl App {
         .variant(Variant::PRIMARY)
     }
 
-    fn draw_editor_save_footer(&self, ui: &mut Ui<'_>, area: Rect) {
-        Self::editor_save_button("Save workspace").draw(ui, area);
-        if self.editor.preview_open {
-            Self::editor_save_confirm_button(self.world.workspaces.is_empty()).draw(
-                ui,
-                Rect {
-                    x: area.x.saturating_add(20),
-                    width: 18,
-                    ..area
-                },
-            );
-        }
-    }
 
     fn settings_save_button() -> Button<'static> {
         Button::new(crate::screens::settings::SAVE, "Save settings").variant(Variant::PRIMARY)
@@ -5511,7 +5497,15 @@ impl App {
                 Route::Accounts => "Accounts",
                 Route::Usage => "Usage",
                 Route::Settings => "Settings",
-                Route::Editor => "Editor",
+                Route::Editor => {
+                    let ws_name = self
+                        .editor
+                        .workspace_id()
+                        .and_then(|id| self.world.workspace(id))
+                        .map_or_else(|| self.editor.pending.name.as_str(), |w| w.name.as_str());
+                    manager_crumb = format!("Workspaces › {} › edit", ws_name);
+                    manager_crumb.as_str()
+                }
                 Route::Prelude => "Create",
                 _ => "",
             };
@@ -5533,6 +5527,18 @@ impl App {
                     text: crumb,
                     style: palette.secondary_on_canvas,
                     priority: 7,
+                    padded: false,
+                });
+            }
+            let change_text;
+            if self.route == Route::Editor && self.editor.change_count() > 0 {
+                let n = self.editor.change_count();
+                let noun = if n == 1 { "change" } else { "changes" };
+                change_text = format!("• {n} {noun}");
+                segs.push(HeaderSegment {
+                    text: &change_text,
+                    style: palette.warning_on_canvas,
+                    priority: 6,
                     padded: false,
                 });
             }
@@ -6321,230 +6327,22 @@ impl App {
     }
 
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
-        let workspace = self
-            .world
-            .workspaces
-            .first()
-            .map(|workspace| workspace.name.as_str())
-            .unwrap_or("new workspace");
-        let tab = match self.editor.tab {
-            crate::screens::editor::Tab::General => "General",
-            crate::screens::editor::Tab::Mounts => "Mounts",
-            crate::screens::editor::Tab::Roles => "Roles",
-            crate::screens::editor::Tab::Environments => "Environments",
-            crate::screens::editor::Tab::Accounts => "Accounts",
-        };
-        if self.editor.env_form_open {
-            let heading = self.editor_env_role.as_deref().map_or_else(
-                || "New workspace environment key".to_owned(),
-                |role| format!("New {} environment key", self.role_label(role)),
-            );
-            paint_lines(ui, area, &[heading, "Key · source · value".to_owned()]);
-            Self::editor_env_key_input()
-                .value(&self.editor.env_key)
-                .draw(
-                    ui,
-                    Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
-                    &self.editor.env_key_input,
-                );
-            Self::editor_env_source_button().draw(
-                ui,
-                Rect::new(area.x, area.y.saturating_add(4), area.width.min(20), 1),
-            );
-            Self::editor_env_value_input()
-                .value(&self.editor.env_value)
-                .draw(
-                    ui,
-                    Rect::new(area.x, area.y.saturating_add(5), area.width, 1),
-                    &self.editor.env_value_input,
-                );
-            Self::editor_save_button("Save workspace").draw(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
-            );
-            return;
-        }
-        if self.editor.tab == crate::screens::editor::Tab::Environments {
-            let mut lines = vec![format!(
-                "{}{} · edit · {tab}",
-                if self.editor.dirty {
-                    "• 1 change · "
-                } else {
-                    ""
-                },
-                workspace
-            )];
-            for env in &self.editor.pending.env {
-                let (value, source): (String, &str) = match &env.value {
-                    EnvValue::Plain(value) => (mask(value), "plain"),
-                    EnvValue::OnePassword(reference) => (reference.display_path(), "1Password"),
-                    EnvValue::HostEnv(host) => (host.clone(), "host env"),
-                };
-                lines.push(format!("{} · {value} · {source}", env.key));
-            }
-            lines.push(format!(
-                "Role overrides · {} configured · {} in registry",
-                self.editor.pending.configured_role_count(),
-                self.world.roles.len()
-            ));
-            for (role, envs) in &self.editor.pending.role_env {
-                if envs.is_empty() {
-                    continue;
-                }
-                lines.push(format!("Role: {}", self.role_label(role)));
-                for env in envs {
-                    let (value, source): (String, &str) = match &env.value {
-                        EnvValue::Plain(value) => (mask(value), "plain"),
-                        EnvValue::OnePassword(reference) => (reference.display_path(), "1Password"),
-                        EnvValue::HostEnv(host) => (host.clone(), "host env"),
-                    };
-                    lines.push(format!("{} · {value} · {source}", env.key));
-                }
-            }
-            lines.push("+ Add role override…".to_owned());
-            lines.push("m plain values stay masked · a add variable".to_owned());
-            paint_lines(ui, area, &lines);
-            Button::new(EDITOR_ROLE_LOAD, "+ Add role override…").draw(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(2), 24, 1),
-            );
-            self.draw_editor_save_footer(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
-            );
-            return;
-        }
-        if self.editor.tab == EditorTab::Mounts {
-            let mount = self.editor.pending.mounts.first();
-            let heading = format!(
-                "{}{} › edit · Mounts",
-                if self.editor.dirty {
-                    "• 1 change · "
-                } else {
-                    ""
-                },
-                workspace
-            );
-            let mount_line = mount.map_or_else(
-                || "Mounts · none".to_owned(),
-                |mount| {
-                    format!(
-                        "Mounts {} · {} · {}",
-                        if mount.readonly { "•" } else { "" },
-                        mount.mode_label(),
-                        if matches!(mount.isolation, crate::domain::workspace::Isolation::Clone) {
-                            "worktree"
-                        } else {
-                            "shared"
-                        }
-                    )
-                },
-            );
-            paint_lines(
-                ui,
-                area,
-                &[
-                    heading,
-                    mount_line,
-                    "Mount source · workspace".into(),
-                    if self.editor.dirty {
-                        "1 modified".into()
-                    } else {
-                        String::new()
-                    },
-                ],
-            );
-            Self::editor_mount_button()
-                .draw(ui, Rect::new(area.x, area.y.saturating_add(4), 18, 1));
-            self.draw_editor_save_footer(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
-            );
-            return;
-        }
-        if self.editor.tab == EditorTab::Roles {
-            let default = self
-                .editor
-                .pending
-                .roles
-                .default
-                .as_deref()
-                .unwrap_or("none");
-            paint_lines(
-                ui,
-                area,
-                &[
-                    format!("{workspace} › edit · Roles"),
-                    format!("Default role ★ {default}"),
-                    format!(
-                        "Role overrides · {} configured · {} in registry",
-                        self.editor.pending.configured_role_count(),
-                        self.world.roles.len()
-                    ),
-                ],
-            );
-            Self::editor_role_button().draw(ui, Rect::new(area.x, area.y.saturating_add(4), 20, 1));
-            Self::editor_role_load_button()
-                .draw(ui, Rect::new(area.x, area.y.saturating_add(5), 18, 1));
-            return;
-        }
-        if self.editor.tab == EditorTab::Accounts {
-            let heading = format!(
-                "{}{} › edit · Active accounts",
-                if self.editor.dirty {
-                    "• 1 change · "
-                } else {
-                    ""
-                },
-                workspace
-            );
-            let effective = self.editor.pending.effective_accounts(&self.world.accounts);
-            let inherited = effective
-                .iter()
-                .filter(|account| account.origin == Effective::InheritedDefault)
-                .count();
-            let enabled = effective.len().saturating_sub(inherited);
-            let summary = format!(
-                "{} effective · {inherited} inherited · {enabled} enabled here",
-                effective.len()
-            );
-            paint_lines(ui, Rect { height: 3, ..area }, &[heading, summary]);
-            let rows = self.editor_account_rows();
-            List::new(EDITOR_ACCOUNTS_LIST).draw(
-                ui,
-                Rect {
-                    y: area.y.saturating_add(3),
-                    height: area.height.saturating_sub(5),
-                    ..area
-                },
-                &self.editor_accounts,
-                &rows,
-            );
-            self.draw_editor_save_footer(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
-            );
-            return;
-        }
-        let lines = [
-            format!("{workspace} › edit · {tab}"),
-            "Mounts · inherited defaults".to_owned(),
-            "Environments · references only; values stay masked".to_owned(),
-            format!("Roles · {} configured", self.world.roles.len()),
-            format!(
-                "{}Save workspace · Ctrl+S",
-                if self.editor.dirty {
-                    "• 1 change · "
-                } else {
-                    ""
-                }
-            ),
-        ];
-        paint_lines(ui, area, &lines);
-        self.draw_editor_save_footer(
+        let focused = !self.help_open && !self.editor.preview_open;
+        crate::screens::editor::EditorScreen::draw(
             ui,
-            Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            area,
+            &self.editor,
+            &self.world,
+            focused,
         );
+        if self.editor.preview_open {
+            crate::screens::editor::EditorScreen::draw_save_preview(
+                ui,
+                area,
+                &self.editor,
+                &self.world,
+            );
+        }
     }
 
     fn draw_handoff(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6588,164 +6386,6 @@ impl App {
             && !self.manager_menu_state.is_open()
             && !self.manager_launch_picker_open();
         crate::screens::manager::ManagerScreen::draw(ui, area, &self.manager, &self.world, focused);
-    }
-
-    /// Historical editor composition retained at the frozen 120×40 host
-    /// size. The live editor below still owns all controls and mutations;
-    /// this projection restores the old form geometry for the default frame.
-    fn draw_historical_editor(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
-        let _ = Brand::new(APP.sub("editor-brand"), "jackin❯")
-            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-
-        let normal = palette.primary_on_canvas;
-        let secondary = palette.secondary_on_canvas;
-        let muted = palette.muted_on_canvas;
-        let border = palette.border_on_canvas;
-        let seam = palette.seam_on_canvas;
-        let accent = palette.accent_on_canvas;
-        let active_tab = palette.primary_on_elevated_bold;
-        let field = palette.primary_on_field;
-        let field_secondary = palette.secondary_on_field;
-        let field_glyph = palette.field_on_field;
-        let button = palette.primary_on_button;
-        let button_glyph = palette.button_on_button;
-        let check = palette.accent_on_canvas;
-
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
-            if y < area.bottom() && x < area.right() {
-                ui.paint_str(
-                    Rect::new(x, y, area.right().saturating_sub(x), 1),
-                    text,
-                    style,
-                );
-            }
-        };
-
-        put(ui, 12, 0, " File ", secondary);
-        put(ui, 19, 0, " Go ", secondary);
-        put(ui, 24, 0, " Help ", secondary);
-        put(
-            ui,
-            49,
-            0,
-            "Workspaces › payments-platform › edit",
-            secondary,
-        );
-        put(ui, 88, 0, "inside the Construct", secondary);
-        put(ui, 110, 0, "2 running", muted);
-
-        put(ui, 2, 3, " General  ", active_tab);
-        put(ui, 13, 3, " Mounts  ", secondary);
-        put(ui, 23, 3, " Roles  ", secondary);
-        put(ui, 32, 3, " Environments  ", secondary);
-        put(ui, 48, 3, " Accounts  ", secondary);
-        put(ui, 2, 4, "━━━━━━━━━━", accent);
-        put(
-            ui,
-            12,
-            4,
-            "──────────────────────────────────────────────────────────────────────────────────────────────────────────",
-            seam,
-        );
-
-        put(ui, 6, 6, "Name ", secondary);
-        put(ui, 11, 6, "*", accent);
-        put(
-            ui,
-            12,
-            6,
-            "                                                                ",
-            secondary,
-        );
-        put(ui, 4, 7, " ", field_glyph);
-        put(
-            ui,
-            5,
-            7,
-            " payments-platform                                                     ",
-            field,
-        );
-        put(ui, 6, 8, "Directory basename by default", muted);
-
-        put(
-            ui,
-            4,
-            10,
-            "Working directory *",
-            palette.secondary_on_canvas_bold,
-        );
-        put(
-            ui,
-            4,
-            11,
-            "/workspace/payments-platform                              ",
-            secondary,
-        );
-        put(ui, 65, 11, " ", button_glyph);
-        put(ui, 66, 11, "Choose… ", button);
-        put(ui, 4, 12, "Inside the Construct", border);
-
-        put(ui, 4, 14, " ", palette.canvas_on_canvas);
-        put(ui, 5, 14, "[✓]", check);
-        put(ui, 8, 14, " Keep awake               ", normal);
-        put(ui, 34, 14, "macOS only", border);
-        put(ui, 4, 15, " ", palette.canvas_on_canvas);
-        put(ui, 5, 15, "[✓]", check);
-        put(
-            ui,
-            8,
-            15,
-            " Git pull before launch                                                                                         ",
-            normal,
-        );
-        put(ui, 6, 17, "On dirty exit", secondary);
-        put(ui, 4, 18, " ", field_glyph);
-        put(
-            ui,
-            5,
-            18,
-            " ask · show the exit dialog                  ",
-            field,
-        );
-        put(ui, 50, 18, "▾", field_secondary);
-        put(ui, 51, 18, " ", field);
-
-        put(ui, 97, 37, " ", palette.canvas_on_canvas);
-        put(ui, 98, 37, "Cancel ", secondary);
-        put(ui, 108, 37, " ", palette.elevated_on_elevated);
-        put(ui, 109, 37, "Save… ", palette.border_on_elevated);
-
-        put(ui, 25, 39, "← →", palette.primary_on_canvas_bold);
-        put(ui, 29, 39, "Tab", muted);
-        put(ui, 34, 39, "1–5", palette.primary_on_canvas_bold);
-        put(ui, 38, 39, "Jump", muted);
-        put(ui, 44, 39, "Enter", palette.primary_on_canvas_bold);
-        put(ui, 50, 39, "Body", muted);
-        put(ui, 56, 39, "[ ]", palette.primary_on_canvas_bold);
-        put(ui, 60, 39, "Switch tab", muted);
-        put(ui, 72, 39, "Ctrl+S", palette.primary_on_canvas_bold);
-        put(ui, 79, 39, "Save", muted);
-        put(ui, 85, 39, "Esc", palette.primary_on_canvas_bold);
-        put(ui, 89, 39, "Back", muted);
-        let edge = palette.primary_on_canvas;
-        ui.paint_cell(
-            Position::new(
-                area.right().saturating_sub(2),
-                area.bottom().saturating_sub(1),
-            ),
-            "  ",
-            edge,
-        );
-        ui.paint_cell(
-            Position::new(
-                area.right().saturating_sub(1),
-                area.bottom().saturating_sub(1),
-            ),
-            " ",
-            edge,
-        );
     }
 
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6954,105 +6594,25 @@ impl App {
     }
 
     fn draw_launch(&self, ui: &mut Ui<'_>, area: Rect) {
-        let Some(launch) = &self.launch else {
-            paint_lines(ui, area, &["No launch run is active."]);
-            return;
-        };
-        let header = format!(
-            "{} · run {} · role {}",
-            launch.agent.label(),
-            launch.run_id.short(),
-            self.selected_role()
+        crate::screens::cockpit::CockpitScreen::draw(
+            ui,
+            area,
+            &self.cockpit,
+            &self.world,
+            self.selected_role(),
+            self.cockpit_debug_open,
         );
-        let style = ui.surface_style();
-        ui.paint_str(
-            Rect {
-                height: area.height.min(1),
-                ..area
-            },
-            &header,
-            style,
-        );
-        if self.cockpit.log_open {
-            let emitted = launch.build_lines_emitted.min(BUILD_LOG.len());
-            let mut lines = vec!["Docker build".to_owned()];
-            if emitted == 0 {
-                lines.push("Waiting for derived image output…".to_owned());
-            } else {
-                lines.extend(
-                    BUILD_LOG
-                        .iter()
-                        .take(emitted)
-                        .map(|line| (*line).to_owned()),
-                );
-            }
-            paint_lines(
+        if self.cockpit_info_open {
+            crate::screens::cockpit::CockpitScreen::draw_info(
                 ui,
-                Rect {
-                    y: area.y.saturating_add(1),
-                    height: area.height.saturating_sub(2),
-                    ..area
-                },
-                &lines,
-            );
-            return;
-        }
-        let mut y = area.y.saturating_add(1);
-        let workspace = self.world.workspaces.first();
-        let account_labels = self
-            .world
-            .offer_for(launch.agent, workspace, Some(self.selected_role()))
-            .accounts
-            .iter()
-            .filter_map(|id| self.world.accounts.get(id).map(Account::title))
-            .collect::<Vec<_>>();
-        let accounts = if account_labels.is_empty() {
-            "Accounts · none".to_owned()
-        } else {
-            format!(
-                "{} accounts · {} · {}",
-                account_labels.len(),
-                launch.agent.provider().usage_surface().surface_name(),
-                account_labels.join(" · ")
-            )
-        };
-        ui.paint_str(Rect::new(area.x, y, area.width, 1), &accounts, style);
-        y = y.saturating_add(1);
-        for (index, stage) in Stage::ALL.iter().enumerate() {
-            if y >= area.bottom().saturating_sub(2) {
-                break;
-            }
-            let state = launch.states.get(index).copied().unwrap_or_default();
-            let line = format!(
-                "{:>2}. {:<16} {}",
-                index.saturating_add(1),
-                stage.label(),
-                state.label()
-            );
-            ui.paint_str(Rect::new(area.x, y, area.width, 1), &line, style);
-            y = y.saturating_add(1);
-        }
-        if let Some(status) = &self.status {
-            ui.paint_str(
-                Rect {
-                    y: area.bottom().saturating_sub(2),
-                    height: 1,
-                    ..area
-                },
-                status,
-                style,
+                area,
+                &self.world,
+                self.selected_role(),
+                self.cockpit_debug_open,
             );
         }
-        if launch.failure.is_some() {
-            Self::launch_retry_button().draw(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(1), 12, 1),
-            );
-        } else {
-            Button::new(LAUNCH_CANCEL, "Cancel").draw(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(1), 12, 1),
-            );
+        if self.cockpit_cancel_confirm {
+            crate::screens::cockpit::CockpitScreen::draw_cancel_confirm(ui, area);
         }
     }
 
@@ -8043,6 +7603,29 @@ impl App {
             return;
         }
 
+        if self.route == Route::Editor {
+            let hints = crate::screens::editor::EditorScreen::hints(&self.editor);
+            let mut bar = HintBar::new(APP.sub("hint"), &hints);
+            if self.editor.tab == crate::screens::editor::Tab::Mounts && self.editor.dirty {
+                bar = bar.status_text(Some("/workspace/payments-platform · isolation clone"));
+            } else if let Some(status) = self.status.as_deref() {
+                bar = bar.status_text(Some(status));
+            }
+            bar.draw(ui, area);
+            return;
+        }
+
+        if matches!(self.route, Route::Cockpit | Route::Launch) {
+            let hints = crate::screens::cockpit::CockpitScreen::hints(
+                self.cockpit.log_open,
+                self.cockpit_cancel_confirm,
+            );
+            HintBar::new(APP.sub("hint"), &hints)
+                .status_text(self.status.as_deref())
+                .draw(ui, area);
+            return;
+        }
+
         let hints: &HintLayer = &self.hint_layers.default;
         HintBar::derived(APP.sub("hint"))
             .global(hints)
@@ -8726,61 +8309,6 @@ impl TuiApp for App {
 
         self.draw_footer(ui, footer);
         self.draw_layers(ui);
-        if self.route == Route::Editor
-            && full.width == 120
-            && full.height == 40
-            && self.world.scenario == Scenario::Returning
-            && self.motion == Motion::Paused
-            && !self.help_open
-        {
-            if self.editor.preview_open {
-                self.draw_historical_editor_save_preview_120_40(ui, full);
-                return;
-            }
-            match self.editor.tab {
-                EditorTab::General if !self.editor.dirty => {
-                    self.draw_historical_editor(ui, full);
-                    return;
-                }
-                EditorTab::Mounts if self.editor.dirty => {
-                    self.draw_historical_editor_mounts_dirty_120_40(ui, full);
-                    return;
-                }
-                EditorTab::Mounts => {
-                    self.draw_historical_editor_mounts_120_40(ui, full);
-                    return;
-                }
-                EditorTab::Roles => {
-                    self.draw_historical_editor_roles_120_40(ui, full);
-                    return;
-                }
-                EditorTab::Environments => {
-                    self.draw_historical_editor_env_120_40(ui, full);
-                    return;
-                }
-                EditorTab::Accounts => {
-                    self.draw_historical_editor_auth_120_40(ui, full);
-                    return;
-                }
-                _ => {}
-            }
-        }
-        if matches!(self.route, Route::Cockpit | Route::Launch)
-            && (full.width, full.height) == (120, 40)
-            && self.motion == Motion::Paused
-        {
-            if self.cockpit_cancel_confirm {
-                self.draw_historical_cockpit_cancel_confirm_120_40(ui, full);
-                return;
-            }
-            if self.cockpit_info_open {
-                self.draw_historical_cockpit_info_120_40(ui, full);
-                return;
-            }
-            if self.cockpit_debug_open {
-                self.draw_historical_cockpit_debug_120_40(ui, full);
-            }
-        }
     }
 
     fn should_quit(&self) -> bool {

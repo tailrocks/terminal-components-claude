@@ -6,6 +6,7 @@
 
 pub mod accounts;
 pub mod cockpit;
+pub mod editor;
 pub mod manager;
 pub mod manager_actions;
 pub mod prelude;
@@ -13,7 +14,8 @@ pub mod settings;
 pub mod usage;
 
 pub use accounts::AccountsState;
-pub use cockpit::{AccountLine, CockpitState, HandoffState};
+pub use cockpit::{AccountLine, CockpitScreen, CockpitState, HandoffState};
+pub use editor::{EditorScreen, EditorState, PendingWorkspace, Tab as EditorTab};
 pub use manager::{
     InspectDialog, LaunchCandidate, ManagerRowKey, ManagerScreen, ManagerState, INSPECT,
     INSPECT_CLOSE,

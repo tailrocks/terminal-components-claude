@@ -1,8 +1,14 @@
 //! Launch cockpit state and controls.
 
-use termrock::Id;
+use ratatui::layout::Rect;
+use termrock::author::{FgStep, Modifier, Role, StylePatch, Ui};
+use termrock::controls::{Brand, Button, Panel, PanelKind};
+use termrock::layout::Track;
+use termrock::navigation::{List, ListState};
+use termrock::{Hint, HintKey, HintLayer, Id, Variant};
 
 use jackin_preview_presentation::rain::{HANDOFF_LEN, HandoffStage, handoff_stage};
+use jackin_preview_sim::world::World;
 
 /// Cockpit root.
 pub const ROOT: Id = Id::root("jackin.cockpit");
@@ -184,6 +190,308 @@ pub struct CockpitState {
     pub account_line: AccountLine,
     /// Tick-owned handoff state.
     pub handoff: HandoffState,
+}
+
+/// Stage rail display row.
+struct StageItem {
+    glyph: &'static str,
+    is_accent: bool,
+    num: &'static str,
+    name: &'static str,
+    status: &'static str,
+    is_current: bool,
+}
+
+/// Reusable Cockpit screen composition.
+pub struct CockpitScreen;
+
+impl CockpitScreen {
+    /// Render the main Cockpit surface.
+    pub fn draw(
+        ui: &mut Ui<'_>,
+        _area: Rect,
+        _cockpit: &CockpitState,
+        world: &World,
+        role: &str,
+        debug: bool,
+    ) {
+        let ws_name = world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |w| w.name.as_str());
+
+        // 1. Centered jackin❯ brand
+        let _ = Brand::new(ROOT.sub("brand"), "jackin❯").draw(ui, Rect::new(55, 3, 9, 1));
+
+        // 2. Identity line 4: title
+        let head = format!("Loading {role} into workspace {ws_name}");
+        let ident1_state = ListState::default();
+        List::new(ROOT.sub("ident-title"))
+            .row(|_, row| {
+                let p = StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .add(Modifier::BOLD);
+                row.label_patched(&head, &p);
+            })
+            .draw(ui, Rect::new(33, 4, 54, 1), &ident1_state, &[()]);
+
+        // 3. Identity line 5: agent / account
+        let ident2_state = ListState::default();
+        List::new(ROOT.sub("ident-agent"))
+            .row(|_, row| {
+                let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                row.label_patched(
+                    "Claude Code · Anthropic / Claude · account Claude · Work (session choice)",
+                    &p,
+                );
+            })
+            .draw(ui, Rect::new(23, 5, 73, 1), &ident2_state, &[()]);
+
+        // 4. Identity line 6: stage progress summary
+        let ident3_state = ListState::default();
+        List::new(ROOT.sub("ident-stage"))
+            .row(|_, row| {
+                let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                row.label_patched(
+                    "stage 3 of 11 · Credentials · 2 done · 0 skipped",
+                    &p,
+                );
+            })
+            .draw(ui, Rect::new(36, 6, 48, 1), &ident3_state, &[()]);
+
+        // 5. 11-stage launch rail
+        let stages = [
+            StageItem { glyph: "✓", is_accent: true, num: "01", name: "Identity", status: "1.4 s", is_current: false },
+            StageItem { glyph: "✓", is_accent: true, num: "02", name: "Role", status: "1.8 s", is_current: false },
+            StageItem { glyph: "⠋", is_accent: true, num: "03", name: "Credentials", status: "", is_current: true },
+            StageItem { glyph: "", is_accent: false, num: "04", name: "Construct", status: "queued", is_current: false },
+            StageItem { glyph: "", is_accent: false, num: "05", name: "Agent Binaries", status: "queued", is_current: false },
+            StageItem { glyph: "", is_accent: false, num: "06", name: "Derived Image", status: "queued", is_current: false },
+            StageItem { glyph: "", is_accent: false, num: "07", name: "Workspace", status: "queued", is_current: false },
+            StageItem { glyph: "", is_accent: false, num: "08", name: "Network", status: "queued", is_current: false },
+            StageItem { glyph: "", is_accent: false, num: "09", name: "Sidecar", status: "queued", is_current: false },
+            StageItem { glyph: "", is_accent: false, num: "10", name: "Capsule", status: "queued", is_current: false },
+            StageItem { glyph: "", is_accent: false, num: "11", name: "Hardline", status: "queued", is_current: false },
+        ];
+
+        let rail_state = ListState::default();
+        List::new(STAGES)
+            .row(|item: &StageItem, row| {
+                let mut cols = row.columns_with_gap(&[
+                    Track::Fixed(3),
+                    Track::Fixed(3),
+                    Track::Fixed(32),
+                    Track::Fixed(6),
+                ], 0);
+
+                if item.is_accent {
+                    let p_accent = StylePatch::new().set_fg(Role::Accent);
+                    let glyph_str = format!(" {} ", item.glyph);
+                    let text = if item.glyph.is_empty() { "   " } else { glyph_str.as_str() };
+                    cols.cell(0).patch(&p_accent).text(text);
+                } else {
+                    cols.cell(0).text("   ");
+                }
+
+                if item.is_current {
+                    let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    cols.cell(1).patch(&p_sec).text(&format!("{} ", item.num));
+                    let p_bold = StylePatch::new().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD);
+                    cols.cell(2).patch(&p_bold).text(item.name);
+                } else if item.is_accent {
+                    let p_faint = StylePatch::new().set_fg(Role::BorderStrong);
+                    cols.cell(1).patch(&p_faint).text(&format!("{} ", item.num));
+                    let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    cols.cell(2).patch(&p_sec).text(item.name);
+                    cols.cell(3).patch(&p_faint).text(item.status);
+                } else {
+                    let p_faint = StylePatch::new().set_fg(Role::BorderStrong);
+                    cols.cell(1).patch(&p_faint).text(&format!("{} ", item.num));
+                    let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                    cols.cell(2).patch(&p_muted).text(item.name);
+                    cols.cell(3).patch(&p_faint).text(item.status);
+                }
+            })
+            .draw(ui, Rect::new(38, 8, 44, 11), &rail_state, &stages);
+
+        // 6. Credentials projection line under stage rail
+        let cred_state = ListState::default();
+        List::new(ACCOUNT_LINE)
+            .row(|_, row| {
+                let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                row.label_patched(
+                    "credentials  5 accounts · Claude · Work (1Password) · Claude · Personal · Codex · P…",
+                    &p,
+                );
+            })
+            .draw(ui, Rect::new(34, 20, 84, 1), &cred_state, &[()]);
+
+        let quota_state = ListState::default();
+        List::new(ACCOUNT_LINE.sub("quota"))
+            .row(|_, row| {
+                let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                row.label_patched("quota readable · session choice", &p);
+            })
+            .draw(ui, Rect::new(47, 21, 31, 1), &quota_state, &[()]);
+
+        // 7. Bottom status line
+        let status_state = ListState::default();
+        List::new(ROOT.sub("status"))
+            .row(|_, row| {
+                let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                row.label_patched("⠋ Resolving credentials…", &p);
+            })
+            .draw(ui, Rect::new(1, 36, 24, 1), &status_state, &[()]);
+
+        if debug {
+            let debug_state = ListState::default();
+            List::new(ROOT.sub("debug-chip"))
+                .row(|_, row| {
+                    let p = StylePatch::new().set_fg(Role::Warning);
+                    row.label_patched(" run-202609030914-b5df ", &p);
+                })
+                .draw(ui, Rect::new(96, 36, 23, 1), &debug_state, &[()]);
+        }
+    }
+
+    /// Render the container debug info modal.
+    pub fn draw_info(
+        ui: &mut Ui<'_>,
+        _area: Rect,
+        world: &World,
+        role: &str,
+        _debug: bool,
+    ) {
+        let modal_area = Rect::new(27, 14, 66, 11);
+        let ws_name = world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |w| w.name.as_str());
+        let target_val = format!("{role} into workspace {ws_name}");
+
+        Panel::new(ROOT.sub("debug-info"))
+            .kind(PanelKind::Framed)
+            .title("Debug info")
+            .meta("read-only")
+            .draw(ui, modal_area, |ui, body| {
+                let list_state = ListState::default();
+                let props: [(&str, String, bool, bool); 5] = [
+                    ("Target", target_val, true, true),
+                    ("Role", role.to_owned(), false, false),
+                    ("Agent", "Claude Code · account Claude · Work".to_owned(), false, false),
+                    ("Run id", "run-202609030914-b5df".to_owned(), false, false),
+                    ("jackin", "0.6.4 · preview".to_owned(), false, false),
+                ];
+
+                List::new(ROOT.sub("info-props"))
+                    .row(|(label, val, has_focus, is_bold): &(&str, String, bool, bool), row| {
+                        let mut cols = row.columns_with_gap(&[
+                            Track::Fixed(2),
+                            Track::Fixed(6),
+                            Track::Flex(1),
+                        ], 2);
+
+                        if *has_focus {
+                            let p_focus = StylePatch::new().set_fg(Role::Accent);
+                            cols.cell(0).patch(&p_focus).text("▎");
+                        } else {
+                            cols.cell(0).text("  ");
+                        }
+
+                        let p_label = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                        cols.cell(1).patch(&p_label).text(label);
+
+                        if *is_bold {
+                            let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD);
+                            cols.cell(2).patch(&p_val).text(val);
+                        } else {
+                            let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
+                            cols.cell(2).patch(&p_val).text(val);
+                        }
+                    })
+                    .draw(ui, Rect::new(body.x, body.y, body.width, 5), &list_state, &props);
+
+                let close_area = Rect::new(body.right().saturating_sub(9), body.bottom().saturating_sub(1), 7, 1);
+                Button::new(ROOT.sub("info-close"), "Close").draw(ui, close_area);
+            });
+    }
+
+    /// Render the cancel confirmation modal.
+    pub fn draw_cancel_confirm(ui: &mut Ui<'_>, _area: Rect) {
+        let modal_area = Rect::new(33, 15, 54, 11);
+
+        Panel::new(ROOT.sub("cancel-confirm"))
+            .kind(PanelKind::Framed)
+            .draw(ui, modal_area, |ui, body| {
+                let title_state = ListState::default();
+                List::new(ROOT.sub("cancel-title"))
+                    .row(|_, row| {
+                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD);
+                        row.label_patched("  Cancel the launch?", &p);
+                    })
+                    .draw(ui, Rect::new(body.x, body.y.saturating_add(1), body.width, 1), &title_state, &[()]);
+
+                let desc_state = ListState::default();
+                let desc_lines = [
+                    "  The pipeline stops at its current stage and the",
+                    "  partially prepared instance is marked failed",
+                    "  setup. Nothing is attached.",
+                ];
+                List::new(ROOT.sub("cancel-desc"))
+                    .row(|line: &&str, row| {
+                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                        row.label_patched(line, &p);
+                    })
+                    .draw(ui, Rect::new(body.x, body.y.saturating_add(3), body.width, 3), &desc_state, &desc_lines);
+
+                let cancel_btn_area = Rect::new(60, 23, 8, 1);
+                let cancel_launch_area = Rect::new(69, 23, 15, 1);
+                Button::new(CANCEL, "Cancel").draw(ui, cancel_btn_area);
+                Button::new(ROOT.sub("cancel-launch"), "Cancel launch")
+                    .variant(Variant::DANGER)
+                    .draw(ui, cancel_launch_area);
+            });
+    }
+
+    /// Cockpit hints for the bottom hint bar.
+    pub fn hints(log_open: bool, cancel_confirm_open: bool) -> HintLayer {
+        if cancel_confirm_open {
+            HintLayer {
+                hints: vec![
+                    Hint { key: HintKey::Label("← →"), label: "Choose", priority: 100 },
+                    Hint { key: HintKey::Label("Enter"), label: "Confirm", priority: 90 },
+                    Hint { key: HintKey::Label("Esc"), label: "Cancel", priority: 80 },
+                    Hint { key: HintKey::Label("y / n"), label: "Quick answer", priority: 70 },
+                ],
+                badge: None,
+                status: None,
+                centered: true,
+            }
+        } else if log_open {
+            HintLayer {
+                hints: vec![
+                    Hint { key: HintKey::Label("↑↓"), label: "Scroll", priority: 100 },
+                    Hint { key: HintKey::Label("End"), label: "Follow", priority: 90 },
+                    Hint { key: HintKey::Label("Esc"), label: "Close log", priority: 80 },
+                ],
+                badge: None,
+                status: None,
+                centered: true,
+            }
+        } else {
+            HintLayer {
+                hints: vec![
+                    Hint { key: HintKey::Label("i"), label: "Container info", priority: 100 },
+                    Hint { key: HintKey::Label("c"), label: "Cancel", priority: 90 },
+                    Hint { key: HintKey::Label("Ctrl+Q"), label: "Quit", priority: 80 },
+                    Hint { key: HintKey::Label("Ctrl+C"), label: "Abort", priority: 70 },
+                ],
+                badge: None,
+                status: None,
+                centered: true,
+            }
+        }
+    }
 }
 
 #[cfg(test)]
