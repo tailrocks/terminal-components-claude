@@ -563,7 +563,7 @@ impl<'a> ContextMenu<'a> {
         let title = self.title.map_or(0, width);
         let rows = self.items.iter().map(|item| {
             let shortcut = effective(item.action, item.chord).map_or(0, |chord| {
-                width(ChordText::with_case(chord, self.chord_case).as_str()).saturating_add(2)
+                width(ChordText::with_case(chord, self.chord_case).as_str()).saturating_add(3)
             });
             width(item.label)
                 .saturating_add(shortcut)
@@ -782,7 +782,7 @@ impl<'a> ContextMenu<'a> {
                 Family::MENU,
                 Variant::DEFAULT,
                 Part::CONTAINER,
-                live,
+                StateFlags::empty(),
             );
             ui.fill(area, container.style);
             let border = self.ov.style(
@@ -791,7 +791,7 @@ impl<'a> ContextMenu<'a> {
                 Family::MENU,
                 Variant::DEFAULT,
                 Part::BORDER,
-                live,
+                StateFlags::empty(),
             );
             let inner = ui.frame(area, border.style);
             if let Some(slot) = self.ov.slot_for(Part::BORDER) {
@@ -836,20 +836,25 @@ impl<'a> ContextMenu<'a> {
                 self.draw_row(ui, row, index, item, st, live);
                 y = y.saturating_add(1);
                 if item.separator_after && y < inner.bottom() {
-                    let rule = first_row(Rect { y, ..inner });
+                    let rule = Rect {
+                        x: inner.x.saturating_add(1),
+                        y,
+                        width: inner.width.saturating_sub(2),
+                        height: 1,
+                    };
                     let style = self.ov.style(
                         ui,
                         self.id,
                         Family::MENU,
                         Variant::DEFAULT,
                         Part::RULE,
-                        live,
+                        StateFlags::empty(),
                     );
                     if let Some(slot) = self.ov.slot_for(Part::RULE) {
                         slot(ui, rule);
                     } else {
-                        for cell in rule.rows() {
-                            ui.glyph(cell, GlyphRole::RuleQuiet, style.style);
+                        for col in rule.columns() {
+                            ui.glyph(col, GlyphRole::RuleQuiet, style.style);
                         }
                     }
                     ui.register_decor(self.id, PartRef::of(Part::RULE), rule);
@@ -945,9 +950,10 @@ impl<'a> ContextMenu<'a> {
                 width: key_width.min(row.width),
                 ..row
             };
-            let key_style = self
+            let mut key_style = self
                 .ov
                 .style(ui, self.id, Family::MENU, variant, Part::KEY, flags);
+            key_style.style = key_style.style.remove_modifier(ratatui::style::Modifier::BOLD);
             paint_or_slot(ui, &self.ov, Part::KEY, key, text.as_str(), key_style.style);
         }
         ui.register_part(
@@ -1087,14 +1093,33 @@ impl<'a> MenuBar<'a> {
     }
 
     fn anchor(&self, cx: &Cx<'_>, index: usize) -> Anchor {
-        cx.area(self.menu_id(index)).map_or(
-            Anchor::Screen(crate::layer::ScreenAlign::UpperThird),
-            |rect| Anchor::Rect {
+        if let Some(rect) = cx.area(self.menu_id(index)) {
+            return Anchor::Rect {
                 rect,
                 side: crate::layer::Side::Below,
                 align: crate::layer::CrossAlign::Start,
-            },
-        )
+            };
+        }
+        if let Some(bar) = cx.area(self.id) {
+            let mut x = bar.x.saturating_add(1);
+            for (i, m) in self.menus.iter().enumerate() {
+                let w = width(m.label).saturating_add(2);
+                if i == index {
+                    return Anchor::Rect {
+                        rect: Rect {
+                            x,
+                            y: bar.y,
+                            width: w,
+                            height: 1,
+                        },
+                        side: crate::layer::Side::Below,
+                        align: crate::layer::CrossAlign::Start,
+                    };
+                }
+                x = x.saturating_add(w).saturating_add(1);
+            }
+        }
+        Anchor::Screen(crate::layer::ScreenAlign::UpperThird)
     }
 
     fn dropdown(&self, cx: &Cx<'_>, index: usize) -> Option<ContextMenu<'a>> {

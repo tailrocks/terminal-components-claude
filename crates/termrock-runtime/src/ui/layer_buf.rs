@@ -6,7 +6,7 @@ use ratatui_core::style::{Color, Modifier};
 
 use super::CellRoles;
 use crate::id::Id;
-use crate::layer::{LayerId, LayerSpec};
+use crate::layer::{LayerId, LayerKind, LayerSpec};
 use crate::theme::PaintStyle;
 use crate::theme::builder::{FadeOutcome, fade_mix};
 
@@ -22,6 +22,7 @@ pub(crate) struct LayerDraw {
     pub(crate) buf: Buffer,
     pub(crate) written: Vec<bool>,
     roles: Vec<CellRoles>,
+    sub_modifiers: Vec<Modifier>,
     pub(crate) drawn: bool,
     pub(crate) fade_rows: Vec<(u16, f32, Color)>,
 }
@@ -36,6 +37,7 @@ impl LayerDraw {
             buf: Buffer::empty(screen),
             written: vec![false; screen.area() as usize],
             roles: vec![CellRoles::default(); screen.area() as usize],
+            sub_modifiers: vec![Modifier::empty(); screen.area() as usize],
             drawn: false,
             fade_rows: Vec::new(),
         }
@@ -67,6 +69,9 @@ impl LayerDraw {
         self.roles.clear();
         self.roles
             .resize(screen.area() as usize, CellRoles::default());
+        self.sub_modifiers.clear();
+        self.sub_modifiers
+            .resize(screen.area() as usize, Modifier::empty());
     }
 
     fn index(&self, pos: Position) -> Option<usize> {
@@ -87,6 +92,9 @@ impl LayerDraw {
             *w = true;
             if let Some(roles) = self.roles.get_mut(i) {
                 *roles = roles.patch(style);
+            }
+            if let (Some(s), Some(sub)) = (style, self.sub_modifiers.get_mut(i)) {
+                *sub |= s.as_style().sub_modifier;
             }
         }
     }
@@ -132,8 +140,21 @@ impl LayerDraw {
             }
             if let (Some(src), Some(dst)) = (self.buf.cell(pos), page.cell_mut(pos)) {
                 dst.set_symbol(src.symbol());
-                dst.modifier = src.modifier;
-                if src.fg != ratatui_core::style::Color::Reset {
+                if self.spec.kind == LayerKind::Popover {
+                    let sub = self
+                        .index(pos)
+                        .and_then(|i| self.sub_modifiers.get(i))
+                        .copied()
+                        .unwrap_or(Modifier::empty());
+                    dst.modifier = dst.modifier.difference(sub) | src.modifier;
+                } else {
+                    dst.modifier = src.modifier;
+                }
+                if src.fg != ratatui_core::style::Color::Reset
+                    && !(self.spec.kind == LayerKind::Popover
+                        && src.symbol() == " "
+                        && self.roles_at(pos).fg.is_none())
+                {
                     dst.set_fg(src.fg);
                 }
                 if src.bg != ratatui_core::style::Color::Reset {

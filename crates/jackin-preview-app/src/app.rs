@@ -13,14 +13,14 @@ use std::{
 use termrock::author::PaintStyle;
 
 use termrock::{
-    Action, ActionKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx, Dialog, DialogAction,
-    DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar,
+    Action, ActionKey, Anchor, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, CrossAlign, Cx, Dialog, DialogAction,
+    DialogState, FgStep, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar,
     HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
     ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Modifier, Moment, Panel,
     Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText, Reconcile,
-    Rect, Response, SecretPolicy, Tabs, TabsAction, TabsState, TextAction,
+    Rect, Response, Role, SecretPolicy, Side, StylePatch, Surface, Tabs, TabsAction, TabsState, TextAction,
     TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
-    ViewportLine, ViewportState, StylePatch,
+    ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -186,6 +186,46 @@ const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
 const CMD_CONTAINER_INFO: ActionKey = ActionKey::application("jackin.capsule.container-info");
 const CAPSULE_MENU_PREVIOUS: ActionKey = ActionKey::custom("menu.bar.prev.left");
 const CAPSULE_MENU_NEXT: ActionKey = ActionKey::custom("menu.bar.next.right");
+
+const CMD_EDIT_WORKSPACE: ActionKey = ActionKey::application("jackin.edit-workspace");
+const CMD_LAUNCH: ActionKey = ActionKey::application("jackin.launch");
+const CMD_PREWARM: ActionKey = ActionKey::application("jackin.prewarm");
+const CMD_DELETE_WORKSPACE: ActionKey = ActionKey::application("jackin.delete-workspace");
+const CMD_REFRESH: ActionKey = ActionKey::application("jackin.refresh");
+const MANAGER_MENU_BAR: Id = APP.sub("manager-menu-bar");
+
+const MANAGER_FILE_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_NEW_WORKSPACE, "New workspace…").chord(Chord::key(KeyCode::Char('n'))),
+    MenuItem::new(CMD_EDIT_WORKSPACE, "Edit workspace…").chord(Chord::key(KeyCode::Char('e'))),
+    MenuItem::new(CMD_LAUNCH, "Launch…").chord(Chord::key(KeyCode::Enter)),
+    MenuItem::new(CMD_PREWARM, "Prewarm").chord(Chord::key(KeyCode::Char('w'))),
+    MenuItem::new(CMD_DELETE_WORKSPACE, "Delete workspace…")
+        .chord(Chord::key(KeyCode::Char('d')))
+        .danger()
+        .separator(),
+    MenuItem::new(CMD_REFRESH, "Refresh")
+        .chord(Chord::key(KeyCode::F(5)))
+        .separator(),
+    MenuItem::new(CMD_QUIT, "Quit").chord(Chord::with(KeyCode::Char('Q'), KeyModifiers::CONTROL)),
+];
+
+const MANAGER_GO_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_MANAGER, "Workspace manager").chord(Chord::key(KeyCode::Esc)),
+    MenuItem::new(CMD_ACCOUNTS, "Account & Usage Center").chord(Chord::key(KeyCode::Char('c'))),
+    MenuItem::new(CMD_USAGE, "Usage").chord(Chord::key(KeyCode::Char('u'))),
+    MenuItem::new(CMD_SETTINGS, "Global settings").chord(Chord::key(KeyCode::Char('s'))),
+];
+
+const MANAGER_HELP_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_KEYBOARD_SHORTCUTS, "Key reference").chord(Chord::key(KeyCode::Char('?'))),
+    MenuItem::new(CMD_ABOUT, "About jackin-preview"),
+];
+
+const MANAGER_MENUS: &[Menu<'static>] = &[
+    Menu::new("File", MANAGER_FILE_ITEMS),
+    Menu::new("Go", MANAGER_GO_ITEMS),
+    Menu::new("Help", MANAGER_HELP_ITEMS),
+];
 
 const CAPSULE_FILE_ITEMS: &[MenuItem<'static>] = &[
     MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
@@ -428,6 +468,7 @@ struct HintLayerSet {
     capsule_inspect: HintLayer,
     capsule_default: HintLayer,
     prelude: HintLayer,
+    manager_menu: HintLayer,
 }
 
 impl HintLayerSet {
@@ -502,6 +543,12 @@ impl Default for HintLayerSet {
                 Self::hint(HintKey::Chord(Chord::key(KeyCode::Enter)), "Choose", 80),
                 Self::hint(HintKey::Chord(Chord::key(KeyCode::F(10))), "Menu", 70),
             ]),
+            manager_menu: Self::layer_centered(vec![
+                Self::hint(HintKey::Label("← →"), "Menu", 100),
+                Self::hint(HintKey::Label("↑↓"), "Move", 90),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Enter)), "Choose", 80),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 70),
+            ]),
             capsule_prefix: Self::layer(vec![
                 Self::hint(
                     HintKey::Chord(Chord::key(KeyCode::Char('c'))),
@@ -561,6 +608,7 @@ pub struct App {
     quit: bool,
     keymap: KeyMap,
     capsule_menu_state: MenuState,
+    manager_menu_state: MenuState,
     container_info_state: DialogState,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
@@ -756,6 +804,7 @@ impl App {
             quit: false,
             keymap: app_keymap(),
             capsule_menu_state: MenuState::default(),
+            manager_menu_state: MenuState::default(),
             container_info_state: DialogState::default(),
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
@@ -1238,6 +1287,10 @@ impl App {
 
     fn shell_panel<'a>(meta: &'a str) -> Panel<'a> {
         Panel::new(APP).title("Jackin Preview").meta(meta)
+    }
+
+    fn manager_menu_bar() -> MenuBar<'static> {
+        MenuBar::new(MANAGER_MENU_BAR, MANAGER_MENUS)
     }
 
     fn capsule_menu_bar() -> MenuBar<'static> {
@@ -2056,7 +2109,13 @@ impl App {
         );
         Self::with_manager_help(|sections| {
             let help = Self::manager_help_overlay(sections, w, h);
-            cx.open_layer(MANAGER_HELP, help.layer(cx));
+            let mut spec = help.layer(cx);
+            spec.anchor = Anchor::Rect {
+                rect: Rect::new(0, 0, screen.width, 1),
+                side: Side::Below,
+                align: CrossAlign::Center,
+            };
+            cx.open_layer(MANAGER_HELP, spec);
         });
     }
 
@@ -3915,6 +3974,49 @@ impl App {
         }
         result |= menu_response.erase();
 
+        let manager_menu = Self::manager_menu_bar();
+        let manager_menu_intents = cx.intents(MANAGER_MENU_BAR).collect::<Vec<_>>();
+        let manager_menu_state_before = self.manager_menu_state.clone();
+        let manager_menu_response = manager_menu.update(cx, &mut self.manager_menu_state);
+        if let Some(open) = manager_menu_state_before.open_menu() {
+            let count = MANAGER_MENUS.len();
+            let next = manager_menu_intents.iter().find_map(|intent| match intent {
+                Intent::Binding(action) if *action == CAPSULE_MENU_PREVIOUS => Some(if open == 0 {
+                    count.saturating_sub(1)
+                } else {
+                    open - 1
+                }),
+                Intent::Binding(action) if *action == CAPSULE_MENU_NEXT => {
+                    Some(open.saturating_add(1) % count)
+                }
+                _ => None,
+            });
+            if let Some(index) = next {
+                result |= manager_menu
+                    .open_menu(cx, &mut self.manager_menu_state, index)
+                    .erase();
+            }
+        }
+        if let Some(action) = manager_menu_response.action_ref().copied() {
+            match action {
+                MenuAction::Chosen(action) => {
+                    if let Some(response) = self.update_command(cx, action) {
+                        result |= response;
+                    }
+                    self.manager_menu_state = MenuState::default();
+                    self.manager_menu_open = false;
+                    cx.close_layer(MANAGER_MENU_BAR, None);
+                }
+                MenuAction::Closed(_) => {
+                    self.manager_menu_state = MenuState::default();
+                    self.manager_menu_open = false;
+                    cx.close_layer(MANAGER_MENU_BAR, None);
+                }
+                _ => {}
+            }
+        }
+        result |= manager_menu_response.erase();
+
         if !(self.world.scenario == Scenario::CapsuleMulti && self.motion == Motion::Paused && self.capsule_tab_menu_open) {
             let context = Self::capsule_tab_context(self.capsule_tab_menu_pos);
             let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
@@ -4623,9 +4725,11 @@ impl App {
                 Some(Response::changed())
             }
             CMD_MENU_OPEN if self.route == Route::Manager => {
+                self.manager_menu_state = MenuState::default();
                 self.manager_menu_open = true;
+                let response = Self::manager_menu_bar().open_menu(cx, &mut self.manager_menu_state, 0);
                 self.status = Some("New workspace…".into());
-                Some(Response::changed())
+                Some(response.erase())
             }
             CMD_CONTAINER_INFO if self.route == Route::Manager => {
                 self.manager_inspect_open = true;
@@ -5238,22 +5342,8 @@ impl App {
 
         let _ = Brand::new(APP.sub("brand"), "jackin❯")
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-        let sec = palette.secondary_on_canvas;
-        ui.paint_str(
-            Rect::new(area.x.saturating_add(12), area.y, 6, 1),
-            " File ",
-            sec,
-        );
-        ui.paint_str(
-            Rect::new(area.x.saturating_add(19), area.y, 4, 1),
-            " Go ",
-            sec,
-        );
-        ui.paint_str(
-            Rect::new(area.x.saturating_add(24), area.y, 6, 1),
-            " Help ",
-            sec,
-        );
+        let menu_area = Rect::new(area.x.saturating_add(11), area.y, 20, 1);
+        Self::manager_menu_bar().draw(ui, menu_area, &self.manager_menu_state);
 
         let rest_x = area.x.saturating_add(31);
         let rest_w = area.right().saturating_sub(rest_x);
@@ -6716,7 +6806,17 @@ impl App {
             }
         };
 
-        put(ui, 12, area.y, " File ", secondary);
+        if self.manager_menu_state.is_open() || self.manager_menu_open {
+            let active_file = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Popover))
+                    .add(Modifier::BOLD),
+            );
+            put(ui, 12, area.y, " File ", active_file);
+        } else {
+            put(ui, 12, area.y, " File ", secondary);
+        }
         put(ui, 19, area.y, " Go ", secondary);
         put(ui, 24, area.y, " Help ", secondary);
         put(ui, 76, area.y, "Workspaces", palette.secondary_on_canvas);
@@ -6912,7 +7012,17 @@ impl App {
             put(ui, 1, y, "│", border);
             put(ui, 70, y, "│", border);
         }
-        put(ui, 12, 0, " File ", secondary);
+        if self.manager_menu_state.is_open() || self.manager_menu_open {
+            let active_file = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Popover))
+                    .add(Modifier::BOLD),
+            );
+            put(ui, 12, 0, " File ", active_file);
+        } else {
+            put(ui, 12, 0, " File ", secondary);
+        }
         put(ui, 19, 0, " Go ", secondary);
         put(ui, 24, 0, " Help ", secondary);
         put(ui, 39, 0, "Workspaces", secondary);
@@ -7086,7 +7196,17 @@ impl App {
             put(ui, 1, y, "│", border);
             put(ui, 78, y, "│", border);
         }
-        put(ui, 12, 0, " File ", secondary);
+        if self.manager_menu_state.is_open() || self.manager_menu_open {
+            let active_file = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Popover))
+                    .add(Modifier::BOLD),
+            );
+            put(ui, 12, 0, " File ", active_file);
+        } else {
+            put(ui, 12, 0, " File ", secondary);
+        }
         put(ui, 19, 0, " Go ", secondary);
         put(ui, 24, 0, " Help ", secondary);
         put(ui, 36, 0, "Workspaces", secondary);
@@ -7268,7 +7388,17 @@ impl App {
             put(ui, 1, y, "│", border);
             put(ui, 98, y, "│", border);
         }
-        put(ui, 12, 0, " File ", secondary);
+        if self.manager_menu_state.is_open() || self.manager_menu_open {
+            let active_file = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Popover))
+                    .add(Modifier::BOLD),
+            );
+            put(ui, 12, 0, " File ", active_file);
+        } else {
+            put(ui, 12, 0, " File ", secondary);
+        }
         put(ui, 19, 0, " Go ", secondary);
         put(ui, 24, 0, " Help ", secondary);
         put(ui, 56, 0, "Workspaces", secondary);
@@ -7463,7 +7593,17 @@ impl App {
             put(ui, 49, y, "│", border);
             put(ui, 51, y, "│", seam);
         }
-        put(ui, 12, 0, " File ", secondary);
+        if self.manager_menu_state.is_open() || self.manager_menu_open {
+            let active_file = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Popover))
+                    .add(Modifier::BOLD),
+            );
+            put(ui, 12, 0, " File ", active_file);
+        } else {
+            put(ui, 12, 0, " File ", secondary);
+        }
         put(ui, 19, 0, " Go ", secondary);
         put(ui, 24, 0, " Help ", secondary);
         put(ui, 116, 0, "Workspaces", secondary);
@@ -9187,368 +9327,6 @@ impl App {
         ui.paint_str(Rect::new(119, 39, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
     }
 
-    fn draw_historical_manager_menu_open_120_40(&self, ui: &mut Ui<'_>, area: Rect) {
-        ui.fill(area, self.historical_span_style((255, 255, 255), (17, 17, 17), false));
-        ui.paint_str(Rect::new(0, 0, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", self.historical_span_style((25, 25, 28), (72, 224, 84), true));
-        ui.paint_str(Rect::new(10, 0, 2, 1), "  ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(12, 0, 6, 1), " File ", self.historical_span_style((255, 255, 255), (63, 63, 70), true));
-        ui.paint_str(Rect::new(18, 0, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(19, 0, 4, 1), " Go ", self.historical_span_style((179, 179, 179), (0, 0, 0), false));
-        ui.paint_str(Rect::new(23, 0, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(24, 0, 6, 1), " Help ", self.historical_span_style((179, 179, 179), (0, 0, 0), false));
-        ui.paint_str(Rect::new(30, 0, 46, 1), "                                              ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(76, 0, 10, 1), "Workspaces", self.historical_span_style((179, 179, 179), (0, 0, 0), false));
-        ui.paint_str(Rect::new(86, 0, 2, 1), "  ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(88, 0, 20, 1), "inside the Construct", self.historical_span_style((179, 179, 179), (0, 0, 0), false));
-        ui.paint_str(Rect::new(108, 0, 2, 1), "  ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(110, 0, 9, 1), "2 running", self.historical_span_style((128, 128, 128), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 0, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 1, 12, 1), "            ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(12, 1, 27, 1), "╭─────────────────────────╮", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 1, 81, 1), "                                                                                 ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 2, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 2, 2, 1), "╭─", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(3, 2, 9, 1), " Workspac", self.historical_span_style((255, 255, 255), (0, 0, 0), true));
-        ui.paint_str(Rect::new(12, 2, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), true));
-        ui.paint_str(Rect::new(13, 2, 23, 1), "  New workspace…       ", self.historical_span_style((255, 255, 255), (47, 90, 168), true));
-        ui.paint_str(Rect::new(36, 2, 1, 1), "n", self.historical_span_style((128, 128, 128), (47, 90, 168), false));
-        ui.paint_str(Rect::new(37, 2, 1, 1), " ", self.historical_span_style((255, 255, 255), (47, 90, 168), true));
-        ui.paint_str(Rect::new(38, 2, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 2, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(42, 2, 37, 1), "Current directory · payments-platform", self.historical_span_style((179, 179, 179), (17, 17, 17), false));
-        ui.paint_str(Rect::new(102, 2, 15, 1), "saved workspace", self.historical_span_style((77, 77, 77), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 2, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 3, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 3, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 3, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(3, 3, 1, 1), "▎", self.historical_span_style((72, 224, 84), (15, 46, 19), true));
-        ui.paint_str(Rect::new(4, 3, 3, 1), "   ", self.historical_span_style((255, 255, 255), (15, 46, 19), true));
-        ui.paint_str(Rect::new(7, 3, 5, 1), "Curre", self.historical_span_style((72, 224, 84), (15, 46, 19), true));
-        ui.paint_str(Rect::new(12, 3, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), true));
-        ui.paint_str(Rect::new(13, 3, 23, 1), "  Edit workspace…      ", self.historical_span_style((255, 255, 255), (63, 63, 70), true));
-        ui.paint_str(Rect::new(36, 3, 1, 1), "e", self.historical_span_style((128, 128, 128), (63, 63, 70), false));
-        ui.paint_str(Rect::new(37, 3, 1, 1), " ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(38, 3, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 3, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 3, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 4, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 4, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 4, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(3, 4, 1, 1), " ", self.historical_span_style((0, 0, 0), (0, 0, 0), false));
-        ui.paint_str(Rect::new(4, 4, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(5, 4, 1, 1), "▸", self.historical_span_style((179, 179, 179), (0, 0, 0), false));
-        ui.paint_str(Rect::new(6, 4, 6, 1), " payme", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(12, 4, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(13, 4, 19, 1), "  Launch…          ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(32, 4, 5, 1), "Enter", self.historical_span_style((128, 128, 128), (63, 63, 70), false));
-        ui.paint_str(Rect::new(37, 4, 1, 1), " ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(38, 4, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 4, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(42, 4, 11, 1), "Working dir", self.historical_span_style((128, 128, 128), (17, 17, 17), false));
-        ui.paint_str(Rect::new(53, 4, 66, 1), "   /workspace/payments-platform                                   ", self.historical_span_style((255, 255, 255), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 4, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 5, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 5, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 5, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(3, 5, 1, 1), " ", self.historical_span_style((0, 0, 0), (0, 0, 0), false));
-        ui.paint_str(Rect::new(4, 5, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(5, 5, 1, 1), "▸", self.historical_span_style((179, 179, 179), (0, 0, 0), false));
-        ui.paint_str(Rect::new(6, 5, 6, 1), " infra", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(12, 5, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(13, 5, 23, 1), "  Prewarm              ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(36, 5, 1, 1), "w", self.historical_span_style((128, 128, 128), (63, 63, 70), false));
-        ui.paint_str(Rect::new(37, 5, 1, 1), " ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(38, 5, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 5, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(42, 5, 6, 1), "Mounts", self.historical_span_style((128, 128, 128), (17, 17, 17), false));
-        ui.paint_str(Rect::new(48, 5, 71, 1), "        ~/src/payments-platform · rw worktree                          ", self.historical_span_style((255, 255, 255), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 5, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 6, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 6, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 6, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(3, 6, 1, 1), " ", self.historical_span_style((0, 0, 0), (0, 0, 0), false));
-        ui.paint_str(Rect::new(4, 6, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(5, 6, 1, 1), "▸", self.historical_span_style((179, 179, 179), (0, 0, 0), false));
-        ui.paint_str(Rect::new(6, 6, 6, 1), " relea", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(12, 6, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(13, 6, 23, 1), "  Delete workspace…    ", self.historical_span_style((217, 138, 138), (63, 63, 70), false));
-        ui.paint_str(Rect::new(36, 6, 1, 1), "d", self.historical_span_style((128, 128, 128), (63, 63, 70), false));
-        ui.paint_str(Rect::new(37, 6, 1, 1), " ", self.historical_span_style((217, 138, 138), (63, 63, 70), false));
-        ui.paint_str(Rect::new(38, 6, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 6, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(40, 6, 79, 1), "                ~/src/shared-libs · ro shared                                  ", self.historical_span_style((255, 255, 255), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 6, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 7, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 7, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 7, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(3, 7, 1, 1), " ", self.historical_span_style((0, 0, 0), (0, 0, 0), false));
-        ui.paint_str(Rect::new(4, 7, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(5, 7, 1, 1), "▸", self.historical_span_style((179, 179, 179), (0, 0, 0), false));
-        ui.paint_str(Rect::new(6, 7, 6, 1), " custo", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(12, 7, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(13, 7, 1, 1), " ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(14, 7, 23, 1), "───────────────────────", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(37, 7, 1, 1), " ", self.historical_span_style((77, 77, 77), (63, 63, 70), false));
-        ui.paint_str(Rect::new(38, 7, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 7, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(42, 7, 5, 1), "Roles", self.historical_span_style((128, 128, 128), (17, 17, 17), false));
-        ui.paint_str(Rect::new(47, 7, 72, 1), "         the-architect ★ · allowed 3 of 46                              ", self.historical_span_style((255, 255, 255), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 7, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 8, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 8, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 8, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(3, 8, 1, 1), " ", self.historical_span_style((0, 0, 0), (0, 0, 0), false));
-        ui.paint_str(Rect::new(4, 8, 3, 1), "   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(7, 8, 5, 1), "+ New", self.historical_span_style((179, 179, 179), (0, 0, 0), false));
-        ui.paint_str(Rect::new(12, 8, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(13, 8, 22, 1), "  Refresh             ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(35, 8, 2, 1), "F5", self.historical_span_style((128, 128, 128), (63, 63, 70), false));
-        ui.paint_str(Rect::new(37, 8, 1, 1), " ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(38, 8, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 8, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(42, 8, 12, 1), "Environments", self.historical_span_style((128, 128, 128), (17, 17, 17), false));
-        ui.paint_str(Rect::new(54, 8, 65, 1), "  5 vars · 2 [op]                                                ", self.historical_span_style((255, 255, 255), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 8, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 9, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 9, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 9, 10, 1), "          ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(12, 9, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(13, 9, 1, 1), " ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(14, 9, 23, 1), "───────────────────────", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(37, 9, 1, 1), " ", self.historical_span_style((77, 77, 77), (63, 63, 70), false));
-        ui.paint_str(Rect::new(38, 9, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 9, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(42, 9, 8, 1), "Accounts", self.historical_span_style((128, 128, 128), (17, 17, 17), false));
-        ui.paint_str(Rect::new(50, 9, 69, 1), "      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·      ", self.historical_span_style((255, 255, 255), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 9, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 10, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 10, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 10, 10, 1), "          ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(12, 10, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(13, 10, 18, 1), "  Quit            ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(31, 10, 6, 1), "Ctrl+Q", self.historical_span_style((128, 128, 128), (63, 63, 70), false));
-        ui.paint_str(Rect::new(37, 10, 1, 1), " ", self.historical_span_style((255, 255, 255), (63, 63, 70), false));
-        ui.paint_str(Rect::new(38, 10, 1, 1), "│", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 10, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(40, 10, 79, 1), "                Grok · Team ★ · OpenCode · Go subscription ★                   ", self.historical_span_style((255, 255, 255), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 10, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 11, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 11, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 11, 10, 1), "          ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(12, 11, 27, 1), "╰─────────────────────────╯", self.historical_span_style((38, 38, 38), (63, 63, 70), false));
-        ui.paint_str(Rect::new(39, 11, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(42, 11, 8, 1), "Policies", self.historical_span_style((128, 128, 128), (17, 17, 17), false));
-        ui.paint_str(Rect::new(50, 11, 69, 1), "      git pull enabled · keep awake on · dirty exit ask              ", self.historical_span_style((255, 255, 255), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 11, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 12, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 12, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 12, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 12, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 12, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 12, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 12, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 13, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 13, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 13, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 13, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 13, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 13, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(42, 13, 9, 1), "Instances", self.historical_span_style((179, 179, 179), (17, 17, 17), true));
-        ui.paint_str(Rect::new(101, 13, 16, 1), "daemon · 3 s ago", self.historical_span_style((77, 77, 77), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 13, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 14, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 14, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 14, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 14, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 14, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 14, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(40, 14, 79, 1), "  ◉ 7f3a  the-architect · Claude Code · running                                ", self.historical_span_style((255, 255, 255), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 14, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 15, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 15, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 15, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 15, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 15, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 15, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(42, 15, 44, 1), "◌ c41e  reviewer · Codex · preserved · dirty", self.historical_span_style((179, 179, 179), (17, 17, 17), false));
-        ui.paint_str(Rect::new(119, 15, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 16, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 16, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 16, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 16, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 16, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 16, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 16, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 17, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 17, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 17, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 17, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 17, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 17, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 17, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 18, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 18, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 18, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 18, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 18, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 18, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 18, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 19, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 19, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 19, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 19, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 19, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 19, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 19, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 20, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 20, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 20, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 20, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 20, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 20, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 20, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 21, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 21, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 21, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 21, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 21, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 21, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 21, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 22, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 22, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 22, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 22, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 22, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 22, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 22, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 23, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 23, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 23, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 23, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 23, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 23, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 23, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 24, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 24, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 24, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 24, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 24, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 24, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 24, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 25, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 25, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 25, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 25, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 25, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 25, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 25, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 26, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 26, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 26, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 26, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 26, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 26, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 26, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 27, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 27, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 27, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 27, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 27, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 27, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 27, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 28, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 28, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 28, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 28, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 28, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 28, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 28, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 29, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 29, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 29, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 29, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 29, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 29, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 29, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 30, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 30, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 30, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 30, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 30, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 30, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 30, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 31, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 31, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 31, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 31, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 31, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 31, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 31, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 32, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 32, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 32, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 32, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 32, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 32, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 32, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 33, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 33, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 33, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 33, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 33, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 33, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 33, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 34, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 34, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 34, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 34, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 34, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 34, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 34, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 35, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 35, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 35, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 35, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 35, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 35, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 35, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 36, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 36, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(2, 36, 35, 1), "                                   ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(37, 36, 1, 1), "│", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 36, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 36, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(41, 36, 1, 1), " ", self.historical_span_style((39, 39, 42), (39, 39, 42), false));
-        ui.paint_str(Rect::new(42, 36, 7, 1), "Launch ", self.historical_span_style((255, 255, 255), (39, 39, 42), false));
-        ui.paint_str(Rect::new(51, 36, 1, 1), " ", self.historical_span_style((39, 39, 42), (39, 39, 42), false));
-        ui.paint_str(Rect::new(52, 36, 5, 1), "Edit ", self.historical_span_style((255, 255, 255), (39, 39, 42), false));
-        ui.paint_str(Rect::new(119, 36, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 37, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(1, 37, 37, 1), "╰───────────────────────────────────╯", self.historical_span_style((77, 77, 77), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 37, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(39, 37, 1, 1), "│", self.historical_span_style((38, 38, 38), (0, 0, 0), false));
-        ui.paint_str(Rect::new(119, 37, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 38, 120, 1), "                                                                                                                        ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(0, 39, 38, 1), "                                      ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(38, 39, 3, 1), "← →", self.historical_span_style((255, 255, 255), (0, 0, 0), true));
-        ui.paint_str(Rect::new(41, 39, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(42, 39, 4, 1), "Menu", self.historical_span_style((128, 128, 128), (0, 0, 0), false));
-        ui.paint_str(Rect::new(46, 39, 2, 1), "  ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(48, 39, 2, 1), "↑↓", self.historical_span_style((255, 255, 255), (0, 0, 0), true));
-        ui.paint_str(Rect::new(50, 39, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(51, 39, 4, 1), "Move", self.historical_span_style((128, 128, 128), (0, 0, 0), false));
-        ui.paint_str(Rect::new(55, 39, 2, 1), "  ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(57, 39, 5, 1), "Enter", self.historical_span_style((255, 255, 255), (0, 0, 0), true));
-        ui.paint_str(Rect::new(62, 39, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(63, 39, 6, 1), "Choose", self.historical_span_style((128, 128, 128), (0, 0, 0), false));
-        ui.paint_str(Rect::new(69, 39, 2, 1), "  ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(71, 39, 3, 1), "Esc", self.historical_span_style((255, 255, 255), (0, 0, 0), true));
-        ui.paint_str(Rect::new(74, 39, 1, 1), " ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-        ui.paint_str(Rect::new(75, 39, 5, 1), "Close", self.historical_span_style((128, 128, 128), (0, 0, 0), false));
-        ui.paint_str(Rect::new(80, 39, 40, 1), "                                        ", self.historical_span_style((255, 255, 255), (0, 0, 0), false));
-    }
-
     fn draw_historical_manager_inspect_120_40(&self, ui: &mut Ui<'_>, area: Rect) {
         ui.fill(area, self.historical_span_style((128, 128, 128), (17, 17, 17), false));
         ui.paint_str(Rect::new(0, 0, 1, 1), " ", self.historical_span_style((128, 128, 128), (0, 0, 0), false));
@@ -11100,6 +10878,20 @@ impl App {
             return;
         }
 
+        if self.manager_menu_state.is_open() || self.manager_menu_open {
+            let palette = HistoricalPalette::new(ui);
+            let normal_canvas = palette.primary_on_canvas;
+
+            let container_slot = |ui: &mut Ui<'_>, cell: Rect| {
+                ui.fill(cell, normal_canvas);
+            };
+
+            HintBar::new(APP.sub("hint"), &self.hint_layers.manager_menu)
+                .slot(Part::CONTAINER, &container_slot)
+                .draw(ui, area);
+            return;
+        }
+
         let hints: &HintLayer = &self.hint_layers.default;
         HintBar::derived(APP.sub("hint"))
             .global(hints)
@@ -11114,6 +10906,8 @@ impl App {
             && matches!(self.route, Route::Manager | Route::Editor | Route::Cockpit | Route::Launch)
             && !self.manager_quit_confirm
             && !self.help_open
+            && !self.manager_menu_state.is_open()
+            && !self.manager_menu_open
         {
             return;
         }
@@ -11497,8 +11291,7 @@ impl TuiApp for App {
             if self.manager_quit_confirm {
                 return;
             }
-            if self.manager_menu_open {
-                self.draw_historical_manager_menu_open_120_40(ui, full);
+            if self.manager_menu_state.is_open() || self.manager_menu_open {
                 return;
             }
             if self.manager_inspect_open {
@@ -11544,6 +11337,9 @@ impl TuiApp for App {
             && self.active_instance.is_none()
             && !self.manager.detail_open()
             && !self.help_open
+            && !self.manager_quit_confirm
+            && !self.manager_menu_state.is_open()
+            && !self.manager_menu_open
             && self
                 .manager_rows_cache
                 .first()

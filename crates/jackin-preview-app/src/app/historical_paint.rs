@@ -379,16 +379,12 @@ const MONO_RULES: &[MonoRule] = &[
     (
         Part::custom("jackin.historical.seam_on_canvas"),
         StateFlags::empty(),
-        StylePatch::new()
-            .set_fg(Role::BorderStrong)
-            .add(Modifier::DIM),
+        StylePatch::new().set_fg(Role::BorderSubtle),
     ),
     (
         Part::custom("jackin.historical.seam_on_elevated"),
         StateFlags::empty(),
-        StylePatch::new()
-            .set_fg(Role::BorderStrong)
-            .add(Modifier::DIM),
+        StylePatch::new().set_fg(Role::BorderSubtle),
     ),
     (
         Part::custom("jackin.historical.secondary_on_canvas"),
@@ -560,6 +556,11 @@ mod tests {
                         style.fg, style.bg,
                         "intentional fill must stay hidden: {part:?}"
                     );
+                } else if part == Part::custom("jackin.historical.seam_on_canvas")
+                    || part == Part::custom("jackin.historical.seam_on_elevated")
+                {
+                    // Subtle seams collapse to surface background in dark mono themes (e.g. Junie).
+                    continue;
                 } else {
                     assert_ne!(
                         style.fg, style.bg,

@@ -352,10 +352,15 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
 fn menu(r: &mut Recipe) {
     let m = &mut r.parts;
     row_like(m);
-    part(m, Part::ROW, p())
+    part(m, Part::CONTAINER, p().clear_fg().set_bg(Role::CurrentSurface));
+    part(m, Part::BORDER, p().set_fg(Role::BorderSubtle));
+    part(m, Part::RULE, p().set_fg(Role::BorderSubtle));
+    part(m, Part::ROW, p().set_fg(Role::Fg(FgStep::Primary)))
         .when(
             StateFlags::ACTIVE,
-            p().set_bg(Role::HighlightBg).set_fg(Role::HighlightFg),
+            p().set_bg(Role::HighlightBg)
+                .set_fg(Role::HighlightFg)
+                .add(Modifier::BOLD),
         )
         .when(
             StateFlags::HOVERED,
@@ -367,10 +372,17 @@ fn menu(r: &mut Recipe) {
                 .set_bg(Role::Fg(FgStep::Primary))
                 .add(Modifier::BOLD),
         );
-    part(m, Part::TITLE, p()).when(
-        StateFlags::PRESSED,
-        p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
-    );
+    part(m, Part::TITLE, p())
+        .when(
+            StateFlags::ACTIVE,
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(Surface::Popover))
+                .add(Modifier::BOLD),
+        )
+        .when(
+            StateFlags::PRESSED,
+            p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
+        );
     part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Muted)));
     part(
         r.variant_mut(Variant::DANGER),
@@ -380,7 +392,8 @@ fn menu(r: &mut Recipe) {
     .when(
         StateFlags::ACTIVE,
         p().set_bg(Role::HighlightDangerBg)
-            .set_fg(Role::HighlightDangerFg),
+            .set_fg(Role::HighlightDangerFg)
+            .add(Modifier::BOLD),
     )
     .when(
         StateFlags::PRESSED,
