@@ -5,6 +5,27 @@ Owner: termrock-viewport.
 Visual authority: visual-baseline 4a79c0a2 (commit `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`).
 Component ID: W31 · Phase: P5 · Legacy families: C39, C40.
 
+## Geometry (shipped; rest of this contract is stale-pending-rewrite)
+
+The sections below still describe the `proposed_target` draft, not the
+shipped component. The shipped geometry is:
+
+- Text starts at `area.x`. There is no focus gutter.
+- The wrap/clip width is `area.width − 1`: one scrollbar column is always
+  reserved, whether or not the bar paints.
+- `measure` asks for `(2, 1)` minimum and `(21, max.h)` preferred.
+- Declared parts are `CONTAINER`, `TEXT`, `TRACK`, `THUMB`; slots are
+  honored on `TRACK`/`THUMB` only.
+- Focus is worn by the `THUMB` color ladder (legacy-exact `scrollbar_thumb`
+  table: `FOCUSED` → Primary, `HOVERED` → Secondary, else Muted; White vs
+  Gray at mono), not by `CONTAINER`/`TEXT`.
+- The thumb paints only on overflow, so a non-overflowing pane is
+  state-indistinguishable — exactly like the legacy pane. The future
+  `TextViewportCase` fixture must use overflowing content for case 9.
+- `DiffView` review columns are measured from the viewport *text* width.
+- Future W31 conformance tests bind in
+  `crates/termrock-conformance/tests/parity_burndown.rs`.
+
 ## Purpose and exclusions
 
 TextViewport projects revisioned logical lines and styled spans into terminal cells. It supports prose and log recipes, wrapping, selection, copying, marks, caret display, scrollbar interaction, and optional tail following. `TextSource` provides borrowed lines, stable line identities, source revision, and any caller-defined retention/eviction facts.

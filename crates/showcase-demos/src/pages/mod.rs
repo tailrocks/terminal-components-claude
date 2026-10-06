@@ -98,7 +98,7 @@ const FRAME_PART_PATCHES: &[(Part, StylePatch)] =
 /// theme-resolved styles.
 ///
 /// No stock component fits this chrome pixel-exactly: `Panel` adds a focus
-/// gutter, card insets and a raised surface, `TextViewport` adds a gutter,
+/// gutter, card insets and a raised surface, `TextViewport` adds a
 /// scrollbar and focus registration, and `StatusBar` adds item separators.
 /// Per ARC-008 the author extension is therefore the correct contract
 /// level; per ARC-003 the ellipsis geometry is delegated to the owned

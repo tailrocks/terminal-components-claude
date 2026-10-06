@@ -17,11 +17,6 @@ const HUNKS: usize = 5;
 const ROWS_PER_HUNK: usize = 9;
 const TOTAL_ROWS: usize = HUNKS * ROWS_PER_HUNK;
 
-const DIFF_PARTS: &[(Part, StylePatch)] = &[(
-    Part::GUTTER,
-    StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-)];
-
 /// The diff panel keeps its framed rule unbroken: clearing the gutter glyph
 /// suppresses the stock focus bar so the border `─` shows in every state,
 /// exactly like the retired slot painter.
@@ -236,25 +231,22 @@ impl Page for DiffPage {
                 } else {
                     Some(&self.source as &dyn DiffSource)
                 };
-                let view = DiffView::new(DIFF, source).patch_part(DIFF_PARTS);
+                let view = DiffView::new(DIFF, source);
+                // Legacy-exact Framed content inset (oracle panel.rs:141-146:
+                // inner.x + 2 / inner.w - 3 over a 1-cell margin): the
+                // gutterless viewport paints text at the area's left edge, so
+                // the area itself carries the full +3 inset now.
                 let view_area = Rect {
-                    x: panel_area.x.saturating_add(2),
+                    x: panel_area.x.saturating_add(3),
                     y: panel_area.y.saturating_add(1),
-                    width: panel_area.width.saturating_sub(4),
+                    width: panel_area.width.saturating_sub(5),
                     height: panel_area.height.saturating_sub(2),
                 };
-                view.draw(ui, view_area, &self.diff_state);
+                let text = view.draw(ui, view_area, &self.diff_state);
                 if !self.empty {
                     let mut scroll = *self.diff_state.viewport().scroll();
                     scroll.apply_layout(usize::from(view_area.height), TOTAL_ROWS + 1);
-                    ui.scroll_edges(
-                        Rect {
-                            x: view_area.x.saturating_add(1),
-                            width: view_area.width.saturating_sub(2),
-                            ..view_area
-                        },
-                        &scroll,
-                    );
+                    ui.scroll_edges(text, &scroll);
                 }
             },
         );

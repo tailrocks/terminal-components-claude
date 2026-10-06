@@ -500,7 +500,9 @@ fn viewport(m: &mut PartMap<PartRecipe>) {
         Part::THUMB,
         p().set_fg(Role::Fg(FgStep::Muted))
             .set_glyph(GlyphRole::ScrollThumb),
-    );
+    )
+    .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Secondary)))
+    .when(StateFlags::FOCUSED, p().set_fg(Role::Fg(FgStep::Primary)));
 }
 
 fn bars(m: &mut PartMap<PartRecipe>) {
@@ -1260,4 +1262,86 @@ mod tests {
     }
 
     use ratatui_core::style::Color;
+
+    /// The `VIEWPORT`/`DIFF` thumb wears the legacy `scrollbar_thumb`
+    /// ladder: `Muted` idle, `Secondary` hovered, `Primary` focused — the
+    /// same three rungs as the `SCROLLBAR` family, at all four color levels.
+    /// At mono the ladder survives as Gray-vs-White; the glyph never moves.
+    #[test]
+    fn viewport_and_diff_thumbs_follow_the_scrollbar_ladder() {
+        use crate::ColorLevel;
+
+        let levels = [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ];
+        let states = [
+            StateFlags::empty(),
+            StateFlags::HOVERED,
+            StateFlags::FOCUSED,
+        ];
+        for level in levels {
+            let theme = Theme::junie().downgrade(level);
+            let fg_of = |family: Family, flags: StateFlags| {
+                theme
+                    .resolve(
+                        family,
+                        Variant::DEFAULT,
+                        Part::THUMB,
+                        flags,
+                        Surface::Canvas,
+                    )
+                    .style
+                    .fg
+            };
+            for family in [Family::VIEWPORT, Family::DIFF] {
+                for flags in states {
+                    assert_eq!(
+                        fg_of(family, flags),
+                        fg_of(Family::SCROLLBAR, flags),
+                        "{family:?} thumb diverges from the scrollbar ladder at {level:?}/{flags:?}"
+                    );
+                    let resolved = theme.resolve(
+                        family,
+                        Variant::DEFAULT,
+                        Part::THUMB,
+                        flags,
+                        Surface::Canvas,
+                    );
+                    assert_eq!(
+                        resolved.glyph,
+                        Slot::Set(GlyphRole::ScrollThumb),
+                        "{family:?} thumb glyph moved at {level:?}/{flags:?}"
+                    );
+                }
+            }
+            let idle = fg_of(Family::VIEWPORT, StateFlags::empty());
+            let hovered = fg_of(Family::VIEWPORT, StateFlags::HOVERED);
+            let focused = fg_of(Family::VIEWPORT, StateFlags::FOCUSED);
+            // the focus rung survives at every level; the hover rung
+            // collapses into idle where the palette runs out of grays
+            // (Ansi16, mono) — exactly as it does for `SCROLLBAR`.
+            assert_ne!(idle, focused, "no focus rung at {level:?}");
+            match level {
+                ColorLevel::TrueColor | ColorLevel::Ansi256 => {
+                    assert_ne!(idle, hovered, "no hover rung at {level:?}");
+                    assert_ne!(
+                        hovered, focused,
+                        "hover and focus share a rung at {level:?}"
+                    );
+                }
+                ColorLevel::Ansi16 => {
+                    assert_eq!(idle, Some(Color::Gray));
+                    assert_eq!(focused, Some(Color::White));
+                }
+                ColorLevel::Mono => {
+                    assert_eq!(idle, Some(Color::Gray));
+                    assert_eq!(hovered, Some(Color::Gray));
+                    assert_eq!(focused, Some(Color::White));
+                }
+            }
+        }
+    }
 }

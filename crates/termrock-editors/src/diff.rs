@@ -184,6 +184,7 @@ impl DiffViewState {
 struct DiffLayout {
     mode: DiffMode,
     revision: u64,
+    /// The viewport text width the projection was measured for.
     width: u16,
     has_source: bool,
     valid: bool,
@@ -261,12 +262,12 @@ impl DiffLayout {
 /// Selection drag, double-click, wheel and scrollbar are the viewport's.
 ///
 /// ## Layout
-/// Review rows measure equal columns around ` │ ` during update using the
-/// last-frame width. `measure` prefers 80×12; zero area remains inert.
+/// Review rows measure equal columns around ` │ ` using the last-frame
+/// viewport *text* width, so the side-by-side pair fits the same cells the
+/// embedded viewport paints. `measure` prefers 80×12; zero area is inert.
 ///
 /// ## Parts
-/// Exactly [`TextViewport::PARTS`]: `CONTAINER`, `TEXT`, `GUTTER`, `TRACK`,
-/// `THUMB`.
+/// Exactly [`TextViewport::PARTS`]: `CONTAINER`, `TEXT`, `TRACK`, `THUMB`.
 ///
 /// ## Overrides
 /// Every channel forwards to the viewport; its slot restrictions still apply.
@@ -354,7 +355,9 @@ impl<'a> DiffView<'a> {
 
     /// Rebuild when needed, then delegate interaction to `TextViewport`.
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut DiffViewState) -> Response<ViewportAction> {
-        let width = cx.area(self.id).map_or(80, |area| area.width);
+        let width = cx
+            .area(self.id)
+            .map_or(80, |area| TextViewport::text_width(area.width));
         let mut layout = core::mem::take(cx.cache::<DiffLayout>(self.id));
         if layout.ensure(self.source, state.mode, width) {
             state.viewport.set_follow(false);
@@ -371,7 +374,11 @@ impl<'a> DiffView<'a> {
     /// Draw the measured projection through `TextViewport`.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &DiffViewState) -> Rect {
         let mut layout = core::mem::take(ui.cache::<DiffLayout>(self.id));
-        layout.ensure(self.source, state.mode, area.width);
+        layout.ensure(
+            self.source,
+            state.mode,
+            TextViewport::text_width(area.width),
+        );
         let used = self
             .viewport()
             .draw_projected(ui, area, &state.viewport, &layout.projection);
@@ -929,6 +936,122 @@ mod tests {
         assert!(layout.ensure(Some(&Source), DiffMode::Review, 40));
         assert_ne!(layout.scratch, first);
         assert_eq!(layout.width, 40);
+    }
+
+    struct Wide;
+
+    const WIDE_ROWS: &[DiffRow<'static>] = &[
+        DiffRow::Hunk {
+            old_start: 10,
+            new_start: 10,
+        },
+        DiffRow::Line {
+            kind: DiffLineKind::Remove,
+            text: "fn settlement_retry_with_backoff_and_jitter_configuration_v1() {",
+        },
+        DiffRow::Line {
+            kind: DiffLineKind::Add,
+            text: "fn settlement_retry_with_backoff_and_jitter_configuration_v2() {",
+        },
+        DiffRow::Line {
+            kind: DiffLineKind::Context,
+            text: "}",
+        },
+    ];
+
+    impl DiffSource for Wide {
+        fn revision(&self) -> u64 {
+            1
+        }
+        fn path(&self) -> &'static str {
+            "src/wide.rs"
+        }
+        fn status_marker(&self) -> &'static str {
+            "M"
+        }
+        fn status_label(&self) -> &'static str {
+            "modified"
+        }
+        fn row_count(&self) -> usize {
+            WIDE_ROWS.len()
+        }
+        fn row(&self, index: usize) -> Option<DiffRow<'_>> {
+            WIDE_ROWS.get(index).copied()
+        }
+    }
+
+    /// Review columns are measured from the viewport text width, so a review
+    /// row fits the painted cells: at area `W` every row is at most `W − 1`
+    /// wide and — for content that fills its column — the `│` sits at the
+    /// center column. The centering needs a full-width fixture (C5): short
+    /// content leaves the separator wherever the text ends.
+    #[test]
+    fn review_rows_fit_the_text_width_with_a_centered_separator() {
+        let area = Rect::new(0, 0, 80, 6);
+        let text_w = usize::from(TextViewport::text_width(area.width));
+        let view = DiffView::new(ID, Some(&Wide as &dyn DiffSource));
+        let mut state = DiffViewState::default();
+        state.set_mode(DiffMode::Review);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        let mut used = Rect::ZERO;
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                used = view.draw(ui, rect, &state);
+            })
+            .commit_presented();
+        assert_eq!(usize::from(used.width), text_w);
+
+        let mut lines = Vec::new();
+        review_lines(&Wide, text_w as u16, &mut lines);
+        assert!(
+            !lines.is_empty(),
+            "review measured no rows for a text width of {text_w}"
+        );
+        for line in &lines {
+            let row = text(line);
+            assert!(
+                crate::text::width(&row) <= text_w as u16,
+                "review row overflows the text width ({text_w}): {row:?}"
+            );
+        }
+        let changed = text(&lines[2]);
+        let edge = changed.find('│').expect("no review separator");
+        // the `│` glyph stands one cell past the left column (the ` │ `
+        // separator's leading space): at an odd text width it is the exact
+        // middle column.
+        assert_eq!(
+            crate::text::width(&changed[..edge]),
+            (text_w.saturating_sub(3) / 2 + 1) as u16,
+            "the separator is not centered: {changed:?}"
+        );
+    }
+
+    /// Narrow then wide: the review projection rebuilds when the text width
+    /// changes and fits each width in turn.
+    #[test]
+    fn review_projection_rebuilds_between_widths() {
+        let mut layout = DiffLayout::default();
+        for width in [30u16, 120, 30] {
+            assert!(
+                layout.ensure(Some(&Wide), DiffMode::Review, width),
+                "review did not rebuild for text width {width}"
+            );
+            assert_eq!(layout.width, width);
+            // the header is width-independent and the viewport clips it; the
+            // width contract covers the column rows.
+            for line in layout.scratch.iter().skip(1) {
+                let row = text(line);
+                assert!(
+                    crate::text::width(&row) <= width,
+                    "review row overflows text width {width}: {row:?}"
+                );
+            }
+        }
+        assert!(
+            !layout.ensure(Some(&Wide), DiffMode::Review, 30),
+            "review rebuilt without a width change"
+        );
     }
 
     #[test]
