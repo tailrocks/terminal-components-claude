@@ -12,6 +12,15 @@ use crate::scroll::ScrollState;
 
 use super::key::KeySet;
 
+/// Cursor step direction for the shared enabled-aware stepping.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StepDir {
+    /// Toward higher indexes.
+    Next,
+    /// Toward lower indexes.
+    Prev,
+}
+
 /// What reconciliation did.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Reconciliation {
@@ -105,6 +114,108 @@ impl CollectionCore {
     /// The scroll state, mutably.
     pub const fn scroll_mut(&mut self) -> &mut ScrollState {
         &mut self.scroll
+    }
+
+    /// The first enabled `(index, key)`, or `None` when empty or all
+    /// disabled. This is the shared `Home` / cursor-seed target.
+    pub fn first_enabled(
+        len: usize,
+        key: impl Fn(usize) -> ItemKey,
+        enabled: impl Fn(usize) -> bool,
+    ) -> Option<(usize, ItemKey)> {
+        (0..len).find(|&i| enabled(i)).map(|i| (i, key(i)))
+    }
+
+    /// The last enabled `(index, key)`, or `None` when empty or all
+    /// disabled. This is the shared `End` target.
+    pub fn last_enabled(
+        len: usize,
+        key: impl Fn(usize) -> ItemKey,
+        enabled: impl Fn(usize) -> bool,
+    ) -> Option<(usize, ItemKey)> {
+        (0..len).rev().find(|&i| enabled(i)).map(|i| (i, key(i)))
+    }
+
+    /// The nearest enabled `(index, key)` at or after `from` ([`StepDir::Next`])
+    /// or at or before it ([`StepDir::Prev`]). `from` is clamped: a `Next`
+    /// seek from at-or-past the end finds nothing, while a `Prev` seek from
+    /// `usize::MAX` is how `End` names the last enabled entry.
+    pub fn seek(
+        len: usize,
+        from: usize,
+        dir: StepDir,
+        key: impl Fn(usize) -> ItemKey,
+        enabled: impl Fn(usize) -> bool,
+    ) -> Option<(usize, ItemKey)> {
+        if len == 0 {
+            return None;
+        }
+        match dir {
+            StepDir::Next => (from.min(len)..len)
+                .find(|&i| enabled(i))
+                .map(|i| (i, key(i))),
+            StepDir::Prev => (0..=from.min(len.saturating_sub(1)))
+                .rev()
+                .find(|&i| enabled(i))
+                .map(|i| (i, key(i))),
+        }
+    }
+
+    /// The nearest enabled `(index, key)` strictly after ([`StepDir::Next`])
+    /// or strictly before ([`StepDir::Prev`]) `from`, clamped when stale.
+    /// Returns `None` at the boundary, when empty, or when no enabled entry
+    /// exists in that direction — the caller maps that to its own boundary
+    /// policy (stay consumed, or an opt-in leave action). No wrap.
+    pub fn step(
+        len: usize,
+        from: usize,
+        dir: StepDir,
+        key: impl Fn(usize) -> ItemKey,
+        enabled: impl Fn(usize) -> bool,
+    ) -> Option<(usize, ItemKey)> {
+        if len == 0 {
+            return None;
+        }
+        let from = from.min(len.saturating_sub(1));
+        match dir {
+            StepDir::Next => Self::seek(len, from.saturating_add(1), StepDir::Next, key, enabled),
+            StepDir::Prev => from
+                .checked_sub(1)
+                .and_then(|f| Self::seek(len, f, StepDir::Prev, key, enabled)),
+        }
+    }
+
+    /// The nearest enabled `(index, key)` strictly after ([`StepDir::Next`])
+    /// or strictly before ([`StepDir::Prev`]) `from`, wrapping around the
+    /// ends. Returns `None` only when empty or all disabled. Menus wrap;
+    /// every other collection clamps via [`Self::step`].
+    pub fn step_wrapping(
+        len: usize,
+        from: usize,
+        dir: StepDir,
+        key: impl Fn(usize) -> ItemKey,
+        enabled: impl Fn(usize) -> bool,
+    ) -> Option<(usize, ItemKey)> {
+        if len == 0 {
+            return None;
+        }
+        let mut index = from.min(len.saturating_sub(1));
+        for _ in 0..len {
+            index = match dir {
+                StepDir::Next => {
+                    if index.saturating_add(1) >= len {
+                        0
+                    } else {
+                        index.saturating_add(1)
+                    }
+                }
+                StepDir::Prev => index.checked_sub(1).unwrap_or(len.saturating_sub(1)),
+            };
+            if enabled(index) {
+                return Some((index, key(index)));
+            }
+        }
+        None
     }
 
     fn stamp_of(len: usize, key: &impl Fn(usize) -> ItemKey) -> Stamp {
@@ -338,6 +449,93 @@ mod tests {
         c.invalidate();
         let _ = c.reconcile(1000, counting);
         assert!(calls.get().saturating_sub(after_first) > 2);
+    }
+
+    #[test]
+    fn shared_stepping_skips_disabled_and_clamps_or_wraps() {
+        let key = ItemKey::index;
+        // 0 enabled, 1 disabled, 2 enabled, 3 enabled
+        let enabled = |i: usize| i != 1;
+        assert_eq!(
+            CollectionCore::first_enabled(4, key, enabled),
+            Some((0, ItemKey::index(0)))
+        );
+        assert_eq!(
+            CollectionCore::last_enabled(4, key, enabled),
+            Some((3, ItemKey::index(3)))
+        );
+        assert_eq!(
+            CollectionCore::seek(4, 1, StepDir::Next, key, enabled),
+            Some((2, ItemKey::index(2)))
+        );
+        assert_eq!(
+            CollectionCore::seek(4, 1, StepDir::Prev, key, enabled),
+            Some((0, ItemKey::index(0)))
+        );
+        assert_eq!(
+            CollectionCore::seek(4, usize::MAX, StepDir::Prev, key, enabled),
+            Some((3, ItemKey::index(3)))
+        );
+        assert_eq!(
+            CollectionCore::step(4, 0, StepDir::Next, key, enabled),
+            Some((2, ItemKey::index(2)))
+        );
+        assert_eq!(
+            CollectionCore::step(4, 2, StepDir::Prev, key, enabled),
+            Some((0, ItemKey::index(0)))
+        );
+        assert_eq!(
+            CollectionCore::step(4, 3, StepDir::Next, key, enabled),
+            None
+        );
+        assert_eq!(
+            CollectionCore::step(4, 0, StepDir::Prev, key, enabled),
+            None
+        );
+        assert_eq!(
+            CollectionCore::step_wrapping(4, 3, StepDir::Next, key, enabled),
+            Some((0, ItemKey::index(0)))
+        );
+        assert_eq!(
+            CollectionCore::step_wrapping(4, 0, StepDir::Prev, key, enabled),
+            Some((3, ItemKey::index(3)))
+        );
+        // empty and all-disabled find nothing in every direction
+        assert_eq!(CollectionCore::first_enabled(0, key, enabled), None);
+        assert_eq!(
+            CollectionCore::step_wrapping(4, 0, StepDir::Next, key, |_| false),
+            None
+        );
+        assert_eq!(
+            CollectionCore::step(4, 1, StepDir::Next, key, |_| false),
+            None
+        );
+    }
+
+    #[test]
+    fn wrapping_prev_reaches_the_last_row_for_any_length() {
+        // the legacy `wrapping_add_signed` + `checked_rem` spelling wrapped
+        // `Prev` from 0 to `usize::MAX % len`, which is only `len - 1` for
+        // powers of two; len 3 stuck at 0. The shared wrap is exact.
+        let key = ItemKey::index;
+        for len in 1..8usize {
+            assert_eq!(
+                CollectionCore::step_wrapping(len, 0, StepDir::Prev, key, |_| true),
+                Some((len.saturating_sub(1), ItemKey::index(len.saturating_sub(1)))),
+                "Prev from 0 must wrap to the last row for len {len}"
+            );
+            assert_eq!(
+                CollectionCore::step_wrapping(
+                    len,
+                    len.saturating_sub(1),
+                    StepDir::Next,
+                    key,
+                    |_| true
+                ),
+                Some((0, ItemKey::index(0))),
+                "Next from the last row must wrap to 0 for len {len}"
+            );
+        }
     }
 
     #[test]

@@ -19,8 +19,8 @@ use ratatui_core::layout::Rect;
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
 use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, index_of,
-    key_at,
+    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, StepDir,
+    index_of, key_at,
 };
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -667,17 +667,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         items.get(i).is_some_and(|it| !self.is_disabled(it))
     }
 
-    /// The nearest enabled entry at or after `from` when `forward`, at or
-    /// before it otherwise. This is the sidebar's disabled-skipping rule,
-    /// which the legacy control implemented twice, once per direction.
-    fn seek(&self, items: &[T], from: usize, forward: bool) -> Option<usize> {
-        if forward {
-            (from..items.len()).find(|&i| self.enabled_at(items, i))
-        } else {
-            (0..=from.min(items.len().saturating_sub(1)))
-                .rev()
-                .find(|&i| self.enabled_at(items, i))
-        }
+    /// Shared inclusive seek over the enabled entries. Clamps, never wraps.
+    fn seek(&self, items: &[T], from: usize, dir: StepDir) -> Option<(usize, ItemKey)> {
+        CollectionCore::seek(
+            items.len(),
+            from,
+            dir,
+            |i| key_at(&self.key, items, i),
+            |i| self.enabled_at(items, i),
+        )
     }
 
     fn move_cursor(
@@ -688,9 +686,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         forward: bool,
         acc: &mut Acc<NavListAction>,
     ) {
-        match self.seek(items, from, forward) {
-            Some(i) => {
-                let key = key_at(&self.key, items, i);
+        let dir = if forward {
+            StepDir::Next
+        } else {
+            StepDir::Prev
+        };
+        match self.seek(items, from, dir) {
+            Some((i, key)) => {
                 if st.core.cursor() == Some(key) {
                     acc.consumed();
                 } else {
@@ -722,15 +724,19 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         acc: &mut Acc<NavListAction>,
     ) {
         let current = st.core.cursor_index();
-        let next = if forward {
-            self.seek(items, current.saturating_add(1), true)
+        let dir = if forward {
+            StepDir::Next
         } else {
-            current
-                .checked_sub(1)
-                .and_then(|from| self.seek(items, from, false))
+            StepDir::Prev
         };
-        if let Some(index) = next {
-            let key = key_at(&self.key, items, index);
+        let next = CollectionCore::step(
+            items.len(),
+            current,
+            dir,
+            |i| key_at(&self.key, items, i),
+            |i| self.enabled_at(items, i),
+        );
+        if let Some((index, key)) = next {
             if st.core.cursor() == Some(key) {
                 acc.consumed();
             } else {
@@ -784,19 +790,23 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         );
         st.reconcile_current(len, &|i| key_at(&self.key, items, i));
         if st.core.cursor().is_none()
-            && let Some(i) = self.seek(items, 0, true)
+            && let Some((i, key)) = CollectionCore::first_enabled(
+                items.len(),
+                |i| key_at(&self.key, items, i),
+                |i| self.enabled_at(items, i),
+            )
         {
-            st.core.set_cursor(i, key_at(&self.key, items, i));
+            st.core.set_cursor(i, key);
         }
         if self.scrollable
             && st.core.cursor().is_some()
             && !self.enabled_at(items, st.core.cursor_index())
         {
-            if let Some(i) = self
-                .seek(items, st.core.cursor_index(), true)
-                .or_else(|| self.seek(items, st.core.cursor_index(), false))
+            if let Some((i, key)) = self
+                .seek(items, st.core.cursor_index(), StepDir::Next)
+                .or_else(|| self.seek(items, st.core.cursor_index(), StepDir::Prev))
             {
-                st.core.set_cursor(i, key_at(&self.key, items, i));
+                st.core.set_cursor(i, key);
             } else {
                 st.core.clear_cursor();
             }

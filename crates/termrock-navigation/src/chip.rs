@@ -10,7 +10,7 @@ use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, s
 use crate::action::ActionKey;
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, RowFn, RowUi,
-    SelectMode, index_of, key_at,
+    SelectMode, StepDir, index_of, key_at,
 };
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -535,7 +535,9 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
     /// Move the cursor to stop `to`; the stop after the last chip is the add
-    /// affordance when there is one.
+    /// affordance when there is one. Chip stops resolve through the shared
+    /// clamped seek (chips have no per-item disabled state); the add stop is
+    /// not an item and stays local. Clamps, never wraps.
     fn move_cursor(
         &self,
         st: &mut ChipBarState,
@@ -553,7 +555,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         if to >= len {
             st.on_add = true;
         } else {
-            st.set_cursor(to, key_at(&self.key, items, to));
+            let Some((to, key)) = CollectionCore::seek(
+                len,
+                to,
+                StepDir::Next,
+                |i| key_at(&self.key, items, i),
+                |_| true,
+            ) else {
+                acc.consumed();
+                return;
+            };
+            st.set_cursor(to, key);
         }
         acc.changed();
     }

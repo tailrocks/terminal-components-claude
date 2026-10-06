@@ -16,8 +16,8 @@ use super::form::InheritedFormState;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::action::ActionKey;
 use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, index_of,
-    key_at,
+    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, StepDir,
+    index_of, key_at,
 };
 use crate::event::{Chord, KeyCode};
 use crate::field_control::FieldControl;
@@ -1107,6 +1107,8 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
+    /// Shared clamped target resolution. Options have no per-item disabled
+    /// state, so every stop is enabled. Clamps, never wraps.
     fn move_cursor(
         &self,
         st: &mut RadioGroupState,
@@ -1119,7 +1121,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             return;
         }
         let to = to.min(items.len().saturating_sub(1));
-        let key = key_at(&self.key, items, to);
+        let Some((to, key)) = CollectionCore::seek(
+            items.len(),
+            to,
+            StepDir::Next,
+            |i| key_at(&self.key, items, i),
+            |_| true,
+        ) else {
+            acc.consumed();
+            return;
+        };
         st.core.set_cursor(to, key);
         // the cursor is not the value: moving it repaints and reports
         // nothing (§20.10 item 3)

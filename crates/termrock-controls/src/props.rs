@@ -4,7 +4,7 @@
 use core::fmt;
 
 use super::{Acc, PartStyle, SlotFn, cell_at, paint_pressed_bracket};
-use crate::collection::{CellUi, Reconcile, Reconciliation};
+use crate::collection::{CellUi, CollectionCore, Reconcile, Reconciliation, StepDir};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -561,6 +561,8 @@ impl<'a> PropsList<'a> {
             .ensure_visible_on_next_layout(Self::visual_start(rows, index, width));
     }
 
+    /// Shared clamped target resolution. Rows have no per-item disabled
+    /// state, so every stop is enabled. Clamps, never wraps.
     fn move_cursor(
         &self,
         cx: &Cx<'_>,
@@ -569,12 +571,22 @@ impl<'a> PropsList<'a> {
         index: usize,
         acc: &mut Acc<PropsAction>,
     ) {
-        let Some(row) = rows.get(index.min(rows.len().saturating_sub(1))) else {
+        if rows.is_empty() {
+            acc.consumed();
+            return;
+        }
+        let index = index.min(rows.len().saturating_sub(1));
+        let Some((index, key)) = CollectionCore::seek(
+            rows.len(),
+            index,
+            StepDir::Next,
+            |i| rows.get(i).map_or(ItemKey::index(i), |row| row.key),
+            |_| true,
+        ) else {
             acc.consumed();
             return;
         };
-        let index = index.min(rows.len().saturating_sub(1));
-        st.core.set_cursor(index, row.key);
+        st.core.set_cursor(index, key);
         self.reveal(cx, st, rows, index);
         acc.changed();
     }

@@ -19,8 +19,8 @@ use ratatui_core::layout::Rect;
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
 use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, index_of,
-    key_at,
+    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, StepDir,
+    index_of, key_at,
 };
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -669,13 +669,25 @@ impl<T, K: KeyFn<T>, R> Steps<'_, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
+    /// Shared clamped target resolution. Steps have no per-item disabled
+    /// state, so every stop is enabled. Clamps, never wraps; staying put is
+    /// consumed without an action.
     fn move_cursor(&self, st: &mut StepsState, items: &[T], to: usize, acc: &mut Acc<StepsAction>) {
         if items.is_empty() {
             acc.consumed();
             return;
         }
         let to = to.min(items.len().saturating_sub(1));
-        let key = key_at(&self.key, items, to);
+        let Some((to, key)) = CollectionCore::seek(
+            items.len(),
+            to,
+            StepDir::Next,
+            |i| key_at(&self.key, items, i),
+            |_| true,
+        ) else {
+            acc.consumed();
+            return;
+        };
         if st.core.cursor() == Some(key) {
             acc.consumed();
             return;

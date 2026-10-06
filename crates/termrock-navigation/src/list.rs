@@ -9,7 +9,7 @@ use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, shift};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, KeySet, Reconcile, Reconciliation,
-    RowFn, RowUi, SelectMode, Status, index_of, key_at,
+    RowFn, RowUi, SelectMode, Status, StepDir, index_of, key_at,
 };
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
@@ -768,6 +768,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         items.get(i).is_some_and(|it| !self.is_disabled(it))
     }
 
+    /// Shared clamped target resolution. The cursor lands on every row,
+    /// including disabled ones — only seeding, choosing, range-insert and
+    /// toggle-all skip disabled rows. Clamps, never wraps.
     fn move_cursor(
         &self,
         st: &mut ListState,
@@ -781,7 +784,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             return;
         }
         let to = to.min(len.saturating_sub(1));
-        let key = key_at(&self.key, items, to);
+        let Some((to, key)) = CollectionCore::seek(
+            len,
+            to,
+            StepDir::Next,
+            |i| key_at(&self.key, items, i),
+            |_| true,
+        ) else {
+            return;
+        };
         if extend && !matches!(self.select_mode, SelectMode::Single | SelectMode::None) {
             let from = st.core.cursor_index();
             let anchor_i = st
@@ -879,9 +890,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             st.chosen = None;
         }
         if st.core.cursor().is_none()
-            && let Some(i) = (0..len).find(|&i| self.enabled_at(items, i))
+            && let Some((i, key)) = CollectionCore::first_enabled(
+                len,
+                |i| key_at(&self.key, items, i),
+                |i| self.enabled_at(items, i),
+            )
         {
-            let key = key_at(&self.key, items, i);
             st.core.set_cursor(i, key);
         }
         if self.stride() > 1 && prior_index != st.core.cursor_index() && st.core.cursor().is_some()
