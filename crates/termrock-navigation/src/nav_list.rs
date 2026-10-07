@@ -1126,11 +1126,22 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         );
         ui.fill(rect, rs.style);
         self.paint_cell_part(ui, cell_at(rect, rect.x), Part::GUTTER, flags, None);
+        // Q67-S13 (N-L1): a current row (SELECTED) resolves its marker
+        // with ACTIVE so the shared LIST MARKER rule keeps the current
+        // destination accent-always (`tag:sidebars.rs:225-226`). ACTIVE
+        // stays out of the shared row flags: the generic mono
+        // (LABEL, ACTIVE)+BOLD fallback is tabs-intended and must not
+        // voice nav rows.
+        let marker_flags = if flags.contains(StateFlags::SELECTED) {
+            flags | StateFlags::ACTIVE
+        } else {
+            flags
+        };
         self.paint_cell_part(
             ui,
             cell_at(rect, rect.x.saturating_add(1)),
             Part::MARKER,
-            flags,
+            marker_flags,
             None,
         );
         let icon = self.icon.map(|f| f(item));

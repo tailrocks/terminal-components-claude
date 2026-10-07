@@ -758,11 +758,13 @@ fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintS
     );
     let muted = shell_part_style(ui, termrock::Family::LIST, Part::META, StateFlags::empty());
     let faint = shell_text_style(ui, termrock::FgStep::Faint);
-    let marker = shell_part_style(
-        ui,
-        termrock::Family::LIST,
-        Part::MARKER,
-        StateFlags::SELECTED,
+    // Q67-S13 (L-R1/L-R2): the brand mark is accent, not a list marker —
+    // the tag paints it with `t.accent_fg()` directly
+    // (`tag:app.rs:966`), so it resolves the Accent role instead of
+    // borrowing the LIST MARKER rule.
+    let marker = shell_compat_style(
+        ui.surface_style()
+            .patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent))),
     );
     (title, secondary, muted, faint, marker)
 }
@@ -942,7 +944,12 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
             Variant::DEFAULT,
             Part::MARKER,
             if current {
-                flags | StateFlags::SELECTED
+                // Q67-S13 (N-L1): the current-row marker resolves with
+                // ACTIVE so the shared LIST MARKER rule keeps it
+                // accent-always (`tag:sidebars.rs:225-226`); every
+                // other shell part resolves without it (the generic
+                // mono ACTIVE fallback is tabs-intended).
+                flags | StateFlags::SELECTED | StateFlags::ACTIVE
             } else {
                 flags
             },

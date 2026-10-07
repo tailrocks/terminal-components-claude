@@ -2106,6 +2106,76 @@ mod tests {
         );
     }
 
+    /// Q67-S13 (L-R1/L-R2 + N-L1): the LIST marker is secondary unless
+    /// the row is live (`tag:list.rs:296-302`): the focus/hover
+    /// compounds and the NavList SELECTED|ACTIVE current row resolve
+    /// accent, while disabled rows keep DisabledFg in every combination.
+    #[test]
+    fn q67s13_list_marker_secondary_unless_live() {
+        let theme = Theme::junie();
+        let resolve = |flags| {
+            theme.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::MARKER,
+                flags,
+                Surface::Canvas,
+            )
+        };
+        let secondary =
+            crate::theme::resolve::bind_role(&theme, Role::Fg(FgStep::Secondary), Surface::Canvas);
+        let accent = crate::theme::resolve::bind_role(&theme, Role::Accent, Surface::Canvas);
+        let disabled = crate::theme::resolve::bind_role(&theme, Role::DisabledFg, Surface::Canvas);
+        let selected = resolve(StateFlags::SELECTED);
+        assert_eq!(selected.glyph.get(), Some(GlyphRole::Chosen));
+        assert_eq!(selected.style.fg, secondary);
+        let checked = resolve(StateFlags::CHECKED);
+        assert_eq!(checked.glyph.get(), Some(GlyphRole::Checked));
+        assert_eq!(checked.style.fg, secondary);
+        for flags in [
+            StateFlags::SELECTED | StateFlags::FOCUSED,
+            StateFlags::SELECTED | StateFlags::HOVERED,
+            StateFlags::SELECTED | StateFlags::ACTIVE,
+            StateFlags::CHECKED | StateFlags::FOCUSED,
+            StateFlags::CHECKED | StateFlags::HOVERED,
+        ] {
+            assert_eq!(resolve(flags).style.fg, accent, "live {flags:?}");
+        }
+        // Glyphs ride the base rule through the fg-only compounds.
+        assert_eq!(
+            resolve(StateFlags::SELECTED | StateFlags::ACTIVE)
+                .glyph
+                .get(),
+            Some(GlyphRole::Chosen)
+        );
+        assert_eq!(
+            resolve(StateFlags::CHECKED | StateFlags::FOCUSED)
+                .glyph
+                .get(),
+            Some(GlyphRole::Checked)
+        );
+        // Disabled wins every combination except the NavList current
+        // row, which the tag paints accent unconditionally.
+        for flags in [
+            StateFlags::DISABLED,
+            StateFlags::SELECTED | StateFlags::DISABLED,
+            StateFlags::CHECKED | StateFlags::DISABLED,
+            StateFlags::SELECTED | StateFlags::FOCUSED | StateFlags::DISABLED,
+            StateFlags::SELECTED | StateFlags::HOVERED | StateFlags::DISABLED,
+            StateFlags::CHECKED | StateFlags::FOCUSED | StateFlags::DISABLED,
+            StateFlags::CHECKED | StateFlags::HOVERED | StateFlags::DISABLED,
+        ] {
+            assert_eq!(resolve(flags).style.fg, disabled, "disabled {flags:?}");
+        }
+        assert_eq!(
+            resolve(StateFlags::SELECTED | StateFlags::ACTIVE | StateFlags::DISABLED)
+                .style
+                .fg,
+            accent,
+            "disabled NavList current keeps the tag's accent"
+        );
+    }
+
     // Q66-S5 (F1-L6): Junie TREE targeted mono set is
     // (CONTAINER+GUTTER+META, DISABLED)+DIM — the LIST mirror (Q66-S3).
     // Principle-only (Q65 GHOST precedent): tag tree never sets disabled
