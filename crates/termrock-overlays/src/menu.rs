@@ -1848,4 +1848,104 @@ mod tests {
         assert_eq!(menu.natural_width(|_, _| None), 29);
         assert_eq!(menu.natural_height(), 7);
     }
+
+    /// Q66-S6 draw helper: the shared `ITEMS` (row 1 `"Disabled"` carries
+    /// chord `d` and is disabled) as a bare context menu at Mono, 30x9:
+    /// border x0/x29, rows y1-3, label x3, shortcut x27.
+    fn draw_q66s6_mono_menu_disabled() -> Buffer {
+        let area = Rect::new(0, 0, 30, 9);
+        let mut runtime = Runtime::new(
+            crate::runtime::stub::Stub::default(),
+            Theme::junie().downgrade(crate::ColorLevel::Mono),
+        );
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ContextMenu::at(Id::root("menu.q66s6"), &ITEMS, Position::new(0, 0)).draw(
+                    ui,
+                    area,
+                    &MenuState::default(),
+                );
+            })
+            .commit_presented();
+        buffer
+    }
+
+    /// F1-L9a: disabled pad cells are DarkGray+DIM at Mono (P4: the tag's
+    /// disabled menu row is a single `disabled_style` run); enabled pads
+    /// stay DIM-free.
+    #[test]
+    fn q66s6_l9a_disabled_pad_cells_carry_dim_at_mono() {
+        use ratatui_core::style::{Color, Modifier};
+
+        let buf = draw_q66s6_mono_menu_disabled();
+        let pad = buf.cell(Position::new(11, 2)).expect("pad cell");
+        assert_eq!(pad.symbol(), " ");
+        assert_eq!(pad.style().fg, Some(Color::DarkGray), "disabled pad fg");
+        assert!(
+            pad.modifier.contains(Modifier::DIM),
+            "disabled pad lost DIM"
+        );
+        let enabled = buf.cell(Position::new(11, 3)).expect("enabled pad cell");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled pad gained DIM"
+        );
+    }
+
+    /// F1-L9b: the disabled shortcut cell is the row style `st`
+    /// (DarkGray+DIM at Mono, P4 `e`); the enabled shortcut keeps the Muted
+    /// fg DIM-free.
+    #[test]
+    fn q66s6_l9b_disabled_shortcut_cell_is_disabled_style_at_mono() {
+        use ratatui_core::style::{Color, Modifier};
+
+        let buf = draw_q66s6_mono_menu_disabled();
+        let key = buf.cell(Position::new(27, 2)).expect("shortcut cell");
+        assert_eq!(key.symbol(), "d");
+        assert_eq!(
+            key.style().fg,
+            Some(Color::DarkGray),
+            "disabled shortcut fg"
+        );
+        assert!(
+            key.modifier.contains(Modifier::DIM),
+            "disabled shortcut lost DIM"
+        );
+        let enabled = buf
+            .cell(Position::new(27, 1))
+            .expect("enabled shortcut cell");
+        assert_eq!(enabled.symbol(), "o");
+        assert_eq!(
+            enabled.style().fg,
+            Some(Color::Gray),
+            "enabled shortcut keeps Muted"
+        );
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled shortcut gained DIM"
+        );
+    }
+
+    /// F1-L9a+L9b: the disabled row is ONE full-width run — every cell
+    /// x1..=28 carries the disabled fg +DIM at Mono (P4 asserts the same
+    /// run cell-by-cell on the tag side).
+    #[test]
+    fn q66s6_l9ab_disabled_row_is_single_dim_run_at_mono() {
+        use ratatui_core::style::{Color, Modifier};
+
+        let buf = draw_q66s6_mono_menu_disabled();
+        for x in 1..=28 {
+            let c = buf.cell(Position::new(x, 2)).expect("row cell");
+            assert_eq!(
+                c.style().fg,
+                Some(Color::DarkGray),
+                "x{x} leaves the run fg"
+            );
+            assert!(
+                c.modifier.contains(Modifier::DIM),
+                "x{x} leaves the run DIM"
+            );
+        }
+    }
 }
