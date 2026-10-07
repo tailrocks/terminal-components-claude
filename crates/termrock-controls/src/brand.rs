@@ -420,12 +420,15 @@ mod tests {
             })
             .commit_presented();
 
+        // Q65-S4/G6: no brackets at `Mono` — the tag's pressed lockup
+        // recolors (`accent_pressed`, W01-02), it does not bracket. The pads
+        // stay blank and the mark stays put, so the lockup keeps its width.
         assert_eq!(
             buffer
                 .cell(Position::new(0, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
-            Some("["),
-            "the left bracket occupies the lockup's leading pad"
+            Some(" "),
+            "the lockup's leading pad stays blank without a bracket"
         );
         assert_eq!(
             buffer
@@ -438,8 +441,8 @@ mod tests {
             buffer
                 .cell(Position::new(6, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
-            Some("]"),
-            "the right bracket occupies the lockup's trailing pad"
+            Some(" "),
+            "the lockup's trailing pad stays blank without a bracket"
         );
     }
 
