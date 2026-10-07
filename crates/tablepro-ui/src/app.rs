@@ -2200,11 +2200,13 @@ impl TableProApp {
             self.filter_editor = None;
             return Response::changed();
         }
-        // Value field is owned by TextInput. Blur (FocusOut) commits the
-        // draft into `editor.value` without applying; Enter commits and
-        // applies. Esc while editing cancels the draft; Esc while idle
-        // closes. Manual routing below always runs so every intent bucket
-        // is drained (no UndeliveredIntent diagnostics).
+        // Value fields are owned by TextInput. Blur (FocusOut) commits the
+        // draft into `editor.value` / `editor.value2` without applying;
+        // Enter commits and applies. Esc while editing cancels the draft;
+        // Esc while idle closes. Manual routing below always runs so every
+        // intent bucket is drained (no UndeliveredIntent diagnostics).
+        // `update` takes the mutable controlled value and writes it on
+        // commit only; the draft lives in the state (see `draft_text`).
         let value_blurred = cx
             .intents(FILTER_VALUE)
             .any(|intent| matches!(intent, Intent::FocusOut { .. }));
@@ -2214,6 +2216,15 @@ impl TableProApp {
             &mut editor.value,
         );
         let value_action = value_response.action_ref().copied();
+        let value2_blurred = cx
+            .intents(FILTER_VALUE2)
+            .any(|intent| matches!(intent, Intent::FocusOut { .. }));
+        let value2_response = TextInput::new(FILTER_VALUE2).placeholder("value").update(
+            cx,
+            &mut editor.value2_state,
+            &mut editor.value2,
+        );
+        let value2_action = value2_response.action_ref().copied();
         // Column and Op dropdowns are owned by Select. The column runs
         // first: choosing a column rebuilds the type-appropriate op list,
         // so the op value is seeded fresh after.
@@ -2306,10 +2317,12 @@ impl TableProApp {
         } else if apply_activated {
             outcome = Some(FilterOutcome::Apply(editor.to_filter()));
         }
-        // Enter in the value field commits and applies. Blur commits are
-        // already written into `editor.value` by TextInput; the editor stays
-        // open and FocusIn above synced `editor.focus`.
-        if value_action == Some(TextAction::Committed) && !value_blurred {
+        // Enter in either value field commits and applies. Blur commits are
+        // already written into `editor.value` / `editor.value2` by TextInput;
+        // the editor stays open and FocusIn above synced `editor.focus`.
+        let value_committed = value_action == Some(TextAction::Committed) && !value_blurred;
+        let value2_committed = value2_action == Some(TextAction::Committed) && !value2_blurred;
+        if value_committed || value2_committed {
             let filter = editor.to_filter();
             let index = editor.index;
             self.filter_editor = None;
@@ -2334,6 +2347,17 @@ impl TableProApp {
         if value_action.is_none()
             && !editor.value_state.is_editing()
             && cx.intents(FILTER_VALUE).any(|intent| match intent {
+                Intent::Binding(key) => {
+                    key == ActionKey::CANCEL || key == ActionKey::custom("Cancel")
+                }
+                _ => false,
+            })
+        {
+            outcome = Some(FilterOutcome::Cancel);
+        }
+        if value2_action.is_none()
+            && !editor.value2_state.is_editing()
+            && cx.intents(FILTER_VALUE2).any(|intent| match intent {
                 Intent::Binding(key) => {
                     key == ActionKey::CANCEL || key == ActionKey::custom("Cancel")
                 }
@@ -2403,7 +2427,12 @@ impl TableProApp {
             }
             Some(FilterOutcome::Keep) if esc_on_open_popup => Response::ignored(),
             Some(FilterOutcome::Keep) => Response::changed(),
-            None if value_action.is_some() || col_dirty || op_dirty || buttons_dirty => {
+            None if value_action.is_some()
+                || value2_action.is_some()
+                || col_dirty
+                || op_dirty
+                || buttons_dirty =>
+            {
                 Response::changed()
             }
             None => Response::ignored(),
@@ -7918,6 +7947,107 @@ mod replacement_tests {
         let text = h.text();
         assert!(text.contains("status = 'pending'"));
         assert!(text.contains("filtered (1)"));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn filter_value2_edits_through_text_input_draft() {
+        let mut app = TableProApp::default();
+        let idx = app
+            .connections
+            .iter()
+            .position(|c| c.name == "Production")
+            .unwrap();
+        let _ = app.connect(idx);
+        let mut h = Harness::new(app, Theme::junie(), 120, 40);
+        for _ in 0..5 {
+            let _ = h.key(KeyCode::Down);
+        }
+        let _ = h.key(KeyCode::Enter);
+        let _ = h.key(KeyCode::Home);
+        for _ in 0..4 {
+            let _ = h.key(KeyCode::Right);
+        }
+        // Prefilled open: focus starts on the Apply stop.
+        let _ = h.key(KeyCode::Char('f'));
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.focus, FilterFocus::Apply);
+        let prefill = editor.value.clone();
+        assert!(!prefill.is_empty());
+        // Choose Between through the owned op dropdown.
+        let _ = h.key(KeyCode::Tab);
+        let _ = h.key(KeyCode::Tab);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.focus, FilterFocus::Op);
+        let _ = h.key(KeyCode::Enter);
+        assert!(
+            h.app()
+                .filter_editor
+                .as_ref()
+                .expect("editor open")
+                .op_select
+                .is_open()
+        );
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        let between_pos = editor
+            .ops
+            .iter()
+            .position(|&op| op == FilterOp::Between)
+            .expect("between offered");
+        // Down moves the cursor WITHOUT committing (cursor is not value).
+        for _ in 0..between_pos {
+            let _ = h.key(KeyCode::Down);
+        }
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(editor.op_select.is_open());
+        assert_eq!(editor.op, FilterOp::Eq);
+        assert_eq!(editor.op_select.cursor(), Some(op_key(&FilterOp::Between)));
+        let _ = h.key(KeyCode::Enter);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(!editor.op_select.is_open());
+        assert_eq!(editor.op, FilterOp::Between);
+        assert!(h.text().contains("BETWEEN"));
+        // The Tab ring reaches the second value field.
+        let _ = h.key(KeyCode::Tab);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.focus, FilterFocus::Value);
+        let _ = h.key(KeyCode::Tab);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.focus, FilterFocus::Value2);
+        // Begin editing: TextInput draft starts, committed value2 untouched.
+        let _ = h.key(KeyCode::Enter);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(editor.value2_state.is_editing());
+        assert_eq!(editor.value2, "");
+        for c in "999".chars() {
+            let _ = h.key(KeyCode::Char(c));
+        }
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(editor.value2_state.is_editing());
+        assert_eq!(editor.value2_state.draft_text(), Some("999"));
+        assert_eq!(editor.value2, "");
+        // Esc cancels the draft: editor stays open, committed value2 kept.
+        let _ = h.key(KeyCode::Esc);
+        let editor = h.app().filter_editor.as_ref().expect("editor stays open");
+        assert!(!editor.value2_state.is_editing());
+        assert_eq!(editor.value2_state.draft_text(), None);
+        assert_eq!(editor.value2, "");
+        // Re-edit and commit with Enter: applies the Between filter.
+        let _ = h.key(KeyCode::Enter);
+        for c in "999".chars() {
+            let _ = h.key(KeyCode::Char(c));
+        }
+        let _ = h.key(KeyCode::Enter);
+        assert!(h.app().filter_editor.is_none());
+        let filters = match h.app().workbench.active() {
+            Some(Tab::Table(t)) => t.filters.clone(),
+            _ => panic!("table tab active"),
+        };
+        assert_eq!(filters.len(), 1);
+        assert_eq!(filters[0].op, FilterOp::Between);
+        assert_eq!(filters[0].value, prefill.trim());
+        assert_eq!(filters[0].value2, "999");
+        assert_eq!(h.app().status, "1 filter applied");
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 

@@ -372,8 +372,7 @@ pub struct FilterEditor {
     pub value: String,
     pub value_state: termrock::TextInputState,
     pub value2: String,
-    pub value2_editing: bool,
-    pub value2_selected_all: bool,
+    pub value2_state: termrock::TextInputState,
     pub focus: FilterFocus,
 }
 
@@ -425,8 +424,7 @@ impl FilterEditor {
             value,
             value_state: termrock::TextInputState::default(),
             value2,
-            value2_editing: false,
-            value2_selected_all: false,
+            value2_state: termrock::TextInputState::default(),
             focus: initial_focus,
         }
     }
@@ -521,17 +519,13 @@ impl FilterEditor {
             if self.col_select.is_open() || self.op_select.is_open() {
                 return FilterOutcome::Keep;
             }
-            if self.value2_editing {
-                self.value2_editing = false;
-                return FilterOutcome::Keep;
-            }
             return FilterOutcome::Cancel;
         }
 
         if !self.col_select.is_open()
             && !self.op_select.is_open()
             && !self.value_state.is_editing()
-            && !self.value2_editing
+            && !self.value2_state.is_editing()
         {
             match key.code {
                 termrock::KeyCode::Tab => {
@@ -563,50 +557,9 @@ impl FilterEditor {
                 // component (idle, unbound); ignore them.
             }
             FilterFocus::Value2 => {
-                if !self.value2_editing {
-                    match key.code {
-                        termrock::KeyCode::Enter => {
-                            self.value2_editing = true;
-                            self.value2_selected_all = false;
-                        }
-                        termrock::KeyCode::Char(c) => {
-                            self.value2_editing = true;
-                            self.value2.clear();
-                            self.value2.push(c);
-                            self.value2_selected_all = false;
-                        }
-                        _ => {}
-                    }
-                } else {
-                    match key.code {
-                        termrock::KeyCode::Char('l')
-                            if key.mods.contains(termrock::KeyModifiers::CONTROL) =>
-                        {
-                            self.value2.clear();
-                            self.value2_selected_all = true;
-                        }
-                        termrock::KeyCode::Enter => {
-                            self.value2_editing = false;
-                            return FilterOutcome::Apply(self.to_filter());
-                        }
-                        termrock::KeyCode::Backspace => {
-                            if self.value2_selected_all {
-                                self.value2.clear();
-                                self.value2_selected_all = false;
-                            } else {
-                                self.value2.pop();
-                            }
-                        }
-                        termrock::KeyCode::Char(c) => {
-                            if self.value2_selected_all {
-                                self.value2.clear();
-                                self.value2_selected_all = false;
-                            }
-                            self.value2.push(c);
-                        }
-                        _ => {}
-                    }
-                }
+                // Owned by termrock::TextInput via update_filter_editor and
+                // draw below. Keys arriving here were not consumed by the
+                // component (idle, unbound); ignore them.
             }
             FilterFocus::Cancel => {
                 // Owned by termrock::Button via update_filter_editor and
@@ -748,8 +701,12 @@ impl FilterEditor {
             muted_fg,
         );
 
-        // Value field
+        // Value field(s). `Between` renders value + value2 side by side
+        // on the SAME row: oracle `Split::new(50, 12, 12).horizontal` with
+        // gap 2 over the 59-wide value field is usable 57, first 28, gap 2,
+        // second 29 (the same 28/29 split as the Column/Op row above).
         if self.op.needs_value() {
+            let between = self.op == FilterOp::Between;
             let val_focused = self.focus == FilterFocus::Value;
             let val_label_style = if val_focused {
                 elevated_style.patch(ui.paint_patch(
@@ -761,7 +718,7 @@ impl FilterEditor {
                 elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
             };
             let mut label_str = String::from("Value");
-            let target_w = 57usize;
+            let target_w = if between { 26usize } else { 57usize };
             if label_str.len() < target_w {
                 label_str.push_str(&" ".repeat(target_w - label_str.len()));
             }
@@ -771,11 +728,48 @@ impl FilterEditor {
                 val_label_style,
             );
 
-            let val_rect = termrock::Rect::new(area.x + 2, area.y + 7, 59, 1);
+            let val_rect =
+                termrock::Rect::new(area.x + 2, area.y + 7, if between { 28 } else { 59 }, 1);
             termrock::TextInput::new(FILTER_VALUE)
                 .value(&self.value)
                 .placeholder("value")
                 .draw(ui, val_rect, &self.value_state);
+
+            // Second value field, `Between` only (owned by
+            // termrock::TextInput). Label mirrors the sibling value label
+            // exactly; legacy text is "and".
+            if between {
+                let val2_focused = self.focus == FilterFocus::Value2;
+                let val2_label_style = if val2_focused {
+                    elevated_style.patch(
+                        ui.paint_patch(
+                            &StylePatch::new()
+                                .set_fg(Role::Fg(FgStep::Primary))
+                                .add(Modifier::BOLD),
+                        ),
+                    )
+                } else {
+                    elevated_style.patch(
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+                    )
+                };
+                let mut label2_str = String::from("and");
+                let target2_w = 27usize;
+                if label2_str.len() < target2_w {
+                    label2_str.push_str(&" ".repeat(target2_w - label2_str.len()));
+                }
+                ui.paint_str(
+                    termrock::Rect::new(area.x + 34, area.y + 6, target2_w as u16, 1),
+                    &label2_str,
+                    val2_label_style,
+                );
+
+                let val2_rect = termrock::Rect::new(area.x + 32, area.y + 7, 29, 1);
+                termrock::TextInput::new(FILTER_VALUE2)
+                    .value(&self.value2)
+                    .placeholder("value")
+                    .draw(ui, val2_rect, &self.value2_state);
+            }
         } else {
             ui.paint_str(
                 termrock::Rect::new(area.x + 4, area.y + 7, 56, 1),
@@ -788,6 +782,9 @@ impl FilterEditor {
         let mut preview_filter = self.to_filter();
         if let Some(draft) = self.value_state.draft_text() {
             preview_filter.value = draft.trim().to_owned();
+        }
+        if let Some(draft) = self.value2_state.draft_text() {
+            preview_filter.value2 = draft.trim().to_owned();
         }
         let sql_filter = preview_filter.to_sql();
         let preview = format!("WHERE {sql_filter}");
