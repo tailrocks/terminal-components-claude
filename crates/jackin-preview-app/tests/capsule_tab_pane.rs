@@ -1,17 +1,16 @@
-//! WI-JACKIN-CAPSULE-01: capsule tab/pane dispatch through owned components.
+//! WI-JACKIN-CAPSULE-01/03: capsule tab/pane dispatch through owned components.
 //!
 //! The capsule tab strip and split panes render through reusable Termrock
 //! components (`Tabs`, `SplitPane`, `Panel`, `Empty`, `TextViewport`,
 //! `TextInput`). These tests pin that dispatch:
 //!
-//! * outside the frozen audit state the component path reproduces the
-//!   frozen audit rows exactly (symbols; the status row itself moved to
-//!   components in WI-JACKIN-CAPSULE-02);
-//! * the frozen audit state still routes to the historical frame for every
-//!   row except the narrowed status row, which the `StatusBar` composition
-//!   owns (WI-JACKIN-CAPSULE-02);
+//! * the component path reproduces the frozen audit rows exactly (symbols);
+//! * the paused 120x40 audit state renders through the same component
+//!   path (WI-JACKIN-CAPSULE-03 deleted the historical frame): all 40
+//!   rows match frozen, tab selection repaints the strip, and the
+//!   scrolled panes wear the owned viewport fade the painter lacked;
 //! * typing into the capsule input reaches the live component path and
-//!   clearing it returns to the historical frame (dispatch boundary).
+//!   clearing it restores the component body (dispatch boundary).
 use jackin_preview_app::{App, Motion, Scenario};
 use termrock_test_support::Harness;
 
@@ -32,8 +31,8 @@ fn rows(h: &Harness<App>, height: u16) -> Vec<String> {
         .collect()
 }
 
-/// Component path parity: at full motion (no ticks) the app leaves the
-/// historical gate and every row matches the frozen audit text exactly.
+/// Component path parity: at full motion (no ticks) every row matches the
+/// frozen audit text exactly.
 #[test]
 fn capsule_component_path_matches_audit_body() {
     for (w, h) in [(120u16, 40u16), (80u16, 24u16)] {
@@ -69,11 +68,11 @@ fn capsule_component_status_shows_session_meter() {
     );
 }
 
-/// Gate guard: the exact frozen audit state still renders the historical
-/// frame for every row except the narrowed status row, which the
-/// `StatusBar` composition owns — all 40 rows keep matching frozen.
+/// Gate deletion: the exact frozen audit state renders through the owned
+/// component path — all 40 rows keep matching frozen with no historical
+/// frame left to serve them.
 #[test]
-fn audited_capsule_state_matches_frozen_after_narrowing() {
+fn audited_paused_capsule_renders_through_components() {
     let app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40);
     let harness = Harness::new(app, termrock::Theme::junie(), 120, 40);
     let actual = rows(&harness, 40);
@@ -84,10 +83,66 @@ fn audited_capsule_state_matches_frozen_after_narrowing() {
     }
 }
 
+/// Body ownership: renaming a tab repaints the paused audit strip
+/// through the component path — the content cannot be a stored answer.
+#[test]
+fn paused_audit_tab_rename_repaints_the_strip() {
+    let app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40);
+    let harness = Harness::new(app, termrock::Theme::junie(), 120, 40);
+    let expected = frozen("baselines/tuiscotti-v1/jackin/capsule/audit/120x40/truecolor.txt");
+    assert_eq!(
+        harness.row(2).trim_end(),
+        expected[2],
+        "control strip must match frozen"
+    );
+
+    let mut app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40);
+    let daemon = app
+        .world
+        .daemons
+        .get_mut("jk-7f3a")
+        .expect("capsule fixture daemon exists");
+    daemon.tabs[0].custom_label = Some("renamed".to_string());
+    let harness = Harness::new(app, termrock::Theme::junie(), 120, 40);
+    let strip = harness.row(2);
+    assert!(
+        strip.contains("renamed"),
+        "renamed tab must repaint the paused strip, got {strip:?}"
+    );
+    assert_eq!(
+        harness.row(0).trim_end(),
+        expected[0],
+        "shell row must not move with tab data"
+    );
+}
+
+/// Fade ownership: the paused audit panes wear the owned viewport
+/// scroll-edge fade. The deleted painter predated the fade and painted
+/// these cells full-bright (fg 179/255 vs 98/102/140 below), so these
+/// pins fail on the historical frame and pass on the components.
+#[test]
+fn paused_audit_body_shows_owned_viewport_fade() {
+    use termrock::Color;
+
+    let app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40);
+    let harness = Harness::new(app, termrock::Theme::junie(), 120, 40);
+    for (x, y, symbol, fg) in [
+        (61u16, 5u16, "•", Color::Rgb(98, 98, 98)),
+        (69, 5, "c", Color::Rgb(140, 140, 140)),
+        (61, 6, " ", Color::Rgb(102, 102, 102)),
+        (61, 22, "b", Color::Rgb(140, 140, 140)),
+        (61, 23, "=", Color::Rgb(102, 102, 102)),
+    ] {
+        let cell = harness.cell(x, y);
+        assert_eq!(cell.symbol(), symbol, "faded cell ({x},{y}) symbol");
+        assert_eq!(cell.fg, fg, "faded cell ({x},{y}) must wear the fade");
+        assert_eq!(cell.bg, Color::Rgb(0, 0, 0), "faded cell ({x},{y}) bg");
+    }
+}
+
 /// Component-path journey: keys reach the live capsule input, the tab
 /// strip stays intact through the journey, and clearing the input
-/// restores the component body. (The paused historical frame registers
-/// no input target, so typing only flows on the component path.)
+/// restores the component body.
 #[test]
 fn capsule_input_keys_reach_the_component_path() {
     use termrock::KeyCode;
@@ -123,4 +178,32 @@ fn capsule_input_keys_reach_the_component_path() {
         frozen_tabs,
         "tab strip must survive clearing the input"
     );
+}
+
+/// Paused input parity: with the historical frame gone, paused mode no
+/// longer bypasses the component path — typing reaches the live input
+/// and clearing it restores the frozen-exact audit frame.
+#[test]
+fn paused_capsule_input_reaches_the_component_path() {
+    use termrock::KeyCode;
+
+    let app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40);
+    let mut harness = Harness::new(app, termrock::Theme::junie(), 120, 40);
+    let expected = frozen("baselines/tuiscotti-v1/jackin/capsule/audit/120x40/truecolor.txt");
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.type_str("hello");
+    assert!(
+        (0..40).any(|y| harness.row(y).contains("hello")),
+        "typed text must be visible in the paused capsule input"
+    );
+    for _ in 0..5 {
+        let _ = harness.key(KeyCode::Backspace);
+    }
+    for y in 0..40u16 {
+        assert_eq!(
+            harness.row(y).trim_end(),
+            expected[usize::from(y)],
+            "clearing paused input must restore frozen row {y}"
+        );
+    }
 }

@@ -9,9 +9,10 @@
 //! * the meters follow fixture data through the real preview journey —
 //!   changed usage repaints the run, so the content cannot be a stored
 //!   answer;
-//! * the narrowed 120x40/paused audit row is component-owned: every row
+//! * the paused 120x40 audit frame is component-owned on every row
+//!   (WI-JACKIN-CAPSULE-03 deleted the historical frame): every row
 //!   still matches frozen, and mutated usage moves row 38 while the
-//!   historical rows stay put;
+//!   body rows stay put;
 //! * the row wears the frozen tones (stale meter run, muted labels,
 //!   warning center, bold identity).
 use jackin_preview_app::{App, Motion, Scenario};
@@ -28,8 +29,8 @@ fn frozen(path: &str) -> Vec<String> {
         .collect()
 }
 
-/// Component-path parity: at full motion (no ticks) the app leaves the
-/// historical gate and the status row matches the frozen audit text exactly.
+/// Component-path parity: at full motion (no ticks) the status row
+/// matches the frozen audit text exactly.
 #[test]
 fn capsule_status_row_matches_frozen_at_all_sizes() {
     for (w, h) in [
@@ -111,11 +112,11 @@ fn capsule_status_meter_follows_account_usage() {
     );
 }
 
-/// Narrowed-gate ownership: the paused 120x40 audit frame still matches
-/// frozen on every row, but row 38 now comes from the component path —
-/// mutated usage moves it while the historical rows stay frozen.
+/// Full-frame ownership: the paused 120x40 audit frame still matches
+/// frozen on every row with no historical frame left — mutated usage
+/// moves row 38 through the component path while the body rows stay put.
 #[test]
-fn narrowed_audit_status_row_is_component_owned() {
+fn paused_audit_frame_is_fully_component_owned() {
     let app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40);
     let harness = Harness::new(app, termrock::Theme::junie(), 120, 40);
     let expected = frozen("baselines/tuiscotti-v1/jackin/capsule/audit/120x40/truecolor.txt");
@@ -123,7 +124,7 @@ fn narrowed_audit_status_row_is_component_owned() {
         assert_eq!(
             harness.row(y).trim_end(),
             expected[usize::from(y)],
-            "audited paused row {y} must match frozen after narrowing"
+            "audited paused row {y} must match frozen"
         );
     }
 
@@ -148,7 +149,7 @@ fn narrowed_audit_status_row_is_component_owned() {
         assert_eq!(
             harness.row(y).trim_end(),
             expected[usize::from(y)],
-            "historical row {y} must stay frozen under mutated usage"
+            "body row {y} must stay frozen under mutated usage"
         );
     }
 }
