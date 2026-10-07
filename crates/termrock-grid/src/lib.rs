@@ -44,5 +44,6 @@ pub mod grid;
 pub use grid::{
     CellAction, CellRef, Column, ColumnKey, EditIntent, GRID_MAX_COLUMNS, Grid, GridAction,
     GridCell, GridCmd, GridColumnFit, GridCursorError, GridEditor, GridGutter, GridHeaderSizing,
-    GridModel, GridSortIndicator, GridState, NavUnit, SortDir, WidthSample, WidthSampleError,
+    GridModel, GridOverflowIndicator, GridSortIndicator, GridState, NavUnit, SortDir, WidthSample,
+    WidthSampleError,
 };
