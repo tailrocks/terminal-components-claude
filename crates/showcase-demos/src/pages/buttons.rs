@@ -512,23 +512,6 @@ impl ButtonsPage {
                     }
                     button.draw(ui, button_area);
                     legacy_gutter(ui, button_area, variant, flags);
-                    if disabled {
-                        let trailing_cell = Rect {
-                            x: button_area.right().saturating_sub(1),
-                            y: button_area.y,
-                            width: 1,
-                            height: 1,
-                        };
-                        let mut style = ui.style(Family::BUTTON, variant, Part::LABEL, flags).style;
-                        let color_level = ui.theme_ref().capability.color;
-                        if color_level == termrock::ColorLevel::Mono
-                            || color_level == termrock::ColorLevel::Ansi16
-                        {
-                            style = style
-                                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::DisabledFg)));
-                        }
-                        let _ = ui.paint_str(trailing_cell, " ", style);
-                    }
                     if let Some(checked) = self.checked.get(index).copied().flatten() {
                         let role = if checked {
                             Role::Accent
@@ -664,25 +647,6 @@ impl ButtonsPage {
                         *variant,
                         *flags,
                     );
-                    if flags.contains(StateFlags::DISABLED) {
-                        let trailing_cell = Rect {
-                            x: x.saturating_add(7),
-                            y,
-                            width: 1,
-                            height: 1,
-                        };
-                        let mut style = ui
-                            .style(Family::BUTTON, *variant, Part::LABEL, *flags)
-                            .style;
-                        let color_level = ui.theme_ref().capability.color;
-                        if color_level == termrock::ColorLevel::Mono
-                            || color_level == termrock::ColorLevel::Ansi16
-                        {
-                            style = style
-                                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::DisabledFg)));
-                        }
-                        let _ = ui.paint_str(trailing_cell, " ", style);
-                    }
                 });
             }
         }
