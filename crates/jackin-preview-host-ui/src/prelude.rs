@@ -5,7 +5,7 @@ use termrock::author::{
     Family, FgStep, Id, Modifier, PaintStyle, Part, Role, StateFlags, StyleDefaults, StylePatch,
     Surface, Ui, Variant,
 };
-use termrock::Button;
+use termrock::{Button, Checkbox};
 
 pub use jackin_preview_presentation::prelude::PreludeState;
 
@@ -97,7 +97,7 @@ pub struct PreludeScreen;
 
 impl PreludeScreen {
     /// Draw the Prelude creation dialog and inner components.
-    pub fn draw(ui: &mut Ui<'_>, full: Rect, prelude: &PreludeState) {
+    pub fn draw(ui: &mut Ui<'_>, full: Rect, prelude: &PreludeState, read_only: bool) {
         let palette = PreludePalette::new(ui);
 
         let w = if full.width < 100 {
@@ -141,7 +141,7 @@ impl PreludeScreen {
             );
 
             if step == 1 {
-                Self::draw_source_step(ui, &palette, dialog_rect, prelude);
+                Self::draw_source_step(ui, &palette, dialog_rect, prelude, read_only);
             } else {
                 Self::draw_generic_step(ui, &palette, dialog_rect, prelude);
             }
@@ -153,6 +153,7 @@ impl PreludeScreen {
         palette: &PreludePalette,
         dialog: Rect,
         prelude: &PreludeState,
+        read_only: bool,
     ) {
         let x = dialog.x;
         let y = dialog.y;
@@ -268,17 +269,38 @@ impl PreludeScreen {
 
         // Checkbox: Mount read-only at bottom - 5
         let chk_y = dialog.bottom().saturating_sub(5);
-        ui.paint_str(Rect::new(x + 2, chk_y, 1, 1), " ", dark_gap);
-        ui.paint_str(Rect::new(x + 3, chk_y, 3, 1), "[ ]", palette.muted);
         let chk_end = dialog.right().saturating_sub(3);
-        let chk_w = (chk_end.saturating_sub(x + 6)) as usize;
-        let pad = chk_w.saturating_sub(16);
-        let chk_label = format!(" Mount read-only{:<pad$}", "");
-        ui.paint_str(
-            Rect::new(x + 6, chk_y, chk_end.saturating_sub(x + 6), 1),
-            &chk_label,
-            palette.primary,
-        );
+        let area = Rect::new(x + 2, chk_y, chk_end.saturating_sub(x + 2), 1);
+        if !area.is_empty() {
+            let elevated = Role::Surface(Surface::Elevated);
+            Checkbox::new(READ_ONLY, "Mount read-only")
+                .checked(read_only)
+                .patch_part(&[
+                    (
+                        Part::CONTAINER,
+                        StylePatch::new()
+                            .set_bg(elevated)
+                            .set_fg(Role::Fg(FgStep::Primary)),
+                    ),
+                    (
+                        Part::GUTTER,
+                        StylePatch::new().set_bg(elevated).set_fg(elevated),
+                    ),
+                    (
+                        Part::MARKER,
+                        StylePatch::new()
+                            .set_bg(elevated)
+                            .set_fg(Role::Fg(FgStep::Muted)),
+                    ),
+                    (
+                        Part::LABEL,
+                        StylePatch::new()
+                            .set_bg(elevated)
+                            .set_fg(Role::Fg(FgStep::Primary)),
+                    ),
+                ])
+                .draw(ui, area);
+        }
 
         // Action buttons at bottom - 2
         let btn_y = dialog.bottom().saturating_sub(2);

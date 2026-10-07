@@ -436,6 +436,30 @@ fn table() -> Grid<'static> {
         .patch_part(PART_PATCH)
 }
 
+/// `1–21 of 24`, or empty when every row fits (tag:scrollbar.rs
+/// `position_label`). The viewport comes from draw-time panel geometry —
+/// last-frame layout is unavailable on frame 1, which is what the
+/// no-input default capture presents — following the trees page precedent.
+fn position_label(state: &GridState, viewport: usize, len: usize) -> String {
+    if len <= viewport || viewport == 0 {
+        return String::new();
+    }
+    let mut scroll = *state.scroll();
+    scroll.apply_layout(viewport, len);
+    let r = scroll.visible_range();
+    format!("{}–{} of {len}", r.start + 1, r.end)
+}
+
+/// The one tasks-card constructor (§13): the meta gate reads its geometry
+/// and draw paints through it, so the two can never disagree.
+fn tasks_panel(meta: &str) -> Panel<'_> {
+    Panel::new(id!("tables.tasks_panel"))
+        .kind(PanelKind::Card)
+        .title("Tasks")
+        .meta(meta)
+        .patch_part(PANEL_PARTS)
+}
+
 /// The one checks-card constructor (§13), reached from update and from draw.
 fn checks_panel() -> Panel<'static> {
     Panel::new(CHECKS)
@@ -516,24 +540,18 @@ impl Page for TablesPage {
                 ],
             );
             let tasks = regions.first().copied().unwrap_or(body);
-            let task_meta = if self.sort.is_some() {
-                let rows = table().rows_label(ui, &self.state, &self.model);
-                format!(
-                    "{} · {}",
-                    self.last,
-                    rows.strip_prefix("rows ").unwrap_or(&rows)
-                )
-            } else {
+            // −1: the grid header row (`Grid::chrome`; no note row on a
+            // read-only model, no actions bar on this table).
+            let viewport = tasks_panel("").inner(ui, tasks).height.saturating_sub(1) as usize;
+            let pos = position_label(&self.state, viewport, self.model.row_count());
+            let task_meta = if pos.is_empty() {
                 self.last.clone()
+            } else {
+                format!("{} · {pos}", self.last)
             };
-            Panel::new(id!("tables.tasks_panel"))
-                .kind(PanelKind::Card)
-                .title("Tasks")
-                .meta(&task_meta)
-                .patch_part(PANEL_PARTS)
-                .draw(ui, tasks, |ui, inner| {
-                    self.draw_tasks(ui, inner, body.width);
-                });
+            tasks_panel(&task_meta).draw(ui, tasks, |ui, inner| {
+                self.draw_tasks(ui, inner, body.width);
+            });
             paint_card_meta(ui, tasks, &task_meta);
             if let Some(checks) = regions.get(2).copied() {
                 checks_panel().draw(ui, checks, |ui, inner| {
