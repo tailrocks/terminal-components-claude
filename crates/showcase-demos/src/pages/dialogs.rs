@@ -15,12 +15,6 @@ const CONFIRM: Id = id!("dialogs.confirm.layer");
 const PROMPT: Id = id!("dialogs.prompt.layer");
 const OPEN_PANEL: Id = id!("dialogs.open.panel");
 const RESULTS_PANEL: Id = id!("dialogs.results.panel");
-const DIALOG_LABEL_PATCH: termrock::StylePatch = termrock::StylePatch::new()
-    .set_fg(termrock::Role::Accent)
-    .add(termrock::Modifier::BOLD);
-const DIALOG_PARTS: &[(termrock::Part, termrock::StylePatch)] =
-    &[(termrock::Part::TITLE, DIALOG_LABEL_PATCH)];
-
 fn confirm_button() -> Button<'static> {
     Button::new(OPEN_CONFIRM, "Confirm run").variant(Variant::PRIMARY)
 }
@@ -79,13 +73,10 @@ impl DialogsPage {
             "Run task now?",
             "The task will be queued for the workspace.",
         )
-        .patch_part(DIALOG_PARTS)
     }
 
     fn prompt(error: Option<&str>) -> Dialog<'_> {
-        Dialog::prompt(PROMPT, "Rename task", "Task name")
-            .error(error)
-            .patch_part(DIALOG_PARTS)
+        Dialog::prompt(PROMPT, "Rename task", "Task name").error(error)
     }
 
     fn close(&mut self, cx: &mut Cx<'_>, id: Id) {
