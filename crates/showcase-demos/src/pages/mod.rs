@@ -30,6 +30,19 @@ impl From<Response<()>> for PageUpdate {
     }
 }
 
+/// Modal-dialog footer state: what the shell footer shows while a page
+/// holds an open dialog layer (tag `app.rs` `draw_footer`). `editing`
+/// selects the Enter/Esc pair; otherwise the footer shows the
+/// arrow/Enter/Esc hints plus the `y / n` quick answer iff
+/// `quick_answer` (a text question, never the help dialog).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ModalFooter {
+    /// Whether the open dialog's editor is actively editing.
+    pub editing: bool,
+    /// Whether the open dialog answers `y` / `n` directly.
+    pub quick_answer: bool,
+}
+
 /// A stateful screen in the showcase.
 pub trait Page: Send {
     /// Stable navigation title.
@@ -53,6 +66,12 @@ pub trait Page: Send {
     /// Whether the focused page control is in edit mode.
     fn editing(&self, _ui: &Ui<'_>) -> bool {
         false
+    }
+    /// Footer state while this page holds an open dialog layer; `None`
+    /// keeps the page hints. Only `Dialog` layers report here — menus and
+    /// pickers are not dialogs.
+    fn modal_footer(&self, _ui: &Ui<'_>) -> Option<ModalFooter> {
+        None
     }
     /// Set an animation state for deterministic, paused inspection.
     fn seek_paused(&mut self, _frame: usize) {}

@@ -5,7 +5,7 @@ use termrock::{
     Response, Ui, Variant, id, layout,
 };
 
-use super::{Page, PageUpdate, frame, lines, lines_secondary};
+use super::{ModalFooter, Page, PageUpdate, frame, lines, lines_secondary};
 
 const OPEN_CONFIRM: Id = id!("dialogs.confirm.open");
 const OPEN_PROMPT: Id = id!("dialogs.prompt.open");
@@ -13,6 +13,7 @@ const OPEN_CHOICE: Id = id!("dialogs.choice.open");
 const OPEN_DELETE: Id = id!("dialogs.delete.open");
 const CONFIRM: Id = id!("dialogs.confirm.layer");
 const PROMPT: Id = id!("dialogs.prompt.layer");
+const CHOICE: Id = id!("dialogs.choice.layer");
 const DELETE: Id = id!("dialogs.delete.layer");
 const OPEN_PANEL: Id = id!("dialogs.open.panel");
 const RESULTS_PANEL: Id = id!("dialogs.results.panel");
@@ -48,6 +49,7 @@ enum OpenDialog {
     None,
     Confirm,
     Prompt,
+    Choice,
     Delete,
 }
 
@@ -57,6 +59,7 @@ pub struct DialogsPage {
     open: OpenDialog,
     confirm_state: DialogState,
     prompt_state: DialogState,
+    choice_state: DialogState,
     delete_state: DialogState,
     error: Option<String>,
     result: String,
@@ -70,6 +73,7 @@ impl DialogsPage {
             open: OpenDialog::None,
             confirm_state: DialogState::default(),
             prompt_state,
+            choice_state: DialogState::default(),
             delete_state: DialogState::default(),
             error: None,
             result: String::from("Nothing yet"),
@@ -89,6 +93,12 @@ impl DialogsPage {
     const DELETE_ACTIONS: [Action<'static>; 2] = [
         Action::secondary(ActionKey::CANCEL, "Cancel"),
         Action::danger(ActionKey::CONFIRM, "Delete branch"),
+    ];
+
+    const CHOICE_ACTIONS: [Action<'static>; 3] = [
+        Action::quiet(ActionKey::CANCEL, "Cancel"),
+        Action::secondary(ActionKey::DISCARD, "Discard"),
+        Action::new(ActionKey::CONFIRM, "Save"),
     ];
 
     fn confirm() -> Dialog<'static> {
@@ -115,6 +125,15 @@ impl DialogsPage {
             "feat/rate-limit has 14 commits that are not on main. This cannot be undone.",
         )
         .actions(&Self::DELETE_ACTIONS)
+    }
+
+    fn choice() -> Dialog<'static> {
+        Dialog::confirm(
+            CHOICE,
+            "Unsaved changes",
+            "The description was edited. Save before leaving this page?",
+        )
+        .actions(&Self::CHOICE_ACTIONS)
     }
 
     fn open_delete(&mut self, cx: &mut Cx<'_>) {
@@ -148,6 +167,7 @@ impl Page for DialogsPage {
         if action == DELETE_COMMAND
             && !cx.is_open(CONFIRM)
             && !cx.is_open(PROMPT)
+            && !cx.is_open(CHOICE)
             && !cx.is_open(DELETE)
         {
             self.open_delete(cx);
@@ -175,8 +195,9 @@ impl Page for DialogsPage {
         }
         response |= prompt_button.erase();
         let choice_button = choice_button().update(cx);
-        if choice_button.activated() {
-            self.result = String::from("Save selected");
+        if choice_button.activated() && !cx.is_open(CHOICE) {
+            self.open = OpenDialog::Choice;
+            cx.open_layer(CHOICE, Self::choice().layer(cx));
         }
         response |= choice_button.erase();
         let delete_button = delete_button().update(cx);
@@ -226,6 +247,26 @@ impl Page for DialogsPage {
                 DialogAction::Action(_) | DialogAction::Dismissed(_) => {
                     self.result = String::from("Rename cancelled");
                     self.close(cx, PROMPT);
+                }
+            }
+        }
+        response |= action.erase();
+        let action = Self::choice().update(cx, &mut self.choice_state);
+        if self.open == OpenDialog::Choice
+            && let Some(action) = action.action_ref()
+        {
+            match action {
+                DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
+                    self.result = String::from("Description saved");
+                    self.close(cx, CHOICE);
+                }
+                DialogAction::Action(key) if *key == ActionKey::DISCARD => {
+                    self.result = String::from("Changes discarded");
+                    self.close(cx, CHOICE);
+                }
+                DialogAction::Action(_) | DialogAction::Dismissed(_) => {
+                    self.result = String::from("Cancelled");
+                    self.close(cx, CHOICE);
                 }
             }
         }
@@ -329,6 +370,11 @@ impl Page for DialogsPage {
                 let _ = ui.paint_str(body, "Type a name, then Enter", ui.surface_style());
             });
         });
+        ui.layer(CHOICE, |ui, layer| {
+            Self::choice().draw(ui, layer, &self.choice_state, |ui, body| {
+                let _ = ui.paint_str(body, "Enter confirms · Esc cancels", ui.surface_style());
+            });
+        });
         ui.layer(DELETE, |ui, layer| {
             Self::delete().draw(ui, layer, &self.delete_state, |ui, body| {
                 let _ = ui.paint_str(body, "Enter confirms · Esc cancels", ui.surface_style());
@@ -338,5 +384,34 @@ impl Page for DialogsPage {
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         &[("Enter", "Open")]
+    }
+
+    fn modal_footer(&self, ui: &Ui<'_>) -> Option<ModalFooter> {
+        // One dialog layer at a time; the prompt is the only input body.
+        // Each spec reports its own quick-answer kind so the hint cannot
+        // drift from the keys the dialog honors.
+        if ui.is_open(PROMPT) {
+            Some(ModalFooter {
+                editing: self.prompt_state.is_editing(),
+                quick_answer: Self::prompt(self.error.as_deref()).quick_answer(),
+            })
+        } else if ui.is_open(CONFIRM) {
+            Some(ModalFooter {
+                editing: self.confirm_state.is_editing(),
+                quick_answer: Self::confirm().quick_answer(),
+            })
+        } else if ui.is_open(CHOICE) {
+            Some(ModalFooter {
+                editing: self.choice_state.is_editing(),
+                quick_answer: Self::choice().quick_answer(),
+            })
+        } else if ui.is_open(DELETE) {
+            Some(ModalFooter {
+                editing: self.delete_state.is_editing(),
+                quick_answer: Self::delete().quick_answer(),
+            })
+        } else {
+            None
+        }
     }
 }

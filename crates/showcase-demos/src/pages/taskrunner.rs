@@ -9,7 +9,7 @@ use termrock::{
     Ui, Variant, id, layout, width,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{ModalFooter, Page, PageUpdate, frame};
 
 const RUN: Id = id!("taskrunner.run");
 const CANCEL: Id = id!("taskrunner.cancel");
@@ -491,6 +491,13 @@ impl Page for TaskRunnerPage {
         } else {
             &[("r", "Run pipeline"), ("Enter", "Activate")]
         }
+    }
+
+    fn modal_footer(&self, ui: &Ui<'_>) -> Option<ModalFooter> {
+        ui.is_open(CANCEL_DIALOG).then(|| ModalFooter {
+            editing: self.cancel_state.is_editing(),
+            quick_answer: cancel_dialog().quick_answer(),
+        })
     }
 }
 

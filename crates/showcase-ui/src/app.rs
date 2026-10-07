@@ -13,7 +13,7 @@ use showcase_demos::pages::dialogs::DELETE_COMMAND;
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
-    Page, PageStatus, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage,
+    ModalFooter, Page, PageStatus, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage,
     dialogs::DialogsPage, editable::EditablePage, editor::EditorPage, forms::FormsPage,
     grid::GridPage, inputs::InputsPage, lists::ListsPage, overview::OverviewPage,
     panels::PanelsPage, pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage,
@@ -1064,9 +1064,18 @@ fn paint_footer(
     nav_focused: bool,
     page_hints: &[(&str, &str)],
     page_editing: bool,
+    modal: Option<ModalFooter>,
     status: Option<&str>,
 ) {
     const TAB_NEXT: (&str, &str) = ("Tab", "Next");
+    const MODAL_EDITING: &[(&str, &str)] = &[("Enter", "Confirm"), ("Esc", "Cancel")];
+    const MODAL: &[(&str, &str)] = &[("← →", "Choose"), ("Enter", "Confirm"), ("Esc", "Cancel")];
+    const MODAL_QUICK: &[(&str, &str)] = &[
+        ("← →", "Choose"),
+        ("Enter", "Confirm"),
+        ("Esc", "Cancel"),
+        ("y / n", "Quick answer"),
+    ];
     if area.is_empty() {
         return;
     }
@@ -1084,7 +1093,18 @@ fn paint_footer(
         Part::ACTION,
         StateFlags::empty(),
     );
-    let nav_hints: &[(&str, &str)] = if nav_focused {
+    // An open dialog replaces every other hint (tag `app.rs`
+    // `draw_footer`): editing shows Enter/Esc only, otherwise the
+    // arrow/Enter/Esc hints plus the `y / n` quick answer for a text
+    // question. The badge and Tab/Next stay suppressed, the status stays.
+    let modal_hints: &[(&str, &str)] = match modal {
+        Some(m) if m.editing => MODAL_EDITING,
+        Some(m) if m.quick_answer => MODAL_QUICK,
+        Some(_) => MODAL,
+        None => &[],
+    };
+    let is_modal = modal.is_some();
+    let nav_hints: &[(&str, &str)] = if nav_focused && !is_modal {
         &[
             ("↑ ↓", "Move"),
             ("Enter", "Open"),
@@ -1098,9 +1118,9 @@ fn paint_footer(
     // while the navigation owns focus, and the "Tab / Next" entry is appended
     // only when the page body owns focus and is not in an editing mode that
     // consumes it.
-    let tab_next = !nav_focused && !page_editing;
+    let tab_next = !nav_focused && !page_editing && !is_modal;
     let mut x = area.x.saturating_add(1);
-    if page_editing && !nav_focused {
+    if page_editing && !nav_focused && !is_modal {
         let badge_text = " EDIT ";
         let badge_w = badge_text.len() as u16;
         if area.width >= badge_w.saturating_add(2) {
@@ -1117,8 +1137,16 @@ fn paint_footer(
         }
     }
     let reserved = status.map_or(0, |message| width(message).saturating_add(3));
-    let page_hints: &[(&str, &str)] = if nav_focused { &[] } else { page_hints };
-    for &(key, action) in nav_hints.iter().chain(page_hints.iter()) {
+    let page_hints: &[(&str, &str)] = if nav_focused || is_modal {
+        &[]
+    } else {
+        page_hints
+    };
+    for &(key, action) in nav_hints
+        .iter()
+        .chain(modal_hints.iter())
+        .chain(page_hints.iter())
+    {
         paint_hint(
             ui,
             area,
@@ -1338,12 +1366,25 @@ impl TuiApp for App {
             .active()
             .map(|page| (page.hints(ui), page.editing(ui)))
             .unwrap_or_default();
+        // The help dialog keeps its `y` / `n` keys but never advertises
+        // them (tag `draw_footer` HELP exclusion); a page dialog reports
+        // its own state. Help wins: a page cannot open a dialog while
+        // the help modal traps focus.
+        let modal = if ui.is_open(HELP) {
+            Some(ModalFooter {
+                editing: self.help_state.is_editing(),
+                quick_answer: false,
+            })
+        } else {
+            self.active().and_then(|page| page.modal_footer(ui))
+        };
         paint_footer(
             ui,
             shell.footer,
             ui.state(NAV).contains(StateFlags::FOCUSED),
             page_hints,
             page_editing,
+            modal,
             self.status.as_ref().map(|(status, _)| status.0.as_str()),
         );
         ui.layer(HELP, |ui, area| {
