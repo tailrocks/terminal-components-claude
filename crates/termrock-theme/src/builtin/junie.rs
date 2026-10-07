@@ -242,11 +242,17 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
     for rule in states.into_iter().filter(|rule| rule.specificity() > 1) {
         container.when(rule.when | StateFlags::DISABLED, disabled);
     }
+    // Q66-S8 (F1-L11): the LIST GUTTER DISABLED rule also restores
+    // fg=CurrentSurface. The tag blanks the gutter whenever disabled
+    // (fg=bg, `tag:theme.rs:397-406`); the glyph-only patch merged after
+    // the `row_like` FOCUSED fg=Focus (same specificity, later insert
+    // wins) and left a green fg on the blanked cell at FOCUSED|DISABLED.
+    // LIST-scoped (M2): PICKER/TREE keep their own GUTTER behavior.
     row.entry(Part::GUTTER).when(
         StateFlags::DISABLED,
         StylePatch {
             glyph: Slot::Clear,
-            ..p()
+            ..p().set_fg(Role::CurrentSurface)
         },
     );
     // Q66-S2 (F1-L2-fg + F1-L7b-fg): a disabled list row's meta is the row
