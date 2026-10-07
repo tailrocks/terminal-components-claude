@@ -4,6 +4,9 @@
 Candidate (termrock-implementation) port of the visual-baseline slice
 validator from commit 82fb265b2667a0064cd2444dc7870f86fae195eb.
 Data files are byte-identical to that source.
+Phase-8d: COMPONENTS and coverage count follow the S1-era reference
+validator (76537c27e6e00ef93a2d09d280c8c9cb6097e446): DataTable plus
+the 12 S1 rows, with Candidate run results.
 
 Checks: required fields per row, ID uniqueness + format, cross-file join
 with v1/registry.json, ref_source symbols present in cited files,
@@ -90,7 +93,7 @@ V1_REQUIRED = ["id", "app", "component", "part", "ref_symbols", "cand_symbols",
                "adapters", "applicability", "results"]
 GROUP_REQUIRED = V1_REQUIRED + ["ref_source", "cand_source"]
 COMPONENTS = {"Grid", "CodeEditor", "DiffView", "TextViewport",
-              "TerminalView", "ScrollRegion"}
+              "TerminalView", "ScrollRegion", "DataTable"}
 APPS = {"showcase", "tablepro", "jackin-preview", "holla"}
 COLORS = {"truecolor", "256", "16", "none", "nocolor"}
 SIZE_RE = re.compile(r"^\d+x\d+$")
@@ -181,7 +184,7 @@ def main():
     check("join.registry_dataviews_covered", not missing_here, f"missing here: {missing_here}")
 
     cov = doc.get("coverage", [])
-    check("coverage.count", len(cov) == 6, f"got {len(cov)}")
+    check("coverage.count", len(cov) == 7, f"got {len(cov)}")
     cov_names = set()
     for c in cov:
         name = c.get("component", "<missing>")

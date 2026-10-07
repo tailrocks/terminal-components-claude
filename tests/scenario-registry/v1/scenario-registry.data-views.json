@@ -3,7 +3,7 @@
  "group": "data-views",
  "ref_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
  "head_commit": "7b5a527eb23825cf64dd6d94d68323f1adc0d0b7",
- "description": "DATA-VIEWS group slice: Grid, CodeEditor, DiffView, TextViewport, TerminalView, ScrollRegion. Same stable IDs as v1/registry.json; ref_source lists reference source symbols verified present in the cited files. src/ tree is identical between ref_commit and head_commit, so cited lines hold for both. TerminalView is the showcase terminal page composition over a TextViewport (no widget of that name exists); ScrollRegion is the ScrollState model plus the scrollbar painter and ScrollPanel (no widget of that name exists).",
+ "description": "DATA-VIEWS group slice: Grid, CodeEditor, DiffView, TextViewport, TerminalView, ScrollRegion. DataTable is the junie_tui table widget behind the tables and editable pages (not a DataGrid). Same stable IDs as v1/registry.json; ref_source lists reference source symbols verified present in the cited files. src/ tree is identical between ref_commit and head_commit, so cited lines hold for both. TerminalView is the showcase terminal page composition over a TextViewport (no widget of that name exists); ScrollRegion is the ScrollState model plus the scrollbar painter and ScrollPanel (no widget of that name exists).",
  "scenarios": [
   {
    "id": "GRID-EDIT-001",
@@ -1228,6 +1228,213 @@
    "cand_source": []
   },
   {
+   "id": "GRID-WHEEL-007",
+   "app": "showcase",
+   "component": "Grid",
+   "part": "customers viewport + scroll-edge fade",
+   "ref_symbols": [
+    {
+     "glyph": "rows 7–20 of 40 loaded · ~4,812 total",
+     "meaning": "position label after two wheel notches"
+    },
+    {
+     "glyph": "1007       Wide World Importers",
+     "meaning": "first visible data row at offset 6"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "rows 7–20 of 40 loaded · ~4,812 total",
+     "meaning": "position label after two wheel notches"
+    },
+    {
+     "glyph": "1007       Wide World Importers",
+     "meaning": "first visible data row at offset 6"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/grid.rs",
+     "symbols": [
+      "DataGrid",
+      "on_wheel",
+      "scroll",
+      "hscroll",
+      "position_label",
+      "rows_label"
+     ]
+    },
+    {
+     "path": "src/ui/fade.rs",
+     "symbols": [
+      "scroll_edges",
+      "OUTER_KEEP",
+      "INNER_KEEP",
+      "DEEP_FROM",
+      "MIN_ROWS"
+     ]
+    },
+    {
+     "path": "src/core/scroll.rs",
+     "symbols": [
+      "ScrollState",
+      "scroll_by",
+      "overflows",
+      "visible_range",
+      "max_offset"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/grid.rs",
+     "symbols": [
+      "GridPage",
+      "Wheel",
+      "on_wheel",
+      "position_label"
+     ]
+    }
+   ],
+   "data": {
+    "page": "datagrid",
+    "table": "customers",
+    "columns": 8,
+    "page_rows": 40,
+    "loaded": 96
+   },
+   "state": {
+    "offset": 6,
+    "sort": null,
+    "editing": false
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase datagrid page"
+    },
+    {
+     "step": 2,
+     "action": "roll the wheel down twice over the customer column",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "wheel-faded",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the meta reads rows 7–20 of 40 loaded · ~4,812 total; first data row is 1007 Wide World Importers"
+     },
+     {
+      "id": "V2",
+      "text": "the top body edge fades (offset 6 hides rows above); the header row never fades and the thumb sits below the track top"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "two down-notches moved scroll.offset 0 to 6; sort and editing are untouched"
+     },
+     {
+      "id": "S2",
+      "text": "the cell cursor stays at its boot cell: wheeling moves the viewport only"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "wheel-down returns Changed while rows hide below; at the bottom offset it returns Consumed"
+     },
+     {
+      "id": "A2",
+      "text": "each notch advances the offset; the gesture never moves the cell cursor, sorts, or pages the dataset"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the header row must NOT fade: scroll_edges covers body rows only"
+     },
+     {
+      "id": "N2",
+      "text": "wheeling must NOT sort, edit, or page: page_rows stays 40 and sort stays null"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "1372-1384",
+      "note": "on_wheel: vertical scroll_by, horizontal hscroll, Changed iff moved"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "1928-1938",
+      "note": "scroll_edges over the body when the scrollbar overflows"
+     },
+     {
+      "path": "src/ui/fade.rs",
+      "lines": "26-32,44-60",
+      "note": "OUTER_KEEP/INNER_KEEP/DEEP_FROM/MIN_ROWS plus edge gates"
+     },
+     {
+      "path": "src/bin/showcase/pages/grid.rs",
+      "lines": "371-374",
+      "note": "Wheel/WheelH routing to the grid when it owns the id"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/fade/datagrid/wheel/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_grid_wheel_fade live-PTY FAIL @2a75e017 (S1: boot offset 0; nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
+  },
+  {
    "id": "CODE-EDIT-001",
    "app": "showcase",
    "component": "CodeEditor",
@@ -1848,6 +2055,211 @@
    "cand_source": []
   },
   {
+   "id": "CODE-WHEEL-004",
+   "app": "showcase",
+   "component": "CodeEditor",
+   "part": "code viewport + gutter fade",
+   "ref_symbols": [
+    {
+     "glyph": "7–11 of 26",
+     "meaning": "position label after two wheel notches"
+    },
+    {
+     "glyph": "retry.rs",
+     "meaning": "edited file name in the card header"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "7–11 of 26",
+     "meaning": "position label after two wheel notches"
+    },
+    {
+     "glyph": "retry.rs",
+     "meaning": "edited file name in the card header"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/code.rs",
+     "symbols": [
+      "CodeEditor",
+      "on_wheel",
+      "scroll",
+      "hscroll",
+      "cursor_cell"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/editor.rs",
+     "symbols": [
+      "SAMPLE",
+      "blocks",
+      "CodeEditor",
+      "segmenter",
+      "navigating"
+     ]
+    },
+    {
+     "path": "src/ui/fade.rs",
+     "symbols": [
+      "scroll_edges",
+      "OUTER_KEEP",
+      "INNER_KEEP",
+      "DEEP_FROM",
+      "MIN_ROWS"
+     ]
+    },
+    {
+     "path": "src/core/scroll.rs",
+     "symbols": [
+      "ScrollState",
+      "scroll_by",
+      "overflows",
+      "visible_range"
+     ]
+    }
+   ],
+   "data": {
+    "page": "codeeditor",
+    "file": "retry.rs",
+    "lines": 26,
+    "blocks": 3
+   },
+   "state": {
+    "offset": 6,
+    "mode": "navigating",
+    "editing": false
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase codeeditor page"
+    },
+    {
+     "step": 2,
+     "action": "roll the wheel down twice over the code viewport",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "wheel-faded",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "gutter lines 7–11 render with the label 7–11 of 26; retry.rs and 3 blocks stay in the header"
+     },
+     {
+      "id": "V2",
+      "text": "gutter and code fade on the top edge (offset 6) and the bottom edge (line 11 of 26)"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "two down-notches moved scroll.offset 0 to 6; block segmentation is untouched"
+     },
+     {
+      "id": "S2",
+      "text": "the text cursor stays where it was: on_wheel touches scroll/hscroll only"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "wheel-down returns Changed while lines hide below; at the bottom offset it returns Consumed"
+     },
+     {
+      "id": "A2",
+      "text": "each notch advances the offset; the gesture never moves the cursor or starts editing"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the filename header must NOT fade: scroll_edges covers the body only"
+     },
+     {
+      "id": "N2",
+      "text": "diagnostics and block boundaries must NOT move under the wheel"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "562-577",
+      "note": "on_wheel: vertical scroll_by, horizontal hscroll pan, Changed iff moved"
+     },
+     {
+      "path": "src/widgets/code.rs",
+      "lines": "894-905",
+      "note": "scroll_edges over the body when the scrollbar overflows"
+     },
+     {
+      "path": "src/bin/showcase/pages/editor.rs",
+      "lines": "160-166,193-197",
+      "note": "blocks segmenter plus editor boot from SAMPLE"
+     },
+     {
+      "path": "src/ui/fade.rs",
+      "lines": "26-32,44-60",
+      "note": "fade ramp constants plus edge gates"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/fade/editor/wheel/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_code_wheel_fade live-PTY FAIL @2a75e017 (wheel-faded window '7–11 of 26' never appeared (8s timeout); nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
+  },
+  {
    "id": "DIFF-UNIFIED-001",
    "app": "showcase",
    "component": "DiffView",
@@ -2453,6 +2865,213 @@
    "results": {
     "status": "unrun",
     "runs": []
+   },
+   "cand_source": []
+  },
+  {
+   "id": "DIFF-WHEEL-004",
+   "app": "showcase",
+   "component": "DiffView",
+   "part": "review panes + delegated wheel scroll",
+   "ref_symbols": [
+    {
+     "glyph": "● Review",
+     "meaning": "review toggle on in the controls row"
+    },
+    {
+     "glyph": "@@ -9,6 +10,7 @@",
+     "meaning": "second hunk header inside the scrolled review"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "● Review",
+     "meaning": "review toggle on in the controls row"
+    },
+    {
+     "glyph": "@@ -9,6 +10,7 @@",
+     "meaning": "second hunk header inside the scrolled review"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/diff.rs",
+     "symbols": [
+      "DiffView",
+      "on_wheel",
+      "term",
+      "set_mode",
+      "Review",
+      "owns"
+     ]
+    },
+    {
+     "path": "src/widgets/viewport.rs",
+     "symbols": [
+      "on_wheel",
+      "is_at_tail",
+      "remember_reading",
+      "set_follow"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/diff.rs",
+     "symbols": [
+      "Review",
+      "hunks",
+      "DiffMode",
+      "set_mode"
+     ]
+    },
+    {
+     "path": "src/ui/fade.rs",
+     "symbols": [
+      "scroll_edges",
+      "OUTER_KEEP",
+      "INNER_KEEP",
+      "DEEP_FROM",
+      "MIN_ROWS"
+     ]
+    }
+   ],
+   "data": {
+    "page": "diff",
+    "mode": "review",
+    "hunks": 5
+   },
+   "state": {
+    "review": true,
+    "follow": false
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase diff page"
+    },
+    {
+     "step": 2,
+     "action": "tab to Review and press Enter (wait ● Review)"
+    },
+    {
+     "step": 3,
+     "action": "roll the wheel down twice over the old pane",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "wheel-faded",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "review pairs old and new columns with bold changed runs; the hunk header @@ -9,6 +10,7 @@ is visible"
+     },
+     {
+      "id": "V2",
+      "text": "both viewport edges fade: the wheel left the review mid-document"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "DiffView.on_wheel delegates to the inner term viewport; the mode stays Review"
+     },
+     {
+      "id": "S2",
+      "text": "the term never follows (layout pins set_follow(false)); the wheel only moves the offset"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "wheel-down returns Changed while hunks hide below; at the end offset it returns Consumed"
+     },
+     {
+      "id": "A2",
+      "text": "the wheel never flips review/unified mode and never changes the file"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the Review/Empty controls row must NOT fade and must NOT lose the ● marker"
+     },
+     {
+      "id": "N2",
+      "text": "No file selected must NOT appear: the 5-hunk fixture stays loaded"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/diff.rs",
+      "lines": "270-292",
+      "note": "layout pins follow off; on_wheel delegates to term"
+     },
+     {
+      "path": "src/widgets/viewport.rs",
+      "lines": "1132-1139",
+      "note": "viewport on_wheel: scroll, follow recompute, reading memory"
+     },
+     {
+      "path": "src/bin/showcase/pages/diff.rs",
+      "lines": "31-38,56-64",
+      "note": "5-hunk fixture plus Review toggle into DiffMode::Review"
+     },
+     {
+      "path": "src/ui/fade.rs",
+      "lines": "26-32,44-60",
+      "note": "fade ramp constants plus edge gates"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/fade/diff/wheel/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "pass",
+      "note": "phase-8d S1 s1_diff_wheel_review live-PTY PASS @2a75e017 (nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -3281,6 +3900,215 @@
    "cand_source": []
   },
   {
+   "id": "TERM-WHEEL-003",
+   "app": "showcase",
+   "component": "TerminalView",
+   "part": "wheel-up into the build scrollback",
+   "ref_symbols": [
+    {
+     "glyph": "scrollback ↑5",
+     "meaning": "explicit off-tail indicator in the viewport header"
+    },
+    {
+     "glyph": "2 of 7",
+     "meaning": "step rail still mid-run at frame 60"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "scrollback ↑5",
+     "meaning": "explicit off-tail indicator in the viewport header"
+    },
+    {
+     "glyph": "2 of 7",
+     "meaning": "step rail still mid-run at frame 60"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/viewport.rs",
+     "symbols": [
+      "on_wheel",
+      "is_at_tail",
+      "remember_reading",
+      "set_follow",
+      "TextViewport"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/terminal.rs",
+     "symbols": [
+      "STAGES",
+      "set_follow",
+      "on_wheel",
+      "following",
+      "ViewportEvent"
+     ]
+    },
+    {
+     "path": "src/ui/fade.rs",
+     "symbols": [
+      "scroll_edges",
+      "OUTER_KEEP",
+      "INNER_KEEP",
+      "DEEP_FROM",
+      "MIN_ROWS"
+     ]
+    },
+    {
+     "path": "src/core/scroll.rs",
+     "symbols": [
+      "ScrollState",
+      "scroll_by",
+      "at_end",
+      "visible_range"
+     ]
+    }
+   ],
+   "data": {
+    "page": "terminal",
+    "frame": 60,
+    "stages": 7,
+    "stage": "Build container 24/40"
+   },
+   "state": {
+    "follow": false,
+    "scrollback": 5
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase terminal page paused at frame 60 (Build container 24/40)"
+    },
+    {
+     "step": 2,
+     "action": "roll the wheel up twice over the build transcript",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "scrollback",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the viewport header shows scrollback ↑5; the transcript shows resolve, pull, and build layer lines"
+     },
+     {
+      "id": "V2",
+      "text": "the viewport is top-anchored at ↑5 (offset 0 hides lines below only): the top reads whole and the bottom fades two-deep; the step rail never fades (it does not scroll)"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "two up-notches left the tail: follow recomputed to is_at_tail()=false and the reading position was remembered"
+     },
+     {
+      "id": "S2",
+      "text": "the step rail stays at 2 of 7: paused motion fires no ticks"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "wheel-up off the tail returns Changed; at the top line it returns Consumed"
+     },
+     {
+      "id": "A2",
+      "text": "the wheel never advances stages: only ticks move the rail"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no following indicator may show: ↑5 replaces it off the tail"
+     },
+     {
+      "id": "N2",
+      "text": "stages must NOT advance: still 2 of 7 under paused motion"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/viewport.rs",
+      "lines": "1132-1139",
+      "note": "on_wheel: scroll, follow=is_at_tail, remember_reading"
+     },
+     {
+      "path": "src/widgets/viewport.rs",
+      "lines": "824-830,952-961",
+      "note": "remember_reading plus is_at_tail/set_follow"
+     },
+     {
+      "path": "src/bin/showcase/pages/terminal.rs",
+      "lines": "24-34,136,214",
+      "note": "7 stages with durations, follow on, following meta"
+     },
+     {
+      "path": "src/ui/fade.rs",
+      "lines": "55",
+      "note": "top gate is offset > 0: top-anchored scrollback reads whole on top"
+     },
+     {
+      "path": "src/ui/fade.rs",
+      "lines": "44-60",
+      "note": "edge gates: fade only where content hides"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/fade/terminal/scrollback/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_term_wheel_scrollback live-PTY FAIL @2a75e017 (S2: boot rail at 2 of 7; nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
+  },
+  {
    "id": "SCROLL-REGION-001",
    "app": "showcase",
    "component": "ScrollRegion",
@@ -3725,6 +4553,1583 @@
     "runs": []
    },
    "cand_source": []
+  },
+  {
+   "id": "SCROLL-PAGE-003",
+   "app": "showcase",
+   "component": "ScrollRegion",
+   "part": "pagedown through wrapped prose",
+   "ref_symbols": [
+    {
+     "glyph": "16–30 of",
+     "meaning": "prose window after one PageDown"
+    },
+    {
+     "glyph": "1986–2000",
+     "meaning": "log window still pinned at the tail"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "16–30 of",
+     "meaning": "prose window after one PageDown"
+    },
+    {
+     "glyph": "1986–2000",
+     "meaning": "log window still pinned at the tail"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/core/scroll.rs",
+     "symbols": [
+      "ScrollState",
+      "page_down",
+      "page_up",
+      "ensure_visible",
+      "visible_range",
+      "at_end"
+     ]
+    },
+    {
+     "path": "src/widgets/panel.rs",
+     "symbols": [
+      "ScrollPanel",
+      "on_key",
+      "on_wheel",
+      "wrap",
+      "tail",
+      "push"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/scrolling.rs",
+     "symbols": [
+      "ScrollingPage",
+      "ScrollPanel",
+      "follow",
+      "log_lines",
+      "animating"
+     ]
+    },
+    {
+     "path": "src/widgets/scrollbar.rs",
+     "symbols": [
+      "position_label",
+      "render_vertical",
+      "TRACK",
+      "THUMB"
+     ]
+    },
+    {
+     "path": "src/ui/fade.rs",
+     "symbols": [
+      "scroll_edges",
+      "OUTER_KEEP",
+      "INNER_KEEP",
+      "DEEP_FROM",
+      "MIN_ROWS"
+     ]
+    }
+   ],
+   "data": {
+    "page": "scrolling",
+    "columns": [
+     "Wrapped text",
+     "Long list",
+     "Log"
+    ],
+    "frame": 1600,
+    "log_rows": 2000
+   },
+   "state": {
+    "prose_offset": 15,
+    "focused": "prose",
+    "log_follow": true
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase scrolling page paused at frame 1600 (2000-line log)"
+    },
+    {
+     "step": 2,
+     "action": "tab into the prose column"
+    },
+    {
+     "step": 3,
+     "action": "press PageDown",
+     "key": "PageDown",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "paged",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the prose column shows lines 16–30 with the ▎ focus bar; the log stays at 1986–2000"
+     },
+     {
+      "id": "V2",
+      "text": "the prose fades both edges (mid-document); the log fades its top edge only (at the tail, no bottom fade)"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "PageDown advanced the prose offset by one viewport (0 to 15); the log offset is untouched"
+     },
+     {
+      "id": "S2",
+      "text": "focus moved from the nav into the prose; log follow stays true"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "PageDown on a ScrollPanel returns Changed and pages by viewport_len"
+     },
+     {
+      "id": "A2",
+      "text": "Tab moves focus into the page; keys then act on the focused column only"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the log must NOT unfollow: nothing wheeled or paged it"
+     },
+     {
+      "id": "N2",
+      "text": "the list column must NOT move: it keeps its 1–15 window"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/core/scroll.rs",
+      "lines": "73-80",
+      "note": "page_up/page_down move by viewport_len"
+     },
+     {
+      "path": "src/widgets/panel.rs",
+      "lines": "277-306",
+      "note": "ScrollPanel on_key map plus on_wheel with settle_follow"
+     },
+     {
+      "path": "src/bin/showcase/pages/scrolling.rs",
+      "lines": "126-145",
+      "note": "key routing to the focused column"
+     },
+     {
+      "path": "src/ui/fade.rs",
+      "lines": "44-60",
+      "note": "edge gates: fade only where content hides"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/fade/scroll/page/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_scroll_page_prose live-PTY FAIL @2a75e017 (S1: prose boot window 1–15; nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
+  },
+  {
+   "id": "SCROLL-WHEEL-004",
+   "app": "showcase",
+   "component": "ScrollRegion",
+   "part": "wheel-up off the follow tail",
+   "ref_symbols": [
+    {
+     "glyph": "1980–1994",
+     "meaning": "log window six lines above the tail"
+    },
+    {
+     "glyph": "1–15 of",
+     "meaning": "prose and list windows untouched at the top"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "1980–1994",
+     "meaning": "log window six lines above the tail"
+    },
+    {
+     "glyph": "1–15 of",
+     "meaning": "prose and list windows untouched at the top"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/core/scroll.rs",
+     "symbols": [
+      "ScrollState",
+      "scroll_by",
+      "at_end",
+      "visible_range",
+      "overflows"
+     ]
+    },
+    {
+     "path": "src/widgets/panel.rs",
+     "symbols": [
+      "ScrollPanel",
+      "on_wheel",
+      "settle_follow",
+      "tail",
+      "follow"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/scrolling.rs",
+     "symbols": [
+      "ScrollingPage",
+      "ScrollPanel",
+      "follow",
+      "log_lines",
+      "animating"
+     ]
+    },
+    {
+     "path": "src/widgets/scrollbar.rs",
+     "symbols": [
+      "position_label",
+      "render_vertical"
+     ]
+    },
+    {
+     "path": "src/ui/fade.rs",
+     "symbols": [
+      "scroll_edges",
+      "OUTER_KEEP",
+      "INNER_KEEP",
+      "DEEP_FROM",
+      "MIN_ROWS"
+     ]
+    }
+   ],
+   "data": {
+    "page": "scrolling",
+    "frame": 1600,
+    "log_rows": 2000
+   },
+   "state": {
+    "log_follow": false,
+    "log_window": "1980–1994"
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase scrolling page paused at frame 1600 (2000-line log)"
+    },
+    {
+     "step": 2,
+     "action": "roll the wheel up twice over the log tail",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "off-tail",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the log shows 1980–1994 (six lines above the 1986–2000 tail); the meta drops · following"
+     },
+     {
+      "id": "V2",
+      "text": "the log fades both edges (off the tail the bottom fade returns); prose and list fade bottom-only at the top"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "two up-notches moved the log offset up six and settle_follow set follow=false (tail && at_end)"
+     },
+     {
+      "id": "S2",
+      "text": "prose and list offsets stay 0: the gesture hit the log column only"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "wheel-up over the tail returns Changed and breaks follow; further ups keep scrolling"
+     },
+     {
+      "id": "A2",
+      "text": "the gesture targets the column under the pointer (the log), never the focused column"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "prose and list windows must NOT move: both keep 1–15"
+     },
+     {
+      "id": "N2",
+      "text": "the log meta must NOT claim following once wheeled off the tail"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/panel.rs",
+      "lines": "271-276,306-315",
+      "note": "settle_follow plus on_wheel: Changed if moved or follow flipped"
+     },
+     {
+      "path": "src/bin/showcase/pages/scrolling.rs",
+      "lines": "105-119,173-188",
+      "note": "following meta, tail growth rule, wheel routing, animating"
+     },
+     {
+      "path": "src/core/scroll.rs",
+      "lines": "37-40,58-66",
+      "note": "at_end plus scroll_by"
+     },
+     {
+      "path": "src/ui/fade.rs",
+      "lines": "44-60",
+      "note": "edge gates: fade only where content hides"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/fade/scrolling/wheel-fade/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_scroll_wheel_offtail live-PTY FAIL @2a75e017 (V2 log top edge fades: edge lum == interior (no fade); nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
+  },
+  {
+   "id": "TABLE-PAGE-001",
+   "app": "showcase",
+   "component": "DataTable",
+   "part": "tasks + checks cards at boot",
+   "ref_symbols": [
+    {
+     "glyph": "unsorted · 1–5 of 24",
+     "meaning": "tasks meta: no sort, first window of 24 rows"
+    },
+    {
+     "glyph": "No checks have run yet",
+     "meaning": "empty Checks card text"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "unsorted · 1–5 of 24",
+     "meaning": "tasks meta: no sort, first window of 24 rows"
+    },
+    {
+     "glyph": "No checks have run yet",
+     "meaning": "empty Checks card text"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/table.rs",
+     "symbols": [
+      "DataTable",
+      "Column",
+      "Cell",
+      "TableEvent",
+      "SortDir",
+      "sort_by",
+      "on_key",
+      "on_wheel",
+      "render",
+      "set_rows"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/tables.rs",
+     "symbols": [
+      "task_columns",
+      "task_rows",
+      "TablesPage",
+      "status_cell"
+     ]
+    },
+    {
+     "path": "src/widgets/scrollbar.rs",
+     "symbols": [
+      "position_label",
+      "render_vertical",
+      "TRACK",
+      "THUMB"
+     ]
+    }
+   ],
+   "data": {
+    "page": "tables",
+    "columns": 7,
+    "rows": 24,
+    "empty_card": "Checks"
+   },
+   "state": {
+    "sort": null,
+    "selected": null,
+    "cursor_row": 0,
+    "focused": "nav"
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase tables page"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "booted",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the Tasks card shows the header plus rows #1040–#1044 with meta unsorted · 1–5 of 24; the Checks card shows No checks have run yet"
+     },
+     {
+      "id": "V2",
+      "text": "no focus bar sits inside either card (focus is on the nav); the header shows no ▴/▾ sort marker"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "sort is None so display order is the identity; the cursor rests at (0, 0)"
+     },
+     {
+      "id": "S2",
+      "text": "numeric sort is armed on columns 0/5/6 but nothing is applied"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "from boot, Tab moves focus from the nav gutter into the Tasks card"
+     },
+     {
+      "id": "A2",
+      "text": "once focused, Down moves the cursor and s sorts; neither fires at boot"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no Selected status may appear: nothing was activated"
+     },
+     {
+      "id": "N2",
+      "text": "Enter at boot selects (Activated), never edits: no tables column is editable"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/table.rs",
+      "lines": "138-162",
+      "note": "DataTable::new: identity order, cursor origin, no sort/selection"
+     },
+     {
+      "path": "src/widgets/table.rs",
+      "lines": "649-660",
+      "note": "sort indicator ▴/▾ painted only on the sorted column"
+     },
+     {
+      "path": "src/bin/showcase/pages/tables.rs",
+      "lines": "15-25,74-86",
+      "note": "7 task columns plus Tasks/Checks datasets at boot"
+     },
+     {
+      "path": "src/bin/showcase/pages/tables.rs",
+      "lines": "100-122",
+      "note": "unsorted meta plus position label in the Tasks card"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/tables/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_table_page_boot live-PTY FAIL @2a75e017 (V1 meta: no line contains both Tasks + 'unsorted · 1–5 of 24'; nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
+  },
+  {
+   "id": "TABLE-SELECT-002",
+   "app": "showcase",
+   "component": "DataTable",
+   "part": "cursor row after tab + down + down",
+   "ref_symbols": [
+    {
+     "glyph": "#1042",
+     "meaning": "cursor row after two downs"
+    },
+    {
+     "glyph": "unsorted · 1–5 of 24",
+     "meaning": "meta unchanged by cursor motion"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "#1042",
+     "meaning": "cursor row after two downs"
+    },
+    {
+     "glyph": "unsorted · 1–5 of 24",
+     "meaning": "meta unchanged by cursor motion"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/table.rs",
+     "symbols": [
+      "on_key",
+      "set_cursor",
+      "selected",
+      "Activated",
+      "TableEvent",
+      "ensure_visible"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/tables.rs",
+     "symbols": [
+      "TablesPage",
+      "on_key",
+      "Activated",
+      "Selected",
+      "hints"
+     ]
+    }
+   ],
+   "data": {
+    "page": "tables",
+    "cursor": [
+     2,
+     0
+    ]
+   },
+   "state": {
+    "cursor_row": 2,
+    "selected": null,
+    "activated": false
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase tables page"
+    },
+    {
+     "step": 2,
+     "action": "tab into the Tasks card"
+    },
+    {
+     "step": 3,
+     "action": "move the cursor down two rows",
+     "key": "Down",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "cursor-moved",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the ▎ focus bar sits on the Tasks card with the cursor row on #1042; the footer shows the table hints (Move/Columns/Sort/Select/Next)"
+     },
+     {
+      "id": "V2",
+      "text": "no › selection marker appears and the meta still reads unsorted · 1–5 of 24"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the cursor moved (0,0) to (2,0); selected stays None because Enter was never pressed"
+     },
+     {
+      "id": "S2",
+      "text": "the viewport offset stays 0: row 2 was already visible"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Down/j moves the cursor one row and returns Changed"
+     },
+     {
+      "id": "A2",
+      "text": "Enter/Space from here would select: Activated plus the Selected status"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no Selected status may appear: cursor motion is not activation"
+     },
+     {
+      "id": "N2",
+      "text": "the sort must NOT change: s was never pressed"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/table.rs",
+      "lines": "269-274",
+      "note": "set_cursor clamps and keeps the row visible"
+     },
+     {
+      "path": "src/widgets/table.rs",
+      "lines": "404-412,449-452",
+      "note": "Up/Down motion arms plus the Enter/Space select arm not taken"
+     },
+     {
+      "path": "src/bin/showcase/pages/tables.rs",
+      "lines": "132-139,175-182",
+      "note": "key routing with the Activated status arm plus table hints"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/tables/selected/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_table_select_cursor live-PTY FAIL @2a75e017 (V2: meta keeps the window; nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
+  },
+  {
+   "id": "TABLE-EDIT-003",
+   "app": "showcase",
+   "component": "DataTable",
+   "part": "cell editor open on the Task cell",
+   "ref_symbols": [
+    {
+     "glyph": "EDIT",
+     "meaning": "footer mode tag while the editor is open"
+    },
+    {
+     "glyph": "0 edits · 1–10 of 14",
+     "meaning": "meta: nothing committed yet"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "EDIT",
+     "meaning": "footer mode tag while the editor is open"
+    },
+    {
+     "glyph": "0 edits · 1–10 of 14",
+     "meaning": "meta: nothing committed yet"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/table.rs",
+     "symbols": [
+      "begin_edit",
+      "commit_edit",
+      "cancel_edit",
+      "EditState",
+      "TextBuffer",
+      "on_key",
+      "edit_error"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/editable.rs",
+     "symbols": [
+      "validate",
+      "EditablePage",
+      "editing",
+      "hints",
+      "edits"
+     ]
+    }
+   ],
+   "data": {
+    "page": "editabletables",
+    "cell": [
+     0,
+     1
+    ],
+    "rows": 14
+   },
+   "state": {
+    "editing": true,
+    "edits": 0,
+    "edit_error": null
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase editabletables page"
+    },
+    {
+     "step": 2,
+     "action": "tab into the Tasks card"
+    },
+    {
+     "step": 3,
+     "action": "press Enter on the Task cell",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "editing",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the footer shows EDIT with Commit/Cancel/Next-cell hints; the Task cell shows the draft with the accent underline and the hardware cursor"
+     },
+     {
+      "id": "V2",
+      "text": "the meta reads 0 edits · 1–10 of 14; the reversed/▁/! legend renders below the card"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "Enter opened EditState{row 0, col 1} prefilled with the cell text"
+     },
+     {
+      "id": "S2",
+      "text": "the edits counter stays 0: nothing committed yet"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Enter on an editable cell begins editing (Changed); Esc cancels (Changed plus Cancelled)"
+     },
+     {
+      "id": "A2",
+      "text": "typed keys insert into the edit buffer; commit runs on Enter"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the validator must NOT fire before commit: no error is shown"
+     },
+     {
+      "id": "N2",
+      "text": "no other cell may show an editor: a single EditState exists"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/table.rs",
+      "lines": "293-310",
+      "note": "begin_edit refuses empty/non-editable, else opens EditState"
+     },
+     {
+      "path": "src/widgets/table.rs",
+      "lines": "756-783",
+      "note": "editor paint: field style, accent underline, cursor, error bang"
+     },
+     {
+      "path": "src/bin/showcase/pages/editable.rs",
+      "lines": "14-22,164-179",
+      "note": "column validator plus editing mode with commit/cancel hints"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/editable/editing/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_table_edit_open live-PTY FAIL @2a75e017 (V1: draft prefilled with the cell tail; nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
+  },
+  {
+   "id": "TABLE-COMMIT-004",
+   "app": "showcase",
+   "component": "DataTable",
+   "part": "committed cell + edits counter",
+   "ref_symbols": [
+    {
+     "glyph": "1 edits · 1–10 of 14",
+     "meaning": "meta after one commit"
+    },
+    {
+     "glyph": "Cell saved",
+     "meaning": "footer status from the Committed event"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "1 edits · 1–10 of 14",
+     "meaning": "meta after one commit"
+    },
+    {
+     "glyph": "Cell saved",
+     "meaning": "footer status from the Committed event"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/table.rs",
+     "symbols": [
+      "commit_edit",
+      "Committed",
+      "TableEvent",
+      "validator",
+      "apply_sort"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/editable.rs",
+     "symbols": [
+      "Committed",
+      "edits",
+      "status",
+      "validate",
+      "Cell"
+     ]
+    }
+   ],
+   "data": {
+    "page": "editabletables",
+    "cell": [
+     0,
+     1
+    ],
+    "typed": "x"
+   },
+   "state": {
+    "editing": false,
+    "edits": 1
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase editabletables page"
+    },
+    {
+     "step": 2,
+     "action": "tab into the Tasks card"
+    },
+    {
+     "step": 3,
+     "action": "press Enter on the Task cell",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "type x"
+    },
+    {
+     "step": 5,
+     "action": "press Enter to commit (wait 1 edits)",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "committed",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the meta reads 1 edits · 1–10 of 14; the footer shows Cell saved with the navigation hints (EDIT is gone)"
+     },
+     {
+      "id": "V2",
+      "text": "cell (0,1) shows the committed text with the appended x; no underline or cursor remains"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "commit wrote the buffer into rows[0][1], cleared the cell error, and emitted Committed{0,1}; edits went 0 to 1"
+     },
+     {
+      "id": "S2",
+      "text": "the edit state cleared: is_editing is false again"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Enter commits valid input (Changed plus Committed); an empty Task would fail validation and stay editing"
+     },
+     {
+      "id": "A2",
+      "text": "Tab after the commit would open the next editable cell (LeaveForward past the last one)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the EDIT mode must NOT persist after the commit"
+     },
+     {
+      "id": "N2",
+      "text": "no validator error may appear: the non-empty Task passes"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/table.rs",
+      "lines": "124-135,312-340",
+      "note": "TableEvent shape plus commit_edit: validate, write, event"
+     },
+     {
+      "path": "src/bin/showcase/pages/editable.rs",
+      "lines": "90-96,122-127",
+      "note": "edits meta plus the Committed arm (counter and Cell saved)"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/flows/editable/committed/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_table_edit_commit live-PTY FAIL @2a75e017 (V1/S1: one-edits meta; nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
+  },
+  {
+   "id": "TABLE-HOVER-005",
+   "app": "showcase",
+   "component": "DataTable",
+   "part": "row hover lift without focus",
+   "ref_symbols": [
+    {
+     "glyph": "#1042",
+     "meaning": "hovered row"
+    },
+    {
+     "glyph": "unsorted · 1–5 of 24",
+     "meaning": "meta unchanged by hover"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "#1042",
+     "meaning": "hovered row"
+    },
+    {
+     "glyph": "unsorted · 1–5 of 24",
+     "meaning": "meta unchanged by hover"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/table.rs",
+     "symbols": [
+      "hovered",
+      "hovered_cell",
+      "row",
+      "gutter_symbol",
+      "UNDERLINED"
+     ]
+    },
+    {
+     "path": "src/ui/ctx.rs",
+     "symbols": [
+      "Interaction",
+      "hovered",
+      "pressed",
+      "focused"
+     ]
+    },
+    {
+     "path": "src/theme.rs",
+     "symbols": [
+      "lift",
+      "row",
+      "button"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/tables.rs",
+     "symbols": [
+      "TablesPage",
+      "task_columns",
+      "task_rows"
+     ]
+    }
+   ],
+   "data": {
+    "page": "tables",
+    "hover_row": 2
+   },
+   "state": {
+    "hover": "tasks row 2",
+    "focused": "nav",
+    "suppressed": false
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase tables page"
+    },
+    {
+     "step": 2,
+     "action": "move the pointer over row #1042",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "hovered",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the hovered row renders on the lifted plane: idle-vs-hovered frames differ in cells but read identical as text"
+     },
+     {
+      "id": "V2",
+      "text": "no ▎ focus bar appears: hover alone never focuses"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the hover hit is row 2 (cell hover counts as row hover); the focus ring and cursor are untouched"
+     },
+     {
+      "id": "S2",
+      "text": "hover_suppressed is false: the pointer moved and no key was pressed since boot"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "hover changes rendering only: no widget flags, ring entries, or selection move"
+     },
+     {
+      "id": "A2",
+      "text": "moving the pointer away clears the lift: hover follows the pointer hit"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no other row may lift: exactly the hovered row changes plane"
+     },
+     {
+      "id": "N2",
+      "text": "hover must NOT select the row: no › marker and no status appear"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/table.rs",
+      "lines": "716-738",
+      "note": "cell hover counts as row hover; row style plus gutter and marker"
+     },
+     {
+      "path": "src/bin/showcase/app.rs",
+      "lines": "650-657",
+      "note": "mouse move records pos, clears suppression, recomputes hover"
+     },
+     {
+      "path": "src/bin/showcase/pages/tables.rs",
+      "lines": "90-95",
+      "note": "page blurb promises hover rows"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/hover/tables/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_table_hover_lift live-PTY FAIL @2a75e017 (V1 hover lift paints: frame unchanged after 8000ms; nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
+  },
+  {
+   "id": "TABLE-EDITABLE-006",
+   "app": "showcase",
+   "component": "DataTable",
+   "part": "editable page at boot, unfocused",
+   "ref_symbols": [
+    {
+     "glyph": "0 edits · 1–10 of 14",
+     "meaning": "meta: nothing edited yet"
+    },
+    {
+     "glyph": "reversed",
+     "meaning": "legend first row: navigation cursor style"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "0 edits · 1–10 of 14",
+     "meaning": "meta: nothing edited yet"
+    },
+    {
+     "glyph": "reversed",
+     "meaning": "legend first row: navigation cursor style"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/table.rs",
+     "symbols": [
+      "DataTable",
+      "cell_nav",
+      "cursor_col",
+      "EditState",
+      "render",
+      "is_editing"
+     ]
+    },
+    {
+     "path": "src/bin/showcase/pages/editable.rs",
+     "symbols": [
+      "EditablePage",
+      "cell_nav",
+      "cursor_col",
+      "legend",
+      "edits",
+      "validate"
+     ]
+    }
+   ],
+   "data": {
+    "page": "editabletables",
+    "rows": 14,
+    "cursor": [
+     0,
+     1
+    ]
+   },
+   "state": {
+    "focused": "nav",
+    "editing": false,
+    "edits": 0,
+    "pre_error": "rows[2][4]"
+   },
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot the showcase editabletables page"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "booted",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the Tasks card is unfocused (no ▎) with meta 0 edits · 1–10 of 14; the legend rows render below the card"
+     },
+     {
+      "id": "V2",
+      "text": "the header shows the … overflow marker: Branch/Changes columns sit beyond the 80-column fold, so the preset rows[2][4] error stays off-screen"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "cell_nav is true with the cursor at (0,1) and the column validator armed"
+     },
+     {
+      "id": "S2",
+      "text": "rows[2][4] carries the preset branch error at boot (visible once scrolled into view)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "from boot, Tab enters the table: the cursor cell paints reversed"
+     },
+     {
+      "id": "A2",
+      "text": "once focused, arrows move the reversed cell cursor and Enter edits"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no EDIT mode may show at boot"
+     },
+     {
+      "id": "N2",
+      "text": "no focus bar may render inside the card: focus is on the nav"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/table.rs",
+      "lines": "608-613,726-738",
+      "note": "focus flag read plus gutter/marker paint for the cursor row"
+     },
+     {
+      "path": "src/bin/showcase/pages/editable.rs",
+      "lines": "55-64",
+      "note": "boot config: cell_nav, numeric, validator, preset error, cursor col 1"
+     },
+     {
+      "path": "src/bin/showcase/pages/editable.rs",
+      "lines": "98-113",
+      "note": "reversed/▁/! legend below the card"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/showcase/pages/editable/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T01:06:48Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8d S1 s1_table_editable_boot live-PTY FAIL @2a75e017 (V1/N2: 11 focus bars, expected nav-only; nextest visual_baseline --run-ignored only -E 'test(s1_)' --test-threads 2, 3 pass/18 fail/379 skip; bin target/debug/showcase 10989064B sha256:7a58dd472ca840ed built 2026-10-07T01:01:52Z; log /tmp/phase8d-focused.log)"
+     }
+    ]
+   },
+   "cand_source": []
   }
  ],
  "coverage": [
@@ -3736,7 +6141,8 @@
     "GRID-COMMIT-003",
     "GRID-SORT-004",
     "GRID-CELL-005",
-    "GRID-RESULTS-006"
+    "GRID-RESULTS-006",
+    "GRID-WHEEL-007"
    ],
    "handlers": [
     "cursor motion (arrows/hjkl/Home/End/PageUp/PageDown/g/G, shift extends)",
@@ -3792,7 +6198,8 @@
    "rows": [
     "CODE-EDIT-001",
     "CODE-RUN-002",
-    "CODE-SQL-003"
+    "CODE-SQL-003",
+    "CODE-WHEEL-004"
    ],
    "handlers": [
     "find bar capture: Esc closes, Enter confirms, Backspace/chars edit the needle",
@@ -3843,7 +6250,8 @@
    "rows": [
     "DIFF-UNIFIED-001",
     "DIFF-REVIEW-002",
-    "DIFF-INSPECT-003"
+    "DIFF-INSPECT-003",
+    "DIFF-WHEEL-004"
    ],
    "handlers": [
     "all input delegates to the wrapped TextViewport (keys, wheel, click, drag, scrollbar)",
@@ -3928,7 +6336,8 @@
    "component": "TerminalView",
    "rows": [
     "TERM-RUN-001",
-    "TERM-FOLLOW-002"
+    "TERM-FOLLOW-002",
+    "TERM-WHEEL-003"
    ],
    "handlers": [
     "Tick advances the stage engine while running",
@@ -3967,7 +6376,9 @@
    "component": "ScrollRegion",
    "rows": [
     "SCROLL-REGION-001",
-    "SCROLL-TRACK-002"
+    "SCROLL-TRACK-002",
+    "SCROLL-PAGE-003",
+    "SCROLL-WHEEL-004"
    ],
    "handlers": [
     "ScrollState: scroll_by/scroll_to/page_up/page_down/jump_start/jump_end/ensure_visible",
@@ -4002,6 +6413,52 @@
     "ScrollState is a pure model; the scrollbar derives geometry from it",
     "the completed click after a drag finds the thumb under the pointer and moves nothing",
     "the list column stays owned by the NAVIGATION rows; these rows pin the scroll model"
+   ]
+  },
+  {
+   "component": "DataTable",
+   "rows": [
+    "TABLE-PAGE-001",
+    "TABLE-SELECT-002",
+    "TABLE-EDIT-003",
+    "TABLE-COMMIT-004",
+    "TABLE-HOVER-005",
+    "TABLE-EDITABLE-006"
+   ],
+   "handlers": [
+    "cursor motion (Up/k Down/j PageUp/PageDown Home/g End/G); arrows keep the row visible",
+    "Left/Right/h/l move the cell cursor iff cell_nav, else the column hscroll",
+    "Enter/F2 edits iff cell_nav and the column is editable; Enter/Space selects (Activated)",
+    "s sorts the cursor column; Tab commits then opens the next editable cell or emits LeaveForward/Backward",
+    "mouse: header/cell/row hit ids, scrollbar press/drag, wheel vertical plus horizontal",
+    "paste inserts into the open editor"
+   ],
+   "flags": [
+    "cell_nav (cell vs row navigation unit)",
+    "cursor_row/cursor_col; selected source row",
+    "sort (col, dir); order permutation display-to-source",
+    "edit (EditState row/col/buffer/error); validator fn",
+    "numeric per-column; empty_text; scroll plus hscroll"
+   ],
+   "thresholds": [
+    "sort cycles asc, desc, none with ▴/▾ header markers; the cursor stays on its source row",
+    "commit writes the buffer to the source row via order and emits Committed{row,col}",
+    "a failing validator keeps the editor open with the error (! marker, error underline)",
+    "header hover underlines sortable titles; editable-cell hover underlines the hovered cell"
+   ],
+   "timers": [
+    "none"
+   ],
+   "early_returns": [
+    "begin_edit refuses empty tables and non-editable columns (Consumed)",
+    "an empty table ignores navigation keys; modified chords are Ignored",
+    "wheel at a scroll boundary returns Consumed",
+    "render commits a dangling edit when focus left the table"
+   ],
+   "notes": [
+    "sorting is a permutation: edits land in the source row whatever the display order",
+    "the selected row carries › (accent when focused); the cell cursor is reversed bold",
+    "the tables page is not a DataGrid: no pending queue, no SQL preview, no typed cells"
    ]
   }
  ],
@@ -4505,9 +6962,9 @@
     "72x20",
     "80x24"
    ],
-   "new": null,
-   "status": "pending",
-   "note": "DataTable page has no row yet (not a DataGrid)"
+   "new": "TABLE-PAGE-001",
+   "status": "mapped",
+   "note": "DataTable page row (not a DataGrid)"
   },
   {
    "old": "showcase/flows/tables/selected",
@@ -4519,9 +6976,9 @@
     "72x20",
     "80x24"
    ],
-   "new": null,
-   "status": "pending",
-   "note": "DataTable selection has no row yet (not a DataGrid)"
+   "new": "TABLE-SELECT-002",
+   "status": "mapped",
+   "note": "DataTable selection row (not a DataGrid)"
   },
   {
    "old": "showcase/flows/editable/editing",
@@ -4533,9 +6990,9 @@
     "72x20",
     "80x24"
    ],
-   "new": null,
-   "status": "pending",
-   "note": "DataTable editing has no row yet (not a DataGrid)"
+   "new": "TABLE-EDIT-003",
+   "status": "mapped",
+   "note": "DataTable editing row (not a DataGrid)"
   },
   {
    "old": "showcase/flows/editable/committed",
@@ -4547,9 +7004,9 @@
     "72x20",
     "80x24"
    ],
-   "new": null,
-   "status": "pending",
-   "note": "DataTable commit has no row yet (not a DataGrid)"
+   "new": "TABLE-COMMIT-004",
+   "status": "mapped",
+   "note": "DataTable commit row (not a DataGrid)"
   },
   {
    "old": "tablepro/overlays/history_tab",
@@ -4564,6 +7021,118 @@
    "new": null,
    "status": "pending",
    "note": "read-only SQL detail editor has no row yet"
+  },
+  {
+   "old": "showcase/fade/datagrid/wheel",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "GRID-WHEEL-007",
+   "status": "mapped",
+   "note": "8A-S1: wheel scroll plus fade over customers"
+  },
+  {
+   "old": "showcase/fade/diff/wheel",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "DIFF-WHEEL-004",
+   "status": "mapped",
+   "note": "8A-S1: wheel scroll over review-mode diff"
+  },
+  {
+   "old": "showcase/fade/editor/wheel",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "CODE-WHEEL-004",
+   "status": "mapped",
+   "note": "8A-S1: wheel scroll plus gutter fade over retry.rs"
+  },
+  {
+   "old": "showcase/fade/scroll/page",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "SCROLL-PAGE-003",
+   "status": "mapped",
+   "note": "8A-S1: pagedown through wrapped prose"
+  },
+  {
+   "old": "showcase/fade/scrolling/wheel-fade",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "SCROLL-WHEEL-004",
+   "status": "mapped",
+   "note": "8A-S1: wheel-up off the follow tail"
+  },
+  {
+   "old": "showcase/fade/terminal/scrollback",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "TERM-WHEEL-003",
+   "status": "mapped",
+   "note": "8A-S1: wheel-up into the build scrollback"
+  },
+  {
+   "old": "showcase/hover/tables",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "TABLE-HOVER-005",
+   "status": "mapped",
+   "note": "8A-S1: DataTable row hover (not a DataGrid)"
+  },
+  {
+   "old": "showcase/pages/editable",
+   "app": "showcase",
+   "sizes": [
+    "100x30",
+    "120x40",
+    "160x50",
+    "72x20",
+    "80x24"
+   ],
+   "new": "TABLE-EDITABLE-006",
+   "status": "mapped",
+   "note": "8A-S1: DataTable editable page (not a DataGrid)"
   }
  ]
 }
