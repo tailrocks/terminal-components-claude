@@ -144,30 +144,21 @@ fn language_row(value: &&'static str, row: &mut RowUi<'_>) {
 fn file_key(value: &FileRow) -> ItemKey {
     ItemKey::num(u64::from(value.key))
 }
-fn file_row(value: &FileRow, row: &mut RowUi<'_>) {
-    row.label(value.label);
-    row.meta(value.meta);
-}
+/// Minimum label cells the tag keeps before hiding file metadata
+/// (tag `list.rs:313`: "hide metadata rather than starve the label").
+const MIN_FILE_LABEL: u16 = 12;
 
-fn compact_file_row(value: &FileRow, row: &mut RowUi<'_>) {
-    let label = match value.key {
-        1 => "src/api/auth…",
-        2 => "src/api/bill…",
-        3 => "src/db/sche…",
-        6 => "docs/webhook…",
-        7 => "src/workers/…",
-        12 => "src/db/pool.…",
-        _ => value.label,
-    };
-    row.label(label);
-    let meta_width = match value.meta {
-        "modified" => 9,
-        "generated" => 10,
-        "new" => 4,
-        "locked" => 7,
-        _ => 1,
-    };
-    row.part(Part::META, meta_width).text(value.meta);
+fn file_row(value: &FileRow, row: &mut RowUi<'_>) {
+    // Tag recipe (tag `list.rs:308-322`): meta paints first, the label takes
+    // what is left; metadata that would starve the label below
+    // `MIN_FILE_LABEL` stays hidden.
+    let keep = row
+        .remaining_width()
+        .saturating_sub(termrock::width(value.meta).saturating_add(1));
+    if keep >= MIN_FILE_LABEL {
+        row.meta(value.meta);
+    }
+    row.label(value.label);
 }
 fn file_disabled(value: &FileRow) -> bool {
     value.disabled
@@ -182,8 +173,8 @@ fn single_list() -> List<
     List::new(SINGLE).key(language_key).row(language_row)
 }
 
-/// The one multi-selection list constructor (§13): both phase paths build the
-/// same keyed, patched, disabled-aware list and differ only in the row glyph.
+/// The one multi-selection list constructor (§13): keyed, patched,
+/// disabled-aware.
 fn multi_list_with(
     row: impl Fn(&FileRow, &mut RowUi<'_>),
 ) -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
@@ -197,11 +188,6 @@ fn multi_list_with(
 fn multi_list()
 -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
     multi_list_with(file_row)
-}
-
-fn compact_multi_list()
--> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
-    multi_list_with(compact_file_row)
 }
 
 /// The one empty-list constructor (§13): the update path drives it and the
@@ -407,29 +393,16 @@ impl ListsPage {
                     },
                     detail,
                 );
-                if body.width >= 90 && body.width < 130 {
-                    compact_multi_list().draw(
-                        ui,
-                        Rect {
-                            y: inner.y.saturating_add(2),
-                            height: inner.height.saturating_sub(2),
-                            ..inner
-                        },
-                        &self.multi,
-                        FILES,
-                    );
-                } else {
-                    multi_list().draw(
-                        ui,
-                        Rect {
-                            y: inner.y.saturating_add(2),
-                            height: inner.height.saturating_sub(2),
-                            ..inner
-                        },
-                        &self.multi,
-                        FILES,
-                    );
-                }
+                multi_list().draw(
+                    ui,
+                    Rect {
+                        y: inner.y.saturating_add(2),
+                        height: inner.height.saturating_sub(2),
+                        ..inner
+                    },
+                    &self.multi,
+                    FILES,
+                );
                 if self.last == "multi selection changed" {
                     let row = Rect {
                         y: inner.bottom().saturating_sub(1),
