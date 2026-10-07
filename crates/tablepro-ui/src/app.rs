@@ -7,7 +7,7 @@ use termrock::{
     GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
     LayerSize, LayerSpec, Modifier, NodeKind, Panel, PanelKind, Part, Phase, PickerAction,
     Response, Role, RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState,
-    StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction,
+    StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
     TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
 };
 
@@ -2156,14 +2156,63 @@ impl TableProApp {
         self.filter_editor = Some(editor);
     }
 
+    fn drain_filter_intents(cx: &Cx<'_>) {
+        for id in [
+            FILTER_COL,
+            FILTER_OP,
+            FILTER_VALUE,
+            FILTER_VALUE2,
+            FILTER_CANCEL,
+            FILTER_APPLY,
+            FILTER_EDITOR,
+        ] {
+            let _ = cx.intents(id).count();
+        }
+    }
+
+    fn refocus_content(&mut self, cx: &mut Cx<'_>) {
+        if let Some(tab_key) = self.workbench.active_key() {
+            let pf = match self.workbench.active() {
+                Some(Tab::Table(t)) if t.is_structure() => Some(tab_key.control("structure")),
+                Some(Tab::Table(_)) => Some(tab_key.control("data")),
+                Some(Tab::Query(_)) => Some(tab_key.control("query")),
+                Some(Tab::History(_)) => Some(tab_key.control("history")),
+                None => None,
+            };
+            if let Some(pf) = pf {
+                cx.focus(pf);
+            } else {
+                cx.focus(CONTENT_FRAME);
+            }
+        } else {
+            cx.focus(CONTENT_FRAME);
+        }
+    }
+
     fn update_filter_editor(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let Some(editor) = self.filter_editor.as_mut() else {
+            Self::drain_filter_intents(cx);
             return Response::ignored();
         };
         if !cx.is_open(FILTER_EDITOR) {
+            Self::drain_filter_intents(cx);
             self.filter_editor = None;
             return Response::changed();
         }
+        // Value field is owned by TextInput. Blur (FocusOut) commits the
+        // draft into `editor.value` without applying; Enter commits and
+        // applies. Esc while editing cancels the draft; Esc while idle
+        // closes. Manual routing below always runs so every intent bucket
+        // is drained (no UndeliveredIntent diagnostics).
+        let value_blurred = cx
+            .intents(FILTER_VALUE)
+            .any(|intent| matches!(intent, Intent::FocusOut { .. }));
+        let value_response = TextInput::new(FILTER_VALUE).placeholder("value").update(
+            cx,
+            &mut editor.value_state,
+            &mut editor.value,
+        );
+        let value_action = value_response.action_ref().copied();
         let mut outcome = None;
         for (id, focus_variant) in [
             (FILTER_COL, FilterFocus::Column),
@@ -2194,6 +2243,42 @@ impl TableProApp {
                     outcome = Some(editor.on_key(key));
                 }
             }
+        }
+        // Enter in the value field commits and applies. Blur commits are
+        // already written into `editor.value` by TextInput; the editor stays
+        // open and FocusIn above synced `editor.focus`.
+        if value_action == Some(TextAction::Committed) && !value_blurred {
+            let filter = editor.to_filter();
+            let index = editor.index;
+            self.filter_editor = None;
+            cx.close_layer(FILTER_EDITOR, None);
+            if let Some(Tab::Table(table)) = self.workbench.active_mut() {
+                match index {
+                    Some(i) if i < table.filters.len() => table.filters[i] = filter,
+                    _ => table.filters.push(filter),
+                }
+                table.reload(&self.catalog);
+                let n = table.filters.iter().filter(|f| f.enabled).count();
+                self.status = format!("{n} filter{} applied", if n == 1 { "" } else { "s" });
+            }
+            self.sync_active_tab();
+            self.refocus_content(cx);
+            return Response::changed();
+        }
+        // Esc on an idle value field arrives as a Cancel binding (TextInput
+        // published it) rather than a Key, so `on_key` never sees it. When
+        // TextInput already cancelled a draft this frame, the same binding
+        // must not also close the editor.
+        if value_action.is_none()
+            && !editor.value_state.is_editing()
+            && cx.intents(FILTER_VALUE).any(|intent| match intent {
+                Intent::Binding(key) => {
+                    key == ActionKey::CANCEL || key == ActionKey::custom("Cancel")
+                }
+                _ => false,
+            })
+        {
+            outcome = Some(FilterOutcome::Cancel);
         }
         match outcome {
             Some(FilterOutcome::Cancel) => {
@@ -2255,6 +2340,7 @@ impl TableProApp {
                 Response::changed()
             }
             Some(FilterOutcome::Keep) => Response::changed(),
+            None if value_action.is_some() => Response::changed(),
             None => Response::ignored(),
         }
     }
@@ -7705,6 +7791,69 @@ mod replacement_tests {
         let text = h.text();
         assert!(text.contains("status = 'pending'"));
         assert!(text.contains("filtered (1)"));
+    }
+
+    #[test]
+    fn filter_value_edits_through_text_input_draft() {
+        let mut app = TableProApp::default();
+        let idx = app
+            .connections
+            .iter()
+            .position(|c| c.name == "Production")
+            .unwrap();
+        let _ = app.connect(idx);
+        let mut h = Harness::new(app, Theme::junie(), 120, 40);
+        for _ in 0..5 {
+            let _ = h.key(KeyCode::Down);
+        }
+        let _ = h.key(KeyCode::Enter);
+        let _ = h.key(KeyCode::Home);
+        for _ in 0..4 {
+            let _ = h.key(KeyCode::Right);
+        }
+        let _ = h.key(KeyCode::Char('f'));
+        let _ = h.key(KeyCode::BackTab);
+        let _ = h.key(KeyCode::BackTab);
+        let prefill = h
+            .app()
+            .filter_editor
+            .as_ref()
+            .map(|editor| editor.value.clone())
+            .unwrap_or_default();
+        // Begin editing: TextInput draft starts, committed value untouched.
+        let _ = h.key(KeyCode::Enter);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(editor.value_state.is_editing());
+        assert_eq!(editor.value, prefill);
+        // Select-all + partial typing updates the draft and the live SQL
+        // preview, not the committed value.
+        let _ = h.key_mod(KeyCode::Char('l'), termrock::KeyModifiers::CONTROL);
+        for c in "pend".chars() {
+            let _ = h.key(KeyCode::Char(c));
+        }
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(editor.value_state.is_editing());
+        assert_eq!(editor.value_state.draft_text(), Some("pend"));
+        assert_eq!(editor.value, prefill);
+        assert!(h.text().contains("'pend'"));
+        // Esc cancels the draft: editor stays open, committed value kept.
+        let _ = h.key(KeyCode::Esc);
+        let editor = h.app().filter_editor.as_ref().expect("editor stays open");
+        assert!(!editor.value_state.is_editing());
+        assert_eq!(editor.value_state.draft_text(), None);
+        assert_eq!(editor.value, prefill);
+        // Re-edit and commit with Enter: applies the filter.
+        let _ = h.key(KeyCode::Enter);
+        let _ = h.key_mod(KeyCode::Char('l'), termrock::KeyModifiers::CONTROL);
+        for c in "pending".chars() {
+            let _ = h.key(KeyCode::Char(c));
+        }
+        let _ = h.key(KeyCode::Enter);
+        assert!(h.app().filter_editor.is_none());
+        let text = h.text();
+        assert!(text.contains("status = 'pending'"));
+        assert!(text.contains("filtered (1)"));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 }
 

@@ -351,8 +351,7 @@ pub struct FilterEditor {
     pub op_cursor: usize,
     pub ops: Vec<FilterOp>,
     pub value: String,
-    pub value_editing: bool,
-    pub value_selected_all: bool,
+    pub value_state: termrock::TextInputState,
     pub value2: String,
     pub value2_editing: bool,
     pub value2_selected_all: bool,
@@ -403,8 +402,7 @@ impl FilterEditor {
             op_cursor: ops.iter().position(|&o| o == op).unwrap_or(0),
             ops,
             value,
-            value_editing: false,
-            value_selected_all: false,
+            value_state: termrock::TextInputState::default(),
             value2,
             value2_editing: false,
             value2_selected_all: false,
@@ -488,10 +486,6 @@ impl FilterEditor {
                 self.op_open = false;
                 return FilterOutcome::Keep;
             }
-            if self.value_editing {
-                self.value_editing = false;
-                return FilterOutcome::Keep;
-            }
             if self.value2_editing {
                 self.value2_editing = false;
                 return FilterOutcome::Keep;
@@ -499,7 +493,11 @@ impl FilterEditor {
             return FilterOutcome::Cancel;
         }
 
-        if !self.column_open && !self.op_open && !self.value_editing && !self.value2_editing {
+        if !self.column_open
+            && !self.op_open
+            && !self.value_state.is_editing()
+            && !self.value2_editing
+        {
             match key.code {
                 termrock::KeyCode::Tab => {
                     self.focus = self.next_focus();
@@ -603,50 +601,9 @@ impl FilterEditor {
                 }
             }
             FilterFocus::Value => {
-                if !self.value_editing {
-                    match key.code {
-                        termrock::KeyCode::Enter => {
-                            self.value_editing = true;
-                            self.value_selected_all = false;
-                        }
-                        termrock::KeyCode::Char(c) => {
-                            self.value_editing = true;
-                            self.value.clear();
-                            self.value.push(c);
-                            self.value_selected_all = false;
-                        }
-                        _ => {}
-                    }
-                } else {
-                    match key.code {
-                        termrock::KeyCode::Char('l')
-                            if key.mods.contains(termrock::KeyModifiers::CONTROL) =>
-                        {
-                            self.value.clear();
-                            self.value_selected_all = true;
-                        }
-                        termrock::KeyCode::Enter => {
-                            self.value_editing = false;
-                            return FilterOutcome::Apply(self.to_filter());
-                        }
-                        termrock::KeyCode::Backspace => {
-                            if self.value_selected_all {
-                                self.value.clear();
-                                self.value_selected_all = false;
-                            } else {
-                                self.value.pop();
-                            }
-                        }
-                        termrock::KeyCode::Char(c) => {
-                            if self.value_selected_all {
-                                self.value.clear();
-                                self.value_selected_all = false;
-                            }
-                            self.value.push(c);
-                        }
-                        _ => {}
-                    }
-                }
+                // Owned by termrock::TextInput via update_filter_editor and
+                // draw below. Keys arriving here were not consumed by the
+                // component (idle, unbound); ignore them.
             }
             FilterFocus::Value2 => {
                 if !self.value2_editing {
@@ -900,27 +857,10 @@ impl FilterEditor {
             );
 
             let val_rect = termrock::Rect::new(area.x + 2, area.y + 7, 59, 1);
-            ui.register_control(FILTER_VALUE, val_rect, Focusability::Focusable);
-            ui.fill(val_rect, field_style);
-            if val_focused {
-                ui.paint_str(termrock::Rect::new(area.x + 2, area.y + 7, 1, 1), "▎", accent_gutter);
-            } else {
-                let gutter_style = field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Field))));
-                ui.paint_str(termrock::Rect::new(area.x + 2, area.y + 7, 1, 1), " ", gutter_style);
-            }
-            if self.value.is_empty() && !self.value_editing {
-                ui.paint_str(
-                    termrock::Rect::new(area.x + 4, area.y + 7, 56, 1),
-                    "value",
-                    field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)))),
-                );
-            } else {
-                ui.paint_str(
-                    termrock::Rect::new(area.x + 4, area.y + 7, 56, 1),
-                    &self.value,
-                    primary_fg,
-                );
-            }
+            termrock::TextInput::new(FILTER_VALUE)
+                .value(&self.value)
+                .placeholder("value")
+                .draw(ui, val_rect, &self.value_state);
         } else {
             ui.paint_str(
                 termrock::Rect::new(area.x + 4, area.y + 7, 56, 1),
@@ -929,8 +869,12 @@ impl FilterEditor {
             );
         }
 
-        // SQL Preview
-        let sql_filter = self.to_filter().to_sql();
+        // SQL Preview (live: draft while editing, committed otherwise)
+        let mut preview_filter = self.to_filter();
+        if let Some(draft) = self.value_state.draft_text() {
+            preview_filter.value = draft.trim().to_owned();
+        }
+        let sql_filter = preview_filter.to_sql();
         let preview = format!("WHERE {sql_filter}");
         let sec_elevated = elevated_style
             .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
