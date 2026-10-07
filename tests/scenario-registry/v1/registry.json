@@ -21507,6 +21507,5055 @@
         ]
       }
     }
+,
+    {
+      "id": "INSPECT-ACCOUNT-003",
+      "app": "jackin-preview",
+      "component": "Inspector",
+      "part": "account inspector body behind a tree selection",
+      "ref_symbols": [
+        {
+          "glyph": "Accounts › Claude › Work",
+          "meaning": "inspector crumb for the selected account"
+        },
+        {
+          "glyph": "Usage stale · last good 47 min ago",
+          "meaning": "inspector status row for the exhausted account"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Accounts › Claude › Work",
+          "meaning": "inspector crumb for the selected account"
+        },
+        {
+          "glyph": "Usage stale · last good 47 min ago",
+          "meaning": "inspector status row for the exhausted account"
+        }
+      ],
+      "data": {
+        "selection": "Claude · Work",
+        "surface": "Claude",
+        "accounts": 12,
+        "providers": 8
+      },
+      "state": {
+        "drawer_open": false,
+        "focus": "tree",
+        "filter": null
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+        },
+        {
+          "step": 2,
+          "action": "press Down four times (the Work account is selected)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Enter (the inspector drawer opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (focus returns to the tree)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press a (the add form opens), then Esc (it cancels)",
+          "key": "a",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "detail-selected",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the crumb reads Accounts › Claude › Work and the header pairs Claude · Work with the exhausted badge"
+          },
+          {
+            "id": "V2",
+            "text": "the provider row reads Anthropic / Claude and the quota block reads stale · last good 47 min ago"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the tree cursor sits on the Work row (▎ shares its line)"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the tree hints (Enter Details, m Usage)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter focuses the inspector drawer (▎Claude · Work, Tab Actions); Esc returns focus to the tree"
+          },
+          {
+            "id": "A2",
+            "text": "a opens the New account form and Esc cancels it with the selection intact"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the tree footer must NOT show while the drawer holds focus (Enter Details returns only after Esc)"
+          },
+          {
+            "id": "N2",
+            "text": "the add form must NOT be open at the detail state (a later opens it, Esc closes it)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "2090-2107",
+            "note": "Enter/Tab on a tree selection opens the inspector drawer"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "2142-2146",
+            "note": "Esc in the inspector closes the drawer back to the tree"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "1946-1949",
+            "note": "a opens the add form from tree or inspector focus"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/accounts/detail/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_accounts_detail live-PTY FAIL @6cec91fa (tree footer back: `Enter Details` never appeared; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "INSPECT-DRAWER-004",
+      "app": "jackin-preview",
+      "component": "Inspector",
+      "part": "focused inspector drawer with its action row",
+      "ref_symbols": [
+        {
+          "glyph": "▎Claude · Work",
+          "meaning": "focused inspector title"
+        },
+        {
+          "glyph": "op://v_eng01/it_ant01/credential",
+          "meaning": "1Password locator behind the redacted credential tail"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎Claude · Work",
+          "meaning": "focused inspector title"
+        },
+        {
+          "glyph": "op://v_eng01/it_ant01/credential",
+          "meaning": "1Password locator behind the redacted credential tail"
+        }
+      ],
+      "data": {
+        "account": "Claude · Work",
+        "credential": "1Password op locator (redacted tail)"
+      },
+      "state": {
+        "drawer_open": true,
+        "focus": "inspector"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+        },
+        {
+          "step": 2,
+          "action": "press Down four times (the Work account is selected)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Enter (the inspector drawer opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (focus returns to the tree)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Enter again (the drawer re-opens on the same selection)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "drawer-focused",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the focused title ▎Claude · Work shares its line with the exhausted badge"
+          },
+          {
+            "id": "V2",
+            "text": "the credential shows the op://v_eng01/it_ant01/credential locator with the ••••••••…3c9e tail"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer shows the drawer hints (Tab Actions, Esc Back)"
+          },
+          {
+            "id": "S2",
+            "text": "the action row spans Refresh through Remove…"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc returns focus to the tree (Enter Details returns, Tab Actions expires)"
+          },
+          {
+            "id": "A2",
+            "text": "Enter re-opens the drawer on the same selection (▎Claude · Work, crumb intact)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Tab Actions must NOT show after Esc returns focus to the tree"
+          },
+          {
+            "id": "N2",
+            "text": "the focused drawer title must NOT show after Esc returns focus to the tree"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "2090-2107",
+            "note": "Enter/Tab on a tree selection opens the inspector drawer"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "2142-2146",
+            "note": "Esc in the inspector closes the drawer back to the tree"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/accounts/drawer/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_accounts_drawer live-PTY FAIL @6cec91fa (tree footer back: `Enter Details` never appeared; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FLIST-ACCOUNT-003",
+      "app": "jackin-preview",
+      "component": "FilterList",
+      "part": "applied tree filter with its truncated title",
+      "ref_symbols": [
+        {
+          "glyph": "Accounts · filt…",
+          "meaning": "truncated applied-filter title"
+        },
+        {
+          "glyph": "★ Personal",
+          "meaning": "unmatched account present only without the filter"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Accounts · filt…",
+          "meaning": "truncated applied-filter title"
+        },
+        {
+          "glyph": "★ Personal",
+          "meaning": "unmatched account present only without the filter"
+        }
+      ],
+      "data": {
+        "filter": "work",
+        "matches": "Work plus its Claude parent"
+      },
+      "state": {
+        "filter": "work",
+        "cursor": "Overview"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+        },
+        {
+          "step": 2,
+          "action": "press / (the Filter accounts dialog opens)",
+          "key": "/",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Enter (the filter input begins editing), type work, press Enter (the filter commits and applies)"
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the filter clears and the full tree returns)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press a (the add form opens), then Esc (it cancels)",
+          "key": "a",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "filter-applied",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the tree title renders the applied filter truncated (Accounts · filt…) beside the 12 · 4 ▲ · 4 ! counts"
+          },
+          {
+            "id": "V2",
+            "text": "only the Work match survives with its ▾ Claude parent; ★ Personal is gone"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the filtered tree keeps its footer (Enter Details, / Filter)"
+          },
+          {
+            "id": "S2",
+            "text": "the boot tree holds ★ Personal (the unfiltered presence proof)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc clears the filter: ★ Personal returns and the filtered title expires"
+          },
+          {
+            "id": "A2",
+            "text": "a opens the New account form and Esc cancels it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the filtered title must NOT show after Esc clears the filter"
+          },
+          {
+            "id": "N2",
+            "text": "the add form must NOT stay open after its Esc cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "1961-1973",
+            "note": "/ opens the Filter accounts prompt dialog"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "2111-2117",
+            "note": "Esc with a filter clears it and rebuilds the rows"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "1189-1190",
+            "note": "the tree title renders the active filter"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/accounts/filter/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_accounts_filter live-PTY FAIL @6cec91fa (S2: boot lacks ★ Personal; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-AUDIT-006",
+      "app": "jackin-preview",
+      "component": "Panel",
+      "part": "accounts route regions at audit boot",
+      "ref_symbols": [
+        {
+          "glyph": "Accounts › Overview",
+          "meaning": "overview crumb at audit boot"
+        },
+        {
+          "glyph": "12 accounts · 8 providers",
+          "meaning": "registry totals beside the overview"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Accounts › Overview",
+          "meaning": "overview crumb at audit boot"
+        },
+        {
+          "glyph": "12 accounts · 8 providers",
+          "meaning": "registry totals beside the overview"
+        }
+      ],
+      "data": {
+        "route": "Accounts",
+        "accounts": 12,
+        "providers": 8
+      },
+      "state": {
+        "selection": "Overview",
+        "drawer_open": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter (the drawer opens), then Esc (it closes)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press a (the add form opens), then Esc (it cancels)",
+          "key": "a",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "audit-booted",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the crumb reads Accounts › Overview beside the 12 accounts · 8 providers totals"
+          },
+          {
+            "id": "V2",
+            "text": "the health row reads degraded · 4 warnings with 1 exhausted account"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the tree cursor sits on Overview (▎ shares its line)"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the tree hints (Enter Details, r Refresh all)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the drawer (Tab Actions) and Esc closes it back to the tree"
+          },
+          {
+            "id": "A2",
+            "text": "a opens the New account form and Esc cancels it with the cursor intact"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Tab Actions must NOT show after Esc closes the drawer"
+          },
+          {
+            "id": "N2",
+            "text": "the add form must NOT stay open after its Esc cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "2090-2107",
+            "note": "Enter/Tab on a tree selection opens the inspector drawer"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "1946-1949",
+            "note": "a opens the add form from tree or inspector focus"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/audit/accounts/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_audit_accounts_boot live-PTY FAIL @6cec91fa (V1: no overview crumb; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-EDITOR-005",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "workspace editor on General with the tab strip focused",
+      "ref_symbols": [
+        {
+          "glyph": "Workspaces › payments-platform › edit",
+          "meaning": "editor crumb"
+        },
+        {
+          "glyph": "[✓] Keep awake",
+          "meaning": "shipped General flag"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Workspaces › payments-platform › edit",
+          "meaning": "editor crumb"
+        },
+        {
+          "glyph": "[✓] Keep awake",
+          "meaning": "shipped General flag"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform",
+        "tab": "General"
+      },
+      "state": {
+        "tab": "General",
+        "focus": "tabs",
+        "changes": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press e (the workspace editor opens on General)",
+          "key": "e",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press 2 then Enter (the Mounts body opens)",
+          "key": "2",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (focus returns to TABS without leaving)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (the clean editor leaves to the manager)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "general-tabs",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the crumb reads Workspaces › payments-platform › edit with the Name * row beneath"
+          },
+          {
+            "id": "V2",
+            "text": "the shipped flags read [✓] Keep awake and [✓] Git pull before launch"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer is the TABS footer (1–5 Jump, Enter Body)"
+          },
+          {
+            "id": "S2",
+            "text": "the Cancel and Save… buttons share the footer row"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "2 + Enter jumps to the Mounts body (+ Add mount, r Read-only)"
+          },
+          {
+            "id": "A2",
+            "text": "Esc refocuses TABS (mounts body stays), Esc leaves the clean editor to the manager"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the General body must NOT show after the Mounts jump (Keep awake expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the editor crumb must NOT show after the clean leave"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1795-1798",
+            "note": "e opens the workspace editor"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1634-1646",
+            "note": "TABS focus: Enter enters the body, digits activate tabs"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "498-504",
+            "note": "leave() gates the exit dialog on change_count"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/editor/general/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_editor_general live-PTY FAIL @6cec91fa (TABS refocused: `1–5 Jump` never appeared; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-EDITOR-006",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "workspace editor Mounts grid (mode/isolation)",
+      "ref_symbols": [
+        {
+          "glyph": "+ Add mount",
+          "meaning": "empty-row affordance under the grid"
+        },
+        {
+          "glyph": "worktree",
+          "meaning": "first mount isolation"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "+ Add mount",
+          "meaning": "empty-row affordance under the grid"
+        },
+        {
+          "glyph": "worktree",
+          "meaning": "first mount isolation"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform",
+        "tab": "Mounts",
+        "mounts": 2
+      },
+      "state": {
+        "tab": "Mounts",
+        "focus": "body",
+        "changes": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press e (the workspace editor opens), 2, Enter (the Mounts body opens)"
+        },
+        {
+          "step": 3,
+          "action": "press [ (General opens with TABS focused)",
+          "key": "[",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press ] (Mounts returns with TABS focused)",
+          "key": "]",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "mounts-body",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the grid header pairs Destination with Isolation above the worktree first row"
+          },
+          {
+            "id": "V2",
+            "text": "the libs row reads ro beside /workspace/libs"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the body cursor ▎› sits on the first row"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the mounts hints (r Read-only, i Isolation)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "[ jumps to General with the TABS footer back (1–5 Jump)"
+          },
+          {
+            "id": "A2",
+            "text": "] jumps back to Mounts with the TABS footer persisting"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the mounts body must NOT show after the General jump (+ Add mount expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the mounts footer must NOT show after the General jump (r Read-only expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1619-1630",
+            "note": "global [ ] tab chords when not editing"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "279-282",
+            "note": "set_tab activates the tab and focuses TABS"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1634-1646",
+            "note": "TABS focus: Enter enters the body, digits activate tabs"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/editor/mounts/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_editor_mounts live-PTY FAIL @6cec91fa (S1: no body cursor; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-EDITOR-007",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "dirty Mounts tab with the exit dialog",
+      "ref_symbols": [
+        {
+          "glyph": "• 1 change",
+          "meaning": "header change badge"
+        },
+        {
+          "glyph": "Unsaved changes",
+          "meaning": "dirty-leave exit dialog title"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "• 1 change",
+          "meaning": "header change badge"
+        },
+        {
+          "glyph": "Unsaved changes",
+          "meaning": "dirty-leave exit dialog title"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform",
+        "tab": "Mounts",
+        "first_mount": {
+          "mode": "ro",
+          "isolation": "clone"
+        }
+      },
+      "state": {
+        "tab": "Mounts",
+        "changes": 1
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press e, 2, Enter (the Mounts body opens)"
+        },
+        {
+          "step": 3,
+          "action": "press r (rw→ro) and i (worktree→clone): one changed row",
+          "key": "r",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (TABS refocuses), Esc (the dirty leave opens Unsaved changes)"
+        },
+        {
+          "step": 5,
+          "action": "press Esc (the exit dialog cancels; nothing is saved or discarded)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "mounts-dirty",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the header badge reads • 1 change and the tab reads Mounts •"
+          },
+          {
+            "id": "V2",
+            "text": "the first row carries the › • marker with ro mode and clone isolation"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the row-hint footer names the new isolation (isolation clone)"
+          },
+          {
+            "id": "S2",
+            "text": "the libs row stays ro shared"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc + Esc opens Unsaved changes with Cancel, Discard, and Save"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the exit: the dialog expires and • 1 change with the clone row persists"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Unsaved changes must NOT show after the exit cancel"
+          },
+          {
+            "id": "N2",
+            "text": "the Discard action must NOT show after the exit cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "498-504",
+            "note": "dirty leaves open the Unsaved changes dialog"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1725-1732",
+            "note": "body Esc refocuses TABS"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/modals.rs",
+            "lines": "672-674",
+            "note": "dialog Esc fires the cancel action"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/editor/mounts_dirty/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_editor_mounts_dirty live-PTY FAIL @6cec91fa (TABS refocused: `1–5 Jump` never appeared; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-EDITOR-008",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "workspace editor Environments with masked values",
+      "ref_symbols": [
+        {
+          "glyph": "DATABASE_URL",
+          "meaning": "first masked workspace var"
+        },
+        {
+          "glyph": "GH_TOKEN",
+          "meaning": "host-env passthrough var"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "DATABASE_URL",
+          "meaning": "first masked workspace var"
+        },
+        {
+          "glyph": "GH_TOKEN",
+          "meaning": "host-env passthrough var"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform",
+        "tab": "Environments",
+        "vars": 4
+      },
+      "state": {
+        "tab": "Environments",
+        "focus": "body"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press e, 4, Enter (the Environments body opens)"
+        },
+        {
+          "step": 3,
+          "action": "press [ (Roles opens with TABS focused)",
+          "key": "[",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press ] (Environments returns with TABS focused)",
+          "key": "]",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "env-body",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the section counts 4 vars with the plain DATABASE_URL first"
+          },
+          {
+            "id": "V2",
+            "text": "GH_TOKEN pairs with host env and a row cites [op] Engineering › Stripe"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the role-override section shows ▾ Role: backend"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the env hints (p 1Password, s Scope)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "[ jumps to Roles with the TABS footer back (1–5 Jump)"
+          },
+          {
+            "id": "A2",
+            "text": "] jumps back to Environments (Role overrides returns)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the env body must NOT show after the Roles jump (DATABASE_URL expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the env footer must NOT show after the Roles jump (p 1Password expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1619-1630",
+            "note": "global [ ] tab chords when not editing"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "279-282",
+            "note": "set_tab activates the tab and focuses TABS"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1634-1646",
+            "note": "TABS focus: Enter enters the body, digits activate tabs"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/editor/env/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_editor_env live-PTY FAIL @6cec91fa (A1: no TABS footer; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-EDITOR-009",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "workspace editor Accounts with per-provider rows",
+      "ref_symbols": [
+        {
+          "glyph": "Active accounts",
+          "meaning": "effective-accounts header"
+        },
+        {
+          "glyph": "[✓] Work",
+          "meaning": "here-enabled account row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Active accounts",
+          "meaning": "effective-accounts header"
+        },
+        {
+          "glyph": "[✓] Work",
+          "meaning": "here-enabled account row"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform",
+        "tab": "Accounts",
+        "effective": "5 effective · 4 inherited · 1 enabled here"
+      },
+      "state": {
+        "tab": "Accounts",
+        "focus": "body"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press e, 5, Enter (the Accounts body opens)"
+        },
+        {
+          "step": 3,
+          "action": "press [ (Environments opens with TABS focused)",
+          "key": "[",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press ] (Accounts returns with TABS focused)",
+          "key": "]",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "auth-body",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the header reads Active accounts with 5 effective · 4 inherited · 1 enabled here"
+          },
+          {
+            "id": "V2",
+            "text": "the Work row pairs [✓] with enabled here; the contractor row reads disabled globally"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the header points at the registry (registry in Accounts (c))"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the auth hints (p Prefer, / Filter)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "[ jumps to Environments with the TABS footer back (1–5 Jump)"
+          },
+          {
+            "id": "A2",
+            "text": "] jumps back to Accounts (5 effective returns)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the auth body must NOT show after the Environments jump (Active accounts expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the auth footer must NOT show after the Environments jump (p Prefer expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1619-1630",
+            "note": "global [ ] tab chords when not editing"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "279-282",
+            "note": "set_tab activates the tab and focuses TABS"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1734-1741",
+            "note": "c on the Accounts tab routes to the Accounts screen"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/editor/auth/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_editor_auth live-PTY FAIL @6cec91fa (A1: no TABS footer; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-EDITOR-010",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "workspace editor Roles allow-list",
+      "ref_symbols": [
+        {
+          "glyph": "Allowed roles",
+          "meaning": "allow-list header"
+        },
+        {
+          "glyph": "default ★ the-architect",
+          "meaning": "default role marker"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Allowed roles",
+          "meaning": "allow-list header"
+        },
+        {
+          "glyph": "default ★ the-architect",
+          "meaning": "default role marker"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform",
+        "tab": "Roles",
+        "allowed": "3 of 46"
+      },
+      "state": {
+        "tab": "Roles",
+        "focus": "body"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press e, 3, Enter (the Roles body opens)"
+        },
+        {
+          "step": 3,
+          "action": "press [ (Mounts opens with TABS focused)",
+          "key": "[",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press ] (Roles returns with TABS focused)",
+          "key": "]",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "roles-body",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the header reads Allowed roles with 3 of 46 and default ★ the-architect"
+          },
+          {
+            "id": "V2",
+            "text": "the architect row is [✓] and the data-eng row reads ! load error · trust required"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the body cursor ▎› sits on the first row"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the roles hints (Space Allow, Enter Set default)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "[ jumps to Mounts with the TABS footer back (1–5 Jump)"
+          },
+          {
+            "id": "A2",
+            "text": "] jumps back to Roles (3 of 46 returns)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the roles body must NOT show after the Mounts jump (Allowed roles expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the roles footer must NOT show after the Mounts jump (Enter Set default expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1619-1630",
+            "note": "global [ ] tab chords when not editing"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "279-282",
+            "note": "set_tab activates the tab and focuses TABS"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1709",
+            "note": "the Roles body arm dispatches to roles_key"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/editor/roles/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_editor_roles live-PTY FAIL @6cec91fa (S1: no body cursor; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-EDITOR-011",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "editor save preview dialog (deterministic boundary)",
+      "ref_symbols": [
+        {
+          "glyph": "Save workspace",
+          "meaning": "save preview dialog title"
+        },
+        {
+          "glyph": "~ keep_awake true → false",
+          "meaning": "preview diff line"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Save workspace",
+          "meaning": "save preview dialog title"
+        },
+        {
+          "glyph": "~ keep_awake true → false",
+          "meaning": "preview diff line"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform",
+        "changes": 1
+      },
+      "state": {
+        "tab": "General",
+        "changes": 1,
+        "preview": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press e, Down three times, space (Keep awake toggles off: • 1 change)"
+        },
+        {
+          "step": 3,
+          "action": "press ctrl-s (the Save workspace preview opens)",
+          "key": "ctrl-s",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the preview cancels; Not saved · keep editing)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press ctrl-s (the preview reopens), Esc (it cancels again)",
+          "key": "ctrl-s",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "save-preview",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the dialog names payments-platform with the workspace scope and 1 change"
+          },
+          {
+            "id": "V2",
+            "text": "the diff line reads ~ keep_awake true → false"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the badge reads • 1 change and the tab reads General • behind the dialog"
+          },
+          {
+            "id": "S2",
+            "text": "Cancel holds the dialog focus (▎Cancel shares its row with Save)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc cancels the preview: Not saved · keep editing posts and • 1 change persists"
+          },
+          {
+            "id": "A2",
+            "text": "ctrl-s reopens the preview on the intact dirt; Esc cancels it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Save workspace must NOT show after the final cancel"
+          },
+          {
+            "id": "N2",
+            "text": "the diff line must NOT show after the final cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1615-1618",
+            "note": "ctrl-s opens the save preview"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/editor.rs",
+            "lines": "1971-1974",
+            "note": "preview cancel posts Not saved · keep editing"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/modals.rs",
+            "lines": "672-674",
+            "note": "dialog Esc fires the cancel action"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/editor/save_preview/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_editor_save_preview live-PTY FAIL @6cec91fa (`wait:• 1 change` timed out; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-INTRO-007",
+      "app": "jackin-preview",
+      "component": "Panel",
+      "part": "intro rain screen at frame 300 (warp phase)",
+      "ref_symbols": [
+        {
+          "glyph": "Enter Skip",
+          "meaning": "skip-only footer on the warp"
+        },
+        {
+          "glyph": "no instances",
+          "meaning": "empty-manager status after the skip"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Enter Skip",
+          "meaning": "skip-only footer on the warp"
+        },
+        {
+          "glyph": "no instances",
+          "meaning": "empty-manager status after the skip"
+        }
+      ],
+      "data": {
+        "scenario": "first-use",
+        "frame": 300,
+        "phase": "warp"
+      },
+      "state": {
+        "route": "Intro",
+        "phase": "warp"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario first-use --frame 300 (warp phase)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter once (the warp-phase intro finishes to the empty manager)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press n (the new-workspace prelude opens)",
+          "key": "n",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "warp-300",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the footer reads Enter Skip"
+          },
+          {
+            "id": "V2",
+            "text": "the rain field covers the screen (─, +, · glyphs; non-blank top line)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "no host menubar shows on the intro route (File appears only after the skip)"
+          },
+          {
+            "id": "S2",
+            "text": "no workspace tree shows on the intro route (Current directory appears only after the skip)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "one Enter finishes the warp intro to the empty manager (no picker leak)"
+          },
+          {
+            "id": "A2",
+            "text": "n opens the new-workspace prelude (step 1 of 5 · Source)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the tree rows must NOT show under the prelude (+ New workspace expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the skip footer must NOT show after the skip (Enter Skip expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/rain.rs",
+            "lines": "505-513",
+            "note": "IntroPhase bounds: past WARP_START the intro is warp"
+          },
+          {
+            "path": "src/bin/jackin_preview/rain.rs",
+            "lines": "560-568",
+            "note": "skip() finishes a warp-phase intro in one step"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1787-1793",
+            "note": "n opens the new-workspace prelude"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/intro/f300/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8h3 J1 j1_intro_f300 live-PTY PASS @6cec91fa (nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-INTRO-008",
+      "app": "jackin-preview",
+      "component": "Panel",
+      "part": "settled empty manager at frame 400",
+      "ref_symbols": [
+        {
+          "glyph": "no instances",
+          "meaning": "empty-manager status"
+        },
+        {
+          "glyph": "+ New workspace",
+          "meaning": "empty tree row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "no instances",
+          "meaning": "empty-manager status"
+        },
+        {
+          "glyph": "+ New workspace",
+          "meaning": "empty tree row"
+        }
+      ],
+      "data": {
+        "scenario": "first-use",
+        "frame": 400
+      },
+      "state": {
+        "route": "Manager",
+        "workspaces": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario first-use --frame 400 (past the intro)"
+        },
+        {
+          "step": 2,
+          "action": "press n (the new-workspace prelude opens)",
+          "key": "n",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the prelude cancels; Cancelled · nothing created)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "settled-400",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the tree shows no instances with the + New workspace row"
+          },
+          {
+            "id": "V2",
+            "text": "the detail shows Current directory with the not saved badge and the empty hint"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the tree cursor sits on Current directory (▎ shares its line)"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the empty-manager hints (Enter Launch, n New)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "n opens the new-workspace prelude (step 1 of 5 · Source)"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the prelude with Cancelled · nothing created and the manager back"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the manager tree must NOT show under the prelude (Current directory expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the prelude must NOT show after its cancel (step 1 of 5 expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/rain.rs",
+            "lines": "505-513",
+            "note": "IntroPhase bounds: at/after INTRO_END the intro is done"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1787-1793",
+            "note": "n opens the new-workspace prelude"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/prelude.rs",
+            "lines": "299-305",
+            "note": "Esc on step Source cancels to the manager"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/intro/f400/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8h3 J1 j1_intro_f400 live-PTY PASS @6cec91fa (nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-INTRO-009",
+      "app": "jackin-preview",
+      "component": "Panel",
+      "part": "empty manager after the two-step intro skip",
+      "ref_symbols": [
+        {
+          "glyph": "Enter Skip",
+          "meaning": "intro footer before the skip"
+        },
+        {
+          "glyph": "Cancelled · nothing created",
+          "meaning": "prelude cancel status"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Enter Skip",
+          "meaning": "intro footer before the skip"
+        },
+        {
+          "glyph": "Cancelled · nothing created",
+          "meaning": "prelude cancel status"
+        }
+      ],
+      "data": {
+        "scenario": "first-use",
+        "frame": 40
+      },
+      "state": {
+        "route": "Manager",
+        "skipped": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario first-use --frame 40 (phrases phase)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter twice (phrases → warp → done: the empty manager)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press n (the new-workspace prelude opens)",
+          "key": "n",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the prelude cancels; Cancelled · nothing created)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "skipped-manager",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the skipped-to tree shows no instances with the + New workspace row"
+          },
+          {
+            "id": "V2",
+            "text": "the detail shows the not saved badge with the Enter-launches-defaults hint"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the tree cursor sits on Current directory (▎ shares its line)"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the empty-manager hints (Enter Launch, q Quit)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "n opens the new-workspace prelude (step 1 of 5 · Source)"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the prelude with Cancelled · nothing created and the manager back"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the intro must NOT show after the skip (Enter Skip expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the prelude must NOT show after its cancel (step 1 of 5 expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/rain.rs",
+            "lines": "560-568",
+            "note": "skip() advances phrases → warp → done"
+          },
+          {
+            "path": "src/bin/jackin_preview/app.rs",
+            "lines": "517-522",
+            "note": "Intro Enter/Esc skips and finishes to the manager"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/prelude.rs",
+            "lines": "299-305",
+            "note": "Esc on step Source cancels to the manager"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/intro/skipped/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_intro_skipped live-PTY FAIL @6cec91fa (V2: no launch hint; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "INSPECT-MANAGER-005",
+      "app": "jackin-preview",
+      "component": "Inspector",
+      "part": "focused workspace detail drawer",
+      "ref_symbols": [
+        {
+          "glyph": "▎Current directory · payments-platform",
+          "meaning": "focused detail title"
+        },
+        {
+          "glyph": "Tab Actions",
+          "meaning": "drawer footer marker"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎Current directory · payments-platform",
+          "meaning": "focused detail title"
+        },
+        {
+          "glyph": "Tab Actions",
+          "meaning": "drawer footer marker"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform"
+      },
+      "state": {
+        "drawer_open": true,
+        "focus": "detail"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press Tab (the detail drawer opens)",
+          "key": "Tab",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (focus returns to the tree)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press e (the editor opens), Esc (it leaves cleanly)",
+          "key": "e",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "drawer-focused",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the focused title ▎Current directory · payments-platform shares its line with saved workspace"
+          },
+          {
+            "id": "V2",
+            "text": "the working-dir row and the ◉ 7f3a running instance row show"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer shows the drawer hints (↑↓ Move, Esc Back)"
+          },
+          {
+            "id": "S2",
+            "text": "the detail action row pairs Launch with Edit"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc returns focus to the tree (Enter Launch and Tab Details return)"
+          },
+          {
+            "id": "A2",
+            "text": "e opens the editor (› edit) and Esc leaves it cleanly again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Tab Actions must NOT show after Esc returns focus to the tree"
+          },
+          {
+            "id": "N2",
+            "text": "the editor crumb must NOT show after its clean leave"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1961-1964",
+            "note": "Tab opens the detail drawer"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "2006-2010",
+            "note": "Esc in the detail closes the drawer to the tree"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1795-1798",
+            "note": "e opens the workspace editor"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/manager/detail_drawer/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8h3 J1 j1_manager_detail_drawer live-PTY PASS @6cec91fa (nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "VP-ATTACH-003",
+      "app": "jackin-preview",
+      "component": "TextViewport",
+      "part": "capsule attach to the daemon-deaf instance",
+      "ref_symbols": [
+        {
+          "glyph": "jackin-data-pipeline-e0e0",
+          "meaning": "attached container id"
+        },
+        {
+          "glyph": "Attached to",
+          "meaning": "attach status marker"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "jackin-data-pipeline-e0e0",
+          "meaning": "attached container id"
+        },
+        {
+          "glyph": "Attached to",
+          "meaning": "attach status marker"
+        }
+      ],
+      "data": {
+        "instance": "jk-e0e0",
+        "workspace": "data-pipeline",
+        "scenario": "hard-cases"
+      },
+      "state": {
+        "route": "Capsule",
+        "attached": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario hard-cases (degraded Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter (the picker opens), Esc (it cancels: the N2 presence proof)"
+        },
+        {
+          "step": 3,
+          "action": "press Down five times, space, Down, Enter (attach to the running jk-e0e0 row)"
+        },
+        {
+          "step": 4,
+          "action": "press ctrl-b then d (detach back to the manager)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "capsule-attached",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the menubar reads ▎ File beside the jackin-data-pipeline-e0e0 id"
+          },
+          {
+            "id": "V2",
+            "text": "the status pairs Attached to with tabs and panes restored"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the shell row shows the main branch with no account · shell"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the capsule hints (Ctrl+B Prefix, F10 Menu)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter on the running instance row attaches (capsule route with the Attached to status)"
+          },
+          {
+            "id": "A2",
+            "text": "ctrl-b d detaches to the manager (Detached · keeps running; capsule chrome expires)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the capsule chrome must NOT show after the detach (Attached to expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the launch picker must NOT open on the attach path (Enter earlier proves it renders)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "436-446",
+            "note": "Enter on a running instance attaches to it"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/capsule.rs",
+            "lines": "1247-1248",
+            "note": "detach() navigates Go::Detach"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/capsule.rs",
+            "lines": "1293",
+            "note": "the ctrl-b prefix maps d to detach"
+          },
+          {
+            "path": "src/bin/jackin_preview/app.rs",
+            "lines": "2098-2125",
+            "note": "Go::Detach returns to the manager with the Detached status"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/manager/hard_launch_locked/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_manager_hard_launch_locked live-PTY FAIL @6cec91fa (tree footer back: `Enter Launch` never appeared; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PICKER-HARDLAUNCH-005",
+      "app": "jackin-preview",
+      "component": "Picker",
+      "part": "launch picker over the degraded manager",
+      "ref_symbols": [
+        {
+          "glyph": "Launch · choose Agent",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "▎▪ Claude Code",
+          "meaning": "focused first choice"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Launch · choose Agent",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "▎▪ Claude Code",
+          "meaning": "focused first choice"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform",
+        "role": "the-architect",
+        "scenario": "hard-cases"
+      },
+      "state": {
+        "modal": "launch-picker",
+        "choice": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario hard-cases (degraded Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter (the launch picker opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down (the choice moves to Codex)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the picker cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Down, space, space (expand/collapse roundtrip)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "picker-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the title Launch · choose Agent shares its row with payments-platform › the-architect"
+          },
+          {
+            "id": "V2",
+            "text": "the focused ▎▪ Claude Code row pairs with choose at start"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the degraded badges stay up behind the modal (! instance index unreadable, ▲ daemon stale)"
+          },
+          {
+            "id": "S2",
+            "text": "the footer keeps its degraded warning (↑↓ Move, Could not confirm running instances)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the choice to Codex (▎ follows; the Claude Code row loses it)"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the picker to the degraded tree, which still expands and collapses"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the picker must NOT show after its cancel"
+          },
+          {
+            "id": "N2",
+            "text": "the tree must NOT stay expanded after the roundtrip (▾ payments-platform expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "422-427",
+            "note": "Enter on a workspace row opens the launch picker"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "361-376",
+            "note": "open_launch_picker builds the agent picker modal"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1941-1946",
+            "note": "space toggles workspace expansion"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/manager/hard_launch_picker/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_manager_hard_launch_picker live-PTY FAIL @6cec91fa (V1 title: no picker title+workspace row; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PICKER-LAUNCH-004",
+      "app": "jackin-preview",
+      "component": "Picker",
+      "part": "launch picker over the healthy manager",
+      "ref_symbols": [
+        {
+          "glyph": "Launch · choose Agent",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "▎▪ Claude Code",
+          "meaning": "focused first choice"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Launch · choose Agent",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "▎▪ Claude Code",
+          "meaning": "focused first choice"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform",
+        "role": "the-architect"
+      },
+      "state": {
+        "modal": "launch-picker",
+        "choice": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter (the launch picker opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down (the choice moves to Codex)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the picker cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Down, space, space (expand/collapse roundtrip)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "picker-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the title Launch · choose Agent shares its row with payments-platform › the-architect"
+          },
+          {
+            "id": "V2",
+            "text": "the focused ▎▪ Claude Code row pairs with choose at start above the ready ▪ Codex row"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the collapsed ▸ payments-platform tree stays up behind the modal"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the picker hints (Enter Choose, Esc Cancel)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the choice to Codex (▎ follows; the Claude Code row loses it)"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the picker to the tree, which still expands and collapses"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the picker must NOT show after its cancel"
+          },
+          {
+            "id": "N2",
+            "text": "the tree must NOT stay expanded after the roundtrip (▾ payments-platform expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "422-427",
+            "note": "Enter on a workspace row opens the launch picker"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "361-376",
+            "note": "open_launch_picker builds the agent picker modal"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1941-1946",
+            "note": "space toggles workspace expansion"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/manager/launch_picker/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_manager_launch_picker live-PTY FAIL @6cec91fa (V1 title: no picker title+workspace row; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "TREE-MANAGER-007",
+      "app": "jackin-preview",
+      "component": "Tree",
+      "part": "manager tree with expanded workspace",
+      "ref_symbols": [
+        {
+          "glyph": "▾ payments-platform",
+          "meaning": "expanded workspace row"
+        },
+        {
+          "glyph": "◉ 7f3a",
+          "meaning": "running tree instance row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▾ payments-platform",
+          "meaning": "expanded workspace row"
+        },
+        {
+          "glyph": "◉ 7f3a",
+          "meaning": "running tree instance row"
+        }
+      ],
+      "data": {
+        "workspace": "payments-platform",
+        "instances": 2
+      },
+      "state": {
+        "expanded": [
+          "payments-platform"
+        ],
+        "selected": "Workspace"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press Down, space (payments-platform expands)",
+          "key": "space",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press space (the workspace collapses)",
+          "key": "space",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press space (the workspace expands again)",
+          "key": "space",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press ctrl-q (the quit confirm opens), Esc (it cancels)",
+          "key": "ctrl-q",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tree-expanded",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the ▾ payments-platform row shows under the Workspaces › payments-platform crumb"
+          },
+          {
+            "id": "V2",
+            "text": "the tree instance rows read ◉ 7f3a with the truncated agent label and ◌ c41e with •"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the cursor sits on the expanded workspace (▎ shares its line)"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the tree hints (→ Expand, Tab Details)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "space collapses the workspace (tree instance rows expire; detail rows persist)"
+          },
+          {
+            "id": "A2",
+            "text": "space expands it again (the toggle roundtrip)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the quit confirm must NOT show after its cancel (Exit jackin❯? expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the tree must NOT collapse on the quit roundtrip (▸ payments-platform never shows)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1895-1898",
+            "note": "Down moves the tree cursor"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1941-1946",
+            "note": "space toggles workspace expansion"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/modals.rs",
+            "lines": "672-674",
+            "note": "dialog Esc fires the cancel action"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/manager/tree_expanded/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8h3 J1 j1_manager_tree_expanded live-PTY PASS @6cec91fa (nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-SCENARIO-010",
+      "app": "jackin-preview",
+      "component": "Panel",
+      "part": "first-use intro phrases at frame 40",
+      "ref_symbols": [
+        {
+          "glyph": "Stand up, operator…",
+          "meaning": "centered intro phrase"
+        },
+        {
+          "glyph": "Enter Skip",
+          "meaning": "skip-only footer"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Stand up, operator…",
+          "meaning": "centered intro phrase"
+        },
+        {
+          "glyph": "Enter Skip",
+          "meaning": "skip-only footer"
+        }
+      ],
+      "data": {
+        "scenario": "first-use",
+        "frame": 40
+      },
+      "state": {
+        "route": "Intro",
+        "phase": "phrases"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario first-use --frame 40 (phrases phase)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter twice (phrases → warp → done: the empty manager)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press n (the new-workspace prelude opens)",
+          "key": "n",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "phrases-40",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the centered phrase Stand up, operator… shows above the jackin❯ brand"
+          },
+          {
+            "id": "V2",
+            "text": "the footer reads Enter Skip"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "no host menubar shows on the intro route (File appears only after the skip)"
+          },
+          {
+            "id": "S2",
+            "text": "no workspace tree shows on the intro route (Current directory appears only after the skip)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter + Enter skips to the empty manager (no instances)"
+          },
+          {
+            "id": "A2",
+            "text": "n opens the new-workspace prelude (step 1 of 5 · Source)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the phrase must NOT show after the skip (Stand up, operator… expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the skip footer must NOT show after the skip (Enter Skip expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/rain.rs",
+            "lines": "505-513",
+            "note": "IntroPhase bounds: frame 40 sits in phrases"
+          },
+          {
+            "path": "src/bin/jackin_preview/app.rs",
+            "lines": "517-522",
+            "note": "Intro Enter/Esc skips and finishes to the manager"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1787-1793",
+            "note": "n opens the new-workspace prelude"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/scenarios/first-use/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8h3 J1 j1_scenarios_first_use live-PTY PASS @6cec91fa (nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-SCENARIO-011",
+      "app": "jackin-preview",
+      "component": "Panel",
+      "part": "degraded manager at hard-cases boot",
+      "ref_symbols": [
+        {
+          "glyph": "! instance index unreadable",
+          "meaning": "degraded header badge"
+        },
+        {
+          "glyph": "Could not confirm running instances",
+          "meaning": "footer warning"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "! instance index unreadable",
+          "meaning": "degraded header badge"
+        },
+        {
+          "glyph": "Could not confirm running instances",
+          "meaning": "footer warning"
+        }
+      ],
+      "data": {
+        "scenario": "hard-cases",
+        "running": 3
+      },
+      "state": {
+        "route": "Manager",
+        "degraded": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario hard-cases (degraded Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter (the picker opens), Esc (it cancels)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down, space (the workspace expands)",
+          "key": "space",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press space (the workspace collapses)",
+          "key": "space",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "degraded-booted",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the header badges read ! instance index unreadable and ▲ daemon stale"
+          },
+          {
+            "id": "V2",
+            "text": "the tree shows ▸ data-pipeline with the 3 running count"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer warning names the unreadable index (Could not confirm running instances)"
+          },
+          {
+            "id": "S2",
+            "text": "the detail instances carry the ▲ daemon stale · 3 s ago stamp"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the picker and Esc cancels it back to the degraded tree"
+          },
+          {
+            "id": "A2",
+            "text": "Down + space expands the workspace and space collapses it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the picker must NOT show after its cancel"
+          },
+          {
+            "id": "N2",
+            "text": "the tree must NOT stay expanded after the roundtrip (▾ payments-platform expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "422-427",
+            "note": "Enter on a workspace row opens the launch picker"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1895-1898",
+            "note": "Down moves the tree cursor"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1941-1946",
+            "note": "space toggles workspace expansion"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/scenarios/hard-cases/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_scenarios_hard_cases live-PTY FAIL @6cec91fa (V1: no index badge; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-FAILURE-008",
+      "app": "jackin-preview",
+      "component": "Dialog",
+      "part": "frozen launch-failure dialog with retry log",
+      "ref_symbols": [
+        {
+          "glyph": "! Launch failed",
+          "meaning": "failure dialog title"
+        },
+        {
+          "glyph": "The Construct network could not be attached",
+          "meaning": "failure summary"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "! Launch failed",
+          "meaning": "failure dialog title"
+        },
+        {
+          "glyph": "The Construct network could not be attached",
+          "meaning": "failure summary"
+        }
+      ],
+      "data": {
+        "scenario": "launch-failure",
+        "frame": 240,
+        "run": "run-202609030914-b5df"
+      },
+      "state": {
+        "route": "Cockpit",
+        "dialog": "failure"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario launch-failure --frame 240 (frozen FailNetwork dialog)"
+        },
+        {
+          "step": 2,
+          "action": "press Esc (the failure acknowledges to the manager)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Tab (the drawer opens), Esc (it closes: the manager is interactive)",
+          "key": "Tab",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "failure-frozen",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the title reads ! Launch failed above the Construct-network summary"
+          },
+          {
+            "id": "V2",
+            "text": "the rows show run-202609030914-b5df with the Docker bridge next step"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the log tail reads retry 3/3 after 1600 ms with the 44 lines · b build log counter"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the dialog hints (y Copy, Esc Close)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc acknowledges the failure: the summary expires and the manager returns with the still-running status"
+          },
+          {
+            "id": "A2",
+            "text": "Tab opens the drawer on the acked manager and Esc closes it (drawer roundtrip)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the summary must NOT show after the ack"
+          },
+          {
+            "id": "N2",
+            "text": "the dialog rows must NOT show after the ack (Run id expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/modals.rs",
+            "lines": "672-674",
+            "note": "dialog Esc fires the cancel action"
+          },
+          {
+            "path": "src/bin/jackin_preview/app.rs",
+            "lines": "2146-2160",
+            "note": "the failure ack returns to the manager with the ack status"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/scenarios/launch-failure/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_scenarios_launch_failure live-PTY FAIL @6cec91fa (boot needle `Launch failed` never appeared; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-SCENARIO-012",
+      "app": "jackin-preview",
+      "component": "Panel",
+      "part": "launch cockpit at Credentials",
+      "ref_symbols": [
+        {
+          "glyph": "stage 3 of 11 · Credentials",
+          "meaning": "cockpit stage line"
+        },
+        {
+          "glyph": "⠋ 03 Credentials",
+          "meaning": "spinning stage frontier"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "stage 3 of 11 · Credentials",
+          "meaning": "cockpit stage line"
+        },
+        {
+          "glyph": "⠋ 03 Credentials",
+          "meaning": "spinning stage frontier"
+        }
+      ],
+      "data": {
+        "scenario": "launch-running",
+        "stage": "3 of 11 · Credentials"
+      },
+      "state": {
+        "route": "Cockpit",
+        "debug": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario launch-running (cockpit at Credentials)"
+        },
+        {
+          "step": 2,
+          "action": "press d (the debug chip toggles on: run-2026)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press d (the debug chip toggles off)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press i (the info dialog opens), Esc (it closes)",
+          "key": "i",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "cockpit-credentials",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the header reads Launch › payments-platform › the-architect with stage 3 of 11 · Credentials"
+          },
+          {
+            "id": "V2",
+            "text": "stages 01–02 read ✓ and the frontier reads ⠋ 03 Credentials"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the account line reads Claude · Work (session choice)"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the cockpit hints (i Container info, c Cancel)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "d toggles the run-2026 debug chip on and off again"
+          },
+          {
+            "id": "A2",
+            "text": "i opens the Debug info dialog and Esc closes it with the cockpit intact"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the debug chip must NOT show after the second toggle (run-2026 expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the info dialog must NOT show after its close (Debug info expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/cockpit.rs",
+            "lines": "637-640",
+            "note": "d toggles the debug chip"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/cockpit.rs",
+            "lines": "620-623",
+            "note": "i opens the container info dialog"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/modals.rs",
+            "lines": "672-674",
+            "note": "dialog Esc fires the cancel action"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/scenarios/launch-running/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_scenarios_launch_running live-PTY FAIL @6cec91fa (S1: no session choice; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-SCENARIO-014",
+      "app": "jackin-preview",
+      "component": "Panel",
+      "part": "outro warp with dismiss-to-quit",
+      "ref_symbols": [
+        {
+          "glyph": "Enter Skip",
+          "meaning": "warp footer"
+        },
+        {
+          "glyph": "Enter Close",
+          "meaning": "caption footer"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Enter Skip",
+          "meaning": "warp footer"
+        },
+        {
+          "glyph": "Enter Close",
+          "meaning": "caption footer"
+        }
+      ],
+      "data": {
+        "scenario": "outro-last",
+        "frame": 40
+      },
+      "state": {
+        "route": "Outro",
+        "phase": "warp"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario outro-last --frame 40 (warp phase)"
+        },
+        {
+          "step": 2,
+          "action": "press x (Consumed: the frozen frame is byte-identical)",
+          "key": "x",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Enter (the warp advances to the caption)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Enter (the session quits cleanly)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "warp-40",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the footer reads Enter Skip"
+          },
+          {
+            "id": "V2",
+            "text": "the particle field shows star and signal glyphs (*, +, ·)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the warp is tick-frozen under paused motion (byte-identical across the ignored key)"
+          },
+          {
+            "id": "S2",
+            "text": "the caption swaps the hint (Enter Skip expires, Enter Close shows)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "x is Consumed: the warp frame is byte-identical across it"
+          },
+          {
+            "id": "A2",
+            "text": "Enter advances the warp to the caption; Enter quits the session with exit 0"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no intro phrases show on the outro warp (a first-use session proves the needle renders)"
+          },
+          {
+            "id": "N2",
+            "text": "no manager chrome shows on the outro warp (its skip proves the needle renders)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/app.rs",
+            "lines": "532-540",
+            "note": "Outro Enter/Esc skips; done quits the session"
+          },
+          {
+            "path": "src/bin/jackin_preview/rain.rs",
+            "lines": "717-725",
+            "note": "OutroPhase bounds: frame 40 sits in warp"
+          },
+          {
+            "path": "src/bin/jackin_preview/rain.rs",
+            "lines": "741-749",
+            "note": "skip() advances warp → caption → done"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/scenarios/outro-last/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_scenarios_outro_last live-PTY FAIL @6cec91fa (`wait:Enter Close` timed out; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-SCENARIO-013",
+      "app": "jackin-preview",
+      "component": "Panel",
+      "part": "populated manager at returning boot",
+      "ref_symbols": [
+        {
+          "glyph": "Current directory · payments-platform",
+          "meaning": "saved detail title"
+        },
+        {
+          "glyph": "2 running",
+          "meaning": "populated running count"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Current directory · payments-platform",
+          "meaning": "saved detail title"
+        },
+        {
+          "glyph": "2 running",
+          "meaning": "populated running count"
+        }
+      ],
+      "data": {
+        "scenario": "returning",
+        "running": 2
+      },
+      "state": {
+        "route": "Manager",
+        "selection": "CurrentDir"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter (the picker opens), Esc (it cancels)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Tab (the drawer opens), Esc (it closes)",
+          "key": "Tab",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "populated-booted",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the chrome shows Workspaces with 2 running and the Current directory · payments-platform title"
+          },
+          {
+            "id": "V2",
+            "text": "the instance rows read ◉ 7f3a running and ◌ c41e preserved · dirty"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the cursor sits on Current directory (▎ shares its line)"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the manager hints (Enter Launch, Tab Details, q Quit)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the picker and Esc cancels it back to the tree"
+          },
+          {
+            "id": "A2",
+            "text": "Tab opens the drawer and Esc closes it with the cursor intact"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the picker must NOT show after its cancel"
+          },
+          {
+            "id": "N2",
+            "text": "the drawer must NOT show after its close (Tab Actions expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "422-427",
+            "note": "Enter on a workspace row opens the launch picker"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1961-1964",
+            "note": "Tab opens the detail drawer"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "2006-2010",
+            "note": "Esc in the detail closes the drawer to the tree"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/scenarios/returning/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_scenarios_returning live-PTY FAIL @6cec91fa (tree footer back: `Enter Launch` never appeared; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-SETTINGS-014",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "global settings Agents with runtime modes",
+      "ref_symbols": [
+        {
+          "glyph": "Agent runtime mode",
+          "meaning": "mode table header"
+        },
+        {
+          "glyph": "Kimi Code",
+          "meaning": "ignored agent row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Agent runtime mode",
+          "meaning": "mode table header"
+        },
+        {
+          "glyph": "Kimi Code",
+          "meaning": "ignored agent row"
+        }
+      ],
+      "data": {
+        "scope": "global",
+        "tab": "Agents"
+      },
+      "state": {
+        "tab": "Agents",
+        "focus": "body"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+        },
+        {
+          "step": 2,
+          "action": "press s, 4, Enter (the Agents body opens)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press [ (Environments opens with TABS focused)",
+          "key": "[",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press ] (Agents returns with TABS focused)",
+          "key": "]",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "agents-body",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the table shows Agent runtime mode with the synced Claude Code row"
+          },
+          {
+            "id": "V2",
+            "text": "the Kimi Code row reads ignore above the no-credentials note"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the header points at the registry (accounts are registered in Accounts (c))"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the agents hints (Space Cycle mode, d Reset to sync)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "[ jumps to Environments with the TABS footer back (1–5 Jump)"
+          },
+          {
+            "id": "A2",
+            "text": "] jumps back to Agents (Kimi Code returns)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the agents body must NOT show after the Environments jump (Agent runtime mode expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the agents footer must NOT show after the Environments jump (Space Cycle mode expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "835-847",
+            "note": "global [ ] tab chords"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "848-871",
+            "note": "TABS focus: Enter enters the body, digits activate tabs"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "941",
+            "note": "the Agents body arm dispatches to agents_key"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/settings/agents/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_settings_agents live-PTY FAIL @6cec91fa (`wait:GH_TOKEN` timed out; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-SETTINGS-013",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "global settings Mounts with scope column",
+      "ref_symbols": [
+        {
+          "glyph": "/home/agent/.gitconfig",
+          "meaning": "first global mount row"
+        },
+        {
+          "glyph": "role sre",
+          "meaning": "role-scoped mount marker"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "/home/agent/.gitconfig",
+          "meaning": "first global mount row"
+        },
+        {
+          "glyph": "role sre",
+          "meaning": "role-scoped mount marker"
+        }
+      ],
+      "data": {
+        "scope": "global",
+        "tab": "Mounts",
+        "mounts": 3
+      },
+      "state": {
+        "tab": "Mounts",
+        "focus": "body"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+        },
+        {
+          "step": 2,
+          "action": "press s, 2, Enter (the Mounts body opens)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press [ (General opens with TABS focused)",
+          "key": "[",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press ] (Mounts returns with TABS focused)",
+          "key": "]",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "mounts-body",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the grid header pairs Destination with Scope above the global gitconfig row"
+          },
+          {
+            "id": "V2",
+            "text": "the kube row pairs /home/agent/.kube with role sre"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the body cursor ▎› sits on the first row"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the mounts hints (s Scope, a Add mount)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "[ jumps to General with the TABS footer back (1–5 Jump)"
+          },
+          {
+            "id": "A2",
+            "text": "] jumps back to Mounts (the kube row returns)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the mounts body must NOT show after the General jump (the gitconfig row expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the mounts footer must NOT show after the General jump (s Scope expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "835-847",
+            "note": "global [ ] tab chords"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "848-871",
+            "note": "TABS focus: Enter enters the body, digits activate tabs"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/settings/mounts/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_settings_mounts live-PTY FAIL @6cec91fa (`wait:Sign off commits (DCO)` timed out; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-SETTINGS-012",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "global settings on General (route boot)",
+      "ref_symbols": [
+        {
+          "glyph": "Settings › global › General",
+          "meaning": "settings crumb"
+        },
+        {
+          "glyph": "[✓] Sign off commits (DCO)",
+          "meaning": "shipped DCO flag"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Settings › global › General",
+          "meaning": "settings crumb"
+        },
+        {
+          "glyph": "[✓] Sign off commits (DCO)",
+          "meaning": "shipped DCO flag"
+        }
+      ],
+      "data": {
+        "scope": "global",
+        "tab": "General"
+      },
+      "state": {
+        "tab": "General",
+        "focus": "tabs"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+        },
+        {
+          "step": 2,
+          "action": "press s (global settings opens on General)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press ] (Mounts opens with TABS focused)",
+          "key": "]",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press [ (General returns with TABS focused)",
+          "key": "[",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "general-tabs",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the crumb reads Settings › global › General above the Commits section"
+          },
+          {
+            "id": "V2",
+            "text": "the flags read [✓] Add Co-authored-by trailer and [✓] Sign off commits (DCO)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer is the TABS footer (1–5 Jump, Enter Body)"
+          },
+          {
+            "id": "S2",
+            "text": "the trailers render Co-authored-by and Signed-off-by: Alexey Zhokhov"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "] jumps to Mounts with TABS staying focused (1–5 Jump persists)"
+          },
+          {
+            "id": "A2",
+            "text": "[ jumps back to General (the trailers return)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the General body must NOT show after the Mounts jump (the DCO flag expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the trailers must NOT show after the Mounts jump (Co-authored-by expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/app.rs",
+            "lines": "616-620",
+            "note": "s routes Manager/Accounts/Usage to Settings"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "835-847",
+            "note": "global [ ] tab chords"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "848-871",
+            "note": "TABS focus: Enter enters the body, digits activate tabs"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/settings/route/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_settings_route live-PTY FAIL @6cec91fa (`wait:/home/agent/.gitconfig` timed out; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-SETTINGS-016",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "settings save preview with trust diffs",
+      "ref_symbols": [
+        {
+          "glyph": "Save settings",
+          "meaning": "save preview dialog title"
+        },
+        {
+          "glyph": "~ trust github.com/chainargos/roles true → false",
+          "meaning": "first trust diff line"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Save settings",
+          "meaning": "save preview dialog title"
+        },
+        {
+          "glyph": "~ trust github.com/chainargos/roles true → false",
+          "meaning": "first trust diff line"
+        }
+      ],
+      "data": {
+        "scope": "global config · ~/.jackin/config.toml",
+        "changes": 2
+      },
+      "state": {
+        "tab": "Trust",
+        "changes": 2,
+        "preview": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+        },
+        {
+          "step": 2,
+          "action": "press s, 5, Enter (the Trust body opens)"
+        },
+        {
+          "step": 3,
+          "action": "press space, Down, space (two trust flips: • 2 changes)",
+          "key": "space",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press ctrl-s (the Save settings preview opens)",
+          "key": "ctrl-s",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (the preview cancels; Save aborted · settings unchanged)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press ctrl-s (the preview reopens), Esc (it cancels again)",
+          "key": "ctrl-s",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "save-preview",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the dialog names the global config path with 2 changes"
+          },
+          {
+            "id": "V2",
+            "text": "both trust diff lines show (chainargos true → false, acme-labs false → true)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the badge reads • 2 changes and the tab reads Trust • behind the dialog"
+          },
+          {
+            "id": "S2",
+            "text": "Cancel holds the dialog focus (▎Cancel shares its row with Save)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc cancels the preview: Save aborted · settings unchanged posts and • 2 changes persists"
+          },
+          {
+            "id": "A2",
+            "text": "ctrl-s reopens the preview on the intact dirt; Esc cancels it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Save settings must NOT show after the final cancel"
+          },
+          {
+            "id": "N2",
+            "text": "the diff lines must NOT show after the final cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "305-313",
+            "note": "the Save settings facts dialog"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "1109-1112",
+            "note": "preview cancel posts Save aborted · settings unchanged"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/modals.rs",
+            "lines": "672-674",
+            "note": "dialog Esc fires the cancel action"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/settings/save_preview/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_settings_save_preview live-PTY FAIL @6cec91fa (`wait:• 2 changes` timed out; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "FORM-SETTINGS-015",
+      "app": "jackin-preview",
+      "component": "Form",
+      "part": "global settings Trust with source flags",
+      "ref_symbols": [
+        {
+          "glyph": "Role sources",
+          "meaning": "trust section header"
+        },
+        {
+          "glyph": "3 trusted · 1 untrusted",
+          "meaning": "trust counts"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Role sources",
+          "meaning": "trust section header"
+        },
+        {
+          "glyph": "3 trusted · 1 untrusted",
+          "meaning": "trust counts"
+        }
+      ],
+      "data": {
+        "scope": "global",
+        "tab": "Trust"
+      },
+      "state": {
+        "tab": "Trust",
+        "focus": "body"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+        },
+        {
+          "step": 2,
+          "action": "press s, 5, Enter (the Trust body opens)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press [ (Agents opens with TABS focused)",
+          "key": "[",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press ] (Trust returns with TABS focused)",
+          "key": "]",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "trust-body",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the header reads Role sources with 3 trusted · 1 untrusted"
+          },
+          {
+            "id": "V2",
+            "text": "the chainargos row is [✓] trusted and the acme-labs row is [ ] untrusted"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the warning reads An untrusted source blocks + Load role"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the trust hints (Space Toggle trust, o Open source)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "[ jumps to Agents with the TABS footer back (1–5 Jump)"
+          },
+          {
+            "id": "A2",
+            "text": "] jumps back to Trust (the trust counts return)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the trust body must NOT show after the Agents jump (Role sources expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the trust footer must NOT show after the Agents jump (Space Toggle trust expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "835-847",
+            "note": "global [ ] tab chords"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "848-871",
+            "note": "TABS focus: Enter enters the body, digits activate tabs"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/settings.rs",
+            "lines": "940",
+            "note": "the Trust body arm dispatches to trust_key"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/settings/trust/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_settings_trust live-PTY FAIL @6cec91fa (`wait:Agent runtime mode` timed out; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "legacy_roots": [
     {

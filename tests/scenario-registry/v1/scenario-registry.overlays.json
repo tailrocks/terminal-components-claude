@@ -4359,7 +4359,8 @@
         "status": "unrun",
         "runs": []
       }
-    },
+    }
+,
     {
       "id": "DIALOG-DELETE-005",
       "app": "tablepro",
@@ -4968,6 +4969,548 @@
         ]
       }
     }
+,
+    {
+      "id": "PICKER-HARDLAUNCH-005",
+      "app": "jackin-preview",
+      "component": "Picker",
+      "part": "launch picker over the degraded manager",
+      "ref_symbols": [
+        {
+          "glyph": "Launch · choose Agent",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "▎▪ Claude Code",
+          "meaning": "focused first choice"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Launch · choose Agent",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "▎▪ Claude Code",
+          "meaning": "focused first choice"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/jackin_preview/screens/manager.rs",
+          "symbols": [
+            "open_launch_picker",
+            "picker_targets",
+            "pending_launch"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "workspace": "payments-platform",
+        "role": "the-architect",
+        "scenario": "hard-cases"
+      },
+      "state": {
+        "modal": "launch-picker",
+        "choice": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario hard-cases (degraded Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter (the launch picker opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down (the choice moves to Codex)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the picker cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Down, space, space (expand/collapse roundtrip)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "picker-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the title Launch · choose Agent shares its row with payments-platform › the-architect"
+          },
+          {
+            "id": "V2",
+            "text": "the focused ▎▪ Claude Code row pairs with choose at start"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the degraded badges stay up behind the modal (! instance index unreadable, ▲ daemon stale)"
+          },
+          {
+            "id": "S2",
+            "text": "the footer keeps its degraded warning (↑↓ Move, Could not confirm running instances)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the choice to Codex (▎ follows; the Claude Code row loses it)"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the picker to the degraded tree, which still expands and collapses"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the picker must NOT show after its cancel"
+          },
+          {
+            "id": "N2",
+            "text": "the tree must NOT stay expanded after the roundtrip (▾ payments-platform expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "422-427",
+            "note": "Enter on a workspace row opens the launch picker"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "361-376",
+            "note": "open_launch_picker builds the agent picker modal"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1941-1946",
+            "note": "space toggles workspace expansion"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/manager/hard_launch_picker/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_manager_hard_launch_picker live-PTY FAIL @6cec91fa (V1 title: no picker title+workspace row; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PICKER-LAUNCH-004",
+      "app": "jackin-preview",
+      "component": "Picker",
+      "part": "launch picker over the healthy manager",
+      "ref_symbols": [
+        {
+          "glyph": "Launch · choose Agent",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "▎▪ Claude Code",
+          "meaning": "focused first choice"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Launch · choose Agent",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "▎▪ Claude Code",
+          "meaning": "focused first choice"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/jackin_preview/screens/manager.rs",
+          "symbols": [
+            "open_launch_picker",
+            "picker_targets",
+            "pending_launch"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "workspace": "payments-platform",
+        "role": "the-architect"
+      },
+      "state": {
+        "modal": "launch-picker",
+        "choice": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter (the launch picker opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down (the choice moves to Codex)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the picker cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Down, space, space (expand/collapse roundtrip)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "picker-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the title Launch · choose Agent shares its row with payments-platform › the-architect"
+          },
+          {
+            "id": "V2",
+            "text": "the focused ▎▪ Claude Code row pairs with choose at start above the ready ▪ Codex row"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the collapsed ▸ payments-platform tree stays up behind the modal"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the picker hints (Enter Choose, Esc Cancel)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the choice to Codex (▎ follows; the Claude Code row loses it)"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the picker to the tree, which still expands and collapses"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the picker must NOT show after its cancel"
+          },
+          {
+            "id": "N2",
+            "text": "the tree must NOT stay expanded after the roundtrip (▾ payments-platform expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "422-427",
+            "note": "Enter on a workspace row opens the launch picker"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "361-376",
+            "note": "open_launch_picker builds the agent picker modal"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1941-1946",
+            "note": "space toggles workspace expansion"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/manager/launch_picker/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_manager_launch_picker live-PTY FAIL @6cec91fa (V1 title: no picker title+workspace row; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-FAILURE-008",
+      "app": "jackin-preview",
+      "component": "Dialog",
+      "part": "frozen launch-failure dialog with retry log",
+      "ref_symbols": [
+        {
+          "glyph": "! Launch failed",
+          "meaning": "failure dialog title"
+        },
+        {
+          "glyph": "The Construct network could not be attached",
+          "meaning": "failure summary"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "! Launch failed",
+          "meaning": "failure dialog title"
+        },
+        {
+          "glyph": "The Construct network could not be attached",
+          "meaning": "failure summary"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/jackin_preview/screens/cockpit.rs",
+          "symbols": [
+            "open_failure",
+            "failure_shown"
+          ]
+        },
+        {
+          "path": "src/bin/jackin_preview/screens/modals.rs",
+          "symbols": [
+            "cancel_index",
+            "fire"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "scenario": "launch-failure",
+        "frame": 240,
+        "run": "run-202609030914-b5df"
+      },
+      "state": {
+        "route": "Cockpit",
+        "dialog": "failure"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario launch-failure --frame 240 (frozen FailNetwork dialog)"
+        },
+        {
+          "step": 2,
+          "action": "press Esc (the failure acknowledges to the manager)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Tab (the drawer opens), Esc (it closes: the manager is interactive)",
+          "key": "Tab",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "failure-frozen",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the title reads ! Launch failed above the Construct-network summary"
+          },
+          {
+            "id": "V2",
+            "text": "the rows show run-202609030914-b5df with the Docker bridge next step"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the log tail reads retry 3/3 after 1600 ms with the 44 lines · b build log counter"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the dialog hints (y Copy, Esc Close)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc acknowledges the failure: the summary expires and the manager returns with the still-running status"
+          },
+          {
+            "id": "A2",
+            "text": "Tab opens the drawer on the acked manager and Esc closes it (drawer roundtrip)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the summary must NOT show after the ack"
+          },
+          {
+            "id": "N2",
+            "text": "the dialog rows must NOT show after the ack (Run id expires)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/modals.rs",
+            "lines": "672-674",
+            "note": "dialog Esc fires the cancel action"
+          },
+          {
+            "path": "src/bin/jackin_preview/app.rs",
+            "lines": "2146-2160",
+            "note": "the failure ack returns to the manager with the ack status"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/scenarios/launch-failure/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-07T04:57:33Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8h3 J1 j1_scenarios_launch_failure live-PTY FAIL @6cec91fa (boot needle `Launch failed` never appeared; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "coverage": [
     {
@@ -5011,7 +5554,9 @@
       "rows": [
         "PICKER-QUERY-001",
         "PICKER-TABS-002",
-        "PICKER-SWITCHER-003"
+        "PICKER-SWITCHER-003",
+        "PICKER-HARDLAUNCH-005",
+        "PICKER-LAUNCH-004"
       ],
       "handlers": [
         "on_key: Esc clears then cancels; Enter chooses/alt-chooses/submits; Tab scopes; Delete secondaries; Backspace rewinds; j/k only when not searchable",
@@ -5148,7 +5693,8 @@
         "DIALOG-CANCEL-004",
         "DIALOG-DELETE-005",
         "DIALOG-COMMIT-006",
-        "DIALOG-QUIT-007"
+        "DIALOG-QUIT-007",
+        "DIALOG-FAILURE-008"
       ],
       "handlers": [
         "confirm/destructive/prompt/facts: action shapes with cancel_index and initial focus (dialog.rs)",
@@ -5829,9 +6375,9 @@
         "72x20",
         "80x24"
       ],
-      "new": null,
-      "status": "pending",
-      "note": "jackin-app Picker launch flow; needs a jackin Picker row"
+      "new": "PICKER-LAUNCH-004",
+      "status": "mapped",
+      "note": "phase-8g slice 8A-J1: j1_manager_launch_picker live-PTY check"
     },
     {
       "old": "jackin/manager/hard_launch_picker",
@@ -5843,9 +6389,9 @@
         "72x20",
         "80x24"
       ],
-      "new": null,
-      "status": "pending",
-      "note": "jackin-app Picker launch flow; needs a jackin Picker row"
+      "new": "PICKER-HARDLAUNCH-005",
+      "status": "mapped",
+      "note": "phase-8g slice 8A-J1: j1_manager_hard_launch_picker live-PTY check"
     },
     {
       "old": "jackin/capsule/new_tab",
@@ -5947,6 +6493,22 @@
       "status": "mapped",
       "also": [],
       "note": "phase-8e slice 8A-T1: t1_workbench_quit_confirm live-PTY check"
+    }
+,
+    {
+      "old": "jackin/scenarios/launch-failure",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "DIALOG-FAILURE-008",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8g slice 8A-J1: j1_scenarios_launch_failure live-PTY check"
     }
   ]
 }
