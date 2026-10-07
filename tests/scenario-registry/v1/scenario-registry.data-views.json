@@ -6130,7 +6130,8 @@
     ]
    },
    "cand_source": []
-  },
+  }
+,
   {
    "id": "GRID-WHEEL-008",
    "app": "tablepro",
@@ -6324,6 +6325,185 @@
     ]
    }
   }
+,
+  {
+   "id": "VP-ATTACH-003",
+   "app": "jackin-preview",
+   "component": "TextViewport",
+   "part": "capsule attach to the daemon-deaf instance",
+   "ref_symbols": [
+    {
+     "glyph": "jackin-data-pipeline-e0e0",
+     "meaning": "attached container id"
+    },
+    {
+     "glyph": "Attached to",
+     "meaning": "attach status marker"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "jackin-data-pipeline-e0e0",
+     "meaning": "attached container id"
+    },
+    {
+     "glyph": "Attached to",
+     "meaning": "attach status marker"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/capsule.rs",
+     "symbols": [
+      "detach",
+      "handle_prefix_cmd",
+      "menubar"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "instance": "jk-e0e0",
+    "workspace": "data-pipeline",
+    "scenario": "hard-cases"
+   },
+   "state": {
+    "route": "Capsule",
+    "attached": true
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario hard-cases (degraded Manager route)"
+    },
+    {
+     "step": 2,
+     "action": "press Enter (the picker opens), Esc (it cancels: the N2 presence proof)"
+    },
+    {
+     "step": 3,
+     "action": "press Down five times, space, Down, Enter (attach to the running jk-e0e0 row)"
+    },
+    {
+     "step": 4,
+     "action": "press ctrl-b then d (detach back to the manager)"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "capsule-attached",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the menubar reads ▎ File beside the jackin-data-pipeline-e0e0 id"
+     },
+     {
+      "id": "V2",
+      "text": "the status pairs Attached to with tabs and panes restored"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the shell row shows the main branch with no account · shell"
+     },
+     {
+      "id": "S2",
+      "text": "the footer shows the capsule hints (Ctrl+B Prefix, F10 Menu)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Enter on the running instance row attaches (capsule route with the Attached to status)"
+     },
+     {
+      "id": "A2",
+      "text": "ctrl-b d detaches to the manager (Detached · keeps running; capsule chrome expires)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the capsule chrome must NOT show after the detach (Attached to expires)"
+     },
+     {
+      "id": "N2",
+      "text": "the launch picker must NOT open on the attach path (Enter earlier proves it renders)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "436-446",
+      "note": "Enter on a running instance attaches to it"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/capsule.rs",
+      "lines": "1247-1248",
+      "note": "detach() navigates Go::Detach"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/capsule.rs",
+      "lines": "1293",
+      "note": "the ctrl-b prefix maps d to detach"
+     },
+     {
+      "path": "src/bin/jackin_preview/app.rs",
+      "lines": "2098-2125",
+      "note": "Go::Detach returns to the manager with the Detached status"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/manager/hard_launch_locked/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "fail",
+    "runs": [
+     {
+      "at": "2026-10-07T04:57:33Z",
+      "branch": "termrock-implementation",
+      "status": "fail",
+      "note": "phase-8h3 J1 j1_manager_hard_launch_locked live-PTY FAIL @6cec91fa (tree footer back: `Enter Launch` never appeared; nextest visual_baseline --run-ignored only -E 'test(j1_)' --test-threads 2, 5 pass/25 fail/534 skip; bin target/debug/jackin-preview 14439664B sha256:db4fb2cc44a4 built 2026-10-07T04:56:21Z; log /tmp/phase8h3-focused.log)"
+     }
+    ]
+   }
+  }
  ],
  "coverage": [
   {
@@ -6483,7 +6663,8 @@
    "component": "TextViewport",
    "rows": [
     "VP-PANE-001",
-    "VP-PREVIEW-002"
+    "VP-PREVIEW-002",
+    "VP-ATTACH-003"
    ],
    "handlers": [
     "keys: arrows/kj scroll, PgUp/PgDn page, Home/g top, End/G tail+follow, f follow toggle",
@@ -7314,6 +7495,22 @@
    "status": "mapped",
    "also": [],
    "note": "phase-8e slice 8A-T1: t1_fade_table_wheel live-PTY check"
+  }
+,
+  {
+   "old": "jackin/manager/hard_launch_locked",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "VP-ATTACH-003",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_manager_hard_launch_locked live-PTY check"
   }
  ]
 }

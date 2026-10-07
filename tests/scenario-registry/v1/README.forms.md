@@ -6,7 +6,7 @@ Each sentence holds one fact.
 
 ## Files
 
-- `scenario-registry.forms.json` holds 7 rows.
+- `scenario-registry.forms.json` holds 19 rows.
   It covers 2 components: Form, Wizard.
   It uses the same stable IDs as `registry.json`.
 - `validate-forms.py` checks the registry.
@@ -68,5 +68,7 @@ Each sentence holds one fact.
 - This file is the `termrock-implementation` port of the Reference slice.
 - Source: `visual-baseline` commit `7b5a527eb23825cf64dd6d94d68323f1adc0d0b7`.
 - The 7 rows and the `registry.json` entries are byte-identical to the source.
+- Phase-8h3 added the 12 J1 rows from `3f167a6ea13527aa431a167d6bc7806ddd0de83e`.
+  Their bodies match the source; `results` hold the Candidate run.
 - The validator resolves Reference paths through git at `ref_commit`.
   The Candidate worktree holds no `src/` or `snapshots/` copies.
