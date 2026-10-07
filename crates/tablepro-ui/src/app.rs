@@ -6,10 +6,10 @@ use termrock::{
     DialogState, Empty, EmptyState, Family, FgStep, Focusability, Form, FormAction, FormState,
     FrameRead, Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap,
     KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase,
-    PickerAction, Response, Role, RowUi, Select, SelectAction, Size, SortDir, Span, SplitAxis,
-    SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput,
-    TextInputState, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause,
-    Variant, truncate, wrap,
+    PickerAction, Props, PropsRow, Response, Role, RowUi, Select, SelectAction, Size, SortDir,
+    Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState,
+    TextAction, TextInput, TextInputState, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState,
+    Ui, UpdateCause, Variant, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -3383,7 +3383,22 @@ impl TableProApp {
         // exactly as it would inside the body closure.
         let plane = ui.theme_ref().raise(ui.surface());
         panel.draw(ui, card_area, |ui, area| {
-            draw_connection_properties(ui, area, &properties);
+            let rows: Vec<PropsRow<'_>> = properties
+                .iter()
+                .enumerate()
+                .map(|(i, (label, value, role))| {
+                    PropsRow::new(ItemKey::index(i), label, value)
+                        .tone(*role)
+                        .wrap_if(*label == "Safe Mode" || label.is_empty())
+                })
+                .collect();
+            Props::rich(&rows).draw(
+                ui,
+                termrock::Rect {
+                    height: area.height.saturating_sub(2),
+                    ..area
+                },
+            );
         });
         if !ui.is_inert() {
             ui.register_control(CONNECTION_DETAILS, card_area, Focusability::ClickOnly);
@@ -7228,57 +7243,6 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
 
 fn too_small_notice() -> TooSmall<'static> {
     TooSmall::new(TOO_SMALL, "TablePro").minimum(MIN_WIDTH, MIN_HEIGHT)
-}
-
-fn draw_connection_properties(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    properties: &[(&str, String, Role)],
-) {
-    let value_x = area.x.saturating_add(13);
-    let value_width = area.width.saturating_sub(13).max(1);
-    let label_style = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-    let mut y = area.y;
-    for (label, value, role) in properties {
-        let value_style = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(*role)));
-        let lines = if *label == "Safe Mode" || label.is_empty() {
-            wrap(value, value_width)
-        } else {
-            vec![value.clone()]
-        };
-        for (line_index, line) in lines.iter().enumerate() {
-            if y >= area.bottom().saturating_sub(2) {
-                break;
-            }
-            if line_index == 0 && !label.is_empty() {
-                ui.paint_str(
-                    termrock::Rect {
-                        x: area.x,
-                        y,
-                        width: 15.min(area.width),
-                        height: 1,
-                    },
-                    label,
-                    label_style,
-                );
-            }
-            ui.paint_str(
-                termrock::Rect {
-                    x: value_x,
-                    y,
-                    width: value_width,
-                    height: 1,
-                },
-                line,
-                value_style,
-            );
-            y = y.saturating_add(1);
-        }
-    }
 }
 
 /// Details-card action row: 4 stock buttons at the legacy rects. Drawn by
