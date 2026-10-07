@@ -6130,6 +6130,199 @@
     ]
    },
    "cand_source": []
+  },
+  {
+   "id": "GRID-WHEEL-008",
+   "app": "tablepro",
+   "component": "Grid",
+   "part": "orders viewport + scroll-edge fade under the wheel",
+   "ref_symbols": [
+    {
+     "glyph": "rows 10–36 of 500 loaded",
+     "meaning": "position label after three wheel notches"
+    },
+    {
+     "glyph": "10009",
+     "meaning": "first visible order number at offset 9"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "rows 10–36 of 500 loaded",
+     "meaning": "position label after three wheel notches"
+    },
+    {
+     "glyph": "10009",
+     "meaning": "first visible order number at offset 9"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/widgets/grid.rs",
+     "symbols": [
+      "on_wheel",
+      "scroll_by",
+      "scroll_edges",
+      "Changed",
+      "Consumed"
+     ]
+    },
+    {
+     "path": "src/bin/tablepro/workbench.rs",
+     "symbols": [
+      "on_wheel",
+      "owns"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "table": "orders",
+    "rows": 500,
+    "total": "1,203,338",
+    "columns": 14,
+    "notch_rows": 3
+   },
+   "state": {
+    "offset": 9,
+    "sort": null,
+    "hscroll": 0,
+    "pending": 0
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot --connect Production and open the orders table (five downs + Enter)"
+    },
+    {
+     "step": 2,
+     "action": "roll the wheel down three notches over the order grid"
+    },
+    {
+     "step": 3,
+     "action": "roll the wheel back up to the top"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "wheel-faded",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the meta reads rows 10–36 of 500 loaded · 1,203,338 total · cols 1–2 of 14; first data row is #10 (10009)"
+     },
+     {
+      "id": "V2",
+      "text": "the top body edge fades (offset 9 hides rows above); the header row never fades and the thumb (┃) sits on the first body row with the track (│) below"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "three down-notches moved the offset 0 → 9 (three rows per notch); sort and pending are untouched"
+     },
+     {
+      "id": "S2",
+      "text": "no hscroll happened: cols 1–2 of 14 persists and no sort marker (▴/▾) appears in the grid"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "wheel-down returns Changed while rows hide below (the meta advances 1–27 → 10–36)"
+     },
+     {
+      "id": "A2",
+      "text": "wheel-up returns toward the top (offset back to 0; rows 1–27 with order 10000 return)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the header row must NOT fade: it reads at full tone like the interior rows"
+     },
+     {
+      "id": "N2",
+      "text": "wheeling must NOT sort, edit, or page: 500 loaded persists with no ▴/▾ in the grid and no pending tint"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "1372-1384",
+      "note": "on_wheel: scroll_by, Changed iff moved"
+     },
+     {
+      "path": "src/widgets/grid.rs",
+      "lines": "1928-1938",
+      "note": "scroll_edges over the body when the scrollbar shows"
+     },
+     {
+      "path": "src/ui/fade.rs",
+      "lines": "26-32,44-60",
+      "note": "edge gates for the scroll fade"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "1163-1179",
+      "note": "wheel routing to the table grid"
+     },
+     {
+      "path": "src/bin/tablepro/app.rs",
+      "lines": "2030-2040",
+      "note": "wheel events map to a ±3 row delta"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/fade/table_wheel/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T02:54:52Z",
+      "branch": "termrock-implementation",
+      "status": "pass",
+      "note": "phase-8f T1 t1_fade_table_wheel live-PTY PASS @031a3789 (nextest visual_baseline --run-ignored only -E 'test(t1_)' --test-threads 2, 5 pass/9 fail/527 skip; bin target/debug/tablepro 9352168B sha256:02f07a3c32cc715f built 2026-10-07T02:51:46Z; log /tmp/phase8f-focused.log)"
+     }
+    ]
+   }
   }
  ],
  "coverage": [
@@ -6142,7 +6335,8 @@
     "GRID-SORT-004",
     "GRID-CELL-005",
     "GRID-RESULTS-006",
-    "GRID-WHEEL-007"
+    "GRID-WHEEL-007",
+    "GRID-WHEEL-008"
    ],
    "handlers": [
     "cursor motion (arrows/hjkl/Home/End/PageUp/PageDown/g/G, shift extends)",
@@ -6939,20 +7133,6 @@
    "status": "mapped"
   },
   {
-   "old": "tablepro/table/structure",
-   "app": "tablepro",
-   "sizes": [
-    "100x30",
-    "120x40",
-    "160x50",
-    "72x20",
-    "80x24"
-   ],
-   "new": null,
-   "status": "pending",
-   "note": "DataTable structure view has no row yet (not a DataGrid)"
-  },
-  {
    "old": "showcase/pages/tables",
    "app": "showcase",
    "sizes": [
@@ -7007,20 +7187,6 @@
    "new": "TABLE-COMMIT-004",
    "status": "mapped",
    "note": "DataTable commit row (not a DataGrid)"
-  },
-  {
-   "old": "tablepro/overlays/history_tab",
-   "app": "tablepro",
-   "sizes": [
-    "100x30",
-    "120x40",
-    "160x50",
-    "72x20",
-    "80x24"
-   ],
-   "new": null,
-   "status": "pending",
-   "note": "read-only SQL detail editor has no row yet"
   },
   {
    "old": "showcase/fade/datagrid/wheel",
@@ -7133,6 +7299,21 @@
    "new": "TABLE-EDITABLE-006",
    "status": "mapped",
    "note": "8A-S1: DataTable editable page (not a DataGrid)"
+  },
+  {
+   "old": "tablepro/fade/table_wheel",
+   "app": "tablepro",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "GRID-WHEEL-008",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8e slice 8A-T1: t1_fade_table_wheel live-PTY check"
   }
  ]
 }

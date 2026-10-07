@@ -6,7 +6,7 @@ Each sentence holds one fact.
 
 ## Files
 
-- `scenario-registry.overlays.json` holds 21 rows.
+- `scenario-registry.overlays.json` holds 24 rows.
   It covers 10 components: Select, Picker, CommandPalette,
   PickerChain, Completion, Dialog, Menu, ContextMenu,
   MenuBar, HelpOverlay.
@@ -101,6 +101,8 @@ Each sentence holds one fact.
 
 - This file is the `termrock-implementation` port of the Reference slice.
 - Source: `visual-baseline` commit `6007e9fdcbf353fef59177ed8b35d5801f1b0fe2`.
-- The 21 rows and the `registry.json` entries are byte-identical to the source.
+- The 21 carried rows and their `registry.json` entries are byte-identical to the source.
+- Phase-8f added the 3 T1 rows from `07a56acf38ec7335d796c36c9d8ed03d4b1001d2`.
+  Their bodies match the source; `results` hold the Candidate run.
 - The validator resolves Reference paths through git at `ref_commit`.
   The Candidate worktree holds no `src/` or `snapshots/` copies.

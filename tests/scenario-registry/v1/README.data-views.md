@@ -6,7 +6,7 @@ Each sentence holds one fact.
 
 ## Files
 
-- `scenario-registry.data-views.json` holds 30 rows.
+- `scenario-registry.data-views.json` holds 31 rows.
   It covers 7 components: Grid, CodeEditor, DiffView,
   TextViewport, TerminalView, ScrollRegion, DataTable.
   It uses the same stable IDs as `registry.json`.
@@ -95,5 +95,7 @@ Each sentence holds one fact.
 - The 18 carried rows and their `registry.json` entries are byte-identical to the source.
 - Phase-8d added the 12 S1 rows from `76537c27e6e00ef93a2d09d280c8c9cb6097e446`.
   Their bodies match the source; `results` hold the Candidate run.
+- Phase-8f added the 1 T1 row from `07a56acf38ec7335d796c36c9d8ed03d4b1001d2`.
+  Its body matches the source; `results` hold the Candidate run.
 - The validator resolves Reference paths through git at `ref_commit`.
   The Candidate worktree holds no `src/` or `snapshots/` copies.
