@@ -1,5 +1,6 @@
 use termrock::{
-    FgStep, Focusability, Id, KeyCode, Modifier, Rect, Role, StylePatch, Surface, Ui, wrap,
+    Button, FgStep, Focusability, Id, KeyCode, Modifier, Rect, Role, StylePatch, Surface, Ui,
+    Variant, truncate, wrap,
 };
 
 pub const SAFETY_DIALOG: Id = Id::root("tablepro.safety-dialog");
@@ -240,14 +241,16 @@ impl SafetyDialog {
         if area.is_empty() {
             return;
         }
+        let elevated_fill =
+            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Elevated)));
+        ui.fill(area, elevated_fill);
+
         let elevated_style = ui.surface_style().patch(
             ui.paint_patch(
                 &StylePatch::new()
-                    .set_bg(Role::Surface(Surface::Elevated))
-                    .set_fg(Role::Fg(FgStep::Muted)),
+                    .set_bg(Role::Surface(Surface::Elevated)),
             ),
         );
-        ui.fill(area, elevated_style);
 
         let border_style =
             elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
@@ -361,7 +364,7 @@ impl SafetyDialog {
             let lines = if prop.wrap {
                 wrap(&prop.value, vw.max(4) as u16)
             } else {
-                vec![prop.value.clone()]
+                vec![truncate(&prop.value, vw as u16)]
             };
             for (i, line) in lines.iter().enumerate() {
                 if y >= facts_bottom {
@@ -391,8 +394,18 @@ impl SafetyDialog {
         // Code
         if !self.code.is_empty() {
             y += 1;
-            for line in self.code.iter().take(6) {
-                ui.paint_str(Rect::new(inner.x, y, inner.width, 1), line, secondary_style);
+            let max = self.code.len().min(6);
+            for (i, line) in self.code.iter().take(max).enumerate() {
+                let shown = if i == max - 1 && self.code.len() > max {
+                    format!(
+                        "{} … {} more",
+                        truncate(line, inner.width.saturating_sub(12)),
+                        self.code.len() - max
+                    )
+                } else {
+                    truncate(line, inner.width)
+                };
+                ui.paint_str(Rect::new(inner.x, y, inner.width, 1), &shown, secondary_style);
                 y += 1;
             }
         }
@@ -450,118 +463,23 @@ impl SafetyDialog {
         let confirm_x = area.right().saturating_sub(3 + confirm_w);
         let cancel_x = confirm_x.saturating_sub(1 + cancel_w);
 
-        // Cancel button
-        let overlay_style = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Overlay))));
-        let cancel_btn_style = overlay_style
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
         let cancel_rect = Rect::new(cancel_x, actions_y, cancel_w, 1);
-        ui.register_control(SAFETY_CANCEL, cancel_rect, Focusability::Focusable);
-        ui.fill(cancel_rect, cancel_btn_style);
-        if self.focus == SafetyFocus::Cancel {
-            let gutter_style =
-                cancel_btn_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
-            let text_style =
-                cancel_btn_style.patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
-            ui.paint_str(Rect::new(cancel_x, actions_y, 1, 1), "▎", gutter_style);
-            ui.paint_str(
-                Rect::new(cancel_x + 1, actions_y, cancel_w - 1, 1),
-                "Cancel ",
-                text_style,
-            );
-        } else {
-            let gutter_style = cancel_btn_style
-                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Overlay))));
-            ui.paint_str(Rect::new(cancel_x, actions_y, 1, 1), " ", gutter_style);
-            ui.paint_str(
-                Rect::new(cancel_x + 1, actions_y, cancel_w - 1, 1),
-                "Cancel ",
-                cancel_btn_style,
-            );
-        }
-
-        // Confirm button
         let confirm_rect = Rect::new(confirm_x, actions_y, confirm_w, 1);
-        ui.register_control(SAFETY_CONFIRM, confirm_rect, Focusability::Focusable);
-        let armed = self.armed();
-        if !armed {
-            let disabled_style =
-                overlay_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::DisabledFg)));
-            ui.fill(confirm_rect, disabled_style);
-            let gutter_style = disabled_style
-                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Overlay))));
-            ui.paint_str(Rect::new(confirm_x, actions_y, 1, 1), " ", gutter_style);
-            let text = format!("{} ", self.confirm_label);
-            ui.paint_str(
-                Rect::new(confirm_x + 1, actions_y, confirm_w - 1, 1),
-                &text,
-                disabled_style,
-            );
-        } else if self.confirm_danger {
-            let danger_btn_style = ui.surface_style().patch(
-                ui.paint_patch(
-                    &StylePatch::new()
-                        .set_bg(Role::Danger)
-                        .set_fg(Role::OnDanger),
-                ),
-            );
-            ui.fill(confirm_rect, danger_btn_style);
-            if self.focus == SafetyFocus::Confirm {
-                let gutter_style = danger_btn_style
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-                ui.paint_str(Rect::new(confirm_x, actions_y, 1, 1), "▎", gutter_style);
-                let text = format!("{} ", self.confirm_label);
-                let text_style =
-                    danger_btn_style.patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
-                ui.paint_str(
-                    Rect::new(confirm_x + 1, actions_y, confirm_w - 1, 1),
-                    &text,
-                    text_style,
-                );
+
+        ui.with_surface(Surface::Elevated, |ui| {
+            Button::new(SAFETY_CANCEL, "Cancel")
+                .variant(Variant::DEFAULT)
+                .draw(ui, cancel_rect);
+
+            let confirm_variant = if self.confirm_danger {
+                Variant::DANGER
             } else {
-                let gutter_style =
-                    danger_btn_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Danger)));
-                ui.paint_str(Rect::new(confirm_x, actions_y, 1, 1), " ", gutter_style);
-                let text = format!("{} ", self.confirm_label);
-                ui.paint_str(
-                    Rect::new(confirm_x + 1, actions_y, confirm_w - 1, 1),
-                    &text,
-                    danger_btn_style,
-                );
-            }
-        } else {
-            let accent_btn_style = ui.surface_style().patch(
-                ui.paint_patch(
-                    &StylePatch::new()
-                        .set_bg(Role::Accent)
-                        .set_fg(Role::OnAccent),
-                ),
-            );
-            ui.fill(confirm_rect, accent_btn_style);
-            if self.focus == SafetyFocus::Confirm {
-                let gutter_style = accent_btn_style
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-                ui.paint_str(Rect::new(confirm_x, actions_y, 1, 1), "▎", gutter_style);
-                let text = format!("{} ", self.confirm_label);
-                let text_style =
-                    accent_btn_style.patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
-                ui.paint_str(
-                    Rect::new(confirm_x + 1, actions_y, confirm_w - 1, 1),
-                    &text,
-                    text_style,
-                );
-            } else {
-                let gutter_style =
-                    accent_btn_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
-                ui.paint_str(Rect::new(confirm_x, actions_y, 1, 1), " ", gutter_style);
-                let text = format!("{} ", self.confirm_label);
-                ui.paint_str(
-                    Rect::new(confirm_x + 1, actions_y, confirm_w - 1, 1),
-                    &text,
-                    accent_btn_style,
-                );
-            }
-        }
+                Variant::PRIMARY
+            };
+            Button::new(SAFETY_CONFIRM, &self.confirm_label)
+                .variant(confirm_variant)
+                .disabled(!self.armed())
+                .draw(ui, confirm_rect);
+        });
     }
 }

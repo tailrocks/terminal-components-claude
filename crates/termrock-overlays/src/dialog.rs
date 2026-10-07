@@ -708,16 +708,38 @@ impl<'a> Dialog<'a> {
             .saturating_add(action_rows)
     }
 
+    /// The control that holds initial focus when the dialog opens:
+    /// the input control for prompt / acknowledgement dialogs,
+    /// otherwise the Cancel action if present, otherwise the first action.
+    #[must_use]
+    pub fn initial_focus(&self) -> Option<Id> {
+        if self.has_input() {
+            Some(self.input_id())
+        } else if let Some(cancel) = self.cancel
+            && let Some(idx) = self.effective_actions().iter().position(|a| a.key() == cancel)
+        {
+            Some(self.action_id(idx))
+        } else if !self.effective_actions().is_empty() {
+            Some(self.action_id(0))
+        } else {
+            None
+        }
+    }
+
     /// The layer this dialog wants: a modal sized from the props and the
     /// design tokens. Call it at the moment of opening —
     /// `cx.open_layer(id, dialog().layer(cx))` — and let [`Dialog::update`]
     /// re-assert it every frame (§26 N1, invariant D1).
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         let d = cx.design();
-        LayerSpec::modal(self.id).size(LayerSize::Fixed(
+        let mut spec = LayerSpec::modal(self.id).size(LayerSize::Fixed(
             self.measured_width(d),
             self.measured_height(d),
-        ))
+        ));
+        if let Some(target) = self.initial_focus() {
+            spec = spec.initial_focus(target);
+        }
+        spec
     }
 
     /// The rect the dialog paints into: `area`'s origin, sized to what it

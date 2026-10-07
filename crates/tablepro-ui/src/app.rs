@@ -180,6 +180,7 @@ impl DestructiveIntent {
 
 const OPEN: ActionKey = ActionKey::application("tablepro.open");
 const NEW_QUERY: ActionKey = ActionKey::application("tablepro.new-query");
+const CLOSE_TAB: ActionKey = ActionKey::application("tablepro.close-tab");
 const HISTORY: ActionKey = ActionKey::application("tablepro.history");
 const STRUCTURE: ActionKey = ActionKey::application("tablepro.structure");
 const FORM: ActionKey = ActionKey::application("tablepro.form");
@@ -427,6 +428,11 @@ fn keymap() -> KeyMap {
         )
         .bind(
             KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('w'), KeyModifiers::CONTROL),
+            CLOSE_TAB,
+        )
+        .bind(
+            KeyPhase::Bubble,
             Chord::with(KeyCode::Char('y'), KeyModifiers::CONTROL),
             HISTORY,
         )
@@ -580,6 +586,7 @@ pub struct TableProApp {
     form_is_edit: bool,
     form_tab: usize,
     form_editing: bool,
+    committing: Option<u32>,
     screen_size: core::cell::Cell<(u16, u16)>,
 }
 
@@ -682,6 +689,7 @@ impl TableProApp {
             form_is_edit: false,
             form_tab: 0,
             form_editing: false,
+            committing: None,
             screen_size: core::cell::Cell::new((120, 40)),
         };
         app.workbench.new_query(
@@ -856,13 +864,12 @@ impl TableProApp {
         if surface == Surface::MaximisedTab {
             self.workbench.maximized = true;
         }
-        if surface == Surface::FilterEditor {
-            if let Some(tab) = self.workbench.active_table() {
+        if surface == Surface::FilterEditor
+            && let Some(tab) = self.workbench.active_table() {
                 let columns = tab.result.columns.clone();
                 let editor = FilterEditor::new(columns, None, None, 0);
                 self.filter_editor = Some(editor);
             }
-        }
         self.surface = surface;
     }
 
@@ -1621,17 +1628,9 @@ impl TableProApp {
         ];
 
         let width = 78u16;
-        let max_code_w = (width as usize).saturating_sub(6);
         let code: Vec<String> = statements
             .iter()
-            .map(|s| {
-                let clean = s.trim_end_matches(';');
-                if clean.len() > max_code_w {
-                    format!("{}…", &clean[..max_code_w.saturating_sub(1)])
-                } else {
-                    clean.to_owned()
-                }
-            })
+            .map(|s| s.trim_end_matches(';').to_owned())
             .collect();
 
         let token = if deliberate {
@@ -1945,8 +1944,26 @@ impl TableProApp {
             .destructive_intent
             .as_ref()
             .map_or(&fallback, |request| &request.intent);
-        let response = intent.dialog().update(cx, &mut self.quit_state);
-        if let Some(action) = response.action_ref() {
+        let dlg = intent.dialog();
+        let dialog_response = dlg.update(cx, &mut self.quit_state);
+        let mut action = dialog_response.action_ref().copied();
+        if action.is_none() && self.destructive_intent.is_some() {
+            for id in [QUIT_DIALOG, dlg.action_id(0), dlg.action_id(1)] {
+                for it in cx.intents(id) {
+                    if let Intent::Key(key) = it
+                        && key.mods.is_empty() {
+                            if key.code == KeyCode::Char('y') {
+                                action = Some(DialogAction::Action(ActionKey::CONFIRM));
+                            } else if key.code == KeyCode::Char('n') {
+                                action = Some(DialogAction::Action(ActionKey::CANCEL));
+                            }
+                        }
+                }
+            }
+        }
+        let mut response = dialog_response.erase();
+        if let Some(action) = action {
+            response |= Response::changed();
             let confirmed = matches!(action, DialogAction::Action(ActionKey::CONFIRM))
                 && cx.is_open(QUIT_DIALOG);
             cx.close_layer(QUIT_DIALOG, None);
@@ -2046,33 +2063,67 @@ impl TableProApp {
             return Response::ignored();
         };
         if !cx.is_open(SAFETY_DIALOG) {
+            let status = match dialog.intent {
+                SafetyIntent::Query => "Cancelled · nothing was executed",
+                SafetyIntent::Commit => "Changes kept pending",
+            };
             self.safety_dialog = None;
-            "Cancelled · nothing was executed".clone_into(&mut self.status);
+            status.clone_into(&mut self.status);
+            self.status_since = Some(cx.now());
             cx.focus(CONTENT_FRAME);
             return Response::changed();
         }
         let mut action = None;
         let mut key_received = false;
-        for intent in cx
-            .intents(SAFETY_INPUT)
-            .chain(cx.intents(SAFETY_CANCEL))
-            .chain(cx.intents(SAFETY_CONFIRM))
-            .chain(cx.intents(SAFETY_DIALOG))
-        {
-            if let Intent::Key(key) = intent {
-                key_received = true;
-                if let Some(act) = dialog.on_key(key) {
-                    action = Some(act);
-                    break;
+        let mut focus_changed = false;
+        for (id, focus) in [
+            (SAFETY_INPUT, SafetyFocus::Input),
+            (SAFETY_CANCEL, SafetyFocus::Cancel),
+            (SAFETY_CONFIRM, SafetyFocus::Confirm),
+        ] {
+            for intent in cx.intents(id) {
+                if let Intent::FocusIn { .. } = intent {
+                    dialog.focus = focus;
+                    focus_changed = true;
+                }
+            }
+        }
+        let btn_cancel = termrock::Button::new(SAFETY_CANCEL, "Cancel");
+        if btn_cancel.update(cx).activated() {
+            action = Some(SafetyDialogAction::Cancel);
+        }
+        let btn_confirm = termrock::Button::new(SAFETY_CONFIRM, &dialog.confirm_label)
+            .disabled(!dialog.armed());
+        if btn_confirm.update(cx).activated() && dialog.armed() {
+            action = Some(SafetyDialogAction::Confirm);
+        }
+        if action.is_none() {
+            for intent in cx
+                .intents(SAFETY_INPUT)
+                .chain(cx.intents(SAFETY_CANCEL))
+                .chain(cx.intents(SAFETY_CONFIRM))
+                .chain(cx.intents(SAFETY_DIALOG))
+            {
+                if let Intent::Key(key) = intent {
+                    key_received = true;
+                    if let Some(act) = dialog.on_key(key) {
+                        action = Some(act);
+                        break;
+                    }
                 }
             }
         }
         if let Some(act) = action {
             match act {
                 SafetyDialogAction::Cancel => {
+                    let status = match dialog.intent {
+                        SafetyIntent::Query => "Cancelled · nothing was executed",
+                        SafetyIntent::Commit => "Changes kept pending",
+                    };
                     self.safety_dialog = None;
                     cx.close_layer(SAFETY_DIALOG, None);
-                    "Cancelled · nothing was executed".clone_into(&mut self.status);
+                    status.clone_into(&mut self.status);
+                    self.status_since = Some(cx.now());
                     cx.focus(CONTENT_FRAME);
                     return Response::changed();
                 }
@@ -2090,12 +2141,13 @@ impl TableProApp {
                                 tab.result = None;
                             }
                             self.status = "UPDATE orders · 8022 rows affected · 42 ms".to_owned();
+                            self.status_since = Some(cx.now());
                         }
                         SafetyIntent::Commit => {
-                            if let Some((_, grid)) = self.workbench.active_grid_mut() {
-                                grid.model.commit();
-                            }
-                            self.status = "Changes saved".to_owned();
+                            self.committing = Some(4);
+                            self.status = "Saving…".to_owned();
+                            self.status_since = Some(cx.now());
+                            cx.request_repaint_after(std::time::Duration::from_millis(80));
                         }
                     }
                     cx.focus(CONTENT_FRAME);
@@ -2108,10 +2160,23 @@ impl TableProApp {
             SafetyFocus::Cancel => cx.focus(SAFETY_CANCEL),
             SafetyFocus::Confirm => cx.focus(SAFETY_CONFIRM),
         }
-        if key_received {
+        if key_received || focus_changed {
             Response::changed()
         } else {
             Response::ignored()
+        }
+    }
+
+    fn finish_commit(&mut self, cx: &mut Cx<'_>) {
+        if let Some(Tab::Table(t)) = self.workbench.active_mut() {
+            let n = t.result.model.pending_total();
+            let qualified = format!("{}.{}", t.table.schema, t.table.name);
+            t.result.model.commit();
+            self.status = format!(
+                "Saved {n} change{} to {qualified}",
+                if n == 1 { "" } else { "s" }
+            );
+            self.status_since = Some(cx.now());
         }
     }
 
@@ -2304,11 +2369,10 @@ impl TableProApp {
             }
         }
         for intent in cx.intents(FILTER_EDITOR) {
-            if let Intent::Key(key) = intent {
-                if outcome.is_none() {
+            if let Intent::Key(key) = intent
+                && outcome.is_none() {
                     outcome = Some(editor.on_key(key));
                 }
-            }
         }
         // Owned-button activation overrides any idle `Keep` the key routing
         // above produced for the same frame (Enter reaches both paths).
@@ -2652,7 +2716,7 @@ impl TableProApp {
             used += w + 1;
             fit += 1;
         }
-        let fit = fit.max(1).min(6);
+        let fit = fit.clamp(1, 6);
 
         if overflow {
             let left_st = ui.surface_style().patch(
@@ -2756,7 +2820,7 @@ impl TableProApp {
             col_used += need;
             col_fit += 1;
         }
-        let col_fit = col_fit.max(1).min(5);
+        let col_fit = col_fit.clamp(1, 5);
         let more_right = col_fit < 5;
 
         let constraints: Vec<ratatui::layout::Constraint> = (0..col_fit)
@@ -4791,9 +4855,7 @@ impl TableProApp {
             ),
             None => ("Workbench".to_owned(), None),
         };
-        let focused = self.safety_dialog.is_none()
-            && self.destructive_intent.is_none()
-            && !ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED);
+        let focused = !ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED);
         let panel = Self::content_panel(&title, meta.as_deref(), focused);
         let mut status_line: Option<StructureStatusLine> = None;
         panel.draw(ui, area, |ui, inner| match self.workbench.active() {
@@ -4859,7 +4921,7 @@ impl TableProApp {
                     )
                 } else {
                     field_style.patch(
-                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
                     )
                 };
 
@@ -6327,12 +6389,12 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     while total(&keep_l, &keep_r) > area.width {
         let mut best: Option<(u8, bool, usize)> = None;
         for (i, s) in left.iter().enumerate() {
-            if keep_l[i] && best.map_or(true, |b| s.priority < b.0) {
+            if keep_l[i] && best.is_none_or(|b| s.priority < b.0) {
                 best = Some((s.priority, true, i));
             }
         }
         for (i, s) in right.iter().enumerate() {
-            if keep_r[i] && best.map_or(true, |b| s.priority <= b.0) {
+            if keep_r[i] && best.is_none_or(|b| s.priority <= b.0) {
                 best = Some((s.priority, false, i));
             }
         }
@@ -6771,7 +6833,9 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         ui.fill(right, base);
         ui.paint_str(right, notice, base);
         right_w = width.saturating_add(3);
-    } else if !app.status.is_empty() && app.destructive_intent.is_none() {
+    } else if !app.status.is_empty()
+        && (app.destructive_intent.is_none() || app.screen != Screen::Connections)
+    {
         let width = termrock::width(&app.status);
         if width > 0 && width < area.width {
             let right = termrock::Rect {
@@ -7122,6 +7186,17 @@ impl App for TableProApp {
         if !self.status.is_empty() && self.status_since.is_none() {
             self.status_since = Some(cx.now());
         }
+        if let Some(left) = self.committing.as_mut() {
+            *left = left.saturating_sub(1);
+            if *left == 0 {
+                self.committing = None;
+                self.finish_commit(cx);
+                response = response.repaint();
+            } else {
+                cx.request_repaint_after(std::time::Duration::from_millis(80));
+            }
+            response |= Response::changed();
+        }
         if cx.update_cause() == termrock::UpdateCause::Tick
             && self.status_since.is_some_and(|since| {
                 cx.now().saturating_duration_since(since) >= std::time::Duration::from_secs(5)
@@ -7252,6 +7327,13 @@ impl App for TableProApp {
                     }
                     response |= Response::changed();
                 }
+                c if c == CLOSE_TAB => {
+                    if self.screen == Screen::Workbench && !self.is_editing()
+                        && let Some(tab_key) = self.workbench.active_key() {
+                            self.request_close_tab(cx, tab_key);
+                            response |= Response::changed();
+                        }
+                }
                 c if c == HISTORY => {
                     self.workbench.open_history();
                     self.sync_active_tab();
@@ -7264,15 +7346,14 @@ impl App for TableProApp {
                     } else {
                         let _ = self.workbench.toggle_structure();
                         self.sync_active_tab();
-                        if let Some(tab_key) = self.workbench.active_key() {
-                            if let Some(Tab::Table(t)) = self.workbench.active() {
+                        if let Some(tab_key) = self.workbench.active_key()
+                            && let Some(Tab::Table(t)) = self.workbench.active() {
                                 if t.is_structure() {
                                     cx.focus(tab_key.control("structure"));
                                 } else {
                                     cx.focus(tab_key.control("data"));
                                 }
                             }
-                        }
                         response |= Response::changed();
                     }
                 }
@@ -7311,9 +7392,9 @@ impl App for TableProApp {
                         self.connections_screen.filter_active = true;
                         cx.focus(CONNECTION_FILTER);
                         response |= Response::changed();
-                    } else if self.screen == Screen::Workbench {
-                        if let Some(Tab::Table(table)) = self.workbench.active() {
-                            if !table.is_structure() {
+                    } else if self.screen == Screen::Workbench
+                        && let Some(Tab::Table(table)) = self.workbench.active()
+                            && !table.is_structure() {
                                 let (col_idx, cell_value) = if let Some((row_key, col_key)) =
                                     table.result.state.cursor()
                                 {
@@ -7335,23 +7416,19 @@ impl App for TableProApp {
                                 self.open_filter_editor(cx, None, Some(prefill));
                                 response |= Response::changed();
                             }
-                        }
-                    }
                 }
                 c if c == FILTER_EMPTY => {
-                    if self.screen == Screen::Workbench {
-                        if let Some(Tab::Table(table)) = self.workbench.active() {
-                            if !table.is_structure() {
+                    if self.screen == Screen::Workbench
+                        && let Some(Tab::Table(table)) = self.workbench.active()
+                            && !table.is_structure() {
                                 self.open_filter_editor(cx, None, None);
                                 response |= Response::changed();
                             }
-                        }
-                    }
                 }
                 c if c == SORT => {
-                    if self.screen == Screen::Workbench {
-                        if let Some(Tab::Table(table)) = self.workbench.active_mut() {
-                            if !table.is_structure() {
+                    if self.screen == Screen::Workbench
+                        && let Some(Tab::Table(table)) = self.workbench.active_mut()
+                            && !table.is_structure() {
                                 let col_idx = table
                                     .result
                                     .state
@@ -7369,8 +7446,6 @@ impl App for TableProApp {
                                 self.status = table.reload_sorted(&self.catalog, col_idx, next_sort);
                                 response |= Response::changed();
                             }
-                        }
-                    }
                 }
                 c if c == HELP => {
                     self.surface = Surface::HelpDialog;
@@ -7554,8 +7629,7 @@ impl App for TableProApp {
             explorer_tree().update(cx, &mut self.explorer_tree_state, &self.explorer_nodes);
         if let Some(TreeAction::Activated(key) | TreeAction::Chose(key)) =
             tree_response.action_ref()
-        {
-            if let Some(node) = self
+            && let Some(node) = self
                 .explorer_nodes
                 .iter()
                 .find(|node| explorer_node_key(node) == *key)
@@ -7563,18 +7637,16 @@ impl App for TableProApp {
                 match node {
                     ExplorerNode::Object { item, .. } => {
                         let item = item.clone();
-                        if self.open_table(&item) {
-                            if let Some(tab_key) = self.workbench.active_key() {
+                        if self.open_table(&item)
+                            && let Some(tab_key) = self.workbench.active_key() {
                                 cx.focus(tab_key.control("data"));
                             }
-                        }
                     }
                     _ => {
                         self.explorer_tree_state.toggle(*key);
                     }
                 }
             }
-        }
         response |= tree_response.erase();
 
         let tabs_response = tab_strip().update(cx, &mut self.tabs_state, self.workbench.tabs());
@@ -8244,6 +8316,7 @@ mod action_namespace_tests {
             SORT,
             OPEN,
             NEW_QUERY,
+            CLOSE_TAB,
             HISTORY,
             STRUCTURE,
             FORM,
