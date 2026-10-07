@@ -1,11 +1,11 @@
 //! Modal confirmation and prompt flows.
 
 use termrock::{
-    ActionKey, Button, Constraints, Cx, Dialog, DialogAction, DialogState, Id, Panel, Rect,
+    Action, ActionKey, Button, Constraints, Cx, Dialog, DialogAction, DialogState, Id, Panel, Rect,
     Response, Ui, Variant, id, layout,
 };
 
-use super::{Page, PageUpdate, frame, lines};
+use super::{Page, PageUpdate, frame, lines, lines_secondary};
 
 const OPEN_CONFIRM: Id = id!("dialogs.confirm.open");
 const OPEN_PROMPT: Id = id!("dialogs.prompt.open");
@@ -67,12 +67,18 @@ impl DialogsPage {
         }
     }
 
+    const RUN_ACTIONS: [Action<'static>; 2] = [
+        Action::quiet(ActionKey::CANCEL, "Cancel"),
+        Action::new(ActionKey::CONFIRM, "Run"),
+    ];
+
     fn confirm() -> Dialog<'static> {
         Dialog::confirm(
             CONFIRM,
             "Run task now?",
-            "The task will be queued for the workspace.",
+            "Junie will check out chore/uuid-sessions, apply the plan and run the test suite. You can pause at any step.",
         )
+        .actions(&Self::RUN_ACTIONS)
     }
 
     fn prompt(error: Option<&str>) -> Dialog<'_> {
@@ -224,8 +230,16 @@ impl Page for DialogsPage {
                             "Confirm: primary action focused first · y / n answer directly",
                             "Prompt: editing inside a modal, Enter submits, validation blocks",
                             "Destructive: Cancel focused first, action in danger style",
-                            "Task: Migrate sessions table",
                         ],
+                    );
+                    lines_secondary(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(5),
+                            height: inner.height.saturating_sub(5),
+                            ..inner
+                        },
+                        &["Task: Migrate sessions table"],
                     );
                 });
                 if let Some(results) = regions.get(2).copied() {

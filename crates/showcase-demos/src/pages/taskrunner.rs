@@ -62,7 +62,7 @@ fn cancel_button(running: bool) -> Button<'static> {
 }
 
 fn cancel_dialog() -> Dialog<'static> {
-    Dialog::confirm(
+    Dialog::destructive(
         CANCEL_DIALOG,
         "Cancel pipeline?",
         "The running pipeline will be stopped safely.",

@@ -723,15 +723,26 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    /// The control that holds initial focus when the dialog opens:
-    /// the input control for prompt / acknowledgement dialogs,
-    /// otherwise the Cancel action if present, otherwise the first action.
+    /// The control that holds initial focus when the dialog opens: the
+    /// input control for prompt / acknowledgement dialogs, otherwise the
+    /// primary action if present, otherwise the Cancel action if present,
+    /// otherwise the first action.
     #[must_use]
     pub fn initial_focus(&self) -> Option<Id> {
         if self.has_input() {
             Some(self.input_id())
+        } else if let Some(primary) = self.primary
+            && let Some(idx) = self
+                .effective_actions()
+                .iter()
+                .position(|a| a.key() == primary)
+        {
+            Some(self.action_id(idx))
         } else if let Some(cancel) = self.cancel
-            && let Some(idx) = self.effective_actions().iter().position(|a| a.key() == cancel)
+            && let Some(idx) = self
+                .effective_actions()
+                .iter()
+                .position(|a| a.key() == cancel)
         {
             Some(self.action_id(idx))
         } else if !self.effective_actions().is_empty() {

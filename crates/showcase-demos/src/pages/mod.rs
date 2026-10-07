@@ -85,6 +85,11 @@ pub fn lines_faint(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
     PageFrame::NOTES.draw_faint_lines(ui, area, text);
 }
 
+/// Paint secondary annotation lines with one-cell spacing, clipping at the body edge.
+pub fn lines_secondary(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
+    PageFrame::NOTES.draw_secondary_lines(ui, area, text);
+}
+
 /// Stable identity for the page-chrome component. The shell shows one page
 /// at a time, so a single id never collides across pages.
 const FRAME_ID: Id = id!("showcase.page.frame");
@@ -95,6 +100,7 @@ const TITLE_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Primar
 const DETAIL_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
 const TEXT_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
 const FAINT_TEXT_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Faint));
+const SECONDARY_TEXT_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
 const FRAME_PART_PATCHES: &[(Part, StylePatch)] = &[
     (Part::TITLE, TITLE_PATCH),
     (Part::DETAIL, DETAIL_PATCH),
@@ -104,6 +110,11 @@ const FAINT_FRAME_PART_PATCHES: &[(Part, StylePatch)] = &[
     (Part::TITLE, TITLE_PATCH),
     (Part::DETAIL, DETAIL_PATCH),
     (Part::TEXT, FAINT_TEXT_PATCH),
+];
+const SECONDARY_FRAME_PART_PATCHES: &[(Part, StylePatch)] = &[
+    (Part::TITLE, TITLE_PATCH),
+    (Part::DETAIL, DETAIL_PATCH),
+    (Part::TEXT, SECONDARY_TEXT_PATCH),
 ];
 
 /// Page chrome as a downstream-authored reusable component, following the
@@ -153,6 +164,12 @@ impl PageFrame {
             .part(FAINT_FRAME_PART_PATCHES)
     }
 
+    fn secondary_styles() -> PartStyle<'static> {
+        PartStyle::new()
+            .declare(FRAME_PARTS)
+            .part(SECONDARY_FRAME_PART_PATCHES)
+    }
+
     /// Resolve one part layered over the current surface (§11.3 final
     /// layering, as `Panel` does): unpatched slots inherit the surface, so
     /// `TITLE`/`DETAIL`/`TEXT` bind exactly the legacy styles. Empty flags:
@@ -174,6 +191,20 @@ impl PageFrame {
     fn faint_part_style(ui: &mut Ui<'_>, part: Part) -> PaintStyle {
         let base = ui.surface_style();
         Self::faint_styles()
+            .style(
+                ui,
+                FRAME_ID,
+                FRAME_FAMILY,
+                Variant::DEFAULT,
+                part,
+                StateFlags::empty(),
+            )
+            .over(base)
+    }
+
+    fn secondary_part_style(ui: &mut Ui<'_>, part: Part) -> PaintStyle {
+        let base = ui.surface_style();
+        Self::secondary_styles()
             .style(
                 ui,
                 FRAME_ID,
@@ -247,6 +278,12 @@ impl PageFrame {
     /// Paint faint annotation lines with one-cell spacing, clipping at the edge.
     pub(crate) fn draw_faint_lines(&self, ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
         let style = Self::faint_part_style(ui, Part::TEXT);
+        self.draw_styled_lines(ui, area, text, style);
+    }
+
+    /// Paint secondary annotation lines with one-cell spacing, clipping at the edge.
+    pub(crate) fn draw_secondary_lines(&self, ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
+        let style = Self::secondary_part_style(ui, Part::TEXT);
         self.draw_styled_lines(ui, area, text, style);
     }
 
