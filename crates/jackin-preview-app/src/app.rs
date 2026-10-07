@@ -18,11 +18,11 @@ use termrock::{
     HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintKey, HintLayer, Id,
     Insets, Intent, Item, ItemKey, ItemRowLayout, KeyCode, KeyMap, KeyModifiers, KeyPhase,
     LayerSize, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState,
-    Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase, Picker, PickerAction, PickerState,
-    Position, ProjectedText, Reconcile, Rect, Response, Role, RowUi, SecretPolicy, Side, SplitAxis,
-    SplitPane, SplitPaneState, StateFlags, Status, StylePatch, Tabs, TabsAction, TabsState,
-    TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant,
-    ViewportAction, ViewportLine, ViewportState,
+    MeterTone, Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase, Picker, PickerAction,
+    PickerState, Position, ProjectedText, Reconcile, Rect, Response, Role, RowUi, SecretPolicy,
+    Side, SplitAxis, SplitPane, SplitPaneState, StateFlags, Status, StatusBar, StatusItem,
+    StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport,
+    TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -31,7 +31,7 @@ use crate::domain::account::{
 };
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
-use crate::domain::usage::Freshness;
+use crate::domain::usage::{Freshness, QuotaStatus};
 use crate::domain::workspace::{EnvValue, EnvVar, Workspace, env_key_error};
 use crate::rain::{HANDOFF_LEN, INTRO_END, IntroState, OutroState};
 use crate::scenario::{Motion, Scenario};
@@ -102,6 +102,8 @@ pub const CAPSULE_TABS: Id = crate::screens::capsule::TABS;
 pub const CAPSULE_PANES: Id = crate::screens::capsule::PANES;
 /// Capsule command input id.
 const CAPSULE_INPUT: Id = APP.sub("capsule-input");
+/// Capsule status strip id.
+const CAPSULE_STATUS: Id = APP.sub("capsule-status");
 /// Capsule empty-state surface id.
 const CAPSULE_PANES_EMPTY: Id = CAPSULE_PANES.sub("empty");
 /// Capsule split-seam component namespace.
@@ -5653,7 +5655,22 @@ impl App {
     /// Historical capsule composition retained at the frozen 120×40 host size.
     fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
+        // Row 38 is the component-owned status strip (painted by
+        // `draw_capsule_shell` before this overwrite); fill around it.
+        let status_y = area.y.saturating_add(38);
+        ui.fill(
+            Rect::new(area.x, area.y, area.width, status_y.saturating_sub(area.y)),
+            palette.primary_on_canvas,
+        );
+        ui.fill(
+            Rect::new(
+                area.x,
+                status_y.saturating_add(1),
+                area.width,
+                area.bottom().saturating_sub(status_y.saturating_add(1)),
+            ),
+            palette.primary_on_canvas,
+        );
         let normal = palette.primary_on_canvas;
         let brand = palette.on_accent_on_accent_bold;
         let secondary = palette.secondary_on_canvas;
@@ -5667,10 +5684,6 @@ impl App {
         let border = palette.border_on_canvas;
         let warning = palette.warning_on_canvas;
         let danger = palette.danger_on_canvas;
-        let primary_surface = palette.primary_on_elevated;
-        let warning_surface = palette.warning_on_elevated;
-        let border_surface = palette.border_on_elevated;
-        let seam_surface = palette.seam_on_elevated;
 
         let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
             if y < area.bottom() && x < area.right() {
@@ -6265,38 +6278,9 @@ impl App {
             "│╰──────────────────────────────────────────────────────────╯",
             seam,
         );
-        put(
-            ui,
-            0,
-            38,
-            " PR #482 · Settlement retry backoff             Claude Code · Work · needs input              Session ━━━━━━━━─── 76%   ",
-            normal,
-        );
-        put(ui, 0, 38, " ", primary_surface);
-        put(
-            ui,
-            1,
-            38,
-            "PR #482 · Settlement retry backoff",
-            primary_surface_bold,
-        );
-        put(ui, 35, 38, "             ", primary_surface);
-        put(
-            ui,
-            48,
-            38,
-            "Claude Code · Work · needs input",
-            warning_surface,
-        );
-        put(ui, 80, 38, "              ", primary_surface);
-        put(ui, 94, 38, "Session", muted_surface);
-        put(ui, 101, 38, " ", primary_surface);
-        put(ui, 102, 38, "━━━━━━━━", border_surface);
-        put(ui, 110, 38, "───", seam_surface);
-        put(ui, 113, 38, " ", primary_surface);
-        put(ui, 114, 38, "76%", muted_surface);
-        put(ui, 117, 38, "  ", border_surface);
-        put(ui, 119, 38, " ", primary_surface);
+        // Row 38 (the status strip) is owned by the `StatusBar` composition
+        // in `draw_capsule_status`, which `draw_capsule_shell` already
+        // painted; the historical frame no longer covers it.
         put(
             ui,
             0,
@@ -7206,33 +7190,40 @@ impl App {
         }
     }
 
+    /// Bottom chrome as a [`StatusBar`] composition: the work (branch or PR
+    /// and its dirty state) on the left, the focused session in the middle,
+    /// the focused account's capacity as live meters on the right.
+    ///
+    /// Items, tones and priorities are the frozen capsule recipe: the meter
+    /// labels read the focused pane account's usage windows, so the row is
+    /// data-bound through the normal preview journey (no clickable keys yet;
+    /// status click actions are a follow-up).
     fn draw_capsule_status(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_elevated);
+        let instance_id = self.active_running_instance_id();
+        let instance = instance_id.as_ref().and_then(|id| self.world.instance(id));
+        let daemon = instance_id
+            .as_ref()
+            .and_then(|id| self.world.daemons.get(id));
 
-        let instance = self
-            .active_running_instance_id()
-            .and_then(|id| self.world.instance(&id));
-        let daemon = self
-            .active_running_instance_id()
-            .and_then(|id| self.world.daemons.get(&id));
-
-        const GAP: u16 = 3;
-        const EDGE: u16 = 1;
-
-        let str_w = |s: &str| s.chars().count() as u16;
-
-        let mut left_items: Vec<(String, PaintStyle)> = Vec::new();
-        if let Some(i) = instance {
-            let branch = i.branch.clone().unwrap_or_else(|| i.default_branch.clone());
-            let work = match &i.pr {
-                Some((n, title)) => {
-                    let end = title.char_indices().nth(32).map_or(title.len(), |(idx, _)| idx);
-                    format!("PR #{n} · {}", &title[..end])
+        // Owned label storage, built before the items borrow it.
+        let work = match instance {
+            Some(i) => {
+                let branch = i.branch.clone().unwrap_or_else(|| i.default_branch.clone());
+                match &i.pr {
+                    Some((n, title)) => {
+                        let end = title
+                            .char_indices()
+                            .nth(32)
+                            .map_or(title.len(), |(idx, _)| idx);
+                        format!("PR #{n} · {}", &title[..end])
+                    }
+                    None => truncate_middle(&branch, 36),
                 }
-                None => truncate_middle(&branch, 36),
-            };
-            left_items.push((work, palette.primary_on_elevated_bold));
+            }
+            None => "PR #482 · Settlement retry backoff".to_string(),
+        };
+        // (label, tone, priority) for the dirty-state item.
+        let dirty: Option<(String, Role, u8)> = instance.map(|i| {
             let touched = daemon.map(|d| d.touched_files().len()).unwrap_or(0);
             let changed = i.uncommitted + touched;
             if changed > 0 || i.unpushed > 0 {
@@ -7243,114 +7234,143 @@ impl App {
                 if i.unpushed > 0 {
                     parts.push(format!("{} unpushed", i.unpushed));
                 }
-                left_items.push((parts.join(" · "), palette.warning_on_elevated));
+                (parts.join(" · "), Role::Warning, 6)
             } else {
-                left_items.push(("clean".to_string(), palette.muted_on_elevated));
+                ("clean".to_string(), Role::Fg(FgStep::Muted), 4)
+            }
+        });
+        let pane = daemon.and_then(|d| d.focused_pane().and_then(|p| d.pane(p)));
+        let session: Option<String> = pane.map(|pane| {
+            let agent = pane.proc.agent.map(|a| a.label()).unwrap_or("shell");
+            let account = pane
+                .proc
+                .account
+                .as_ref()
+                .and_then(|id| self.world.accounts.get(id))
+                .map(|a| format!(" · {}", a.display_name))
+                .unwrap_or_default();
+            let state = match pane.state() {
+                crate::domain::instance::AgentState::Working => " · working",
+                crate::domain::instance::AgentState::Blocked => " · needs input",
+                crate::domain::instance::AgentState::Done => " · done",
+                crate::domain::instance::AgentState::Idle => " · idle",
+                crate::domain::instance::AgentState::Unknown => "",
+            };
+            format!("{agent}{account}{state}")
+        });
+        let session_tone: Option<Role> = pane.map(|p| Self::capsule_title_glyph_focused(p.state()));
+        let counts: Option<String> = daemon.and_then(|d| {
+            let panes = d.active_tab().map(|t| t.leaves().len()).unwrap_or(0);
+            if panes == 0 {
+                return None;
+            }
+            let t_len = d.tabs.len();
+            let t_str = if t_len == 1 { "tab" } else { "tabs" };
+            let p_str = if panes == 1 { "pane" } else { "panes" };
+            Some(format!("{t_len} {t_str} · {panes} {p_str}"))
+        });
+        let account = pane
+            .and_then(|p| p.proc.account.clone())
+            .and_then(|id| self.world.accounts.get(&id));
+        // (label, ratio, tone, priority) per meter, in window order.
+        let mut meters: Vec<(String, f64, Option<MeterTone>, u8)> = Vec::new();
+        // (label, tone, chip, priority) notes after the meters.
+        let mut quota_notes: Vec<(String, Role, bool, u8)> = Vec::new();
+        if let Some(a) = account {
+            let fresh = a.usage.freshness.phase;
+            for (k, win) in a
+                .usage
+                .windows
+                .iter()
+                .filter(|w| w.has_meter())
+                .take(2)
+                .enumerate()
+            {
+                // The current `MeterTone` has no refreshing/warning/
+                // exhausted variants with markers; stale last-good data and
+                // the graded run colours are the closest readings.
+                let tone = match fresh {
+                    Freshness::Refreshing | Freshness::Stale | Freshness::Failed => {
+                        Some(MeterTone::Stale)
+                    }
+                    Freshness::Current => match win.status {
+                        QuotaStatus::Exhausted => Some(MeterTone::High),
+                        QuotaStatus::Warning => Some(MeterTone::Medium),
+                        _ => None,
+                    },
+                };
+                let label = win.label.split(' ').next().unwrap_or("Usage").to_owned();
+                let ratio = f64::from(win.used_pct.unwrap_or(0)) / 100.0;
+                meters.push((label, ratio, tone, if k == 0 { 9 } else { 7 }));
+            }
+            match fresh {
+                Freshness::Stale => {
+                    quota_notes.push(("stale".to_string(), Role::Warning, true, 5));
+                }
+                Freshness::Failed => {
+                    quota_notes.push(("usage error".to_string(), Role::Danger, true, 5));
+                }
+                Freshness::Current | Freshness::Refreshing => {}
+            }
+            if meters.is_empty() {
+                quota_notes.push((
+                    format!("{} · {}", a.display_name, a.status_word()),
+                    Role::Fg(FgStep::Muted),
+                    false,
+                    8,
+                ));
             }
         } else {
-            left_items.push((
-                "PR #482 · Settlement retry backoff".to_string(),
-                palette.primary_on_elevated_bold,
+            quota_notes.push((
+                "no account · shell".to_string(),
+                Role::Fg(FgStep::Faint),
+                false,
+                5,
             ));
         }
 
-        let mut center_items: Vec<(String, PaintStyle)> = Vec::new();
-        if let Some(daemon) = daemon {
-            let pane = daemon.focused_pane().and_then(|p| daemon.pane(p));
-            if let Some(pane) = pane {
-                let agent = pane.proc.agent.map(|a| a.label()).unwrap_or("shell");
-                let account = pane
-                    .proc
-                    .account
-                    .as_ref()
-                    .and_then(|id| self.world.accounts.get(id))
-                    .map(|a| format!(" · {}", a.display_name))
-                    .unwrap_or_default();
-                let (state, style) = match pane.state() {
-                    crate::domain::instance::AgentState::Working => (" · working", palette.secondary_on_elevated),
-                    crate::domain::instance::AgentState::Blocked => (" · needs input", palette.warning_on_elevated),
-                    crate::domain::instance::AgentState::Done => (" · done", palette.secondary_on_elevated),
-                    crate::domain::instance::AgentState::Idle => (" · idle", palette.muted_on_elevated),
-                    crate::domain::instance::AgentState::Unknown => ("", palette.secondary_on_elevated),
-                };
-                center_items.push((format!("{agent}{account}{state}"), style));
-            }
-            let panes = daemon.active_tab().map(|t| t.leaves().len()).unwrap_or(0);
-            if panes > 0 {
-                let t_len = daemon.tabs.len();
-                let t_str = if t_len == 1 { "tab" } else { "tabs" };
-                let p_str = if panes == 1 { "pane" } else { "panes" };
-                center_items.push((format!("{t_len} {t_str} · {panes} {p_str}"), palette.border_on_elevated));
-            }
+        let mut left: Vec<StatusItem<'_>> = Vec::with_capacity(2);
+        let mut center: Vec<StatusItem<'_>> = Vec::with_capacity(2);
+        let mut right: Vec<StatusItem<'_>> = Vec::with_capacity(4);
+        left.push(
+            StatusItem::new(&work)
+                .tone(Role::Fg(FgStep::Primary))
+                .strong()
+                .priority(10),
+        );
+        if let Some((text, tone, priority)) = dirty.as_ref() {
+            left.push(StatusItem::new(text).tone(*tone).priority(*priority));
+        }
+        if let (Some(text), Some(tone)) = (session.as_ref(), session_tone) {
+            center.push(StatusItem::new(text).tone(tone).priority(8));
+        }
+        if let Some(text) = counts.as_ref() {
+            center.push(
+                StatusItem::new(text)
+                    .tone(Role::Fg(FgStep::Faint))
+                    .priority(2),
+            );
+        }
+        for (label, ratio, tone, priority) in &meters {
+            let item = StatusItem::new(label)
+                .tone(Role::Fg(FgStep::Muted))
+                .meter(*ratio)
+                .priority(*priority);
+            right.push(match tone {
+                Some(t) => item.meter_tone(*t),
+                None => item,
+            });
+        }
+        for (text, tone, chip, priority) in &quota_notes {
+            let item = StatusItem::new(text).tone(*tone).priority(*priority);
+            right.push(if *chip { item.chip() } else { item });
         }
 
-        let mut right_items: Vec<(String, PaintStyle)> = Vec::new();
-        if daemon.is_none() {
-            right_items.push(("no account · shell".to_string(), palette.border_on_elevated));
-        }
-
-        let total_w = area.width;
-        let left_w: u16 = left_items.iter().map(|(t, _)| str_w(t)).sum::<u16>()
-            + (left_items.len().saturating_sub(1) as u16) * GAP;
-        let right_w: u16 = right_items.iter().map(|(t, _)| str_w(t)).sum::<u16>()
-            + (right_items.len().saturating_sub(1) as u16) * GAP;
-        let center_w: u16 = center_items.iter().map(|(t, _)| str_w(t)).sum::<u16>()
-            + (center_items.len().saturating_sub(1) as u16) * GAP;
-
-        let show_center = center_w > 0 && left_w + GAP + center_w + GAP + right_w + 2 * EDGE <= total_w;
-        let show_right = right_w > 0 && left_w + GAP + right_w + 2 * EDGE <= total_w;
-
-        // Draw left
-        let mut x = area.x + EDGE;
-        let left_budget = total_w.saturating_sub(2 * EDGE);
-        for (i, (text, style)) in left_items.iter().enumerate() {
-            let tw = str_w(text);
-            if i > 0 && x + tw + (if show_right { right_w + GAP } else { 0 }) > area.right().saturating_sub(EDGE) {
-                break;
-            }
-            let room = (area.x + EDGE + left_budget).saturating_sub(x);
-            let display_text = if tw > room {
-                let char_count = text.chars().count();
-                if char_count <= room as usize {
-                    text.clone()
-                } else {
-                    let mut out: String = text.chars().take((room as usize).saturating_sub(1)).collect();
-                    out.push('…');
-                    out
-                }
-            } else {
-                text.clone()
-            };
-            let w = str_w(&display_text);
-            ui.paint_str(Rect::new(x, area.y, w, 1), &display_text, *style);
-            x += w + GAP;
-        }
-        let left_end = x.saturating_sub(GAP);
-
-        // Draw right
-        let mut rx = area.right().saturating_sub(EDGE);
-        if show_right {
-            for (text, style) in right_items.iter().rev() {
-                let w = str_w(text);
-                rx = rx.saturating_sub(w);
-                ui.paint_str(Rect::new(rx, area.y, w, 1), text, *style);
-                rx = rx.saturating_sub(GAP);
-            }
-        }
-        let right_start = if show_right { rx + GAP } else { area.right().saturating_sub(EDGE) };
-
-        // Draw center
-        if show_center {
-            let lo = left_end + GAP;
-            let hi = right_start.saturating_sub(GAP);
-            let free = hi.saturating_sub(lo);
-            let mut cx = lo + free.saturating_sub(center_w) / 2;
-            for (text, style) in &center_items {
-                let w = str_w(text);
-                ui.paint_str(Rect::new(cx, area.y, w, 1), text, *style);
-                cx += w + GAP;
-            }
-        }
+        StatusBar::new(CAPSULE_STATUS)
+            .left(&left)
+            .center(&center)
+            .right(&right)
+            .draw(ui, area);
     }
 
     fn draw_footer(&self, ui: &mut Ui<'_>, area: Rect) {

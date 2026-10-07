@@ -5,10 +5,11 @@
 //! `TextInput`). These tests pin that dispatch:
 //!
 //! * outside the frozen audit state the component path reproduces the
-//!   frozen audit body rows exactly (symbols; styles are covered by the
-//!   visual matrix once the status row follows in WI-JACKIN-CAPSULE-02);
-//! * the frozen audit state itself still routes to the historical frame,
-//!   which owns the session-meter status row until WI-JACKIN-CAPSULE-02;
+//!   frozen audit rows exactly (symbols; the status row itself moved to
+//!   components in WI-JACKIN-CAPSULE-02);
+//! * the frozen audit state still routes to the historical frame for every
+//!   row except the narrowed status row, which the `StatusBar` composition
+//!   owns (WI-JACKIN-CAPSULE-02);
 //! * typing into the capsule input reaches the live component path and
 //!   clearing it returns to the historical frame (dispatch boundary).
 use jackin_preview_app::{App, Motion, Scenario};
@@ -32,10 +33,9 @@ fn rows(h: &Harness<App>, height: u16) -> Vec<String> {
 }
 
 /// Component path parity: at full motion (no ticks) the app leaves the
-/// historical gate and every body row outside the status row matches the
-/// frozen audit text exactly.
+/// historical gate and every row matches the frozen audit text exactly.
 #[test]
-fn capsule_component_path_matches_audit_body_outside_status() {
+fn capsule_component_path_matches_audit_body() {
     for (w, h) in [(120u16, 40u16), (80u16, 24u16)] {
         let app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Full, 40);
         let harness = Harness::new(app, termrock::Theme::junie(), w, h);
@@ -44,49 +44,43 @@ fn capsule_component_path_matches_audit_body_outside_status() {
             "baselines/tuiscotti-v1/jackin/capsule/audit/{w}x{h}/truecolor.txt"
         ));
         assert_eq!(expected.len(), usize::from(h), "frozen frame has {h} rows");
-        let status_y = usize::from(h - 2);
         for (y, (e, a)) in expected.iter().zip(actual.iter()).enumerate() {
-            if y == status_y {
-                continue;
-            }
             assert_eq!(e, a, "{w}x{h} component-path row {y} must match frozen");
         }
     }
 }
 
 /// The component path owns the status row outside the audit state: it
-/// renders live tab/pane counts instead of the frozen session meter.
-/// WI-JACKIN-CAPSULE-02 replaces this content with the session meter and
-/// then the historical gate below can be removed.
+/// renders the session meter from the focused account's usage windows.
+/// The low-priority tab/pane counts only survive where nothing else needs
+/// the room, so the audit geometries never show them.
 #[test]
-fn capsule_component_status_shows_live_counts() {
+fn capsule_component_status_shows_session_meter() {
     let app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Full, 40);
     let harness = Harness::new(app, termrock::Theme::junie(), 120, 40);
     let status = harness.row(38);
     assert!(
-        status.contains("3 tabs · 3 panes"),
-        "component status must show live counts, got {status:?}"
+        status.contains("Session") && status.contains("76%"),
+        "component status must show the session meter, got {status:?}"
     );
-    let frozen_status =
-        frozen("baselines/tuiscotti-v1/jackin/capsule/audit/120x40/truecolor.txt")[38].clone();
     assert!(
-        !status.trim_end().is_empty() && status.trim_end() != frozen_status,
-        "component status must differ from the frozen session meter until WI-JACKIN-CAPSULE-02"
+        !status.contains("tabs ·"),
+        "tab/pane counts must not crowd out the meter, got {status:?}"
     );
 }
 
 /// Gate guard: the exact frozen audit state still renders the historical
-/// frame (all 40 rows), which keeps the green 120x40/truecolor audit cell
-/// green until WI-JACKIN-CAPSULE-02 moves the status row to components.
+/// frame for every row except the narrowed status row, which the
+/// `StatusBar` composition owns — all 40 rows keep matching frozen.
 #[test]
-fn audited_capsule_state_keeps_historical_frame() {
+fn audited_capsule_state_matches_frozen_after_narrowing() {
     let app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40);
     let harness = Harness::new(app, termrock::Theme::junie(), 120, 40);
     let actual = rows(&harness, 40);
     let expected = frozen("baselines/tuiscotti-v1/jackin/capsule/audit/120x40/truecolor.txt");
     assert_eq!(expected.len(), 40, "frozen frame has 40 rows");
     for (y, (e, a)) in expected.iter().zip(actual.iter()).enumerate() {
-        assert_eq!(e, a, "audited paused row {y} must stay historical");
+        assert_eq!(e, a, "audited paused row {y} must match frozen");
     }
 }
 
@@ -114,7 +108,7 @@ fn capsule_input_keys_reach_the_component_path() {
         "tab strip must survive the input journey"
     );
     assert!(
-        harness.row(38).contains("3 tabs"),
+        harness.row(38).contains("Session") && harness.row(38).contains("76%"),
         "status must stay on the component path during input"
     );
     for _ in 0..5 {

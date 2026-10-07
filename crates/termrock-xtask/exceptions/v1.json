@@ -673,7 +673,7 @@
       "rule": "OWN-11"
     },
     {
-      "max": 138,
+      "max": 135,
       "path": "crates/jackin-preview-app/src/app.rs",
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",

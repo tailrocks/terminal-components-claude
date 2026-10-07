@@ -172,7 +172,7 @@ pub(crate) const fn design() -> DesignTokens {
             min_width: 72,
             min_height: 20,
             scrollbar_width: 1,
-            meter_track: 10,
+            meter_track: 11,
             code_preview_lines: 6,
         },
         glyphs: GLYPHS,

@@ -109,7 +109,8 @@ pub enum MeterVisual {
 /// used when a ratio is set), `.tone(MeterTone)` (none — derived with
 /// [`MeterTone::from_ratio`] against `design.meter`), `.visual(MeterVisual)`
 /// (`Line`), `.status(Status)` (`Ready`), `.frame(usize)` (`0`),
-/// `.suffix_width(u16)` (minimum zero), `.leading_activity(bool)` (false), `.patch`,
+/// `.suffix_width(u16)` (floored at the two-cell suffix),
+/// `.leading_activity(bool)` (false), `.patch`,
 /// `.patch_part`, `.part_defaults`, `.slot`.
 ///
 /// ## Variants
@@ -134,10 +135,11 @@ pub enum MeterVisual {
 /// None.
 ///
 /// ## Layout
-/// `measure` returns `(design.size.meter_track + the value + the glyph, 1)`.
-/// `draw` uses the first row of `area`; below a six-cell track it reports the
-/// value alone. Returns the rect it painted; a degenerate rect paints
-/// nothing (R5).
+/// `measure` returns `(design.size.meter_track + the value + the suffix, 1)`.
+/// `draw` uses the first row of `area`: the run, one gap cell, the value and
+/// the two-cell suffix in the run's fill style (blank, or the readiness glyph
+/// last). Below a six-cell track it reports the value alone. Returns the rect
+/// it painted; a degenerate rect paints nothing (R5).
 ///
 /// ## Parts
 /// `TRACK` (the unfilled remainder), `THUMB` (the used share), `LABEL` (the
@@ -172,7 +174,9 @@ pub enum MeterVisual {
 ///
 /// The threshold mapping is unit-tested in this module by
 /// `tone_follows_the_design_thresholds_not_a_hard_coded_match` and
-/// `every_tone_names_a_meter_role`.
+/// `every_tone_names_a_meter_role`; the run/value/suffix geometry and the
+/// tone value-text colours by `line_paints_run_value_and_suffix` and
+/// `every_tone_reads_its_value_colour`.
 ///
 /// `tests/meter_defaults.rs` covers both visual modes and every tone, authored
 /// part defaults, theme/subtree/instance precedence, and unchanged default
@@ -225,6 +229,10 @@ impl<'a> Meter<'a> {
 
     /// The smallest run worth painting.
     const MIN_TRACK: u16 = 6;
+
+    /// The frozen trailing marker budget: every meter reserves and paints two
+    /// suffix cells after the value (blank, or the readiness glyph last).
+    const SUFFIX_CELLS: u16 = 2;
 
     /// A meter with no value.
     pub const fn new(id: Id) -> Self {
@@ -294,7 +302,7 @@ impl<'a> Meter<'a> {
     }
 
     /// Minimum trailing marker budget, including its leading gap. The
-    /// resolved glyph may enlarge it. Default zero retains dynamic width.
+    /// resolved glyph may enlarge it. Floored at the frozen two-cell suffix.
     #[must_use]
     pub const fn suffix_width(mut self, cells: u16) -> Self {
         self.suffix_width = cells;
@@ -464,13 +472,45 @@ impl<'a> Meter<'a> {
         let glyph = self.icon(ui, icon.glyph, live);
         let leading = self.leading_activity && self.busy();
         let glyph_width = glyph.map_or(0, |g| width(g).saturating_add(1));
+        let trailing = if leading { 0 } else { glyph_width };
         Readout {
             icon,
             glyph,
             leading,
             width: width(value).saturating_add(if leading { glyph_width } else { 0 }),
-            suffix: self.suffix_width.max(if leading { 0 } else { glyph_width }),
+            suffix: Self::SUFFIX_CELLS.max(self.suffix_width).max(trailing),
         }
+    }
+
+    /// The value-text colour for one tone (frozen `Meter::palette` text
+    /// column: graded tones read in their run colour, stale reads muted).
+    const fn value_role(tone: MeterTone) -> Role {
+        match tone {
+            MeterTone::Low => Role::Fg(FgStep::Primary),
+            MeterTone::Medium => Role::Meter(MeterRole::Medium),
+            MeterTone::High => Role::Meter(MeterRole::High),
+            MeterTone::Stale => Role::Fg(FgStep::Muted),
+            MeterTone::Unknown => Role::Fg(FgStep::Faint),
+            MeterTone::Series(n) => Role::Meter(MeterRole::Series(n)),
+        }
+    }
+
+    /// Paint the trailing suffix cells with the run's fill style. Runs before
+    /// the value and glyph so both paint over it; the suffix region sits past
+    /// everything the run painted, so it can only cover unpainted cells.
+    fn paint_suffix(ui: &mut Ui<'_>, area: Rect, suffix: u16, fill: PaintStyle) {
+        let start = area.right().saturating_sub(suffix).max(area.x);
+        if start >= area.right() {
+            return;
+        }
+        ui.fill(
+            Rect {
+                x: start,
+                width: area.right().saturating_sub(start),
+                ..area
+            },
+            fill,
+        );
     }
 
     fn paint_readout(
@@ -520,7 +560,7 @@ impl<'a> Meter<'a> {
             ui,
             Part::LABEL,
             live,
-            StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+            StylePatch::new().set_fg(Self::value_role(tone)),
         );
         let icon_style = readout.icon;
         ov.note(
@@ -536,6 +576,15 @@ impl<'a> Meter<'a> {
 
         let Some(ratio) = self.ratio else {
             // no run: the value and the marker only
+            let fill = self
+                .part_style(
+                    ui,
+                    Part::THUMB,
+                    live,
+                    StylePatch::new().set_fg(Role::Meter(tone.role())),
+                )
+                .style;
+            Self::paint_suffix(ui, area, readout.suffix, fill);
             let mut x = area.x;
             if vw > 0 {
                 let text = Rect {
@@ -568,6 +617,14 @@ impl<'a> Meter<'a> {
                     width: track_w,
                     ..area
                 };
+                let fill = self
+                    .part_style(
+                        ui,
+                        Part::THUMB,
+                        live,
+                        StylePatch::new().set_fg(Role::Meter(tone.role())),
+                    )
+                    .style;
                 if let Some(f) = ov.slot_for(Part::TRACK) {
                     f(ui, track);
                 } else {
@@ -577,14 +634,6 @@ impl<'a> Meter<'a> {
                         live,
                         StylePatch::new().set_fg(Role::Meter(MeterRole::Track)),
                     );
-                    let fill = self
-                        .part_style(
-                            ui,
-                            Part::THUMB,
-                            live,
-                            StylePatch::new().set_fg(Role::Meter(tone.role())),
-                        )
-                        .style;
                     super::progress::run_of(ui, track, GlyphRole::RuleQuiet, rest.style);
                     let filled = Rect {
                         width: (f64::from(track_w) * ratio).round() as u16,
@@ -594,6 +643,7 @@ impl<'a> Meter<'a> {
                         super::progress::run_of(ui, filled, GlyphRole::RuleActive, fill);
                     }
                 }
+                Self::paint_suffix(ui, area, readout.suffix, fill);
                 let mut x = track.x.saturating_add(track_w).saturating_add(1);
                 let cell = Rect {
                     x,
@@ -621,6 +671,15 @@ impl<'a> Meter<'a> {
                     width: bar_w,
                     ..area
                 };
+                let fill = self
+                    .part_style(
+                        ui,
+                        Part::THUMB,
+                        live,
+                        StylePatch::new().set_fg(Role::Meter(tone.role())),
+                    )
+                    .style;
+                Self::paint_suffix(ui, area, readout.suffix, fill);
                 if let Some(f) = ov.slot_for(Part::TRACK) {
                     f(ui, bar);
                 } else {
@@ -745,5 +804,77 @@ mod tests {
         assert_eq!(MeterTone::Stale.role(), MeterRole::Stale);
         assert_eq!(MeterTone::Unknown.role(), MeterRole::Unknown);
         assert_eq!(MeterTone::Series(3).role(), MeterRole::Series(3));
+    }
+
+    #[test]
+    fn every_tone_reads_its_value_colour() {
+        assert_eq!(Meter::value_role(MeterTone::Low), Role::Fg(FgStep::Primary));
+        assert_eq!(
+            Meter::value_role(MeterTone::Medium),
+            Role::Meter(MeterRole::Medium)
+        );
+        assert_eq!(
+            Meter::value_role(MeterTone::High),
+            Role::Meter(MeterRole::High)
+        );
+        assert_eq!(Meter::value_role(MeterTone::Stale), Role::Fg(FgStep::Muted));
+        assert_eq!(
+            Meter::value_role(MeterTone::Unknown),
+            Role::Fg(FgStep::Faint)
+        );
+        assert_eq!(
+            Meter::value_role(MeterTone::Series(3)),
+            Role::Meter(MeterRole::Series(3))
+        );
+    }
+
+    #[test]
+    fn line_paints_run_value_and_suffix() {
+        use ratatui_core::buffer::Buffer;
+        use ratatui_core::style::Color;
+
+        use crate::runtime::Runtime;
+        use crate::runtime::stub::Stub;
+        use crate::theme::Theme;
+
+        const AREA: Rect = Rect::new(0, 0, 17, 1);
+        for (ratio, tone, run) in [
+            (0.76, MeterTone::Stale, "━━━━━━━━───"),
+            (0.88, MeterTone::Stale, "━━━━━━━━━━─"),
+            (0.38, MeterTone::Low, "━━━━───────"),
+        ] {
+            let meter = Meter::new(Id::root("meter.suffix")).ratio(ratio).tone(tone);
+            let mut rt = Runtime::new(Stub::default(), Theme::junie());
+            let mut buf = Buffer::empty(AREA);
+            rt.draw_scene(AREA, &mut buf, |ui, area| {
+                meter.draw(ui, area);
+            })
+            .commit_presented();
+            let row: String = (0..AREA.width)
+                .map(|x| buf[(x, 0)].symbol().to_owned())
+                .collect();
+            let pct = format!("{}%", (ratio * 100.0).round() as u16);
+            assert_eq!(
+                row,
+                format!("{run} {pct}  "),
+                "a line meter paints the run, the value and the two-cell suffix"
+            );
+        }
+
+        // the stale run, value and suffix wear the frozen tones
+        let meter = Meter::new(Id::root("meter.suffix"))
+            .ratio(0.76)
+            .tone(MeterTone::Stale);
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(AREA);
+        rt.draw_scene(AREA, &mut buf, |ui, area| {
+            meter.draw(ui, area);
+        })
+        .commit_presented();
+        let fg = |x: u16| buf[(x, 0)].fg;
+        assert_eq!(fg(0), Color::Rgb(0x4d, 0x4d, 0x4d), "fill is stale");
+        assert_eq!(fg(8), Color::Rgb(0x26, 0x26, 0x26), "track is track");
+        assert_eq!(fg(12), Color::Rgb(0x80, 0x80, 0x80), "value is muted");
+        assert_eq!(fg(15), Color::Rgb(0x4d, 0x4d, 0x4d), "suffix wears fill");
     }
 }
