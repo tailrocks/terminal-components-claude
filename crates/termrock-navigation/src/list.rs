@@ -1237,6 +1237,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         // colour is removed (§11.4, §16.2 case 9).
         let status = live
             & (StateFlags::ERROR | StateFlags::WARNING | StateFlags::BUSY | StateFlags::LOADING);
+        let mut keep = Vec::new();
         for i in self.item_at_line(view.offset())..len {
             let row_i = i
                 .saturating_mul(self.stride())
@@ -1283,6 +1284,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 width: content.width,
                 height: self.row_height,
             };
+            if is_cursor {
+                keep.push(row.y);
+            }
             if let Some(renderer) = self.render_row {
                 if !row.intersection(ui.full()).is_empty() {
                     ui.with_area(content, |ui| {
@@ -1355,6 +1359,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 ui.register_part(self.id, part, row.intersection(content));
             }
         }
+        ui.scroll_edges_except(content, &view, &keep);
         area
     }
 
@@ -1720,6 +1725,144 @@ mod tests {
         assert!(
             marker.modifier.contains(Modifier::DIM),
             "marker cell lost the container DIM"
+        );
+    }
+
+    /// Q66-S7x draw helper: 20 rows in a 6-tall viewport (one outer fade
+    /// row per live edge: `MIN_ROWS <= 6 < DEEP_FROM`), cursor revealed at
+    /// `cursor`. Cursor 10 lands mid-list with both edges live and the
+    /// cursor on the bottom edge; cursor 2 sits at offset 0 with only the
+    /// bottom edge live.
+    fn draw_q66s7x_scrolled(theme: Theme, cursor: usize) -> Buffer {
+        const FADE_AREA: Rect = Rect::new(0, 0, 24, 6);
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(FADE_AREA);
+        let items: Vec<String> = (0..20).map(|i| format!("lang-{i:02}")).collect();
+        let mut state = ListState::default();
+        state.set_cursor(cursor, ItemKey::index(cursor));
+        runtime
+            .draw_scene(FADE_AREA, &mut buffer, |ui, area| {
+                List::new(ID).draw(ui, area, &state, &items);
+            })
+            .commit_presented();
+        buffer
+    }
+
+    /// The `fade_mix` ramp at the outer-edge strength (`builder.rs`): the
+    /// test recomputes the blend from probed cells rather than trusting it.
+    fn q66s7x_mix(front: u8, back: u8) -> u8 {
+        (f32::from(front) * 0.55 + f32::from(back) * 0.45)
+            .round()
+            .clamp(0.0, 255.0) as u8
+    }
+
+    /// F1-L5: at TrueColor the top edge row blends fg×0.55 toward the
+    /// container (tag `OUTER_KEEP`, frozen lists y20 `(148,148,148)`); the
+    /// interior and the cursor row stay whole and DIM-free.
+    #[test]
+    fn q66s7x_tc_top_edge_blends_while_cursor_row_is_kept() {
+        use ratatui_core::style::Color;
+
+        let buf = draw_q66s7x_scrolled(Theme::junie(), 10);
+        let edge = buf.cell(Position::new(3, 0)).expect("edge label cell");
+        let middle = buf.cell(Position::new(3, 2)).expect("interior label cell");
+        let kept = buf.cell(Position::new(3, 5)).expect("cursor label cell");
+        assert_eq!(edge.symbol(), "l", "top edge shows item 5");
+        assert_eq!(middle.symbol(), "l", "interior shows item 7");
+        assert_eq!(kept.symbol(), "l", "bottom edge shows the cursor item 10");
+        assert_ne!(
+            edge.style().fg,
+            middle.style().fg,
+            "top edge never blended toward the container"
+        );
+        let (Some(Color::Rgb(fr, fg, fb)), Some(Color::Rgb(br, bg, bb))) =
+            (middle.style().fg, middle.style().bg)
+        else {
+            panic!("interior label must be RGB on RGB at TrueColor");
+        };
+        assert_eq!(
+            edge.style().fg,
+            Some(Color::Rgb(
+                q66s7x_mix(fr, br),
+                q66s7x_mix(fg, bg),
+                q66s7x_mix(fb, bb)
+            )),
+            "top edge must keep 0.55 of its contrast"
+        );
+        assert_eq!(
+            kept.style().fg,
+            middle.style().fg,
+            "cursor row must stay whole on a live edge"
+        );
+        for (name, cell) in [("edge", edge), ("middle", middle), ("kept", kept)] {
+            assert!(
+                !cell.modifier.contains(Modifier::DIM),
+                "{name} gained DIM at TrueColor"
+            );
+        }
+    }
+
+    /// F1-L5: at 256/16/Mono the outermost row carries +DIM, gutter
+    /// included (tag `fade.rs`, frozen none y20 x28–52 `fg15 DIM`);
+    /// interior and cursor rows stay DIM-free.
+    #[test]
+    fn q66s7x_dim_levels_outer_edge_carries_dim_incl_gutter() {
+        use crate::theme::ColorLevel;
+
+        for (name, level) in [
+            ("256", ColorLevel::Ansi256),
+            ("16", ColorLevel::Ansi16),
+            ("mono", ColorLevel::Mono),
+        ] {
+            let buf = draw_q66s7x_scrolled(Theme::junie().downgrade(level), 10);
+            for x in [0, 3, 15] {
+                let edge = buf.cell(Position::new(x, 0)).expect("edge cell");
+                assert!(
+                    edge.modifier.contains(Modifier::DIM),
+                    "{name} x{x} top edge lost DIM"
+                );
+                let middle = buf.cell(Position::new(x, 2)).expect("interior cell");
+                assert!(
+                    !middle.modifier.contains(Modifier::DIM),
+                    "{name} x{x} interior gained DIM"
+                );
+                let kept = buf.cell(Position::new(x, 5)).expect("cursor cell");
+                assert!(
+                    !kept.modifier.contains(Modifier::DIM),
+                    "{name} x{x} cursor row faded"
+                );
+            }
+        }
+    }
+
+    /// F1-L5 keep: the cursor row on a live edge stays whole while the
+    /// same edge fades without the cursor; at the boundary (offset 0) the
+    /// top edge never fades.
+    #[test]
+    fn q66s7x_cursor_row_on_edge_is_kept_and_boundary_never_fades() {
+        use crate::theme::ColorLevel;
+
+        let kept = draw_q66s7x_scrolled(Theme::junie().downgrade(ColorLevel::Mono), 10);
+        let faded = draw_q66s7x_scrolled(Theme::junie().downgrade(ColorLevel::Mono), 2);
+        let kept_bottom = kept.cell(Position::new(3, 5)).expect("cursor edge cell");
+        assert!(
+            !kept_bottom.modifier.contains(Modifier::DIM),
+            "cursor row on the bottom edge faded"
+        );
+        let faded_bottom = faded.cell(Position::new(3, 5)).expect("bare edge cell");
+        assert!(
+            faded_bottom.modifier.contains(Modifier::DIM),
+            "bare bottom edge lost DIM"
+        );
+        let kept_top = kept.cell(Position::new(3, 0)).expect("top edge cell");
+        assert!(
+            kept_top.modifier.contains(Modifier::DIM),
+            "bare top edge lost DIM"
+        );
+        let boundary_top = faded.cell(Position::new(3, 0)).expect("boundary top cell");
+        assert!(
+            !boundary_top.modifier.contains(Modifier::DIM),
+            "boundary top edge gained DIM"
         );
     }
 }
