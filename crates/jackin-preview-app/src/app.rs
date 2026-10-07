@@ -7327,13 +7327,7 @@ impl App {
 
         if self.route == Route::Manager {
             let hints = self.manager_hints();
-            let palette = HistoricalPalette::new(ui);
-            let normal_canvas = palette.primary_on_canvas;
-            let container_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                ui.fill(cell, normal_canvas);
-            };
             HintBar::new(APP.sub("hint"), &hints)
-                .slot(Part::CONTAINER, &container_slot)
                 .status_text(self.status.as_deref())
                 .draw(ui, area);
             return;
