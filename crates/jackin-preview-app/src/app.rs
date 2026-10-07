@@ -22,7 +22,7 @@ use termrock::{
     MeterTone, Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase, Picker, PickerAction,
     PickerState, Position, ProjectedText, Reconcile, Rect, Response, Role, RowUi, SecretPolicy,
     Side, SplitAxis, SplitPane, SplitPaneState, StateFlags, Status, StatusBar, StatusItem,
-    StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
+    StylePatch, Surface, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
     TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
@@ -1462,6 +1462,15 @@ impl App {
     fn shell_panel<'a>(meta: &'a str) -> Panel<'a> {
         Panel::new(APP).title("Jackin Preview").meta(meta)
     }
+
+    /// Dim patch for the prelude host-menu titles (faint on canvas, never bold).
+    const PRELUDE_MENU_DIM: [(Part, StylePatch); 1] = [(
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Faint))
+            .set_bg(Role::Surface(Surface::Canvas))
+            .remove(Modifier::BOLD),
+    )];
 
     fn manager_menu_bar() -> MenuBar<'static> {
         MenuBar::new(MANAGER_MENU_BAR, MANAGER_MENUS)
@@ -5150,6 +5159,9 @@ impl App {
             CMD_NEW_WORKSPACE if self.route == Route::Manager => {
                 self.route = Route::Prelude;
                 self.prelude = PreludeState::default();
+                self.manager_menu_state = MenuState::default();
+                self.manager_menu_open = false;
+                cx.close_layer(MANAGER_MENU_BAR, None);
                 cx.focus(crate::screens::prelude::FILE_LIST);
                 Some(Response::changed())
             }
@@ -5564,21 +5576,13 @@ impl App {
             Brand::new(APP.sub("brand"), "jackin❯")
                 .slot(Part::LABEL, &brand_slot)
                 .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-            ui.paint_str(
-                Rect::new(area.x.saturating_add(12), area.y, 6, 1),
-                " File ",
-                dim_sec,
-            );
-            ui.paint_str(
-                Rect::new(area.x.saturating_add(19), area.y, 4, 1),
-                " Go ",
-                dim_sec,
-            );
-            ui.paint_str(
-                Rect::new(area.x.saturating_add(24), area.y, 6, 1),
-                " Help ",
-                dim_sec,
-            );
+            Self::manager_menu_bar()
+                .patch_part(&Self::PRELUDE_MENU_DIM)
+                .draw(
+                    ui,
+                    Rect::new(area.x.saturating_add(11), area.y, 20, 1),
+                    &self.manager_menu_state,
+                );
 
             let rest_x = area.x.saturating_add(31);
             let rest_w = area.right().saturating_sub(rest_x);
