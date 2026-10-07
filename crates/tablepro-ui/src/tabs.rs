@@ -372,6 +372,15 @@ impl TableTab {
     }
 }
 
+/// Which pane of the query tab is maximized, if any.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum QueryPaneMaximized {
+    #[default]
+    None,
+    Editor,
+    Results,
+}
+
 /// Query editor tab.
 #[derive(Clone)]
 pub struct QueryTab {
@@ -387,6 +396,7 @@ pub struct QueryTab {
     pub editing: bool,
     pub last_duration: Option<u32>,
     pub affected: Option<(usize, String)>,
+    pub maximized: QueryPaneMaximized,
 }
 
 impl core::fmt::Debug for QueryTab {
@@ -402,6 +412,7 @@ impl core::fmt::Debug for QueryTab {
             .field("has_plan", &self.plan.is_some())
             .field("running", &self.running)
             .field("editing", &self.editing)
+            .field("maximized", &self.maximized)
             .finish()
     }
 }
@@ -422,6 +433,7 @@ impl QueryTab {
             editing: false,
             last_duration: None,
             affected: None,
+            maximized: QueryPaneMaximized::None,
         }
     }
 

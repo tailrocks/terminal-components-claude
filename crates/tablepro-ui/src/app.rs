@@ -27,7 +27,7 @@ use crate::safety_dialog::{
     SafetyDialogAction, SafetyFocus, SafetyIntent, Tone,
 };
 use crate::tab_list::{self, TabList};
-use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord, TableTab};
+use crate::tabs::{ExplorerItem, GridView, QueryPaneMaximized, Tab, TabKey, TabRecord, TableTab};
 use crate::workbench::Workbench;
 use tablepro_demo as db;
 use tablepro_domain::{
@@ -5073,26 +5073,31 @@ impl TableProApp {
         let mut status_line: Option<StructureStatusLine> = None;
         panel.draw(ui, area, |ui, inner| match self.workbench.active() {
             Some(Tab::Query(query)) => {
-                let (editor_h, bottom_rect) = {
-                    let usable = inner.height.saturating_sub(1);
-                    if usable < 4 + 6 {
-                        (inner.height, termrock::Rect::ZERO)
-                    } else {
-                        let mut first = (usable as u32 * 38 / 100) as u16;
-                        first = first.clamp(4, usable.saturating_sub(6));
-                        (
-                            first,
-                            termrock::Rect::new(
-                                inner.x,
-                                inner.y.saturating_add(first).saturating_add(1),
-                                inner.width,
-                                inner.height.saturating_sub(first.saturating_add(1)),
-                            ),
-                        )
+                let (editor_h, bottom_rect) = match query.maximized {
+                    QueryPaneMaximized::Editor => (inner.height, termrock::Rect::ZERO),
+                    QueryPaneMaximized::Results => (0, inner),
+                    QueryPaneMaximized::None => {
+                        let usable = inner.height.saturating_sub(1);
+                        if usable < 4 + 6 {
+                            (inner.height, termrock::Rect::ZERO)
+                        } else {
+                            let mut first = (usable as u32 * 38 / 100) as u16;
+                            first = first.clamp(4, usable.saturating_sub(6));
+                            (
+                                first,
+                                termrock::Rect::new(
+                                    inner.x,
+                                    inner.y.saturating_add(first).saturating_add(1),
+                                    inner.width,
+                                    inner.height.saturating_sub(first.saturating_add(1)),
+                                ),
+                            )
+                        }
                     }
                 };
-                let editor_rect = termrock::Rect::new(inner.x, inner.y, inner.width, editor_h);
                 let active_key = self.workbench.active_key();
+                if editor_h > 0 {
+                    let editor_rect = termrock::Rect::new(inner.x, inner.y, inner.width, editor_h);
                 if let Some(key) = active_key
                     && !ui.is_inert()
                 {
@@ -5225,7 +5230,9 @@ impl TableProApp {
                         muted_field,
                     );
                 }
+                }
 
+                if !bottom_rect.is_empty() {
                 if query.affected.is_some() || query.result.is_some() {
                     let (tab_text, status_text) =
                         if let Some((affected_count, affected_action)) = &query.affected {
@@ -5385,6 +5392,7 @@ impl TableProApp {
                         },
                     )
                     .draw(ui, bottom_rect);
+                }
                 }
             }
             Some(Tab::Table(table)) => {
@@ -7149,7 +7157,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         && !app.switcher_open
         && !app.tab_list_open
         && !app.safe_mode_open
-        && (ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED)
+        && (app.workbench_focus == EXPLORER
+            || ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED)
             || (area.width < 100 && app.workbench.active().is_none()));
     let hints = footer_hints(app, explorer_focused);
     let mut drawn = 0usize;
@@ -7553,6 +7562,9 @@ impl App for TableProApp {
                     if self.screen == Screen::Workbench && !self.is_editing() {
                         self.workbench.explorer_visible = true;
                         self.workbench.maximized = false;
+                        if let Some(Tab::Query(q)) = self.workbench.active_mut() {
+                            q.maximized = QueryPaneMaximized::None;
+                        }
                         self.workbench_focus = EXPLORER;
                         cx.focus(EXPLORER);
                         response |= Response::changed();
@@ -7581,6 +7593,27 @@ impl App for TableProApp {
                 c if c == MAXIMIZE => {
                     if self.screen == Screen::Workbench {
                         self.workbench.maximized = !self.workbench.maximized;
+                        let maximized = self.workbench.maximized;
+                        let focus = self.workbench_focus;
+                        if let Some(tab_key) = self.workbench.active_key()
+                            && let Some(Tab::Query(q)) = self.workbench.active_mut()
+                        {
+                            let query_id = tab_key.control("query");
+                            let is_editor = focus == query_id
+                                || cx.state(query_id).contains(termrock::StateFlags::FOCUSED);
+                            if is_editor {
+                                self.workbench_focus = query_id;
+                            }
+                            q.maximized = if maximized {
+                                if is_editor {
+                                    QueryPaneMaximized::Editor
+                                } else {
+                                    QueryPaneMaximized::Results
+                                }
+                            } else {
+                                QueryPaneMaximized::None
+                            };
+                        }
                         response |= Response::changed();
                     }
                 }
@@ -8120,6 +8153,16 @@ impl App for TableProApp {
             preferred: (120, 36),
         }
     }
+    fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        if self.screen == Screen::Workbench && self.workbench.maximized {
+            self.workbench.maximized = false;
+            if let Some(Tab::Query(q)) = self.workbench.active_mut() {
+                q.maximized = QueryPaneMaximized::None;
+            }
+            return Response::changed();
+        }
+        Response::ignored()
+    }
 }
 
 /// Start the app with an explicit theme and optional connection name.
@@ -8639,6 +8682,62 @@ mod replacement_tests {
         let _ = h.key(KeyCode::Char('?'));
         eprintln!("AFTER QUESTION MARK:\n{}", h.text());
         assert!(h.find("Keyboard").is_some());
+    }
+
+    #[test]
+    fn workbench_maximize_and_unmaximize_query_tab() {
+        let mut app = TableProApp::default();
+        let idx = app
+            .connections
+            .iter()
+            .position(|c| c.name == "Production")
+            .unwrap();
+        let _ = app.connect(idx);
+        let mut h = Harness::new(app, Theme::junie(), 120, 40);
+        assert!(!h.app().workbench.maximized);
+        let ph = "Type SQL. Ctrl+R runs the statement under the cursor.";
+        assert!(h.find(ph).is_some());
+        assert!(h.find("No results yet").is_some());
+
+        // Focus is on EXPLORER, so 'z' maximizes Results pane and hides editor
+        let _ = h.key(KeyCode::Char('z'));
+        assert!(h.app().workbench.maximized);
+        if let Some(Tab::Query(q)) = h.app().workbench.active() {
+            assert_eq!(q.maximized, QueryPaneMaximized::Results);
+        } else {
+            panic!("expected active query tab");
+        }
+        assert!(h.find(ph).is_none());
+        assert!(h.find("No results yet").is_some());
+
+        // Esc un-maximizes workbench and restores normal split
+        let _ = h.key(KeyCode::Esc);
+        assert!(!h.app().workbench.maximized);
+        if let Some(Tab::Query(q)) = h.app().workbench.active() {
+            assert_eq!(q.maximized, QueryPaneMaximized::None);
+        }
+        assert!(h.find(ph).is_some());
+
+        // Focus editor via Tab, then 'z' maximizes Editor pane and hides results
+        let query_ctrl = h.app().workbench.active_key().unwrap().control("query");
+        assert!(h.tab_to(query_ctrl));
+        assert!(!h.app().is_editing());
+        let _ = h.key(KeyCode::Char('z'));
+        assert!(h.app().workbench.maximized);
+        if let Some(Tab::Query(q)) = h.app().workbench.active() {
+            assert_eq!(q.maximized, QueryPaneMaximized::Editor);
+        }
+        assert!(h.find(ph).is_some());
+        assert!(h.find("No results yet").is_none());
+
+        // '0' focuses explorer and resets maximization
+        let _ = h.key(KeyCode::Char('0'));
+        assert!(!h.app().workbench.maximized);
+        if let Some(Tab::Query(q)) = h.app().workbench.active() {
+            assert_eq!(q.maximized, QueryPaneMaximized::None);
+        }
+        assert!(h.find(ph).is_some());
+        assert!(h.find("No results yet").is_some());
     }
 }
 

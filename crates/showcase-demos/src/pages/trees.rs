@@ -156,29 +156,6 @@ fn label_for(key: Option<ItemKey>) -> &'static str {
     .unwrap_or("src")
 }
 
-fn cursor_visible_row(state: &TreeState) -> usize {
-    let Some(target) = state.cursor() else {
-        return 0;
-    };
-    let mut visible_index = 0usize;
-    let mut collapsed_depth = None;
-    for node in TREE {
-        if collapsed_depth.is_some_and(|depth| node.depth() > depth) {
-            continue;
-        }
-        collapsed_depth = None;
-        let key = node_key(node);
-        if key == target {
-            return visible_index;
-        }
-        visible_index = visible_index.saturating_add(1);
-        if node.has_children() && !state.is_expanded(key) {
-            collapsed_depth = Some(node.depth());
-        }
-    }
-    0
-}
-
 /// Project navigation owns expansion by stable item key. No depth-derived key
 /// can alias a sibling or move focus after a branch changes shape.
 #[derive(Debug)]
@@ -258,27 +235,6 @@ impl Page for TreesPage {
                 let focused = ui.state(PROJECT).contains(StateFlags::FOCUSED);
                 project_panel(&meta, focused).draw(ui, project, |ui, inner| {
                     project_tree(&[]).draw(ui, inner, &self.state, TREE);
-                    if (inner.height as usize) < self.state.scroll().content_len().max(16) {
-                        let mut scroll = *self.state.scroll();
-                        scroll.set_content(self.state.scroll().content_len().max(16));
-                        scroll.set_viewport(inner.height as usize);
-                        let cursor_row = cursor_visible_row(&self.state);
-                        let mut keep = Vec::new();
-                        if cursor_row >= scroll.offset()
-                            && cursor_row < scroll.offset().saturating_add(inner.height as usize)
-                        {
-                            keep.push(
-                                inner
-                                    .y
-                                    .saturating_add((cursor_row - scroll.offset()) as u16),
-                            );
-                        }
-                        let fade_rect = Rect {
-                            width: inner.width.saturating_sub(1),
-                            ..inner
-                        };
-                        ui.scroll_edges_except(fade_rect, &scroll, &keep);
-                    }
                 });
                 Panel::new(id!("trees.selection"))
                     .kind(PanelKind::Card)

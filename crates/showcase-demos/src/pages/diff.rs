@@ -242,12 +242,7 @@ impl Page for DiffPage {
                     width: panel_area.width.saturating_sub(5),
                     height: panel_area.height.saturating_sub(2),
                 };
-                let text = view.draw(ui, view_area, &self.diff_state);
-                if !self.empty {
-                    let mut scroll = *self.diff_state.viewport().scroll();
-                    scroll.apply_layout(usize::from(view_area.height), TOTAL_ROWS + 1);
-                    ui.scroll_edges(text, &scroll);
-                }
+                let _text = view.draw(ui, view_area, &self.diff_state);
             },
         );
     }
