@@ -13,14 +13,16 @@ use std::{
 use termrock::author::PaintStyle;
 
 use termrock::{
-    Action, ActionKey, Anchor, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, CrossAlign, Cx, Dialog, DialogAction,
-    DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar,
-    HintKey, HintLayer, Id, Intent, Item, ItemKey, ItemRowLayout, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerSize, List,
-    ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Modifier, Moment, Panel,
-    Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText, Reconcile,
-    Rect, Response, SecretPolicy, Side, Status, StylePatch, Tabs, TabsAction, TabsState, TextAction,
-    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
-    ViewportLine, ViewportState,
+    Action, ActionKey, Anchor, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu,
+    CrossAlign, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState, FgStep, FrameRead,
+    HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintKey, HintLayer, Id,
+    Insets, Intent, Item, ItemKey, ItemRowLayout, KeyCode, KeyMap, KeyModifiers, KeyPhase,
+    LayerSize, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState,
+    Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase, Picker, PickerAction, PickerState,
+    Position, ProjectedText, Reconcile, Rect, Response, Role, RowUi, SecretPolicy, Side, SplitAxis,
+    SplitPane, SplitPaneState, StateFlags, Status, StylePatch, Tabs, TabsAction, TabsState,
+    TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant,
+    ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -100,6 +102,10 @@ pub const CAPSULE_TABS: Id = crate::screens::capsule::TABS;
 pub const CAPSULE_PANES: Id = crate::screens::capsule::PANES;
 /// Capsule command input id.
 const CAPSULE_INPUT: Id = APP.sub("capsule-input");
+/// Capsule empty-state surface id.
+const CAPSULE_PANES_EMPTY: Id = CAPSULE_PANES.sub("empty");
+/// Capsule split-seam component namespace.
+const CAPSULE_SPLIT: Id = CAPSULE_PANES.sub("split");
 /// Exit confirmation dialog id.
 pub const QUIT_DIALOG: Id = APP.sub("quit-dialog");
 /// Launch confirmation dialog id.
@@ -451,6 +457,54 @@ impl AsItem for AgentOption {
     }
 }
 
+/// One capsule tab strip item: the frozen strip styles the number prefix,
+/// the label, and the state glyph independently, so the row painter needs
+/// the three runs separately instead of one joined string.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CapsuleTab {
+    /// 1-based tab number.
+    number: String,
+    /// Tab label without number or state glyph.
+    label: String,
+    /// State glyph, or empty when the tab carries none.
+    glyph: &'static str,
+}
+
+/// Muted, never bold: tab number prefixes and inactive state glyphs.
+const CAPSULE_TAB_MUTED_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::Fg(FgStep::Muted))
+    .remove(Modifier::BOLD);
+
+/// Secondary, never bold: the active tab's state glyph.
+const CAPSULE_TAB_GLYPH_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::Fg(FgStep::Secondary))
+    .remove(Modifier::BOLD);
+
+/// Paint one capsule tab through the Tabs content slot: muted number, label
+/// in the strip's label style, state glyph muted (secondary while active).
+fn paint_capsule_tab(tab: &CapsuleTab, row: &mut RowUi<'_>) {
+    row.label_patched(tab.number.as_str(), &CAPSULE_TAB_MUTED_PATCH);
+    row.label(" ");
+    row.label(tab.label.as_str());
+    if !tab.glyph.is_empty() {
+        row.label(" ");
+        let patch = if row.flags().contains(StateFlags::ACTIVE) {
+            &CAPSULE_TAB_GLYPH_PATCH
+        } else {
+            &CAPSULE_TAB_MUTED_PATCH
+        };
+        row.label_patched(tab.glyph, patch);
+    }
+}
+
+/// Shared draw context for one pane tree: the daemon and tab stay fixed
+/// while the node recursion walks splits and leaves.
+struct CapsulePaneCtx<'a> {
+    daemon: &'a Daemon,
+    tab: &'a Tab,
+    framed: bool,
+}
+
 /// Cached capsule per-frame projections: scrollback text, tab labels, pane
 /// titles and pane geometry. Rebuilt only when the fingerprinted inputs
 /// change, so steady-state draws borrow instead of allocating.
@@ -463,12 +517,11 @@ impl AsItem for AgentOption {
 struct CapsuleFrameCaches {
     /// Scrollback projection per pane, valid while the term revision matches.
     transcripts: BTreeMap<PaneId, (u64, ProjectedText)>,
-    /// Tab strip labels with the fingerprint of everything they read.
-    tabs: Option<(u64, Vec<String>)>,
-    /// Framed pane titles with per-pane fingerprints.
-    titles: BTreeMap<PaneId, (u64, String)>,
-    /// Pane geometry with the fingerprint of topology plus area.
-    layouts: Option<(u64, Vec<(PaneId, Rect)>)>,
+    /// Tab strip items with the fingerprint of everything they read.
+    tabs: Option<(u64, Vec<CapsuleTab>)>,
+    /// Framed pane titles with per-pane fingerprints: the label run and the
+    /// state glyph paint in different styles, so both are cached separately.
+    titles: BTreeMap<PaneId, (u64, (String, &'static str))>,
 }
 
 /// Static hint-bar content, built once per [`App`] so draws borrow instead of
@@ -1891,7 +1944,9 @@ impl App {
     }
 
     fn capsule_input() -> TextInput<'static> {
-        TextInput::new(CAPSULE_INPUT).placeholder("Type a command")
+        // Inline and placeholder-free: the frozen input row is a blank field
+        // row. No frozen frame shows a placeholder here.
+        TextInput::new(CAPSULE_INPUT).inline(true)
     }
 
     fn capsule_viewport(pane_id: PaneId) -> TextViewport<'static> {
@@ -2448,20 +2503,39 @@ impl App {
         }
     }
 
+    /// Map one terminal tone to its presentation role.
+    ///
+    /// The mapping mirrors the frozen capsule transcript: success spans
+    /// render in the accent green, which is also the junie `Success` role.
+    fn term_tone_role(tone: crate::sim::pty::Tone) -> Role {
+        match tone {
+            crate::sim::pty::Tone::Normal => Role::Fg(FgStep::Primary),
+            crate::sim::pty::Tone::Muted => Role::Fg(FgStep::Muted),
+            crate::sim::pty::Tone::Secondary => Role::Fg(FgStep::Secondary),
+            crate::sim::pty::Tone::Success => Role::Success,
+            crate::sim::pty::Tone::Error => Role::Danger,
+            crate::sim::pty::Tone::Warning => Role::Warning,
+        }
+    }
+
     /// Project one terminal transcript into owned viewport text.
     ///
-    /// One single-run line per transcript line renders exactly like the
-    /// previous per-frame `ViewportLine::Plain` join; the caller keeps the
-    /// projection while the term revision matches.
+    /// One run per transcript span preserves the per-span tones; the caller
+    /// keeps the projection while the term revision matches.
     fn project_term(term: &crate::sim::pty::TextViewport, out: &mut ProjectedText) {
         out.clear();
-        let mut joined = String::new();
-        for line in &term.lines {
-            joined.clear();
-            for span in line {
-                joined.push_str(span.text.as_str());
-            }
-            out.push_line([(joined.as_str(), None, Modifier::empty())]);
+        for line in term.lines.iter() {
+            out.push_line(line.iter().map(|span| {
+                (
+                    span.text.as_str(),
+                    Some(Self::term_tone_role(span.tone)),
+                    if span.bold {
+                        Modifier::BOLD
+                    } else {
+                        Modifier::empty()
+                    },
+                )
+            }));
         }
     }
 
@@ -2478,39 +2552,6 @@ impl App {
             let mut text = ProjectedText::default();
             Self::project_term(&pane.term, &mut text);
             caches.transcripts.insert(pane.id, (revision, text));
-        }
-    }
-
-    /// Hash one pane-tree topology: structure, splits and leaf ids in visual
-    /// order. Allocation-free; covers everything [`PaneNode::layout`] reads.
-    fn hash_topology(hasher: &mut DefaultHasher, node: &PaneNode) {
-        match node {
-            PaneNode::Leaf(id) => {
-                hasher.write_u8(0);
-                hasher.write_u64(*id);
-            }
-            PaneNode::Split {
-                dir,
-                split,
-                first,
-                second,
-            } => {
-                hasher.write_u8(1);
-                hasher.write_u8(match dir {
-                    SplitDir::Horizontal => 0,
-                    SplitDir::Vertical => 1,
-                });
-                hasher.write_u16(split.percent);
-                hasher.write_u16(split.min_first);
-                hasher.write_u16(split.min_second);
-                hasher.write_u8(match split.maximized {
-                    Maximized::None => 0,
-                    Maximized::First => 1,
-                    Maximized::Second => 2,
-                });
-                Self::hash_topology(hasher, first);
-                Self::hash_topology(hasher, second);
-            }
         }
     }
 
@@ -2594,59 +2635,60 @@ impl App {
         hasher.finish()
     }
 
-    /// Build the tab strip labels. Pure in its inputs; see
+    /// Build the tab strip items. Pure in its inputs; see
     /// [`Self::capsule_tabs_fingerprint`] for the cached equivalent.
+    ///
+    /// Every tab carries its own state glyph: the frozen strip shows one on
+    /// inactive tabs (`3 docs ●`) as well as on the active tab.
     fn build_capsule_tabs(
         world: &World,
         instance_id: Option<&str>,
         tab_title: &str,
         tab_title_index: usize,
-    ) -> Vec<String> {
+    ) -> Vec<CapsuleTab> {
         let mut dynamic = instance_id
             .and_then(|id| world.daemons.get(id))
             .map(|daemon| {
                 daemon
                     .tabs
                     .iter()
-                    .enumerate()
-                    .map(|(index, tab)| {
-                        let mut label = daemon.tab_label(tab, &|pane| {
+                    .map(|tab| {
+                        let label = daemon.tab_label(tab, &|pane| {
                             pane.proc
                                 .account
                                 .as_ref()
                                 .and_then(|id| world.accounts.get(id))
                                 .map(|account| account.display_name.clone())
                         });
-                        if index == daemon.active {
-                            let glyph = Self::pane_state_glyph(daemon.tab_state(tab));
-                            if !glyph.is_empty() {
-                                label.push(' ');
-                                label.push_str(glyph);
-                            }
-                        }
-                        label
+                        let glyph = Self::pane_state_glyph(daemon.tab_state(tab));
+                        (label, glyph)
                     })
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
         if dynamic.is_empty() {
-            dynamic.push("Mix (3) ●".into());
+            dynamic.push(("Mix (3)".into(), "●"));
         }
         if dynamic.len() < 2 {
-            dynamic.push("Shell".into());
+            dynamic.push(("Shell".into(), ""));
         }
         if !tab_title.is_empty()
-            && let Some(label) = dynamic.get_mut(tab_title_index)
+            && let Some((label, glyph)) = dynamic.get_mut(tab_title_index)
         {
             *label = tab_title.to_owned();
+            *glyph = "";
         }
         if dynamic.len() < 3 {
-            dynamic.push("docs ●".into());
+            dynamic.push(("docs".into(), "●"));
         }
         dynamic
             .into_iter()
             .enumerate()
-            .map(|(index, label)| format!("{} {label}", index.saturating_add(1)))
+            .map(|(index, (label, glyph))| CapsuleTab {
+                number: (index.saturating_add(1)).to_string(),
+                label,
+                glyph,
+            })
             .collect()
     }
 
@@ -2696,8 +2738,10 @@ impl App {
         hasher.finish()
     }
 
-    /// Build one framed pane title from its label and state glyph.
-    fn build_pane_title(accounts: &AccountRegistry, pane: &Pane) -> String {
+    /// Build one framed pane title: the label run (with its surrounding
+    /// blanks) and the state glyph, which paints in its own style. The frozen
+    /// run carries no trailing blank after the glyph (`●─`, not `● ─`).
+    fn build_pane_title(accounts: &AccountRegistry, pane: &Pane) -> (String, &'static str) {
         let label = pane
             .proc
             .account
@@ -2708,11 +2752,7 @@ impl App {
                 |account| format!("{} ({})", pane.label(), account.display_name),
             );
         let glyph = Self::pane_state_glyph(pane.state());
-        if glyph.is_empty() {
-            format!(" {label} ")
-        } else {
-            format!(" {label} {glyph} ")
-        }
+        (format!(" {label} "), glyph)
     }
 
     /// Ensure one cached pane title, rebuilding only when its inputs changed.
@@ -2727,54 +2767,6 @@ impl App {
                 pane.id,
                 (fingerprint, Self::build_pane_title(accounts, pane)),
             );
-        }
-    }
-
-    /// Fingerprint of pane geometry: topology, zoom and container area.
-    fn pane_layouts_fingerprint(tab: &Tab, area: Rect) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        Self::hash_topology(&mut hasher, &tab.root);
-        match tab.zoomed {
-            None => hasher.write_u8(0),
-            Some(id) => {
-                hasher.write_u8(1);
-                hasher.write_u64(id);
-            }
-        }
-        hasher.write_u16(area.x);
-        hasher.write_u16(area.y);
-        hasher.write_u16(area.width);
-        hasher.write_u16(area.height);
-        hasher.finish()
-    }
-
-    /// Build leaf pane geometry for a container area.
-    fn build_pane_layouts(tab: &Tab, area: Rect) -> Vec<(PaneId, Rect)> {
-        let mut layouts = Vec::new();
-        if let Some(zoomed) = tab.zoomed {
-            layouts.push((zoomed, area));
-        } else {
-            let sim_area = jackin_preview_sim::Rect::new(area.x, area.y, area.width, area.height);
-            let mut sim_layouts = Vec::new();
-            tab.root
-                .layout(sim_area, &mut sim_layouts, &mut Vec::new(), &mut Vec::new());
-            for (id, r) in sim_layouts {
-                layouts.push((id, Rect::new(r.x, r.y, r.width, r.height)));
-            }
-        }
-        layouts
-    }
-
-    /// Ensure cached pane geometry, rebuilding only when topology, zoom or
-    /// area changed.
-    fn ensure_pane_layouts(caches: &mut CapsuleFrameCaches, tab: &Tab, area: Rect) {
-        let fingerprint = Self::pane_layouts_fingerprint(tab, area);
-        let fresh = caches
-            .layouts
-            .as_ref()
-            .is_some_and(|(cached, _)| *cached == fingerprint);
-        if !fresh {
-            caches.layouts = Some((fingerprint, Self::build_pane_layouts(tab, area)));
         }
     }
 
@@ -4309,8 +4301,10 @@ impl App {
             let tabs = frame
                 .tabs
                 .as_ref()
-                .map_or(&[] as &[String], |(_, tabs)| tabs.as_slice());
-            Tabs::new(CAPSULE_TABS).update(cx, &mut self.tabs_state, tabs)
+                .map_or(&[] as &[CapsuleTab], |(_, tabs)| tabs.as_slice());
+            Tabs::new(CAPSULE_TABS)
+                .row(paint_capsule_tab)
+                .update(cx, &mut self.tabs_state, tabs)
         };
         if let Some(TabsAction::Activated(ItemKey::Index(index))) =
             tabs_response.action_ref().copied()
@@ -6648,68 +6642,201 @@ impl App {
             && self.inspect.instance.is_none()
     }
 
+    /// Border patch for the focused pane frame (bright, never bold).
+    const CAPSULE_BORDER_FOCUSED: [(Part, StylePatch); 1] = [(
+        Part::BORDER,
+        StylePatch::new()
+            .set_fg(Role::BorderStrong)
+            .remove(Modifier::BOLD),
+    )];
+
+    /// Border patch for unfocused pane frames (subtle, never bold).
+    const CAPSULE_BORDER_UNFOCUSED: [(Part, StylePatch); 1] = [(
+        Part::BORDER,
+        StylePatch::new()
+            .set_fg(Role::BorderSubtle)
+            .remove(Modifier::BOLD),
+    )];
+
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
-        let style = ui.surface_style();
-        ui.fill(area, style);
+        ui.fill(area, ui.surface_style());
         let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
         let Some(instance_id) = instance_id else {
-            paint_lines(ui, area, &["Capsule is empty"]);
+            Empty::new(
+                CAPSULE_PANES_EMPTY,
+                EmptyState::Empty {
+                    title: "Capsule is empty",
+                    hint: None,
+                },
+            )
+            .draw(ui, area);
             return;
         };
         let Some(daemon) = self.world.daemons.get(instance_id) else {
-            paint_lines(ui, area, &["Daemon unavailable"]);
+            Empty::new(
+                CAPSULE_PANES_EMPTY,
+                EmptyState::Empty {
+                    title: "Daemon unavailable",
+                    hint: None,
+                },
+            )
+            .draw(ui, area);
             return;
         };
         let Some(tab) = daemon.active_tab() else {
-            paint_lines(ui, area, &["No sessions"]);
+            Empty::new(
+                CAPSULE_PANES_EMPTY,
+                EmptyState::Empty {
+                    title: "No sessions",
+                    hint: None,
+                },
+            )
+            .draw(ui, area);
             return;
         };
         let framed = tab.leaf_count() > 1 || tab.zoomed.is_some();
         {
             let mut frame = self.capsule_frame.borrow_mut();
             Self::ensure_tab_projections(&mut frame, daemon, &self.world.accounts, &tab.root);
-            Self::ensure_pane_layouts(&mut frame, tab, area);
         }
+        let ctx = CapsulePaneCtx {
+            daemon,
+            tab,
+            framed,
+        };
+        if let Some(zoomed) = tab.zoomed {
+            self.draw_capsule_leaf(ui, &ctx, zoomed, area);
+            return;
+        }
+        self.draw_capsule_node(ui, &ctx, &tab.root, area, 1, 0);
+    }
+
+    /// Stable per-split component id from the node's heap-indexed tree path
+    /// (root 1, children 2n/2n+1).
+    ///
+    /// Fixture trees are a handful of levels deep; the fold saturates past
+    /// depth 60 so ids stay total even for absurd inputs.
+    fn capsule_split_id(path_bits: u64) -> Id {
+        CAPSULE_SPLIT.item(ItemKey::num(path_bits))
+    }
+
+    /// Draw one pane-tree node: splits own their seam through [`SplitPane`]
+    /// (draw-only, like the manager seam: no resize behavior changes), leaves
+    /// draw through [`Self::draw_capsule_leaf`].
+    ///
+    /// `SplitPaneState` is derived per frame from the sim split, so the sim
+    /// stays the single source of truth for percents and maximize state.
+    /// The shared split-model arithmetic is identical to the sim split
+    /// arithmetic, hence the produced rects match the previous flat layout
+    /// exactly.
+    fn draw_capsule_node(
+        &self,
+        ui: &mut Ui<'_>,
+        ctx: &CapsulePaneCtx<'_>,
+        node: &PaneNode,
+        area: Rect,
+        path_bits: u64,
+        depth: u8,
+    ) {
+        let PaneNode::Split {
+            dir,
+            split,
+            first,
+            second,
+        } = node
+        else {
+            let PaneNode::Leaf(pane_id) = node else {
+                return;
+            };
+            self.draw_capsule_leaf(ui, ctx, *pane_id, area);
+            return;
+        };
+        let axis = match dir {
+            SplitDir::Horizontal => SplitAxis::Horizontal,
+            SplitDir::Vertical => SplitAxis::Vertical,
+        };
+        let mut state = SplitPaneState::new(u8::try_from(split.percent.clamp(5, 95)).unwrap_or(95));
+        match split.maximized {
+            Maximized::None => {}
+            Maximized::First => {
+                state.toggle_max(termrock::Maximized::First);
+            }
+            Maximized::Second => {
+                state.toggle_max(termrock::Maximized::Second);
+            }
+        }
+        let split_id = Self::capsule_split_id(path_bits);
+        let (first_bits, second_bits, next_depth) = if depth >= 60 {
+            (path_bits, path_bits, depth)
+        } else {
+            (
+                path_bits.saturating_mul(2),
+                path_bits.saturating_mul(2).saturating_add(1),
+                depth.saturating_add(1),
+            )
+        };
+        SplitPane::new(split_id, axis)
+            .gap(1)
+            .min_first(split.min_first)
+            .min_second(split.min_second)
+            .draw(ui, area, &state, |ui, first_area, second_area| {
+                self.draw_capsule_node(ui, ctx, first, first_area, first_bits, next_depth);
+                self.draw_capsule_node(ui, ctx, second, second_area, second_bits, next_depth);
+            });
+    }
+
+    /// Style the focused pane's state glyph like the status row styles the
+    /// same agent state: only a blocked pane raises the warning color.
+    fn capsule_title_glyph_focused(state: crate::domain::instance::AgentState) -> Role {
+        match state {
+            crate::domain::instance::AgentState::Working => Role::Fg(FgStep::Secondary),
+            crate::domain::instance::AgentState::Blocked => Role::Warning,
+            crate::domain::instance::AgentState::Done => Role::Fg(FgStep::Secondary),
+            crate::domain::instance::AgentState::Idle => Role::Fg(FgStep::Muted),
+            crate::domain::instance::AgentState::Unknown => Role::Fg(FgStep::Secondary),
+        }
+    }
+
+    /// Draw one leaf pane: a framed [`Panel`] with a title part slot, the
+    /// transcript [`TextViewport`], and the command [`TextInput`] row.
+    ///
+    /// The input row is reserved only while the input shows something (an
+    /// edit in progress or committed text); an idle empty input draws
+    /// underneath the full-height viewport so its focus target settles
+    /// without covering content. Unframed single panes draw content directly.
+    fn draw_capsule_leaf(
+        &self,
+        ui: &mut Ui<'_>,
+        ctx: &CapsulePaneCtx<'_>,
+        pane_id: PaneId,
+        pane_area: Rect,
+    ) {
+        if pane_area.width < 4 || pane_area.height < 3 {
+            return;
+        }
+        let Some(pane) = ctx.daemon.pane(pane_id) else {
+            return;
+        };
+        let focused = ctx.tab.focused == pane_id;
         let frame = self.capsule_frame.borrow();
-        let layouts = frame
-            .layouts
-            .as_ref()
-            .map_or(&[] as &[(PaneId, Rect)], |(_, layouts)| layouts.as_slice());
-        for &(pane_id, pane_area) in layouts {
-            if pane_area.width < 4 || pane_area.height < 3 {
-                continue;
-            }
-            if daemon.pane(pane_id).is_none() {
-                continue;
-            }
-            let focused = tab.focused == pane_id;
-            let inner = if framed {
-                let inner = ui.frame(pane_area, style);
-                let Some((_, title)) = frame.titles.get(&pane_id) else {
-                    continue;
-                };
-                ui.paint_str(
-                    Rect::new(
-                        pane_area.x.saturating_add(2),
-                        pane_area.y,
-                        pane_area.width.saturating_sub(4),
-                        1,
-                    ),
-                    title,
-                    style,
-                );
-                inner
-            } else {
-                pane_area
-            };
+        let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
+            return;
+        };
+        let input_shown =
+            focused && (self.capsule_input_state.is_editing() || !self.capsule_input.is_empty());
+        let draw_content = |ui: &mut Ui<'_>, inner: Rect| {
             if inner.is_empty() {
-                continue;
+                return;
             }
-            let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
-                continue;
-            };
+            if focused {
+                Self::capsule_input().value(&self.capsule_input).draw(
+                    ui,
+                    Rect::new(inner.x, inner.bottom().saturating_sub(1), inner.width, 1),
+                    &self.capsule_input_state,
+                );
+            }
             let viewport_area = Rect {
-                height: inner.height.saturating_sub(u16::from(focused)),
+                height: inner.height.saturating_sub(u16::from(input_shown)),
                 ..inner
             };
             let state = self
@@ -6718,19 +6845,69 @@ impl App {
                 .cloned()
                 .unwrap_or_default();
             Self::capsule_viewport(pane_id).draw_projected(ui, viewport_area, &state, projected);
-            if focused && !inner.is_empty() {
-                let input_y = if self.historical_capsule_frame() {
-                    inner.bottom().saturating_sub(3)
-                } else {
-                    inner.bottom().saturating_sub(1)
-                };
-                Self::capsule_input().value(&self.capsule_input).draw(
-                    ui,
-                    Rect::new(inner.x, input_y, inner.width, 1),
-                    &self.capsule_input_state,
-                );
-            }
+        };
+        if !ctx.framed {
+            draw_content(ui, pane_area);
+            return;
         }
+        let Some((_, (label_run, glyph))) = frame.titles.get(&pane_id) else {
+            return;
+        };
+        let palette = HistoricalPalette::new(ui);
+        let text_style = if focused {
+            palette.primary_on_canvas_bold
+        } else {
+            palette.secondary_on_canvas
+        };
+        let glyph_style = if focused {
+            let role = Self::capsule_title_glyph_focused(pane.state());
+            let patch = StylePatch::new().set_fg(role).remove(Modifier::BOLD);
+            palette.secondary_on_canvas.patch(ui.paint_patch(&patch))
+        } else {
+            palette.secondary_on_canvas
+        };
+        let title_prop = if glyph.is_empty() {
+            label_run.clone()
+        } else {
+            format!("{label_run}{glyph}")
+        };
+        let border_patch = if focused {
+            &Self::CAPSULE_BORDER_FOCUSED
+        } else {
+            &Self::CAPSULE_BORDER_UNFOCUSED
+        };
+        let pane_width = pane_area.width;
+        let label_width = label_run.chars().count() as u16;
+        Panel::new(Self::capsule_viewport_id(pane_id))
+            .kind(PanelKind::Framed)
+            .title(title_prop.as_str())
+            .inner_inset(Insets::all(1))
+            .patch_part(border_patch)
+            .slot(Part::TITLE, &|ui: &mut Ui<'_>, rect: Rect| {
+                // The stock framed title pads both sides; the frozen run has
+                // no trailing blank after the glyph, so the TITLE part slot
+                // paints the exact two-style run, clipped to the head span.
+                let start_x = rect.x.saturating_sub(1);
+                let end_x = pane_area.x.saturating_add(pane_width.saturating_sub(2));
+                let text_end = start_x.saturating_add(label_width).min(end_x);
+                if text_end > start_x {
+                    ui.paint_str(
+                        Rect::new(start_x, rect.y, text_end.saturating_sub(start_x), 1),
+                        label_run.as_str(),
+                        text_style,
+                    );
+                }
+                if !glyph.is_empty() && end_x > text_end {
+                    ui.paint_str(
+                        Rect::new(text_end, rect.y, end_x.saturating_sub(text_end), 1),
+                        glyph,
+                        glyph_style,
+                    );
+                }
+            })
+            .draw(ui, pane_area, |ui, inner| {
+                draw_content(ui, inner);
+            });
     }
 
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6755,12 +6932,21 @@ impl App {
             let tabs = frame
                 .tabs
                 .as_ref()
-                .map_or(&[] as &[String], |(_, tabs)| tabs.as_slice());
+                .map_or(&[] as &[CapsuleTab], |(_, tabs)| tabs.as_slice());
+            // The frozen strip starts one cell in and ends one cell short on
+            // every geometry; the shell fill shows through on both sides.
             let tab_area = Rect {
+                x: area.x.saturating_add(1),
+                width: area.width.saturating_sub(2),
                 height: area.height.min(2),
                 ..area
             };
-            Tabs::new(CAPSULE_TABS).draw(ui, tab_area, &self.tabs_state, tabs);
+            Tabs::new(CAPSULE_TABS).row(paint_capsule_tab).draw(
+                ui,
+                tab_area,
+                &self.tabs_state,
+                tabs,
+            );
         }
         let pane_area = Rect {
             y: area.y.saturating_add(2),

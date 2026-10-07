@@ -1488,6 +1488,7 @@ impl<'a> TextViewport<'a> {
             st.selection(),
             (base.style, selected.style),
         );
+        ui.scroll_edges(text, &view);
         self.caret(
             ui,
             text,
@@ -2820,5 +2821,37 @@ mod tests {
         );
         assert_eq!(plain_fg, Color::Gray);
         assert_eq!(focused_fg, Color::White);
+    }
+
+    /// Contract parity (`docs/components/text-viewport.md`, `draw`): a
+    /// scrolled viewport dims its scroll edges through the shared fade
+    /// policy, while an unscrolled top edge paints at full strength.
+    #[test]
+    fn scrolled_edges_fade_through_the_shared_policy() {
+        let area = Rect::new(0, 0, 20, 12);
+        let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
+        let render = |offset: usize| {
+            let mut rt = Runtime::new(Stub::default(), Theme::junie());
+            let mut buf = Buffer::empty(SCREEN);
+            let mut st = ViewportState::default();
+            st.set_follow(false);
+            st.scroll.apply_layout(usize::from(area.height), 30);
+            st.scroll.scroll_to(offset);
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                TextViewport::new(ID).draw(ui, area, &st, &lines);
+            })
+            .commit_presented();
+            let fg = |y: u16| buf.cell(Position::new(0, y)).map(|cell| cell.fg);
+            (fg(area.y), fg(area.y + 5), fg(area.bottom() - 1))
+        };
+        let (top, mid, bottom) = render(10);
+        assert_ne!(top, mid, "a scrolled viewport must fade its top edge");
+        assert_ne!(bottom, mid, "a scrolled viewport must fade its bottom edge");
+        let (top, mid, bottom) = render(0);
+        assert_eq!(
+            top, mid,
+            "the top edge must stay full strength at offset 0, got {top:?} vs {mid:?}"
+        );
+        assert_ne!(bottom, mid, "content below must still fade the bottom edge");
     }
 }
