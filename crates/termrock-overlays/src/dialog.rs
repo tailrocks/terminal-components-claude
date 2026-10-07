@@ -1739,8 +1739,12 @@ mod tests {
                 crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
             )),
         );
-        assert_eq!(pressed.matches("[Cancel]").count(), 1);
+        // Q65-S4/G6b: no brackets at `Mono` — the pressed Cancel keeps its
+        // focus gutter, and the press does not broadcast to OK.
+        assert!(!pressed.contains("[Cancel]"));
         assert!(!pressed.contains("[OK]"));
+        assert_eq!(pressed.matches('▎').count(), 1);
+        assert!(pressed.contains("▎Cancel"));
         let default = render(confirm(), None);
         assert_eq!(render(confirm(), None), default);
 

@@ -1178,7 +1178,7 @@ mod tests {
     }
 
     #[test]
-    fn mono_pressed_brackets_the_reserved_pad_cells() {
+    fn mono_pressed_keeps_the_reserved_pad_cells_unbracketed() {
         const LABEL: &str = "Full width";
         let items = [LABEL];
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
@@ -1200,11 +1200,13 @@ mod tests {
             })
             .commit_presented();
 
-        assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
+        // Q65-S4/G6: no brackets at `Mono` (the tag has none) — the pads
+        // stay blank and the full label still fits.
+        assert_eq!(row_text(&buffer, AREA.width), " Full width ");
     }
 
     #[test]
-    fn mono_pressed_closable_tab_keeps_the_close_cell_after_the_bracket() {
+    fn mono_pressed_closable_tab_keeps_the_close_cell_unbracketed() {
         let items = ["tab"];
         let key = ItemKey::index(0);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
@@ -1226,9 +1228,11 @@ mod tests {
             })
             .commit_presented();
 
+        // Q65-S4/G6: no brackets at `Mono` — the pad stays blank and the
+        // close cell keeps its position.
         assert_eq!(
             buffer.cell(Position::new(4, 0)).map(BufferCell::symbol),
-            Some(Theme::junie().design.glyphs.get(GlyphRole::PressRight))
+            Some(" ")
         );
         assert_eq!(
             buffer.cell(Position::new(5, 0)).map(BufferCell::symbol),

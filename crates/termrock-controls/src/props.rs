@@ -1568,7 +1568,7 @@ mod tests {
     }
 
     #[test]
-    fn mono_pressed_brackets_the_existing_column_gap() {
+    fn mono_pressed_leaves_the_existing_column_gap_unbracketed() {
         let rows = [PropsRow::new(FIRST_KEY, "Name", "value")];
         let render = |target| {
             let mut state = PropsState::default();
@@ -1591,8 +1591,6 @@ mod tests {
             ReferenceTarget::new(ID, ReferenceState::PRESSED)
                 .part(PartRef::item(Part::ROW, FIRST_KEY)),
         );
-        let left = Theme::junie().design.glyphs.get(GlyphRole::PressLeft);
-        let right = Theme::junie().design.glyphs.get(GlyphRole::PressRight);
 
         assert_eq!(
             focused
@@ -1606,17 +1604,20 @@ mod tests {
                 .map(ratatui_core::buffer::Cell::symbol),
             Some(" ")
         );
+        // Q65-S4/G6: no brackets at `Mono` (the tag has none) — the column
+        // gap the brackets used to occupy stays blank, so the row keeps its
+        // columns.
         assert_eq!(
             pressed
                 .cell(Position::new(4, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
-            Some(left)
+            Some(" ")
         );
         assert_eq!(
             pressed
                 .cell(Position::new(5, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
-            Some(right)
+            Some(" ")
         );
     }
 
