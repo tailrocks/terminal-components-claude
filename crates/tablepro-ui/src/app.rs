@@ -1,6 +1,6 @@
 //! `TablePro` application shell built only on the public `junie-tui` facade.
 
-use termrock::author::{PaintStyle, StyleDefaults};
+use termrock::author::PaintStyle;
 use termrock::{
     Action, ActionKey, App, Button, Checkbox, Chord, ColumnKey, Cx, Dialog, DialogAction,
     DialogState, Empty, EmptyState, Family, FgStep, Focusability, Form, FormAction, FormState,
@@ -229,6 +229,10 @@ fn help_dialog(cols: u16, screen_rows: u16) -> Dialog<'static> {
 }
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
+const CONNECT: Id = Id::root("tablepro.connections.action.connect");
+const EDIT: Id = Id::root("tablepro.connections.action.edit");
+const DUPLICATE: Id = Id::root("tablepro.connections.action.duplicate");
+const DELETE: Id = Id::root("tablepro.connections.action.delete");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
 
 const CONNECTION_DETAILS_TITLE_PATCH: [(Part, StylePatch); 1] = [(
@@ -3371,12 +3375,24 @@ impl TableProApp {
             height: area.height.min(17),
             ..area
         };
-        Self::connection_details_panel(&connection.name).draw(ui, card_area, |ui, area| {
+        let panel = Self::connection_details_panel(&connection.name);
+        let inner = panel.inner(ui, card_area);
+        // `PanelKind::Card` plane (`panel.rs` raises the outer surface for
+        // the body): replicated so the action row resolves `CurrentSurface`
+        // exactly as it would inside the body closure.
+        let plane = ui.theme_ref().raise(ui.surface());
+        panel.draw(ui, card_area, |ui, area| {
             draw_connection_properties(ui, area, &properties);
         });
         if !ui.is_inert() {
             ui.register_control(CONNECTION_DETAILS, card_area, Focusability::ClickOnly);
         }
+        // The stock action buttons register after the card (and after the
+        // panel's own non-delivering decor), so button cells hit the button
+        // while every other card cell still hits `CONNECTION_DETAILS`.
+        ui.with_surface(plane, |ui| {
+            ui.with_area(inner, |ui| draw_connection_actions(ui, inner));
+        });
     }
 
     fn draw_connections_list(
@@ -7285,126 +7301,29 @@ fn draw_connection_properties(
             y = y.saturating_add(1);
         }
     }
-    draw_connection_actions(ui, area);
 }
 
+/// Details-card action row: 4 stock buttons at the legacy rects. Drawn by
+/// `draw_connection_details` after the card registration (same inner rect,
+/// same card plane), so the buttons own their cells for hit-testing.
 fn draw_connection_actions(ui: &mut Ui<'_>, area: termrock::Rect) {
     let y = area.bottom().saturating_sub(1);
     let mut x = area.x;
-    paint_action_button(
-        ui,
-        x,
-        y,
-        "Connect",
-        action_paint(ui, CONNECT_LABEL, Role::Accent, Role::OnAccent),
-        true,
-    );
+    Button::new(CONNECT, "Connect")
+        .variant(Variant::PRIMARY)
+        .draw(ui, termrock::Rect::new(x, y, 9, 1));
     x = x.saturating_add(11);
-    paint_action_button(
-        ui,
-        x,
-        y,
-        "Edit",
-        action_paint(
-            ui,
-            EDIT_LABEL,
-            Role::Surface(termrock::Surface::Overlay),
-            Role::Fg(FgStep::Primary),
-        ),
-        false,
-    );
+    Button::new(EDIT, "Edit")
+        .variant(Variant::DEFAULT)
+        .draw(ui, termrock::Rect::new(x, y, 6, 1));
     x = x.saturating_add(8);
-    paint_action_button(
-        ui,
-        x,
-        y,
-        "Duplicate",
-        action_paint(
-            ui,
-            DUPLICATE_LABEL,
-            Role::Surface(termrock::Surface::Surface),
-            Role::Fg(FgStep::Secondary),
-        ),
-        false,
-    );
+    Button::new(DUPLICATE, "Duplicate")
+        .variant(Variant::SUBTLE)
+        .draw(ui, termrock::Rect::new(x, y, 11, 1));
     x = x.saturating_add(13);
-    paint_action_button(
-        ui,
-        x,
-        y,
-        "Delete…",
-        action_paint(
-            ui,
-            DELETE_LABEL,
-            Role::Surface(termrock::Surface::Overlay),
-            Role::Danger,
-        ),
-        false,
-    );
-}
-
-const CONNECTION_ACTIONS: termrock::Family =
-    termrock::Family::custom("tablepro.connection-actions");
-const CONNECT_LABEL: Part = Part::custom("connect.label");
-const EDIT_LABEL: Part = Part::custom("edit.label");
-const DUPLICATE_LABEL: Part = Part::custom("duplicate.label");
-const DELETE_LABEL: Part = Part::custom("delete.label");
-fn action_paint(ui: &Ui<'_>, part: Part, background: Role, foreground: Role) -> PaintStyle {
-    ui.style_defaults(
-        CONNECTION_ACTIONS,
-        termrock::Variant::DEFAULT,
-        part,
-        termrock::StateFlags::empty(),
-        StyleDefaults::new(StylePatch::new().set_bg(background).set_fg(foreground)),
-        None,
-    )
-    .over(ui.surface_style())
-}
-
-fn paint_action_button(
-    ui: &mut Ui<'_>,
-    x: u16,
-    y: u16,
-    label: &str,
-    mut button: PaintStyle,
-    bold: bool,
-) {
-    let width = termrock::width(label).saturating_add(2);
-    if bold {
-        button = button.add_modifier(Modifier::BOLD);
-    }
-    ui.fill(
-        termrock::Rect {
-            x,
-            y,
-            width,
-            height: 1,
-        },
-        button,
-    );
-    let gutter = button
-        .remove_modifier(Modifier::BOLD)
-        .with_fg_from_bg(button);
-    ui.paint_str(
-        termrock::Rect {
-            x,
-            y,
-            width: 1,
-            height: 1,
-        },
-        " ",
-        gutter,
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: x.saturating_add(1),
-            y,
-            width: width.saturating_sub(1),
-            height: 1,
-        },
-        label,
-        button,
-    );
+    Button::new(DELETE, "Delete…")
+        .variant(Variant::DANGER)
+        .draw(ui, termrock::Rect::new(x, y, 9, 1));
 }
 
 impl App for TableProApp {
@@ -7483,6 +7402,10 @@ impl App for TableProApp {
                 .erase();
             for _ in cx.intents(CONNECTION_DETAILS) {}
             for _ in cx.intents(CONNECTION_FILTER) {}
+            for _ in cx.intents(CONNECT) {}
+            for _ in cx.intents(EDIT) {}
+            for _ in cx.intents(DUPLICATE) {}
+            for _ in cx.intents(DELETE) {}
         }
         if self.form_open || self.screen != Screen::Workbench {
             response |= workbench_split().update(cx, &mut self.split_state).erase();
@@ -7955,6 +7878,42 @@ impl App for TableProApp {
                 self.request_connect(cx, *index);
             }
             response |= tree_response.erase();
+            // Stock action-row buttons: one `Activated` per gesture feeds the
+            // existing connection verbs (`Response` is move-on-erase, so the
+            // fire flags are read before the unconditional folds).
+            let connect = Button::new(CONNECT, "Connect")
+                .variant(Variant::PRIMARY)
+                .update(cx);
+            let edit = Button::new(EDIT, "Edit")
+                .variant(Variant::DEFAULT)
+                .update(cx);
+            let duplicate = Button::new(DUPLICATE, "Duplicate")
+                .variant(Variant::SUBTLE)
+                .update(cx);
+            let delete = Button::new(DELETE, "Delete…")
+                .variant(Variant::DANGER)
+                .update(cx);
+            let connect_fired = connect.activated();
+            let edit_fired = edit.activated();
+            let duplicate_fired = duplicate.activated();
+            let delete_fired = delete.activated();
+            response |= connect.erase();
+            response |= edit.erase();
+            response |= duplicate.erase();
+            response |= delete.erase();
+            if connect_fired {
+                self.request_connect(cx, self.connections_screen.selected);
+            }
+            if edit_fired {
+                self.begin_edit_connection_form(self.connections_screen.selected);
+                cx.focus(connections::field::NAME);
+            }
+            if duplicate_fired {
+                self.duplicate_connection();
+            }
+            if delete_fired {
+                self.request_delete_connection(cx);
+            }
             return response;
         }
 
