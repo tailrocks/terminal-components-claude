@@ -3991,6 +3991,969 @@
     ]
    }
   }
+,
+  {
+   "id": "PANEL-WORKBENCH-003",
+   "app": "tablepro",
+   "component": "Panel",
+   "part": "production workbench regions at audit boot",
+   "ref_symbols": [
+    {
+     "glyph": "≡ Query 1 ×",
+     "meaning": "single work tab in the strip at boot"
+    },
+    {
+     "glyph": "Explorer",
+     "meaning": "explorer panel title beside the query panel"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "≡ Query 1 ×",
+     "meaning": "single work tab in the strip at boot"
+    },
+    {
+     "glyph": "Explorer",
+     "meaning": "explorer panel title beside the query panel"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/tablepro/workbench.rs",
+     "symbols": [
+      "EXPLORER",
+      "primary_focus",
+      "show_explorer",
+      "narrow",
+      "explorer_visible",
+      "maximized",
+      "Panel"
+     ]
+    },
+    {
+     "path": "src/bin/tablepro/app.rs",
+     "symbols": [
+      "workbench",
+      "request_quit",
+      "QUIT_DIALOG",
+      "MIN_WIDTH",
+      "MIN_HEIGHT",
+      "too_small"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "connection": "Production",
+    "tabs": [
+     "Query 1"
+    ],
+    "explorer": "acme_prod public schema tree",
+    "results": "No results yet empty state"
+   },
+   "state": {
+    "explorer_visible": true,
+    "maximized": false,
+    "too_small": false,
+    "pending": 0
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot tablepro with --connect Production"
+    },
+    {
+     "step": 2,
+     "action": "press Tab (focus leaves the explorer for the query tab)"
+    },
+    {
+     "step": 3,
+     "action": "open the tab list with ctrl-g, then close it with Esc"
+    },
+    {
+     "step": 4,
+     "action": "press q on the clean boot (quits with no confirm)"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "booted",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the strip shows a single ≡ Query 1 × tab with the + button; the header names Production ◆ production acme_prod › public safe"
+     },
+     {
+      "id": "V2",
+      "text": "the Explorer panel (meta public) docks beside the Query 1 panel with the SQL placeholder and the No results yet empty state"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "boot focus is the explorer: ▎ sits on the S public row and the footer shows explorer hints (↑ ↓ Move · Enter Open)"
+     },
+     {
+      "id": "S2",
+      "text": "the schema tree is loaded: D acme_prod with S public expanded (Tables/Views/Functions/Sequences) plus S analytics and S audit"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Tab moves focus from the explorer into the query tab (the ▎ bar leaves the tree; tab hints appear)"
+     },
+     {
+      "id": "A2",
+      "text": "q on the clean boot quits with no confirm dialog (the session exits 0)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no modal may cover the workbench at boot (no Open tabs/Quit/Save overlay); ctrl-g later proves modals render"
+     },
+     {
+      "id": "N2",
+      "text": "q must NOT raise Quit TablePro? on a clean boot: the exit frame carries no dialog text"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "1210-1226",
+      "note": "strip render plus the narrow/show_explorer gate"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "1245-1263",
+      "note": "Explorer panel with the schema meta"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "1281-1300",
+      "note": "tab title and meta per work-tab kind"
+     },
+     {
+      "path": "src/bin/tablepro/app.rs",
+      "lines": "274-315",
+      "note": "request_quit: clean boot quits directly with no dialog"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/audit/production/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+      {
+        "at": "2026-10-07T09:15:03Z",
+        "branch": "visual-baseline",
+        "status": "pass",
+        "note": "phase-8e T1 t1_audit_production_boot live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+      }
+    ]
+   }
+  },
+  {
+   "id": "TOOSMALL-WORKBENCH-004",
+   "app": "tablepro",
+   "component": "TooSmall",
+   "part": "healthy reflow after growing to 120x40",
+   "ref_symbols": [
+    {
+     "glyph": "No results yet",
+     "meaning": "results dock renders after the grow"
+    },
+    {
+     "glyph": "S audit",
+     "meaning": "loaded schema tree persists after the grow"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "No results yet",
+     "meaning": "results dock renders after the grow"
+    },
+    {
+     "glyph": "S audit",
+     "meaning": "loaded schema tree persists after the grow"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/tablepro/app.rs",
+     "symbols": [
+      "MIN_WIDTH",
+      "MIN_HEIGHT",
+      "too_small",
+      "workbench"
+     ]
+    },
+    {
+     "path": "src/bin/tablepro/workbench.rs",
+     "symbols": [
+      "narrow",
+      "show_explorer",
+      "explorer_visible"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "from": "80x24",
+    "to": "120x40",
+    "min": "72x20"
+   },
+   "state": {
+    "too_small": false,
+    "narrow_before": true,
+    "narrow_after": false
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot --connect Production at 80x24"
+    },
+    {
+     "step": 2,
+     "action": "resize the emulator to 120x40 and wait for the steady state (No results yet, S audit, Connected to expiry)"
+    },
+    {
+     "step": 3,
+     "action": "shrink back to 80x24 (the drawer returns)"
+    },
+    {
+     "step": 4,
+     "action": "grow to 120x40 again and wait for the steady state"
+    },
+    {
+     "step": 5,
+     "action": "press Tab (focus reaches the query tab)"
+    },
+    {
+     "step": 6,
+     "action": "press ctrl-t (Query 2 opens; proves the N2 needle)"
+    },
+    {
+     "step": 7,
+     "action": "shrink to 60x10 (the notice appears; proves the N1 needle)"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "grown",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the docked layout returns: the Explorer panel sits beside the Query 1 panel with No results yet in the results dock"
+     },
+     {
+      "id": "V2",
+      "text": "the explorer keeps the loaded tree (D acme_prod, S public expanded, S audit at the foot)"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "too_small stays false: both sizes clear 72×20"
+     },
+     {
+      "id": "S2",
+      "text": "focus survives the grow (▎ stays in the explorer on the S public row)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Tab reaches the query tab after the grow (▎ leaves the tree for the editor)"
+     },
+     {
+      "id": "A2",
+      "text": "shrinking back to 80x24 re-opens the drawer (the query tab steps aside again)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no too-small notice may show at either size (no Terminal too small); 60x10 later proves the notice renders"
+     },
+     {
+      "id": "N2",
+      "text": "the grow must NOT add a phantom tab (single ≡ Query 1 ×); ctrl-t later proves new tabs render"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/tablepro/app.rs",
+      "lines": "34-35",
+      "note": "MIN_WIDTH/MIN_HEIGHT 72x20 consts"
+     },
+     {
+      "path": "src/bin/tablepro/app.rs",
+      "lines": "2129-2143",
+      "note": "too_small gate plus the notice screen"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "1221-1226",
+      "note": "narrow gate under 100 columns"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "1227-1244",
+      "note": "drawer versus docked body split"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/resize/workbench_grown/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+      {
+        "at": "2026-10-07T09:15:03Z",
+        "branch": "visual-baseline",
+        "status": "pass",
+        "note": "phase-8e T1 t1_resize_workbench_grown live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+      }
+    ]
+   }
+  },
+  {
+   "id": "TOOSMALL-WORKBENCH-005",
+   "app": "tablepro",
+   "component": "TooSmall",
+   "part": "healthy reflow after shrinking to 80x24",
+   "ref_symbols": [
+    {
+     "glyph": "1.2 M",
+     "meaning": "orders row count in the drawer tree"
+    },
+    {
+     "glyph": "▸ S analytics",
+     "meaning": "last visible schema row (S audit sits below the fold)"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "1.2 M",
+     "meaning": "orders row count in the drawer tree"
+    },
+    {
+     "glyph": "▸ S analytics",
+     "meaning": "last visible schema row (S audit sits below the fold)"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/tablepro/app.rs",
+     "symbols": [
+      "MIN_WIDTH",
+      "MIN_HEIGHT",
+      "too_small",
+      "workbench"
+     ]
+    },
+    {
+     "path": "src/bin/tablepro/workbench.rs",
+     "symbols": [
+      "narrow",
+      "show_explorer",
+      "explorer_visible"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "from": "120x40",
+    "to": "80x24",
+    "min": "72x20"
+   },
+   "state": {
+    "too_small": false,
+    "narrow": true,
+    "drawer": true
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 80,
+    "height": 24
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot --connect Production at 120x40 and wait for S audit (schema loaded)"
+    },
+    {
+     "step": 2,
+     "action": "resize the emulator to 80x24 and wait for the steady state"
+    },
+    {
+     "step": 3,
+     "action": "press Tab (the drawer steps aside for the query tab)"
+    },
+    {
+     "step": 4,
+     "action": "grow back to 120x40 and wait for the steady state"
+    },
+    {
+     "step": 5,
+     "action": "press ctrl-t (Query 2 opens; proves the N2 needle)"
+    },
+    {
+     "step": 6,
+     "action": "shrink to 60x10 (the notice appears; proves the N1 needle)"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "shrunk",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the explorer drawer covers the body with the full object tree and row counts (Tables, T rows, 1.2 M orders)"
+     },
+     {
+      "id": "V2",
+      "text": "the query tab steps aside (no Query 1 panel, no SQL placeholder, no No results yet)"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "too_small stays false (80x24 clears 72×20)"
+     },
+     {
+      "id": "S2",
+      "text": "focus stays in the explorer (▎ on the S public row; explorer hints persist)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Tab leaves the drawer for the query tab (the Query 1 panel appears; the Explorer title leaves non-vacuously)"
+     },
+     {
+      "id": "A2",
+      "text": "growing back to 120x40 restores the docked layout (Explorer and Query 1 side by side)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no too-small notice may show at either size (no Terminal too small); 60x10 later proves the notice renders"
+     },
+     {
+      "id": "N2",
+      "text": "shrinking must NOT add a phantom tab (single ≡ Query 1 ×); ctrl-t later proves new tabs render"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/tablepro/app.rs",
+      "lines": "34-35",
+      "note": "MIN_WIDTH/MIN_HEIGHT 72x20 consts"
+     },
+     {
+      "path": "src/bin/tablepro/app.rs",
+      "lines": "2129-2143",
+      "note": "too_small gate plus the notice screen"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "1221-1226",
+      "note": "narrow gate under 100 columns"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "1227-1244",
+      "note": "drawer versus docked body split"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/resize/workbench_shrunk/80x24/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "tick-control",
+     "glyph-capture",
+     "geometry-probe"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+      {
+        "at": "2026-10-07T09:15:03Z",
+        "branch": "visual-baseline",
+        "status": "pass",
+        "note": "phase-8e T1 t1_resize_workbench_shrunk live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+      }
+    ]
+   }
+  },
+  {
+   "id": "PANEL-EXPLORER-004",
+   "app": "tablepro",
+   "component": "Panel",
+   "part": "explorer visibility toggle",
+   "ref_symbols": [
+    {
+     "glyph": "Explorer",
+     "meaning": "explorer panel title (gone while hidden)"
+    },
+    {
+     "glyph": "Enter Edit",
+     "meaning": "tab hints after focus leaves the tree"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Explorer",
+     "meaning": "explorer panel title (gone while hidden)"
+    },
+    {
+     "glyph": "Enter Edit",
+     "meaning": "tab hints after focus leaves the tree"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/tablepro/workbench.rs",
+     "symbols": [
+      "explorer_visible",
+      "show_explorer",
+      "EXPLORER",
+      "narrow",
+      "primary_focus"
+     ]
+    },
+    {
+     "path": "src/bin/tablepro/app.rs",
+     "symbols": [
+      "explorer_visible",
+      "workbench"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "chord": "ctrl-b"
+   },
+   "state": {
+    "explorer_visible": false,
+    "maximized": false,
+    "focus": "editor"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot --connect Production"
+    },
+    {
+     "step": 2,
+     "action": "press ctrl-b (the explorer hides)"
+    },
+    {
+     "step": 3,
+     "action": "type x in the editor (editing works while hidden), then Esc"
+    },
+    {
+     "step": 4,
+     "action": "press ctrl-b (the explorer returns)"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "explorer-hidden",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the Explorer panel is gone (no Explorer title, no Filter objects, no tree); the Query 1 panel fills the body with the placeholder and No results yet"
+     },
+     {
+      "id": "V2",
+      "text": "the header keeps Production ◆ production acme_prod › public safe; the strip keeps the single ≡ Query 1 ×"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "focus leaves the tree (▎ leaves the S public row; the footer flips to tab hints: Enter Edit · Ctrl+R Run)"
+     },
+     {
+      "id": "S2",
+      "text": "the schema stays loaded underneath (S audit returns instantly on restore)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "ctrl-b restores the explorer (Explorer + S public ▎ + explorer hints all return)"
+     },
+     {
+      "id": "A2",
+      "text": "query editing works while hidden (i + x shows the typed draft; Esc leaves edit mode)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the hidden explorer must NOT show (no Explorer title/filter/tree while hidden); restore proves they render"
+     },
+     {
+      "id": "N2",
+      "text": "hiding must NOT close tabs or drop the schema (≡ Query 1 × persists; S audit returns on restore)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/tablepro/app.rs",
+      "lines": "655-666",
+      "note": "ctrl-b toggles explorer_visible and moves focus"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "1224-1244",
+      "note": "show_explorer gate plus the body split"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "534-540",
+      "note": "primary_focus falls back to the tab editor"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/workbench/explorer_hidden/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+      {
+        "at": "2026-10-07T09:15:03Z",
+        "branch": "visual-baseline",
+        "status": "pass",
+        "note": "phase-8e T1 t1_workbench_explorer_hidden live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+      }
+    ]
+   }
+  },
+  {
+   "id": "PANEL-ZOOM-005",
+   "app": "tablepro",
+   "component": "Panel",
+   "part": "pane zoom toggle",
+   "ref_symbols": [
+    {
+     "glyph": "No results yet",
+     "meaning": "zoomed results pane fills the body"
+    },
+    {
+     "glyph": "↑ ↓ Move",
+     "meaning": "explorer hints persist (focus never left)"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "No results yet",
+     "meaning": "zoomed results pane fills the body"
+    },
+    {
+     "glyph": "↑ ↓ Move",
+     "meaning": "explorer hints persist (focus never left)"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/tablepro/workbench.rs",
+     "symbols": [
+      "maximized",
+      "show_explorer",
+      "narrow"
+     ]
+    },
+    {
+     "path": "src/bin/tablepro/app.rs",
+     "symbols": [
+      "maximized",
+      "Maximized",
+      "workbench"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "chord": "z",
+    "target": "Second (results)"
+   },
+   "state": {
+    "maximized": true,
+    "explorer_visible": true,
+    "focus": "explorer"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot --connect Production"
+    },
+    {
+     "step": 2,
+     "action": "press z (the results pane zooms)"
+    },
+    {
+     "step": 3,
+     "action": "press z (restore with the strip focused), Tab until the editor owns focus, z (the editor zooms)"
+    },
+    {
+     "step": 4,
+     "action": "press Esc (restore through the Esc path)"
+    },
+    {
+     "step": 5,
+     "action": "press ctrl-t (Query 2 opens; proves the N2 needle)"
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "maximized",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the explorer and the editor are gone; the No results yet pane fills the body with the Ctrl+R hints"
+     },
+     {
+      "id": "V2",
+      "text": "the header and the ≡ Query 1 × strip persist; the footer still shows the explorer hints (no repaint follows the zoom)"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "zooming drops the explorer from the focus ring, so focus falls to the strip (no ▎ renders while zoomed; the next repaint shows strip hints)"
+     },
+     {
+      "id": "S2",
+      "text": "the editor state is preserved underneath (the placeholder returns on restore)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "z restores the full layout with the strip focused (strip hints ← → Switch · Ctrl+G Tab list; ▎ stays off the tree)"
+     },
+     {
+      "id": "A2",
+      "text": "z with the editor focused zooms the editor instead (First: the placeholder fills; No results yet leaves)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "zoom must NOT focus the tab editor (no Enter Edit while zoomed); Tab later proves editor hints render"
+     },
+     {
+      "id": "N2",
+      "text": "zoom must NOT close tabs: a single ≡ Query 1 × shows; ctrl-t later proves new tabs render"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/tablepro/app.rs",
+      "lines": "708-727",
+      "note": "z toggles maximized with First/Second targeting"
+     },
+     {
+      "path": "src/bin/tablepro/app.rs",
+      "lines": "786-791",
+      "note": "Esc restores a maximized pane"
+     },
+     {
+      "path": "src/bin/tablepro/workbench.rs",
+      "lines": "1224-1226",
+      "note": "maximized hides the explorer from the split"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/tablepro/workbench/maximized/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+      {
+        "at": "2026-10-07T09:15:03Z",
+        "branch": "visual-baseline",
+        "status": "pass",
+        "note": "phase-8e T1 t1_workbench_maximized live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log) NOTE: zooming repairs focus to the strip (explorer leaves the ring); the zoomed explorer hints are stale, proven by the strip hints on restore"
+      }
+    ]
+   }
+  }
  ],
  "coverage": [
   {
@@ -4142,7 +5105,10 @@
    "rows": [
     "PANEL-FOCUS-READONLY-001",
     "CTRL-NARROW-CLIP-001",
-    "PANEL-STATIC-002"
+    "PANEL-STATIC-002",
+    "PANEL-WORKBENCH-003",
+    "PANEL-EXPLORER-004",
+    "PANEL-ZOOM-005"
    ],
    "handlers": [
     "Panel chrome: none (display-only)",
@@ -4257,7 +5223,9 @@
    "rows": [
     "TOOSMALL-NOTICE-001",
     "TOOSMALL-GROWN-002",
-    "TOOSMALL-SHRUNK-003"
+    "TOOSMALL-SHRUNK-003",
+    "TOOSMALL-WORKBENCH-004",
+    "TOOSMALL-WORKBENCH-005"
    ],
    "handlers": [
     "none on the notice; the app input path is unchanged (q Quit hint is text)",
@@ -4724,6 +5692,81 @@
    "status": "mapped",
    "also": [],
    "note": "8A-S1: static reference cards on overview"
+  },
+  {
+   "old": "tablepro/audit/production",
+   "app": "tablepro",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-WORKBENCH-003",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8e slice 8A-T1: t1_audit_production_boot live-PTY check"
+  },
+  {
+   "old": "tablepro/resize/workbench_grown",
+   "app": "tablepro",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "TOOSMALL-WORKBENCH-004",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8e slice 8A-T1: t1_resize_workbench_grown live-PTY check"
+  },
+  {
+   "old": "tablepro/resize/workbench_shrunk",
+   "app": "tablepro",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "TOOSMALL-WORKBENCH-005",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8e slice 8A-T1: t1_resize_workbench_shrunk live-PTY check"
+  },
+  {
+   "old": "tablepro/workbench/explorer_hidden",
+   "app": "tablepro",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-EXPLORER-004",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8e slice 8A-T1: t1_workbench_explorer_hidden live-PTY check"
+  },
+  {
+   "old": "tablepro/workbench/maximized",
+   "app": "tablepro",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-ZOOM-005",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8e slice 8A-T1: t1_workbench_maximized live-PTY check"
   }
  ]
 }

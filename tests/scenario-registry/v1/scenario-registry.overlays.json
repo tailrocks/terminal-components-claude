@@ -4360,6 +4360,615 @@
         "runs": []
       }
     }
+,
+    {
+      "id": "DIALOG-DELETE-005",
+      "app": "tablepro",
+      "component": "Dialog",
+      "part": "delete connection destructive confirm",
+      "ref_symbols": [
+        {
+          "glyph": "Delete connection?",
+          "meaning": "destructive dialog title"
+        },
+        {
+          "glyph": "▎Cancel",
+          "meaning": "Cancel holds initial focus (dangerous gate)"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Delete connection?",
+          "meaning": "destructive dialog title"
+        },
+        {
+          "glyph": "▎Cancel",
+          "meaning": "Cancel holds initial focus (dangerous gate)"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/tablepro/connections.rs",
+          "symbols": [
+            "action",
+            "destructive",
+            "on_dialog_closed",
+            "Delete"
+          ]
+        },
+        {
+          "path": "src/widgets/dialog.rs",
+          "symbols": [
+            "destructive",
+            "DialogResult",
+            "Action",
+            "cancel_index",
+            "finish"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "target": "Production",
+        "detail": "Production (acme_ops@prod-db-1.acme.io)"
+      },
+      "state": {
+        "cursor": 7,
+        "selected": 4,
+        "connections": 6,
+        "dialog": "delete-dialog"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot connections and move the cursor to Production (seven downs)"
+        },
+        {
+          "step": 2,
+          "action": "press d (the delete dialog opens)"
+        },
+        {
+          "step": 3,
+          "action": "press Esc (cancel: nothing is deleted)"
+        },
+        {
+          "step": 4,
+          "action": "press d again, move to Delete with Right, then Esc (cancel again)"
+        },
+        {
+          "step": 5,
+          "action": "press d again and confirm with Enter on Cancel (cancel a third way)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "delete-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the destructive dialog titles Delete connection? with the Production (acme_ops@prod-db-1.acme.io) body (connections.json + keychain lines)"
+          },
+          {
+            "id": "V2",
+            "text": "the actions read ▎Cancel Delete; the footer offers ← → Choose · Enter Confirm · Esc Cancel · y / n Quick answer"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the dialog focuses Cancel (destructive initial focus; ▎ on Cancel, not Delete)"
+          },
+          {
+            "id": "S2",
+            "text": "the tree cursor stays on Production behind the dialog (no tree row keeps ▎ while the dialog owns focus)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc closes the dialog with no deletion (6 saved persists; the Production row persists)"
+          },
+          {
+            "id": "A2",
+            "text": "Right arms Delete (▎ Cancel → Delete); Esc still cancels with no deletion"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Esc must NOT delete: 6 saved and the Production row persist after each cancel"
+          },
+          {
+            "id": "N2",
+            "text": "Enter while Cancel holds focus must NOT delete: the dialog closes and 6 saved persists"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "492-499",
+            "note": "d/ctrl-d keyboard equivalents route to action 3/2"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "562-577",
+            "note": "delete dialog construction with the connection detail"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "580-600",
+            "note": "on_dialog_closed removes only on Action(1)"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "75-91",
+            "note": "destructive ctor: Cancel initial focus"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "305-320",
+            "note": "y/n quick answers on Text dialogs"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/connections/delete_dialog/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_connections_delete_dialog live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "DIALOG-COMMIT-006",
+      "app": "tablepro",
+      "component": "Dialog",
+      "part": "commit review with typed acknowledgement",
+      "ref_symbols": [
+        {
+          "glyph": "Save changes?",
+          "meaning": "commit review title"
+        },
+        {
+          "glyph": "Type orders to confirm",
+          "meaning": "typed-token ack field label"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Save changes?",
+          "meaning": "commit review title"
+        },
+        {
+          "glyph": "Type orders to confirm",
+          "meaning": "typed-token ack field label"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/tablepro/app.rs",
+          "symbols": [
+            "begin_commit",
+            "finish_commit",
+            "COMMIT_DIALOG",
+            "Save"
+          ]
+        },
+        {
+          "path": "src/widgets/dialog.rs",
+          "symbols": [
+            "facts",
+            "armed",
+            "AckInput",
+            "token",
+            "disabled"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "table": "public.orders",
+        "edits": 1,
+        "token": "orders",
+        "sql": "UPDATE public.orders SET status = 'paid'"
+      },
+      "state": {
+        "pending": 1,
+        "armed": false,
+        "safe_mode": "Safe"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production, open orders, edit one cell to paid (dirty: 1 pending)"
+        },
+        {
+          "step": 2,
+          "action": "press ctrl-s (the commit review opens)"
+        },
+        {
+          "step": 3,
+          "action": "press Esc (cancel: the edit stays pending)"
+        },
+        {
+          "step": 4,
+          "action": "press ctrl-s again, then Enter twice in the ack field (begin editing, then commit: focus advances to Cancel)"
+        },
+        {
+          "step": 5,
+          "action": "press y (quick answers do nothing on facts dialogs), then Right (Save refuses while disabled)"
+        },
+        {
+          "step": 6,
+          "action": "return to the ack field with BackTab, Enter, type orders, Enter, then Right to Save and confirm"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "commit-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the facts dialog titles Save changes? with Action/Target (Production · production · acme_prod · public.orders)/Scope (1 update · 0 inserts · 0 deletes)/Transaction/Safe Mode (deliberate confirmation required) plus the UPDATE preview"
+          },
+          {
+            "id": "V2",
+            "text": "the ack field (Type orders to confirm) holds ▎; the actions read Cancel Save; the header carries • 1 pending"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the token starts unarmed (empty ack input; Save disabled)"
+          },
+          {
+            "id": "S2",
+            "text": "Esc sets Changes kept pending (the dialog closes; • 1 pending persists)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "typing orders arms Save; confirming executes (Saving… then Saved 1 change to public.orders; pending clears)"
+          },
+          {
+            "id": "A2",
+            "text": "Enter begins editing and a second Enter commits, advancing focus (▎ ack → Cancel); the dialog stays open either way"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Esc must NOT save: • 1 pending persists and the grid keeps the paid cell"
+          },
+          {
+            "id": "N2",
+            "text": "quick answers must NOT exist on facts dialogs: y changes nothing (dialog stays; pending stays)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1002-1017",
+            "note": "begin_commit guards: table-only, pending, read-only"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1022-1075",
+            "note": "commit facts: Action/Target/Scope/Risk/Transaction/Safe Mode"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1076-1094",
+            "note": "typed token plus Save confirm plus the review title"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1112-1153",
+            "note": "finish_commit applies and reports Saved N changes"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1828-1836",
+            "note": "COMMIT dispatch: Saving… versus Changes kept pending"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "138-143",
+            "note": "armed: trimmed ack input equals the token"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "474-479",
+            "note": "the confirming action stays disabled until armed"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/workbench/commit_dialog/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_workbench_commit_dialog live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "DIALOG-QUIT-007",
+      "app": "tablepro",
+      "component": "Dialog",
+      "part": "quit confirm with unsaved query",
+      "ref_symbols": [
+        {
+          "glyph": "Quit TablePro?",
+          "meaning": "destructive quit title"
+        },
+        {
+          "glyph": "1 unsaved query will be lost.",
+          "meaning": "dirty-query body copy"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Quit TablePro?",
+          "meaning": "destructive quit title"
+        },
+        {
+          "glyph": "1 unsaved query will be lost.",
+          "meaning": "dirty-query body copy"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/tablepro/app.rs",
+          "symbols": [
+            "request_quit",
+            "QUIT_DIALOG",
+            "quit"
+          ]
+        },
+        {
+          "path": "src/widgets/dialog.rs",
+          "symbols": [
+            "destructive",
+            "DialogResult",
+            "Action",
+            "cancel_index"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "dirty_queries": 1,
+        "pending": 0
+      },
+      "state": {
+        "dialog": "dialog.quit",
+        "quit": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production, Tab into the editor, type x, Esc (dirty: 1 unsaved query)"
+        },
+        {
+          "step": 2,
+          "action": "press q (the quit confirm opens)"
+        },
+        {
+          "step": 3,
+          "action": "press Esc (cancel: the draft survives, the app stays)"
+        },
+        {
+          "step": 4,
+          "action": "press q again, then Enter on Cancel (cancel again: the draft survives)"
+        },
+        {
+          "step": 5,
+          "action": "press q again, then y (quick Quit: the app exits 0)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "quit-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the destructive dialog titles Quit TablePro? with the 1 unsaved query will be lost. body"
+          },
+          {
+            "id": "V2",
+            "text": "the actions read ▎Cancel Quit; the footer offers ← → Choose · Enter Confirm · Esc Cancel · y / n Quick answer"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the dialog focuses Cancel (destructive initial focus)"
+          },
+          {
+            "id": "S2",
+            "text": "the editor keeps the dirty x behind the dialog (› 1 x stays visible)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc cancels (the dialog closes; › 1 x persists; the session stays alive)"
+          },
+          {
+            "id": "A2",
+            "text": "y quick-answers Quit (the session exits 0)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Esc must NOT quit and must NOT drop the draft (› 1 x persists; Query 1 stays)"
+          },
+          {
+            "id": "N2",
+            "text": "Enter on Cancel must NOT quit either (› 1 x persists; the session stays alive)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "274-315",
+            "note": "request_quit counts pending/dirty and raises the dialog"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "570",
+            "note": "q global chord routes to request_quit"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1806-1811",
+            "note": "QUIT Action(1) sets quit"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "75-91",
+            "note": "destructive ctor: Cancel initial focus"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "305-320",
+            "note": "y/n quick answers on Text dialogs"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/workbench/quit_confirm/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_workbench_quit_confirm live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "coverage": [
     {
@@ -4537,7 +5146,10 @@
         "DIALOG-CONFIRM-001",
         "DIALOG-PROMPT-002",
         "DIALOG-ACK-003",
-        "DIALOG-CANCEL-004"
+        "DIALOG-CANCEL-004",
+        "DIALOG-DELETE-005",
+        "DIALOG-COMMIT-006",
+        "DIALOG-QUIT-007"
       ],
       "handlers": [
         "confirm/destructive/prompt/facts: action shapes with cancel_index and initial focus (dialog.rs)",
@@ -5237,20 +5849,6 @@
       "note": "jackin-app Picker launch flow; needs a jackin Picker row"
     },
     {
-      "old": "tablepro/overlays/history_tab",
-      "app": "tablepro",
-      "sizes": [
-        "100x30",
-        "120x40",
-        "160x50",
-        "72x20",
-        "80x24"
-      ],
-      "new": null,
-      "status": "pending",
-      "note": "history is a work tab, not a Picker modal; no row pins it yet"
-    },
-    {
       "old": "jackin/capsule/new_tab",
       "app": "jackin",
       "sizes": [
@@ -5305,6 +5903,51 @@
       "new": null,
       "status": "pending",
       "note": "pending in the navigation slice too; holla-app modal needs a holla row"
+    },
+    {
+      "old": "tablepro/connections/delete_dialog",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "DIALOG-DELETE-005",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8e slice 8A-T1: t1_connections_delete_dialog live-PTY check"
+    },
+    {
+      "old": "tablepro/workbench/commit_dialog",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "DIALOG-COMMIT-006",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8e slice 8A-T1: t1_workbench_commit_dialog live-PTY check"
+    },
+    {
+      "old": "tablepro/workbench/quit_confirm",
+      "app": "tablepro",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "DIALOG-QUIT-007",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8e slice 8A-T1: t1_workbench_quit_confirm live-PTY check"
     }
   ]
 }

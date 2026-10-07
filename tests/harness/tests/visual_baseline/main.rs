@@ -53,6 +53,7 @@ mod showcase_pending_s1;
 mod support;
 mod tablepro;
 mod tablepro_journeys;
+mod tablepro_pending_t1;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;

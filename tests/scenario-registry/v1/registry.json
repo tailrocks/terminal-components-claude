@@ -19039,6 +19039,2474 @@
       ]
     }
   }
+,
+    {
+      "id": "PANEL-WORKBENCH-003",
+      "app": "tablepro",
+      "component": "Panel",
+      "part": "production workbench regions at audit boot",
+      "ref_symbols": [
+        {
+          "glyph": "≡ Query 1 ×",
+          "meaning": "single work tab in the strip at boot"
+        },
+        {
+          "glyph": "Explorer",
+          "meaning": "explorer panel title beside the query panel"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "≡ Query 1 ×",
+          "meaning": "single work tab in the strip at boot"
+        },
+        {
+          "glyph": "Explorer",
+          "meaning": "explorer panel title beside the query panel"
+        }
+      ],
+      "data": {
+        "connection": "Production",
+        "tabs": [
+          "Query 1"
+        ],
+        "explorer": "acme_prod public schema tree",
+        "results": "No results yet empty state"
+      },
+      "state": {
+        "explorer_visible": true,
+        "maximized": false,
+        "too_small": false,
+        "pending": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot tablepro with --connect Production"
+        },
+        {
+          "step": 2,
+          "action": "press Tab (focus leaves the explorer for the query tab)"
+        },
+        {
+          "step": 3,
+          "action": "open the tab list with ctrl-g, then close it with Esc"
+        },
+        {
+          "step": 4,
+          "action": "press q on the clean boot (quits with no confirm)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "booted",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the strip shows a single ≡ Query 1 × tab with the + button; the header names Production ◆ production acme_prod › public safe"
+          },
+          {
+            "id": "V2",
+            "text": "the Explorer panel (meta public) docks beside the Query 1 panel with the SQL placeholder and the No results yet empty state"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "boot focus is the explorer: ▎ sits on the S public row and the footer shows explorer hints (↑ ↓ Move · Enter Open)"
+          },
+          {
+            "id": "S2",
+            "text": "the schema tree is loaded: D acme_prod with S public expanded (Tables/Views/Functions/Sequences) plus S analytics and S audit"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Tab moves focus from the explorer into the query tab (the ▎ bar leaves the tree; tab hints appear)"
+          },
+          {
+            "id": "A2",
+            "text": "q on the clean boot quits with no confirm dialog (the session exits 0)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no modal may cover the workbench at boot (no Open tabs/Quit/Save overlay); ctrl-g later proves modals render"
+          },
+          {
+            "id": "N2",
+            "text": "q must NOT raise Quit TablePro? on a clean boot: the exit frame carries no dialog text"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1210-1226",
+            "note": "strip render plus the narrow/show_explorer gate"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1245-1263",
+            "note": "Explorer panel with the schema meta"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1281-1300",
+            "note": "tab title and meta per work-tab kind"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "274-315",
+            "note": "request_quit: clean boot quits directly with no dialog"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/audit/production/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_audit_production_boot live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "TREE-CONN-004",
+      "app": "tablepro",
+      "component": "Tree",
+      "part": "connection tree + detail card at boot",
+      "ref_symbols": [
+        {
+          "glyph": "▾ Personal",
+          "meaning": "boot cursor row (group, ▎-marked)"
+        },
+        {
+          "glyph": "localhost:5432",
+          "meaning": "boot detail host (Local stays selected)"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▾ Personal",
+          "meaning": "boot cursor row (group, ▎-marked)"
+        },
+        {
+          "glyph": "localhost:5432",
+          "meaning": "boot detail host (Local stays selected)"
+        }
+      ],
+      "data": {
+        "groups": [
+          "Personal",
+          "Acme"
+        ],
+        "connections": 6,
+        "engines": [
+          "pg",
+          "sqlite",
+          "mysql"
+        ]
+      },
+      "state": {
+        "cursor": 0,
+        "selected": 0,
+        "filter": null,
+        "form": null
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot tablepro on the connections screen"
+        },
+        {
+          "step": 2,
+          "action": "press Down (cursor Personal → Local PostgreSQL)"
+        },
+        {
+          "step": 3,
+          "action": "press / and type stag (the tree filters to the Staging match), then Esc (the filter clears)"
+        },
+        {
+          "step": 4,
+          "action": "return to the tree, move to Production, press d (the delete dialog opens), then Esc"
+        },
+        {
+          "step": 5,
+          "action": "press ctrl-n (the New connection form opens)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "booted",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the tree shows ▾ Personal (Local PostgreSQL, Scratch) and ▾ Acme (Development, Staging, Analytics, Production) with pg/sqlite/mysql engine tags"
+          },
+          {
+            "id": "V2",
+            "text": "the detail card shows Local PostgreSQL (localhost:5432, acme_dev, postgres) with the Connect/Edit/Duplicate/Delete… action row"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the cursor rests on the Personal group row while selected stays Local (Some(0)): detail and cursor disagree by design"
+          },
+          {
+            "id": "S2",
+            "text": "the header and the panel meta both read 6 saved"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the cursor onto Local PostgreSQL (▎ follows; the detail card is unchanged)"
+          },
+          {
+            "id": "A2",
+            "text": "/ focuses the filter and begins editing: typing stag filters the tree to ▾ Acme + Staging (Personal/Scratch/Production hide); Esc clears the filter"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no form may show at boot (no New connection title, no Name field); ctrl-n later proves the form renders"
+          },
+          {
+            "id": "N2",
+            "text": "no dialog may cover the tree at boot (no Delete connection?); d on Production later proves the dialog renders"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "264-283",
+            "note": "new: selected Some(0) plus the action buttons"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "284-318",
+            "note": "rebuild_tree: groups, engine glyphs, expand-all"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "328-340",
+            "note": "sync_selected_from_cursor plus selected_connection"
+          },
+          {
+            "path": "src/bin/tablepro/db.rs",
+            "lines": "151-246",
+            "note": "six-connection fixture in two groups"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/connections/default/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_connections_default_boot live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "DIALOG-DELETE-005",
+      "app": "tablepro",
+      "component": "Dialog",
+      "part": "delete connection destructive confirm",
+      "ref_symbols": [
+        {
+          "glyph": "Delete connection?",
+          "meaning": "destructive dialog title"
+        },
+        {
+          "glyph": "▎Cancel",
+          "meaning": "Cancel holds initial focus (dangerous gate)"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Delete connection?",
+          "meaning": "destructive dialog title"
+        },
+        {
+          "glyph": "▎Cancel",
+          "meaning": "Cancel holds initial focus (dangerous gate)"
+        }
+      ],
+      "data": {
+        "target": "Production",
+        "detail": "Production (acme_ops@prod-db-1.acme.io)"
+      },
+      "state": {
+        "cursor": 7,
+        "selected": 4,
+        "connections": 6,
+        "dialog": "delete-dialog"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot connections and move the cursor to Production (seven downs)"
+        },
+        {
+          "step": 2,
+          "action": "press d (the delete dialog opens)"
+        },
+        {
+          "step": 3,
+          "action": "press Esc (cancel: nothing is deleted)"
+        },
+        {
+          "step": 4,
+          "action": "press d again, move to Delete with Right, then Esc (cancel again)"
+        },
+        {
+          "step": 5,
+          "action": "press d again and confirm with Enter on Cancel (cancel a third way)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "delete-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the destructive dialog titles Delete connection? with the Production (acme_ops@prod-db-1.acme.io) body (connections.json + keychain lines)"
+          },
+          {
+            "id": "V2",
+            "text": "the actions read ▎Cancel Delete; the footer offers ← → Choose · Enter Confirm · Esc Cancel · y / n Quick answer"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the dialog focuses Cancel (destructive initial focus; ▎ on Cancel, not Delete)"
+          },
+          {
+            "id": "S2",
+            "text": "the tree cursor stays on Production behind the dialog (no tree row keeps ▎ while the dialog owns focus)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc closes the dialog with no deletion (6 saved persists; the Production row persists)"
+          },
+          {
+            "id": "A2",
+            "text": "Right arms Delete (▎ Cancel → Delete); Esc still cancels with no deletion"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Esc must NOT delete: 6 saved and the Production row persist after each cancel"
+          },
+          {
+            "id": "N2",
+            "text": "Enter while Cancel holds focus must NOT delete: the dialog closes and 6 saved persists"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "492-499",
+            "note": "d/ctrl-d keyboard equivalents route to action 3/2"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "562-577",
+            "note": "delete dialog construction with the connection detail"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "580-600",
+            "note": "on_dialog_closed removes only on Action(1)"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "75-91",
+            "note": "destructive ctor: Cancel initial focus"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "305-320",
+            "note": "y/n quick answers on Text dialogs"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/connections/delete_dialog/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_connections_delete_dialog live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "TREE-DUP-005",
+      "app": "tablepro",
+      "component": "Tree",
+      "part": "duplicate connection inserts a copy",
+      "ref_symbols": [
+        {
+          "glyph": "Production (Copy)",
+          "meaning": "inserted copy row under Production"
+        },
+        {
+          "glyph": "Duplicated",
+          "meaning": "footer status after ctrl-d"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Production (Copy)",
+          "meaning": "inserted copy row under Production"
+        },
+        {
+          "glyph": "Duplicated",
+          "meaning": "footer status after ctrl-d"
+        }
+      ],
+      "data": {
+        "target": "Production",
+        "copy_last_used": "never"
+      },
+      "state": {
+        "cursor": 7,
+        "selected": 4,
+        "connections_before": 6,
+        "connections_after": 7
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot connections and move the cursor to Production (seven downs)"
+        },
+        {
+          "step": 2,
+          "action": "press ctrl-d (Production is duplicated)"
+        },
+        {
+          "step": 3,
+          "action": "press Down (the cursor reaches the copy)"
+        },
+        {
+          "step": 4,
+          "action": "press d, arm Delete with Right, confirm with Enter (the copy is removed)"
+        },
+        {
+          "step": 5,
+          "action": "press ctrl-n (the form opens; proves the N2 needle)"
+        },
+        {
+          "step": 6,
+          "action": "boot a second session with --connect Production (proves the N1 needles)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "duplicated",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "a Production (Copy) row appears directly under Production; header and panel counts flip 6 → 7 saved"
+          },
+          {
+            "id": "V2",
+            "text": "the footer status reads Duplicated; ▎ stays on Production (the cursor does not follow the copy)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "selected stays Production: the detail card still shows prod-db-1.acme.io:5432 and acme_prod"
+          },
+          {
+            "id": "S2",
+            "text": "both groups stay expanded (▾ Personal, ▾ Acme persist; rebuild keeps the tree open)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down reaches the copy (▎ follows; the detail card flips to Production (Copy))"
+          },
+          {
+            "id": "A2",
+            "text": "d + Right + Enter on the copy removes it (7 → 6 saved; the copy row leaves non-vacuously)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "duplication must NOT connect: no workbench appears (no Query 1 tab, no Explorer panel)"
+          },
+          {
+            "id": "N2",
+            "text": "duplication must NOT open the form: no New connection title and no Name field; ctrl-n later proves the form renders"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "496-499",
+            "note": "ctrl-d routes to action 2"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "551-560",
+            "note": "duplicate insert plus rebuild plus Duplicated status"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "580-600",
+            "note": "on_dialog_closed delete path removes the copy"
+          },
+          {
+            "path": "src/bin/tablepro/db.rs",
+            "lines": "210-227",
+            "note": "Production fixture row"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/connections/duplicated/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_connections_duplicated live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "TREE-DETAIL-006",
+      "app": "tablepro",
+      "component": "Tree",
+      "part": "detail card follows the tree cursor",
+      "ref_symbols": [
+        {
+          "glyph": "prod-db-1.acme.io:5432",
+          "meaning": "Production host in the detail card"
+        },
+        {
+          "glyph": "◆ Production",
+          "meaning": "cursor row at row 7 (production glyph)"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "prod-db-1.acme.io:5432",
+          "meaning": "Production host in the detail card"
+        },
+        {
+          "glyph": "◆ Production",
+          "meaning": "cursor row at row 7 (production glyph)"
+        }
+      ],
+      "data": {
+        "rows": [
+          "Personal",
+          "Local PostgreSQL",
+          "Scratch",
+          "Acme",
+          "Development",
+          "Staging",
+          "Analytics",
+          "Production"
+        ]
+      },
+      "state": {
+        "cursor": 7,
+        "selected": 4
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot connections and move the cursor to Production (seven downs)"
+        },
+        {
+          "step": 2,
+          "action": "press Up (the detail flips back to Analytics)"
+        },
+        {
+          "step": 3,
+          "action": "press Down twice (the second Down refuses the last-row boundary)"
+        },
+        {
+          "step": 4,
+          "action": "press e (the Edit connection form opens; proves the N1 needle)"
+        },
+        {
+          "step": 5,
+          "action": "boot a second session with --connect Production (proves the N2 needles)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "production-detail",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the detail card shows Production: PostgreSQL, prod-db-1.acme.io:5432, acme_prod, acme_ops, production, Safe Mode deliberate acknowledgement, on / bastion.acme.io, 1 hour ago"
+          },
+          {
+            "id": "V2",
+            "text": "▎ sits on the ◆ Production row; engine tags (pg/sqlite/mysql) and outcome glyphs (·/◇/◆) persist across rows"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "selected follows the cursor into leaves (sync_selected_from_cursor): the detail flips Local → Production over seven downs"
+          },
+          {
+            "id": "S2",
+            "text": "header and panel counts stay 6 saved (navigation changes nothing)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Up returns to Analytics (analytics.acme.io:3306 appears; the prod host leaves non-vacuously)"
+          },
+          {
+            "id": "A2",
+            "text": "Down past the last row refuses the boundary (▎ stays on Production; the detail is unchanged)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "navigation must NOT open the form: no Edit connection title and no Name field; e later proves the form renders"
+          },
+          {
+            "id": "N2",
+            "text": "navigation must NOT connect: no Query 1 tab and no Explorer panel; a second --connect session proves the needles"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "320-327",
+            "note": "connection_at_path resolves leaves only"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "328-335",
+            "note": "sync_selected_from_cursor follows the cursor"
+          },
+          {
+            "path": "src/bin/tablepro/connections.rs",
+            "lines": "1006-1040",
+            "note": "detail card render with Engine/Host/Database facts"
+          },
+          {
+            "path": "src/bin/tablepro/db.rs",
+            "lines": "210-227",
+            "note": "Production fixture row"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/connections/production_detail/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_connections_production_detail live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "GRID-WHEEL-008",
+      "app": "tablepro",
+      "component": "Grid",
+      "part": "orders viewport + scroll-edge fade under the wheel",
+      "ref_symbols": [
+        {
+          "glyph": "rows 10–36 of 500 loaded",
+          "meaning": "position label after three wheel notches"
+        },
+        {
+          "glyph": "10009",
+          "meaning": "first visible order number at offset 9"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "rows 10–36 of 500 loaded",
+          "meaning": "position label after three wheel notches"
+        },
+        {
+          "glyph": "10009",
+          "meaning": "first visible order number at offset 9"
+        }
+      ],
+      "data": {
+        "table": "orders",
+        "rows": 500,
+        "total": "1,203,338",
+        "columns": 14,
+        "notch_rows": 3
+      },
+      "state": {
+        "offset": 9,
+        "sort": null,
+        "hscroll": 0,
+        "pending": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production and open the orders table (five downs + Enter)"
+        },
+        {
+          "step": 2,
+          "action": "roll the wheel down three notches over the order grid"
+        },
+        {
+          "step": 3,
+          "action": "roll the wheel back up to the top"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "wheel-faded",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the meta reads rows 10–36 of 500 loaded · 1,203,338 total · cols 1–2 of 14; first data row is #10 (10009)"
+          },
+          {
+            "id": "V2",
+            "text": "the top body edge fades (offset 9 hides rows above); the header row never fades and the thumb (┃) sits on the first body row with the track (│) below"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "three down-notches moved the offset 0 → 9 (three rows per notch); sort and pending are untouched"
+          },
+          {
+            "id": "S2",
+            "text": "no hscroll happened: cols 1–2 of 14 persists and no sort marker (▴/▾) appears in the grid"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "wheel-down returns Changed while rows hide below (the meta advances 1–27 → 10–36)"
+          },
+          {
+            "id": "A2",
+            "text": "wheel-up returns toward the top (offset back to 0; rows 1–27 with order 10000 return)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the header row must NOT fade: it reads at full tone like the interior rows"
+          },
+          {
+            "id": "N2",
+            "text": "wheeling must NOT sort, edit, or page: 500 loaded persists with no ▴/▾ in the grid and no pending tint"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/widgets/grid.rs",
+            "lines": "1372-1384",
+            "note": "on_wheel: scroll_by, Changed iff moved"
+          },
+          {
+            "path": "src/widgets/grid.rs",
+            "lines": "1928-1938",
+            "note": "scroll_edges over the body when the scrollbar shows"
+          },
+          {
+            "path": "src/ui/fade.rs",
+            "lines": "26-32,44-60",
+            "note": "edge gates for the scroll fade"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1163-1179",
+            "note": "wheel routing to the table grid"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "2030-2040",
+            "note": "wheel events map to a ±3 row delta"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/fade/table_wheel/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_fade_table_wheel live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "TABS-HISTORY-003",
+      "app": "tablepro",
+      "component": "Tabs",
+      "part": "query history work tab",
+      "ref_symbols": [
+        {
+          "glyph": "H History ×",
+          "meaning": "history tab in the strip (work tab, not modal)"
+        },
+        {
+          "glyph": "15 entries",
+          "meaning": "history panel meta"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "H History ×",
+          "meaning": "history tab in the strip (work tab, not modal)"
+        },
+        {
+          "glyph": "15 entries",
+          "meaning": "history panel meta"
+        }
+      ],
+      "data": {
+        "entries": 15,
+        "scope": "Production",
+        "status": "any"
+      },
+      "state": {
+        "tabs": 2,
+        "active": 1,
+        "history_slot": 1
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production and press ctrl-y (history opens)"
+        },
+        {
+          "step": 2,
+          "action": "press ctrl-y again (no second history tab)"
+        },
+        {
+          "step": 3,
+          "action": "press Down (the entry cursor moves; the detail follows), then Up twice (the second Up refuses the top boundary)"
+        },
+        {
+          "step": 4,
+          "action": "press ctrl-g (the tab-list modal opens; proves the N1 needle), then Esc"
+        },
+        {
+          "step": 5,
+          "action": "press ctrl-t (Query 2 opens; proves the N2 needle)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "history-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "an H History × tab appears beside ≡ Query 1 × with the ━ underline under it; the panel titles Query history with 15 entries"
+          },
+          {
+            "id": "V2",
+            "text": "the search row (Search history · terms are ANDed, scope: Production · status: any) sits over entry rows (›/! glyphs) beside the detail pane (Connection/Duration/Rows, Open in new tab/Run in new tab)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "history reuses its single slot: a second ctrl-y refreshes with still exactly one H History × tab"
+          },
+          {
+            "id": "S2",
+            "text": "the list holds 15 fixture entries (› SELECT plan first; ! marks the failed ordres row)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the entry cursor (› advances; the detail pane follows to the new entry SQL)"
+          },
+          {
+            "id": "A2",
+            "text": "Up at the first entry refuses the boundary (› stays on the first row; 15 entries persists)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "history must NOT open as a modal: the strip and the Explorer panel stay visible; ctrl-g later proves modals render"
+          },
+          {
+            "id": "N2",
+            "text": "opening history must NOT add a phantom query tab: no Query 2 × shows; ctrl-t later proves new tabs render"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "646-653",
+            "note": "ctrl-y opens history and focuses it"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "480-495",
+            "note": "open_history reuses the single History slot"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "861-905",
+            "note": "history_key: search, list, scope and status toggles"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1281-1300",
+            "note": "History title plus the entries meta"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/overlays/history_tab/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_overlays_history_tab live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "TOOSMALL-WORKBENCH-004",
+      "app": "tablepro",
+      "component": "TooSmall",
+      "part": "healthy reflow after growing to 120x40",
+      "ref_symbols": [
+        {
+          "glyph": "No results yet",
+          "meaning": "results dock renders after the grow"
+        },
+        {
+          "glyph": "S audit",
+          "meaning": "loaded schema tree persists after the grow"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "No results yet",
+          "meaning": "results dock renders after the grow"
+        },
+        {
+          "glyph": "S audit",
+          "meaning": "loaded schema tree persists after the grow"
+        }
+      ],
+      "data": {
+        "from": "80x24",
+        "to": "120x40",
+        "min": "72x20"
+      },
+      "state": {
+        "too_small": false,
+        "narrow_before": true,
+        "narrow_after": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production at 80x24"
+        },
+        {
+          "step": 2,
+          "action": "resize the emulator to 120x40 and wait for the steady state (No results yet, S audit, Connected to expiry)"
+        },
+        {
+          "step": 3,
+          "action": "shrink back to 80x24 (the drawer returns)"
+        },
+        {
+          "step": 4,
+          "action": "grow to 120x40 again and wait for the steady state"
+        },
+        {
+          "step": 5,
+          "action": "press Tab (focus reaches the query tab)"
+        },
+        {
+          "step": 6,
+          "action": "press ctrl-t (Query 2 opens; proves the N2 needle)"
+        },
+        {
+          "step": 7,
+          "action": "shrink to 60x10 (the notice appears; proves the N1 needle)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "grown",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the docked layout returns: the Explorer panel sits beside the Query 1 panel with No results yet in the results dock"
+          },
+          {
+            "id": "V2",
+            "text": "the explorer keeps the loaded tree (D acme_prod, S public expanded, S audit at the foot)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "too_small stays false: both sizes clear 72×20"
+          },
+          {
+            "id": "S2",
+            "text": "focus survives the grow (▎ stays in the explorer on the S public row)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Tab reaches the query tab after the grow (▎ leaves the tree for the editor)"
+          },
+          {
+            "id": "A2",
+            "text": "shrinking back to 80x24 re-opens the drawer (the query tab steps aside again)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no too-small notice may show at either size (no Terminal too small); 60x10 later proves the notice renders"
+          },
+          {
+            "id": "N2",
+            "text": "the grow must NOT add a phantom tab (single ≡ Query 1 ×); ctrl-t later proves new tabs render"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "34-35",
+            "note": "MIN_WIDTH/MIN_HEIGHT 72x20 consts"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "2129-2143",
+            "note": "too_small gate plus the notice screen"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1221-1226",
+            "note": "narrow gate under 100 columns"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1227-1244",
+            "note": "drawer versus docked body split"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/resize/workbench_grown/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_resize_workbench_grown live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "TOOSMALL-WORKBENCH-005",
+      "app": "tablepro",
+      "component": "TooSmall",
+      "part": "healthy reflow after shrinking to 80x24",
+      "ref_symbols": [
+        {
+          "glyph": "1.2 M",
+          "meaning": "orders row count in the drawer tree"
+        },
+        {
+          "glyph": "▸ S analytics",
+          "meaning": "last visible schema row (S audit sits below the fold)"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "1.2 M",
+          "meaning": "orders row count in the drawer tree"
+        },
+        {
+          "glyph": "▸ S analytics",
+          "meaning": "last visible schema row (S audit sits below the fold)"
+        }
+      ],
+      "data": {
+        "from": "120x40",
+        "to": "80x24",
+        "min": "72x20"
+      },
+      "state": {
+        "too_small": false,
+        "narrow": true,
+        "drawer": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production at 120x40 and wait for S audit (schema loaded)"
+        },
+        {
+          "step": 2,
+          "action": "resize the emulator to 80x24 and wait for the steady state"
+        },
+        {
+          "step": 3,
+          "action": "press Tab (the drawer steps aside for the query tab)"
+        },
+        {
+          "step": 4,
+          "action": "grow back to 120x40 and wait for the steady state"
+        },
+        {
+          "step": 5,
+          "action": "press ctrl-t (Query 2 opens; proves the N2 needle)"
+        },
+        {
+          "step": 6,
+          "action": "shrink to 60x10 (the notice appears; proves the N1 needle)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "shrunk",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the explorer drawer covers the body with the full object tree and row counts (Tables, T rows, 1.2 M orders)"
+          },
+          {
+            "id": "V2",
+            "text": "the query tab steps aside (no Query 1 panel, no SQL placeholder, no No results yet)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "too_small stays false (80x24 clears 72×20)"
+          },
+          {
+            "id": "S2",
+            "text": "focus stays in the explorer (▎ on the S public row; explorer hints persist)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Tab leaves the drawer for the query tab (the Query 1 panel appears; the Explorer title leaves non-vacuously)"
+          },
+          {
+            "id": "A2",
+            "text": "growing back to 120x40 restores the docked layout (Explorer and Query 1 side by side)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "no too-small notice may show at either size (no Terminal too small); 60x10 later proves the notice renders"
+          },
+          {
+            "id": "N2",
+            "text": "shrinking must NOT add a phantom tab (single ≡ Query 1 ×); ctrl-t later proves new tabs render"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "34-35",
+            "note": "MIN_WIDTH/MIN_HEIGHT 72x20 consts"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "2129-2143",
+            "note": "too_small gate plus the notice screen"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1221-1226",
+            "note": "narrow gate under 100 columns"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1227-1244",
+            "note": "drawer versus docked body split"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/resize/workbench_shrunk/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "tick-control",
+          "glyph-capture",
+          "geometry-probe"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_resize_workbench_shrunk live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "TABS-STRUCT-004",
+      "app": "tablepro",
+      "component": "Tabs",
+      "part": "Data/Structure mode tabs on a table tab",
+      "ref_symbols": [
+        {
+          "glyph": "Data    Structure",
+          "meaning": "quiet mode tabs with Structure active"
+        },
+        {
+          "glyph": "14 columns · read from the catalog",
+          "meaning": "structure footer note"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Data    Structure",
+          "meaning": "quiet mode tabs with Structure active"
+        },
+        {
+          "glyph": "14 columns · read from the catalog",
+          "meaning": "structure footer note"
+        }
+      ],
+      "data": {
+        "table": "public.orders",
+        "columns": 14,
+        "sub_tabs": [
+          "Columns",
+          "Indexes",
+          "Foreign keys",
+          "Constraints",
+          "Triggers",
+          "DDL"
+        ]
+      },
+      "state": {
+        "mode": 1,
+        "structure_tab": 0,
+        "pending": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production and open the orders table (five downs + Enter)"
+        },
+        {
+          "step": 2,
+          "action": "press ctrl-d (flips to Structure)"
+        },
+        {
+          "step": 3,
+          "action": "press Down (the column cursor moves)"
+        },
+        {
+          "step": 4,
+          "action": "press Enter (must not edit in Structure)"
+        },
+        {
+          "step": 5,
+          "action": "press ctrl-d (flips back to Data)"
+        },
+        {
+          "step": 6,
+          "action": "press Enter (the cell editor opens; proves the N1 needle), then Esc"
+        },
+        {
+          "step": 7,
+          "action": "press ctrl-t (Query 2 opens; proves the N2 needle)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "structure",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the quiet mode tabs read Data + Structure with ━ under Structure; the sub-tabs read Columns Indexes Foreign keys Constraints Triggers DDL with ━ under Columns"
+          },
+          {
+            "id": "V2",
+            "text": "the column grid lists all 14 columns (id uuid PK first, updated_at last) with the 14 columns · read from the catalog · changes are queued until Save note"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "mode_tabs.active is 1 (Structure); the structure cursor rests on the id row (▎)"
+          },
+          {
+            "id": "S2",
+            "text": "the table tab keeps its state (T orders ×, 14 cols meta, no pending, no sort)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "ctrl-d flips back to Data (the orders grid returns with cell 10000; the Columns sub-tabs leave non-vacuously)"
+          },
+          {
+            "id": "A2",
+            "text": "Down moves the structure cursor (▎ id → order_number)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Enter on a column row must NOT edit: no cell editor opens and no pending appears; Enter in Data later proves editors open"
+          },
+          {
+            "id": "N2",
+            "text": "mode flips must NOT duplicate tabs: a single T orders × shows; ctrl-t later proves new tabs render"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/tabs.rs",
+            "lines": "407-409",
+            "note": "mode_tabs Data/Structure, quiet, Data first"
+          },
+          {
+            "path": "src/bin/tablepro/tabs.rs",
+            "lines": "410-421",
+            "note": "structure sub-tabs Columns through DDL"
+          },
+          {
+            "path": "src/bin/tablepro/tabs.rs",
+            "lines": "702-707",
+            "note": "structure_refresh rebuilds from the catalog"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "672-690",
+            "note": "ctrl-d flips mode_tabs and refocuses"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/table/structure/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_table_structure live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "DIALOG-COMMIT-006",
+      "app": "tablepro",
+      "component": "Dialog",
+      "part": "commit review with typed acknowledgement",
+      "ref_symbols": [
+        {
+          "glyph": "Save changes?",
+          "meaning": "commit review title"
+        },
+        {
+          "glyph": "Type orders to confirm",
+          "meaning": "typed-token ack field label"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Save changes?",
+          "meaning": "commit review title"
+        },
+        {
+          "glyph": "Type orders to confirm",
+          "meaning": "typed-token ack field label"
+        }
+      ],
+      "data": {
+        "table": "public.orders",
+        "edits": 1,
+        "token": "orders",
+        "sql": "UPDATE public.orders SET status = 'paid'"
+      },
+      "state": {
+        "pending": 1,
+        "armed": false,
+        "safe_mode": "Safe"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production, open orders, edit one cell to paid (dirty: 1 pending)"
+        },
+        {
+          "step": 2,
+          "action": "press ctrl-s (the commit review opens)"
+        },
+        {
+          "step": 3,
+          "action": "press Esc (cancel: the edit stays pending)"
+        },
+        {
+          "step": 4,
+          "action": "press ctrl-s again, then Enter twice in the ack field (begin editing, then commit: focus advances to Cancel)"
+        },
+        {
+          "step": 5,
+          "action": "press y (quick answers do nothing on facts dialogs), then Right (Save refuses while disabled)"
+        },
+        {
+          "step": 6,
+          "action": "return to the ack field with BackTab, Enter, type orders, Enter, then Right to Save and confirm"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "commit-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the facts dialog titles Save changes? with Action/Target (Production · production · acme_prod · public.orders)/Scope (1 update · 0 inserts · 0 deletes)/Transaction/Safe Mode (deliberate confirmation required) plus the UPDATE preview"
+          },
+          {
+            "id": "V2",
+            "text": "the ack field (Type orders to confirm) holds ▎; the actions read Cancel Save; the header carries • 1 pending"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the token starts unarmed (empty ack input; Save disabled)"
+          },
+          {
+            "id": "S2",
+            "text": "Esc sets Changes kept pending (the dialog closes; • 1 pending persists)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "typing orders arms Save; confirming executes (Saving… then Saved 1 change to public.orders; pending clears)"
+          },
+          {
+            "id": "A2",
+            "text": "Enter begins editing and a second Enter commits, advancing focus (▎ ack → Cancel); the dialog stays open either way"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Esc must NOT save: • 1 pending persists and the grid keeps the paid cell"
+          },
+          {
+            "id": "N2",
+            "text": "quick answers must NOT exist on facts dialogs: y changes nothing (dialog stays; pending stays)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1002-1017",
+            "note": "begin_commit guards: table-only, pending, read-only"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1022-1075",
+            "note": "commit facts: Action/Target/Scope/Risk/Transaction/Safe Mode"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1076-1094",
+            "note": "typed token plus Save confirm plus the review title"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1112-1153",
+            "note": "finish_commit applies and reports Saved N changes"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1828-1836",
+            "note": "COMMIT dispatch: Saving… versus Changes kept pending"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "138-143",
+            "note": "armed: trimmed ack input equals the token"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "474-479",
+            "note": "the confirming action stays disabled until armed"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/workbench/commit_dialog/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_workbench_commit_dialog live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PANEL-EXPLORER-004",
+      "app": "tablepro",
+      "component": "Panel",
+      "part": "explorer visibility toggle",
+      "ref_symbols": [
+        {
+          "glyph": "Explorer",
+          "meaning": "explorer panel title (gone while hidden)"
+        },
+        {
+          "glyph": "Enter Edit",
+          "meaning": "tab hints after focus leaves the tree"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Explorer",
+          "meaning": "explorer panel title (gone while hidden)"
+        },
+        {
+          "glyph": "Enter Edit",
+          "meaning": "tab hints after focus leaves the tree"
+        }
+      ],
+      "data": {
+        "chord": "ctrl-b"
+      },
+      "state": {
+        "explorer_visible": false,
+        "maximized": false,
+        "focus": "editor"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production"
+        },
+        {
+          "step": 2,
+          "action": "press ctrl-b (the explorer hides)"
+        },
+        {
+          "step": 3,
+          "action": "type x in the editor (editing works while hidden), then Esc"
+        },
+        {
+          "step": 4,
+          "action": "press ctrl-b (the explorer returns)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "explorer-hidden",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the Explorer panel is gone (no Explorer title, no Filter objects, no tree); the Query 1 panel fills the body with the placeholder and No results yet"
+          },
+          {
+            "id": "V2",
+            "text": "the header keeps Production ◆ production acme_prod › public safe; the strip keeps the single ≡ Query 1 ×"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "focus leaves the tree (▎ leaves the S public row; the footer flips to tab hints: Enter Edit · Ctrl+R Run)"
+          },
+          {
+            "id": "S2",
+            "text": "the schema stays loaded underneath (S audit returns instantly on restore)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "ctrl-b restores the explorer (Explorer + S public ▎ + explorer hints all return)"
+          },
+          {
+            "id": "A2",
+            "text": "query editing works while hidden (i + x shows the typed draft; Esc leaves edit mode)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the hidden explorer must NOT show (no Explorer title/filter/tree while hidden); restore proves they render"
+          },
+          {
+            "id": "N2",
+            "text": "hiding must NOT close tabs or drop the schema (≡ Query 1 × persists; S audit returns on restore)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "655-666",
+            "note": "ctrl-b toggles explorer_visible and moves focus"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1224-1244",
+            "note": "show_explorer gate plus the body split"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "534-540",
+            "note": "primary_focus falls back to the tab editor"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/workbench/explorer_hidden/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_workbench_explorer_hidden live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PANEL-ZOOM-005",
+      "app": "tablepro",
+      "component": "Panel",
+      "part": "pane zoom toggle",
+      "ref_symbols": [
+        {
+          "glyph": "No results yet",
+          "meaning": "zoomed results pane fills the body"
+        },
+        {
+          "glyph": "↑ ↓ Move",
+          "meaning": "explorer hints persist (focus never left)"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "No results yet",
+          "meaning": "zoomed results pane fills the body"
+        },
+        {
+          "glyph": "↑ ↓ Move",
+          "meaning": "explorer hints persist (focus never left)"
+        }
+      ],
+      "data": {
+        "chord": "z",
+        "target": "Second (results)"
+      },
+      "state": {
+        "maximized": true,
+        "explorer_visible": true,
+        "focus": "explorer"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production"
+        },
+        {
+          "step": 2,
+          "action": "press z (the results pane zooms)"
+        },
+        {
+          "step": 3,
+          "action": "press z (restore with the strip focused), Tab until the editor owns focus, z (the editor zooms)"
+        },
+        {
+          "step": 4,
+          "action": "press Esc (restore through the Esc path)"
+        },
+        {
+          "step": 5,
+          "action": "press ctrl-t (Query 2 opens; proves the N2 needle)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "maximized",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the explorer and the editor are gone; the No results yet pane fills the body with the Ctrl+R hints"
+          },
+          {
+            "id": "V2",
+            "text": "the header and the ≡ Query 1 × strip persist; the footer still shows the explorer hints (no repaint follows the zoom)"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "zooming drops the explorer from the focus ring, so focus falls to the strip (no ▎ renders while zoomed; the next repaint shows strip hints)"
+          },
+          {
+            "id": "S2",
+            "text": "the editor state is preserved underneath (the placeholder returns on restore)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "z restores the full layout with the strip focused (strip hints ← → Switch · Ctrl+G Tab list; ▎ stays off the tree)"
+          },
+          {
+            "id": "A2",
+            "text": "z with the editor focused zooms the editor instead (First: the placeholder fills; No results yet leaves)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "zoom must NOT focus the tab editor (no Enter Edit while zoomed); Tab later proves editor hints render"
+          },
+          {
+            "id": "N2",
+            "text": "zoom must NOT close tabs: a single ≡ Query 1 × shows; ctrl-t later proves new tabs render"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "708-727",
+            "note": "z toggles maximized with First/Second targeting"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "786-791",
+            "note": "Esc restores a maximized pane"
+          },
+          {
+            "path": "src/bin/tablepro/workbench.rs",
+            "lines": "1224-1226",
+            "note": "maximized hides the explorer from the split"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/workbench/maximized/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_workbench_maximized live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log) NOTE: zooming repairs focus to the strip (explorer leaves the ring); the zoomed explorer hints are stale, proven by the strip hints on restore"
+          }
+        ]
+      }
+    },
+    {
+      "id": "DIALOG-QUIT-007",
+      "app": "tablepro",
+      "component": "Dialog",
+      "part": "quit confirm with unsaved query",
+      "ref_symbols": [
+        {
+          "glyph": "Quit TablePro?",
+          "meaning": "destructive quit title"
+        },
+        {
+          "glyph": "1 unsaved query will be lost.",
+          "meaning": "dirty-query body copy"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Quit TablePro?",
+          "meaning": "destructive quit title"
+        },
+        {
+          "glyph": "1 unsaved query will be lost.",
+          "meaning": "dirty-query body copy"
+        }
+      ],
+      "data": {
+        "dirty_queries": 1,
+        "pending": 0
+      },
+      "state": {
+        "dialog": "dialog.quit",
+        "quit": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot --connect Production, Tab into the editor, type x, Esc (dirty: 1 unsaved query)"
+        },
+        {
+          "step": 2,
+          "action": "press q (the quit confirm opens)"
+        },
+        {
+          "step": 3,
+          "action": "press Esc (cancel: the draft survives, the app stays)"
+        },
+        {
+          "step": 4,
+          "action": "press q again, then Enter on Cancel (cancel again: the draft survives)"
+        },
+        {
+          "step": 5,
+          "action": "press q again, then y (quick Quit: the app exits 0)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "quit-open",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the destructive dialog titles Quit TablePro? with the 1 unsaved query will be lost. body"
+          },
+          {
+            "id": "V2",
+            "text": "the actions read ▎Cancel Quit; the footer offers ← → Choose · Enter Confirm · Esc Cancel · y / n Quick answer"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the dialog focuses Cancel (destructive initial focus)"
+          },
+          {
+            "id": "S2",
+            "text": "the editor keeps the dirty x behind the dialog (› 1 x stays visible)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc cancels (the dialog closes; › 1 x persists; the session stays alive)"
+          },
+          {
+            "id": "A2",
+            "text": "y quick-answers Quit (the session exits 0)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "Esc must NOT quit and must NOT drop the draft (› 1 x persists; Query 1 stays)"
+          },
+          {
+            "id": "N2",
+            "text": "Enter on Cancel must NOT quit either (› 1 x persists; the session stays alive)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "274-315",
+            "note": "request_quit counts pending/dirty and raises the dialog"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "570",
+            "note": "q global chord routes to request_quit"
+          },
+          {
+            "path": "src/bin/tablepro/app.rs",
+            "lines": "1806-1811",
+            "note": "QUIT Action(1) sets quit"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "75-91",
+            "note": "destructive ctor: Cancel initial focus"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "305-320",
+            "note": "y/n quick answers on Text dialogs"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/tablepro/workbench/quit_confirm/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T09:15:03Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8e T1 t1_workbench_quit_confirm live-PTY PASS @76537c27 (nextest visual_baseline --run-ignored only --test-threads 2, 14 pass/0 fail/391 skip; bin tests/harness/target/debug/tablepro 11066760B sha256:88b7ddba62d439c7 built 2026-10-07T08:48:15Z; log /tmp/phase8e-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "legacy_roots": [
     {
