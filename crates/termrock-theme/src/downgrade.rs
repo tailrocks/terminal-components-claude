@@ -210,15 +210,23 @@ pub(crate) fn luminance(rgb: (u8, u8, u8)) -> f64 {
     0.2126 * to_lin(rgb.0) + 0.7152 * to_lin(rgb.1) + 0.0722 * to_lin(rgb.2)
 }
 
-/// Mono: `Y < 0.35 → Black`, `Y > 0.75 → White`, else `Reset`.
+/// Mono: the tag's mean-based 4-rung grey ladder
+/// (`visual-baseline:src/theme.rs:603-608`): channel mean 0-40 Black,
+/// 41-110 DarkGray, 111-190 Gray, else White.
+///
+/// Q65-S6b: this replaced the luminance 3-way (`Y < 0.35 → Black`,
+/// `Y > 0.75 → White`, else `Reset`). The old `Reset` rung was
+/// load-bearing transparency for downstream `from_tokens` themes; it
+/// is retired deliberately — mid-tones are opaque rungs now — because
+/// the G8 manifest half needs a legible generic DisabledFg (DarkGray,
+/// not Black-on-Black) and the tag has no transparent rung. `Reset`
+/// survives only as input passthrough in [`downgrade_color`].
 fn mono(rgb: (u8, u8, u8)) -> Color {
-    let y = luminance(rgb);
-    if y < 0.35 {
-        Color::Black
-    } else if y > 0.75 {
-        Color::White
-    } else {
-        Color::Reset
+    match (u32::from(rgb.0) + u32::from(rgb.1) + u32::from(rgb.2)) / 3 {
+        0..=40 => Color::Black,
+        41..=110 => Color::DarkGray,
+        111..=190 => Color::Gray,
+        _ => Color::White,
     }
 }
 
@@ -442,10 +450,17 @@ fn mono_rules() -> [MonoRule; 13] {
                     .remove(Modifier::all())
             },
         ),
+        // Q65-S6b (G8-manifest): DisabledFg, not Fg(Primary). The tag
+        // renders disabled labels DarkGray+DIM at Mono (Q64 G8 row;
+        // frozen `buttons/audit/120x40/none.ansi:29`); forcing Primary
+        // painted White+DIM. The FIELD/TEXT siblings already name
+        // DisabledFg — LABEL now matches them. MARKER keeps
+        // Fg(Primary): its glyph is Clear (a blank cell, so its fg is
+        // unobservable) and no oracle pins it.
         (
             Part::LABEL,
             StateFlags::DISABLED,
-            p().set_fg(Role::Fg(FgStep::Primary))
+            p().set_fg(Role::DisabledFg)
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),
@@ -756,8 +771,17 @@ mod tests {
         }
         let m = t.downgrade(ColorLevel::Mono);
         for c in m.color.colors() {
+            // Q65-S6b: the generic Mono output set is the tag's 4-rung
+            // ladder (`visual-baseline:src/theme.rs:603-608`), not the
+            // old luminance 3-way — Q64 G8 requires DarkGray to be
+            // expressible, and the retired `Reset` rung is the explicit
+            // F4 price (see `mono()`). Forced RED pre-migration
+            // (first offender: DarkGray).
             assert!(
-                matches!(c, Color::Black | Color::White | Color::Reset),
+                matches!(
+                    c,
+                    Color::Black | Color::DarkGray | Color::Gray | Color::White
+                ),
                 "{c:?}"
             );
         }
@@ -769,8 +793,9 @@ mod tests {
     /// evaporates for junie (0 slots move). The live G8 render gap
     /// (disabled labels resolve White+DIM, tag pins DarkGray+DIM) is owned
     /// by the `(LABEL, DISABLED)` mono rule below, not by any palette, and
-    /// belongs to a follow-up manifest slice. If this test ever fails, the
-    /// remap is live again and the S6 DEFER decision must be re-opened.
+    /// belongs to a follow-up manifest slice (landed as Q65-S6b). If this
+    /// test ever fails, the remap is live again and the S6 DEFER decision
+    /// must be re-opened.
     /// Ladder: `visual-baseline:src/theme.rs:603-608` (mean 0-40 Black,
     /// 41-110 DarkGray, 111-190 Gray, else White; non-Rgb passes through).
     #[test]
@@ -833,13 +858,16 @@ mod tests {
             downgrade_color(Color::Rgb(255, 255, 255), ColorLevel::Mono),
             Color::White
         );
+        // Q65-S6b: tag mean-ladder rungs (means 128 and 179 land on
+        // Gray), not the old luminance pins (Black/Reset). Forced RED
+        // pre-migration (observed Gray vs Black on the first pin).
         assert_eq!(
             downgrade_color(Color::Rgb(0x80, 0x80, 0x80), ColorLevel::Mono),
-            Color::Black
+            Color::Gray
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0xb3, 0xb3, 0xb3), ColorLevel::Mono),
-            Color::Reset
+            Color::Gray
         );
         assert_eq!(
             downgrade_color(Color::Reset, ColorLevel::Mono),
@@ -948,8 +976,14 @@ mod tests {
             "for_level widened a deliberately downgraded theme"
         );
         for c in widened.color.colors() {
+            // Q65-S6b: same 4-rung set migration as
+            // `downgrade_maps_every_token_exhaustively` (forced RED
+            // pre-migration — DarkGray now populates the widened set).
             assert!(
-                matches!(c, Color::Black | Color::White | Color::Reset),
+                matches!(
+                    c,
+                    Color::Black | Color::DarkGray | Color::Gray | Color::White
+                ),
                 "{c:?} came back after a widening for_level"
             );
         }
@@ -1279,8 +1313,10 @@ mod tests {
 
     /// §29 + §11.4: at `Mono` a disabled control must stay **readable**, not
     /// merely colourless. The rule that produced `Fg(Faint)` here resolved to
-    /// `Black` on a `Black` canvas — invisible — because `mono()` collapses
-    /// every step below `Y = 0.35` onto the background.
+    /// `Black` on a `Black` canvas — invisible — because the old `mono()`
+    /// collapsed every step below `Y = 0.35` onto the background. Q65-S6b
+    /// keeps the guarantee under the new mean-ladder + DisabledFg LABEL
+    /// rule (generic DisabledFg is DarkGray/Gray now, off every canvas).
     #[test]
     fn mono_disabled_is_dim_and_readable() {
         for base in [Theme::junie(), Theme::paper()] {
@@ -1801,5 +1837,243 @@ mod tests {
                 "{v:?} LABEL lost DISABLED dim"
             );
         }
+    }
+
+    // Q65-S6b (G8-manifest, atomic ladder+manifest): the generic
+    // `(LABEL,DISABLED)` mono rule forced `Fg(Primary)` (White) + DIM
+    // after the recipes; the tag renders disabled labels DarkGray+DIM
+    // at `Mono` (Q64 G8 row + frozen
+    // `baselines/.../buttons/audit/120x40/none.ansi:29`). The rule now
+    // names `DisabledFg`, matching the `(FIELD/TEXT,DISABLED)`
+    // siblings — and generic `mono()` becomes the tag's mean-based
+    // 4-rung ladder in the same commit, or generic-path disabled
+    // labels render Black+DIM-on-Black = invisible.
+
+    /// Q64 G8: every button variant's disabled LABEL @Mono is
+    /// DarkGray+DIM (tag's own Dialog, forced-disabled; `none.ansi:29`
+    /// `[2;38;5;8;48;5;0m` on all four variants).
+    #[test]
+    fn q65s6b_g8_disabled_label_mono_is_darkgray_dim() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        let want = crate::theme::resolve::bind_role(&m, Role::DisabledFg, Surface::Elevated);
+        assert_eq!(want, Some(Color::DarkGray));
+        for v in Q65S4_BUTTON_VARIANTS {
+            let r = m.resolve(
+                Family::BUTTON,
+                v,
+                Part::LABEL,
+                StateFlags::DISABLED,
+                Surface::Elevated,
+            );
+            assert_eq!(r.style.fg, want, "{v:?} LABEL DISABLED fg");
+            assert!(
+                r.style.add_modifier.contains(Modifier::DIM),
+                "{v:?} LABEL lost DISABLED dim"
+            );
+        }
+    }
+
+    /// The manifest rule is generic: LIST rows (the unmasked consumer
+    /// in canonical matrices), CHOICE options, and FIELD labels resolve
+    /// the same DisabledFg+DIM as buttons.
+    #[test]
+    fn q65s6b_g8_disabled_label_mono_generic_families() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        for f in [Family::LIST, Family::CHOICE, Family::FIELD, Family::BUTTON] {
+            let r = m.resolve(
+                f,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert_eq!(r.style.fg, Some(Color::DarkGray), "{f:?} LABEL DISABLED fg");
+            assert!(
+                r.style.add_modifier.contains(Modifier::DIM),
+                "{f:?} LABEL lost DISABLED dim"
+            );
+        }
+    }
+
+    /// Ladder half, generic path: `from_tokens` (Paper + downstream
+    /// custom themes, no authored palette) downgrades to the tag's
+    /// mean-based 4-rung ladder exhaustively — the S6 HOLD mirrored
+    /// onto the generic path. Gated by the manifest half's oracle
+    /// (not principle-only): it is the legibility prerequisite below.
+    #[test]
+    fn q65s6b_ladder_generic_mono_is_tag_4rung() {
+        let t = Theme::from_tokens(Theme::junie().color);
+        let m = t.downgrade(ColorLevel::Mono);
+        let mut ladder = |c: Color| match c {
+            Color::Rgb(r, g, b) => match (u32::from(r) + u32::from(g) + u32::from(b)) / 3 {
+                0..=40 => Color::Black,
+                41..=110 => Color::DarkGray,
+                111..=190 => Color::Gray,
+                _ => Color::White,
+            },
+            other => other,
+        };
+        assert_eq!(m.color, t.color.map_colors(&mut ladder));
+        assert_eq!(m.capability.color, ColorLevel::Mono);
+    }
+
+    /// Ladder half, rung boundaries verbatim from
+    /// `visual-baseline:src/theme.rs:603-608` (channel mean 0-40
+    /// Black, 41-110 DarkGray, 111-190 Gray, else White). Mid-tones
+    /// are opaque rungs now, never `Reset`: the old `Reset` rung was
+    /// load-bearing transparency for downstream themes (S6 F4), and
+    /// losing it is the explicit price of tag parity + the legibility
+    /// prerequisite — `Reset` survives only as input passthrough.
+    #[test]
+    fn q65s6b_ladder_rung_boundaries() {
+        let at = |r, g, b| downgrade_color(Color::Rgb(r, g, b), ColorLevel::Mono);
+        assert_eq!(at(0, 0, 0), Color::Black);
+        assert_eq!(at(40, 40, 40), Color::Black);
+        assert_eq!(at(41, 41, 41), Color::DarkGray);
+        assert_eq!(at(110, 110, 110), Color::DarkGray);
+        assert_eq!(at(111, 111, 111), Color::Gray);
+        assert_eq!(at(190, 190, 190), Color::Gray);
+        assert_eq!(at(191, 191, 191), Color::White);
+        assert_eq!(at(255, 255, 255), Color::White);
+        // mean, not luminance: saturated red is mid-ladder, not black
+        assert_eq!(at(205, 0, 0), Color::DarkGray);
+        // Reset stays transparent (input passthrough, not a rung)
+        assert_eq!(
+            downgrade_color(Color::Reset, ColorLevel::Mono),
+            Color::Reset
+        );
+        // the old 3-way's Black/Reset mid-tones are Gray now
+        assert_eq!(at(0x80, 0x80, 0x80), Color::Gray);
+        assert_eq!(at(0xb3, 0xb3, 0xb3), Color::Gray);
+    }
+
+    /// Ladder half, legibility prerequisite: generic-path DisabledFg
+    /// @Mono is DarkGray (off-canvas), exactly the authored junie
+    /// value — without this the manifest half renders generic-path
+    /// disabled labels Black+DIM-on-Black = invisible. Paper (no
+    /// oracle) is pinned theme-agnostically: some fg, off its canvas.
+    #[test]
+    fn q65s6b_ladder_generic_disabled_fg_legible() {
+        let g = Theme::from_tokens(Theme::junie().color).downgrade(ColorLevel::Mono);
+        assert_eq!(
+            crate::theme::resolve::bind_role(&g, Role::DisabledFg, Surface::Canvas),
+            Some(Color::DarkGray)
+        );
+        for base in [Theme::from_tokens(Theme::junie().color), Theme::paper()] {
+            let m = base.downgrade(ColorLevel::Mono);
+            let canvas = crate::theme::resolve::bind_role(
+                &m,
+                Role::Surface(Surface::Canvas),
+                Surface::Canvas,
+            );
+            let r = m.resolve(
+                Family::BUTTON,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert!(
+                r.style.fg.is_some() && r.style.fg != canvas,
+                "generic-path DISABLED label fg {:?} is the canvas {canvas:?}",
+                r.style.fg
+            );
+        }
+    }
+
+    /// HOLD: `(MARKER,DISABLED)` is EXCLUDED from the manifest half —
+    /// no oracle backs it (Q64 G8 + `none.ansi:29` pin labels only;
+    /// the rule clears the glyph, so its fg paints a blank filled
+    /// cell and no render can observe it). Still White-forcing,
+    /// still glyph-Clear, still DIM-free.
+    #[test]
+    fn q65s6b_hold_marker_disabled_unchanged() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        let r = m.resolve(
+            Family::LIST,
+            Variant::DEFAULT,
+            Part::MARKER,
+            StateFlags::DISABLED,
+            Surface::Canvas,
+        );
+        assert_eq!(r.glyph, Slot::Clear);
+        assert_eq!(r.style.fg, Some(Color::White));
+        assert!(!r.style.add_modifier.contains(Modifier::DIM));
+    }
+
+    /// HOLD: TC/256/16 disabled labels are nowhere near this slice
+    /// (mono rules are Mono-gated). The BUTTON LABEL recipe is empty,
+    /// so the label resolve carries no fg and no DIM — cells inherit
+    /// the container fill (recipe DisabledFg) through paint.
+    #[test]
+    fn q65s6b_hold_disabled_label_tc_256_16_untouched() {
+        let tc = Theme::junie();
+        for (theme, want_fg) in [
+            (tc.clone(), Some(tc.color.disabled_fg)),
+            (
+                tc.downgrade(ColorLevel::Ansi256),
+                tc.downgrade(ColorLevel::Ansi256).color.disabled_fg.into(),
+            ),
+            (tc.downgrade(ColorLevel::Ansi16), Some(Color::DarkGray)),
+        ] {
+            let label = theme.resolve(
+                Family::BUTTON,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::DISABLED,
+                Surface::Elevated,
+            );
+            assert_eq!(label.style.fg, None);
+            assert!(!label.style.add_modifier.contains(Modifier::DIM));
+            let container = theme.resolve(
+                Family::BUTTON,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                StateFlags::DISABLED,
+                Surface::Elevated,
+            );
+            assert_eq!(container.style.fg, want_fg);
+        }
+    }
+
+    /// HOLD: FIELD/TEXT disabled already were DisabledFg+DIM — the
+    /// alignment target the LABEL rule now joins, not a behavior
+    /// this slice moves.
+    #[test]
+    fn q65s6b_hold_field_text_disabled_unchanged() {
+        for base in [Theme::junie(), Theme::paper()] {
+            let m = base.downgrade(ColorLevel::Mono);
+            for p in [Part::FIELD, Part::TEXT] {
+                let r = m.resolve(
+                    Family::INPUT,
+                    Variant::DEFAULT,
+                    p,
+                    StateFlags::DISABLED,
+                    Surface::Canvas,
+                );
+                assert_eq!(
+                    r.style.fg,
+                    crate::theme::resolve::bind_role(&m, Role::DisabledFg, Surface::Canvas),
+                    "{p:?} DISABLED fg moved"
+                );
+                assert!(
+                    r.style.add_modifier.contains(Modifier::DIM),
+                    "{p:?} DISABLED lost dim"
+                );
+            }
+        }
+    }
+
+    /// HOLD: the manifest half edits one rule in place — the generic
+    /// count is still 18 (13+5).
+    #[test]
+    fn q65s6b_hold_mono_rule_count_still_18() {
+        assert_eq!(MONO_RULES_PER_FAMILY, 18);
+        assert_eq!(mono_rules().len(), 13);
+        assert_eq!(mono_rules_extra().len(), 5);
+        assert_eq!(
+            MONO_RULES_PER_FAMILY,
+            mono_rules().len() + mono_rules_extra().len()
+        );
     }
 }
