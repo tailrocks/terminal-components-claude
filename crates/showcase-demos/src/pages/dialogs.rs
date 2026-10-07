@@ -222,9 +222,6 @@ impl Page for DialogsPage {
                     for (button, rect) in buttons.iter().zip(rects.iter().copied()) {
                         button.draw(ui, rect);
                     }
-                    for rect in rects {
-                        let _ = ui.paint_str(Rect { width: 1, ..rect }, "▎", ui.surface_style());
-                    }
                     lines(
                         ui,
                         Rect {
