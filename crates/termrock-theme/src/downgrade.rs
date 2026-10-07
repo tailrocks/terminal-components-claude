@@ -395,7 +395,14 @@ impl Theme {
 pub type MonoRule = (Part, StateFlags, StylePatch);
 
 /// The immutable generic mono fallback manifest applied by the resolver.
-fn mono_rules() -> [MonoRule; 15] {
+///
+/// There is deliberately no generic `PRESSED` rule for `CONTAINER` or
+/// `LABEL` (Q65-S4/G6): the tag has no mono layer, so pressed affordance at
+/// `Mono` is the recipe's own — PRIMARY keeps its pressed BOLD, every other
+/// button variant resolves plain, and nothing brackets (Q64 G6/G6b, S0(a)).
+/// A generic inverse or bracket here would override those recipe semantics
+/// for all 35 families after the recipes had spoken.
+fn mono_rules() -> [MonoRule; 13] {
     let p = StylePatch::new;
     [
         (
@@ -403,6 +410,9 @@ fn mono_rules() -> [MonoRule; 15] {
             StateFlags::FOCUSED,
             p().set_glyph(GlyphRole::FocusBar),
         ),
+        // Unpressed focus only: `apply_mono_with_defaults` skips this rule
+        // while PRESSED is live, or it re-adds the BOLD the pressed recipes
+        // stripped (G6b). Every other rule below fires as declared.
         (Part::LABEL, StateFlags::FOCUSED, p().add(Modifier::BOLD)),
         (
             Part::MARKER,
@@ -413,18 +423,6 @@ fn mono_rules() -> [MonoRule; 15] {
             Part::MARKER,
             StateFlags::CHECKED,
             p().set_glyph(GlyphRole::Checked),
-        ),
-        (
-            Part::CONTAINER,
-            StateFlags::PRESSED,
-            p().set_bg(Role::Fg(FgStep::Primary))
-                .set_fg(Role::Surface(Surface::Canvas))
-                .add(Modifier::BOLD),
-        ),
-        (
-            Part::LABEL,
-            StateFlags::PRESSED,
-            p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
         ),
         (
             Part::GUTTER,
@@ -527,13 +525,14 @@ fn mono_rules_extra() -> [MonoRule; 5] {
         ),
         // §11.4 `PRESSED`, scrollbar half: the thumb wears `PRESSED` from a
         // live capture (`components/scroll_region.rs:36-38`). The generic
-        // `CONTAINER` rule is excluded from `SCROLLBAR` below because this
-        // component fills that part across its whole area; the thumb must be
-        // the only bold part. The recipe's own `PRESSED` rule is
-        // `set_fg(Role::Accent)`, and colour alone is excluded from
-        // conformance case 9's comparison, so without this a dragged thumb is
-        // invisible at `Mono`. `BOLD` reserves no cell, so this keeps the
-        // "a mono fallback never changes geometry" guarantee.
+        // manifest carries no pressed-container treatment at all (Q65-S4
+        // deleted it: pressed affordance is the recipe's own), so the
+        // thumb is the only bold part under a drag. The recipe's own
+        // `PRESSED` rule is `set_fg(Role::Accent)`, and colour alone is
+        // excluded from conformance case 9's comparison, so without this
+        // a dragged thumb is invisible at `Mono`. `BOLD` reserves no
+        // cell, so this keeps the "a mono fallback never changes geometry"
+        // guarantee.
         (Part::THUMB, StateFlags::PRESSED, p().add(Modifier::BOLD)),
     ]
 }
@@ -546,17 +545,17 @@ fn mono_rules_extra() -> [MonoRule; 5] {
 /// The name is historical and is **not** a per-family total: it is cited by
 /// name in §16.1 and §20.10 item 18, so it keeps it. Six built-in families
 /// declare targeted rules on top of these (`VIEWPORT` 1, `GRID` 2, `MENU` 2,
-/// `HELP` 2, `PICKER` 3, `SELECT` 3) — `PICKER`'s `(LABEL, PRESSED)` retargets
-/// a pair the generic set already covers, so `PICKER` reaches 22 `(part,
-/// state)` pairs where `SELECT` reaches 23 — and a theme author can give any family —
+/// `HELP` 2, `PICKER` 3, `SELECT` 3) — every targeted pair is disjoint from
+/// the generic set since Q65-S4 deleted the generic `(LABEL, PRESSED)` rule
+/// `PICKER`'s targeted rule used to retarget, so `PICKER` and `SELECT` each
+/// reach 21 `(part, state)` pairs — and a theme author can give any family —
 /// including a `Family::custom` one — its own targeted set through
 /// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules). The count
 /// that is constant across families is exactly this generic one; the total a
 /// given family applies is this number plus its targeted set's length.
-/// `SCROLLBAR` is the one family that applies *fewer*: the generic
-/// `(CONTAINER, PRESSED)` rule is excluded for it (`apply_mono_fallback`), so
-/// its generic total is `MONO_RULES_PER_FAMILY - 1`.
-pub const MONO_RULES_PER_FAMILY: usize = 20;
+/// Every family answers the whole generic set: the old `SCROLLBAR` exclusion
+/// died with the generic `(CONTAINER, PRESSED)` rule it excluded (Q65-S4).
+pub const MONO_RULES_PER_FAMILY: usize = 18;
 
 fn viewport_mono_rules() -> [MonoRule; 1] {
     [(
@@ -718,11 +717,19 @@ pub(crate) fn apply_mono_with_defaults(
     // for that family, so a theme can retarget or silence it, and repeating
     // the call cannot accumulate duplicates.
     let targeted: &[MonoRule] = recipes.mono_rules(family).or(authored).unwrap_or(builtin);
-    for (rule_part, when, patch) in rules.iter().chain(extra.iter()).chain(targeted) {
-        let applies = family != Family::SCROLLBAR
-            || *rule_part != Part::CONTAINER
-            || *when != StateFlags::PRESSED;
-        if applies && *rule_part == part && live.contains(*when) {
+    // A pressed label is in pressed state, not focused state: the generic
+    // focus rule must not re-add the BOLD the pressed recipes stripped
+    // (Q65-S4/G6b). The skip is generic-only — an authored targeted rule
+    // stays the author's whole word for its family.
+    let pressed = live.contains(StateFlags::PRESSED);
+    for (rule_part, when, patch) in rules.iter().chain(extra.iter()) {
+        let focus_superseded = pressed && *rule_part == Part::LABEL && *when == StateFlags::FOCUSED;
+        if !focus_superseded && *rule_part == part && live.contains(*when) {
+            acc = acc.merge(*patch);
+        }
+    }
+    for (rule_part, when, patch) in targeted {
+        if *rule_part == part && live.contains(*when) {
             acc = acc.merge(*patch);
         }
     }
@@ -969,6 +976,8 @@ mod tests {
             &[],
         );
         assert_eq!(acc.glyph, Slot::Set(GlyphRole::Checked));
+        // Q65-S4/G6: no generic pressed-label rule remains — the tag has no
+        // brackets at `Mono`, and pressed BOLD is the recipe's own (S1).
         let pressed = crate::theme::resolve::accumulate(
             &m,
             Family::BUTTON,
@@ -977,8 +986,8 @@ mod tests {
             StateFlags::PRESSED,
             &[],
         );
-        assert_eq!(pressed.glyph, Slot::Set(GlyphRole::PressLeft));
-        assert!(pressed.add.contains(Modifier::BOLD));
+        assert_eq!(pressed.glyph, Slot::Inherit);
+        assert!(!pressed.add.contains(Modifier::BOLD));
     }
 
     /// F1: static mono resolution must reach the neutral-backed path for
@@ -1035,11 +1044,12 @@ mod tests {
     }
 
     /// §11.4, `PRESSED`: a dragged scrollbar thumb must stay visible at
-    /// `Mono`, without applying the generic pressed-container treatment to
-    /// the whole region. The sole authored `PRESSED` rule on `SCROLLBAR` is
-    /// `set_fg(Role::Accent)` — colour, which conformance case 9 excludes from
-    /// its comparison. The thumb genuinely wears `PRESSED`: a live capture
-    /// keeps it (`components/scroll_region.rs:36-38`).
+    /// `Mono`, without any pressed-container treatment on the whole region
+    /// (the generic manifest carries none since Q65-S4). The sole authored
+    /// `PRESSED` rule on `SCROLLBAR` is `set_fg(Role::Accent)` — colour,
+    /// which conformance case 9 excludes from its comparison. The thumb
+    /// genuinely wears `PRESSED`: a live capture keeps it
+    /// (`components/scroll_region.rs:36-38`).
     #[test]
     fn mono_pressed_reaches_the_scrollbar_thumb() {
         for base in [Theme::junie(), Theme::paper()] {
@@ -1194,7 +1204,7 @@ mod tests {
         let help = help_mono_rules();
         let picker = picker_mono_rules();
         let select = select_mono_rules();
-        assert_eq!(rules.len(), 15);
+        assert_eq!(rules.len(), 13);
         assert_eq!(extra.len(), 5);
         assert!(extra.iter().any(|(part, when, patch)| {
             *part == Part::ICON
@@ -1307,9 +1317,9 @@ mod tests {
     }
 
     /// The constant counts the **generic** manifest only; a family's real
-    /// total is that plus its targeted set, minus `SCROLLBAR`'s one exclusion
-    /// and minus any pair a targeted rule shares with the generic set. These
-    /// are the numbers `MONO_RULES_PER_FAMILY`'s documentation states.
+    /// total is that plus its targeted set. Every targeted pair is disjoint
+    /// from the generic set, so nothing dedups. These are the numbers
+    /// `MONO_RULES_PER_FAMILY`'s documentation states.
     #[test]
     fn mono_rule_counts_match_the_documented_totals() {
         assert_eq!(
@@ -1323,21 +1333,23 @@ mod tests {
             responding_pairs(&r, Family::custom("seg")),
             MONO_RULES_PER_FAMILY
         );
-        // the one family that answers fewer: generic `(CONTAINER, PRESSED)`
-        // is excluded so only the thumb is bold under a drag
+        // Q65-S4 deleted the generic `(CONTAINER, PRESSED)` rule, so the old
+        // `SCROLLBAR` exclusion died with it: the scrollbar answers the
+        // whole generic set, and only the thumb is bold under a drag
+        // because only the thumb has a rule.
         assert_eq!(
             responding_pairs(&r, Family::SCROLLBAR),
-            MONO_RULES_PER_FAMILY - 1
+            MONO_RULES_PER_FAMILY
         );
         for (f, pairs) in [
-            (Family::VIEWPORT, 21),
-            (Family::GRID, 22),
-            (Family::MENU, 22),
-            (Family::HELP, 22),
-            // `PICKER` declares three rules but one retargets `(LABEL,
-            // PRESSED)`, which the generic set already answers
-            (Family::PICKER, 22),
-            (Family::SELECT, 23),
+            (Family::VIEWPORT, 19),
+            (Family::GRID, 20),
+            (Family::MENU, 20),
+            (Family::HELP, 20),
+            // `PICKER`'s `(LABEL, PRESSED)` used to retarget a generic pair;
+            // since Q65-S4 deleted that generic rule it answers on its own
+            (Family::PICKER, 21),
+            (Family::SELECT, 21),
         ] {
             assert_eq!(responding_pairs(&r, f), pairs, "{f:?}");
         }
@@ -1506,4 +1518,262 @@ mod tests {
     }
 
     use crate::theme::recipe::{Family, Variant};
+
+    // Q65-S4 (G6): the tag has no mono layer — pressed affordance at `Mono`
+    // is the resolver's own (Q64 G6 row: no brackets; S0(a): PRIMARY
+    // pressed+focused BOLD; Q64 G6b: Cancel pressed+focused NONE; W01-02:
+    // the tag's pressed lockup recolors, it does not bracket). The generic
+    // pressed rules must go so the S1 recipe semantics (PRIMARY re-adds
+    // BOLD, every other variant strips it) show through, and the generic
+    // focus rule must not fire while PRESSED is live, or it re-adds the
+    // BOLD the recipes stripped. Unpressed focus is untouched.
+    const Q65S4_BUTTON_VARIANTS: [Variant; 8] = [
+        Variant::DEFAULT,
+        Variant::PRIMARY,
+        Variant::SECONDARY,
+        Variant::SUBTLE,
+        Variant::DANGER,
+        Variant::TOGGLE,
+        Variant::QUIET,
+        Variant::GHOST,
+    ];
+
+    /// S0(a): PRIMARY pressed+focused @Mono is BOLD with no brackets. The
+    /// BOLD rides the container (S1 re-add); the label resolve must be
+    /// modifier-empty — no add AND no remove — so the cells inherit it.
+    #[test]
+    fn q65s4_g6_primary_pressed_focused_bold_no_bracket() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        for live in [
+            StateFlags::PRESSED | StateFlags::FOCUSED,
+            StateFlags::HOVERED | StateFlags::PRESSED | StateFlags::FOCUSED,
+        ] {
+            let label = m.resolve(
+                Family::BUTTON,
+                Variant::PRIMARY,
+                Part::LABEL,
+                live,
+                Surface::Elevated,
+            );
+            assert_eq!(
+                label.glyph,
+                Slot::Inherit,
+                "PRIMARY label brackets at {live:?}"
+            );
+            assert!(
+                !label.style.add_modifier.contains(Modifier::BOLD),
+                "PRIMARY label adds BOLD at {live:?}"
+            );
+            assert!(
+                !label.style.sub_modifier.contains(Modifier::BOLD),
+                "PRIMARY label strips the container's BOLD at {live:?}"
+            );
+            let container = m.resolve(
+                Family::BUTTON,
+                Variant::PRIMARY,
+                Part::CONTAINER,
+                live,
+                Surface::Elevated,
+            );
+            assert!(
+                container.style.add_modifier.contains(Modifier::BOLD),
+                "PRIMARY container lost its S1 BOLD at {live:?}"
+            );
+        }
+    }
+
+    /// Q64 G6b: every other variant pressed @Mono is plain — no BOLD, no
+    /// brackets — whether or not FOCUSED is also live.
+    #[test]
+    fn q65s4_g6b_pressed_plain_for_other_variants() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        for v in Q65S4_BUTTON_VARIANTS {
+            if v == Variant::PRIMARY {
+                continue;
+            }
+            for live in [
+                StateFlags::PRESSED | StateFlags::FOCUSED,
+                StateFlags::PRESSED,
+            ] {
+                let label = m.resolve(Family::BUTTON, v, Part::LABEL, live, Surface::Elevated);
+                assert_eq!(
+                    label.glyph,
+                    Slot::Inherit,
+                    "{v:?} LABEL brackets at {live:?}"
+                );
+                assert!(
+                    !label.style.add_modifier.contains(Modifier::BOLD),
+                    "{v:?} LABEL adds BOLD at {live:?}"
+                );
+                assert!(
+                    !label.style.sub_modifier.contains(Modifier::BOLD),
+                    "{v:?} LABEL carries a BOLD strip at {live:?}"
+                );
+                let container =
+                    m.resolve(Family::BUTTON, v, Part::CONTAINER, live, Surface::Elevated);
+                assert!(
+                    !container.style.add_modifier.contains(Modifier::BOLD),
+                    "{v:?} CONTAINER adds BOLD at {live:?}"
+                );
+                assert!(
+                    container.style.sub_modifier.contains(Modifier::BOLD),
+                    "{v:?} CONTAINER lost its S1 BOLD strip at {live:?}"
+                );
+            }
+        }
+    }
+
+    /// The pressed container is the recipe's own colors, not the generic
+    /// inverse (fg Canvas on bg Primary): PRIMARY keeps AccentPressed,
+    /// DANGER keeps Danger. (`_`-arm variants genuinely resolve near the
+    /// old inverse from their own recipe, so they cannot discriminate.)
+    #[test]
+    fn q65s4_g6_pressed_container_is_recipe_not_inverse() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        let live = StateFlags::PRESSED | StateFlags::FOCUSED;
+        let primary = m.resolve(
+            Family::BUTTON,
+            Variant::PRIMARY,
+            Part::CONTAINER,
+            live,
+            Surface::Elevated,
+        );
+        assert_eq!(
+            primary.style.fg,
+            crate::theme::resolve::bind_role(&m, Role::OnAccent, Surface::Elevated)
+        );
+        assert_eq!(
+            primary.style.bg,
+            crate::theme::resolve::bind_role(&m, Role::AccentPressed, Surface::Elevated)
+        );
+        let danger = m.resolve(
+            Family::BUTTON,
+            Variant::DANGER,
+            Part::CONTAINER,
+            live,
+            Surface::Elevated,
+        );
+        assert_eq!(
+            danger.style.fg,
+            crate::theme::resolve::bind_role(&m, Role::OnDanger, Surface::Elevated)
+        );
+        assert_eq!(
+            danger.style.bg,
+            crate::theme::resolve::bind_role(&m, Role::Danger, Surface::Elevated)
+        );
+    }
+
+    /// Two generic pressed rules deleted: 15+5=20 becomes 13+5=18.
+    #[test]
+    fn q65s4_mono_rule_count_is_18() {
+        assert_eq!(MONO_RULES_PER_FAMILY, 18);
+        assert_eq!(mono_rules().len(), 13);
+        assert_eq!(mono_rules_extra().len(), 5);
+        assert_eq!(
+            MONO_RULES_PER_FAMILY,
+            mono_rules().len() + mono_rules_extra().len()
+        );
+    }
+
+    /// HOLD: unpressed focus keeps its BOLD everywhere — the exclusion only
+    /// bites while PRESSED is live.
+    #[test]
+    fn q65s4_hold_unpressed_focused_keeps_bold() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        for v in Q65S4_BUTTON_VARIANTS {
+            let label = m.resolve(
+                Family::BUTTON,
+                v,
+                Part::LABEL,
+                StateFlags::FOCUSED,
+                Surface::Elevated,
+            );
+            assert!(
+                label.style.add_modifier.contains(Modifier::BOLD),
+                "{v:?} LABEL lost focus BOLD"
+            );
+        }
+        for f in [Family::TABS, Family::LIST, Family::CHOICE, Family::CHIP] {
+            let label = m.resolve(
+                f,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::FOCUSED,
+                Surface::Canvas,
+            );
+            assert!(
+                label.style.add_modifier.contains(Modifier::BOLD),
+                "{f:?} LABEL lost focus BOLD"
+            );
+        }
+    }
+
+    /// PICKER's targeted `(LABEL, PRESSED)` survives the generic deletion:
+    /// the bracket glyph goes (it came from the generic rule) but the
+    /// targeted inverse + BOLD|UNDERLINED affordance stays.
+    #[test]
+    fn q65s4_picker_label_pressed_loses_bracket_keeps_affordance() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        let r = m.resolve(
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::LABEL,
+            StateFlags::PRESSED,
+            Surface::Canvas,
+        );
+        assert_eq!(r.glyph, Slot::Inherit);
+        assert!(r.style.add_modifier.contains(Modifier::BOLD));
+        assert!(r.style.add_modifier.contains(Modifier::UNDERLINED));
+    }
+
+    /// HOLD: MENU TITLE pressed keeps its brackets — they come from the
+    /// menu recipe plus the MENU targeted rule, neither of which moves.
+    #[test]
+    fn q65s4_hold_menu_title_pressed_keeps_bracket() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        let r = m.resolve(
+            Family::MENU,
+            Variant::DEFAULT,
+            Part::TITLE,
+            StateFlags::PRESSED,
+            Surface::Overlay,
+        );
+        assert_eq!(r.glyph, Slot::Set(GlyphRole::PressLeft));
+        assert!(r.style.add_modifier.contains(Modifier::BOLD));
+    }
+
+    /// HOLD: SELECT GUTTER pressed keeps its bracket — a targeted rule,
+    /// untouched by the generic deletion.
+    #[test]
+    fn q65s4_hold_select_gutter_pressed_keeps_bracket() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        let r = m.resolve(
+            Family::SELECT,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            StateFlags::PRESSED,
+            Surface::Canvas,
+        );
+        assert_eq!(r.glyph, Slot::Set(GlyphRole::PressLeft));
+        assert!(r.style.add_modifier.contains(Modifier::BOLD));
+    }
+
+    /// HOLD: disabled styling is nowhere near this slice.
+    #[test]
+    fn q65s4_hold_disabled_dim_unchanged() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        for v in Q65S4_BUTTON_VARIANTS {
+            let r = m.resolve(
+                Family::BUTTON,
+                v,
+                Part::LABEL,
+                StateFlags::DISABLED,
+                Surface::Elevated,
+            );
+            assert!(
+                r.style.add_modifier.contains(Modifier::DIM),
+                "{v:?} LABEL lost DISABLED dim"
+            );
+        }
+    }
 }
