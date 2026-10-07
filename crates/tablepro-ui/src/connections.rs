@@ -1,8 +1,8 @@
-//! Connection list and the app-owned 15-field connection draft.
+//! Connection list and the app-owned 14-field connection draft.
 
 use termrock::{
-    Action, ActionKey, Checkbox, Chord, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec,
-    FormData, Id, RadioGroup, Secret, SecretPolicy, Select, TextArea, TextInput, Toggle,
+    Action, ActionKey, Chord, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, FormData, Id,
+    RadioGroup, Secret, SecretPolicy, Select, TextArea, TextInput, Toggle,
 };
 
 use tablepro_demo as db;
@@ -88,10 +88,10 @@ fn valid_port(value: &str) -> Result<(), termrock::FieldError> {
 }
 
 /// The public `Form` declaration for the complete connection editor.
-pub fn form_fields() -> [FieldSpec<'static>; 15] {
+pub fn form_fields() -> [FieldSpec<'static>; 14] {
     use field::{
-        ASK_PASSWORD, DATABASE, ENGINE, ENVIRONMENT, GROUP, HOST, NAME, PASSWORD, PORT, SAFE_MODE,
-        SSH, SSH_HOST, SSL, STARTUP, USER,
+        DATABASE, ENGINE, ENVIRONMENT, GROUP, HOST, NAME, PASSWORD, PORT, SAFE_MODE, SSH, SSH_HOST,
+        SSL, STARTUP, USER,
     };
     [
         FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME))).required(true),
@@ -120,15 +120,6 @@ pub fn form_fields() -> [FieldSpec<'static>; 15] {
             FieldKind::Text(TextInput::new(PASSWORD).secret(SecretPolicy::default())),
         )
         .help("Never written to connections.json"),
-        FieldSpec::new(
-            ASK_PASSWORD,
-            "",
-            FieldKind::Check(Checkbox::new(
-                ASK_PASSWORD,
-                "Prompt for password on connect",
-            )),
-        )
-        .plain(true),
         FieldSpec::new(
             ENVIRONMENT,
             "Environment",

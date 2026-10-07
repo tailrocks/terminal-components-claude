@@ -2,13 +2,14 @@
 
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
-    Action, ActionKey, App, Button, Chord, ColumnKey, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState,
-    Family, FgStep, Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction,
-    GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
-    LayerSize, LayerSpec, Modifier, NodeKind, Panel, PanelKind, Part, Phase, PickerAction,
-    Response, Role, RowUi, Select, SelectAction, Size, SortDir, Span, SplitAxis, SplitPane,
-    SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
-    TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
+    Action, ActionKey, App, Button, Checkbox, Chord, ColumnKey, Cx, Dialog, DialogAction,
+    DialogState, Empty, EmptyState, Family, FgStep, Focusability, Form, FormAction, FormState,
+    FrameRead, Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap,
+    KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, NodeKind, Panel, PanelKind,
+    Part, Phase, PickerAction, Response, Role, RowUi, Select, SelectAction, Size, SortDir, Span,
+    SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction,
+    TextInput, TextInputState, Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause,
+    Variant, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -4087,74 +4088,6 @@ impl TableProApp {
         }
     }
 
-    fn draw_form_checkbox(
-        ui: &mut Ui<'_>,
-        area: termrock::Rect,
-        label: &str,
-        checked: bool,
-        card_bg: PaintStyle,
-    ) {
-        if area.is_empty() {
-            return;
-        }
-        let row_rect = termrock::Rect {
-            x: area.x,
-            y: area.y,
-            width: area.width,
-            height: 1,
-        };
-        let row_style =
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-        ui.fill(row_rect, row_style);
-        let gutter_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
-        );
-        ui.paint_str(
-            termrock::Rect {
-                x: area.x,
-                y: area.y,
-                width: 1,
-                height: 1,
-            },
-            " ",
-            gutter_style,
-        );
-        let (mark, mark_w) = if area.width < 4 {
-            (if checked { "✓" } else { "□" }, 1u16)
-        } else if checked {
-            ("[✓]", 3u16)
-        } else {
-            ("[ ]", 3u16)
-        };
-        let mark_style =
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-        ui.paint_str(
-            termrock::Rect {
-                x: area.x.saturating_add(1),
-                y: area.y,
-                width: mark_w,
-                height: 1,
-            },
-            mark,
-            mark_style,
-        );
-        if area.width > 5 {
-            let text_style =
-                card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-            let text = truncate(label, area.width.saturating_sub(6));
-            ui.paint_str(
-                termrock::Rect {
-                    x: area.x.saturating_add(5),
-                    y: area.y,
-                    width: area.width.saturating_sub(5),
-                    height: 1,
-                },
-                &text,
-                text_style,
-            );
-        }
-    }
-
     fn draw_form_basic_tab(
         &self,
         ui: &mut Ui<'_>,
@@ -4323,18 +4256,47 @@ impl TableProApp {
         y = y.saturating_add(fh);
 
         // 7. Prompt for password on connect
-        Self::draw_form_checkbox(
-            ui,
-            termrock::Rect {
-                x: lc.x,
-                y,
-                width: lc.width,
-                height: 1,
-            },
-            "Prompt for password on connect",
-            draft.ask_password,
-            card_bg,
-        );
+        let area = termrock::Rect {
+            x: lc.x,
+            y,
+            width: lc.width,
+            height: 1,
+        };
+        if !area.is_empty() && area.width > 5 {
+            let label = truncate(
+                "Prompt for password on connect",
+                area.width.saturating_sub(6),
+            );
+            Checkbox::new(connections::field::ASK_PASSWORD, &label)
+                .checked(draft.ask_password)
+                .patch_part(&[
+                    (
+                        Part::CONTAINER,
+                        StylePatch::new()
+                            .set_bg(Role::Surface(termrock::Surface::Surface))
+                            .set_fg(Role::Fg(FgStep::Primary)),
+                    ),
+                    (
+                        Part::GUTTER,
+                        StylePatch::new()
+                            .set_bg(Role::Surface(termrock::Surface::Surface))
+                            .set_fg(Role::Surface(termrock::Surface::Surface)),
+                    ),
+                    (
+                        Part::MARKER,
+                        StylePatch::new()
+                            .set_bg(Role::Surface(termrock::Surface::Surface))
+                            .set_fg(Role::Fg(FgStep::Muted)),
+                    ),
+                    (
+                        Part::LABEL,
+                        StylePatch::new()
+                            .set_bg(Role::Surface(termrock::Surface::Surface))
+                            .set_fg(Role::Fg(FgStep::Primary)),
+                    ),
+                ])
+                .draw(ui, area);
+        }
 
         // Right column
         let mut ry = rc.y;
@@ -7530,6 +7492,17 @@ impl App for TableProApp {
                 }
                 response |= form_response.erase();
             }
+        }
+        if self.form_open
+            && self.form_tab == 0
+            && let Some(draft) = self.draft.as_mut()
+        {
+            let ask = Checkbox::new(connections::field::ASK_PASSWORD, "")
+                .update(cx, &mut draft.ask_password);
+            if ask.action_ref().is_some() {
+                response |= Response::changed();
+            }
+            response |= ask.erase();
         }
         if form_was_open {
             return response;
