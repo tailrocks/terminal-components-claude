@@ -9,6 +9,7 @@ use termrock::{
     Status, StatusBar, StatusItem, Theme, TooSmall, Ui, Variant, id, width,
 };
 
+use showcase_demos::pages::dialogs::DELETE_COMMAND;
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
@@ -478,6 +479,11 @@ fn keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::key(KeyCode::Char('r')),
             RUN_COMMAND,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('d')),
+            DELETE_COMMAND,
         )
         .bind(
             KeyPhase::Bubble,
@@ -1531,6 +1537,7 @@ mod app_tests {
             PREV_PAGE,
             FORM_SUBMIT,
             RUN_COMMAND,
+            DELETE_COMMAND,
         ]
         .into_iter()
         .chain(showcase_demos::pages::pickers::action_keys())
@@ -1544,6 +1551,7 @@ mod app_tests {
             "showcase.page.previous",
             "showcase.form.submit",
             "showcase.taskrunner.run",
+            "showcase.dialogs.delete",
             "showcase.menu.open",
             "showcase.menu.close",
             "showcase.context.inspect",

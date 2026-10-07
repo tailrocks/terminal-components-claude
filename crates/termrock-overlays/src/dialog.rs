@@ -168,6 +168,15 @@ impl DialogState {
         self.ack_draft.zeroize();
     }
 
+    /// Preset the committed prompt text, e.g. the current name a rename
+    /// dialog edits. This is prompt-only: it clears the acknowledgement
+    /// token and leaves secret mode, so call it before opening.
+    pub fn set_draft(&mut self, draft: &str) {
+        self.ack_draft.zeroize();
+        self.input.set_sensitive(false);
+        self.draft = draft.into();
+    }
+
     fn set_secret_mode(&mut self, secret: bool) {
         if self.input.is_sensitive() == secret {
             return;
@@ -206,8 +215,9 @@ fn zeroize_string(value: &mut String) {
 /// (`design.size.dialog_width`), `.body_rows(u16)` (rows for the body slot;
 /// `code_preview_lines` for `new`, `0` for the conveniences — the dialog
 /// never sees the body closure before `draw`, so the caller states it),
-/// `.error(Option<&str>)` for caller-owned prompt validation, `.patch`,
-/// `.patch_part`.
+/// `.error(Option<&str>)` for caller-owned prompt validation,
+/// `.input_help(&str)` / `.input_required(bool)` forwarded to the prompt
+/// field, `.patch`, `.patch_part`.
 ///
 /// ## Variants
 /// `Family::DIALOG`, `DEFAULT` only; the action buttons carry their
@@ -277,6 +287,8 @@ pub struct Dialog<'a> {
     body_rows: Option<u16>,
     prompt: Option<&'a str>,
     input_label: Option<&'a str>,
+    input_help: Option<&'a str>,
+    input_required: bool,
     ack: Option<&'a str>,
     error: Option<&'a str>,
     max_height: Option<u16>,
@@ -325,6 +337,8 @@ impl<'a> Dialog<'a> {
             body_rows: None,
             prompt: None,
             input_label: None,
+            input_help: None,
+            input_required: false,
             ack: None,
             error: None,
             max_height: None,
@@ -367,6 +381,22 @@ impl<'a> Dialog<'a> {
     #[must_use]
     pub const fn input_label(mut self, label: &'a str) -> Self {
         self.input_label = Some(label);
+        self
+    }
+
+    /// Help text under the prompt control, shown when there is no error.
+    /// Forwarded to the prompt `Field`; ignored without one.
+    #[must_use]
+    pub const fn input_help(mut self, help: &'a str) -> Self {
+        self.input_help = Some(help);
+        self
+    }
+
+    /// Whether the prompt control shows the required marker. This only
+    /// annotates the label; validation stays caller-owned (`.error`).
+    #[must_use]
+    pub const fn input_required(mut self, yes: bool) -> Self {
+        self.input_required = yes;
         self
     }
 
@@ -903,10 +933,11 @@ impl<'a> Dialog<'a> {
                         .input_label
                         .or(self.prompt)
                         .unwrap_or("Type the token to confirm");
-                    Field::new(label, input)
-                        .plain(true)
-                        .error(self.error)
-                        .draw(ui, r, &st.input);
+                    let mut field = Field::new(label, input).plain(true).error(self.error);
+                    if let Some(help) = self.input_help {
+                        field = field.help(help);
+                    }
+                    field.required(self.input_required).draw(ui, r, &st.input);
                     y = y.saturating_add(field_h);
                     if self.ack.is_some() {
                         y = y.saturating_add(1);

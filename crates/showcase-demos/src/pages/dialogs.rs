@@ -13,8 +13,12 @@ const OPEN_CHOICE: Id = id!("dialogs.choice.open");
 const OPEN_DELETE: Id = id!("dialogs.delete.open");
 const CONFIRM: Id = id!("dialogs.confirm.layer");
 const PROMPT: Id = id!("dialogs.prompt.layer");
+const DELETE: Id = id!("dialogs.delete.layer");
 const OPEN_PANEL: Id = id!("dialogs.open.panel");
 const RESULTS_PANEL: Id = id!("dialogs.results.panel");
+
+/// Direct access to the destructive flow, bound to `d` by the shell keymap.
+pub const DELETE_COMMAND: ActionKey = ActionKey::application("showcase.dialogs.delete");
 fn confirm_button() -> Button<'static> {
     Button::new(OPEN_CONFIRM, "Confirm run").variant(Variant::PRIMARY)
 }
@@ -44,6 +48,7 @@ enum OpenDialog {
     None,
     Confirm,
     Prompt,
+    Delete,
 }
 
 /// Dialog launchers and their durable prompt states.
@@ -52,16 +57,20 @@ pub struct DialogsPage {
     open: OpenDialog,
     confirm_state: DialogState,
     prompt_state: DialogState,
+    delete_state: DialogState,
     error: Option<String>,
     result: String,
 }
 
 impl DialogsPage {
     pub fn new() -> Self {
+        let mut prompt_state = DialogState::default();
+        prompt_state.set_draft("Migrate sessions table");
         Self {
             open: OpenDialog::None,
             confirm_state: DialogState::default(),
-            prompt_state: DialogState::default(),
+            prompt_state,
+            delete_state: DialogState::default(),
             error: None,
             result: String::from("Nothing yet"),
         }
@@ -70,6 +79,16 @@ impl DialogsPage {
     const RUN_ACTIONS: [Action<'static>; 2] = [
         Action::quiet(ActionKey::CANCEL, "Cancel"),
         Action::new(ActionKey::CONFIRM, "Run"),
+    ];
+
+    const RENAME_ACTIONS: [Action<'static>; 2] = [
+        Action::quiet(ActionKey::CANCEL, "Cancel"),
+        Action::new(ActionKey::CONFIRM, "Rename"),
+    ];
+
+    const DELETE_ACTIONS: [Action<'static>; 2] = [
+        Action::secondary(ActionKey::CANCEL, "Cancel"),
+        Action::danger(ActionKey::CONFIRM, "Delete branch"),
     ];
 
     fn confirm() -> Dialog<'static> {
@@ -82,7 +101,25 @@ impl DialogsPage {
     }
 
     fn prompt(error: Option<&str>) -> Dialog<'_> {
-        Dialog::prompt(PROMPT, "Rename task", "Task name").error(error)
+        Dialog::prompt(PROMPT, "Rename task", "Task name")
+            .actions(&Self::RENAME_ACTIONS)
+            .input_required(true)
+            .input_help("Shown in the task list and PR title")
+            .error(error)
+    }
+
+    fn delete() -> Dialog<'static> {
+        Dialog::destructive(
+            DELETE,
+            "Delete branch?",
+            "feat/rate-limit has 14 commits that are not on main. This cannot be undone.",
+        )
+        .actions(&Self::DELETE_ACTIONS)
+    }
+
+    fn open_delete(&mut self, cx: &mut Cx<'_>) {
+        self.open = OpenDialog::Delete;
+        cx.open_layer(DELETE, Self::delete().layer(cx));
     }
 
     fn close(&mut self, cx: &mut Cx<'_>, id: Id) {
@@ -105,6 +142,19 @@ impl Default for DialogsPage {
 impl Page for DialogsPage {
     fn title(&self) -> &'static str {
         "Dialogs"
+    }
+
+    fn command(&mut self, cx: &mut Cx<'_>, action: ActionKey) -> Response<()> {
+        if action == DELETE_COMMAND
+            && !cx.is_open(CONFIRM)
+            && !cx.is_open(PROMPT)
+            && !cx.is_open(DELETE)
+        {
+            self.open_delete(cx);
+            Response::changed()
+        } else {
+            Response::ignored()
+        }
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
@@ -130,8 +180,8 @@ impl Page for DialogsPage {
         }
         response |= choice_button.erase();
         let delete_button = delete_button().update(cx);
-        if delete_button.activated() {
-            self.result = String::from("Cancelled");
+        if delete_button.activated() && !cx.is_open(DELETE) {
+            self.open_delete(cx);
         }
         response |= delete_button.erase();
 
@@ -160,10 +210,14 @@ impl Page for DialogsPage {
         {
             match action {
                 DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
-                    let name = self.prompt_state.draft().trim();
+                    let draft = self.prompt_state.draft().to_owned();
+                    let name = draft.trim();
                     if name.is_empty() {
                         self.error = Some(String::from("Name cannot be empty"));
                         self.result = String::from("Name cannot be empty");
+                    } else if draft.len() > 40 {
+                        self.error = Some(String::from("Keep it under 40 characters"));
+                        self.result = String::from("Keep it under 40 characters");
                     } else {
                         self.result = format!("Task: {name}");
                         self.close(cx, PROMPT);
@@ -172,6 +226,22 @@ impl Page for DialogsPage {
                 DialogAction::Action(_) | DialogAction::Dismissed(_) => {
                     self.result = String::from("Rename cancelled");
                     self.close(cx, PROMPT);
+                }
+            }
+        }
+        response |= action.erase();
+        let action = Self::delete().update(cx, &mut self.delete_state);
+        if self.open == OpenDialog::Delete
+            && let Some(action) = action.action_ref()
+        {
+            match action {
+                DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
+                    self.result = String::from("Branch feat/rate-limit deleted");
+                    self.close(cx, DELETE);
+                }
+                DialogAction::Action(_) | DialogAction::Dismissed(_) => {
+                    self.result = String::from("Cancelled");
+                    self.close(cx, DELETE);
                 }
             }
         }
@@ -257,6 +327,11 @@ impl Page for DialogsPage {
         ui.layer(PROMPT, |ui, layer| {
             Self::prompt(self.error.as_deref()).draw(ui, layer, &self.prompt_state, |ui, body| {
                 let _ = ui.paint_str(body, "Type a name, then Enter", ui.surface_style());
+            });
+        });
+        ui.layer(DELETE, |ui, layer| {
+            Self::delete().draw(ui, layer, &self.delete_state, |ui, body| {
+                let _ = ui.paint_str(body, "Enter confirms · Esc cancels", ui.surface_style());
             });
         });
     }

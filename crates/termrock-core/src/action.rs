@@ -96,6 +96,18 @@ impl<'a> Action<'a> {
         }
     }
 
+    /// A secondary-emphasis action.
+    pub const fn secondary(key: ActionKey, label: &'a str) -> Self {
+        Action {
+            key,
+            label,
+            variant: Variant::SECONDARY,
+            chord: None,
+            enabled: true,
+            danger: false,
+        }
+    }
+
     /// A quiet (low-emphasis) action.
     pub const fn quiet(key: ActionKey, label: &'a str) -> Self {
         Action {
