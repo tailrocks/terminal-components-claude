@@ -6,8 +6,8 @@ use termrock::{
     Family, FgStep, Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction,
     GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
     LayerSize, LayerSpec, Modifier, NodeKind, Panel, PanelKind, Part, Phase, PickerAction,
-    Response, Role, RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState,
-    StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
+    Response, Role, RowUi, Select, SelectAction, Size, SortDir, Span, SplitAxis, SplitPane,
+    SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
     TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
 };
 
@@ -18,6 +18,7 @@ use crate::filter_editor::{
     Filter, FilterEditor, FilterFocus, FilterOp, FilterOutcome, FILTER_APPLY, FILTER_CANCEL,
     FILTER_COL, FILTER_EDITOR, FILTER_OP, FILTER_VALUE, FILTER_VALUE2,
 };
+use crate::filter_editor::{column_key, column_row, op_key, op_row};
 use crate::quick_switcher::{self, QuickSwitcher};
 use crate::safety_dialog::{
     Prop, SAFETY_CANCEL, SAFETY_CONFIRM, SAFETY_DIALOG, SAFETY_INPUT, SafetyDialog,
@@ -2213,7 +2214,38 @@ impl TableProApp {
             &mut editor.value,
         );
         let value_action = value_response.action_ref().copied();
+        // Column and Op dropdowns are owned by Select. The column runs
+        // first: choosing a column rebuilds the type-appropriate op list,
+        // so the op value is seeded fresh after.
+        editor
+            .col_select
+            .set_value(editor.columns.get(editor.column_idx).map(column_key));
+        let col_response = Select::new(FILTER_COL)
+            .key(column_key)
+            .row(column_row)
+            .update(cx, &mut editor.col_select, &editor.columns);
+        let col_action = col_response.action_ref().copied();
+        let col_dirty = col_action.is_some() || col_response.is_changed();
+        if let Some(SelectAction::Chose(key)) = col_action {
+            editor.choose_column(key);
+        }
+        editor.op_select.set_value(Some(op_key(&editor.op)));
+        let op_response = Select::new(FILTER_OP).key(op_key).row(op_row).update(
+            cx,
+            &mut editor.op_select,
+            &editor.ops,
+        );
+        let op_action = op_response.action_ref().copied();
+        let op_dirty = op_action.is_some() || op_response.is_changed();
+        if let Some(SelectAction::Chose(key)) = op_action {
+            editor.choose_op(key);
+        }
         let mut outcome = None;
+        // Esc over an open Select popup must reach the runtime bubble pass,
+        // which dismisses the popover layer. Consuming it here (every
+        // `changed()` is `Consumed`) would leave the popup open with no
+        // dismissal ever delivered.
+        let mut esc_on_open_popup = false;
         for (id, focus_variant) in [
             (FILTER_COL, FilterFocus::Column),
             (FILTER_OP, FilterFocus::Op),
@@ -2229,6 +2261,11 @@ impl TableProApp {
                     }
                     Intent::Key(key) => {
                         editor.focus = focus_variant;
+                        if key.code == KeyCode::Esc
+                            && (editor.col_select.is_open() || editor.op_select.is_open())
+                        {
+                            esc_on_open_popup = true;
+                        }
                         if outcome.is_none() {
                             outcome = Some(editor.on_key(key));
                         }
@@ -2339,8 +2376,9 @@ impl TableProApp {
                 }
                 Response::changed()
             }
+            Some(FilterOutcome::Keep) if esc_on_open_popup => Response::ignored(),
             Some(FilterOutcome::Keep) => Response::changed(),
-            None if value_action.is_some() => Response::changed(),
+            None if value_action.is_some() || col_dirty || op_dirty => Response::changed(),
             None => Response::ignored(),
         }
     }
@@ -7853,6 +7891,119 @@ mod replacement_tests {
         let text = h.text();
         assert!(text.contains("status = 'pending'"));
         assert!(text.contains("filtered (1)"));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn filter_column_and_op_choose_through_owned_select() {
+        let mut app = TableProApp::default();
+        let idx = app
+            .connections
+            .iter()
+            .position(|c| c.name == "Production")
+            .unwrap();
+        let _ = app.connect(idx);
+        let mut h = Harness::new(app, Theme::junie(), 120, 40);
+        for _ in 0..5 {
+            let _ = h.key(KeyCode::Down);
+        }
+        let _ = h.key(KeyCode::Enter);
+        let _ = h.key(KeyCode::Home);
+        for _ in 0..4 {
+            let _ = h.key(KeyCode::Right);
+        }
+        let _ = h.key(KeyCode::Char('f'));
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        let first_col = editor.column_idx;
+        assert_eq!(editor.focus, FilterFocus::Apply);
+        assert_eq!(editor.op, FilterOp::Eq);
+        assert!(!editor.value.is_empty());
+        // Tab wraps Apply -> Column (ring order follows draw registration).
+        let _ = h.key(KeyCode::Tab);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.focus, FilterFocus::Column);
+        // Enter opens the owned popup; Down moves the cursor WITHOUT
+        // committing (the cursor is not the value).
+        let _ = h.key(KeyCode::Enter);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(editor.col_select.is_open());
+        let _ = h.key(KeyCode::Down);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(editor.col_select.is_open());
+        assert_eq!(editor.column_idx, first_col);
+        let next_name = editor.columns[first_col + 1].0.clone();
+        assert_eq!(
+            editor.col_select.cursor(),
+            Some(column_key(&editor.columns[first_col + 1]))
+        );
+        // Enter chooses the cursor column; the popup closes and the SQL
+        // preview follows the committed choice.
+        let _ = h.key(KeyCode::Enter);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(!editor.col_select.is_open());
+        assert_eq!(editor.column_idx, first_col + 1);
+        assert!(h.text().contains(&format!("WHERE {next_name} ")));
+        // Same open/cursor/choose cycle on the operator dropdown.
+        let _ = h.key(KeyCode::Tab);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.focus, FilterFocus::Op);
+        let first_op_pos = editor.ops.iter().position(|&o| o == editor.op).unwrap();
+        let _ = h.key(KeyCode::Enter);
+        assert!(
+            h.app()
+                .filter_editor
+                .as_ref()
+                .expect("editor open")
+                .op_select
+                .is_open()
+        );
+        let _ = h.key(KeyCode::Down);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.op, FilterOp::Eq);
+        let _ = h.key(KeyCode::Enter);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(!editor.op_select.is_open());
+        assert_eq!(editor.op, editor.ops[first_op_pos + 1]);
+        let op_label = editor.op.label().to_owned();
+        // Esc with an open popup closes the popup only: the editor stays
+        // open and the committed op is kept.
+        let _ = h.key(KeyCode::Enter);
+        assert!(
+            h.app()
+                .filter_editor
+                .as_ref()
+                .expect("editor open")
+                .op_select
+                .is_open()
+        );
+        let _ = h.key(KeyCode::Esc);
+        let editor = h.app().filter_editor.as_ref().expect("editor stays open");
+        assert!(!editor.op_select.is_open());
+        assert_eq!(editor.op.label(), op_label);
+        // Pointer: clicking the column field toggles the popup, and clicking
+        // a popup row chooses it by stable key.
+        let _ = h.click_id(FILTER_COL);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(editor.col_select.is_open());
+        let id_key = column_key(&editor.columns[0]);
+        let _ = h.click_part(
+            FILTER_COL,
+            termrock::PartRef::item(termrock::Part::ROW, id_key),
+        );
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert!(!editor.col_select.is_open());
+        assert_eq!(editor.column_idx, 0);
+        // Apply through the Apply stop; the committed column/op reach the chip.
+        for _ in 0..4 {
+            let _ = h.key(KeyCode::Tab);
+        }
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.focus, FilterFocus::Apply);
+        let _ = h.key(KeyCode::Enter);
+        assert!(h.app().filter_editor.is_none());
+        let text = h.text();
+        assert!(text.contains("1 filter applied"), "{text}");
+        assert!(text.contains(&format!("id {op_label} ")), "{text}");
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 }

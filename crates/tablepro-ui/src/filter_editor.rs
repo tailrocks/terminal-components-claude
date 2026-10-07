@@ -339,16 +339,35 @@ pub enum FilterFocus {
     Apply,
 }
 
+/// Stable key for one column option: the column name.
+pub fn column_key(col: &(String, ColType)) -> termrock::ItemKey {
+    termrock::ItemKey::text(&col.0)
+}
+
+/// Row painter for one column option: the column name.
+pub fn column_row(col: &(String, ColType), row: &mut termrock::RowUi<'_>) {
+    row.label(&col.0);
+}
+
+/// Stable key for one operator option: the operator discriminant. The op
+/// list reorders per column type, so positional keys would be unstable.
+pub fn op_key(op: &FilterOp) -> termrock::ItemKey {
+    termrock::ItemKey::num(*op as u64)
+}
+
+/// Row painter for one operator option: the operator label.
+pub fn op_row(op: &FilterOp, row: &mut termrock::RowUi<'_>) {
+    row.label(op.label());
+}
+
 #[derive(Debug, Clone)]
 pub struct FilterEditor {
     pub index: Option<usize>,
     pub columns: Vec<(String, ColType)>,
     pub column_idx: usize,
-    pub column_open: bool,
-    pub column_cursor: usize,
+    pub col_select: termrock::SelectState,
     pub op: FilterOp,
-    pub op_open: bool,
-    pub op_cursor: usize,
+    pub op_select: termrock::SelectState,
     pub ops: Vec<FilterOp>,
     pub value: String,
     pub value_state: termrock::TextInputState,
@@ -391,15 +410,17 @@ impl FilterEditor {
         } else {
             FilterFocus::Apply
         };
+        let mut col_select = termrock::SelectState::default();
+        col_select.set_value(columns.get(col_idx).map(column_key));
+        let mut op_select = termrock::SelectState::default();
+        op_select.set_value(Some(op_key(&op)));
         Self {
             index,
             columns,
             column_idx: col_idx,
-            column_open: false,
-            column_cursor: col_idx,
+            col_select,
             op,
-            op_open: false,
-            op_cursor: ops.iter().position(|&o| o == op).unwrap_or(0),
+            op_select,
             ops,
             value,
             value_state: termrock::TextInputState::default(),
@@ -407,6 +428,24 @@ impl FilterEditor {
             value2_editing: false,
             value2_selected_all: false,
             focus: initial_focus,
+        }
+    }
+
+    /// Apply a `SelectAction::Chose` key from the column dropdown: resolve
+    /// the stable key to a column and rebuild the type-appropriate op list.
+    /// Unknown keys are ignored.
+    pub fn choose_column(&mut self, key: termrock::ItemKey) {
+        if let Some(idx) = self.columns.iter().position(|col| column_key(col) == key) {
+            self.column_idx = idx;
+            self.update_ops();
+        }
+    }
+
+    /// Apply a `SelectAction::Chose` key from the operator dropdown.
+    /// Unknown keys are ignored.
+    pub fn choose_op(&mut self, key: termrock::ItemKey) {
+        if let Some(op) = FilterOp::ALL.iter().copied().find(|op| op_key(op) == key) {
+            self.op = op;
         }
     }
 
@@ -472,18 +511,14 @@ impl FilterEditor {
             if !self.ops.contains(&self.op) {
                 self.op = self.ops.first().copied().unwrap_or(FilterOp::Eq);
             }
-            self.op_cursor = self.ops.iter().position(|&o| o == self.op).unwrap_or(0);
         }
     }
 
     pub fn on_key(&mut self, key: termrock::Key) -> FilterOutcome {
         if key.code == termrock::KeyCode::Esc {
-            if self.column_open {
-                self.column_open = false;
-                return FilterOutcome::Keep;
-            }
-            if self.op_open {
-                self.op_open = false;
+            // An open Select popup is dismissed by the runtime bubble pass;
+            // the editor stays open and `Closed` arrives on the next pass.
+            if self.col_select.is_open() || self.op_select.is_open() {
                 return FilterOutcome::Keep;
             }
             if self.value2_editing {
@@ -493,8 +528,8 @@ impl FilterEditor {
             return FilterOutcome::Cancel;
         }
 
-        if !self.column_open
-            && !self.op_open
+        if !self.col_select.is_open()
+            && !self.op_select.is_open()
             && !self.value_state.is_editing()
             && !self.value2_editing
         {
@@ -513,92 +548,14 @@ impl FilterEditor {
 
         match self.focus {
             FilterFocus::Column => {
-                if self.column_open {
-                    match key.code {
-                        termrock::KeyCode::Up | termrock::KeyCode::Char('k') => {
-                            self.column_cursor = self.column_cursor.saturating_sub(1);
-                        }
-                        termrock::KeyCode::Down | termrock::KeyCode::Char('j') => {
-                            self.column_cursor = (self.column_cursor + 1)
-                                .min(self.columns.len().saturating_sub(1));
-                        }
-                        termrock::KeyCode::Enter | termrock::KeyCode::Char(' ') => {
-                            self.column_open = false;
-                            self.column_idx = self.column_cursor;
-                            self.update_ops();
-                        }
-                        _ => {}
-                    }
-                } else {
-                    match key.code {
-                        termrock::KeyCode::Enter | termrock::KeyCode::Char(' ') => {
-                            self.column_open = true;
-                            self.column_cursor = self.column_idx;
-                        }
-                        termrock::KeyCode::Left | termrock::KeyCode::Up => {
-                            self.column_idx = self.column_idx.saturating_sub(1);
-                            self.update_ops();
-                        }
-                        termrock::KeyCode::Right | termrock::KeyCode::Down => {
-                            self.column_idx =
-                                (self.column_idx + 1).min(self.columns.len().saturating_sub(1));
-                            self.update_ops();
-                        }
-                        _ => {}
-                    }
-                }
+                // Owned by termrock::Select via update_filter_editor and
+                // draw below. Keys arriving here were not consumed by the
+                // component (idle, unbound); ignore them.
             }
             FilterFocus::Op => {
-                if self.op_open {
-                    match key.code {
-                        termrock::KeyCode::Up | termrock::KeyCode::Char('k') => {
-                            self.op_cursor = self.op_cursor.saturating_sub(1);
-                        }
-                        termrock::KeyCode::Down | termrock::KeyCode::Char('j') => {
-                            self.op_cursor =
-                                (self.op_cursor + 1).min(self.ops.len().saturating_sub(1));
-                        }
-                        termrock::KeyCode::Enter | termrock::KeyCode::Char(' ') => {
-                            self.op_open = false;
-                            if let Some(&op) = self.ops.get(self.op_cursor) {
-                                self.op = op;
-                            }
-                        }
-                        _ => {}
-                    }
-                } else {
-                    match key.code {
-                        termrock::KeyCode::Enter | termrock::KeyCode::Char(' ') => {
-                            self.op_open = true;
-                            self.op_cursor =
-                                self.ops.iter().position(|&o| o == self.op).unwrap_or(0);
-                        }
-                        termrock::KeyCode::Left | termrock::KeyCode::Up => {
-                            let idx = self
-                                .ops
-                                .iter()
-                                .position(|&o| o == self.op)
-                                .unwrap_or(0)
-                                .saturating_sub(1);
-                            if let Some(&op) = self.ops.get(idx) {
-                                self.op = op;
-                            }
-                        }
-                        termrock::KeyCode::Right | termrock::KeyCode::Down => {
-                            let idx = (self
-                                .ops
-                                .iter()
-                                .position(|&o| o == self.op)
-                                .unwrap_or(0)
-                                + 1)
-                            .min(self.ops.len().saturating_sub(1));
-                            if let Some(&op) = self.ops.get(idx) {
-                                self.op = op;
-                            }
-                        }
-                        _ => {}
-                    }
-                }
+                // Owned by termrock::Select via update_filter_editor and
+                // draw below. Keys arriving here were not consumed by the
+                // component (idle, unbound); ignore them.
             }
             FilterFocus::Value => {
                 // Owned by termrock::TextInput via update_filter_editor and
@@ -767,64 +724,22 @@ impl FilterEditor {
         );
 
         // Fields
-        let field_style = ui.surface_style().patch(
-            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Field))),
-        );
-        let accent_gutter =
-            field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
-        let primary_fg =
-            field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-        let sec_fg =
-            field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
         let muted_fg =
             elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
 
-        // Column select field
+        // Column select field (owned by termrock::Select).
         let col_rect = termrock::Rect::new(area.x + 2, area.y + 4, 28, 1);
-        ui.register_control(FILTER_COL, col_rect, Focusability::Focusable);
-        ui.fill(col_rect, field_style);
-        if col_focused {
-            ui.paint_str(termrock::Rect::new(area.x + 2, area.y + 4, 1, 1), "▎", accent_gutter);
-        } else {
-            let gutter_style = field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Field))));
-            ui.paint_str(termrock::Rect::new(area.x + 2, area.y + 4, 1, 1), " ", gutter_style);
-        }
-        let col_name = self
-            .columns
-            .get(self.column_idx)
-            .map(|(c, _)| c.as_str())
-            .unwrap_or("");
-        ui.paint_str(
-            termrock::Rect::new(area.x + 4, area.y + 4, 22, 1),
-            col_name,
-            primary_fg,
-        );
-        ui.paint_str(
-            termrock::Rect::new(area.x + 28, area.y + 4, 1, 1),
-            if self.column_open { "▴" } else { "▾" },
-            sec_fg,
-        );
+        termrock::Select::new(FILTER_COL)
+            .key(column_key)
+            .row(column_row)
+            .draw(ui, col_rect, &self.col_select, &self.columns);
 
-        // Operator select field
+        // Operator select field (owned by termrock::Select).
         let op_rect = termrock::Rect::new(area.x + 32, area.y + 4, 29, 1);
-        ui.register_control(FILTER_OP, op_rect, Focusability::Focusable);
-        ui.fill(op_rect, field_style);
-        if op_focused {
-            ui.paint_str(termrock::Rect::new(area.x + 32, area.y + 4, 1, 1), "▎", accent_gutter);
-        } else {
-            let gutter_style = field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Field))));
-            ui.paint_str(termrock::Rect::new(area.x + 32, area.y + 4, 1, 1), " ", gutter_style);
-        }
-        ui.paint_str(
-            termrock::Rect::new(area.x + 34, area.y + 4, 23, 1),
-            self.op.label(),
-            primary_fg,
-        );
-        ui.paint_str(
-            termrock::Rect::new(area.x + 59, area.y + 4, 1, 1),
-            if self.op_open { "▴" } else { "▾" },
-            sec_fg,
-        );
+        termrock::Select::new(FILTER_OP)
+            .key(op_key)
+            .row(op_row)
+            .draw(ui, op_rect, &self.op_select, &self.ops);
 
         // Operator help text
         ui.paint_str(

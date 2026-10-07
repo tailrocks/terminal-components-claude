@@ -746,8 +746,35 @@ pub(crate) fn default_recipes() -> Recipes {
         match f {
             Family::BUTTON => button(r),
             Family::MENU => menu(r),
-            Family::FIELD | Family::INPUT | Family::TEXTAREA | Family::CODE | Family::SELECT => {
+            Family::FIELD | Family::INPUT | Family::TEXTAREA | Family::CODE => {
                 field_like(&mut r.parts);
+            }
+            Family::SELECT => {
+                field_like(&mut r.parts);
+                // Oracle (legacy select widget): the closed disclosure is
+                // Secondary whenever it is not disabled; the popup's chosen
+                // mark is Accent; a disabled disclosure uses DisabledFg; the
+                // unfocused gutter is a blank in the Field surface. The
+                // ERROR rule is restated last so it keeps precedence over
+                // the appended SELECTED/DISABLED rules.
+                part(
+                    &mut r.parts,
+                    Part::MARKER,
+                    p().set_fg(Role::Fg(FgStep::Secondary)),
+                )
+                .when(StateFlags::SELECTED, p().set_fg(Role::Accent))
+                .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg))
+                .when(
+                    StateFlags::ERROR,
+                    p().set_glyph(GlyphRole::Error)
+                        .set_fg(Role::Danger)
+                        .add(Modifier::BOLD),
+                );
+                part(
+                    &mut r.parts,
+                    Part::GUTTER,
+                    p().set_fg(Role::Surface(Surface::Field)),
+                );
             }
             Family::PANEL | Family::OVERLAY | Family::FORM | Family::WIZARD => {
                 container_like(&mut r.parts);
