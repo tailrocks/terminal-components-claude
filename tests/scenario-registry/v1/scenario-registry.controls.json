@@ -4954,6 +4954,2161 @@
     ]
    }
   }
+,
+  {
+   "id": "INSPECT-ACCOUNT-003",
+   "app": "jackin-preview",
+   "component": "Inspector",
+   "part": "account inspector body behind a tree selection",
+   "ref_symbols": [
+    {
+     "glyph": "Accounts › Claude › Work",
+     "meaning": "inspector crumb for the selected account"
+    },
+    {
+     "glyph": "Usage stale · last good 47 min ago",
+     "meaning": "inspector status row for the exhausted account"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Accounts › Claude › Work",
+     "meaning": "inspector crumb for the selected account"
+    },
+    {
+     "glyph": "Usage stale · last good 47 min ago",
+     "meaning": "inspector status row for the exhausted account"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/accounts.rs",
+     "symbols": [
+      "drawer_open",
+      "INSPECTOR",
+      "build_rows",
+      "open_form"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "selection": "Claude · Work",
+    "surface": "Claude",
+    "accounts": 12,
+    "providers": 8
+   },
+   "state": {
+    "drawer_open": false,
+    "focus": "tree",
+    "filter": null
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+    },
+    {
+     "step": 2,
+     "action": "press Down four times (the Work account is selected)",
+     "key": "Down",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press Enter (the inspector drawer opens)",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "press Esc (focus returns to the tree)",
+     "key": "Esc",
+     "ticks": 0
+    },
+    {
+     "step": 5,
+     "action": "press a (the add form opens), then Esc (it cancels)",
+     "key": "a",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "detail-selected",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the crumb reads Accounts › Claude › Work and the header pairs Claude · Work with the exhausted badge"
+     },
+     {
+      "id": "V2",
+      "text": "the provider row reads Anthropic / Claude and the quota block reads stale · last good 47 min ago"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the tree cursor sits on the Work row (▎ shares its line)"
+     },
+     {
+      "id": "S2",
+      "text": "the footer shows the tree hints (Enter Details, m Usage)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Enter focuses the inspector drawer (▎Claude · Work, Tab Actions); Esc returns focus to the tree"
+     },
+     {
+      "id": "A2",
+      "text": "a opens the New account form and Esc cancels it with the selection intact"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the tree footer must NOT show while the drawer holds focus (Enter Details returns only after Esc)"
+     },
+     {
+      "id": "N2",
+      "text": "the add form must NOT be open at the detail state (a later opens it, Esc closes it)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/accounts.rs",
+      "lines": "2090-2107",
+      "note": "Enter/Tab on a tree selection opens the inspector drawer"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/accounts.rs",
+      "lines": "2142-2146",
+      "note": "Esc in the inspector closes the drawer back to the tree"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/accounts.rs",
+      "lines": "1946-1949",
+      "note": "a opens the add form from tree or inspector focus"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/accounts/detail/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_accounts_detail live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "INSPECT-DRAWER-004",
+   "app": "jackin-preview",
+   "component": "Inspector",
+   "part": "focused inspector drawer with its action row",
+   "ref_symbols": [
+    {
+     "glyph": "▎Claude · Work",
+     "meaning": "focused inspector title"
+    },
+    {
+     "glyph": "op://v_eng01/it_ant01/credential",
+     "meaning": "1Password locator behind the redacted credential tail"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "▎Claude · Work",
+     "meaning": "focused inspector title"
+    },
+    {
+     "glyph": "op://v_eng01/it_ant01/credential",
+     "meaning": "1Password locator behind the redacted credential tail"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/accounts.rs",
+     "symbols": [
+      "drawer_open",
+      "INSPECTOR",
+      "inspector_scroll",
+      "fire"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "account": "Claude · Work",
+    "credential": "1Password op locator (redacted tail)"
+   },
+   "state": {
+    "drawer_open": true,
+    "focus": "inspector"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+    },
+    {
+     "step": 2,
+     "action": "press Down four times (the Work account is selected)",
+     "key": "Down",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press Enter (the inspector drawer opens)",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "press Esc (focus returns to the tree)",
+     "key": "Esc",
+     "ticks": 0
+    },
+    {
+     "step": 5,
+     "action": "press Enter again (the drawer re-opens on the same selection)",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "drawer-focused",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the focused title ▎Claude · Work shares its line with the exhausted badge"
+     },
+     {
+      "id": "V2",
+      "text": "the credential shows the op://v_eng01/it_ant01/credential locator with the ••••••••…3c9e tail"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the footer shows the drawer hints (Tab Actions, Esc Back)"
+     },
+     {
+      "id": "S2",
+      "text": "the action row spans Refresh through Remove…"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Esc returns focus to the tree (Enter Details returns, Tab Actions expires)"
+     },
+     {
+      "id": "A2",
+      "text": "Enter re-opens the drawer on the same selection (▎Claude · Work, crumb intact)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "Tab Actions must NOT show after Esc returns focus to the tree"
+     },
+     {
+      "id": "N2",
+      "text": "the focused drawer title must NOT show after Esc returns focus to the tree"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/accounts.rs",
+      "lines": "2090-2107",
+      "note": "Enter/Tab on a tree selection opens the inspector drawer"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/accounts.rs",
+      "lines": "2142-2146",
+      "note": "Esc in the inspector closes the drawer back to the tree"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/accounts/drawer/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_accounts_drawer live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "PANEL-AUDIT-006",
+   "app": "jackin-preview",
+   "component": "Panel",
+   "part": "accounts route regions at audit boot",
+   "ref_symbols": [
+    {
+     "glyph": "Accounts › Overview",
+     "meaning": "overview crumb at audit boot"
+    },
+    {
+     "glyph": "12 accounts · 8 providers",
+     "meaning": "registry totals beside the overview"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Accounts › Overview",
+     "meaning": "overview crumb at audit boot"
+    },
+    {
+     "glyph": "12 accounts · 8 providers",
+     "meaning": "registry totals beside the overview"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/accounts.rs",
+     "symbols": [
+      "build_rows",
+      "Overview",
+      "TREE",
+      "INSPECTOR"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "route": "Accounts",
+    "accounts": 12,
+    "providers": 8
+   },
+   "state": {
+    "selection": "Overview",
+    "drawer_open": false
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+    },
+    {
+     "step": 2,
+     "action": "press Enter (the drawer opens), then Esc (it closes)",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press a (the add form opens), then Esc (it cancels)",
+     "key": "a",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "audit-booted",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the crumb reads Accounts › Overview beside the 12 accounts · 8 providers totals"
+     },
+     {
+      "id": "V2",
+      "text": "the health row reads degraded · 4 warnings with 1 exhausted account"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the tree cursor sits on Overview (▎ shares its line)"
+     },
+     {
+      "id": "S2",
+      "text": "the footer shows the tree hints (Enter Details, r Refresh all)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Enter opens the drawer (Tab Actions) and Esc closes it back to the tree"
+     },
+     {
+      "id": "A2",
+      "text": "a opens the New account form and Esc cancels it with the cursor intact"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "Tab Actions must NOT show after Esc closes the drawer"
+     },
+     {
+      "id": "N2",
+      "text": "the add form must NOT stay open after its Esc cancel"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/accounts.rs",
+      "lines": "2090-2107",
+      "note": "Enter/Tab on a tree selection opens the inspector drawer"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/accounts.rs",
+      "lines": "1946-1949",
+      "note": "a opens the add form from tree or inspector focus"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/audit/accounts/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_audit_accounts_boot live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "PANEL-INTRO-007",
+   "app": "jackin-preview",
+   "component": "Panel",
+   "part": "intro rain screen at frame 300 (warp phase)",
+   "ref_symbols": [
+    {
+     "glyph": "Enter Skip",
+     "meaning": "skip-only footer on the warp"
+    },
+    {
+     "glyph": "no instances",
+     "meaning": "empty-manager status after the skip"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Enter Skip",
+     "meaning": "skip-only footer on the warp"
+    },
+    {
+     "glyph": "no instances",
+     "meaning": "empty-manager status after the skip"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/rain.rs",
+     "symbols": [
+      "IntroState",
+      "skip",
+      "WARP_START"
+     ]
+    },
+    {
+     "path": "src/bin/jackin_preview/app.rs",
+     "symbols": [
+      "finish_intro",
+      "Route"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "scenario": "first-use",
+    "frame": 300,
+    "phase": "warp"
+   },
+   "state": {
+    "route": "Intro",
+    "phase": "warp"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario first-use --frame 300 (warp phase)"
+    },
+    {
+     "step": 2,
+     "action": "press Enter once (the warp-phase intro finishes to the empty manager)",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press n (the new-workspace prelude opens)",
+     "key": "n",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "warp-300",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the footer reads Enter Skip"
+     },
+     {
+      "id": "V2",
+      "text": "the rain field covers the screen (─, +, · glyphs; non-blank top line)"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "no host menubar shows on the intro route (File appears only after the skip)"
+     },
+     {
+      "id": "S2",
+      "text": "no workspace tree shows on the intro route (Current directory appears only after the skip)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "one Enter finishes the warp intro to the empty manager (no picker leak)"
+     },
+     {
+      "id": "A2",
+      "text": "n opens the new-workspace prelude (step 1 of 5 · Source)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the tree rows must NOT show under the prelude (+ New workspace expires)"
+     },
+     {
+      "id": "N2",
+      "text": "the skip footer must NOT show after the skip (Enter Skip expires)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/rain.rs",
+      "lines": "505-513",
+      "note": "IntroPhase bounds: past WARP_START the intro is warp"
+     },
+     {
+      "path": "src/bin/jackin_preview/rain.rs",
+      "lines": "560-568",
+      "note": "skip() finishes a warp-phase intro in one step"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "1787-1793",
+      "note": "n opens the new-workspace prelude"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/intro/f300/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_intro_f300 live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "PANEL-INTRO-008",
+   "app": "jackin-preview",
+   "component": "Panel",
+   "part": "settled empty manager at frame 400",
+   "ref_symbols": [
+    {
+     "glyph": "no instances",
+     "meaning": "empty-manager status"
+    },
+    {
+     "glyph": "+ New workspace",
+     "meaning": "empty tree row"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "no instances",
+     "meaning": "empty-manager status"
+    },
+    {
+     "glyph": "+ New workspace",
+     "meaning": "empty tree row"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/prelude.rs",
+     "symbols": [
+      "rewind",
+      "Step",
+      "Source"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "scenario": "first-use",
+    "frame": 400
+   },
+   "state": {
+    "route": "Manager",
+    "workspaces": 0
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario first-use --frame 400 (past the intro)"
+    },
+    {
+     "step": 2,
+     "action": "press n (the new-workspace prelude opens)",
+     "key": "n",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press Esc (the prelude cancels; Cancelled · nothing created)",
+     "key": "Esc",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "settled-400",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the tree shows no instances with the + New workspace row"
+     },
+     {
+      "id": "V2",
+      "text": "the detail shows Current directory with the not saved badge and the empty hint"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the tree cursor sits on Current directory (▎ shares its line)"
+     },
+     {
+      "id": "S2",
+      "text": "the footer shows the empty-manager hints (Enter Launch, n New)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "n opens the new-workspace prelude (step 1 of 5 · Source)"
+     },
+     {
+      "id": "A2",
+      "text": "Esc cancels the prelude with Cancelled · nothing created and the manager back"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the manager tree must NOT show under the prelude (Current directory expires)"
+     },
+     {
+      "id": "N2",
+      "text": "the prelude must NOT show after its cancel (step 1 of 5 expires)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/rain.rs",
+      "lines": "505-513",
+      "note": "IntroPhase bounds: at/after INTRO_END the intro is done"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "1787-1793",
+      "note": "n opens the new-workspace prelude"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "299-305",
+      "note": "Esc on step Source cancels to the manager"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/intro/f400/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_intro_f400 live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "PANEL-INTRO-009",
+   "app": "jackin-preview",
+   "component": "Panel",
+   "part": "empty manager after the two-step intro skip",
+   "ref_symbols": [
+    {
+     "glyph": "Enter Skip",
+     "meaning": "intro footer before the skip"
+    },
+    {
+     "glyph": "Cancelled · nothing created",
+     "meaning": "prelude cancel status"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Enter Skip",
+     "meaning": "intro footer before the skip"
+    },
+    {
+     "glyph": "Cancelled · nothing created",
+     "meaning": "prelude cancel status"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/rain.rs",
+     "symbols": [
+      "IntroState",
+      "skip",
+      "INTRO_END"
+     ]
+    },
+    {
+     "path": "src/bin/jackin_preview/app.rs",
+     "symbols": [
+      "finish_intro",
+      "enter_manager"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "scenario": "first-use",
+    "frame": 40
+   },
+   "state": {
+    "route": "Manager",
+    "skipped": true
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario first-use --frame 40 (phrases phase)"
+    },
+    {
+     "step": 2,
+     "action": "press Enter twice (phrases → warp → done: the empty manager)",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press n (the new-workspace prelude opens)",
+     "key": "n",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "press Esc (the prelude cancels; Cancelled · nothing created)",
+     "key": "Esc",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "skipped-manager",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the skipped-to tree shows no instances with the + New workspace row"
+     },
+     {
+      "id": "V2",
+      "text": "the detail shows the not saved badge with the Enter-launches-defaults hint"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the tree cursor sits on Current directory (▎ shares its line)"
+     },
+     {
+      "id": "S2",
+      "text": "the footer shows the empty-manager hints (Enter Launch, q Quit)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "n opens the new-workspace prelude (step 1 of 5 · Source)"
+     },
+     {
+      "id": "A2",
+      "text": "Esc cancels the prelude with Cancelled · nothing created and the manager back"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the intro must NOT show after the skip (Enter Skip expires)"
+     },
+     {
+      "id": "N2",
+      "text": "the prelude must NOT show after its cancel (step 1 of 5 expires)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/rain.rs",
+      "lines": "560-568",
+      "note": "skip() advances phrases → warp → done"
+     },
+     {
+      "path": "src/bin/jackin_preview/app.rs",
+      "lines": "517-522",
+      "note": "Intro Enter/Esc skips and finishes to the manager"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/prelude.rs",
+      "lines": "299-305",
+      "note": "Esc on step Source cancels to the manager"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/intro/skipped/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_intro_skipped live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "INSPECT-MANAGER-005",
+   "app": "jackin-preview",
+   "component": "Inspector",
+   "part": "focused workspace detail drawer",
+   "ref_symbols": [
+    {
+     "glyph": "▎Current directory · payments-platform",
+     "meaning": "focused detail title"
+    },
+    {
+     "glyph": "Tab Actions",
+     "meaning": "drawer footer marker"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "▎Current directory · payments-platform",
+     "meaning": "focused detail title"
+    },
+    {
+     "glyph": "Tab Actions",
+     "meaning": "drawer footer marker"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/manager.rs",
+     "symbols": [
+      "drawer_open",
+      "DETAIL",
+      "build_rows"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "workspace": "payments-platform"
+   },
+   "state": {
+    "drawer_open": true,
+    "focus": "detail"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario returning (Manager route)"
+    },
+    {
+     "step": 2,
+     "action": "press Tab (the detail drawer opens)",
+     "key": "Tab",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press Esc (focus returns to the tree)",
+     "key": "Esc",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "press e (the editor opens), Esc (it leaves cleanly)",
+     "key": "e",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "drawer-focused",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the focused title ▎Current directory · payments-platform shares its line with saved workspace"
+     },
+     {
+      "id": "V2",
+      "text": "the working-dir row and the ◉ 7f3a running instance row show"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the footer shows the drawer hints (↑↓ Move, Esc Back)"
+     },
+     {
+      "id": "S2",
+      "text": "the detail action row pairs Launch with Edit"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Esc returns focus to the tree (Enter Launch and Tab Details return)"
+     },
+     {
+      "id": "A2",
+      "text": "e opens the editor (› edit) and Esc leaves it cleanly again"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "Tab Actions must NOT show after Esc returns focus to the tree"
+     },
+     {
+      "id": "N2",
+      "text": "the editor crumb must NOT show after its clean leave"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "1961-1964",
+      "note": "Tab opens the detail drawer"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "2006-2010",
+      "note": "Esc in the detail closes the drawer to the tree"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "1795-1798",
+      "note": "e opens the workspace editor"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/manager/detail_drawer/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_manager_detail_drawer live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "PANEL-SCENARIO-010",
+   "app": "jackin-preview",
+   "component": "Panel",
+   "part": "first-use intro phrases at frame 40",
+   "ref_symbols": [
+    {
+     "glyph": "Stand up, operator…",
+     "meaning": "centered intro phrase"
+    },
+    {
+     "glyph": "Enter Skip",
+     "meaning": "skip-only footer"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Stand up, operator…",
+     "meaning": "centered intro phrase"
+    },
+    {
+     "glyph": "Enter Skip",
+     "meaning": "skip-only footer"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/rain.rs",
+     "symbols": [
+      "IntroState",
+      "IntroPhase",
+      "PHRASES"
+     ]
+    },
+    {
+     "path": "src/bin/jackin_preview/app.rs",
+     "symbols": [
+      "finish_intro",
+      "Route"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "scenario": "first-use",
+    "frame": 40
+   },
+   "state": {
+    "route": "Intro",
+    "phase": "phrases"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario first-use --frame 40 (phrases phase)"
+    },
+    {
+     "step": 2,
+     "action": "press Enter twice (phrases → warp → done: the empty manager)",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press n (the new-workspace prelude opens)",
+     "key": "n",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "phrases-40",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the centered phrase Stand up, operator… shows above the jackin❯ brand"
+     },
+     {
+      "id": "V2",
+      "text": "the footer reads Enter Skip"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "no host menubar shows on the intro route (File appears only after the skip)"
+     },
+     {
+      "id": "S2",
+      "text": "no workspace tree shows on the intro route (Current directory appears only after the skip)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Enter + Enter skips to the empty manager (no instances)"
+     },
+     {
+      "id": "A2",
+      "text": "n opens the new-workspace prelude (step 1 of 5 · Source)"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the phrase must NOT show after the skip (Stand up, operator… expires)"
+     },
+     {
+      "id": "N2",
+      "text": "the skip footer must NOT show after the skip (Enter Skip expires)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/rain.rs",
+      "lines": "505-513",
+      "note": "IntroPhase bounds: frame 40 sits in phrases"
+     },
+     {
+      "path": "src/bin/jackin_preview/app.rs",
+      "lines": "517-522",
+      "note": "Intro Enter/Esc skips and finishes to the manager"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "1787-1793",
+      "note": "n opens the new-workspace prelude"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/scenarios/first-use/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_scenarios_first_use live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "PANEL-SCENARIO-011",
+   "app": "jackin-preview",
+   "component": "Panel",
+   "part": "degraded manager at hard-cases boot",
+   "ref_symbols": [
+    {
+     "glyph": "! instance index unreadable",
+     "meaning": "degraded header badge"
+    },
+    {
+     "glyph": "Could not confirm running instances",
+     "meaning": "footer warning"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "! instance index unreadable",
+     "meaning": "degraded header badge"
+    },
+    {
+     "glyph": "Could not confirm running instances",
+     "meaning": "footer warning"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/manager.rs",
+     "symbols": [
+      "open_launch_picker",
+      "toggle_expand",
+      "expanded"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "scenario": "hard-cases",
+    "running": 3
+   },
+   "state": {
+    "route": "Manager",
+    "degraded": true
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario hard-cases (degraded Manager route)"
+    },
+    {
+     "step": 2,
+     "action": "press Enter (the picker opens), Esc (it cancels)",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press Down, space (the workspace expands)",
+     "key": "space",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "press space (the workspace collapses)",
+     "key": "space",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "degraded-booted",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the header badges read ! instance index unreadable and ▲ daemon stale"
+     },
+     {
+      "id": "V2",
+      "text": "the tree shows ▸ data-pipeline with the 3 running count"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the footer warning names the unreadable index (Could not confirm running instances)"
+     },
+     {
+      "id": "S2",
+      "text": "the detail instances carry the ▲ daemon stale · 3 s ago stamp"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Enter opens the picker and Esc cancels it back to the degraded tree"
+     },
+     {
+      "id": "A2",
+      "text": "Down + space expands the workspace and space collapses it again"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the picker must NOT show after its cancel"
+     },
+     {
+      "id": "N2",
+      "text": "the tree must NOT stay expanded after the roundtrip (▾ payments-platform expires)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "422-427",
+      "note": "Enter on a workspace row opens the launch picker"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "1895-1898",
+      "note": "Down moves the tree cursor"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "1941-1946",
+      "note": "space toggles workspace expansion"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/scenarios/hard-cases/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_scenarios_hard_cases live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "PANEL-SCENARIO-012",
+   "app": "jackin-preview",
+   "component": "Panel",
+   "part": "launch cockpit at Credentials",
+   "ref_symbols": [
+    {
+     "glyph": "stage 3 of 11 · Credentials",
+     "meaning": "cockpit stage line"
+    },
+    {
+     "glyph": "⠋ 03 Credentials",
+     "meaning": "spinning stage frontier"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "stage 3 of 11 · Credentials",
+     "meaning": "cockpit stage line"
+    },
+    {
+     "glyph": "⠋ 03 Credentials",
+     "meaning": "spinning stage frontier"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/cockpit.rs",
+     "symbols": [
+      "debug",
+      "open_info",
+      "rail"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "scenario": "launch-running",
+    "stage": "3 of 11 · Credentials"
+   },
+   "state": {
+    "route": "Cockpit",
+    "debug": false
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario launch-running (cockpit at Credentials)"
+    },
+    {
+     "step": 2,
+     "action": "press d (the debug chip toggles on: run-2026)",
+     "key": "d",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press d (the debug chip toggles off)",
+     "key": "d",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "press i (the info dialog opens), Esc (it closes)",
+     "key": "i",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "cockpit-credentials",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the header reads Launch › payments-platform › the-architect with stage 3 of 11 · Credentials"
+     },
+     {
+      "id": "V2",
+      "text": "stages 01–02 read ✓ and the frontier reads ⠋ 03 Credentials"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the account line reads Claude · Work (session choice)"
+     },
+     {
+      "id": "S2",
+      "text": "the footer shows the cockpit hints (i Container info, c Cancel)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "d toggles the run-2026 debug chip on and off again"
+     },
+     {
+      "id": "A2",
+      "text": "i opens the Debug info dialog and Esc closes it with the cockpit intact"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the debug chip must NOT show after the second toggle (run-2026 expires)"
+     },
+     {
+      "id": "N2",
+      "text": "the info dialog must NOT show after its close (Debug info expires)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/cockpit.rs",
+      "lines": "637-640",
+      "note": "d toggles the debug chip"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/cockpit.rs",
+      "lines": "620-623",
+      "note": "i opens the container info dialog"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/modals.rs",
+      "lines": "672-674",
+      "note": "dialog Esc fires the cancel action"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/scenarios/launch-running/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_scenarios_launch_running live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "PANEL-SCENARIO-014",
+   "app": "jackin-preview",
+   "component": "Panel",
+   "part": "outro warp with dismiss-to-quit",
+   "ref_symbols": [
+    {
+     "glyph": "Enter Skip",
+     "meaning": "warp footer"
+    },
+    {
+     "glyph": "Enter Close",
+     "meaning": "caption footer"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Enter Skip",
+     "meaning": "warp footer"
+    },
+    {
+     "glyph": "Enter Close",
+     "meaning": "caption footer"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/rain.rs",
+     "symbols": [
+      "OutroState",
+      "skip",
+      "OUT_WARP"
+     ]
+    },
+    {
+     "path": "src/bin/jackin_preview/app.rs",
+     "symbols": [
+      "quit",
+      "Route"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "scenario": "outro-last",
+    "frame": 40
+   },
+   "state": {
+    "route": "Outro",
+    "phase": "warp"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario outro-last --frame 40 (warp phase)"
+    },
+    {
+     "step": 2,
+     "action": "press x (Consumed: the frozen frame is byte-identical)",
+     "key": "x",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press Enter (the warp advances to the caption)",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 4,
+     "action": "press Enter (the session quits cleanly)",
+     "key": "Enter",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "warp-40",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the footer reads Enter Skip"
+     },
+     {
+      "id": "V2",
+      "text": "the particle field shows star and signal glyphs (*, +, ·)"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the warp is tick-frozen under paused motion (byte-identical across the ignored key)"
+     },
+     {
+      "id": "S2",
+      "text": "the caption swaps the hint (Enter Skip expires, Enter Close shows)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "x is Consumed: the warp frame is byte-identical across it"
+     },
+     {
+      "id": "A2",
+      "text": "Enter advances the warp to the caption; Enter quits the session with exit 0"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "no intro phrases show on the outro warp (a first-use session proves the needle renders)"
+     },
+     {
+      "id": "N2",
+      "text": "no manager chrome shows on the outro warp (its skip proves the needle renders)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/app.rs",
+      "lines": "532-540",
+      "note": "Outro Enter/Esc skips; done quits the session"
+     },
+     {
+      "path": "src/bin/jackin_preview/rain.rs",
+      "lines": "717-725",
+      "note": "OutroPhase bounds: frame 40 sits in warp"
+     },
+     {
+      "path": "src/bin/jackin_preview/rain.rs",
+      "lines": "741-749",
+      "note": "skip() advances warp → caption → done"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/scenarios/outro-last/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_scenarios_outro_last live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
+,
+  {
+   "id": "PANEL-SCENARIO-013",
+   "app": "jackin-preview",
+   "component": "Panel",
+   "part": "populated manager at returning boot",
+   "ref_symbols": [
+    {
+     "glyph": "Current directory · payments-platform",
+     "meaning": "saved detail title"
+    },
+    {
+     "glyph": "2 running",
+     "meaning": "populated running count"
+    }
+   ],
+   "cand_symbols": [
+    {
+     "glyph": "Current directory · payments-platform",
+     "meaning": "saved detail title"
+    },
+    {
+     "glyph": "2 running",
+     "meaning": "populated running count"
+    }
+   ],
+   "ref_source": [
+    {
+     "path": "src/bin/jackin_preview/screens/manager.rs",
+     "symbols": [
+      "open_launch_picker",
+      "drawer_open",
+      "build_rows"
+     ]
+    }
+   ],
+   "cand_source": [],
+   "data": {
+    "scenario": "returning",
+    "running": 2
+   },
+   "state": {
+    "route": "Manager",
+    "selection": "CurrentDir"
+   },
+   "env": {
+    "TERM": "xterm-256color"
+   },
+   "viewport": {
+    "width": 120,
+    "height": 40
+   },
+   "color": "truecolor",
+   "motion": "paused",
+   "inputs": [
+    {
+     "step": 1,
+     "action": "boot jackin-preview with --scenario returning (Manager route)"
+    },
+    {
+     "step": 2,
+     "action": "press Enter (the picker opens), Esc (it cancels)",
+     "key": "Enter",
+     "ticks": 0
+    },
+    {
+     "step": 3,
+     "action": "press Tab (the drawer opens), Esc (it closes)",
+     "key": "Tab",
+     "ticks": 0
+    }
+   ],
+   "checkpoints": [
+    {
+     "name": "populated-booted",
+     "tick": 0,
+     "capture": true
+    }
+   ],
+   "assertions": {
+    "visual": [
+     {
+      "id": "V1",
+      "text": "the chrome shows Workspaces with 2 running and the Current directory · payments-platform title"
+     },
+     {
+      "id": "V2",
+      "text": "the instance rows read ◉ 7f3a running and ◌ c41e preserved · dirty"
+     }
+    ],
+    "state": [
+     {
+      "id": "S1",
+      "text": "the cursor sits on Current directory (▎ shares its line)"
+     },
+     {
+      "id": "S2",
+      "text": "the footer shows the manager hints (Enter Launch, Tab Details, q Quit)"
+     }
+    ],
+    "action": [
+     {
+      "id": "A1",
+      "text": "Enter opens the picker and Esc cancels it back to the tree"
+     },
+     {
+      "id": "A2",
+      "text": "Tab opens the drawer and Esc closes it with the cursor intact"
+     }
+    ],
+    "negative": [
+     {
+      "id": "N1",
+      "text": "the picker must NOT show after its cancel"
+     },
+     {
+      "id": "N2",
+      "text": "the drawer must NOT show after its close (Tab Actions expires)"
+     }
+    ]
+   },
+   "provenance": {
+    "sources": [
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "422-427",
+      "note": "Enter on a workspace row opens the launch picker"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "1961-1964",
+      "note": "Tab opens the detail drawer"
+     },
+     {
+      "path": "src/bin/jackin_preview/screens/manager.rs",
+      "lines": "2006-2010",
+      "note": "Esc in the detail closes the drawer to the tree"
+     }
+    ],
+    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+   },
+   "snapshots": {
+    "ref": [
+     "snapshots/jackin/scenarios/returning/120x40/truecolor.txt"
+    ],
+    "cand": []
+   },
+   "adapters": [
+    "headless-tick",
+    "pty-capture"
+   ],
+   "applicability": {
+    "branches": [
+     "termrock-refactor",
+     "termrock-implementation"
+    ],
+    "requires": [
+     "glyph-capture",
+     "key-injection"
+    ]
+   },
+   "results": {
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-07T11:02:48Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8g J1 j1_scenarios_returning live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+     }
+    ]
+   }
+  }
  ],
  "coverage": [
   {
@@ -5108,7 +7263,16 @@
     "PANEL-STATIC-002",
     "PANEL-WORKBENCH-003",
     "PANEL-EXPLORER-004",
-    "PANEL-ZOOM-005"
+    "PANEL-ZOOM-005",
+    "PANEL-AUDIT-006",
+    "PANEL-INTRO-007",
+    "PANEL-INTRO-008",
+    "PANEL-INTRO-009",
+    "PANEL-SCENARIO-010",
+    "PANEL-SCENARIO-011",
+    "PANEL-SCENARIO-012",
+    "PANEL-SCENARIO-014",
+    "PANEL-SCENARIO-013"
    ],
    "handlers": [
     "Panel chrome: none (display-only)",
@@ -5253,7 +7417,10 @@
    "component": "Inspector",
    "rows": [
     "INSPECT-OPEN-001",
-    "INSPECT-SCROLL-002"
+    "INSPECT-SCROLL-002",
+    "INSPECT-ACCOUNT-003",
+    "INSPECT-DRAWER-004",
+    "INSPECT-MANAGER-005"
    ],
    "handlers": [
     "plain i toggles the flag; a header Inspector click toggles too",
@@ -5767,6 +7934,198 @@
    "status": "mapped",
    "also": [],
    "note": "phase-8e slice 8A-T1: t1_workbench_maximized live-PTY check"
+  }
+,
+  {
+   "old": "jackin/accounts/detail",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "INSPECT-ACCOUNT-003",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_accounts_detail live-PTY check"
+  }
+,
+  {
+   "old": "jackin/accounts/drawer",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "INSPECT-DRAWER-004",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_accounts_drawer live-PTY check"
+  }
+,
+  {
+   "old": "jackin/audit/accounts",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-AUDIT-006",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_audit_accounts_boot live-PTY check"
+  }
+,
+  {
+   "old": "jackin/intro/f300",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-INTRO-007",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_intro_f300 live-PTY check"
+  }
+,
+  {
+   "old": "jackin/intro/f400",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-INTRO-008",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_intro_f400 live-PTY check"
+  }
+,
+  {
+   "old": "jackin/intro/skipped",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-INTRO-009",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_intro_skipped live-PTY check"
+  }
+,
+  {
+   "old": "jackin/manager/detail_drawer",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "INSPECT-MANAGER-005",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_manager_detail_drawer live-PTY check"
+  }
+,
+  {
+   "old": "jackin/scenarios/first-use",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-SCENARIO-010",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_scenarios_first_use live-PTY check"
+  }
+,
+  {
+   "old": "jackin/scenarios/hard-cases",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-SCENARIO-011",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_scenarios_hard_cases live-PTY check"
+  }
+,
+  {
+   "old": "jackin/scenarios/launch-running",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-SCENARIO-012",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_scenarios_launch_running live-PTY check"
+  }
+,
+  {
+   "old": "jackin/scenarios/outro-last",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-SCENARIO-014",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_scenarios_outro_last live-PTY check"
+  }
+,
+  {
+   "old": "jackin/scenarios/returning",
+   "app": "jackin",
+   "sizes": [
+    "72x20",
+    "80x24",
+    "100x30",
+    "120x40",
+    "160x50"
+   ],
+   "new": "PANEL-SCENARIO-013",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8g slice 8A-J1: j1_scenarios_returning live-PTY check"
   }
  ]
 }
