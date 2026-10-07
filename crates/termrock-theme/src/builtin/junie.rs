@@ -248,6 +248,14 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
             ..p()
         },
     );
+    // Q66-S2 (F1-L2-fg + F1-L7b-fg): a disabled list row's meta is the row
+    // style `st`, and a nav-list icon is `label_style.fg(disabled)` — both
+    // DisabledFg at every level. LIST-scoped on purpose: PICKER/TREE meta
+    // is `st.fg(muted)` and must keep `row_like`'s Muted (M2).
+    row.entry(Part::META)
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
+    row.entry(Part::ICON)
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
     // Generic mono press fallback runs after ordinary recipes; keep its
     // explicit inversion but restore the disabled container if both are live.
     recipes.set_mono_rules(

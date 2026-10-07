@@ -1851,4 +1851,104 @@ mod tests {
             assert!(q65s1_bold_on(&foc), "{v:?} focused keeps BOLD");
         }
     }
+
+    // Q66-S2 (F1-L2-fg + F1-L7b-fg): Junie LIST META/ICON DISABLED recipe
+    // rules. The tag renders a disabled list row's meta as the row style
+    // `st` (`tag:list.rs:324-330`) and a nav-list icon as
+    // `label_style.fg(disabled)` (`tag:pages/sidebars.rs:238-246`); both
+    // are the DisabledFg token at every level (frozen
+    // `lists/hover/120x40` y10 x61–85 and `sidebars/default/120x40`
+    // `:14`). The rules live in the Junie LIST section (`junie.rs`),
+    // NOT in shared `row_like`: PICKER/TREE meta is `st.fg(muted)` on
+    // the tag side and already matches (M2) — a shared META rule would
+    // break it. NavList resolves through `Family::LIST`
+    // (`nav_list.rs:958`), so the LIST assertions cover L7b too. Paper
+    // keeps `row_like` deliberately: no oracle pins its derived
+    // DisabledFg. Mono +DIM is slice 3 (LIST targeted set), so these
+    // tests pin fg only at Mono.
+    fn q66s2_list_disabled_fg(part: Part) {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let tc = Theme::junie();
+        for (theme, want_fg) in [
+            (tc.clone(), Some(Color::Rgb(77, 77, 77))),
+            (tc.downgrade(ColorLevel::Ansi256), Some(Color::Indexed(238))),
+            (tc.downgrade(ColorLevel::Ansi16), Some(Color::DarkGray)),
+            (tc.downgrade(ColorLevel::Mono), Some(Color::DarkGray)),
+        ] {
+            let r = theme.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                part,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                r.style.fg, want_fg,
+                "LIST {part:?} DISABLED fg at {:?}",
+                theme.capability.color
+            );
+            if theme.capability.color != ColorLevel::Mono {
+                assert!(
+                    !r.style.add_modifier.contains(Modifier::DIM),
+                    "LIST {part:?} DISABLED must not DIM above Mono at {:?}",
+                    theme.capability.color
+                );
+            }
+        }
+    }
+
+    /// F1-L2-fg: LIST META DISABLED fg is DisabledFg at all four levels.
+    #[test]
+    fn q66s2_l2_list_meta_disabled_fg_is_tag_disabled_at_all_levels() {
+        q66s2_list_disabled_fg(Part::META);
+    }
+
+    /// F1-L7b-fg: LIST ICON DISABLED fg is DisabledFg at all four levels
+    /// (NavList icons inherit `Family::LIST`).
+    #[test]
+    fn q66s2_l7b_list_icon_disabled_fg_is_tag_disabled_at_all_levels() {
+        q66s2_list_disabled_fg(Part::ICON);
+    }
+
+    /// M2 HOLD (cross-family trap): PICKER META DISABLED keeps Muted fg
+    /// (tag `st.fg(muted)`, `tag:picker.rs:640-647`) with the targeted
+    /// +DIM at Mono — the LIST-scoped S2 rules must not move it.
+    #[test]
+    fn q66s2_hold_picker_meta_disabled_keeps_muted() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let tc = Theme::junie();
+        for (theme, want_fg, want_dim) in [
+            (tc.clone(), Some(Color::Rgb(128, 128, 128)), false),
+            (
+                tc.downgrade(ColorLevel::Ansi256),
+                Some(Color::Indexed(244)),
+                false,
+            ),
+            (tc.downgrade(ColorLevel::Ansi16), Some(Color::Gray), false),
+            (tc.downgrade(ColorLevel::Mono), Some(Color::Gray), true),
+        ] {
+            let r = theme.resolve(
+                Family::PICKER,
+                Variant::DEFAULT,
+                Part::META,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                r.style.fg, want_fg,
+                "PICKER META DISABLED fg at {:?}",
+                theme.capability.color
+            );
+            assert_eq!(
+                r.style.add_modifier.contains(Modifier::DIM),
+                want_dim,
+                "PICKER META DISABLED DIM at {:?}",
+                theme.capability.color
+            );
+        }
+    }
 }
