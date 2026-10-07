@@ -14,7 +14,7 @@ use std::{
 use termrock::author::PaintStyle;
 
 use termrock::{
-    Action, ActionKey, Anchor, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu,
+    Action, ActionKey, Anchor, App as TuiApp, AsItem, Brand, Button, Checkbox, Chord, ContextMenu,
     CrossAlign, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState, FgStep, FrameRead,
     HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintKey, HintLayer, Id,
     Insets, Intent, Item, ItemKey, ItemRowLayout, KeyCode, KeyMap, KeyModifiers, KeyPhase,
@@ -43,7 +43,7 @@ use crate::screens::{
     editor::{EditorState, Tab as EditorTab},
     inspect::InspectState,
     manager::{LaunchCandidate, ManagerRowKey, ManagerState},
-    prelude::PreludeState,
+    prelude::{PreludeState, PreludeUiState},
     settings::SettingsState,
     usage::{Tab as UsageTab, UsageState},
 };
@@ -741,6 +741,8 @@ pub struct App {
     pub accounts: AccountsState,
     /// Workspace creation route state.
     pub prelude: PreludeState,
+    /// Workspace creation UI state (mount read-only flag).
+    pub prelude_ui: PreludeUiState,
     /// Workspace editor route state.
     pub editor: EditorState,
     /// Settings route state.
@@ -944,6 +946,7 @@ impl App {
             manager: ManagerState::default(),
             accounts: AccountsState::default(),
             prelude: PreludeState::default(),
+            prelude_ui: PreludeUiState::default(),
             editor: EditorState::default(),
             settings: SettingsState::default(),
             usage: UsageState::default(),
@@ -3887,6 +3890,14 @@ impl App {
             }
             result |= Response::changed();
         }
+        if self.prelude.step() == 1 {
+            let checkbox = Checkbox::new(crate::screens::prelude::READ_ONLY, "Mount read-only")
+                .update(cx, &mut self.prelude_ui.read_only);
+            if checkbox.action_ref().is_some() {
+                result |= Response::changed();
+            }
+            result |= checkbox.erase();
+        }
         result
     }
 
@@ -5145,8 +5156,15 @@ impl App {
             }
             CMD_PRELUDE_SPACE if self.route == Route::Prelude => {
                 if self.prelude.step() == 1 {
-                    self.prelude.choose_source();
-                    cx.focus(crate::screens::prelude::CONTINUE);
+                    if cx
+                        .state(crate::screens::prelude::READ_ONLY)
+                        .contains(StateFlags::FOCUSED)
+                    {
+                        self.prelude_ui.read_only = !self.prelude_ui.read_only;
+                    } else {
+                        self.prelude.choose_source();
+                        cx.focus(crate::screens::prelude::CONTINUE);
+                    }
                 }
                 Some(Response::changed())
             }
@@ -5168,6 +5186,7 @@ impl App {
             CMD_NEW_WORKSPACE if self.route == Route::Manager => {
                 self.route = Route::Prelude;
                 self.prelude = PreludeState::default();
+                self.prelude_ui = PreludeUiState::default();
                 self.manager_menu_state = MenuState::default();
                 self.manager_menu_open = false;
                 cx.close_layer(MANAGER_MENU_BAR, None);
@@ -5815,7 +5834,12 @@ impl App {
         let bg = self.historical_span_style((128, 128, 128), (0, 0, 0), false);
         let stage = Rect::new(full.x, full.y.saturating_add(1), full.width, full.height.saturating_sub(2));
         ui.fill(stage, bg);
-        crate::screens::prelude::PreludeScreen::draw(ui, full, &self.prelude);
+        crate::screens::prelude::PreludeScreen::draw(
+            ui,
+            full,
+            &self.prelude,
+            self.prelude_ui.read_only,
+        );
     }
 
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
