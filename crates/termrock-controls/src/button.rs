@@ -525,6 +525,16 @@ impl<'a> Button<'a> {
                 }
             } else {
                 ui.paint_str(text, self.label, ls.style);
+                // Q65-S8 (G9): the trailing pad wears the LABEL style, not the
+                // container fill. The tag paints it with the same `style` as
+                // the text (`visual-baseline:src/widgets/button.rs:161`),
+                // which carries DIM for disabled buttons at `Mono` (frozen
+                // `buttons/audit/120x40/none.ansi:29`). `set_style` only
+                // overwrites channels the style names, so where LABEL is
+                // silent the container fill shows through unchanged.
+                if area.width >= 2 {
+                    ui.paint_str(cell_at(area, area.right().saturating_sub(1)), " ", ls.style);
+                }
             }
         }
         area
@@ -858,5 +868,199 @@ mod tests {
         );
         assert_eq!(pressed.invalidate(), Invalidate::Paint);
         assert_eq!(left.invalidate(), Invalidate::Paint);
+    }
+
+    const Q65S8_VARIANTS: [Variant; 8] = [
+        Variant::DEFAULT,
+        Variant::PRIMARY,
+        Variant::SECONDARY,
+        Variant::SUBTLE,
+        Variant::DANGER,
+        Variant::TOGGLE,
+        Variant::QUIET,
+        Variant::GHOST,
+    ];
+
+    /// Draw one plain "Go" button; return the buffer and the used rect.
+    fn draw_q65s8(variant: Variant, disabled: bool, theme: Theme) -> (Buffer, Rect) {
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(AREA);
+        let mut used = Rect::default();
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                used = Button::new(BUTTON, "Go")
+                    .variant(variant)
+                    .disabled(disabled)
+                    .draw(ui, area);
+            })
+            .commit_presented();
+        (buffer, used)
+    }
+
+    fn cell_style_q65s8(buf: &Buffer, x: u16) -> ratatui_core::style::Style {
+        buf.cell(Position::new(x, 0)).unwrap().style()
+    }
+
+    /// Q65-S8 (G9): disabled trailing pad @Mono is DarkGray+DIM on Black.
+    /// Tag paints the pad with the label `style`
+    /// (`visual-baseline:src/widgets/button.rs:161`), which carries DIM
+    /// via `disabled_style()`; frozen
+    /// `buttons/audit/120x40/none.ansi:29` pins `[2;38;5;8;48;5;0m`
+    /// over label+pads on all four matrix variants. RED on base (pad
+    /// lacks DIM — leftover container fill).
+    #[test]
+    fn q65s8_g9_disabled_pad_mono_is_darkgray_dim() {
+        use ratatui_core::style::Color;
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        for v in [
+            Variant::PRIMARY,
+            Variant::SECONDARY,
+            Variant::SUBTLE,
+            Variant::DANGER,
+        ] {
+            let (buf, used) = draw_q65s8(v, true, theme.clone());
+            let pad = cell_style_q65s8(&buf, used.right().saturating_sub(1));
+            assert_eq!(pad.fg, Some(Color::DarkGray), "{v:?} pad fg");
+            assert_eq!(pad.bg, Some(Color::Black), "{v:?} pad bg");
+            assert!(
+                pad.add_modifier.contains(Modifier::DIM),
+                "{v:?} pad lost DISABLED dim"
+            );
+        }
+    }
+
+    /// Q65-S8 (G9): the pad wears exactly the label style @Mono disabled
+    /// (tag line 161: one `style` for text and pad), all 8 variants.
+    /// RED on base (pad = container fill, no DIM; label = DIM).
+    #[test]
+    fn q65s8_g9_pad_matches_label_mono_disabled() {
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        for v in Q65S8_VARIANTS {
+            let (buf, used) = draw_q65s8(v, true, theme.clone());
+            let pad = cell_style_q65s8(&buf, used.right().saturating_sub(1));
+            let label = cell_style_q65s8(&buf, 1);
+            assert_eq!(pad, label, "{v:?} pad != label @Mono disabled");
+        }
+    }
+
+    /// HOLD: the gutter stays DIM-free @Mono disabled (frozen
+    /// `none.ansi:29` gutter `[38;5;0]`; tag `gutter()` names no
+    /// modifiers). This is what rules out a container-DIM fix shape:
+    /// the gutter derives from the container style, so container DIM
+    /// would leak here. GREEN on base and after.
+    #[test]
+    fn q65s8_hold_gutter_dim_free_mono_disabled() {
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        for v in Q65S8_VARIANTS {
+            let (buf, _) = draw_q65s8(v, true, theme.clone());
+            let gutter = cell_style_q65s8(&buf, 0);
+            assert!(
+                !gutter.add_modifier.contains(Modifier::DIM),
+                "{v:?} gutter gained DIM"
+            );
+        }
+    }
+
+    /// HOLD: pad == label everywhere the LABEL part is silent —
+    /// TC/256/16 × enabled/disabled plus Mono enabled — so the fix
+    /// moves nothing outside Mono+disabled. GREEN on base and after.
+    #[test]
+    fn q65s8_hold_pad_matches_label_where_label_silent() {
+        let levels = [
+            ("TC", Theme::junie()),
+            ("256", Theme::junie().downgrade(ColorLevel::Ansi256)),
+            ("16", Theme::junie().downgrade(ColorLevel::Ansi16)),
+            ("Mono", Theme::junie().downgrade(ColorLevel::Mono)),
+        ];
+        for (lname, theme) in levels {
+            for v in Q65S8_VARIANTS {
+                for disabled in [false, true] {
+                    if lname == "Mono" && disabled {
+                        continue; // the G9 case: covered by q65s8_g9_*.
+                    }
+                    let (buf, used) = draw_q65s8(v, disabled, theme.clone());
+                    let pad = cell_style_q65s8(&buf, used.right().saturating_sub(1));
+                    let label = cell_style_q65s8(&buf, 1);
+                    assert_eq!(
+                        pad, label,
+                        "{lname} {v:?} disabled={disabled}: pad != label"
+                    );
+                }
+            }
+        }
+    }
+
+    /// HOLD: enabled @Mono keeps its exact modifiers — no DIM anywhere,
+    /// BOLD on every focused pad (recipe + LABEL FOCUSED agree), BOLD on
+    /// PRIMARY-only pressed+focused pads (S1/S4 lineage). GREEN on base
+    /// and after.
+    #[test]
+    fn q65s8_hold_enabled_mono_pad_modifiers() {
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        for v in Q65S8_VARIANTS {
+            let (buf, used) = draw_q65s8(v, false, theme.clone());
+            let pad = cell_style_q65s8(&buf, used.right().saturating_sub(1));
+            assert!(
+                !pad.add_modifier.contains(Modifier::DIM),
+                "{v:?} enabled pad gained DIM"
+            );
+        }
+        for (rname, state, bold) in [
+            (
+                "focused",
+                crate::ReferenceState::FOCUSED,
+                Q65S8_VARIANTS.as_slice(),
+            ),
+            (
+                "pressed+focused",
+                crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+                [Variant::PRIMARY].as_slice(),
+            ),
+        ] {
+            for v in Q65S8_VARIANTS {
+                let mut runtime = Runtime::new(Stub::default(), theme.clone());
+                let mut buffer = Buffer::empty(AREA);
+                runtime
+                    .draw_scene(AREA, &mut buffer, |ui, area| {
+                        ui.reference(Some(crate::ReferenceTarget::new(BUTTON, state)), |ui| {
+                            Button::new(BUTTON, "Go").variant(v).draw(ui, area);
+                        });
+                    })
+                    .commit_presented();
+                // "Go" is 4 wide (pinned by the geometry hold); x3 is the pad.
+                let pad = cell_style_q65s8(&buffer, 3);
+                assert_eq!(
+                    pad.add_modifier.contains(Modifier::BOLD),
+                    bold.contains(&v),
+                    "{v:?} {rname} pad BOLD"
+                );
+                assert!(
+                    !pad.add_modifier.contains(Modifier::DIM),
+                    "{v:?} {rname} pad gained DIM"
+                );
+            }
+        }
+    }
+
+    /// HOLD: the fix writes inside the used area only — same rect, same
+    /// text. GREEN on base and after.
+    #[test]
+    fn q65s8_hold_geometry_and_text_unchanged() {
+        for (lname, theme) in [
+            ("TC", Theme::junie()),
+            ("Mono", Theme::junie().downgrade(ColorLevel::Mono)),
+        ] {
+            for v in Q65S8_VARIANTS {
+                for disabled in [false, true] {
+                    let (buf, used) = draw_q65s8(v, disabled, theme.clone());
+                    assert_eq!(used, Rect::new(0, 0, 4, 1), "{lname} {v:?} rect");
+                    assert_eq!(
+                        row_text(&buf, AREA.width),
+                        " Go         ",
+                        "{lname} {v:?} disabled={disabled} text"
+                    );
+                }
+            }
+        }
     }
 }
