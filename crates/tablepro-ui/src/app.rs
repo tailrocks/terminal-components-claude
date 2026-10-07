@@ -8,8 +8,8 @@ use termrock::{
     KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase,
     PickerAction, Response, Role, RowUi, Select, SelectAction, Size, SortDir, Span, SplitAxis,
     SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput,
-    TextInputState, Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant,
-    truncate, wrap,
+    TextInputState, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause,
+    Variant, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -47,6 +47,7 @@ const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
 const QUERY_EMPTY: Id = Id::root("tablepro.workbench.query.empty");
+const TOO_SMALL: Id = Id::root("tablepro.too-small");
 const RUN: ActionKey = ActionKey::application("tablepro.run");
 const UNDO: ActionKey = ActionKey::application("tablepro.undo");
 const INSERT_ROW: ActionKey = ActionKey::application("tablepro.insert-row");
@@ -7225,31 +7226,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     }
 }
 
-fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let style = ui.surface_style();
-    let lines = [
-        "TablePro".to_owned(),
-        "Terminal too small".to_owned(),
-        format!(
-            "Need {}×{}, have {}×{}",
-            MIN_WIDTH, MIN_HEIGHT, area.width, area.height
-        ),
-        String::new(),
-        "q Quit".to_owned(),
-    ];
-    let start = area
-        .y
-        .saturating_add(area.height.saturating_sub(lines.len() as u16) / 2);
-    for (offset, line) in lines.iter().enumerate() {
-        let width = termrock::width(line);
-        let row = termrock::Rect {
-            x: area.x.saturating_add(area.width.saturating_sub(width) / 2),
-            y: start.saturating_add(offset as u16),
-            width,
-            height: 1,
-        };
-        ui.paint_str(row, line, style);
-    }
+fn too_small_notice() -> TooSmall<'static> {
+    TooSmall::new(TOO_SMALL, "TablePro").minimum(MIN_WIDTH, MIN_HEIGHT)
 }
 
 fn draw_connection_properties(
@@ -7429,6 +7407,7 @@ impl App for TableProApp {
         let _ = Self::connection_details_panel("");
         let _ = Self::explorer_panel(self.workbench.schema_caption(), false);
         let _ = Self::content_panel("", None, false);
+        let _ = too_small_notice();
         if matches!(
             cx.update_cause(),
             UpdateCause::Bootstrap | UpdateCause::Event
@@ -7996,7 +7975,7 @@ impl App for TableProApp {
         let full = ui.full();
         self.screen_size.set((full.width, full.height));
         if full.width < MIN_WIDTH || full.height < MIN_HEIGHT {
-            draw_too_small(ui, full);
+            too_small_notice().draw(ui, full);
             return;
         }
         ui.fill(full, ui.surface_style());
