@@ -154,11 +154,16 @@ pub enum MeterRole {
 pub enum Role {
     /// The background of the current surface.
     CurrentSurface,
-    /// The background one ladder step above the current surface.
+    /// The background lifted above the current surface by the reference lift
+    /// (post-quantization colour comparison, the legacy `lift()` formula):
+    /// `Canvas → Elevated`, `Surface/Elevated → Overlay`,
+    /// `Field → FieldHover`, else `Popover`. Binds identically to
+    /// `HoverSurface`; `Theme::raise` keeps the depth ladder.
     RaisedSurface,
     /// Junie row hover plane: `Canvas → Elevated`, `Surface/Elevated → Overlay`,
     /// `Field → FieldHover`, and `Overlay/Popover/FieldHover → Popover`.
-    /// Unlike `RaisedSurface`, this expresses interaction rather than ladder depth.
+    /// Names the interaction; binds identically to `RaisedSurface` through
+    /// the reference lift (post-quantization comparison).
     HoverSurface,
     /// A specific surface's background.
     Surface(Surface),
