@@ -1043,8 +1043,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T07:26:28Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8c S1 s1_list_wheel_fade live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -1893,7 +1900,7 @@
       "ref_symbols": [
         {
           "glyph": "Collapse",
-          "meaning": "last demo row revealed by the wheel"
+          "meaning": "static footer button persisting across the wheel"
         },
         {
           "glyph": "M Members",
@@ -1903,7 +1910,7 @@
       "cand_symbols": [
         {
           "glyph": "Collapse",
-          "meaning": "last demo row revealed by the wheel"
+          "meaning": "static footer button persisting across the wheel"
         },
         {
           "glyph": "M Members",
@@ -1995,7 +2002,7 @@
         "visual": [
           {
             "id": "V1",
-            "text": "the demo shows B Branches through Collapse with a scrollbar; the last row Collapse is revealed"
+            "text": "the demo shows B Branches through Appearance with a scrollbar; the Collapse footer button persists below the scroll viewport"
           },
           {
             "id": "V2",
@@ -2005,7 +2012,7 @@
         "state": [
           {
             "id": "S1",
-            "text": "two down-notches moved the demo offset down; Collapse entered the viewport"
+            "text": "two down-notches moved the demo offset down; Workspace left above the fold while Preferences, Keyboard, and Appearance entered below; the Collapse footer persists"
           },
           {
             "id": "S2",
@@ -2051,6 +2058,11 @@
             "note": "fade with the cursor row kept plus scrollbar paint"
           },
           {
+            "path": "src/bin/showcase/pages/sidebars.rs",
+            "lines": "359,380-404",
+            "note": "Collapse is a page-level footer Button rendered below the nav scroll viewport, not a NavList row"
+          },
+          {
             "path": "src/ui/fade.rs",
             "lines": "44-60",
             "note": "edge gates: fade only where content hides"
@@ -2080,8 +2092,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T00:42:29Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8c2 S1 s1_nav_wheel_demo live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10969624B sha256:663374a3bdf1ea44 built 2026-10-07T00:42:03Z; log /tmp/phase8c2-focused.log) NOTE: row corrected phase-8c2 (reviewer-explicit): V1/S1/symbols said Collapse revealed by the wheel; source shows a page footer Button (sidebars.rs:359,380-404) persisting across the wheel; Preferences/Keyboard/Appearance are the revealed rows"
+          }
+        ]
       }
     },
     {
@@ -2718,8 +2737,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T07:26:28Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8c S1 s1_tree_wheel_fade live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+          }
+        ]
       }
     },
     {
