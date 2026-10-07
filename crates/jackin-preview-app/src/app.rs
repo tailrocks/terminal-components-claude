@@ -7182,16 +7182,7 @@ impl App {
         }
 
         if self.manager_menu_state.is_open() || self.manager_menu_open {
-            let palette = HistoricalPalette::new(ui);
-            let normal_canvas = palette.primary_on_canvas;
-
-            let container_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                ui.fill(cell, normal_canvas);
-            };
-
-            HintBar::new(APP.sub("hint"), &self.hint_layers.manager_menu)
-                .slot(Part::CONTAINER, &container_slot)
-                .draw(ui, area);
+            HintBar::new(APP.sub("hint"), &self.hint_layers.manager_menu).draw(ui, area);
             return;
         }
 
