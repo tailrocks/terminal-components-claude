@@ -555,6 +555,7 @@ impl Ui<'_> {
                     Some(Role::Fg(FgStep::Secondary)) => cell_fg.is_some_and(|c| c != theme.color.fg[1]),
                     Some(Role::Success) => cell_fg.is_some_and(|c| c != theme.color.success),
                     Some(Role::Accent) => cell_fg.is_some_and(|c| c != theme.color.accent),
+                    Some(Role::Focus) => cell_fg.is_some_and(|c| c != theme.color.focus),
                     Some(Role::Danger) => cell_fg.is_some_and(|c| c != theme.color.danger),
                     Some(Role::Warning) => cell_fg.is_some_and(|c| c != theme.color.warning),
                     _ => false,
@@ -571,6 +572,7 @@ impl Ui<'_> {
                             | Role::Accent
                             | Role::AccentHover
                             | Role::AccentPressed
+                            | Role::Focus
                             | Role::Danger
                             | Role::DangerSoft
                             | Role::Warning
@@ -791,7 +793,7 @@ mod tests {
             // every other non-ladder foreground role uses base 2 (Faint at 1, Ghost at 2) —
             // `BorderSubtle` and `DisabledFg` are exactly the two the legacy
             // colour-identity lookup misclassified
-            for role in [Role::BorderSubtle, Role::DisabledFg, Role::Focus] {
+            for role in [Role::BorderSubtle, Role::DisabledFg] {
                 assert_eq!(
                     dimmed_cell(&theme, role, "x", Modifier::empty(), 1).fg,
                     fg_of(&theme, FgStep::Faint),
@@ -808,6 +810,22 @@ mod tests {
                     "{role:?}"
                 );
             }
+            // `Role::Focus` starts at ladder 0 (matching legacy accent dimming)
+            assert_eq!(
+                dimmed_cell(&theme, Role::Focus, "x", Modifier::empty(), 1).fg,
+                fg_of(&theme, FgStep::Secondary),
+                "Role::Focus at 1"
+            );
+            assert_eq!(
+                dimmed_cell(&theme, Role::Focus, "x", Modifier::empty(), 2).fg,
+                fg_of(&theme, FgStep::Muted),
+                "Role::Focus at 2"
+            );
+            assert_eq!(
+                dimmed_cell(&theme, Role::Focus, "x", Modifier::empty(), 5).symbol(),
+                " ",
+                "Role::Focus at 5"
+            );
             // ladder roles step from their own rung, saturating at Ghost and
             // erasing only past it
             for (start, steps, want) in [

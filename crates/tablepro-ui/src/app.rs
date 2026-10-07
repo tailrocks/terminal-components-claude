@@ -21,10 +21,12 @@ use crate::filter_editor::{
 };
 use crate::filter_editor::{column_key, column_row, op_key, op_row};
 use crate::quick_switcher::{self, QuickSwitcher};
+use crate::safe_mode_picker::{self, SafeModePicker};
 use crate::safety_dialog::{
     Prop, SAFETY_CANCEL, SAFETY_CONFIRM, SAFETY_DIALOG, SAFETY_INPUT, SafetyDialog,
     SafetyDialogAction, SafetyFocus, SafetyIntent, Tone,
 };
+use crate::tab_list::{self, TabList};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord, TableTab};
 use crate::workbench::Workbench;
 use tablepro_demo as db;
@@ -193,11 +195,38 @@ const SORT: ActionKey = ActionKey::application("tablepro.sort");
 const PREVIEW: ActionKey = ActionKey::application("tablepro.preview");
 const SAVE: ActionKey = ActionKey::application("tablepro.save");
 const EXPLAIN: ActionKey = ActionKey::application("tablepro.explain");
+#[allow(dead_code)]
 const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
 const COMPLETE: ActionKey = ActionKey::application("tablepro.complete");
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
 const MAXIMIZE: ActionKey = ActionKey::application("tablepro.maximize");
+const SAFE_MODE: ActionKey = ActionKey::application("tablepro.safe-mode");
+const FOCUS_EXPLORER: ActionKey = ActionKey::application("tablepro.focus-explorer");
+
+const HELP_DIALOG_ID: Id = Id::root("tablepro.help-dialog");
+const HELP_TEXT: &str = "\
+Tab / Shift+Tab   move focus · 0 explorer · Esc back\n\
+Ctrl+O            Open Quickly (tables, schemas, tabs, queries)\n\
+Ctrl+T / Ctrl+W   new / close tab · [ ] switch · Ctrl+G tab list\n\
+Ctrl+R / F5       run statement at cursor · Alt+R run all\n\
+Ctrl+X / Alt+X    EXPLAIN / EXPLAIN ANALYZE\n\
+Esc / Ctrl+C      cancel a running query\n\
+Ctrl+D            Data / Structure · Ctrl+F filter (grid) or find (editor)\n\
+Alt+D             duplicate the current grid row\n\
+Ctrl+S            save pending row changes · p preview SQL\n\
+Ctrl+Y            query history · Ctrl+L Safe Mode · Ctrl+B explorer · z zoom\n\
+q                 quit";
+
+fn help_dialog(cols: u16, screen_rows: u16) -> Dialog<'static> {
+    let w = 78.min(cols.saturating_sub(4)).max(20);
+    let max_h = screen_rows.saturating_sub(2);
+    Dialog::info(HELP_DIALOG_ID, "Keyboard")
+        .width(w)
+        .max_height(max_h)
+        .body_rows(0)
+        .description(HELP_TEXT)
+}
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -455,7 +484,7 @@ fn keymap() -> KeyMap {
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
-            CLEAR_QUERY,
+            SAFE_MODE,
         )
         .bind(
             KeyPhase::Bubble,
@@ -496,6 +525,11 @@ fn keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('?'), KeyModifiers::NONE),
             HELP,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('0'), KeyModifiers::NONE),
+            FOCUS_EXPLORER,
         )
         .bind(
             KeyPhase::Bubble,
@@ -562,6 +596,13 @@ pub struct TableProApp {
     destructive_notice: Option<&'static str>,
     quit_state: DialogState,
     switcher: QuickSwitcher,
+    switcher_open: bool,
+    tab_list: TabList,
+    tab_list_open: bool,
+    safe_mode_picker: SafeModePicker,
+    safe_mode_open: bool,
+    help_dialog_state: DialogState,
+    help_open: bool,
     pub safety_dialog: Option<SafetyDialog>,
     pub filter_editor: Option<FilterEditor>,
     /// Current product screen.
@@ -589,6 +630,7 @@ pub struct TableProApp {
     form_editing: bool,
     committing: Option<u32>,
     screen_size: core::cell::Cell<(u16, u16)>,
+    workbench_focus: Id,
 }
 
 impl core::fmt::Debug for TableProApp {
@@ -669,6 +711,13 @@ impl TableProApp {
             destructive_notice: None,
             quit_state: DialogState::default(),
             switcher: QuickSwitcher::default(),
+            switcher_open: false,
+            tab_list: TabList::default(),
+            tab_list_open: false,
+            safe_mode_picker: SafeModePicker::default(),
+            safe_mode_open: false,
+            help_dialog_state: DialogState::default(),
+            help_open: false,
             safety_dialog: None,
             filter_editor: None,
             screen: Screen::Connections,
@@ -692,6 +741,7 @@ impl TableProApp {
             form_editing: false,
             committing: None,
             screen_size: core::cell::Cell::new((120, 40)),
+            workbench_focus: EXPLORER,
         };
         app.workbench.new_query(
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
@@ -1106,6 +1156,7 @@ impl TableProApp {
         self.sync_tabs_state();
         self.screen = Screen::Workbench;
         self.surface = Surface::WorkbenchDefault;
+        self.workbench_focus = EXPLORER;
         self.status = format!("Connected to {}", connection.name);
         self.status_since = None;
         true
@@ -1832,20 +1883,33 @@ impl TableProApp {
         );
     }
 
+    fn screen_dimensions(&self, cx: &Cx<'_>) -> (u16, u16) {
+        let vp = cx.viewport();
+        if !vp.is_empty() {
+            (vp.width, vp.height)
+        } else {
+            self.screen_size.get()
+        }
+    }
+
     fn open_switcher(&mut self, cx: &mut Cx<'_>) {
+        let (cols, rows) = self.screen_dimensions(cx);
         self.switcher.open(&self.workbench);
+        self.switcher_open = true;
         cx.open_layer(
             quick_switcher::ID,
-            self.switcher.component().layer(cx, &self.switcher.items),
+            self.switcher.component(cols, rows).layer(cx, &self.switcher.items),
         );
         self.surface = Surface::QuickSwitcher;
     }
 
     fn update_switcher(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let was_open = cx.is_open(quick_switcher::ID);
+        self.switcher_open = was_open;
+        let (cols, rows) = self.screen_dimensions(cx);
         let mut response =
             self.switcher
-                .component()
+                .component(cols, rows)
                 .update(cx, &mut self.switcher.state, &self.switcher.items);
         match response.take_action() {
             Some(PickerAction::QueryChanged | PickerAction::Scope(_)) if was_open => {
@@ -1859,6 +1923,7 @@ impl TableProApp {
                     .find(|item| ItemKey::text(&item.key) == key)
                     .map(|item| item.target.clone());
                 cx.close_layer(quick_switcher::ID, None);
+                self.switcher_open = false;
                 self.sync_active_tab();
                 if self.workbench.matches_owner(&self.switcher.owner) {
                     if let Some(target) = target {
@@ -1870,8 +1935,179 @@ impl TableProApp {
             }
             _ => {}
         }
-        if was_open && !cx.is_open(quick_switcher::ID) && self.surface == Surface::QuickSwitcher {
-            self.sync_active_tab();
+        if was_open && !cx.is_open(quick_switcher::ID) {
+            self.switcher_open = false;
+            if self.surface == Surface::QuickSwitcher {
+                self.sync_active_tab();
+            }
+        }
+        response.erase()
+    }
+
+    fn open_tab_list(&mut self, cx: &mut Cx<'_>) {
+        let (cols, rows) = self.screen_dimensions(cx);
+        self.tab_list.open(&self.workbench);
+        self.tab_list_open = true;
+        cx.open_layer(
+            tab_list::ID,
+            self.tab_list.component(cols, rows).layer(cx, &self.tab_list.items),
+        );
+        self.surface = Surface::TabListPicker;
+    }
+
+    fn update_tab_list(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(tab_list::ID);
+        if !was_open {
+            self.tab_list_open = false;
+            return Response::ignored();
+        }
+        self.tab_list_open = true;
+        let (cols, rows) = self.screen_dimensions(cx);
+        let mut response = self
+            .tab_list
+            .component(cols, rows)
+            .update(cx, &mut self.tab_list.state, &self.tab_list.items);
+
+        match response.take_action() {
+            Some(PickerAction::Chosen(key) | PickerAction::ChosenAlt(key)) => {
+                if let Some(item) = self
+                    .tab_list
+                    .items
+                    .iter()
+                    .find(|it| ItemKey::text(&it.key) == key)
+                {
+                    let tab_key = item.tab_key;
+                    cx.close_layer(tab_list::ID, None);
+                    self.tab_list_open = false;
+                    let _ = self.workbench.activate(tab_key);
+                    self.sync_active_tab();
+                    if let Some(tab_key) = self.workbench.active_key() {
+                        if let Some(Tab::Table(_)) = self.workbench.active() {
+                            let ctrl = tab_key.control("data");
+                            self.workbench_focus = ctrl;
+                            cx.focus(ctrl);
+                        } else if let Some(focus) = self.query_id().or_else(|| self.result_id()) {
+                            self.workbench_focus = focus;
+                            cx.focus(focus);
+                        }
+                    }
+                }
+            }
+            Some(PickerAction::Secondary(key)) => {
+                if let Some(item) = self
+                    .tab_list
+                    .items
+                    .iter()
+                    .find(|it| ItemKey::text(&it.key) == key)
+                {
+                    let tab_key = item.tab_key;
+                    self.request_close_tab(cx, tab_key);
+                    if self.workbench.tabs().is_empty() {
+                        cx.close_layer(tab_list::ID, None);
+                        self.tab_list_open = false;
+                    } else {
+                        self.tab_list.open(&self.workbench);
+                        cx.resize_layer(
+                            tab_list::ID,
+                            self.tab_list.component(cols, rows).measured_size(cx, &self.tab_list.items),
+                        );
+                    }
+                }
+            }
+            _ => {}
+        }
+        if was_open && !cx.is_open(tab_list::ID) {
+            self.tab_list_open = false;
+            if self.surface == Surface::TabListPicker {
+                self.sync_active_tab();
+            }
+        }
+        response.erase()
+    }
+
+    fn open_safe_mode_picker(&mut self, cx: &mut Cx<'_>) {
+        let (cols, rows) = self.screen_dimensions(cx);
+        self.safe_mode_picker.open(self.safe_mode);
+        self.safe_mode_open = true;
+        cx.open_layer(
+            safe_mode_picker::ID,
+            self.safe_mode_picker.component(cols, rows).layer(cx, &self.safe_mode_picker.items),
+        );
+        self.surface = Surface::SafeModePicker;
+    }
+
+    fn update_safe_mode_picker(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(safe_mode_picker::ID);
+        if !was_open {
+            self.safe_mode_open = false;
+            return Response::ignored();
+        }
+        self.safe_mode_open = true;
+        let (cols, rows) = self.screen_dimensions(cx);
+        let mut response = self
+            .safe_mode_picker
+            .component(cols, rows)
+            .update(cx, &mut self.safe_mode_picker.state, &self.safe_mode_picker.items);
+
+        if let Some(PickerAction::Chosen(key) | PickerAction::ChosenAlt(key)) =
+            response.take_action()
+            && let ItemKey::Index(idx) = key
+            && let Some(&mode) = SafeMode::ALL.get(idx)
+        {
+            self.safe_mode = mode;
+            self.connection.safe_mode = mode;
+            self.workbench.connection.safe_mode = mode;
+            cx.close_layer(safe_mode_picker::ID, None);
+            self.safe_mode_open = false;
+            self.status = format!("Safe mode set to {}", mode.label());
+        }
+        if was_open && !cx.is_open(safe_mode_picker::ID) {
+            self.safe_mode_open = false;
+            if self.surface == Surface::SafeModePicker {
+                self.sync_active_tab();
+            }
+        }
+        response.erase()
+    }
+
+    fn open_help(&mut self, cx: &mut Cx<'_>) {
+        self.help_open = true;
+        self.help_dialog_state = DialogState::default();
+        let (cols, rows) = self.screen_dimensions(cx);
+        let dlg = help_dialog(cols, rows);
+        let spec = dlg.layer(cx);
+        cx.open_layer(HELP_DIALOG_ID, spec);
+        if let Some(initial) = dlg.initial_focus() {
+            cx.focus(initial);
+        }
+        self.surface = Surface::HelpDialog;
+    }
+
+    fn update_help_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(HELP_DIALOG_ID);
+        if !was_open {
+            self.help_open = false;
+            return Response::ignored();
+        }
+        self.help_open = true;
+        let (cols, rows) = self.screen_dimensions(cx);
+        let response = help_dialog(cols, rows).update(cx, &mut self.help_dialog_state);
+        if let Some(action) = response.action_ref() {
+            match action {
+                DialogAction::Dismissed(_) | DialogAction::Action(_) => {
+                    cx.close_layer(HELP_DIALOG_ID, None);
+                    self.help_open = false;
+                    if self.surface == Surface::HelpDialog {
+                        self.sync_active_tab();
+                    }
+                }
+            }
+        }
+        if was_open && !cx.is_open(HELP_DIALOG_ID) {
+            self.help_open = false;
+            if self.surface == Surface::HelpDialog {
+                self.sync_active_tab();
+            }
         }
         response.erase()
     }
@@ -1898,12 +2134,14 @@ impl TableProApp {
             }
             SwitchTarget::Schema(schema) => {
                 if self.select_schema(&schema) {
+                    self.workbench_focus = EXPLORER;
                     cx.focus(EXPLORER);
                 }
                 return;
             }
             SwitchTarget::Database(name) => {
                 if self.workbench.catalog.database == name {
+                    self.workbench_focus = EXPLORER;
                     cx.focus(EXPLORER);
                 }
                 return;
@@ -1914,18 +2152,24 @@ impl TableProApp {
             self.sync_active_tab();
             if let Some(tab_key) = self.workbench.active_key() {
                 if let Some(Tab::Table(_)) = self.workbench.active() {
-                    cx.focus(tab_key.control("data"));
+                    let ctrl = tab_key.control("data");
+                    self.workbench_focus = ctrl;
+                    cx.focus(ctrl);
                 } else if let Some(focus) = self.query_id().or_else(|| self.result_id()) {
+                    self.workbench_focus = focus;
                     cx.focus(focus);
                 }
             } else if let Some(focus) = self.query_id().or_else(|| self.result_id()) {
+                self.workbench_focus = focus;
                 cx.focus(focus);
             }
         } else {
             "Target unavailable; reopen switcher".clone_into(&mut self.status);
             if let Some(focus) = self.query_id().or_else(|| self.result_id()) {
+                self.workbench_focus = focus;
                 cx.focus(focus);
             } else {
+                self.workbench_focus = EXPLORER;
                 cx.focus(EXPLORER);
             }
         }
@@ -4579,9 +4823,10 @@ impl TableProApp {
     }
 
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        let focused = self.safety_dialog.is_none()
-            && self.destructive_intent.is_none()
-            && ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED);
+        let in_dialog = self.safety_dialog.is_some()
+            || self.destructive_intent.is_some()
+            || self.help_open;
+        let focused = !in_dialog && self.workbench_focus == EXPLORER;
         let panel = Self::explorer_panel(self.workbench.schema_caption(), focused);
         let inner = panel.inner(ui, area);
         let body = legacy_tree_body(inner);
@@ -4651,12 +4896,14 @@ impl TableProApp {
                 Some(Tab::Table(t)) => Some((t.table.schema.clone(), t.table.name.clone())),
                 _ => None,
             };
-            explorer_tree_with_meta(show_meta, active_table).draw(
-                ui,
-                tree_area,
-                &self.explorer_tree_state,
-                &self.explorer_nodes,
-            );
+            explorer_tree_with_meta(show_meta, active_table)
+                .focused(focused)
+                .draw(
+                    ui,
+                    tree_area,
+                    &self.explorer_tree_state,
+                    &self.explorer_nodes,
+                );
             paint_legacy_tree_gutters(
                 ui,
                 tree_area,
@@ -4664,7 +4911,7 @@ impl TableProApp {
                 &self.explorer_nodes,
                 explorer_node,
                 explorer_node_key,
-                true,
+                focused,
             );
         });
     }
@@ -4817,7 +5064,11 @@ impl TableProApp {
             ),
             None => ("Workbench".to_owned(), None),
         };
-        let focused = !ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED);
+        let in_picker = self.switcher_open || self.tab_list_open || self.safe_mode_open;
+        let in_dialog = self.safety_dialog.is_some()
+            || self.destructive_intent.is_some()
+            || self.help_open;
+        let focused = !in_picker && (in_dialog || self.workbench_focus != EXPLORER);
         let panel = Self::content_panel(&title, meta.as_deref(), focused);
         let mut status_line: Option<StructureStatusLine> = None;
         panel.draw(ui, area, |ui, inner| match self.workbench.active() {
@@ -4873,6 +5124,7 @@ impl TableProApp {
                         ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
                     )
                 };
+                let query_text = query.editor_state.draft_text().unwrap_or(&query.query);
                 let num_style = if is_focused {
                     field_style.patch(
                         ui.paint_patch(
@@ -4881,9 +5133,13 @@ impl TableProApp {
                                 .add(Modifier::BOLD),
                         ),
                     )
-                } else {
+                } else if !query_text.is_empty() {
                     field_style.patch(
                         ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+                    )
+                } else {
+                    field_style.patch(
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
                     )
                 };
 
@@ -4899,7 +5155,6 @@ impl TableProApp {
                     if is_focused { "▎" } else { " " },
                     bar_style,
                 );
-                let query_text = query.editor_state.draft_text().unwrap_or(&query.query);
                 if !query_text.is_empty() {
                     ui.paint_str(
                         termrock::Rect::new(inner.x + 1, inner.y, 1, 1),
@@ -6424,6 +6679,29 @@ struct KeyHint {
 }
 
 fn footer_hints(app: &TableProApp, explorer_focused: bool) -> &'static [KeyHint] {
+    if app.help_open {
+        return &[
+            KeyHint {
+                key: "← →",
+                action: "Choose",
+            },
+            KeyHint {
+                key: "Enter",
+                action: "Confirm",
+            },
+            KeyHint {
+                key: "Esc",
+                action: "Cancel",
+            },
+            KeyHint {
+                key: "y / n",
+                action: "Quick answer",
+            },
+        ];
+    }
+    if app.switcher_open || app.tab_list_open || app.safe_mode_open {
+        return &[];
+    }
     if app.filter_editor.is_some() {
         return &[
             KeyHint {
@@ -6867,6 +7145,10 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let explorer_focused = !ui.is_inert()
         && app.safety_dialog.is_none()
         && app.destructive_intent.is_none()
+        && !app.help_open
+        && !app.switcher_open
+        && !app.tab_list_open
+        && !app.safe_mode_open
         && (ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED)
             || (area.width < 100 && app.workbench.active().is_none()));
     let hints = footer_hints(app, explorer_focused);
@@ -7127,6 +7409,12 @@ impl App for TableProApp {
         if cx.update_cause() == UpdateCause::Bootstrap {
             if self.screen == Screen::Workbench && self.surface == Surface::QuickSwitcher {
                 self.open_switcher(cx);
+            } else if self.screen == Screen::Workbench && self.surface == Surface::TabListPicker {
+                self.open_tab_list(cx);
+            } else if self.screen == Screen::Workbench && self.surface == Surface::SafeModePicker {
+                self.open_safe_mode_picker(cx);
+            } else if self.screen == Screen::Workbench && self.surface == Surface::HelpDialog {
+                self.open_help(cx);
             } else if self.screen == Screen::Connections {
                 if self.form_open {
                     cx.focus(connections::field::NAME);
@@ -7137,7 +7425,10 @@ impl App for TableProApp {
                 cx.focus(EXPLORER);
             }
         }
-        let switcher_was_open = cx.is_open(quick_switcher::ID);
+        let overlay_was_open = cx.is_open(quick_switcher::ID)
+            || cx.is_open(tab_list::ID)
+            || cx.is_open(safe_mode_picker::ID)
+            || cx.is_open(HELP_DIALOG_ID);
         let modal_was_open = self.destructive_intent.is_some()
             || self.safety_dialog.is_some()
             || self.filter_editor.is_some();
@@ -7191,7 +7482,10 @@ impl App for TableProApp {
                 .erase();
         }
         response |= self.update_switcher(cx);
-        if switcher_was_open {
+        response |= self.update_tab_list(cx);
+        response |= self.update_safe_mode_picker(cx);
+        response |= self.update_help_dialog(cx);
+        if overlay_was_open {
             return response;
         }
         // Stateless props have no update method, but their factories remain
@@ -7255,16 +7549,30 @@ impl App for TableProApp {
                     self.request_save(cx);
                     response |= Response::changed();
                 }
+                c if c == FOCUS_EXPLORER => {
+                    if self.screen == Screen::Workbench && !self.is_editing() {
+                        self.workbench.explorer_visible = true;
+                        self.workbench.maximized = false;
+                        self.workbench_focus = EXPLORER;
+                        cx.focus(EXPLORER);
+                        response |= Response::changed();
+                    }
+                }
                 c if c == TOGGLE_EXPLORER => {
                     if self.screen == Screen::Workbench {
                         self.workbench.explorer_visible = !self.workbench.explorer_visible;
                         if self.workbench.explorer_visible {
+                            self.workbench_focus = EXPLORER;
                             cx.focus(EXPLORER);
                         } else if let Some(tab_key) = self.workbench.active_key() {
                             if let Some(Tab::Table(_)) = self.workbench.active() {
-                                cx.focus(tab_key.control("data"));
+                                let ctrl = tab_key.control("data");
+                                self.workbench_focus = ctrl;
+                                cx.focus(ctrl);
                             } else if let Some(Tab::Query(_)) = self.workbench.active() {
-                                cx.focus(tab_key.control("query"));
+                                let ctrl = tab_key.control("query");
+                                self.workbench_focus = ctrl;
+                                cx.focus(ctrl);
                             }
                         }
                         response |= Response::changed();
@@ -7285,7 +7593,9 @@ impl App for TableProApp {
                 c if c == NEW_QUERY => {
                     self.new_query("");
                     if let Some(tab_key) = self.workbench.active_key() {
-                        cx.focus(tab_key.control("query"));
+                        let ctrl = tab_key.control("query");
+                        self.workbench_focus = ctrl;
+                        cx.focus(ctrl);
                     }
                     response |= Response::changed();
                 }
@@ -7311,9 +7621,13 @@ impl App for TableProApp {
                         if let Some(tab_key) = self.workbench.active_key()
                             && let Some(Tab::Table(t)) = self.workbench.active() {
                                 if t.is_structure() {
-                                    cx.focus(tab_key.control("structure"));
+                                    let ctrl = tab_key.control("structure");
+                                    self.workbench_focus = ctrl;
+                                    cx.focus(ctrl);
                                 } else {
-                                    cx.focus(tab_key.control("data"));
+                                    let ctrl = tab_key.control("data");
+                                    self.workbench_focus = ctrl;
+                                    cx.focus(ctrl);
                                 }
                             }
                         response |= Response::changed();
@@ -7409,8 +7723,20 @@ impl App for TableProApp {
                                 response |= Response::changed();
                             }
                 }
-                c if c == HELP => {
-                    self.surface = Surface::HelpDialog;
+                c if c == TAB_LIST => {
+                    if self.screen == Screen::Workbench && !self.is_editing() {
+                        self.open_tab_list(cx);
+                        response |= Response::changed();
+                    }
+                }
+                c if c == SAFE_MODE => {
+                    if self.screen == Screen::Workbench && !self.is_editing() {
+                        self.open_safe_mode_picker(cx);
+                        response |= Response::changed();
+                    }
+                }
+                c if c == HELP && self.screen == Screen::Workbench && !self.is_editing() => {
+                    self.open_help(cx);
                     response |= Response::changed();
                 }
                 _ => {}
@@ -7612,7 +7938,9 @@ impl App for TableProApp {
                         let item = item.clone();
                         if self.open_table(&item)
                             && let Some(tab_key) = self.workbench.active_key() {
-                                cx.focus(tab_key.control("data"));
+                                let ctrl = tab_key.control("data");
+                                self.workbench_focus = ctrl;
+                                cx.focus(ctrl);
                             }
                     }
                     _ => {
@@ -7637,6 +7965,16 @@ impl App for TableProApp {
                             let _ = self.workbench.activate(key);
                         }
                         self.sync_active_tab();
+                        if let Some(tab_key) = self.workbench.active_key() {
+                            if let Some(Tab::Table(_)) = self.workbench.active() {
+                                let ctrl = tab_key.control("data");
+                                self.workbench_focus = ctrl;
+                                cx.focus(ctrl);
+                            } else if let Some(focus) = self.query_id().or_else(|| self.result_id()) {
+                                self.workbench_focus = focus;
+                                cx.focus(focus);
+                            }
+                        }
                     }
                 }
                 TabsAction::Close(key) => {
@@ -7648,7 +7986,9 @@ impl App for TableProApp {
                 TabsAction::New => {
                     self.new_query("");
                     if let Some(tab_key) = self.workbench.active_key() {
-                        cx.focus(tab_key.control("query"));
+                        let ctrl = tab_key.control("query");
+                        self.workbench_focus = ctrl;
+                        cx.focus(ctrl);
                     }
                 }
             }
@@ -7681,11 +8021,11 @@ impl App for TableProApp {
             );
             let body = workbench_rows[1];
             let narrow = body.width < 100;
-            let explorer_focused = !ui.is_inert()
-                && self.safety_dialog.is_none()
-                && self.destructive_intent.is_none()
-                && (ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED)
-                    || (narrow && self.workbench.active().is_none()));
+            let in_dialog = self.safety_dialog.is_some()
+                || self.destructive_intent.is_some()
+                || self.help_open;
+            let explorer_focused = !in_dialog
+                && (self.workbench_focus == EXPLORER || (narrow && self.workbench.active().is_none()));
             let show_explorer = self.workbench.explorer_visible
                 && !self.workbench.maximized
                 && (!narrow || explorer_focused);
@@ -7732,10 +8072,24 @@ impl App for TableProApp {
             }
         }
         draw_footer(ui, rows[2], self);
+        let (cols, screen_rows) = (full.width, full.height);
         ui.layer(quick_switcher::ID, |ui, area| {
             self.switcher
-                .component()
+                .component(cols, screen_rows)
                 .draw(ui, area, &self.switcher.state, &self.switcher.items);
+        });
+        ui.layer(tab_list::ID, |ui, area| {
+            self.tab_list
+                .component(cols, screen_rows)
+                .draw(ui, area, &self.tab_list.state, &self.tab_list.items);
+        });
+        ui.layer(safe_mode_picker::ID, |ui, area| {
+            self.safe_mode_picker
+                .component(cols, screen_rows)
+                .draw(ui, area, &self.safe_mode_picker.state, &self.safe_mode_picker.items);
+        });
+        ui.layer(HELP_DIALOG_ID, |ui, area| {
+            help_dialog(cols, screen_rows).draw(ui, area, &self.help_dialog_state, |_, _| {});
         });
         if let Some(intent) = self.destructive_intent.as_ref() {
             ui.layer(QUIT_DIALOG, |ui, area| {
@@ -8269,6 +8623,23 @@ mod replacement_tests {
         assert_eq!(active_filters(&h).len(), 2);
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
+
+    #[test]
+    fn help_overlay_opens_on_question_mark() {
+        let mut app = TableProApp::default();
+        let idx = app
+            .connections
+            .iter()
+            .position(|c| c.name == "Production")
+            .unwrap();
+        let _ = app.connect(idx);
+        let mut h = Harness::new(app, Theme::junie(), 120, 40);
+        assert!(h.find("Query 1").is_some());
+        eprintln!("INITIAL TEXT:\n{}", h.text());
+        let _ = h.key(KeyCode::Char('?'));
+        eprintln!("AFTER QUESTION MARK:\n{}", h.text());
+        assert!(h.find("Keyboard").is_some());
+    }
 }
 
 #[cfg(test)]
@@ -8300,6 +8671,7 @@ mod action_namespace_tests {
             SAVE,
             EXPLAIN,
             CLEAR_QUERY,
+            SAFE_MODE,
             COMPLETE,
             PALETTE,
             DELETE_CONNECTION,
