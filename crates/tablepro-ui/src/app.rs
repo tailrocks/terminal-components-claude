@@ -5,11 +5,11 @@ use termrock::{
     Action, ActionKey, App, Button, Checkbox, Chord, ColumnKey, Cx, Dialog, DialogAction,
     DialogState, Empty, EmptyState, Family, FgStep, Focusability, Form, FormAction, FormState,
     FrameRead, Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, NodeKind, Panel, PanelKind,
-    Part, Phase, PickerAction, Response, Role, RowUi, Select, SelectAction, Size, SortDir, Span,
-    SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction,
-    TextInput, TextInputState, Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause,
-    Variant, truncate, wrap,
+    KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase,
+    PickerAction, Response, Role, RowUi, Select, SelectAction, Size, SortDir, Span, SplitAxis,
+    SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant,
+    truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -3444,15 +3444,6 @@ impl TableProApp {
                 &self.connection_visual_tree_state,
                 &self.connection_nodes,
             );
-            paint_legacy_tree_gutters(
-                ui,
-                tree_area,
-                &self.connection_visual_tree_state,
-                &self.connection_nodes,
-                connection_node,
-                connection_node_key,
-                focused && !self.connections_screen.filter_active,
-            );
         });
         let blank_fg = if self.connections_screen.filter_active {
             Role::Fg(FgStep::Primary)
@@ -4952,15 +4943,6 @@ impl TableProApp {
                     &self.explorer_tree_state,
                     &self.explorer_nodes,
                 );
-            paint_legacy_tree_gutters(
-                ui,
-                tree_area,
-                &self.explorer_tree_state,
-                &self.explorer_nodes,
-                explorer_node,
-                explorer_node_key,
-                focused,
-            );
         });
     }
 
@@ -6266,71 +6248,6 @@ fn legacy_tree_body(inner: termrock::Rect) -> termrock::Rect {
         x: inner.x.saturating_sub(1),
         width: inner.width.saturating_add(1),
         ..inner
-    }
-}
-
-fn paint_legacy_tree_gutters<T>(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    state: &TreeState,
-    nodes: &[T],
-    node: impl Fn(&T) -> TreeNode,
-    key: impl Fn(&T) -> ItemKey,
-    focused: bool,
-) {
-    if area.is_empty() {
-        return;
-    }
-    let mut ancestors_expanded = Vec::new();
-    let mut visible_row = 0usize;
-    let first_visible = state.scroll().offset();
-    let cursor = state.cursor();
-    let gutter_style = ui.surface_style().with_fg_from_bg(ui.surface_style());
-
-    for item in nodes {
-        let descriptor = node(item);
-        let depth = usize::from(descriptor.depth());
-        ancestors_expanded.truncate(depth);
-        let visible = ancestors_expanded.iter().all(|expanded| *expanded);
-        if visible {
-            let row = visible_row.saturating_sub(first_visible);
-            if visible_row >= first_visible
-                && row < usize::from(area.height)
-                && (!focused || cursor != Some(key(item)))
-            {
-                ui.paint_str(
-                    termrock::Rect {
-                        x: area.x,
-                        y: area.y.saturating_add(row as u16),
-                        width: 1,
-                        height: 1,
-                    },
-                    " ",
-                    gutter_style,
-                );
-            }
-            if matches!(descriptor.kind(), NodeKind::Leaf)
-                && visible_row >= first_visible
-                && row < usize::from(area.height)
-            {
-                ui.fill(
-                    termrock::Rect {
-                        x: area
-                            .x
-                            .saturating_add(1)
-                            .saturating_add(depth.saturating_mul(2) as u16),
-                        y: area.y.saturating_add(row as u16),
-                        width: 1,
-                        height: 1,
-                    },
-                    ui.surface_style(),
-                );
-            }
-            visible_row = visible_row.saturating_add(1);
-        }
-        if matches!(descriptor.kind(), NodeKind::Parent | NodeKind::Lazy) {
-            ancestors_expanded.push(state.is_expanded(key(item)));
-        }
     }
 }
 

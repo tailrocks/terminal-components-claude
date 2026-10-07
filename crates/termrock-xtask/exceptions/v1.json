@@ -1241,14 +1241,14 @@
       "rule": "OWN-11"
     },
     {
-      "max": 148,
+      "max": 146,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-02"
     },
     {
-      "max": 29,
+      "max": 27,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
