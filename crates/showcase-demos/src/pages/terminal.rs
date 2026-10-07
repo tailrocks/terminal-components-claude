@@ -1,11 +1,11 @@
 //! Terminal-style output with a scrollable viewport and a seven-step rail.
 
 use core::fmt;
-use termrock::author::PaintStyle;
 
 use termrock::{
-    Button, Cx, FrameRead, Id, Panel, PanelKind, Part, Rect, Response, Spinner, StateFlags, Status,
-    StepState, Steps, StepsState, Surface, TextArea, TextAreaState, Ui, Variant, id, layout, width,
+    Button, ByIndex, Cx, FrameRead, Id, Panel, PanelKind, Rect, Response, RowUi, Spinner,
+    StateFlags, Status, StepState, Steps, StepsState, TextArea, TextAreaState, Ui, Variant, id,
+    layout,
 };
 
 use showcase_data::log_lines;
@@ -46,8 +46,15 @@ fn step_state(step: &TerminalStep) -> StepState {
     step.state
 }
 
-fn step_rail() -> Steps<'static, TerminalStep> {
-    Steps::navigable(RAIL).step(&step_state)
+fn step_row(step: &TerminalStep, row: &mut RowUi<'_>) {
+    if step.state == StepState::Running {
+        row.meta("0.7 s");
+    }
+    row.label(step.label);
+}
+
+fn step_rail() -> Steps<'static, TerminalStep, ByIndex, impl Fn(&TerminalStep, &mut RowUi<'_>)> {
+    Steps::navigable(RAIL).step(&step_state).row(step_row)
 }
 
 fn step_spinner() -> Spinner<'static> {
@@ -106,67 +113,6 @@ fn panes(area: Rect) -> (Option<Rect>, Rect) {
             ..area
         },
     )
-}
-
-fn terminal_style(
-    ui: &mut Ui<'_>,
-    surface: Surface,
-    family: termrock::Family,
-    variant: Variant,
-    part: Part,
-    flags: StateFlags,
-) -> PaintStyle {
-    ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
-}
-
-fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
-    let [panel, gutter, running, queued, time, primary] = historical_palette(ui);
-    let visible = [
-        "▎⠏ 01 Resolve workspace                          0.7 s",
-        "▎  02 Pull base image                           queued",
-        "▎  03 Build container                           queued",
-        "▎  04 Mount sources                             queued",
-        "▎  05 Resolve credentials                       queued",
-        "▎  06 Start agent                               queued",
-        "▎  07 Ready                                     queued",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "▎Run   ▎Run with a failure",
-    ];
-    for (row, line) in visible.iter().enumerate() {
-        let Ok(row) = u16::try_from(row) else {
-            break;
-        };
-        if row >= inner.height {
-            break;
-        }
-        let area = Rect {
-            y: inner.y.saturating_add(row),
-            height: 1,
-            ..inner
-        };
-        ui.fill(area, panel);
-        ui.paint_str(area, line, panel);
-    }
-    for (row, line) in visible.iter().copied().take(7).enumerate() {
-        let number_end = line.find(|c: char| c.is_ascii_digit()).unwrap_or(2);
-        ui.paint_str(
-            Rect {
-                x: inner.x,
-                y: inner.y.saturating_add(row as u16),
-                width: inner.width,
-                height: 1,
-            },
-            &line[..number_end],
-            gutter,
-        );
-    }
-    paint_narrow_adornments(ui, inner, [running, queued, time, primary]);
 }
 
 /// The page keeps terminal text and lifecycle data in app state; public
@@ -279,27 +225,20 @@ impl Page for TerminalPage {
                         ..inner
                     };
                     step_rail().draw(ui, rail_area, &self.steps_state, &self.steps);
-                    // The historical rail reports elapsed time for the
-                    // active first step instead of the generic lifecycle word.
-                    let _ = step_spinner().draw(
-                        ui,
-                        Rect {
-                            x: inner.x.saturating_add(1),
-                            y: inner.y,
-                            width: 1,
-                            height: 1,
-                        },
-                    );
-                    let _ = ui.paint_str(
-                        Rect {
-                            x: inner.right().saturating_sub(5),
-                            y: inner.y,
-                            width: 5,
-                            height: 1,
-                        },
-                        "0.7 s",
-                        ui.surface_style(),
-                    );
+                    // The running row's icon cell carries the owned Spinner so
+                    // the rail animates; elapsed time rides the row META
+                    // channel (see step_row), not a preview overlay.
+                    if self.running {
+                        let _ = step_spinner().draw(
+                            ui,
+                            Rect {
+                                x: inner.x.saturating_add(1),
+                                y: inner.y,
+                                width: 1,
+                                height: 1,
+                            },
+                        );
+                    }
 
                     let run = run_button();
                     let fail = failure_button();
@@ -322,9 +261,6 @@ impl Page for TerminalPage {
                     }
                     if let Some(rect) = rects.get(1).copied() {
                         fail.draw(ui, rect);
-                    }
-                    if inner.width < 60 {
-                        paint_narrow_rail(ui, inner);
                     }
                 });
 
@@ -364,133 +300,96 @@ impl Page for TerminalPage {
     }
 }
 
-fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 6] {
-    let [panel, gutter, running, queued, time, primary] = [
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::DETAIL,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::STEPS,
-            Variant::DEFAULT,
-            Part::LABEL,
-            StateFlags::BUSY | StateFlags::ACTIVE,
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::STEPS,
-            Variant::DEFAULT,
-            Part::META,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::DETAIL,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::BUTTON,
-            Variant::SECONDARY,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        ),
-    ]
-    .map(|(surface, family, variant, part, flags)| {
-        terminal_style(ui, surface, family, variant, part, flags)
-    });
+#[cfg(test)]
+mod narrow_rail_tests {
+    use super::*;
+    use termrock::{App, KeyCode, Theme};
+    use termrock_test_support::Harness;
 
-    [panel, gutter, running, queued, time, primary]
-}
+    struct PageApp(TerminalPage);
 
-fn paint_narrow_adornments(
-    ui: &mut Ui<'_>,
-    inner: Rect,
-    [running, queued, time, primary]: [PaintStyle; 4],
-) {
-    let spinner = terminal_style(
-        ui,
-        Surface::Surface,
-        termrock::Family::STEPS,
-        Variant::DEFAULT,
-        Part::ICON,
-        StateFlags::BUSY | StateFlags::ACTIVE,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x.saturating_add(1),
-            y: inner.y,
-            width: 1,
-            height: 1,
-        },
-        "⠏",
-        spinner,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x.saturating_add(width("▎⠏ ")),
-            y: inner.y,
-            width: inner.width,
-            height: 1,
-        },
-        "01 Resolve workspace",
-        running,
-    );
-    for (row, prefix) in [
-        "▎  02 Pull base image                           ",
-        "▎  03 Build container                           ",
-        "▎  04 Mount sources                             ",
-        "▎  05 Resolve credentials                       ",
-        "▎  06 Start agent                               ",
-        "▎  07 Ready                                     ",
-    ]
-    .iter()
-    .enumerate()
-    {
-        ui.paint_str(
-            Rect {
-                x: inner.x.saturating_add(width(prefix)),
-                y: inner.y.saturating_add((row as u16).saturating_add(1)),
-                width: inner.width,
-                height: 1,
-            },
-            "queued",
-            queued,
-        );
+    impl App for PageApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.0.update(cx).response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let full = ui.full();
+            self.0.draw(ui, full);
+        }
     }
-    ui.paint_str(
-        Rect {
-            x: inner
-                .x
-                .saturating_add(width("▎⠏ 01 Resolve workspace                          ")),
-            y: inner.y,
-            width: inner.width,
-            height: 1,
-        },
-        "0.7 s",
-        time,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x,
-            y: inner.y.saturating_add(14),
-            width: inner.width,
-            height: 1,
-        },
-        "▎Run   ▎Run with a failure",
-        primary,
-    );
+
+    /// At every standard size the rail inner is narrower than 60 cells, where
+    /// the retired historical painter overwrote the rail with clipped static
+    /// strings and a duplicate button row. The composed rail must come from
+    /// Steps/Spinner/Button state instead: lifecycle words visible where they
+    /// fit, one button row, and the failure/run actions repainting the rail
+    /// through the same components.
+    #[test]
+    fn narrow_rail_composes_owned_steps_spinner_and_buttons() {
+        let mut h = Harness::new(PageApp(TerminalPage::new()), Theme::junie(), 80, 24);
+        h.draw();
+        let boot = h.text();
+        assert!(
+            boot.contains("01 Reso"),
+            "running step label renders (ellipsis-truncated by the rail)"
+        );
+        assert!(
+            boot.contains("0.7 s"),
+            "running step shows elapsed row meta"
+        );
+        assert!(
+            boot.contains("queued"),
+            "queued lifecycle word fits the narrow rail"
+        );
+        assert!(boot.contains("⠋"), "owned spinner animates the running row");
+        assert_eq!(
+            boot.matches("Run with a fail").count(),
+            1,
+            "exactly one failure button row (no historical duplicate)"
+        );
+
+        // The page-chrome annotation registers a decor region over the button
+        // row, so pointer hits never reach these buttons (pre-existing page
+        // issue, out of scope here); drive them through the real keyboard
+        // path instead. Enter is harmless on the other stops: the output is
+        // read-only, the rail action is discarded, and Run resets boot state.
+        for _ in 0..8 {
+            if h.text().contains("failed") {
+                break;
+            }
+            let _ = h.key(KeyCode::Tab);
+            let _ = h.key(KeyCode::Enter);
+        }
+        let failed = h.text();
+        assert!(
+            failed.contains("failed"),
+            "failed lifecycle word after failure action"
+        );
+        assert!(
+            failed.contains("blocked"),
+            "later steps blocked after failure action"
+        );
+        assert!(
+            !failed.contains("0.7 s"),
+            "no running step, no elapsed meta"
+        );
+        assert!(
+            !failed.contains("⠋") && !failed.contains("⠏"),
+            "spinner rests when nothing runs"
+        );
+
+        for _ in 0..8 {
+            let current = h.text();
+            if current.contains("0.7 s") && !current.contains("failed") {
+                break;
+            }
+            let _ = h.key(KeyCode::Tab);
+            let _ = h.key(KeyCode::Enter);
+        }
+        let rerun = h.text();
+        assert!(rerun.contains("0.7 s"), "run restores the running step");
+        assert!(rerun.contains("queued"), "run re-queues later steps");
+        assert!(!rerun.contains("failed"), "run clears the failure");
+    }
 }
