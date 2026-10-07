@@ -6,9 +6,9 @@ Each sentence holds one fact.
 
 ## Files
 
-- `scenario-registry.data-views.json` holds 18 rows.
-  It covers 6 components: Grid, CodeEditor, DiffView,
-  TextViewport, TerminalView, ScrollRegion.
+- `scenario-registry.data-views.json` holds 30 rows.
+  It covers 7 components: Grid, CodeEditor, DiffView,
+  TextViewport, TerminalView, ScrollRegion, DataTable.
   It uses the same stable IDs as `registry.json`.
 - `validate-data-views.py` checks the registry.
   Run it from the repo root: `python3 tests/scenario-registry/v1/validate-data-views.py`.
@@ -62,6 +62,10 @@ Each sentence holds one fact.
   No widget of that name exists.
   `ScrollState` holds offset, content, and viewport lengths.
   The scrollbar draws the thumb; presses grab, drags follow.
+- **DataTable**: the `DataTable` widget with sortable headers.
+  Enter selects, `s` sorts, hover lifts the row.
+  Editable columns open an in-place cell editor.
+  Commits validate and emit events; there is no pending queue.
 
 ## Rules
 
@@ -77,6 +81,8 @@ Each sentence holds one fact.
   The entry note names the overlap.
 - Grid rows cite `grid.rs`.
   DataTable pages and the tables roots are not DataGrids.
+- DataTable rows cite `table.rs`.
+  They pin sorting, selection, hover, and cell editing.
 - TerminalView rows cite `viewport.rs` and `terminal.rs`.
   The seam and the step rail stay owned elsewhere.
 - ScrollRegion rows cite `scroll.rs` and `scrollbar.rs`.
@@ -86,6 +92,8 @@ Each sentence holds one fact.
 
 - This file is the `termrock-implementation` port of the Reference slice.
 - Source: `visual-baseline` commit `82fb265b2667a0064cd2444dc7870f86fae195eb`.
-- The 18 rows and the `registry.json` entries are byte-identical to the source.
+- The 18 carried rows and their `registry.json` entries are byte-identical to the source.
+- Phase-8d added the 12 S1 rows from `76537c27e6e00ef93a2d09d280c8c9cb6097e446`.
+  Their bodies match the source; `results` hold the Candidate run.
 - The validator resolves Reference paths through git at `ref_commit`.
   The Candidate worktree holds no `src/` or `snapshots/` copies.
