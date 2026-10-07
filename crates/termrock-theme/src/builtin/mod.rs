@@ -2484,4 +2484,47 @@ mod tests {
             );
         }
     }
+
+    // Q66-S8 (F1-L11): Junie LIST GUTTER at FOCUSED|DISABLED is invisible
+    // (fg = CurrentSurface, glyph Clear) at all four levels. The tag blanks
+    // the gutter whenever disabled (`tag:theme.rs:397-406`, fg=bg); the
+    // candidate merged the `row_like` FOCUSED fg=Focus with the glyph-only
+    // LIST DISABLED patch (`junie.rs:244-250`), leaving a green fg on the
+    // blanked cell. The state is draw-reachable (cursor row over a disabled
+    // item in a focused list: `list.rs` grants FOCUSED under `is_cursor`,
+    // then ORs DISABLED); the probe forces the flags Q64-G4/G7/G8 style.
+    // LIST-scoped deliberately: PICKER/TREE keep their own GUTTER
+    // behavior (M2), pinned by the existing holds.
+    #[test]
+    fn q66s8x_l11_list_gutter_focused_disabled_is_invisible_at_all_levels() {
+        use crate::theme::ColorLevel;
+
+        let tc = Theme::junie();
+        for theme in [
+            tc.clone(),
+            tc.downgrade(ColorLevel::Ansi256),
+            tc.downgrade(ColorLevel::Ansi16),
+            tc.downgrade(ColorLevel::Mono),
+        ] {
+            let r = theme.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::GUTTER,
+                StateFlags::FOCUSED | StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                r.style.fg,
+                Some(theme.bg(Surface::Canvas)),
+                "LIST GUTTER FOCUSED|DISABLED fg must be the surface at {:?}",
+                theme.capability.color
+            );
+            assert_eq!(
+                r.glyph,
+                Slot::Clear,
+                "LIST GUTTER FOCUSED|DISABLED glyph must be blank at {:?}",
+                theme.capability.color
+            );
+        }
+    }
 }
