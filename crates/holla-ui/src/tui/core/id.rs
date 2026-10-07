@@ -37,6 +37,20 @@ impl WidgetId {
     pub const fn sub(self, name: &str) -> Self {
         Self(fnv1a(self.0, name.as_bytes()))
     }
+
+    /// The raw hash, for bridging onto shared runtime identities.
+    pub const fn raw(self) -> u64 {
+        self.0
+    }
+
+    /// The shared-runtime identity for this widget: one fixed Holla root
+    /// keyed by the widget hash. Deterministic and injective, so every
+    /// engine bridge (hit registry now, focus ring next) maps the same
+    /// widget to the same [`termrock::Id`].
+    pub fn runtime_id(self) -> termrock::Id {
+        const HOLLA_WIDGETS: termrock::Id = termrock::Id::root("holla.widget");
+        HOLLA_WIDGETS.item(termrock::ItemKey::Num(self.0))
+    }
 }
 
 impl fmt::Debug for WidgetId {

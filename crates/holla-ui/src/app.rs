@@ -1581,6 +1581,10 @@ impl App {
                     MouseKind::WheelUp | MouseKind::WheelLeft => -3,
                     _ => 3,
                 };
+                let axis = match m.kind {
+                    MouseKind::WheelLeft | MouseKind::WheelRight => termrock::Axis::H,
+                    _ => termrock::Axis::V,
+                };
                 if let Some(top) = self.modals.last_mut() {
                     return match &mut top.modal {
                         Modal::Picker(p) => p.on_wheel(delta),
@@ -1588,7 +1592,7 @@ impl App {
                         _ => Outcome::Consumed,
                     };
                 }
-                let Some(id) = self.hits.hit_scroll(m.pos) else {
+                let Some(id) = self.hits.hit_scroll(m.pos, axis) else {
                     return Outcome::Ignored;
                 };
                 self.with_top(|s, w, _| s.on_wheel(id, delta, m.pos, w))
