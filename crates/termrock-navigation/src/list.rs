@@ -1331,7 +1331,25 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 if let Some(f) = ov.slot_for(Part::MARKER) {
                     f(ui, marker_cell);
                 } else {
-                    let m = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::MARKER, flags);
+                    // Q67-S13 (L-R1/L-R2): the tag keys the marker on
+                    // LIST-level focus (`tag:list.rs:244,297`: accent iff
+                    // focused||hovered) while the row flags only carry
+                    // FOCUSED on the cursor row. A selected row in a
+                    // focused list resolves with FOCUSED so a chosen row
+                    // the cursor has left behind (frozen `lists/moved`
+                    // y8) keeps its accent.
+                    let mut marker_flags = flags;
+                    if marker_flags.intersects(StateFlags::SELECTED | StateFlags::CHECKED) {
+                        marker_flags |= live & StateFlags::FOCUSED;
+                    }
+                    let m = ov.style(
+                        ui,
+                        id,
+                        Family::LIST,
+                        Variant::DEFAULT,
+                        Part::MARKER,
+                        marker_flags,
+                    );
                     match m.glyph {
                         Slot::Set(glyph) => {
                             ui.glyph(marker_cell, glyph, m.style);

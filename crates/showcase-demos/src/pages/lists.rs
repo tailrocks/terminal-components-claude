@@ -43,12 +43,21 @@ fn paint_chosen(ui: &mut Ui<'_>, inner: Rect, chosen: &str, style: termrock::aut
 const SINGLE: Id = id!("lists.single");
 const MULTI: Id = id!("lists.multi");
 const EMPTY: Id = id!("lists.empty");
-const PANEL_PARTS: &[(Part, StylePatch)] = &[(
-    Part::TITLE,
-    StylePatch::new()
-        .set_fg(Role::Fg(FgStep::Secondary))
-        .remove(termrock::Modifier::BOLD),
-)];
+const PANEL_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(termrock::Modifier::BOLD),
+    ),
+    // Q67-S13 (L-R4): panel metas are faint (`tag:panel.rs:199`).
+    // Instance-scoped: the shared (PANEL, DETAIL) recipe stays
+    // Secondary (Q67-S10 STOPped the T4 recharter — O1 owns it).
+    (
+        Part::DETAIL,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+    ),
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct FileRow {
@@ -162,6 +171,28 @@ fn file_row(value: &FileRow, row: &mut RowUi<'_>) {
 }
 fn file_disabled(value: &FileRow) -> bool {
     value.disabled
+}
+
+/// Scroll-position meta for a list panel, mirroring the trees page
+/// helper: empty unless the content overflows the viewport, otherwise
+/// `1–13 of 20` (`tag:scrollbar.rs:75-81`). The item count is passed
+/// explicitly — the list scroll extent carries layout padding, not the
+/// item count — and `viewport_h` covers the first frame, before layout
+/// publishes the viewport length.
+fn position_label(st: &ListState, viewport_h: usize, len: usize) -> String {
+    let scroll = st.scroll();
+    let viewport = if scroll.viewport_len() > 0 {
+        scroll.viewport_len()
+    } else {
+        viewport_h
+    };
+    if len <= viewport || viewport == 0 {
+        return String::new();
+    }
+    let offset = scroll.offset().min(len.saturating_sub(1));
+    let start = offset.saturating_add(1);
+    let end = offset.saturating_add(viewport).min(len);
+    format!("{start}–{end} of {len}")
 }
 
 fn single_list() -> List<
@@ -284,10 +315,21 @@ impl Page for ListsPage {
                     height,
                     ..language_column
                 };
-                Panel::new(id!("lists.language"))
+                let language_panel = Panel::new(id!("lists.language"))
                     .kind(PanelKind::Card)
                     .title("Language")
-                    .patch_part(PANEL_PARTS)
+                    .patch_part(PANEL_PARTS);
+                let language_inner = language_panel.inner(ui, language);
+                // Q67-S13 (L-R4): the tag draws the scroll position as the
+                // Language panel meta (`tag:lists.rs`); the list sits two
+                // rows below the panel inner top (`Chosen:` + gap).
+                let language_meta = position_label(
+                    &self.single,
+                    language_inner.height.saturating_sub(2) as usize,
+                    LANGUAGES.len(),
+                );
+                language_panel
+                    .meta(&language_meta)
                     .draw(ui, language, |ui, inner| {
                         paint_chosen(ui, inner, chosen, detail);
                         single_list().draw(
@@ -374,9 +416,10 @@ impl ListsPage {
                 } else {
                     "Files to include"
                 });
-        if body.width >= 130 {
-            files_panel = files_panel.meta(selected.as_str());
-        }
+        // Q67-S13 (L-R4): the tag sets the count meta unconditionally
+        // (`tag:lists.rs`); the Panel head already truncates title and
+        // meta to fit, so no width gate is needed.
+        files_panel = files_panel.meta(selected.as_str());
         files_panel
             .patch_part(PANEL_PARTS)
             .draw(ui, files, |ui, inner| {
