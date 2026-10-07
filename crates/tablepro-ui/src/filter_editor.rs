@@ -609,21 +609,21 @@ impl FilterEditor {
                 }
             }
             FilterFocus::Cancel => {
-                if key.code == termrock::KeyCode::Enter {
-                    return FilterOutcome::Cancel;
-                }
+                // Owned by termrock::Button via update_filter_editor and
+                // draw below. Keys arriving here were not consumed by the
+                // component (idle, unbound); ignore them.
             }
             FilterFocus::Apply => {
-                if key.code == termrock::KeyCode::Enter {
-                    return FilterOutcome::Apply(self.to_filter());
-                }
+                // Owned by termrock::Button via update_filter_editor and
+                // draw below. Keys arriving here were not consumed by the
+                // component (idle, unbound); ignore them.
             }
         }
         FilterOutcome::Keep
     }
 
     pub fn draw(&self, ui: &mut termrock::Ui<'_>, area: termrock::Rect) {
-        use termrock::{FgStep, Focusability, Modifier, Role, StylePatch, Surface, truncate};
+        use termrock::{FgStep, Modifier, Role, StylePatch, Surface, truncate};
 
         let fill_bg = termrock::PaintStyle::new().bg(ui.theme_ref().bg(Surface::Elevated));
         ui.fill(area, fill_bg);
@@ -799,8 +799,9 @@ impl FilterEditor {
             sec_elevated,
         );
 
-        // Buttons
-        let confirm_label = if self.index.is_some() {
+        // Buttons (owned by termrock::Button: focus, hover, press and
+        // activation all come from the component).
+        let confirm_label: &str = if self.index.is_some() {
             "Update filter"
         } else {
             "Add filter"
@@ -812,87 +813,16 @@ impl FilterEditor {
 
         let cancel_rect = termrock::Rect::new(cancel_x, area.y + 13, cancel_w, 1);
         let confirm_rect = termrock::Rect::new(confirm_x, area.y + 13, confirm_w, 1);
-        ui.register_control(FILTER_CANCEL, cancel_rect, Focusability::Focusable);
-        ui.register_control(FILTER_APPLY, confirm_rect, Focusability::Focusable);
-
-        let cancel_focused = self.focus == FilterFocus::Cancel;
-        if cancel_focused {
-            let btn_bg = ui.surface_style().patch(
-                ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Overlay))),
-            );
-            ui.fill(termrock::Rect::new(cancel_x, area.y + 13, cancel_w, 1), btn_bg);
-            ui.paint_str(
-                termrock::Rect::new(cancel_x, area.y + 13, 1, 1),
-                "▎",
-                btn_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent))),
-            );
-            ui.paint_str(
-                termrock::Rect::new(cancel_x + 1, area.y + 13, cancel_w - 1, 1),
-                "Cancel ",
-                btn_bg.patch(ui.paint_patch(
-                    &StylePatch::new()
-                        .set_fg(Role::Fg(FgStep::Primary))
-                        .add(Modifier::BOLD),
-                )),
-            );
-        } else {
-            let subtle_style = elevated_style.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-            );
-            let cancel_gutter = elevated_style.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(Surface::Elevated))),
-            );
-            ui.paint_str(
-                termrock::Rect::new(cancel_x, area.y + 13, 1, 1),
-                " ",
-                cancel_gutter,
-            );
-            ui.paint_str(
-                termrock::Rect::new(cancel_x + 1, area.y + 13, cancel_w - 1, 1),
-                "Cancel ",
-                subtle_style,
-            );
-        }
-
-        let apply_focused = self.focus == FilterFocus::Apply;
-        let text = format!("{confirm_label} ");
-        let accent_style = ui.surface_style().patch(
-            ui.paint_patch(
-                &StylePatch::new()
-                    .set_bg(Role::Accent)
-                    .set_fg(Role::OnAccent)
-                    .add(Modifier::BOLD),
-            ),
-        );
-        ui.fill(
-            termrock::Rect::new(confirm_x, area.y + 13, confirm_w, 1),
-            accent_style,
-        );
-        if apply_focused {
-            ui.paint_str(
-                termrock::Rect::new(confirm_x, area.y + 13, 1, 1),
-                "▎",
-                accent_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary)))),
-            );
-        } else {
-            let gutter_style = accent_style.patch(
-                ui.paint_patch(
-                    &StylePatch::new()
-                        .set_fg(Role::Accent)
-                        .remove(Modifier::BOLD),
-                ),
-            );
-            ui.paint_str(
-                termrock::Rect::new(confirm_x, area.y + 13, 1, 1),
-                " ",
-                gutter_style,
-            );
-        }
-        ui.paint_str(
-            termrock::Rect::new(confirm_x + 1, area.y + 13, confirm_w - 1, 1),
-            &text,
-            accent_style,
-        );
+        // The dialog paints `Elevated`; scope the buttons to that plane so
+        // the quiet-arm `CurrentSurface` container resolves to it.
+        ui.with_surface(Surface::Elevated, |ui| {
+            termrock::Button::new(FILTER_CANCEL, "Cancel")
+                .variant(termrock::Variant::SUBTLE)
+                .draw(ui, cancel_rect);
+            termrock::Button::new(FILTER_APPLY, confirm_label)
+                .variant(termrock::Variant::PRIMARY)
+                .draw(ui, confirm_rect);
+        });
     }
 }
 

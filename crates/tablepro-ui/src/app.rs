@@ -2240,6 +2240,24 @@ impl TableProApp {
         if let Some(SelectAction::Chose(key)) = op_action {
             editor.choose_op(key);
         }
+        // Cancel/Apply are owned by Button: Enter, Space and click all
+        // produce the same typed `Activated`, which maps to the editor
+        // outcome below. The manual intent loop keeps the Cancel/Apply
+        // stops only for FocusIn sync and Tab cycling.
+        let confirm_label: &str = if editor.index.is_some() {
+            "Update filter"
+        } else {
+            "Add filter"
+        };
+        let cancel_response = Button::new(FILTER_CANCEL, "Cancel")
+            .variant(Variant::SUBTLE)
+            .update(cx);
+        let apply_response = Button::new(FILTER_APPLY, confirm_label)
+            .variant(Variant::PRIMARY)
+            .update(cx);
+        let cancel_activated = cancel_response.activated();
+        let apply_activated = apply_response.activated();
+        let buttons_dirty = cancel_response.is_changed() || apply_response.is_changed();
         let mut outcome = None;
         // Esc over an open Select popup must reach the runtime bubble pass,
         // which dismisses the popover layer. Consuming it here (every
@@ -2280,6 +2298,13 @@ impl TableProApp {
                     outcome = Some(editor.on_key(key));
                 }
             }
+        }
+        // Owned-button activation overrides any idle `Keep` the key routing
+        // above produced for the same frame (Enter reaches both paths).
+        if cancel_activated {
+            outcome = Some(FilterOutcome::Cancel);
+        } else if apply_activated {
+            outcome = Some(FilterOutcome::Apply(editor.to_filter()));
         }
         // Enter in the value field commits and applies. Blur commits are
         // already written into `editor.value` by TextInput; the editor stays
@@ -2378,7 +2403,9 @@ impl TableProApp {
             }
             Some(FilterOutcome::Keep) if esc_on_open_popup => Response::ignored(),
             Some(FilterOutcome::Keep) => Response::changed(),
-            None if value_action.is_some() || col_dirty || op_dirty => Response::changed(),
+            None if value_action.is_some() || col_dirty || op_dirty || buttons_dirty => {
+                Response::changed()
+            }
             None => Response::ignored(),
         }
     }
@@ -8004,6 +8031,67 @@ mod replacement_tests {
         let text = h.text();
         assert!(text.contains("1 filter applied"), "{text}");
         assert!(text.contains(&format!("id {op_label} ")), "{text}");
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn filter_editor_cancel_apply_buttons_activate() {
+        fn active_filters(h: &Harness<TableProApp>) -> Vec<Filter> {
+            match h.app().workbench.active() {
+                Some(Tab::Table(t)) => t.filters.clone(),
+                _ => panic!("table tab active"),
+            }
+        }
+        let mut app = TableProApp::default();
+        let idx = app
+            .connections
+            .iter()
+            .position(|c| c.name == "Production")
+            .unwrap();
+        let _ = app.connect(idx);
+        let mut h = Harness::new(app, Theme::junie(), 120, 40);
+        for _ in 0..5 {
+            let _ = h.key(KeyCode::Down);
+        }
+        let _ = h.key(KeyCode::Enter);
+        let _ = h.key(KeyCode::Home);
+        for _ in 0..4 {
+            let _ = h.key(KeyCode::Right);
+        }
+        // Prefilled open: focus starts on the Apply stop.
+        let _ = h.key(KeyCode::Char('f'));
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.focus, FilterFocus::Apply);
+        assert!(!editor.value.is_empty());
+        // Click Cancel: the editor closes and no filter is committed.
+        let _ = h.click_id(FILTER_CANCEL);
+        assert!(h.app().filter_editor.is_none());
+        assert!(active_filters(&h).is_empty());
+        // Reopen; Enter on the Apply stop applies the prefilled filter.
+        let _ = h.key(KeyCode::Char('f'));
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.focus, FilterFocus::Apply);
+        let _ = h.key(KeyCode::Enter);
+        assert!(h.app().filter_editor.is_none());
+        let filters = active_filters(&h);
+        assert_eq!(filters.len(), 1);
+        assert_eq!(filters[0].column, "status");
+        assert_eq!(h.app().status, "1 filter applied");
+        // Reopen; clicking Apply commits a second filter the same way.
+        let _ = h.key(KeyCode::Char('f'));
+        assert!(h.app().filter_editor.is_some());
+        let _ = h.click_id(FILTER_APPLY);
+        assert!(h.app().filter_editor.is_none());
+        assert_eq!(active_filters(&h).len(), 2);
+        assert_eq!(h.app().status, "2 filters applied");
+        // Reopen; BackTab reaches Cancel and Enter cancels typed state.
+        let _ = h.key(KeyCode::Char('f'));
+        let _ = h.key(KeyCode::BackTab);
+        let editor = h.app().filter_editor.as_ref().expect("editor open");
+        assert_eq!(editor.focus, FilterFocus::Cancel);
+        let _ = h.key(KeyCode::Enter);
+        assert!(h.app().filter_editor.is_none());
+        assert_eq!(active_filters(&h).len(), 2);
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 }
