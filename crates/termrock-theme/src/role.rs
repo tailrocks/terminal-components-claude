@@ -223,7 +223,8 @@ pub enum Role {
     Info,
     /// Disabled foreground.
     DisabledFg,
-    /// Disabled background.
+    /// Disabled background: the reference lift of the ambient surface
+    /// (legacy `lift(bg)`), not the fixed `disabled_bg` token.
     DisabledBg,
     /// Read-only foreground.
     ReadOnlyFg,

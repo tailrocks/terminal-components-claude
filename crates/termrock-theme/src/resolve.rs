@@ -432,6 +432,9 @@ pub fn bind_inherited(
 /// The single surface-lift mechanism (Q65-S3): both `RaisedSurface` and
 /// `HoverSurface` bind through this post-quantization comparison — the legacy
 /// `lift()` formula — so quantization collapse yields the tag values.
+/// `DisabledBg` joins the same arm (Q65-S5): legacy disabled renders
+/// `lift(bg)` for non-Subtle buttons, and the fixed token diverges from it
+/// on Canvas at every level and under quantization collapse.
 fn reference_lift(theme: &Theme, surface: Surface) -> Color {
     let bg = theme.bg(surface);
     if bg == theme.bg(Surface::Canvas) {
@@ -451,7 +454,9 @@ pub fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<Color> {
     let fg = |i: usize| c.fg.get(i).copied().unwrap_or(Color::Reset);
     let color = match role {
         Role::CurrentSurface => theme.bg(surface),
-        Role::RaisedSurface | Role::HoverSurface => reference_lift(theme, surface),
+        Role::RaisedSurface | Role::HoverSurface | Role::DisabledBg => {
+            reference_lift(theme, surface)
+        }
         Role::Surface(s) => theme.bg(s),
         Role::Fg(step) => fg(step.index()),
         Role::OnAccent => c.on_accent,
@@ -481,7 +486,6 @@ pub fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<Color> {
         Role::Success => c.success,
         Role::Info => c.info,
         Role::DisabledFg => c.disabled_fg,
-        Role::DisabledBg => c.disabled_bg,
         Role::ReadOnlyFg => c.read_only_fg,
         Role::Syntax(s) => {
             let t = &c.syntax;
@@ -1318,6 +1322,289 @@ mod tests {
                 bind_role(&theme, role, Surface::Popover),
                 Some(Color::DarkGray),
                 "{role:?}"
+            );
+        }
+    }
+
+    /// Q65-S5 (G7): every plane the reference lift can see.
+    fn q65s5_surfaces() -> [Surface; 7] {
+        [
+            Surface::Canvas,
+            Surface::Surface,
+            Surface::Elevated,
+            Surface::Overlay,
+            Surface::Popover,
+            Surface::Field,
+            Surface::FieldHover,
+        ]
+    }
+
+    /// Q65-S5 (G7): the arms whose DISABLED patch names `DisabledBg`
+    /// (PRIMARY/DANGER explicit, the rest via the `_` arm).
+    fn q65s5_nonquiet() -> [Variant; 5] {
+        [
+            Variant::DEFAULT,
+            Variant::PRIMARY,
+            Variant::SECONDARY,
+            Variant::DANGER,
+            Variant::TOGGLE,
+        ]
+    }
+
+    /// Q65-S5 (G7): the non-QUIET DISABLED container through the whole chain.
+    fn q65s5_disabled(theme: &Theme, v: Variant, surface: Surface) -> Resolved {
+        theme.resolve(
+            Family::BUTTON,
+            v,
+            Part::CONTAINER,
+            StateFlags::DISABLED,
+            surface,
+        )
+    }
+
+    /// G7 oracle (Q64): forced-disabled confirm buttons on the Ansi16
+    /// dialog plane render bg Black (fg DarkGray). `DisabledBg` must lift
+    /// the ambient surface, not pin the fixed OVERLAY token (DarkGray).
+    #[test]
+    fn q65s5_g7_disabled_dialog_plane_ansi16_is_black() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Ansi16);
+        for v in q65s5_nonquiet() {
+            let r = q65s5_disabled(&theme, v, Surface::Elevated);
+            assert_eq!(r.style.bg, Some(Color::Black), "{v:?} disabled bg");
+            assert_eq!(r.style.fg, Some(Color::DarkGray), "{v:?} disabled fg");
+        }
+    }
+
+    /// G7 TC half: non-QUIET disabled on the page plane is CARD
+    /// (`lift(canvas)` per S0(b)), not the fixed OVERLAY.
+    #[test]
+    fn q65s5_g7_disabled_tc_canvas_is_card() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for v in q65s5_nonquiet() {
+            let r = q65s5_disabled(&theme, v, Surface::Canvas);
+            assert_eq!(
+                r.style.bg,
+                Some(Color::Rgb(24, 24, 27)),
+                "{v:?} disabled bg"
+            );
+        }
+    }
+
+    /// G7 256-colour half: non-QUIET disabled on canvas is 233
+    /// (`lift(canvas)`), not the fixed 235.
+    #[test]
+    fn q65s5_g7_disabled_256_canvas_is_233() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Ansi256);
+        for v in q65s5_nonquiet() {
+            let r = q65s5_disabled(&theme, v, Surface::Canvas);
+            assert_eq!(r.style.bg, Some(Color::Indexed(233)), "{v:?} disabled bg");
+        }
+    }
+
+    /// Single mechanism: after the rebind `DisabledBg` is the reference
+    /// lift on every plane at every level, so it always equals
+    /// `RaisedSurface` — nothing can land half.
+    #[test]
+    fn q65s5_g7_single_mechanism_disabled_equals_raised() {
+        use crate::ColorLevel;
+
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie().for_level(level);
+            for s in q65s5_surfaces() {
+                assert_eq!(
+                    bind_role(&theme, Role::DisabledBg, s),
+                    bind_role(&theme, Role::RaisedSurface, s),
+                    "{level:?} {s:?}"
+                );
+            }
+        }
+    }
+
+    /// Legacy `lift()` table (`holla-ui/.../theme.rs:373-382`): `DisabledBg`
+    /// matches the formula on all seven planes at TrueColor.
+    #[test]
+    fn q65s5_g7_lift_table_tc() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for (surface, want) in [
+            (Surface::Canvas, Color::Rgb(24, 24, 27)),
+            (Surface::Surface, Color::Rgb(39, 39, 42)),
+            (Surface::Elevated, Color::Rgb(39, 39, 42)),
+            (Surface::Overlay, Color::Rgb(63, 63, 70)),
+            (Surface::Popover, Color::Rgb(63, 63, 70)),
+            (Surface::Field, Color::Rgb(35, 35, 40)),
+            (Surface::FieldHover, Color::Rgb(63, 63, 70)),
+        ] {
+            assert_eq!(
+                bind_role(&theme, Role::DisabledBg, surface),
+                Some(want),
+                "{surface:?}"
+            );
+        }
+    }
+
+    /// Legacy `lift()` table at 256 colours: the authored palette feeds the
+    /// same post-quantization comparison (Field/FieldHover alias to 234).
+    #[test]
+    fn q65s5_g7_lift_table_256() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Ansi256);
+        for (surface, want) in [
+            (Surface::Canvas, Color::Indexed(233)),
+            (Surface::Surface, Color::Indexed(235)),
+            (Surface::Elevated, Color::Indexed(235)),
+            (Surface::Overlay, Color::Indexed(237)),
+            (Surface::Popover, Color::Indexed(237)),
+            (Surface::Field, Color::Indexed(234)),
+            (Surface::FieldHover, Color::Indexed(234)),
+        ] {
+            assert_eq!(
+                bind_role(&theme, Role::DisabledBg, surface),
+                Some(want),
+                "{surface:?}"
+            );
+        }
+    }
+
+    /// HOLD: chrome/card planes keep OVERLAY at TrueColor (the S2 HOLD, now
+    /// reached through the lift: `lift(chrome)`/`lift(card)` is OVERLAY).
+    #[test]
+    fn q65s5_hold_disabled_chrome_card_tc_stays_overlay() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for v in q65s5_nonquiet() {
+            for s in [Surface::Surface, Surface::Elevated] {
+                let r = q65s5_disabled(&theme, v, s);
+                assert_eq!(
+                    r.style.bg,
+                    Some(Color::Rgb(39, 39, 42)),
+                    "{v:?} {s:?} disabled bg"
+                );
+            }
+        }
+    }
+
+    /// HOLD: the rebind moves backgrounds only; DISABLED fg is untouched on
+    /// every variant at TrueColor and Ansi16.
+    #[test]
+    fn q65s5_hold_disabled_fg_unchanged() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let tc = Theme::junie();
+        let t16 = Theme::junie().for_level(ColorLevel::Ansi16);
+        for v in [
+            Variant::DEFAULT,
+            Variant::PRIMARY,
+            Variant::SECONDARY,
+            Variant::DANGER,
+            Variant::SUBTLE,
+            Variant::QUIET,
+            Variant::GHOST,
+            Variant::TOGGLE,
+        ] {
+            let r = q65s5_disabled(&tc, v, Surface::Elevated);
+            assert_eq!(
+                r.style.fg,
+                Some(Color::Rgb(77, 77, 77)),
+                "{v:?} TC disabled fg"
+            );
+            let r = q65s5_disabled(&t16, v, Surface::Elevated);
+            assert_eq!(
+                r.style.fg,
+                Some(Color::DarkGray),
+                "{v:?} Ansi16 disabled fg"
+            );
+        }
+    }
+
+    /// HOLD: QUIET-arm DISABLED keeps the ambient bg (G4 `CurrentSurface`;
+    /// S5 touches the `DisabledBg` binding only).
+    #[test]
+    fn q65s5_hold_quiet_disabled_keeps_bg() {
+        use crate::ColorLevel;
+
+        for level in [ColorLevel::TrueColor, ColorLevel::Ansi16] {
+            let theme = Theme::junie().for_level(level);
+            for v in [Variant::SUBTLE, Variant::QUIET, Variant::GHOST] {
+                for s in [Surface::Canvas, Surface::Surface, Surface::Elevated] {
+                    let r = q65s5_disabled(&theme, v, s);
+                    assert_eq!(r.style.bg, Some(theme.bg(s)), "{level:?} {v:?} {s:?}");
+                }
+            }
+        }
+    }
+
+    /// HOLD: Mono page planes stay Black under the rebind (G8 owns the
+    /// ladder; only the Popover plane moves, via the 28-cell proof).
+    #[test]
+    fn q65s5_hold_mono_page_planes_black() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Mono);
+        for s in [
+            Surface::Canvas,
+            Surface::Surface,
+            Surface::Elevated,
+            Surface::Overlay,
+            Surface::Field,
+            Surface::FieldHover,
+        ] {
+            assert_eq!(
+                bind_role(&theme, Role::DisabledBg, s),
+                Some(Color::Black),
+                "{s:?}"
+            );
+        }
+    }
+
+    /// HOLD: Ansi16 overlay planes stay DarkGray — the lift formula returns
+    /// Popover there, which quantizes to DarkGray, same as the old token.
+    #[test]
+    fn q65s5_hold_ansi16_overlay_planes_stay_darkgray() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Ansi16);
+        for s in [Surface::Overlay, Surface::Popover, Surface::FieldHover] {
+            assert_eq!(
+                bind_role(&theme, Role::DisabledBg, s),
+                Some(Color::DarkGray),
+                "{s:?}"
+            );
+        }
+    }
+
+    /// HOLD: 256-colour chrome/card planes stay 235 under the rebind.
+    #[test]
+    fn q65s5_hold_256_chrome_card_stay_235() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Ansi256);
+        for s in [Surface::Surface, Surface::Elevated] {
+            assert_eq!(
+                bind_role(&theme, Role::DisabledBg, s),
+                Some(Color::Indexed(235)),
+                "{s:?}"
             );
         }
     }
