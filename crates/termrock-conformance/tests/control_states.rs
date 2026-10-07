@@ -519,8 +519,9 @@ fn w01_brand_clickable_hover_press_release_and_typed_activation() {
 /// paints a pressed lockup with the `accent_pressed` background, distinct
 /// from the `accent_hover` lift. The candidate `BRAND`/`LABEL` recipe
 /// (`termrock-theme/src/builtin/mod.rs`) has a `HOVERED` rule but no
-/// `PRESSED` rule, so press repaints exactly the hover frame (outside the
-/// mono bracket fallback).
+/// `PRESSED` rule, so press repaints exactly the hover frame (Q65-S4/G6
+/// deleted the generic mono bracket fallback, so at `Mono` press now
+/// matches hover too — the recipe gap this record tracks is unchanged).
 #[test]
 #[ignore = "PARITY W01-02: pressed lockup repaints the hover frame, reference paints accent_pressed (BRAND recipe has no PRESSED rule)"]
 fn w01_brand_press_paints_distinct_from_hover() {

@@ -630,7 +630,10 @@ mod tests {
             })
             .commit_presented();
 
-        assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
+        // Q65-S4/G6b: no brackets at `Mono` (the tag has none) — the focus
+        // gutter the brackets used to cover is visible again, and the full
+        // label still fits: DEFAULT pressed resolves plain, not truncated.
+        assert_eq!(row_text(&buffer, AREA.width), "▎Full width ");
     }
 
     #[test]
