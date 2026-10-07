@@ -179,7 +179,9 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the disabled colours.
+    /// Set the disabled colours. The stock `DisabledBg` binding resolves
+    /// surface-relatively (Q65-S5) and no longer reads `background`; the
+    /// token is retained for palette derivation and API compatibility.
     #[must_use]
     pub fn disabled(mut self, foreground: Color, background: Color) -> Self {
         self.theme.color.disabled_fg = foreground;
