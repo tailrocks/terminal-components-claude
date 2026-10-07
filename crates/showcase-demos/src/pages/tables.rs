@@ -336,42 +336,6 @@ fn legacy_table(
     }
 }
 
-fn paint_card_meta(ui: &mut Ui<'_>, area: Rect, text: &str) {
-    if text.is_empty() || area.is_empty() {
-        return;
-    }
-    let style = ui
-        .style(
-            Family::PANEL,
-            Variant::DEFAULT,
-            Part::DETAIL,
-            StateFlags::empty(),
-        )
-        .style;
-    let text_width = termrock::width(text);
-    let x = area.right().saturating_sub(text_width.saturating_add(2));
-    let width = area.right().saturating_sub(x);
-    ui.fill(
-        Rect {
-            x,
-            y: area.y,
-            width,
-            height: 1,
-        },
-        style,
-    );
-    let _ = ui.paint_str(
-        Rect {
-            x,
-            y: area.y,
-            width: text_width,
-            height: 1,
-        },
-        text,
-        style,
-    );
-}
-
 impl GridModel for TableModel {
     fn row_count(&self) -> usize {
         self.rows.len()
@@ -552,7 +516,6 @@ impl Page for TablesPage {
             tasks_panel(&task_meta).draw(ui, tasks, |ui, inner| {
                 self.draw_tasks(ui, inner, body.width);
             });
-            paint_card_meta(ui, tasks, &task_meta);
             if let Some(checks) = regions.get(2).copied() {
                 checks_panel().draw(ui, checks, |ui, inner| {
                     let _ = ui.paint_str(

@@ -227,28 +227,6 @@ impl Page for DialogsPage {
                             "Task: Migrate sessions table",
                         ],
                     );
-                    if inner.width < 70 {
-                        let visible = [
-                            "▎Confirm run   ▎Rename task…   ▎Three choices…   ▎Del…",
-                            "",
-                            "Confirm: primary action focused first · y / n answer d…",
-                            "Prompt: editing inside a modal, Enter submits, validat…",
-                            "Destructive: Cancel focused first, action in danger st…",
-                            "Task: Migrate sessions table",
-                        ];
-                        for (offset, line) in visible.iter().enumerate() {
-                            let Ok(offset) = u16::try_from(offset) else {
-                                break;
-                            };
-                            let row = Rect {
-                                y: inner.y.saturating_add(offset),
-                                height: 1,
-                                ..inner
-                            };
-                            ui.fill(row, ui.surface_style());
-                            let _ = ui.paint_str(row, line, ui.surface_style());
-                        }
-                    }
                 });
                 if let Some(results) = regions.get(2).copied() {
                     results_panel().draw(ui, results, |ui, inner| {
