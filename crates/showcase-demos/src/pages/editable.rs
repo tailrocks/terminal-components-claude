@@ -1,9 +1,9 @@
 //! Editable task rows: keyed selection, commit/cancel and field validation.
 
 use termrock::{
-    Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
-    GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Role, RowDecor,
-    RowTotal, StylePatch, Ui, id,
+    Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, FrameRead,
+    Grid, GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Role,
+    RowDecor, RowTotal, StateFlags, Ui, id,
 };
 
 use showcase_data::{TASKS, TaskRow, TaskStatus};
@@ -12,12 +12,6 @@ use super::{Page, PageUpdate, frame};
 
 const TABLE: Id = id!("editable.table");
 const TASKS_PANEL: Id = id!("editable.tasks.panel");
-const PANEL_PARTS: &[(Part, StylePatch)] = &[(
-    Part::TITLE,
-    StylePatch::new()
-        .set_fg(Role::Fg(FgStep::Secondary))
-        .remove(termrock::Modifier::BOLD),
-)];
 
 const COLUMNS: [Column<'static>; 6] = [
     // GridState starts at column zero. Keep the historical ID-first paint
@@ -40,7 +34,7 @@ const COLUMNS: [Column<'static>; 6] = [
         key: ColumnKey::num(0),
         title: "ID",
         subtitle: None,
-        align: Align::Right,
+        align: Align::Left,
         min_width: 5,
         max_width: 5,
         sortable: false,
@@ -145,16 +139,6 @@ impl From<TaskRow> for EditableRow {
     }
 }
 
-fn status_text(status: TaskStatus) -> &'static str {
-    match status {
-        TaskStatus::Running => "▸ Running",
-        TaskStatus::Failed => "Failed",
-        TaskStatus::Paused => "Paused",
-        TaskStatus::Queued => "Queued",
-        TaskStatus::Done => "Done",
-    }
-}
-
 #[derive(Debug)]
 struct EditableModel {
     rows: Vec<EditableRow>,
@@ -188,9 +172,17 @@ impl GridModel for EditableModel {
         let item = self.rows.get(row)?;
         Some(match col {
             0 => CellRef::new(item.name.as_str()),
-            1 => CellRef::new(item.id_text.as_str()).align(Align::Right),
+            1 => CellRef::new(item.id_text.as_str())
+                .align(Align::Left)
+                .tone(Role::Fg(FgStep::Muted)),
             2 => CellRef::new(item.owner.as_str()),
-            3 => CellRef::new(status_text(item.status)),
+            3 => match item.status {
+                TaskStatus::Running => CellRef::new("▸ Running"),
+                TaskStatus::Failed => CellRef::new("Failed").tone(Role::Danger),
+                TaskStatus::Paused => CellRef::new("Paused").tone(Role::Warning),
+                TaskStatus::Queued => CellRef::new("Queued").tone(Role::Fg(FgStep::Muted)),
+                TaskStatus::Done => CellRef::new("Done").tone(Role::Fg(FgStep::Secondary)),
+            },
             4 => CellRef::new(item.branch_display.as_str()).tone(Role::Fg(FgStep::Muted)),
             5 => CellRef::new(item.changes.as_str()).align(Align::Right),
             _ => return None,
@@ -223,138 +215,6 @@ impl GridModel for EditableModel {
 
     fn total(&self) -> RowTotal {
         RowTotal::Exact(self.rows.len())
-    }
-}
-
-fn padded(value: &str, width: usize) -> String {
-    let value = termrock::truncate(value, width as u16);
-    format!("{value:<width$}")
-}
-
-fn legacy_header(width: u16) -> String {
-    if width >= 130 {
-        format!(
-            "{} {} {} {} {} {}",
-            padded("ID", 6),
-            padded("Task", 64),
-            padded("Owner", 9),
-            padded("Status", 10),
-            padded("Branch", 24),
-            "Changes"
-        )
-    } else if width >= 90 {
-        format!(
-            "{} {} {} {} {} …",
-            padded("ID", 6),
-            padded("Task", 34),
-            padded("Owner", 9),
-            padded("Status", 10),
-            padded("Branch", 22),
-        )
-    } else if width >= 70 {
-        format!(
-            "{} {} {} {} …",
-            padded("ID", 6),
-            padded("Task", 43),
-            padded("Owner", 9),
-            padded("Status", 10),
-        )
-    } else {
-        format!(
-            "{} {} {}…",
-            padded("ID", 6),
-            padded("Task", 33),
-            padded("Owner", 9),
-        )
-    }
-}
-
-fn legacy_row(row: &EditableRow, width: u16, track: &str) -> String {
-    let status = status_text(row.status);
-    if width >= 130 {
-        format!(
-            "▎  {} {} {} {} {} {}",
-            padded(&row.id_text, 6),
-            padded(&row.name, 64),
-            padded(&row.owner, 9),
-            padded(status, 10),
-            padded(&row.branch_display, 24),
-            padded(&row.changes, 8),
-        )
-    } else if width >= 90 {
-        format!(
-            "▎  {} {}  {} {} {}",
-            padded(&row.id_text, 6),
-            padded(&row.name, 33),
-            padded(&row.owner, 9),
-            padded(status, 10),
-            row.branch_display,
-        )
-    } else if width >= 70 {
-        format!(
-            "▎  {} {} {} {}",
-            padded(&row.id_text, 6),
-            padded(&row.name, 43),
-            padded(&row.owner, 9),
-            padded(status, 10),
-        )
-    } else {
-        format!(
-            "▎  {} {}  {} {track}",
-            padded(&row.id_text, 6),
-            padded(&row.name, 32),
-            padded(&row.owner, 9),
-        )
-    }
-}
-
-fn legacy_table(ui: &mut Ui<'_>, area: Rect, width: u16, model: &EditableModel) {
-    if area.is_empty() {
-        return;
-    }
-    let header_style = ui
-        .style(
-            termrock::Family::GRID,
-            termrock::Variant::DEFAULT,
-            Part::HEADER,
-            termrock::StateFlags::empty(),
-        )
-        .style;
-    let row_style = ui
-        .style(
-            termrock::Family::GRID,
-            termrock::Variant::DEFAULT,
-            Part::ROW,
-            termrock::StateFlags::empty(),
-        )
-        .style;
-    let header = Rect {
-        x: area.x.saturating_add(3),
-        width: area.width.saturating_sub(3),
-        height: 1,
-        ..area
-    };
-    ui.fill(header, header_style);
-    let _ = ui.paint_str(header, &legacy_header(width), header_style);
-    let visible = usize::from(area.height.saturating_sub(1));
-    let thumb = visible
-        .saturating_mul(visible)
-        .checked_div(model.rows.len().max(1))
-        .unwrap_or(1)
-        .max(1);
-    for (offset, row) in model.rows.iter().take(visible).enumerate() {
-        let track = if width < 70 {
-            if offset < thumb { "┃" } else { "│" }
-        } else {
-            ""
-        };
-        let row_area = Rect {
-            y: area.y.saturating_add(1).saturating_add(offset as u16),
-            height: 1,
-            ..area
-        };
-        ui.fill(row_area, row_style);
-        let _ = ui.paint_str(row_area, &legacy_row(row, width, track), row_style);
     }
 }
 
@@ -453,20 +313,52 @@ impl GridEditor for EditableModel {
 }
 
 fn table() -> Grid<'static> {
-    Grid::new(TABLE, &COLUMNS).nav(NavUnit::Cell)
+    Grid::new(TABLE, &COLUMNS)
+        .nav(NavUnit::Cell)
+        .column_gap(2)
+        .left_reserve(1)
+        .right_reserve(2)
+        .overflow_indicator(termrock::GridOverflowIndicator::Ellipsis)
+}
+
+/// `1–6 of 14`, or empty when every row fits (tag:scrollbar.rs
+/// `position_label`). The viewport comes from draw-time panel geometry —
+/// last-frame layout is unavailable on frame 1, which is what the
+/// no-input default capture presents — following the tables page precedent.
+fn position_label(state: &GridState, viewport: usize, len: usize) -> String {
+    if len <= viewport || viewport == 0 {
+        return String::new();
+    }
+    let mut scroll = *state.scroll();
+    scroll.apply_layout(viewport, len);
+    let r = scroll.visible_range();
+    format!("{}–{} of {len}", r.start + 1, r.end)
 }
 
 /// Both phases derive the same task-card meta line, so neither can drift.
-fn tasks_status<E: core::fmt::Display>(error: Option<E>, edits: u32) -> String {
-    error.map_or_else(|| format!("{edits} edits"), |error| error.to_string())
+/// Update has no panel geometry, so it passes an empty position label; its
+/// panel is discarded.
+fn tasks_status<E: core::fmt::Display>(error: Option<E>, edits: u32, pos: &str) -> String {
+    if let Some(error) = error {
+        return error.to_string();
+    }
+    if pos.is_empty() {
+        return format!("{edits} edits");
+    }
+    format!("{edits} edits · {pos}")
 }
 
 /// The one task-card constructor (§13), reached from update and from draw.
-fn tasks_panel(meta: &str) -> Panel<'_> {
+/// The card wears the grid's focus: the tag gates its `▎` head gutter on
+/// `focused(table.id)`, and the unfocused boot frame shows a bare title.
+fn tasks_panel(meta: &str, focused: bool) -> Panel<'_> {
+    // No TITLE patch: the shared recipe already carries the tag rule
+    // (secondary idle, primary+BOLD focused), and a patch would clobber the
+    // focused arm.
     Panel::new(TASKS_PANEL)
         .title("Tasks")
         .meta(meta)
-        .patch_part(PANEL_PARTS)
+        .focused(focused)
 }
 
 /// The grid owns cursor and editor state; the model owns the editable task
@@ -505,7 +397,10 @@ impl Page for EditablePage {
         if was_editing && !self.state.is_editing() {
             self.edits = self.edits.saturating_add(1);
         }
-        let _ = tasks_panel(&tasks_status(self.state.edit_error(), self.edits));
+        let _ = tasks_panel(
+            &tasks_status(self.state.edit_error(), self.edits, ""),
+            false,
+        );
         action.erase().into()
     }
 
@@ -515,28 +410,27 @@ impl Page for EditablePage {
             let card_height = (self.model.rows.len() as u16)
                 .saturating_add(4)
                 .min(body.height.saturating_sub(4));
-            let task_meta = tasks_status(self.state.edit_error(), self.edits);
-            tasks_panel(&task_meta).draw(
-                ui,
-                Rect {
-                    height: card_height,
-                    ..body
-                },
-                |ui, inner| {
-                    table().draw(ui, inner, &self.state, &self.model);
-                    if !self.state.is_editing() && self.edits == 0 {
-                        legacy_table(ui, inner, body.width, &self.model);
-                    }
-                },
-            );
-            paint_card_meta(
-                ui,
-                Rect {
-                    height: card_height,
-                    ..body
-                },
-                &task_meta,
-            );
+            let card = Rect {
+                height: card_height,
+                ..body
+            };
+            // −1: the grid header row (`Grid::chrome`; no note row on this
+            // table, no actions bar).
+            let viewport = tasks_panel("", false)
+                .inner(ui, card)
+                .height
+                .saturating_sub(1) as usize;
+            let pos = position_label(&self.state, viewport, self.model.rows.len());
+            let task_meta = tasks_status(self.state.edit_error(), self.edits, &pos);
+            // The grid itself derives FOCUSED from its inline editor while a
+            // cell is being edited; the card mirrors that so its head gutter
+            // stays lit through the edit.
+            let focused = ui.state(TABLE).contains(StateFlags::FOCUSED)
+                || ui.state(table().editor_id()).contains(StateFlags::FOCUSED);
+            tasks_panel(&task_meta, focused).draw(ui, card, |ui, inner| {
+                table().draw(ui, inner, &self.state, &self.model);
+            });
+            paint_card_meta(ui, card, &task_meta);
             let legend_y = body.y.saturating_add(card_height).saturating_add(1);
             let legend = [
                 ("reversed", "cell cursor (navigation)"),
@@ -572,17 +466,6 @@ impl Page for EditablePage {
                         ..row
                     },
                     text,
-                    ui.surface_style(),
-                );
-            }
-            if self.state.is_editing() {
-                let _ = ui.paint_str(
-                    Rect {
-                        y: body.bottom().saturating_sub(1),
-                        height: 1,
-                        ..body
-                    },
-                    "EDIT",
                     ui.surface_style(),
                 );
             }
