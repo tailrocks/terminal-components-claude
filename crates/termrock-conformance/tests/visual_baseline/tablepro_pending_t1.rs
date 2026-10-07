@@ -1586,6 +1586,7 @@ fn t1_workbench_commit_dialog() {
     // N1/S2: Esc cancels with no save; status keeps the edit pending.
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Save changes?", "N1 review never closed");
+    waits::wait_state(&mut s, "Changes kept pending", "S2 cancel status");
     let kept = live_text(&mut s);
     assert!(
         kept.contains("Changes kept pending"),
