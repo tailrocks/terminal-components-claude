@@ -31,7 +31,7 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::width;
-use crate::theme::{Family, Slot, StylePatch, Variant};
+use crate::theme::{Family, FgStep, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// An entry's badge accessor: the trailing text for an entry, or `None`
@@ -1145,9 +1145,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             None,
         );
         let icon = self.icon.map(|f| f(item));
+        // Q67-S14 (N1): icon@x+3, body@x+5 (`tag:sidebars.rs:238-248`;
+        // frozen sidebars icon x29/label x31). The shell nav is immune: it
+        // paints through `render_row`, which bypasses this painter.
         self.paint_cell_part(
             ui,
-            cell_at(rect, rect.x.saturating_add(2)),
+            cell_at(rect, rect.x.saturating_add(3)),
             Part::ICON,
             flags,
             icon,
@@ -1156,8 +1159,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             return;
         }
         let body = Rect {
-            x: rect.x.saturating_add(4),
-            width: rect.width.saturating_sub(4),
+            x: rect.x.saturating_add(5),
+            width: rect.width.saturating_sub(5),
             ..rect
         };
         if body.is_empty() {
@@ -1165,7 +1168,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         }
         let badge = self.badge.and_then(|f| f(item)).filter(|s| !s.is_empty());
         let (row_body, badge_area) = badge.map_or((body, Rect::ZERO), |text| {
-            let badge_width = width(text).min(body.width);
+            // Q67-S14 (N5): the badge ends one cell before the row end
+            // (`tag:sidebars.rs:250` subtracts len+1; frozen y6 `3`@x52
+            // with the row ending x53). The width is unclipped like the
+            // tag's — a badge wider than the body eats leftward into
+            // the chrome (w14 pins "99+" surviving at width 7) — but
+            // the area clamps at the row start so it can never bleed
+            // past the row into another column.
+            let badge_width = width(text);
             let gap = u16::from(badge_width < body.width);
             (
                 Rect {
@@ -1173,13 +1183,36 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                     ..body
                 },
                 Rect {
-                    x: body.right().saturating_sub(badge_width),
+                    x: body
+                        .right()
+                        .saturating_sub(badge_width)
+                        .saturating_sub(1)
+                        .max(rect.x),
                     width: badge_width,
                     ..body
                 },
             )
         });
         if !row_body.is_empty() {
+            // Q67-S14 (N4): the label is primary iff current (SELECTED)
+            // or live (FOCUSED|HOVERED), else secondary
+            // (`tag:sidebars.rs:228-233`; frozen y7 `Runs` secondary). A
+            // shared (LIST, LABEL) base cannot carry this: an idle List
+            // row wears the same empty flags but stays primary
+            // (`tag:list.rs:319` paints `st`), and ACTIVE in shared row
+            // flags regressed mono (Q67-S13 §D). So the idle tone rides a
+            // component-default patch under any page patch; disabled and
+            // emphasized rows forward the page patch untouched (the
+            // DISABLED rule still voices `Billing`).
+            let emphasized = flags.contains(StateFlags::SELECTED)
+                || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
+            let page_label = self.ov.part_patch(Part::LABEL);
+            let label_patch = if emphasized || flags.contains(StateFlags::DISABLED) {
+                page_label
+            } else {
+                const IDLE: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                Some(page_label.map_or(IDLE, |forwarded| IDLE.merge(forwarded)))
+            };
             let mut r = RowUi::new_with_patches(
                 ui,
                 self.id,
@@ -1189,7 +1222,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                 key,
                 row_body,
                 self.ov.part_patch(Part::CONTAINER),
-                self.ov.part_patch(Part::LABEL),
+                label_patch,
             );
             self.row.row(item, &mut r);
         }
@@ -1680,7 +1713,7 @@ mod tests {
                 .all(|r| !r.contains("Workspace") && !r.contains("Project")),
             "collapsed groups leaked heading text: {narrow:?}"
         );
-        assert_eq!(&narrow[..6], ["  T", "  R", "  B", "", "  M", "  $"]);
+        assert_eq!(&narrow[..6], ["   T", "   R", "   B", "", "   M", "   $"]);
     }
 
     #[test]
@@ -1694,11 +1727,47 @@ mod tests {
         let full = rows(&list(), &st, 24, &GROUPS);
         assert_eq!(
             &full[..7],
-            [" A", "  1 one", "", "  0 none", "", " A", "  2 two"]
+            [" A", "   1 one", "", "   0 none", "", " A", "   2 two"]
         );
 
         let collapsed = rows(&list().mode(NavMode::Collapsed), &st, 6, &GROUPS);
-        assert_eq!(&collapsed[..5], ["  1", "", "  0", "", "  2"]);
+        assert_eq!(&collapsed[..5], ["   1", "", "   0", "", "   2"]);
+    }
+
+    /// Q67-S14 (N4): an idle nav label is secondary, the current row's
+    /// is primary (`tag:sidebars.rs:228-233`); disabled rows keep the
+    /// DISABLED rule, not the idle patch.
+    #[test]
+    fn q67s14_idle_labels_are_secondary_current_is_primary() {
+        use crate::theme::resolve::bind_role;
+        use crate::theme::{FgStep, Role, Surface};
+
+        let theme = Theme::junie();
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 24,
+            height: 12,
+        };
+        let mut fs = FrameState::default();
+        fs.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let previous = LastFrame::default();
+        let mut st = NavListState::new();
+        st.set_current(Some(ItemKey::text("Branches")));
+        {
+            let mut ui = Ui::new(&mut fs, &mut page, &mut core, &theme, &previous);
+            list().draw(&mut ui, area, &st, &ITEMS);
+        }
+        let secondary = bind_role(&theme, Role::Fg(FgStep::Secondary), Surface::Canvas);
+        let primary = bind_role(&theme, Role::Fg(FgStep::Primary), Surface::Canvas);
+        let disabled = bind_role(&theme, Role::DisabledFg, Surface::Canvas);
+        // y1 Tasks (idle), y3 Branches (current), y2 Runs (disabled);
+        // labels start at x+5 (N1).
+        assert_eq!(page.cell((5, 1)).map(|c| c.fg), secondary);
+        assert_eq!(page.cell((5, 3)).map(|c| c.fg), primary);
+        assert_eq!(page.cell((5, 2)).map(|c| c.fg), disabled);
     }
 
     #[test]
@@ -1859,11 +1928,13 @@ mod tests {
             nav.draw(&mut ui, area, &NavListState::new(), &ITEMS[..1]);
         }
         assert!(
-            page.cell((4, 0))
+            // Q67-S14 (N1): the body starts at x+5 now.
+            page.cell((5, 0))
                 .is_some_and(|c| c.modifier.contains(Modifier::BOLD))
         );
         assert!(
-            page.cell((23, 0))
+            // Q67-S14 (N5): the badge keeps a one-cell trailing margin.
+            page.cell((22, 0))
                 .is_some_and(|c| c.modifier.contains(Modifier::BOLD))
         );
         assert!(
@@ -1911,7 +1982,8 @@ mod tests {
         assert_eq!(badge_calls.get(), 1);
         assert_eq!(label_calls.get(), 0);
         assert_eq!(
-            page.cell((23, 0)).map(ratatui_core::buffer::Cell::symbol),
+            // Q67-S14 (N5): the badge keeps a one-cell trailing margin.
+            page.cell((22, 0)).map(ratatui_core::buffer::Cell::symbol),
             Some("9")
         );
     }
@@ -2012,7 +2084,8 @@ mod tests {
             let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
             nav.draw(&mut ui, area, &NavListState::new(), &items);
         }
-        let disabled = page.cell((23, 1)).expect("disabled badge cell");
+        // Q67-S14 (N5): the badge keeps a one-cell trailing margin.
+        let disabled = page.cell((22, 1)).expect("disabled badge cell");
         assert_eq!(disabled.symbol(), "9");
         assert_eq!(
             disabled.style().fg,
@@ -2023,7 +2096,7 @@ mod tests {
             disabled.modifier.contains(Modifier::DIM),
             "disabled badge lost DIM"
         );
-        let enabled = page.cell((23, 0)).expect("enabled badge cell");
+        let enabled = page.cell((22, 0)).expect("enabled badge cell");
         assert_eq!(enabled.symbol(), "9");
         assert!(
             !enabled.modifier.contains(Modifier::DIM),
