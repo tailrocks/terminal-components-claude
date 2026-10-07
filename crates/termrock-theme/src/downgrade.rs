@@ -764,6 +764,32 @@ mod tests {
         assert_eq!(m.capability.color, ColorLevel::Mono);
     }
 
+    /// Q65-S6 HOLD: the authored junie Mono palette already IS the tag's
+    /// mean-based 4-rung ladder on every token, so the G8 palette remap
+    /// evaporates for junie (0 slots move). The live G8 render gap
+    /// (disabled labels resolve White+DIM, tag pins DarkGray+DIM) is owned
+    /// by the `(LABEL, DISABLED)` mono rule below, not by any palette, and
+    /// belongs to a follow-up manifest slice. If this test ever fails, the
+    /// remap is live again and the S6 DEFER decision must be re-opened.
+    /// Ladder: `visual-baseline:src/theme.rs:603-608` (mean 0-40 Black,
+    /// 41-110 DarkGray, 111-190 Gray, else White; non-Rgb passes through).
+    #[test]
+    fn q65s6_hold_junie_mono_is_tag_ladder() {
+        let tc = Theme::junie();
+        let m = tc.downgrade(ColorLevel::Mono);
+        let mut ladder = |c: Color| match c {
+            Color::Rgb(r, g, b) => match (u32::from(r) + u32::from(g) + u32::from(b)) / 3 {
+                0..=40 => Color::Black,
+                41..=110 => Color::DarkGray,
+                111..=190 => Color::Gray,
+                _ => Color::White,
+            },
+            other => other,
+        };
+        assert_eq!(m.color, tc.color.map_colors(&mut ladder));
+        assert_eq!(m.capability.color, ColorLevel::Mono);
+    }
+
     #[test]
     fn downgrade_works_for_a_user_supplied_theme() {
         let t = Theme::paper();
