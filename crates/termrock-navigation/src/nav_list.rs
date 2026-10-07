@@ -1205,6 +1205,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         let r = self
             .ov
             .style(ui, self.id, Family::LIST, Variant::DEFAULT, part, flags);
+        // Q66-S4 (F1-L7a): the MARKER cell rides the container fill when no
+        // glyph is set — List leaves it unpainted (`list.rs:1331` Clear arm)
+        // while `ui.fill` here overpainted the generic White resolution. The
+        // `Slot::Set` arm below still paints chosen markers; the generic
+        // `(MARKER, DISABLED)` rule (`downgrade.rs:443-452`) stays intact.
+        if part == Part::MARKER && !matches!(r.glyph, Slot::Set(_)) {
+            return;
+        }
         match r.glyph {
             Slot::Set(g) => {
                 ui.glyph(cell, g, r.style);
@@ -1963,5 +1971,152 @@ mod tests {
             }
             assert_eq!(calls.get(), 0, "forbidden slot {part:?} executed");
         }
+    }
+
+    /// F1-L7c: the disabled badge cell carries the BADGE resolution's own DIM
+    /// at Mono (tag badge is `st` when disabled,
+    /// `tag:pages/sidebars.rs:248-252`). Fill-then-paint wipes to the BADGE
+    /// resolution's own modifiers, so container +DIM cannot reach it — the
+    /// targeted `(BADGE, DISABLED)`+DIM rule does. The fg still inherits the
+    /// container fill (BADGE resolves no fg of its own).
+    #[test]
+    fn q66s3_l7c_disabled_badge_cell_carries_dim_at_mono() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        let area = Rect::new(0, 0, 24, 2);
+        let items = [E("One", "", "1", false), E("Two", "", "2", true)];
+        let nav = NavList::new(NAV)
+            .key(keyed as fn(&E) -> ItemKey)
+            .icon(&icon)
+            .disabled_item(&off)
+            .badge(&badge);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            nav.draw(&mut ui, area, &NavListState::new(), &items);
+        }
+        let disabled = page.cell((23, 1)).expect("disabled badge cell");
+        assert_eq!(disabled.symbol(), "9");
+        assert_eq!(
+            disabled.style().fg,
+            Some(Color::DarkGray),
+            "badge inherits the container fg"
+        );
+        assert!(
+            disabled.modifier.contains(Modifier::DIM),
+            "disabled badge lost DIM"
+        );
+        let enabled = page.cell((23, 0)).expect("enabled badge cell");
+        assert_eq!(enabled.symbol(), "9");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled badge gained DIM"
+        );
+    }
+
+    /// Q66-S4 draw helper: two rows at Mono, the second row disabled.
+    fn draw_q66s4_mono_disabled() -> Buffer {
+        use crate::theme::ColorLevel;
+
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        let area = Rect::new(0, 0, 24, 2);
+        let items = [E("One", "", "1", false), E("Two", "", "2", true)];
+        let nav = NavList::new(NAV)
+            .key(keyed as fn(&E) -> ItemKey)
+            .icon(&icon)
+            .disabled_item(&off);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            nav.draw(&mut ui, area, &NavListState::new(), &items);
+        }
+        page
+    }
+
+    /// F1-L7a: the disabled NavList marker cell rides the container fill —
+    /// blank symbol, fg8 (DarkGray) +DIM at Mono (tag sidebars `st`; frozen
+    /// `sidebars/default/120x40/none.ansi:14` `[2;38;5;8]` run covers the
+    /// marker cell). List leaves the marker cell unpainted (`list.rs:1331`
+    /// Clear arm); NavList must do the same instead of filling the generic
+    /// White resolution (`downgrade.rs:443-452` stays intact for other
+    /// families). The enabled marker stays DIM-free.
+    #[test]
+    fn q66s4_l7a_disabled_marker_cell_rides_container_dim_at_mono() {
+        use ratatui_core::style::Color;
+
+        let page = draw_q66s4_mono_disabled();
+        let marker = page.cell((1, 1)).expect("disabled marker cell");
+        let pad = page.cell((15, 1)).expect("disabled pad cell");
+        assert_eq!(marker.symbol(), " ", "marker stays blank when unchosen");
+        assert_eq!(
+            marker.style().fg,
+            Some(Color::DarkGray),
+            "disabled marker fg"
+        );
+        assert!(
+            marker.modifier.contains(Modifier::DIM),
+            "disabled marker lost DIM"
+        );
+        assert_eq!(
+            marker.style().fg,
+            pad.style().fg,
+            "marker cell must show the container fill"
+        );
+        assert_eq!(
+            marker.modifier.contains(Modifier::DIM),
+            pad.modifier.contains(Modifier::DIM),
+            "marker cell must ride the container modifiers"
+        );
+        let enabled = page.cell((1, 0)).expect("enabled marker cell");
+        assert_eq!(enabled.symbol(), " ");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled marker gained DIM"
+        );
+    }
+
+    /// F1-L7a HOLD: a chosen marker still paints its glyph — the skip covers
+    /// Clear/Inherit only, never `Slot::Set`. GREEN on base and after.
+    #[test]
+    fn q66s4_l7a_hold_selected_marker_still_paints_chosen_glyph() {
+        use crate::theme::{ColorLevel, GlyphRole};
+
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        let area = Rect::new(0, 0, 24, 2);
+        let items = [E("One", "", "1", false), E("Two", "", "2", true)];
+        let nav = NavList::new(NAV)
+            .key(keyed as fn(&E) -> ItemKey)
+            .icon(&icon)
+            .disabled_item(&off);
+        let mut state = NavListState::new();
+        state.set_current(Some(ItemKey::text("One")));
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            nav.draw(&mut ui, area, &state, &items);
+        }
+        let chosen = theme.design.glyphs.get(GlyphRole::Chosen);
+        let marker = page.cell((1, 0)).expect("selected marker cell");
+        assert_eq!(
+            marker.symbol(),
+            chosen,
+            "selected marker must keep its Chosen glyph"
+        );
+        let disabled = page.cell((1, 1)).expect("disabled marker cell");
+        assert_eq!(disabled.symbol(), " ", "unselected marker stays blank");
     }
 }
