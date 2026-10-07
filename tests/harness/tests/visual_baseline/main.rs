@@ -42,6 +42,7 @@ mod button_busy_live;
 mod control_states;
 mod holla;
 mod holla_journeys;
+mod holla_pending_h1;
 mod jackin;
 mod jackin_journeys;
 mod jackin_pending_j1;

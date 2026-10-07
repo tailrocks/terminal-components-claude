@@ -5348,6 +5348,788 @@
         ]
       }
     }
+,
+    {
+      "id": "TREE-DISK-001",
+      "app": "holla",
+      "component": "Tree",
+      "part": "finished disk tree",
+      "ref_symbols": [
+        {
+          "glyph": "scan complete · 2.3 MiB allocated · 21 entries",
+          "meaning": "completion summary"
+        },
+        {
+          "glyph": "▾   big                                                 2.3 MiB · 100%",
+          "meaning": "root row with its share"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "scan complete · 2.3 MiB allocated · 21 entries",
+          "meaning": "completion summary"
+        },
+        {
+          "glyph": "▾   big                                                 2.3 MiB · 100%",
+          "meaning": "root row with its share"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/disk.rs",
+          "symbols": [
+            "Sort",
+            "selected",
+            "View"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "root": "~/work/big",
+        "allocated": "2.3 MiB",
+        "entries": 21
+      },
+      "state": {
+        "focus": "tree",
+        "scan": "complete",
+        "sort": "allocated",
+        "noise": "folded"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-navigation (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down then Up (the cursor roundtrips into the tree)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press s (apparent sort switches on)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press s (allocated sort switches back)",
+          "key": "s",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tree",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the summary reads scan complete · 2.3 MiB allocated · 21 entries"
+          },
+          {
+            "id": "V2",
+            "text": "the root row pairs ▾   big with 2.3 MiB · 100%"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the sort state reads largest first · allocated · noise folded"
+          },
+          {
+            "id": "S2",
+            "text": "the Selection fact reads not selected · Space selects"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the cursor onto target and Up returns it to big"
+          },
+          {
+            "id": "A2",
+            "text": "s switches to apparent sort and s switches back to allocated"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "largest first · apparent must NOT show at the tree state (s later switches it on)"
+          },
+          {
+            "id": "N2",
+            "text": "the apparent label must NOT persist after s switches back"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1419",
+            "note": "completion summary line"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1500",
+            "note": "sort/noise status label"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1029",
+            "note": "Space toggles the row selection"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/disk/tree/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T06:37:52Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8i H1 h1_disk_tree live-PTY PASS @3f167a6 (nextest visual_baseline --run-ignored only --test-threads 2, 29 pass/0 fail/435 skip; bin tests/harness/target/debug/holla 16635624B sha256:fa3a5766efcc7fc3 built 2026-10-07T06:33:04Z; log /tmp/phase8i-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "TREE-DISK-002",
+      "app": "holla",
+      "component": "Tree",
+      "part": "finished disk tree sorted by apparent size",
+      "ref_symbols": [
+        {
+          "glyph": "largest first · apparent · noise folded",
+          "meaning": "apparent sort label"
+        },
+        {
+          "glyph": "vm.img                                            3.5 MiB",
+          "meaning": "apparent-first row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "largest first · apparent · noise folded",
+          "meaning": "apparent sort label"
+        },
+        {
+          "glyph": "vm.img                                            3.5 MiB",
+          "meaning": "apparent-first row"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/disk.rs",
+          "symbols": [
+            "Sort",
+            "Apparent",
+            "Allocated"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "sort": "apparent",
+        "apparent_total": "5.6 MiB · sparse",
+        "first": "vm.img · 3.5 MiB"
+      },
+      "state": {
+        "focus": "tree",
+        "scan": "complete",
+        "sort": "apparent",
+        "noise": "folded"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-navigation (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press s (apparent sort switches on)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press s (allocated sort switches back on)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press s (apparent sort switches on again)",
+          "key": "s",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tree-apparent",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the label reads largest first · apparent · noise folded"
+          },
+          {
+            "id": "V2",
+            "text": "the apparent-first row pairs vm.img with 3.5 MiB"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer reads Sorted by apparent size · rows still show allocated bytes"
+          },
+          {
+            "id": "S2",
+            "text": "the Apparent fact reads 5.6 MiB · sparse"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "s toggles back to allocated (apparent label expires)"
+          },
+          {
+            "id": "A2",
+            "text": "s toggles forward to apparent again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the apparent label must NOT show after s toggles to allocated"
+          },
+          {
+            "id": "N2",
+            "text": "the allocated label must NOT show while apparent is active"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1077",
+            "note": "s toggles the sort mode"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1500",
+            "note": "sort/noise status label"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "151-152",
+            "note": "allocated/apparent byte measures"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/disk/tree_apparent/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T06:37:52Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8i H1 h1_disk_tree_apparent live-PTY PASS @3f167a6 (nextest visual_baseline --run-ignored only --test-threads 2, 29 pass/0 fail/435 skip; bin tests/harness/target/debug/holla 16635624B sha256:fa3a5766efcc7fc3 built 2026-10-07T06:33:04Z; log /tmp/phase8i-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "TREE-DISK-004",
+      "app": "holla",
+      "component": "Tree",
+      "part": "finished disk tree with one entry selected",
+      "ref_symbols": [
+        {
+          "glyph": "1 selected (176.0 KiB)",
+          "meaning": "selection summary"
+        },
+        {
+          "glyph": "✓ noise                                           176.0 KiB",
+          "meaning": "checked noise row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "1 selected (176.0 KiB)",
+          "meaning": "selection summary"
+        },
+        {
+          "glyph": "✓ noise                                           176.0 KiB",
+          "meaning": "checked noise row"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/disk.rs",
+          "symbols": [
+            "selected",
+            "Sort",
+            "View"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "selected": "noise · 176.0 KiB",
+        "parent": "big · partial",
+        "entries": 21
+      },
+      "state": {
+        "focus": "tree",
+        "scan": "complete",
+        "sort": "allocated",
+        "selected": 1
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-navigation (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press s twice (allocated sort is confirmed)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Down twice (the cursor reaches noise)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press f twice (the fold roundtrips)",
+          "key": "f",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Space (the noise row is selected)",
+          "key": "Space",
+          "ticks": 0
+        },
+        {
+          "step": 7,
+          "action": "press Space (the row is unselected)",
+          "key": "Space",
+          "ticks": 0
+        },
+        {
+          "step": 8,
+          "action": "press Space (the same row is re-selected)",
+          "key": "Space",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tree-selected",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the summary reads 1 selected (176.0 KiB)"
+          },
+          {
+            "id": "V2",
+            "text": "the checked row pairs ✓ noise with 176.0 KiB"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the partial parent pairs ◐ big with 2.3 MiB · 100%"
+          },
+          {
+            "id": "S2",
+            "text": "the Selection fact reads selected · Space unselects"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Space unselects the row (check and partial marker expire, 0 selected)"
+          },
+          {
+            "id": "A2",
+            "text": "Space re-selects the same row"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "neither the ✓ check nor the ◐ parent marker may show after the unselect"
+          },
+          {
+            "id": "N2",
+            "text": "the empty 0 selected state must NOT show while selected"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1029",
+            "note": "Space toggles the row selection"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1012-1016",
+            "note": "d refuses an empty selection"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1091",
+            "note": "f toggles noise folding"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/disk/tree_selected/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T06:37:52Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8i H1 h1_disk_tree_selected live-PTY PASS @3f167a6 (nextest visual_baseline --run-ignored only --test-threads 2, 29 pass/0 fail/435 skip; bin tests/harness/target/debug/holla 16635624B sha256:fa3a5766efcc7fc3 built 2026-10-07T06:33:04Z; log /tmp/phase8i-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "TREE-DISK-003",
+      "app": "holla",
+      "component": "Tree",
+      "part": "finished disk tree with noise folders unfolded",
+      "ref_symbols": [
+        {
+          "glyph": "largest first · allocated · unfolded",
+          "meaning": "unfolded sort label"
+        },
+        {
+          "glyph": "Noise folders unfolded",
+          "meaning": "unfold footer"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "largest first · allocated · unfolded",
+          "meaning": "unfolded sort label"
+        },
+        {
+          "glyph": "Noise folders unfolded",
+          "meaning": "unfold footer"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/disk.rs",
+          "symbols": [
+            "Sort",
+            "View",
+            "selected"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "sort": "allocated",
+        "noise": "unfolded",
+        "cursor": "noise · 176.0 KiB"
+      },
+      "state": {
+        "focus": "tree",
+        "scan": "complete",
+        "sort": "allocated",
+        "noise": "unfolded"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-navigation (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press s twice (allocated sort is confirmed)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Down twice (the cursor reaches noise)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press f (the noise unfolds)",
+          "key": "f",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press f (the noise folds back)",
+          "key": "f",
+          "ticks": 0
+        },
+        {
+          "step": 7,
+          "action": "press f (the noise unfolds once more)",
+          "key": "f",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tree-unfolded",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the label reads largest first · allocated · unfolded"
+          },
+          {
+            "id": "V2",
+            "text": "the cursor row pairs ▎ with noise beside the ~/work/big/noise detail path"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer reads Noise folders unfolded"
+          },
+          {
+            "id": "S2",
+            "text": "the Entries fact reads 15 · hardlinks counted once"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "f folds the noise back (unfolded label expires)"
+          },
+          {
+            "id": "A2",
+            "text": "f unfolds the noise once more"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "neither the unfolded label nor its footer may show after f folds the noise"
+          },
+          {
+            "id": "N2",
+            "text": "the noise folded label must NOT show while unfolded"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1091",
+            "note": "f toggles noise folding"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1500",
+            "note": "sort/noise status label"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1077",
+            "note": "s toggles the sort mode"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/disk/tree_unfolded/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T06:37:52Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8i H1 h1_disk_tree_unfolded live-PTY PASS @3f167a6 (nextest visual_baseline --run-ignored only --test-threads 2, 29 pass/0 fail/435 skip; bin tests/harness/target/debug/holla 16635624B sha256:fa3a5766efcc7fc3 built 2026-10-07T06:33:04Z; log /tmp/phase8i-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "coverage": [
     {
@@ -5494,7 +6276,11 @@
         "TREE-CONN-004",
         "TREE-DUP-005",
         "TREE-DETAIL-006",
-        "TREE-MANAGER-007"
+        "TREE-MANAGER-007",
+        "TREE-DISK-001",
+        "TREE-DISK-002",
+        "TREE-DISK-004",
+        "TREE-DISK-003"
       ],
       "handlers": [
         "flatten by path identity with substring filter and relocate (tree.rs)",
@@ -6214,6 +7000,70 @@
       "status": "mapped",
       "also": [],
       "note": "phase-8g slice 8A-J1: j1_manager_tree_expanded live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/disk/tree",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-DISK-001",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8i slice 8A-H1: h1_disk_tree live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/disk/tree_apparent",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-DISK-002",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8i slice 8A-H1: h1_disk_tree_apparent live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/disk/tree_selected",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-DISK-004",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8i slice 8A-H1: h1_disk_tree_selected live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/disk/tree_unfolded",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-DISK-003",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8i slice 8A-H1: h1_disk_tree_unfolded live-PTY check"
     }
   ]
 }
