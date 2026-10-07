@@ -1,8 +1,8 @@
 //! Nested sidebar navigation and content ownership.
 
 use termrock::{
-    Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, RowUi,
-    Surface, Ui, Variant, id,
+    Button, Cx, Id, Insets, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect,
+    RowUi, Ui, Variant, id,
 };
 
 use super::{Page, PageUpdate, frame, lines};
@@ -13,7 +13,16 @@ const CONTENT_PANEL: Id = id!("sidebars.content");
 
 /// The one side-panel constructor (§13), shared by update and draw.
 fn side_panel() -> Panel<'static> {
-    Panel::new(SIDE_PANEL)
+    // Q67-S14 (N2-enabling): the tag draws the nav full-bleed in the
+    // untitled card (`tag:sidebars.rs:378-390` — manual inner, full
+    // side width); the default Card 2-cell side insets would clip the
+    // gutter/marker/badge columns the N2 unmask exposes.
+    Panel::new(SIDE_PANEL).inner_inset(Insets {
+        l: 0,
+        t: 1,
+        r: 0,
+        b: 1,
+    })
 }
 
 /// The one content-card constructor (§13), keyed by the selected section.
@@ -136,6 +145,12 @@ fn sidebar(
         .icon(&item_icon)
         .badge(&item_badge)
         .disabled_item(&item_disabled)
+        // Q67-S14 (N6): sections paint at area.x+3 (`tag:sidebars.rs:200`).
+        .header_indent(3)
+        // Q67-S14 (N2-enabling): the tag list scrolls with a scrollbar
+        // on overflow (`tag:sidebars.rs:262-276`; frozen 72x20 ┃@x48) —
+        // without it the narrow badge sits one cell right of frozen.
+        .scrollable(true)
         .mode(if collapsed {
             NavMode::Collapsed
         } else {
@@ -154,8 +169,13 @@ pub struct SidebarsPage {
 
 impl SidebarsPage {
     pub fn new() -> Self {
+        // Q67-S14 (N2-enabling): the tag opens with Tasks current
+        // (`tag:sidebars.rs:352`); without it the unmasked NavList
+        // shows no › marker and a secondary Tasks label.
+        let mut state = NavListState::default();
+        state.set_current(Some(item_key(&ITEMS[0])));
         Self {
-            state: NavListState::default(),
+            state,
             selected: "Tasks",
             collapsed: false,
         }
@@ -200,12 +220,7 @@ impl Page for SidebarsPage {
                     height: body.height.min(20),
                     ..body
                 };
-                side_panel().draw(ui, side, |ui, _| {
-                    let inner = Rect {
-                        y: side.y.saturating_add(1),
-                        height: side.height.saturating_sub(2),
-                        ..side
-                    };
+                side_panel().draw(ui, side, |ui, inner| {
                     sidebar(self.collapsed).draw(
                         ui,
                         Rect {
@@ -224,67 +239,10 @@ impl Page for SidebarsPage {
                             ..inner
                         },
                     );
-                    if body.width < 70 {
-                        let visible = [
-                            "                            ",
-                            "   Workspace                ",
-                            "▎› T Tasks                3 ",
-                            "▎  R Runs                   ",
-                            "▎  B Branches               ",
-                            "                            ",
-                            "   Project                  ",
-                            "▎  M Members                ",
-                            "▎  E Environment            ",
-                            "▎  $ Billing                ",
-                            "                            ",
-                            "   Preferences              ",
-                            "▎  K Keyboard               ",
-                            "▎  A Appearance             ",
-                            "                            ",
-                            "                            ",
-                            " ▎Collapse                  ",
-                        ];
-                        for (offset, line) in visible.iter().enumerate() {
-                            let Ok(offset) = u16::try_from(offset) else {
-                                break;
-                            };
-                            let row = Rect {
-                                x: side.x.saturating_sub(4),
-                                y: side.y.saturating_add(offset),
-                                width: side.width.saturating_add(4),
-                                height: 1,
-                            };
-                            ui.fill(row, ui.surface_style());
-                            let _ = ui.paint_str(row, line, ui.surface_style());
-                        }
-                    }
+                    // Q67-S14 (N2): the canned nav rows (both widths) are
+                    // deleted — the real NavList above is the render
+                    // (`tag:sidebars.rs:190-256`).
                 });
-                if body.width >= 70 {
-                    let panel = ui.with_surface(Surface::Surface, |ui| ui.surface_style());
-                    ui.fill(side, panel);
-                    for (offset, line) in [
-                        (1_u16, "   Workspace"),
-                        (2, "▎› T Tasks                3"),
-                        (3, "▎  R Runs"),
-                        (4, "▎  B Branches"),
-                        (6, "   Project"),
-                        (7, "▎  M Members"),
-                        (8, "▎  E Environment"),
-                        (9, "▎  $ Billing"),
-                        (11, "   Preferences"),
-                        (12, "▎  K Keyboard"),
-                        (13, "▎  A Appearance"),
-                        (18, " ▎Collapse"),
-                    ] {
-                        let row = Rect {
-                            y: side.y.saturating_add(offset),
-                            height: 1,
-                            ..side
-                        };
-                        ui.fill(row, panel);
-                        let _ = ui.paint_str(row, line, panel);
-                    }
-                }
 
                 let content = Rect {
                     x: side.right().saturating_add(2),
@@ -316,6 +274,10 @@ impl SidebarsPage {
             "Collapsed mode keeps rows and markers, initials only.",
         ];
         lines(ui, inner, &text);
+        // Q67-S14 OWED (N2-content): this narrow canned wrap tracks
+        // the tag's wrapped prose — deleting it regresses narrow combos
+        // GREEN→RED (S14 probe). Removal needs a wrap-capable `lines`
+        // (component capability, own slice).
         if body_width < 70 {
             let visible = [
                 "One focus stop. ↑ ↓ move",

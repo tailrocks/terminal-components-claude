@@ -2605,4 +2605,82 @@ mod tests {
             );
         }
     }
+
+    /// Q67-S14 (N3): the LIST icon is muted whenever enabled
+    /// (`tag:sidebars.rs:242-246`); the List readiness cell keeps
+    /// Secondary under its status flags, DISABLED keeps DisabledFg and
+    /// wins spec-1 ties, and every other `row_like` family keeps
+    /// Secondary.
+    #[test]
+    fn q67s14_list_icon_muted_with_readiness_preserved() {
+        let theme = Theme::junie();
+        let resolve = |family, flags| {
+            theme.resolve(family, Variant::DEFAULT, Part::ICON, flags, Surface::Canvas)
+        };
+        let muted =
+            crate::theme::resolve::bind_role(&theme, Role::Fg(FgStep::Muted), Surface::Canvas);
+        let secondary =
+            crate::theme::resolve::bind_role(&theme, Role::Fg(FgStep::Secondary), Surface::Canvas);
+        let disabled = crate::theme::resolve::bind_role(&theme, Role::DisabledFg, Surface::Canvas);
+        assert_eq!(resolve(Family::LIST, StateFlags::empty()).style.fg, muted);
+        for flags in [
+            StateFlags::BUSY,
+            StateFlags::LOADING,
+            StateFlags::ERROR,
+            StateFlags::WARNING,
+        ] {
+            assert_eq!(
+                resolve(Family::LIST, flags).style.fg,
+                secondary,
+                "readiness {flags:?}"
+            );
+        }
+        assert_eq!(
+            resolve(Family::LIST, StateFlags::DISABLED).style.fg,
+            disabled
+        );
+        assert_eq!(
+            resolve(Family::LIST, StateFlags::DISABLED | StateFlags::BUSY)
+                .style
+                .fg,
+            disabled,
+            "DISABLED wins the spec-1 tie"
+        );
+        for family in [Family::TREE, Family::MENU, Family::CHIP, Family::PICKER] {
+            assert_eq!(
+                resolve(family, StateFlags::empty()).style.fg,
+                secondary,
+                "{family:?} keeps row_like Secondary"
+            );
+        }
+    }
+
+    /// Q67-S14 (N5): the LIST badge is accent whenever enabled
+    /// (`tag:sidebars.rs:249-252`); DISABLED carries no fg of its own
+    /// (inherits the container fill — the tag's disabled `st`); the
+    /// PANEL badge keeps its pill.
+    #[test]
+    fn q67s14_list_badge_accent_with_inherit_disabled() {
+        let theme = Theme::junie();
+        let resolve = |family, flags| {
+            theme.resolve(
+                family,
+                Variant::DEFAULT,
+                Part::BADGE,
+                flags,
+                Surface::Canvas,
+            )
+        };
+        let accent = crate::theme::resolve::bind_role(&theme, Role::Accent, Surface::Canvas);
+        assert_eq!(resolve(Family::LIST, StateFlags::empty()).style.fg, accent);
+        assert_eq!(
+            resolve(Family::LIST, StateFlags::DISABLED).style.fg,
+            None,
+            "BADGE carries no fg of its own — it inherits the container fill"
+        );
+        let panel = resolve(Family::PANEL, StateFlags::empty());
+        let on_accent = crate::theme::resolve::bind_role(&theme, Role::OnAccent, Surface::Canvas);
+        assert_eq!(panel.style.fg, on_accent);
+        assert_eq!(panel.style.bg, accent);
+    }
 }
