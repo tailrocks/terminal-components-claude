@@ -49,6 +49,7 @@ mod negative_controls_phase6a;
 mod pointer;
 mod showcase;
 mod showcase_journeys;
+mod showcase_pending_s1;
 mod support;
 mod tablepro;
 mod tablepro_journeys;

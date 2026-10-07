@@ -15742,8 +15742,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_table_page_boot live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -15899,8 +15906,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_table_select_cursor live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -16057,8 +16071,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_table_edit_open live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -16219,8 +16240,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_table_edit_commit live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log) NOTE: leaving-commit drops Committed event (counter stays 4); data write proven via re-edit"
+        }
+      ]
     }
   },
   {
@@ -16368,8 +16396,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_table_hover_lift live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -16517,8 +16552,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_table_editable_boot live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -16674,8 +16716,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_grid_wheel_fade live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log) NOTE: bottom rows 28-40 incl fetch row; row text said 27-40"
+        }
+      ]
     }
   },
   {
@@ -16830,8 +16879,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_code_wheel_fade live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -16988,8 +17044,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_diff_wheel_review live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -17153,8 +17216,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_scroll_page_prose live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -17307,8 +17377,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_scroll_wheel_offtail live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -17462,8 +17539,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_term_wheel_scrollback live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log) NOTE: DEVIATION: top-anchored whole-top + two-deep bottom fade (not both-edges)"
+        }
+      ]
     }
   },
   {
@@ -17618,8 +17702,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_list_wheel_fade live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -17773,8 +17864,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_tree_wheel_fade live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -17928,8 +18026,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_nav_wheel_demo live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log) NOTE: DEVIATION: Collapse footer persists after scroll (row text implies revealed)"
+        }
+      ]
     }
   },
   {
@@ -18083,8 +18188,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_textarea_wheel_fade live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -18244,8 +18356,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_inspect_open live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -18401,8 +18520,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_inspect_scrolled live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -18560,8 +18686,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_panel_overview_static live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -18719,8 +18852,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_resize_grown live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   },
   {
@@ -18878,8 +19018,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-07T07:26:28Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8c S1 s1_resize_shrunk live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+        }
+      ]
     }
   }
   ],

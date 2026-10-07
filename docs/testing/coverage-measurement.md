@@ -101,9 +101,10 @@ Each sentence holds one fact.
 - The candidate tip adds 9 commits after the run.
   Six change product code: Q53, FIX-002, Q54, Q55, FIX-002E, Q56.
   The candidate numbers are stale for those 6 deltas.
-- Registry-driven execution is zero on both branches.
-  All 127 rows report `results.status = unrun`.
-  No runner wires registry rows to test execution yet.
+- Registry-driven execution is zero on the candidate branch.
+  On the reference branch, phase-8c executed slice 8A-S1: 21 rows
+  report `results.status = pass`, 106 remain `unrun`.
+  Evidence: `/tmp/phase8c-focused.log` (21 pass / 0 fail / 370 skip).
 
 ## Reference passes
 
@@ -212,7 +213,9 @@ Each sentence holds one fact.
 - `TOOSMALL-NOTICE-001` has no reference snapshots.
   It is a behavioral probe.
 - No full-suite rerun exists at either current tip.
-- No registry-driven runner exists, so all 127 rows are unrun as cases.
+- No registry-driven runner exists yet; the 21 S1 rows were executed
+  as live-PTY tests (`showcase_pending_s1.rs`, phase-8c), so 106 rows
+  remain unrun as cases.
 
 ## Evidence paths
 

@@ -1043,8 +1043,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T07:26:28Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8c S1 s1_list_wheel_fade live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -2080,8 +2087,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T07:26:28Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8c S1 s1_nav_wheel_demo live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log) NOTE: DEVIATION: Collapse footer persists after scroll (row text implies revealed)"
+          }
+        ]
       }
     },
     {
@@ -2718,8 +2732,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T07:26:28Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8c S1 s1_tree_wheel_fade live-PTY PASS @dee16f67 (nextest visual_baseline --run-ignored only --test-threads 2, 21 pass/0 fail/370 skip; bin tests/harness/target/debug/showcase 10978552B sha256:83d5a3ef90a281dd built 2026-10-07T06:55:41Z; log /tmp/phase8c-focused.log)"
+          }
+        ]
       }
     },
     {
