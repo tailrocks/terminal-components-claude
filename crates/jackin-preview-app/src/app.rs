@@ -5968,6 +5968,41 @@ impl App {
             .remove(Modifier::BOLD),
     )];
 
+    /// Border + meta patch for the zoomed pane frame (focused): the stock
+    /// `Panel` meta renders the frozen `zoomed` badge, wearing the focused
+    /// border color, never bold.
+    const CAPSULE_BORDER_ZOOMED: [(Part, StylePatch); 2] = [
+        (
+            Part::BORDER,
+            StylePatch::new()
+                .set_fg(Role::BorderStrong)
+                .remove(Modifier::BOLD),
+        ),
+        (
+            Part::DETAIL,
+            StylePatch::new()
+                .set_fg(Role::BorderStrong)
+                .remove(Modifier::BOLD),
+        ),
+    ];
+
+    /// Border + meta patch for a zoomed but unfocused pane frame: the meta
+    /// wears the unfocused border color, like the frame around it.
+    const CAPSULE_BORDER_ZOOMED_UNFOCUSED: [(Part, StylePatch); 2] = [
+        (
+            Part::BORDER,
+            StylePatch::new()
+                .set_fg(Role::BorderSubtle)
+                .remove(Modifier::BOLD),
+        ),
+        (
+            Part::DETAIL,
+            StylePatch::new()
+                .set_fg(Role::BorderSubtle)
+                .remove(Modifier::BOLD),
+        ),
+    ];
+
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
         ui.fill(area, ui.surface_style());
         let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
@@ -6128,6 +6163,7 @@ impl App {
             return;
         };
         let focused = ctx.tab.focused == pane_id;
+        let zoomed = ctx.tab.zoomed == Some(pane_id);
         let frame = self.capsule_frame.borrow();
         let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
             return;
@@ -6181,18 +6217,21 @@ impl App {
         } else {
             format!("{label_run}{glyph}")
         };
-        let border_patch = if focused {
-            &Self::CAPSULE_BORDER_FOCUSED
-        } else {
-            &Self::CAPSULE_BORDER_UNFOCUSED
+        let border_patch: &[(Part, StylePatch)] = match (focused, zoomed) {
+            (true, true) => &Self::CAPSULE_BORDER_ZOOMED,
+            (true, false) => &Self::CAPSULE_BORDER_FOCUSED,
+            (false, true) => &Self::CAPSULE_BORDER_ZOOMED_UNFOCUSED,
+            (false, false) => &Self::CAPSULE_BORDER_UNFOCUSED,
         };
         let pane_width = pane_area.width;
         let label_width = label_run.chars().count() as u16;
-        Panel::new(Self::capsule_viewport_id(pane_id))
+        let panel = Panel::new(Self::capsule_viewport_id(pane_id))
             .kind(PanelKind::Framed)
             .title(title_prop.as_str())
             .inner_inset(Insets::all(1))
-            .patch_part(border_patch)
+            .patch_part(border_patch);
+        let panel = if zoomed { panel.meta("zoomed") } else { panel };
+        panel
             .slot(Part::TITLE, &|ui: &mut Ui<'_>, rect: Rect| {
                 // The stock framed title pads both sides; the frozen run has
                 // no trailing blank after the glyph, so the TITLE part slot
@@ -7719,10 +7758,6 @@ impl TuiApp for App {
                 }
                 if self.capsule_palette_open {
                     self.draw_historical_capsule_palette_120_40(ui, full);
-                    return;
-                }
-                if self.capsule.zoomed {
-                    self.draw_historical_capsule_zoom_120_40(ui, full);
                     return;
                 }
             }

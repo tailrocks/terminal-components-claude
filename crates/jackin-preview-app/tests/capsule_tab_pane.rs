@@ -1,4 +1,4 @@
-//! WI-JACKIN-CAPSULE-01/03: capsule tab/pane dispatch through owned components.
+//! WI-JACKIN-CAPSULE-01/03/04: capsule tab/pane dispatch through owned components.
 //!
 //! The capsule tab strip and split panes render through reusable Termrock
 //! components (`Tabs`, `SplitPane`, `Panel`, `Empty`, `TextViewport`,
@@ -9,6 +9,10 @@
 //!   path (WI-JACKIN-CAPSULE-03 deleted the historical frame): all 40
 //!   rows match frozen, tab selection repaints the strip, and the
 //!   scrolled panes wear the owned viewport fade the painter lacked;
+//! * the paused zoomed state renders through the same component path
+//!   (WI-JACKIN-CAPSULE-04 deleted the zoom frame and gate): all 40 rows
+//!   match frozen, the `zoomed` badge is stock `Panel` meta, tab renames
+//!   repaint the zoomed strip, and unzooming restores the split;
 //! * typing into the capsule input reaches the live component path and
 //!   clearing it restores the component body (dispatch boundary).
 use jackin_preview_app::{App, Motion, Scenario};
@@ -177,6 +181,74 @@ fn capsule_input_keys_reach_the_component_path() {
         harness.row(1).trim_end(),
         frozen_tabs,
         "tab strip must survive clearing the input"
+    );
+}
+
+/// Zoom ownership (WI-JACKIN-CAPSULE-04): the paused zoomed capsule
+/// renders through the owned `Panel`/`TextViewport` composition. The real
+/// prefix journey reproduces the frozen zoom frame exactly; renaming a tab
+/// repaints the zoomed strip (a stored frame cannot); the `zoomed` badge
+/// wears the focused border color; unzooming restores the split layout.
+#[test]
+fn paused_zoom_renders_through_components() {
+    use termrock::{Color, KeyCode};
+
+    let app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40);
+    let mut harness = Harness::new(app, termrock::Theme::junie(), 120, 40);
+    let _ = harness.ctrl('b');
+    let _ = harness.key(KeyCode::Char('z'));
+    let actual = rows(&harness, 40);
+    let expected = frozen("baselines/tuiscotti-v1/jackin/capsule/zoom/120x40/truecolor.txt");
+    assert_eq!(expected.len(), 40, "frozen zoom frame has 40 rows");
+    for (y, (e, a)) in expected.iter().zip(actual.iter()).enumerate() {
+        assert_eq!(e, a, "zoomed paused row {y} must match frozen");
+    }
+    for (x, symbol) in [
+        (110u16, " "),
+        (111, "z"),
+        (112, "o"),
+        (113, "o"),
+        (114, "m"),
+        (115, "e"),
+        (116, "d"),
+        (117, " "),
+    ] {
+        let cell = harness.cell(x, 4);
+        assert_eq!(cell.symbol(), symbol, "zoomed badge cell ({x},4) symbol");
+        assert_eq!(
+            cell.fg,
+            Color::Rgb(77, 77, 77),
+            "zoomed badge cell ({x},4) must wear the border color"
+        );
+        assert_eq!(cell.bg, Color::Rgb(0, 0, 0), "zoomed badge cell ({x},4) bg");
+    }
+
+    let mut app = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40);
+    let daemon = app
+        .world
+        .daemons
+        .get_mut("jk-7f3a")
+        .expect("capsule fixture daemon exists");
+    daemon.tabs[0].custom_label = Some("renamed".to_string());
+    let mut harness = Harness::new(app, termrock::Theme::junie(), 120, 40);
+    let _ = harness.ctrl('b');
+    let _ = harness.key(KeyCode::Char('z'));
+    assert!(
+        harness.row(2).contains("renamed"),
+        "renamed tab must repaint the zoomed strip, got {:?}",
+        harness.row(2)
+    );
+    let _ = harness.ctrl('b');
+    let _ = harness.key(KeyCode::Char('z'));
+    assert!(
+        harness.row(4).contains("Codex (Primary)"),
+        "unzoom must restore the split layout, got {:?}",
+        harness.row(4)
+    );
+    assert!(
+        !harness.row(4).contains("zoomed"),
+        "unzoom must drop the badge, got {:?}",
+        harness.row(4)
     );
 }
 
