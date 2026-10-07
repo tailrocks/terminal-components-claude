@@ -1165,7 +1165,8 @@ impl<'a> Props<'a> {
                 width: row.width.saturating_sub(lw).saturating_sub(2),
                 ..row
             };
-            ui.paint_str(value, v, value_style);
+            let truncated = termrock_text::truncate(v, value.width);
+            ui.paint_str(value, &truncated, value_style);
             painted = painted.saturating_add(1);
         }
         Rect {

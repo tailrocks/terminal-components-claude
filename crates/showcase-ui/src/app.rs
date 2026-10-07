@@ -1288,7 +1288,7 @@ impl TuiApp for App {
         // compatibility painting remains separate shell migration work.
         shell_brand().draw(ui, shell.header);
         nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
-        if full.height <= 20 && self.page.index() >= 16 {
+        if self.page.index() >= shell.sidebar.height as usize {
             let mut scroll = termrock::ScrollState::default();
             scroll.apply_layout(shell.sidebar.height as usize, NAV_ENTRIES.len() + 10);
             ui.scroll_edges_except(
@@ -1299,7 +1299,7 @@ impl TuiApp for App {
                     shell.sidebar.height,
                 ),
                 &scroll,
-                &[16],
+                &[shell.sidebar.bottom().saturating_sub(2)],
             );
         }
         shell_status().draw(ui, shell.footer);

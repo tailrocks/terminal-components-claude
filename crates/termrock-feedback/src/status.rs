@@ -707,7 +707,7 @@ impl<'a> StatusBar<'a> {
             // component invents no colour, only the weight the caller asked
             // for
             Emphasis::Strong => delta = delta.add(Modifier::BOLD),
-            Emphasis::Chip => delta = delta.set_bg(Role::RaisedSurface),
+            Emphasis::Chip => delta = delta.set_bg(Role::Surface(Surface::Overlay)),
             Emphasis::Plain => {}
         }
         if let Some(r) = it.tone {

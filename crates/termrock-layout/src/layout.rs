@@ -81,7 +81,7 @@ fn deal_remainder(
     weight_of: impl Fn(&Track) -> u32,
     out: &mut [u16],
 ) {
-    let total: u32 = tracks.iter().map(|t| weight_of(t)).sum();
+    let total: u32 = tracks.iter().map(&weight_of).sum();
     let mut last = None;
     for (i, t) in tracks.iter().enumerate() {
         if weight_of(t) > 0 {

@@ -609,7 +609,7 @@ impl Page for PickersPage {
                 ];
                 let results_area = Rect {
                     y: body.y.saturating_add(8),
-                    height: 8,
+                    height: body.height.saturating_sub(8).min(8),
                     ..body
                 };
                 Panel::new(RESULTS_PANEL)

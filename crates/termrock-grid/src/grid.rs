@@ -1993,13 +1993,12 @@ impl<'a> Grid<'a> {
                 g.hidden_right = g.hidden_right.saturating_add(1);
                 if !window_closed {
                     window_closed = true;
-                    if let GridColumnFit::CompleteWithPreview { min_width } = self.column_fit {
-                        if avail.saturating_sub(used) >= min_width.max(1)
-                            && let (Some(px), Some(sh)) = (g.x.get_mut(i), g.shown.get_mut(i))
-                        {
-                            *px = x;
-                            *sh = true;
-                        }
+                    if let GridColumnFit::CompleteWithPreview { min_width } = self.column_fit
+                        && avail.saturating_sub(used) >= min_width.max(1)
+                        && let (Some(px), Some(sh)) = (g.x.get_mut(i), g.shown.get_mut(i))
+                    {
+                        *px = x;
+                        *sh = true;
                     }
                 }
                 continue;
