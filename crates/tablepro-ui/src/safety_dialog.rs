@@ -436,10 +436,13 @@ impl SafetyDialog {
                 .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Field))));
             ui.fill(field_rect, field_style);
 
+            let gutter_cell = Rect::new(field_rect.x, y + 1, 1, 1);
             if is_focused {
                 let accent_gutter =
                     field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
-                ui.paint_str(Rect::new(field_rect.x, y + 1, 1, 1), "▎", accent_gutter);
+                ui.paint_str(gutter_cell, "▎", accent_gutter);
+            } else {
+                ui.fill(gutter_cell, field_style.with_fg_from_bg(field_style));
             }
             if !self.input_text.is_empty() {
                 let text_style = field_style

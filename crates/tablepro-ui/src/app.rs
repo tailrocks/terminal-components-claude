@@ -683,6 +683,18 @@ impl Default for TableProApp {
     }
 }
 
+fn format_thousands(n: usize) -> String {
+    let s = n.to_string();
+    let mut out = String::with_capacity(s.len() + s.len() / 3);
+    for (i, c) in s.chars().rev().enumerate() {
+        if i > 0 && i % 3 == 0 {
+            out.push(',');
+        }
+        out.push(c);
+    }
+    out.chars().rev().collect()
+}
+
 impl TableProApp {
     /// Construct the deterministic demo app.
     pub fn new() -> Self {
@@ -1516,6 +1528,24 @@ impl TableProApp {
             sql::Statement::Select(select) => {
                 self.catalog.find(select.schema.as_deref(), &select.table)
             }
+            sql::Statement::Update { table, .. }
+            | sql::Statement::Delete { table, .. }
+            | sql::Statement::Insert { table }
+            | sql::Statement::Truncate { table }
+            | sql::Statement::Alter { table, .. } => {
+                let (schema, name) = match table.split_once('.') {
+                    Some((s, n)) => (Some(s), n),
+                    None => (None, table.as_str()),
+                };
+                self.catalog.find(schema, name)
+            }
+            sql::Statement::Drop { kind, name } if kind.eq_ignore_ascii_case("TABLE") => {
+                let (schema, n) = match name.split_once('.') {
+                    Some((s, n)) => (Some(s), n),
+                    None => (None, name.as_str()),
+                };
+                self.catalog.find(schema, n)
+            }
             _ => None,
         };
 
@@ -1541,7 +1571,8 @@ impl TableProApp {
                     "Execute write query?"
                 };
                 let mut facts = vec![
-                    Prop::new("Action", risk.action),
+                    Prop::new("Action", risk.action)
+                        .tone(if risk.dangerous { Tone::Error } else { Tone::Normal }),
                     Prop::new(
                         "Target",
                         format!(
@@ -2361,7 +2392,8 @@ impl TableProApp {
         if let Some(act) = action {
             match act {
                 SafetyDialogAction::Cancel => {
-                    let status = match dialog.intent {
+                    let intent = dialog.intent;
+                    let status = match intent {
                         SafetyIntent::Query => "Cancelled · nothing was executed",
                         SafetyIntent::Commit => "Changes kept pending",
                     };
@@ -2369,7 +2401,13 @@ impl TableProApp {
                     cx.close_layer(SAFETY_DIALOG, None);
                     status.clone_into(&mut self.status);
                     self.status_since = Some(cx.now());
-                    cx.focus(CONTENT_FRAME);
+                    if intent == SafetyIntent::Query
+                        && let Some(key) = self.workbench.active_key()
+                    {
+                        let query_id = key.control("query");
+                        cx.focus(query_id);
+                        self.workbench_focus = query_id;
+                    }
                     return Response::changed();
                 }
                 SafetyDialogAction::Confirm => {
@@ -2378,15 +2416,16 @@ impl TableProApp {
                     cx.close_layer(SAFETY_DIALOG, None);
                     match intent {
                         SafetyIntent::Query => {
-                            if let Some(key) = self.workbench.active_key()
-                                && let Some(Tab::Query(tab)) = self.workbench.tab_mut(key)
-                            {
-                                tab.affected = Some((8022, "UPDATE orders".to_owned()));
-                                tab.last_duration = Some(42);
-                                tab.result = None;
+                            if let Some(key) = self.workbench.active_key() {
+                                if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
+                                    tab.affected = Some((8022, "UPDATE orders".to_owned()));
+                                    tab.last_duration = Some(42);
+                                    tab.result = None;
+                                }
+                                let query_id = key.control("query");
+                                cx.focus(query_id);
+                                self.workbench_focus = query_id;
                             }
-                            self.status = "UPDATE orders · 8022 rows affected · 42 ms".to_owned();
-                            self.status_since = Some(cx.now());
                         }
                         SafetyIntent::Commit => {
                             self.committing = Some(4);
@@ -2395,7 +2434,6 @@ impl TableProApp {
                             cx.request_repaint_after(std::time::Duration::from_millis(80));
                         }
                     }
-                    cx.focus(CONTENT_FRAME);
                     return Response::changed();
                 }
             }
@@ -2751,41 +2789,51 @@ impl TableProApp {
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         for (key, tab) in self.workbench.payloads_mut() {
+            let ctrl = match tab {
+                Tab::Table(t) if t.is_structure() => key.control("structure"),
+                Tab::Table(_) => key.control("data"),
+                Tab::Query(_) => key.control("query"),
+                Tab::History(_) => key.control("history"),
+            };
+            if cx.intents(ctrl).any(|it| matches!(it, Intent::FocusIn { .. })) {
+                self.workbench_focus = ctrl;
+            }
             if let Tab::Query(query) = tab {
                 let id = key.control("query");
                 if !query.editor_state.is_editing() {
-                    let pressed_i = cx.intents(id).any(|it| {
-                        matches!(
-                            it,
-                            Intent::Key(termrock::Key {
-                                code: KeyCode::Char('i'),
-                                ..
-                            })
-                        )
-                    });
-                    if pressed_i {
-                        query.editor_state.begin(&query.query);
-                        response |= Response::changed();
-                        continue;
-                    }
-                }
-                let has_cancel = query.editor_state.is_editing()
-                    && cx.intents(id).any(|it| match it {
-                        Intent::Cancel => true,
+                    let enter_edit = cx.intents(id).any(|it| match it {
                         Intent::Key(termrock::Key {
-                            code: KeyCode::Esc,
+                            code: KeyCode::Char('i') | KeyCode::Enter,
                             ..
                         }) => true,
                         Intent::Binding(k) => {
-                            k == ActionKey::CANCEL || k == ActionKey::custom("Cancel")
+                            k == ActionKey::custom("Edit") || k == ActionKey::custom("Edit (i)")
                         }
                         _ => false,
                     });
+                    if enter_edit {
+                        query.editor_state.begin(&query.query);
+                        response |= Response::changed();
+                    }
+                    continue;
+                }
+                let has_cancel = cx.intents(id).any(|it| match it {
+                    Intent::Cancel => true,
+                    Intent::Key(termrock::Key {
+                        code: KeyCode::Esc,
+                        ..
+                    }) => true,
+                    Intent::Binding(k) => {
+                        k == ActionKey::CANCEL || k == ActionKey::custom("Cancel")
+                    }
+                    _ => false,
+                });
                 if has_cancel {
                     let _ = query
                         .editor_state
                         .commit(&mut query.query, &termrock::NoValidate);
-                    response |= Response::changed();
+                    response |= Response::consumed();
+                    continue;
                 } else {
                     response |= query_input(id, None)
                         .update(cx, &mut query.editor_state, &mut query.query)
@@ -5240,14 +5288,14 @@ impl TableProApp {
                             (
                                 format!("{affected_action} ({affected_count})"),
                                 format!(
-                                    " {affected_action} · {affected_count} rows affected · {ms} ms"
+                                    "{affected_action} · {affected_count} rows affected · {ms} ms"
                                 ),
                             )
                         } else if let Some(res) = &query.result {
                             let ms = query.last_duration.unwrap_or(15);
                             (
                                 format!("SELECT orders ({})", res.model.row_count()),
-                                format!(" {} rows · {ms} ms", res.model.row_count()),
+                                format!("{} rows · {ms} ms", res.model.row_count()),
                             )
                         } else {
                             (String::new(), String::new())
@@ -5271,7 +5319,7 @@ impl TableProApp {
                         ),
                     );
 
-                    let label_padded = format!(" {tab_text}  ");
+                    let label_padded = format!(" {tab_text} ");
                     let label_w = label_padded.len() as u16;
                     ui.paint_str(
                         termrock::Rect::new(inner.x, bottom_rect.y, label_w, 1),
@@ -5284,12 +5332,12 @@ impl TableProApp {
                         tab_close_style,
                     );
                     ui.paint_str(
-                        termrock::Rect::new(inner.x + label_w + 1, bottom_rect.y, 3, 1),
-                        "   ",
-                        elevated_style,
+                        termrock::Rect::new(inner.x + label_w + 1, bottom_rect.y, 2, 1),
+                        "  ",
+                        tab_title_style,
                     );
 
-                    let accent_line_w = (tab_text.len() + 5) as u16;
+                    let accent_line_w = label_w + 3;
                     let accent_style = ui
                         .surface_style()
                         .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
@@ -5316,62 +5364,95 @@ impl TableProApp {
                         .surface_style()
                         .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
                     ui.paint_str(
-                        termrock::Rect::new(inner.x, bottom_rect.y.saturating_add(2), inner.width, 1),
+                        termrock::Rect::new(inner.x + 1, bottom_rect.y.saturating_add(2), inner.width.saturating_sub(1), 1),
                         &status_text,
                         muted_style,
                     );
 
-                    if query.affected.is_some() {
-                        let card_rect = termrock::Rect::new(inner.x, bottom_rect.y.saturating_add(3), 60, 6);
-                        let card_style = ui.surface_style().patch(ui.paint_patch(
-                            &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
-                        ));
-                        ui.fill(card_rect, card_style);
-                        let sec_card = card_style.patch(
-                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-                        );
-                        let muted_card = card_style.patch(
-                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-                        );
-                        let primary_card = card_style.patch(
-                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
-                        );
+                    if let Some((affected_count, affected_action)) = &query.affected {
+                        let body_y = bottom_rect.y.saturating_add(3);
+                        let body_h = bottom_rect.bottom().saturating_sub(body_y);
+                        if body_h > 0 {
+                            let card_h = body_h.min(6);
+                            let card_w = bottom_rect.width.min(60);
+                            let card_rect = termrock::Rect::new(bottom_rect.x, body_y, card_w, card_h);
+                            let card_style = ui.surface_style().patch(ui.paint_patch(
+                                &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+                            ));
+                            ui.fill(card_rect, card_style);
+                            let sec_card = card_style.patch(
+                                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+                            );
+                            let muted_card = card_style.patch(
+                                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+                            );
+                            let primary_card = card_style.patch(
+                                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+                            );
 
-                        ui.paint_str(
-                            termrock::Rect::new(card_rect.x + 2, card_rect.y, 18, 1),
-                            "Statement executed",
-                            sec_card,
-                        );
-                        ui.paint_str(
-                            termrock::Rect::new(card_rect.x + 2, card_rect.y + 2, 9, 1),
-                            "Statement",
-                            muted_card,
-                        );
-                        ui.paint_str(
-                            termrock::Rect::new(card_rect.x + 17, card_rect.y + 2, 13, 1),
-                            "UPDATE orders",
-                            primary_card,
-                        );
-                        ui.paint_str(
-                            termrock::Rect::new(card_rect.x + 2, card_rect.y + 3, 13, 1),
-                            "Rows affected",
-                            muted_card,
-                        );
-                        ui.paint_str(
-                            termrock::Rect::new(card_rect.x + 17, card_rect.y + 3, 5, 1),
-                            "8,022",
-                            primary_card,
-                        );
-                        ui.paint_str(
-                            termrock::Rect::new(card_rect.x + 2, card_rect.y + 4, 8, 1),
-                            "Duration",
-                            muted_card,
-                        );
-                        ui.paint_str(
-                            termrock::Rect::new(card_rect.x + 17, card_rect.y + 4, 5, 1),
-                            "42 ms",
-                            muted_card,
-                        );
+                            ui.paint_str(
+                                termrock::Rect::new(card_rect.x + 2, card_rect.y, 18, 1),
+                                "Statement executed",
+                                sec_card,
+                            );
+
+                            let inner_y = card_rect.y + 2;
+                            let inner_h = card_rect.height.saturating_sub(3);
+                            if inner_h > 0 {
+                                ui.paint_str(
+                                    termrock::Rect::new(card_rect.x + 2, inner_y, 9, 1),
+                                    "Statement",
+                                    muted_card,
+                                );
+                                ui.paint_str(
+                                    termrock::Rect::new(
+                                        card_rect.x + 17,
+                                        inner_y,
+                                        affected_action.len() as u16,
+                                        1,
+                                    ),
+                                    affected_action,
+                                    primary_card,
+                                );
+                            }
+                            if inner_h > 1 {
+                                let rows_str = format_thousands(*affected_count);
+                                ui.paint_str(
+                                    termrock::Rect::new(card_rect.x + 2, inner_y + 1, 13, 1),
+                                    "Rows affected",
+                                    muted_card,
+                                );
+                                ui.paint_str(
+                                    termrock::Rect::new(
+                                        card_rect.x + 17,
+                                        inner_y + 1,
+                                        rows_str.len() as u16,
+                                        1,
+                                    ),
+                                    &rows_str,
+                                    primary_card,
+                                );
+                            }
+                            if inner_h > 2 {
+                                let ms = query.last_duration.unwrap_or(42);
+                                let dur_str = format!("{ms} ms");
+                                ui.paint_str(
+                                    termrock::Rect::new(card_rect.x + 2, inner_y + 2, 8, 1),
+                                    "Duration",
+                                    muted_card,
+                                );
+                                ui.paint_str(
+                                    termrock::Rect::new(
+                                        card_rect.x + 17,
+                                        inner_y + 2,
+                                        dur_str.len() as u16,
+                                        1,
+                                    ),
+                                    &dur_str,
+                                    muted_card,
+                                );
+                            }
+                        }
                     } else if query.result.is_some() {
                         let grid_area = termrock::Rect::new(
                             inner.x,
@@ -7445,6 +7526,11 @@ impl App for TableProApp {
         response |= self.update_safety_dialog(cx);
         response |= self.update_filter_editor(cx);
         response |= self.update_tab_controls(cx);
+        if self.screen == Screen::Workbench
+            && cx.intents(EXPLORER).any(|it| matches!(it, Intent::FocusIn { .. }))
+        {
+            self.workbench_focus = EXPLORER;
+        }
         if !self.status.is_empty() && self.status_since.is_none() {
             self.status_since = Some(cx.now());
         }
