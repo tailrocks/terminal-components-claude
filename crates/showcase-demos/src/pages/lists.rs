@@ -1,9 +1,9 @@
 //! Keyed collection rows, single selection and multi-selection.
 
 use termrock::{
-    Cx, EmptyState, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListAction, ListState,
-    Panel, PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StateFlags, StylePatch, Track,
-    Ui, Variant, id, layout,
+    Cx, EmptyState, Family, FgStep, FrameRead, Id, ItemKey, List, ListAction, ListState, Panel,
+    PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StateFlags, StylePatch, Track, Ui,
+    Variant, id, layout,
 };
 
 use crate::render_number::RenderNumber;
@@ -43,10 +43,6 @@ fn paint_chosen(ui: &mut Ui<'_>, inner: Rect, chosen: &str, style: termrock::aut
 const SINGLE: Id = id!("lists.single");
 const MULTI: Id = id!("lists.multi");
 const EMPTY: Id = id!("lists.empty");
-const LIST_GUTTER: &[(Part, StylePatch)] = &[(
-    Part::GUTTER,
-    StylePatch::new().set_glyph(GlyphRole::FocusBar),
-)];
 const PANEL_PARTS: &[(Part, StylePatch)] = &[(
     Part::TITLE,
     StylePatch::new()
@@ -183,10 +179,7 @@ fn single_list() -> List<
     impl Fn(&&'static str) -> ItemKey,
     impl Fn(&&'static str, &mut RowUi<'_>),
 > {
-    List::new(SINGLE)
-        .key(language_key)
-        .row(language_row)
-        .patch_part(LIST_GUTTER)
+    List::new(SINGLE).key(language_key).row(language_row)
 }
 
 /// The one multi-selection list constructor (§13): both phase paths build the
@@ -198,7 +191,6 @@ fn multi_list_with(
         .key(file_key)
         .row(row)
         .select_mode(SelectMode::Multi)
-        .patch_part(LIST_GUTTER)
         .disabled_item(&file_disabled)
 }
 
