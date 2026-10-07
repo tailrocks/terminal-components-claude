@@ -2325,4 +2325,163 @@ mod tests {
             "MARKER must ride the container fill, not carry its own DIM"
         );
     }
+
+    // Q66-S6 (F1-L9a+L9b): Junie MENU targeted mono set is the pressed pair
+    // plus (ROW+KEY, DISABLED)+DIM, and MENU KEY gains a DISABLED recipe
+    // rule. The tag's disabled menu row is a single `disabled_style` run at
+    // every level — fg `disabled`, DIM iff Mono, shortcut included (P4
+    // render pin; `tag:menu.rs:301-302,329,335-341`). The candidate
+    // `ui.fill` OVERWRITES modifiers (`paint.rs:389`), so ROW needs its own
+    // targeted +DIM rule; KEY resolves Muted with no disabled rule, so it
+    // needs the recipe rule (all levels) plus targeted +DIM. MENU-scoped
+    // deliberately (S2 rule): no generic (ROW|KEY,DISABLED) rule exists, and
+    // Paper keeps the pressed-only builtin. Resolved on Popover, the menu
+    // paint surface (`menu.rs:795`).
+    fn q66s6_menu_disabled_dim_at_mono_only(part: Part) {
+        use crate::theme::ColorLevel;
+
+        let tc = Theme::junie();
+        for theme in [
+            tc.clone(),
+            tc.downgrade(ColorLevel::Ansi256),
+            tc.downgrade(ColorLevel::Ansi16),
+            tc.downgrade(ColorLevel::Mono),
+        ] {
+            let r = theme.resolve(
+                Family::MENU,
+                Variant::DEFAULT,
+                part,
+                StateFlags::DISABLED,
+                Surface::Popover,
+            );
+            assert_eq!(
+                r.style.add_modifier.contains(Modifier::DIM),
+                theme.capability.color == ColorLevel::Mono,
+                "MENU {part:?} DISABLED DIM at {:?}",
+                theme.capability.color
+            );
+        }
+    }
+
+    /// F1-L9a: MENU ROW DISABLED is DisabledFg +DIM at Mono (pads ride the
+    /// `ui.fill(row, ...)` at `menu.rs:934`), DIM-free above it. The fg
+    /// ladder already holds on base (recipe fg-only rule); the RED half is
+    /// the Mono DIM.
+    #[test]
+    fn q66s6_l9a_menu_row_disabled_dim_at_mono_only() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        q66s6_menu_disabled_dim_at_mono_only(Part::ROW);
+        let tc = Theme::junie();
+        for (theme, want_fg) in [
+            (tc.clone(), Some(Color::Rgb(77, 77, 77))),
+            (tc.downgrade(ColorLevel::Ansi256), Some(Color::Indexed(238))),
+            (tc.downgrade(ColorLevel::Ansi16), Some(Color::DarkGray)),
+            (tc.downgrade(ColorLevel::Mono), Some(Color::DarkGray)),
+        ] {
+            let r = theme.resolve(
+                Family::MENU,
+                Variant::DEFAULT,
+                Part::ROW,
+                StateFlags::DISABLED,
+                Surface::Popover,
+            );
+            assert_eq!(
+                r.style.fg, want_fg,
+                "MENU ROW DISABLED fg at {:?}",
+                theme.capability.color
+            );
+        }
+    }
+
+    /// F1-L9b: MENU KEY DISABLED is the row style `st` — DisabledFg at every
+    /// level (P4: TC `Rgb(77,77,77)`, 256 `Indexed(238)`, 16/Mono
+    /// `DarkGray`), +DIM at Mono only.
+    #[test]
+    fn q66s6_l9b_menu_key_disabled_fg_and_dim() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        q66s6_menu_disabled_dim_at_mono_only(Part::KEY);
+        let tc = Theme::junie();
+        for (theme, want_fg) in [
+            (tc.clone(), Some(Color::Rgb(77, 77, 77))),
+            (tc.downgrade(ColorLevel::Ansi256), Some(Color::Indexed(238))),
+            (tc.downgrade(ColorLevel::Ansi16), Some(Color::DarkGray)),
+            (tc.downgrade(ColorLevel::Mono), Some(Color::DarkGray)),
+        ] {
+            let r = theme.resolve(
+                Family::MENU,
+                Variant::DEFAULT,
+                Part::KEY,
+                StateFlags::DISABLED,
+                Surface::Popover,
+            );
+            assert_eq!(
+                r.style.fg, want_fg,
+                "MENU KEY DISABLED fg at {:?}",
+                theme.capability.color
+            );
+        }
+    }
+
+    /// F1-L9a+L9b STRUCTURE: the Junie MENU targeted set EXTENDS the
+    /// pressed-only builtin (`downgrade.rs:604-622`) — whole-set replace
+    /// semantics would drop the pressed pair if it were not repeated. RED
+    /// on base (Junie authors no MENU set); the disabled pair is DIM-only
+    /// (PICKER shape: the recipe owns fg).
+    #[test]
+    fn q66s6_menu_targeted_set_extends_pressed_with_disabled() {
+        let junie = Theme::junie();
+        let set = junie
+            .recipes
+            .mono_rules(Family::MENU)
+            .expect("Junie authors a MENU targeted set");
+        assert_eq!(set.len(), 4, "pressed pair + disabled pair, nothing else");
+        for (part, when) in [
+            (Part::ROW, StateFlags::PRESSED),
+            (Part::TITLE, StateFlags::PRESSED),
+            (Part::ROW, StateFlags::DISABLED),
+            (Part::KEY, StateFlags::DISABLED),
+        ] {
+            assert!(
+                set.iter().any(|(p, w, _)| *p == part && *w == when),
+                "MENU targeted set lost ({part:?}, {when:?})"
+            );
+        }
+        for part in [Part::ROW, Part::KEY] {
+            let (_, _, patch) = set
+                .iter()
+                .find(|(p, w, _)| *p == part && *w == StateFlags::DISABLED)
+                .expect("disabled rule present");
+            assert!(
+                patch.add.contains(Modifier::DIM),
+                "MENU ({part:?}, DISABLED) carries no DIM"
+            );
+        }
+    }
+
+    /// F1-L9a+L9b HOLD: Paper MENU ROW/KEY DISABLED carries NO own DIM at
+    /// Mono — the slice is Junie-scoped deliberately (no tag/Paper oracle).
+    /// GREEN on base and after; guards against a generic or Paper-blast rule.
+    #[test]
+    fn q66s6_hold_paper_menu_disabled_has_no_own_dim() {
+        use crate::theme::ColorLevel;
+
+        let mono = Theme::paper().downgrade(ColorLevel::Mono);
+        for part in [Part::ROW, Part::KEY] {
+            let r = mono.resolve(
+                Family::MENU,
+                Variant::DEFAULT,
+                part,
+                StateFlags::DISABLED,
+                Surface::Popover,
+            );
+            assert!(
+                !r.style.add_modifier.contains(Modifier::DIM),
+                "Paper MENU {part:?} DISABLED must stay DIM-free"
+            );
+        }
+    }
 }

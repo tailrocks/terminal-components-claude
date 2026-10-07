@@ -198,6 +198,7 @@ pub(crate) const fn design() -> DesignTokens {
 /// Keep this in the recipe so Paper and token-only themes retain their policy,
 /// while Junie-derived themes still bind all colours from their live tokens.
 pub(crate) fn recipes() -> crate::theme::Recipes {
+    use crate::theme::glyph::GlyphRole;
     use crate::theme::{Family, FgStep, Modifier, Role, Slot, StylePatch};
     use crate::{Part, StateFlags};
 
@@ -309,6 +310,43 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
             ),
             (Part::GUTTER, StateFlags::DISABLED, dim),
             (Part::META, StateFlags::DISABLED, dim),
+        ],
+    );
+    // Q66-S6 (F1-L9b-fg): a disabled menu shortcut is the row style `st`
+    // (tag:menu.rs:335-341; P4 pins TC `Rgb(77,77,77)`, 256 `Indexed(238)`,
+    // 16/Mono `DarkGray`) — DisabledFg at every level. MENU-scoped: HELP
+    // and KEYHINT resolve KEY under their own families and keep their
+    // tones.
+    recipes
+        .get_mut(Family::MENU)
+        .parts
+        .entry(Part::KEY)
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
+    // Q66-S6 (F1-L9a+L9b-DIM): the MENU targeted mono set is the pressed
+    // pair plus (ROW+KEY, DISABLED)+DIM — the PICKER shape (DIM-only rules;
+    // `downgrade.rs:639-680`). The tag's disabled menu row is a single
+    // `disabled_style` run at Mono — fill, label, and shortcut alike (P4
+    // render pin; `tag:menu.rs:301-302,329,335-341`) — and `ui.fill`
+    // overwrites modifiers (`paint.rs:389`), so the ROW fill needs its own
+    // rule. Whole-set replace semantics: the set REPEATS the pressed-only
+    // builtin (`downgrade.rs:604-622`) verbatim and extends it — the ROW
+    // pressed patch reuses the value-identical `pressed` binding. DIM-only,
+    // not the LIST restore shape: the MENU ROW recipe declares PRESSED
+    // after DISABLED, so pressed wins ties at TC, and a mono-only fg/bg
+    // restore would diverge from TC in that corner. MENU-scoped: no generic
+    // (ROW|KEY,DISABLED) rule exists, and Paper keeps the pressed-only
+    // builtin.
+    recipes.set_mono_rules(
+        Family::MENU,
+        vec![
+            (Part::ROW, StateFlags::PRESSED, pressed),
+            (
+                Part::TITLE,
+                StateFlags::PRESSED,
+                p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
+            ),
+            (Part::ROW, StateFlags::DISABLED, dim),
+            (Part::KEY, StateFlags::DISABLED, dim),
         ],
     );
     recipes
