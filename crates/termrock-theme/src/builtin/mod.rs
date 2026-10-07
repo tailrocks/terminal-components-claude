@@ -746,8 +746,16 @@ pub(crate) fn default_recipes() -> Recipes {
         match f {
             Family::BUTTON => button(r),
             Family::MENU => menu(r),
-            Family::FIELD | Family::INPUT | Family::TEXTAREA | Family::CODE => {
+            Family::FIELD | Family::INPUT | Family::TEXTAREA => {
                 field_like(&mut r.parts);
+            }
+            Family::CODE => {
+                field_like(&mut r.parts);
+                part(
+                    &mut r.parts,
+                    Part::META,
+                    p().set_fg(Role::Fg(FgStep::Muted)),
+                );
             }
             Family::SELECT => {
                 field_like(&mut r.parts);

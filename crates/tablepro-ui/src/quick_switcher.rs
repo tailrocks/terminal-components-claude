@@ -1,7 +1,8 @@
 //! Application-owned switcher projection over shared Picker.
 
 use termrock::{
-    AsItem, FilterPolicy, Id, Item, ItemKey, ItemRowLayout, Picker, PickerState, ScopeKey,
+    AsItem, FilterPolicy, Id, Item, ItemKey, ItemRowLayout, LayerSize, Picker, PickerState,
+    ScopeKey,
 };
 
 use crate::model::{SwitchItem, SwitchTarget, SwitcherIndex};
@@ -59,20 +60,27 @@ impl QuickSwitcher {
         self.refresh();
     }
 
-    pub fn component(&self) -> Picker<'static, SwitchItem> {
-        let title = match self.state.scope(SCOPES).map(ScopeKey::get) {
-            Some(1) => "Open Quickly · Tables · Tab scope",
-            Some(2) => "Open Quickly · Schemas · Tab scope",
-            Some(3) => "Open Quickly · Queries · Tab scope",
-            _ => "Open Quickly · All · Tab scope",
+    pub fn component(&self, cols: u16, screen_rows: u16) -> Picker<'static, SwitchItem> {
+        let meta = match self.state.scope(SCOPES).map(ScopeKey::get) {
+            Some(1) => "Tables · Tab scope",
+            Some(2) => "Schemas · Tab scope",
+            Some(3) => "Queries · Tab scope",
+            _ => "All · Tab scope",
         };
+        let w = 88.min(cols.saturating_sub(4));
+        let rows = (self.items.len() as u16).clamp(1, 12);
+        let h = (7 + rows).min(screen_rows.saturating_sub(2));
         Picker::new(ID)
-            .title(title)
+            .title("Open Quickly")
+            .meta(meta)
             .placeholder("Search tables, views, schemas, tabs, queries…")
-            .width(88)
+            .width(w)
+            .size(LayerSize::Fixed(w, h))
+            .footer("↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close")
             .scopes(SCOPES)
             .filter(FilterPolicy::Caller)
             .item_layout(ItemRowLayout::Columns)
+            .align(termrock::ScreenAlign::UpperThird)
     }
 
     pub fn refresh(&mut self) {
@@ -93,6 +101,6 @@ impl QuickSwitcher {
         if self.state.query().is_empty() && scope == 0 {
             self.items.truncate(24);
         }
-        self.component().reconcile(&mut self.state, &self.items);
+        self.component(120, 40).reconcile(&mut self.state, &self.items);
     }
 }

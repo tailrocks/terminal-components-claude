@@ -693,6 +693,7 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     query: Option<TreeQuery<'a, T>>,
     disabled: bool,
+    focused: Option<bool>,
     empty: Option<EmptyState<'a>>,
     ov: PartStyle<'a>,
     /// The same three override channels again, kept because `PartStyle` has
@@ -743,6 +744,7 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             disabled_item: None,
             query: None,
             disabled: false,
+            focused: None,
             empty: None,
             ov: PartStyle::new(),
             fwd_patch: None,
@@ -849,6 +851,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             disabled_item: self.disabled_item,
             query: self.query,
             disabled: self.disabled,
+            focused: self.focused,
             empty: self.empty,
             ov: self.ov,
             fwd_patch: self.fwd_patch,
@@ -892,6 +895,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             disabled_item: self.disabled_item,
             query: self.query,
             disabled: self.disabled,
+            focused: self.focused,
             empty: self.empty,
             ov: self.ov,
             fwd_patch: self.fwd_patch,
@@ -924,6 +928,13 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
+        self
+    }
+
+    /// Explicit focus override for composite or backdrop rendering.
+    #[must_use]
+    pub const fn focused(mut self, yes: bool) -> Self {
+        self.focused = Some(yes);
         self
     }
 
@@ -968,6 +979,9 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         }
         if let Some((p, f)) = self.fwd_slot {
             s = s.slot(p, f);
+        }
+        if let Some(focused) = self.focused {
+            s = s.focused(focused);
         }
         s
     }
@@ -1781,7 +1795,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 },
             );
         }
-        let live = PartStyle::flags(ui.state(self.id), self.derived());
+        let live_flags = if let Some(yes) = self.focused {
+            if yes {
+                ui.state(self.id) | StateFlags::FOCUSED
+            } else {
+                ui.state(self.id).difference(StateFlags::FOCUSED)
+            }
+        } else {
+            ui.state(self.id)
+        };
+        let live = PartStyle::flags(live_flags, self.derived());
         let (len, foldable, query_active) = {
             let index = ui.cache::<TreeIndex>(self.id);
             index.sync(self, st, items);

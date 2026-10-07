@@ -279,6 +279,7 @@ pub struct Dialog<'a> {
     input_label: Option<&'a str>,
     ack: Option<&'a str>,
     error: Option<&'a str>,
+    max_height: Option<u16>,
     ov: PartStyle<'a>,
 }
 
@@ -326,6 +327,7 @@ impl<'a> Dialog<'a> {
             input_label: None,
             ack: None,
             error: None,
+            max_height: None,
             ov: PartStyle::new(),
         }
     }
@@ -469,6 +471,13 @@ impl<'a> Dialog<'a> {
     #[must_use]
     pub const fn body_rows(mut self, n: u16) -> Self {
         self.body_rows = Some(n);
+        self
+    }
+
+    /// The maximum dialog height (clamped to the area).
+    #[must_use]
+    pub const fn max_height(mut self, h: u16) -> Self {
+        self.max_height = Some(h);
         self
     }
 
@@ -701,11 +710,17 @@ impl<'a> Dialog<'a> {
         let desc = self.description.map_or(0, |s| wrapped_rows(s, inner));
         let title_rows: u16 = if self.title.is_some() { 2 } else { 0 };
         let action_rows: u16 = if self.actions.is_empty() { 0 } else { 2 };
-        4u16.saturating_add(title_rows)
+        let total = 4u16
+            .saturating_add(title_rows)
             .saturating_add(desc)
             .saturating_add(self.input_rows(d))
             .saturating_add(self.body_block(d))
-            .saturating_add(action_rows)
+            .saturating_add(action_rows);
+        if let Some(max) = self.max_height {
+            total.min(max)
+        } else {
+            total
+        }
     }
 
     /// The control that holds initial focus when the dialog opens:
