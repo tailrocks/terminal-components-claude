@@ -806,6 +806,16 @@ pub enum GridSortIndicator {
     ActiveOnly,
 }
 
+/// How the header marks horizontally hidden columns.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum GridOverflowIndicator {
+    /// Existing behavior: `‹N` / `N›` with the hidden count.
+    #[default]
+    Count,
+    /// A single `…` at the window edge (legacy table parity).
+    Ellipsis,
+}
+
 /// Durable state of a [`Grid`].
 ///
 /// Holds the cursor cell, the rectangular range anchor, the row selection,
@@ -1277,11 +1287,13 @@ pub struct Grid<'a> {
     column_gap: u16,
     gutter: GridGutter,
     right_reserve: u16,
+    left_reserve: u16,
     part_defaults: &'a [(Part, StylePatch)],
     header_prefixes: &'a [(ColumnKey, GlyphRole, Role)],
     column_fit: GridColumnFit,
     header_sizing: GridHeaderSizing,
     sort_indicator: GridSortIndicator,
+    overflow_indicator: GridOverflowIndicator,
     disabled: bool,
     fetch_on_activate: bool,
     fetch_label: &'a str,
@@ -1336,11 +1348,13 @@ impl<'a> Grid<'a> {
             column_gap: 1,
             gutter: GridGutter::Compact,
             right_reserve: 0,
+            left_reserve: 0,
             part_defaults: &[],
             header_prefixes: &[],
             column_fit: GridColumnFit::Whole,
             header_sizing: GridHeaderSizing::Content,
             sort_indicator: GridSortIndicator::Always,
+            overflow_indicator: GridOverflowIndicator::Count,
             disabled: false,
             fetch_on_activate: false,
             fetch_label: "more",
@@ -1500,6 +1514,13 @@ impl<'a> Grid<'a> {
         self
     }
 
+    /// Reserve leading cells between the gutter and the first column.
+    #[must_use]
+    pub const fn left_reserve(mut self, cells: u16) -> Self {
+        self.left_reserve = cells;
+        self
+    }
+
     /// Horizontal cells between columns; defaults to one.
     #[must_use]
     pub const fn column_gap(mut self, gap: u16) -> Self {
@@ -1525,6 +1546,13 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn sort_indicator(mut self, policy: GridSortIndicator) -> Self {
         self.sort_indicator = policy;
+        self
+    }
+
+    /// Choose how the header marks horizontally hidden columns.
+    #[must_use]
+    pub const fn overflow_indicator(mut self, policy: GridOverflowIndicator) -> Self {
+        self.overflow_indicator = policy;
         self
     }
 
@@ -1933,12 +1961,16 @@ impl<'a> Grid<'a> {
         g.n = self.column_count();
         g.gutter_width = gutter_width.min(body.width);
         g.number_width = number_width;
-        g.content_x = body.x.saturating_add(g.gutter_width);
+        g.content_x = body
+            .x
+            .saturating_add(g.gutter_width)
+            .saturating_add(self.left_reserve);
         g.columns_area = Rect {
             x: g.content_x,
             width: body
                 .width
                 .saturating_sub(gutter_width)
+                .saturating_sub(self.left_reserve)
                 .saturating_sub(self.right_reserve),
             ..body
         };
@@ -3108,9 +3140,14 @@ impl Grid<'_> {
 }
 
 impl Grid<'_> {
-    fn right_overflow_rect(head: Rect, geometry: &Geometry) -> Rect {
-        let count = Num::new(geometry.hidden_right);
-        let indicator_width = width(count.as_str()).saturating_add(1).min(head.width);
+    fn right_overflow_rect(&self, head: Rect, geometry: &Geometry) -> Rect {
+        let indicator_width = match self.overflow_indicator {
+            GridOverflowIndicator::Count => {
+                let count = Num::new(geometry.hidden_right);
+                width(count.as_str()).saturating_add(1).min(head.width)
+            }
+            GridOverflowIndicator::Ellipsis => 1u16.min(head.width),
+        };
         let x = if geometry
             .columns_area
             .right()
@@ -3172,37 +3209,52 @@ impl Grid<'_> {
             )
             .style;
         if geometry.hidden_left > 0 {
-            let count = Num::new(geometry.hidden_left);
-            let indicator_width = width(count.as_str()).saturating_add(1);
             let at = Rect {
                 x: head.x.saturating_add(1),
-                width: indicator_width.min(head.width.saturating_sub(1)),
+                width: match self.overflow_indicator {
+                    GridOverflowIndicator::Count => {
+                        let count = Num::new(geometry.hidden_left);
+                        width(count.as_str())
+                            .saturating_add(1)
+                            .min(head.width.saturating_sub(1))
+                    }
+                    GridOverflowIndicator::Ellipsis => 1u16.min(head.width.saturating_sub(1)),
+                },
                 ..head
             };
-            let used = ui.glyph(at, GlyphRole::OverflowLeft, style);
-            ui.paint_str(
-                Rect {
-                    x: at.x.saturating_add(used),
-                    width: at.width.saturating_sub(used),
-                    ..at
-                },
-                count.as_str(),
-                style,
-            );
+            if self.overflow_indicator == GridOverflowIndicator::Ellipsis {
+                ui.glyph(at, GlyphRole::Ellipsis, style);
+            } else {
+                let count = Num::new(geometry.hidden_left);
+                let used = ui.glyph(at, GlyphRole::OverflowLeft, style);
+                ui.paint_str(
+                    Rect {
+                        x: at.x.saturating_add(used),
+                        width: at.width.saturating_sub(used),
+                        ..at
+                    },
+                    count.as_str(),
+                    style,
+                );
+            }
         }
         if geometry.hidden_right > 0 {
-            let count = Num::new(geometry.hidden_right);
-            let at = Self::right_overflow_rect(head, geometry);
-            let used = ui.paint_str(at, count.as_str(), style);
-            ui.glyph(
-                Rect {
-                    x: at.x.saturating_add(used),
-                    width: at.width.saturating_sub(used),
-                    ..at
-                },
-                GlyphRole::OverflowRight,
-                style,
-            );
+            let at = self.right_overflow_rect(head, geometry);
+            if self.overflow_indicator == GridOverflowIndicator::Ellipsis {
+                ui.glyph(at, GlyphRole::Ellipsis, style);
+            } else {
+                let count = Num::new(geometry.hidden_right);
+                let used = ui.paint_str(at, count.as_str(), style);
+                ui.glyph(
+                    Rect {
+                        x: at.x.saturating_add(used),
+                        width: at.width.saturating_sub(used),
+                        ..at
+                    },
+                    GlyphRole::OverflowRight,
+                    style,
+                );
+            }
         }
     }
 
@@ -3297,8 +3349,7 @@ impl Grid<'_> {
             live,
         );
         ui.fill(head, hs.style);
-        let right_overflow =
-            (g.hidden_right > 0).then(|| Self::right_overflow_rect(head, g));
+        let right_overflow = (g.hidden_right > 0).then(|| self.right_overflow_rect(head, g));
         for i in 0..g.n {
             let raw_rect = g.cell(i, head.y);
             let Some(col) = self.columns.get(i) else {
@@ -3328,7 +3379,10 @@ impl Grid<'_> {
                     .saturating_sub(filter_width),
                 ..rect
             };
-            let is_selected = (st.col == Some(col.key) || (st.col.is_none() && i == 0))
+            // Row navigation highlights no header column (legacy table
+            // parity); cell navigation keeps the cursor-column highlight.
+            let is_selected = self.nav == NavUnit::Cell
+                && st.col == Some(col.key)
                 && live.contains(StateFlags::FOCUSED);
             let is_sorted = st.sort.is_some_and(|(key, _)| key == col.key);
             let title_tone = if is_selected || is_sorted || col.filtered {
@@ -3618,7 +3672,17 @@ impl Grid<'_> {
             // resolution. Dedicated gutter parts are opt-in; Compact preserves
             // the historical ROW-based slot and style behavior.
             if is_cursor && live.contains(StateFlags::FOCUSED) {
-                ui.glyph(super::cell_at(band, band.x), GlyphRole::FocusBar, row_style);
+                let focus_gutter =
+                    row_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Focus)));
+                ui.glyph(
+                    super::cell_at(band, band.x),
+                    GlyphRole::FocusBar,
+                    focus_gutter,
+                );
+            } else {
+                let hidden_gutter = row_style
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::CurrentSurface)));
+                ui.paint_str(super::cell_at(band, band.x), " ", hidden_gutter);
             }
             let marker_cell = super::cell_at(band, band.x.saturating_add(1));
             if checked {
@@ -3657,7 +3721,10 @@ impl Grid<'_> {
                 .then(|| state.edit_error())
                 .flatten();
             let mut cflags = rflags.difference(StateFlags::PRESSED);
-            if is_cursor && i == cursor.1 && live.contains(StateFlags::FOCUSED) {
+            // Row navigation has no cell cursor: the whole cursor row carries
+            // focus (legacy table parity); only cell navigation inverts one cell.
+            let is_cursor_cell = self.nav == NavUnit::Cell && is_cursor && i == cursor.1;
+            if is_cursor_cell && live.contains(StateFlags::FOCUSED) {
                 cflags |= StateFlags::ACTIVE;
             }
             if range
@@ -3707,7 +3774,7 @@ impl Grid<'_> {
                 cflags,
             );
             let mut cell_delta = StylePatch::new();
-            if !(is_cursor && i == cursor.1 && live.contains(StateFlags::FOCUSED)) {
+            if !(is_cursor_cell && live.contains(StateFlags::FOCUSED)) {
                 if let Some(role) = cdecor.tone.or(cell.tone) {
                     cell_delta = cell_delta.set_fg(role);
                 } else if self
