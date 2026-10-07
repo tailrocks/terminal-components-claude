@@ -4977,6 +4977,377 @@
         ]
       }
     }
+,
+    {
+      "id": "FLIST-ACCOUNT-003",
+      "app": "jackin-preview",
+      "component": "FilterList",
+      "part": "applied tree filter with its truncated title",
+      "ref_symbols": [
+        {
+          "glyph": "Accounts · filt…",
+          "meaning": "truncated applied-filter title"
+        },
+        {
+          "glyph": "★ Personal",
+          "meaning": "unmatched account present only without the filter"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Accounts · filt…",
+          "meaning": "truncated applied-filter title"
+        },
+        {
+          "glyph": "★ Personal",
+          "meaning": "unmatched account present only without the filter"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/jackin_preview/screens/accounts.rs",
+          "symbols": [
+            "filter",
+            "Filter accounts",
+            "Filter cleared",
+            "build_rows"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "filter": "work",
+        "matches": "Work plus its Claude parent"
+      },
+      "state": {
+        "filter": "work",
+        "cursor": "Overview"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario accounts-mixed (Accounts route)"
+        },
+        {
+          "step": 2,
+          "action": "press / (the Filter accounts dialog opens)",
+          "key": "/",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Enter (the filter input begins editing), type work, press Enter (the filter commits and applies)"
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the filter clears and the full tree returns)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press a (the add form opens), then Esc (it cancels)",
+          "key": "a",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "filter-applied",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the tree title renders the applied filter truncated (Accounts · filt…) beside the 12 · 4 ▲ · 4 ! counts"
+          },
+          {
+            "id": "V2",
+            "text": "only the Work match survives with its ▾ Claude parent; ★ Personal is gone"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the filtered tree keeps its footer (Enter Details, / Filter)"
+          },
+          {
+            "id": "S2",
+            "text": "the boot tree holds ★ Personal (the unfiltered presence proof)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc clears the filter: ★ Personal returns and the filtered title expires"
+          },
+          {
+            "id": "A2",
+            "text": "a opens the New account form and Esc cancels it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the filtered title must NOT show after Esc clears the filter"
+          },
+          {
+            "id": "N2",
+            "text": "the add form must NOT stay open after its Esc cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "1961-1973",
+            "note": "/ opens the Filter accounts prompt dialog"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "2111-2117",
+            "note": "Esc with a filter clears it and rebuilds the rows"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/accounts.rs",
+            "lines": "1189-1190",
+            "note": "the tree title renders the active filter"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/accounts/filter/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T11:02:48Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8g J1 j1_accounts_filter live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "TREE-MANAGER-007",
+      "app": "jackin-preview",
+      "component": "Tree",
+      "part": "manager tree with expanded workspace",
+      "ref_symbols": [
+        {
+          "glyph": "▾ payments-platform",
+          "meaning": "expanded workspace row"
+        },
+        {
+          "glyph": "◉ 7f3a",
+          "meaning": "running tree instance row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▾ payments-platform",
+          "meaning": "expanded workspace row"
+        },
+        {
+          "glyph": "◉ 7f3a",
+          "meaning": "running tree instance row"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/jackin_preview/screens/manager.rs",
+          "symbols": [
+            "toggle_expand",
+            "expanded",
+            "move_cursor"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "workspace": "payments-platform",
+        "instances": 2
+      },
+      "state": {
+        "expanded": [
+          "payments-platform"
+        ],
+        "selected": "Workspace"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot jackin-preview with --scenario returning (Manager route)"
+        },
+        {
+          "step": 2,
+          "action": "press Down, space (payments-platform expands)",
+          "key": "space",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press space (the workspace collapses)",
+          "key": "space",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press space (the workspace expands again)",
+          "key": "space",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press ctrl-q (the quit confirm opens), Esc (it cancels)",
+          "key": "ctrl-q",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tree-expanded",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the ▾ payments-platform row shows under the Workspaces › payments-platform crumb"
+          },
+          {
+            "id": "V2",
+            "text": "the tree instance rows read ◉ 7f3a with the truncated agent label and ◌ c41e with •"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the cursor sits on the expanded workspace (▎ shares its line)"
+          },
+          {
+            "id": "S2",
+            "text": "the footer shows the tree hints (→ Expand, Tab Details)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "space collapses the workspace (tree instance rows expire; detail rows persist)"
+          },
+          {
+            "id": "A2",
+            "text": "space expands it again (the toggle roundtrip)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the quit confirm must NOT show after its cancel (Exit jackin❯? expires)"
+          },
+          {
+            "id": "N2",
+            "text": "the tree must NOT collapse on the quit roundtrip (▸ payments-platform never shows)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1895-1898",
+            "note": "Down moves the tree cursor"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/manager.rs",
+            "lines": "1941-1946",
+            "note": "space toggles workspace expansion"
+          },
+          {
+            "path": "src/bin/jackin_preview/screens/modals.rs",
+            "lines": "672-674",
+            "note": "dialog Esc fires the cancel action"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/jackin/manager/tree_expanded/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T11:02:48Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8g J1 j1_manager_tree_expanded live-PTY PASS @07a56acf (nextest visual_baseline --run-ignored only --test-threads 2, 30 pass/0 fail/405 skip; bin tests/harness/target/debug/jackin-preview 14442144B sha256:846165d454277e51 built 2026-10-07T10:59:55Z; log /tmp/phase8g-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "coverage": [
     {
@@ -5050,7 +5421,8 @@
       "component": "FilterList",
       "rows": [
         "FLIST-QUERY-001",
-        "FLIST-CHOICE-002"
+        "FLIST-CHOICE-002",
+        "FLIST-ACCOUNT-003"
       ],
       "handlers": [
         "query edits, word kill, grapheme backspace, and single-event paste",
@@ -5121,7 +5493,8 @@
         "TREE-WHEEL-003",
         "TREE-CONN-004",
         "TREE-DUP-005",
-        "TREE-DETAIL-006"
+        "TREE-DETAIL-006",
+        "TREE-MANAGER-007"
       ],
       "handlers": [
         "flatten by path identity with substring filter and relocate (tree.rs)",
@@ -5809,6 +6182,38 @@
       "status": "mapped",
       "also": [],
       "note": "phase-8e slice 8A-T1: t1_table_structure live-PTY check"
+    }
+,
+    {
+      "old": "jackin/accounts/filter",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "FLIST-ACCOUNT-003",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8g slice 8A-J1: j1_accounts_filter live-PTY check"
+    }
+,
+    {
+      "old": "jackin/manager/tree_expanded",
+      "app": "jackin",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "TREE-MANAGER-007",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8g slice 8A-J1: j1_manager_tree_expanded live-PTY check"
     }
   ]
 }
