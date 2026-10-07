@@ -286,5 +286,30 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
         .entry(Part::CONTAINER)
         .states
         .retain(|rule| !rule.when.contains(StateFlags::HOVERED));
+    // Q66-S5 (F1-L6): the TREE targeted mono set is
+    // (CONTAINER+GUTTER+META, DISABLED)+DIM — the LIST mirror (Q66-S3),
+    // principle-only (Q65 GHOST precedent): tag tree never sets disabled,
+    // so no tag/frozen pin exists. The CONTAINER rule reuses the explicit
+    // disabled restore (pressed+disabled) and gains +DIM; GUTTER/META are
+    // DIM-only. No BADGE rule: Tree paints no badge (`tree.rs` has no
+    // `Part::BADGE` site). No ICON rule: the LIST mirror has none, and leaf
+    // disclosure cells ride the container fill (`tree.rs:2015-2017`);
+    // branch-glyph DIM is the open L7b-DIM class, not this slice. No MARKER
+    // rule: the marker cell is unpainted unless selected
+    // (`tree.rs:2085-2087`) and rides the container. TREE-scoped: a generic
+    // (CONTAINER,DISABLED)+DIM would regress the button gutter
+    // (`q65s8_hold_gutter_dim_free` pins it DIM-free).
+    recipes.set_mono_rules(
+        Family::TREE,
+        vec![
+            (
+                Part::CONTAINER,
+                StateFlags::DISABLED,
+                disabled.add(Modifier::DIM),
+            ),
+            (Part::GUTTER, StateFlags::DISABLED, dim),
+            (Part::META, StateFlags::DISABLED, dim),
+        ],
+    );
     recipes
 }

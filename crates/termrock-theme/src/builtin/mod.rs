@@ -2097,4 +2097,232 @@ mod tests {
             "MARKER must ride the container fill, not carry its own DIM"
         );
     }
+
+    // Q66-S5 (F1-L6): Junie TREE targeted mono set is
+    // (CONTAINER+GUTTER+META, DISABLED)+DIM — the LIST mirror (Q66-S3).
+    // Principle-only (Q65 GHOST precedent): tag tree never sets disabled
+    // (`tag:tree.rs` has no `disabled`), so no tag/frozen pin exists; the
+    // oracle is the tag's fill+DIM row shape plus the LIST frozen pin
+    // (`lists/hover/120x40/none` y10). The candidate `ui.fill` OVERWRITES
+    // modifiers (`paint.rs:389`), so each fill-painted part needs its own
+    // targeted +DIM rule. TREE-scoped deliberately (S2 rule): the S8
+    // `q65s8_hold_gutter_dim_free` pin forbids a generic
+    // (CONTAINER,DISABLED)+DIM, and Paper authors no mono rules at all.
+    fn q66s5_tree_disabled_dim_at_mono_only(part: Part) {
+        use crate::theme::ColorLevel;
+
+        let tc = Theme::junie();
+        for theme in [
+            tc.clone(),
+            tc.downgrade(ColorLevel::Ansi256),
+            tc.downgrade(ColorLevel::Ansi16),
+            tc.downgrade(ColorLevel::Mono),
+        ] {
+            let r = theme.resolve(
+                Family::TREE,
+                Variant::DEFAULT,
+                part,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                r.style.add_modifier.contains(Modifier::DIM),
+                theme.capability.color == ColorLevel::Mono,
+                "TREE {part:?} DISABLED DIM at {:?}",
+                theme.capability.color
+            );
+        }
+    }
+
+    /// F1-L6: TREE CONTAINER DISABLED is DisabledFg +DIM at Mono (pads),
+    /// DIM-free above it. The `row_like` recipe yields the same DisabledFg
+    /// token as LIST, so the ladder matches the S3 LIST pins exactly.
+    #[test]
+    fn q66s5_l6_tree_container_disabled_dim_at_mono_only() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        q66s5_tree_disabled_dim_at_mono_only(Part::CONTAINER);
+        let tc = Theme::junie();
+        for (theme, want_fg) in [
+            (tc.clone(), Some(Color::Rgb(77, 77, 77))),
+            (tc.downgrade(ColorLevel::Ansi256), Some(Color::Indexed(238))),
+            (tc.downgrade(ColorLevel::Ansi16), Some(Color::DarkGray)),
+            (tc.downgrade(ColorLevel::Mono), Some(Color::DarkGray)),
+        ] {
+            let r = theme.resolve(
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                r.style.fg, want_fg,
+                "TREE CONTAINER DISABLED fg at {:?}",
+                theme.capability.color
+            );
+        }
+    }
+
+    /// F1-L6: TREE GUTTER DISABLED gains +DIM at Mono and keeps the Clear glyph.
+    #[test]
+    fn q66s5_l6_tree_gutter_disabled_dim_at_mono_only() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        q66s5_tree_disabled_dim_at_mono_only(Part::GUTTER);
+        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        let r = mono.resolve(
+            Family::TREE,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            StateFlags::DISABLED,
+            Surface::Canvas,
+        );
+        assert_eq!(
+            r.style.fg,
+            Some(Color::Black),
+            "gutter fg stays surface-black"
+        );
+        assert!(
+            matches!(r.glyph, Slot::Clear),
+            "gutter keeps the Clear glyph, got {:?}",
+            r.glyph
+        );
+    }
+
+    /// F1-L6: TREE META DISABLED gains +DIM at Mono; fg stays the Muted
+    /// ladder (tag tree meta is `st.fg(muted)`, `tag:tree.rs:637-642`) —
+    /// the S2 LIST META→DisabledFg rule must NOT move it (M2 trap).
+    #[test]
+    fn q66s5_l6_tree_meta_disabled_dim_at_mono_only() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        q66s5_tree_disabled_dim_at_mono_only(Part::META);
+        let tc = Theme::junie();
+        for (theme, want_fg) in [
+            (tc.clone(), Some(Color::Rgb(128, 128, 128))),
+            (tc.downgrade(ColorLevel::Ansi256), Some(Color::Indexed(244))),
+            (tc.downgrade(ColorLevel::Ansi16), Some(Color::Gray)),
+            (tc.downgrade(ColorLevel::Mono), Some(Color::Gray)),
+        ] {
+            let r = theme.resolve(
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::META,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                r.style.fg, want_fg,
+                "TREE META DISABLED fg stays Muted at {:?}",
+                theme.capability.color
+            );
+        }
+    }
+
+    /// F1-L6 PARITY: Tree disabled pads/gutter/meta resolve like List
+    /// disabled at Mono — DIM-identical on all three parts, fg-identical on
+    /// CONTAINER+GUTTER — except META fg, which deliberately splits (List
+    /// DisabledFg per S2, Tree Muted per M2). No tag probe is possible (tag
+    /// tree never disables); List is the principle pin.
+    #[test]
+    fn q66s5_l6_tree_list_parity_disabled_at_mono() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        for part in [Part::CONTAINER, Part::GUTTER, Part::META] {
+            let tree = mono.resolve(
+                Family::TREE,
+                Variant::DEFAULT,
+                part,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            let list = mono.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                part,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert!(
+                tree.style.add_modifier.contains(Modifier::DIM),
+                "TREE {part:?} DISABLED lost DIM at Mono"
+            );
+            assert_eq!(
+                tree.style.add_modifier.contains(Modifier::DIM),
+                list.style.add_modifier.contains(Modifier::DIM),
+                "TREE {part:?} DISABLED DIM must match LIST at Mono"
+            );
+        }
+        for part in [Part::CONTAINER, Part::GUTTER] {
+            let tree = mono.resolve(
+                Family::TREE,
+                Variant::DEFAULT,
+                part,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            let list = mono.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                part,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                tree.style.fg, list.style.fg,
+                "TREE {part:?} DISABLED fg must match LIST at Mono"
+            );
+        }
+        let tree_meta = mono.resolve(
+            Family::TREE,
+            Variant::DEFAULT,
+            Part::META,
+            StateFlags::DISABLED,
+            Surface::Canvas,
+        );
+        let list_meta = mono.resolve(
+            Family::LIST,
+            Variant::DEFAULT,
+            Part::META,
+            StateFlags::DISABLED,
+            Surface::Canvas,
+        );
+        assert_eq!(
+            tree_meta.style.fg,
+            Some(Color::Gray),
+            "TREE META DISABLED keeps the Muted fg"
+        );
+        assert_eq!(
+            list_meta.style.fg,
+            Some(Color::DarkGray),
+            "LIST META DISABLED keeps the S2 DisabledFg"
+        );
+    }
+
+    /// F1-L6 HOLD: TREE MARKER DISABLED has NO own DIM at Mono — the marker
+    /// cell is unpainted unless selected (`tree.rs:2085-2087`) and rides the
+    /// container fill. GREEN on base and after; guards against a MARKER rule.
+    #[test]
+    fn q66s5_l6_hold_tree_marker_disabled_has_no_own_dim() {
+        use crate::theme::ColorLevel;
+
+        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        let r = mono.resolve(
+            Family::TREE,
+            Variant::DEFAULT,
+            Part::MARKER,
+            StateFlags::DISABLED,
+            Surface::Canvas,
+        );
+        assert!(
+            !r.style.add_modifier.contains(Modifier::DIM),
+            "MARKER must ride the container fill, not carry its own DIM"
+        );
+    }
 }

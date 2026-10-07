@@ -3133,4 +3133,120 @@ mod tests {
             );
         }
     }
+
+    /// Q66-S5 draw helper: two leaf nodes at Mono, the second disabled with
+    /// label+meta (probe-D shape at 24 columns: gutter x0, fold x1, marker
+    /// x2, label x3, meta right-aligned x17-22, container pad x23).
+    fn draw_q66s5_mono_disabled() -> Buffer {
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        let area = Rect::new(0, 0, 24, 2);
+        let items = [N("alpha", 0, false), N("beta", 0, false)];
+        let row = |item: &N, r: &mut RowUi<'_>| {
+            r.label(item.0);
+            r.meta("1.4 KB");
+        };
+        let tree = tree().row(&row).disabled_item(&off_q66s5);
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                tree.draw(ui, area, &TreeState::new(), &items);
+            })
+            .commit_presented();
+        buffer
+    }
+
+    fn off_q66s5(n: &N) -> bool {
+        n.0 == "beta"
+    }
+
+    /// F1-L6: disabled pad cells are DarkGray+DIM at Mono (LIST frozen pin
+    /// `lists/hover/120x40/none` y10, principle-only — tag tree never
+    /// disables); enabled pads stay DIM-free.
+    #[test]
+    fn q66s5_l6_disabled_pad_cells_carry_dim_at_mono() {
+        use ratatui_core::style::Color;
+
+        let buf = draw_q66s5_mono_disabled();
+        let pad = buf.cell(Position::new(10, 1)).expect("pad cell");
+        assert_eq!(pad.symbol(), " ");
+        assert_eq!(pad.style().fg, Some(Color::DarkGray), "disabled pad fg");
+        assert!(
+            pad.modifier.contains(Modifier::DIM),
+            "disabled pad lost DIM"
+        );
+        let enabled = buf.cell(Position::new(10, 0)).expect("enabled pad cell");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled pad gained DIM"
+        );
+    }
+
+    /// F1-L6: the disabled gutter cell is surface-black+DIM at Mono; the
+    /// enabled gutter stays DIM-free.
+    #[test]
+    fn q66s5_l6_disabled_gutter_cell_carries_dim_at_mono() {
+        use ratatui_core::style::Color;
+
+        let buf = draw_q66s5_mono_disabled();
+        let gutter = buf.cell(Position::new(0, 1)).expect("gutter cell");
+        assert_eq!(gutter.symbol(), " ");
+        assert_eq!(gutter.style().fg, Some(Color::Black), "disabled gutter fg");
+        assert!(
+            gutter.modifier.contains(Modifier::DIM),
+            "disabled gutter lost DIM"
+        );
+        let enabled = buf.cell(Position::new(0, 0)).expect("enabled gutter cell");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled gutter gained DIM"
+        );
+    }
+
+    /// F1-L6: disabled meta cells are Gray+DIM at Mono — +DIM per the LIST
+    /// mirror, fg Muted per M2 (tag tree meta is `st.fg(muted)`,
+    /// `tag:tree.rs:637-642`); enabled meta stays DIM-free.
+    #[test]
+    fn q66s5_l6_disabled_meta_cells_carry_dim_at_mono() {
+        use ratatui_core::style::Color;
+
+        let buf = draw_q66s5_mono_disabled();
+        let meta = buf.cell(Position::new(18, 1)).expect("meta cell");
+        assert_eq!(meta.symbol(), ".");
+        assert_eq!(
+            meta.style().fg,
+            Some(Color::Gray),
+            "disabled meta keeps the Muted fg"
+        );
+        assert!(
+            meta.modifier.contains(Modifier::DIM),
+            "disabled meta lost DIM"
+        );
+        let enabled = buf.cell(Position::new(18, 0)).expect("enabled meta cell");
+        assert_eq!(enabled.symbol(), ".");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled meta gained DIM"
+        );
+    }
+
+    /// F1-L6: the disabled marker cell rides the container fill — blank
+    /// symbol, same fg as the pads, +DIM — with no paint of its own
+    /// (`paint_marker` returns early unless selected, `tree.rs:2085-2087`).
+    #[test]
+    fn q66s5_l6_disabled_marker_cell_rides_container_dim_at_mono() {
+        let buf = draw_q66s5_mono_disabled();
+        let marker = buf.cell(Position::new(2, 1)).expect("marker cell");
+        let pad = buf.cell(Position::new(10, 1)).expect("pad cell");
+        assert_eq!(marker.symbol(), " ", "marker stays blank when unselected");
+        assert_eq!(
+            marker.style().fg,
+            pad.style().fg,
+            "marker cell must show the container fill"
+        );
+        assert!(
+            marker.modifier.contains(Modifier::DIM),
+            "marker cell lost the container DIM"
+        );
+    }
 }
