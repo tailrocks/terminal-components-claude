@@ -26556,6 +26556,5222 @@
         ]
       }
     }
+,
+    {
+      "id": "PANEL-CARGO-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "cargo-clean finder row with its preview facts",
+      "ref_symbols": [
+        {
+          "glyph": "› cargo clean · 900.0 MiB",
+          "meaning": "ranked finder row for the cargo-clean action"
+        },
+        {
+          "glyph": "Gate  one confirmation",
+          "meaning": "gate fact naming the one-confirmation flow"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› cargo clean · 900.0 MiB",
+          "meaning": "ranked finder row for the cargo-clean action"
+        },
+        {
+          "glyph": "Gate  one confirmation",
+          "meaning": "gate fact naming the one-confirmation flow"
+        }
+      ],
+      "data": {
+        "query": "cargo clean",
+        "results": 3,
+        "bytes": "900.0 MiB",
+        "target": "~/work/engine/target"
+      },
+      "state": {
+        "focus": "finder",
+        "dialog_open": false,
+        "risk": "destructive"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-cargo (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `cargo clean` (the ranked row resolves the target)"
+        },
+        {
+          "step": 3,
+          "action": "press Enter (the one-confirmation dialog opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the dialog cancels back to the row)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Enter then Esc again (the roundtrip repeats)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "clean",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the ranked row pairs › cargo clean · 900.0 MiB with the destructive badge beside Results · 3"
+          },
+          {
+            "id": "V2",
+            "text": "the preview resolves the target: remove the resolved target directory under ~/work/engine/target"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the finder footer offers Enter Confirm… beside Alt+Enter More"
+          },
+          {
+            "id": "S2",
+            "text": "the Gate fact reads one confirmation"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the one-confirmation dialog (← → Choose footer); Esc cancels it back to the row"
+          },
+          {
+            "id": "A2",
+            "text": "the open/cancel roundtrip repeats with the row intact"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the dialog footer must NOT show at the clean state (Enter later opens it, Esc closes it)"
+          },
+          {
+            "id": "N2",
+            "text": "the dialog footer must NOT persist after the second Esc"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "1608-1621",
+            "note": "cargo-clean finder row title plus its one-confirmation gate"
+          },
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "1652-1657",
+            "note": "dry-run twin row"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cargo/clean/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cargo_clean live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-CARGO-001",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "cargo-clean one-confirmation dialog",
+      "ref_symbols": [
+        {
+          "glyph": "cargo clean · 900.0 MiB",
+          "meaning": "dialog title restating the action and bytes"
+        },
+        {
+          "glyph": "▎Cancel   Run",
+          "meaning": "focused Cancel beside the Run choice"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "cargo clean · 900.0 MiB",
+          "meaning": "dialog title restating the action and bytes"
+        },
+        {
+          "glyph": "▎Cancel   Run",
+          "meaning": "focused Cancel beside the Run choice"
+        }
+      ],
+      "data": {
+        "action": "remove the resolved target directory",
+        "host": "mbp · local",
+        "risk": "destructive"
+      },
+      "state": {
+        "focus": "dialog",
+        "dialog_open": true,
+        "armed": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-cargo (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `cargo clean`, then press Enter (the dialog opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the dialog cancels back to the row)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Enter then Esc again (the roundtrip repeats)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "clean-confirm",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the dialog restates the action: Action pairs with remove the resolved target directory"
+          },
+          {
+            "id": "V2",
+            "text": "the choice row pairs ▎Cancel with Run"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the dialog footer reads ← → Choose, Enter Confirm, Esc Cancel"
+          },
+          {
+            "id": "S2",
+            "text": "the Confirmation fact reads one explicit confirmation"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc cancels the dialog back to the clean row (dialog footer expires)"
+          },
+          {
+            "id": "A2",
+            "text": "Enter re-opens the dialog and Esc cancels it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the dialog footer must NOT show after Esc cancels the dialog"
+          },
+          {
+            "id": "N2",
+            "text": "the dialog footer must NOT persist after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "1619-1621",
+            "note": "Confirmation::One on the cargo-clean row"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "110-121",
+            "note": "facts dialog renders the prompt plus the Cancel/confirm choice"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cargo/clean_confirm/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cargo_clean_confirm live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-CLEANUP-006",
+      "app": "holla",
+      "component": "Panel",
+      "part": "cleanup review jumped to the last category",
+      "ref_symbols": [
+        {
+          "glyph": "▎[ ] ▸ Project artifacts           2.5 GiB",
+          "meaning": "cursor on the last category row"
+        },
+        {
+          "glyph": "14 of 14 candidates eligible",
+          "meaning": "detail eligibility fact for project artifacts"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎[ ] ▸ Project artifacts           2.5 GiB",
+          "meaning": "cursor on the last category row"
+        },
+        {
+          "glyph": "14 of 14 candidates eligible",
+          "meaning": "detail eligibility fact for project artifacts"
+        }
+      ],
+      "data": {
+        "categories": 18,
+        "selected": "19 selected (12.4 GiB)",
+        "row": "Project artifacts · 2.5 GiB"
+      },
+      "state": {
+        "focus": "review-list",
+        "cursor": "last",
+        "fold_open": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-insights (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Review cleanup candidates`, then press Enter (the review opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press End (the cursor jumps to the last category)",
+          "key": "End",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Up then Down (the cursor roundtrips off the last row)",
+          "key": "Up",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right then Left (the fold opens and closes)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "artifacts",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the cursor sits on the last row: ▎[ ] ▸ Project artifacts pairs with 2.5 GiB"
+          },
+          {
+            "id": "V2",
+            "text": "the detail panel scopes to the row: 14 of 14 candidates eligible"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the review header holds 18 categories beside 19 selected (12.4 GiB)"
+          },
+          {
+            "id": "S2",
+            "text": "the review footer offers d Review deletion"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Up moves the cursor to JetBrains logs and Down returns it to Project artifacts"
+          },
+          {
+            "id": "A2",
+            "text": "Right opens the artifacts fold (▾) and Left closes it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the opened fold ▾ Project artifacts must NOT show at the jumped state (Right later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "the opened fold must NOT persist after Left closes it"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "905",
+            "note": "End jumps to the last category"
+          },
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "919",
+            "note": "Right opens the category fold"
+          },
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "1135",
+            "note": "review header counts categories and bytes"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/artifacts/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_artifacts live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-CLEANUP-003",
+      "app": "holla",
+      "component": "Panel",
+      "part": "cleanup review landing page",
+      "ref_symbols": [
+        {
+          "glyph": "18 categories · 18.8 GiB",
+          "meaning": "review header counts"
+        },
+        {
+          "glyph": "▎[–] ▸ Xcode DerivedData         810.0 MiB",
+          "meaning": "cursor on the first category row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "18 categories · 18.8 GiB",
+          "meaning": "review header counts"
+        },
+        {
+          "glyph": "▎[–] ▸ Xcode DerivedData         810.0 MiB",
+          "meaning": "cursor on the first category row"
+        }
+      ],
+      "data": {
+        "categories": 18,
+        "bytes": "18.8 GiB",
+        "first": "Xcode DerivedData · 810.0 MiB"
+      },
+      "state": {
+        "focus": "review-list",
+        "cursor": "first",
+        "fold_open": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-insights (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Review cleanup candidates`, then press Enter (the review opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down then Up (the cursor roundtrips off the first row)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Right then Left (the fold opens and closes)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "categories",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the review header pairs 18 categories with 18.8 GiB"
+          },
+          {
+            "id": "V2",
+            "text": "the first row pairs ▎[–] ▸ Xcode DerivedData with 810.0 MiB"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the detail panel scopes to the cursor: Safety reads rebuilt on demand"
+          },
+          {
+            "id": "S2",
+            "text": "the review footer pairs m Permanent with n Dry run"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the cursor to device support and Up returns it to DerivedData"
+          },
+          {
+            "id": "A2",
+            "text": "Right opens the first fold (▾) and Left closes it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the opened fold ▾ Xcode DerivedData must NOT show at the landing state (Right later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "the opened fold must NOT persist after Left closes it"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "1135",
+            "note": "review header counts categories and bytes"
+          },
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "919",
+            "note": "Right opens the category fold"
+          },
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "1204",
+            "note": "footer offers Review deletion"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/categories/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_categories live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-CLEANUP-004",
+      "app": "holla",
+      "component": "Panel",
+      "part": "cleanup review with the first fold opened",
+      "ref_symbols": [
+        {
+          "glyph": "▾ Xcode DerivedData         810.0 MiB",
+          "meaning": "opened fold header"
+        },
+        {
+          "glyph": "~/Library/Developer/Xcode/D…  810.0 MiB  30 d",
+          "meaning": "folded candidate row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▾ Xcode DerivedData         810.0 MiB",
+          "meaning": "opened fold header"
+        },
+        {
+          "glyph": "~/Library/Developer/Xcode/D…  810.0 MiB  30 d",
+          "meaning": "folded candidate row"
+        }
+      ],
+      "data": {
+        "fold": "Xcode DerivedData",
+        "candidates": 1,
+        "guard": "Xcode is running"
+      },
+      "state": {
+        "focus": "review-list",
+        "cursor": "first",
+        "fold_open": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-insights (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Review cleanup candidates`, then press Enter (the review opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right (the first fold opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Left (the fold closes)",
+          "key": "Left",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right (the same fold re-opens)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "derived-data",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the opened fold header pairs ▾ Xcode DerivedData with 810.0 MiB"
+          },
+          {
+            "id": "V2",
+            "text": "the folded candidate row pairs ~/Library/Developer/Xcode/D… with 30 d"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the Guard fact reads Xcode is running (candidates are skipped)"
+          },
+          {
+            "id": "S2",
+            "text": "the review footer still offers d Review deletion"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Left closes the fold (the closed ▸ marker returns)"
+          },
+          {
+            "id": "A2",
+            "text": "Right re-opens the same fold"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the opened fold must NOT show after Left closes it (nor its candidate row)"
+          },
+          {
+            "id": "N2",
+            "text": "the closed ▸ marker must NOT show while the fold is open"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "919",
+            "note": "Right opens the category fold"
+          },
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "863",
+            "note": "cleanup page key dispatch"
+          },
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "207",
+            "note": "empty-review copy when no categories detect"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/derived_data/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_derived_data live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-CLEANUP-001",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "plan gate-1 review with its command sequence",
+      "ref_symbols": [
+        {
+          "glyph": "Review · Clean developer artifacts under ~/work · gate 1 of 2",
+          "meaning": "gate-1 title naming plan and phase"
+        },
+        {
+          "glyph": "Sequence · 4 commands",
+          "meaning": "command sequence box header"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Review · Clean developer artifacts under ~/work · gate 1 of 2",
+          "meaning": "gate-1 title naming plan and phase"
+        },
+        {
+          "glyph": "Sequence · 4 commands",
+          "meaning": "command sequence box header"
+        }
+      ],
+      "data": {
+        "plan": "Clean developer artifacts under ~/work",
+        "steps": "4 included · 0 excluded",
+        "targets": "3 candidates · 24.2 GB"
+      },
+      "state": {
+        "focus": "gate1",
+        "phase": "gate 1 of 2",
+        "dialog_open": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario disk-cleanup (paused frame 80)"
+        },
+        {
+          "step": 2,
+          "action": "press c (the plan page opens)",
+          "key": "c",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press c (gate 1 opens)",
+          "key": "c",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (gate 2 cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Esc (gate 1 leaves back to the plan)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate-1",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the gate-1 title pairs the plan name with gate 1 of 2"
+          },
+          {
+            "id": "V2",
+            "text": "the sequence box pairs Sequence · 4 commands with y copies, and cargo clean with its backend path"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the gate footer pairs y Copy sequence with Esc Cancel"
+          },
+          {
+            "id": "S2",
+            "text": "the status reads review · gate 1 of 2"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Right+Enter opens gate 2 and Esc cancels it back to gate 1"
+          },
+          {
+            "id": "A2",
+            "text": "Esc leaves gate 1 back to the plan page"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "gate 2 of 2 must NOT show at the gate-1 state (Right+Enter later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "neither gate phase may show after Esc returns to the plan"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/plan.rs",
+            "lines": "654",
+            "note": "c confirms the plan into gate 1"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "435",
+            "note": "gate-1 review subtitle"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "366",
+            "note": "Right moves focus to Continue"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/gate-1/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_gate_seq live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-CLEANUP-002",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "delete-safety gate-1 review",
+      "ref_symbols": [
+        {
+          "glyph": "Review · trash 1 item · gate 1 of 2",
+          "meaning": "gate-1 title naming target and phase"
+        },
+        {
+          "glyph": "Revision  68c21e8eb8ed0a71",
+          "meaning": "review revision pinning the resolved facts"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Review · trash 1 item · gate 1 of 2",
+          "meaning": "gate-1 title naming target and phase"
+        },
+        {
+          "glyph": "Revision  68c21e8eb8ed0a71",
+          "meaning": "review revision pinning the resolved facts"
+        }
+      ],
+      "data": {
+        "target": "~/Projects/safe/target",
+        "estimate": "1000.0 MiB allocated",
+        "mode": "Trash"
+      },
+      "state": {
+        "focus": "gate1",
+        "phase": "gate 1 of 2",
+        "dialog_open": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-delete-safety (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down then Space (one row is selected)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press d (gate 1 opens)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Esc (gate 2 cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 7,
+          "action": "press Right+Enter then Esc again (the roundtrip repeats)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate1",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the gate-1 title pairs Review · trash 1 item with gate 1 of 2"
+          },
+          {
+            "id": "V2",
+            "text": "the Revision fact reads 68c21e8eb8ed0a71"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the Recoverable fact reads yes · until the Trash is emptied"
+          },
+          {
+            "id": "S2",
+            "text": "the selection estimate reads 1 item selected · 1000.0 MiB estimated"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Right+Enter opens gate 2 and Esc cancels it back to gate 1"
+          },
+          {
+            "id": "A2",
+            "text": "the open/cancel roundtrip repeats with gate 1 intact"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "gate 2 of 2 must NOT show at the gate-1 state (Right+Enter later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "neither gate 2 of 2 nor the phrase prompt may persist after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1012-1016",
+            "note": "d refuses an empty selection, else opens the review"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "435",
+            "note": "gate-1 review subtitle"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "547",
+            "note": "gate-1 status line"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/gate1/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_gate1 live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-CLEANUP-003",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "delete-safety gate-2 typed-phrase dialog, unarmed",
+      "ref_symbols": [
+        {
+          "glyph": "Trash 1 items · gate 2 of 2",
+          "meaning": "gate-2 dialog title"
+        },
+        {
+          "glyph": "Type TRASH 1 UNDER /Users/alex/Projects/safe ON mbp to confirm",
+          "meaning": "target-bound phrase prompt"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Trash 1 items · gate 2 of 2",
+          "meaning": "gate-2 dialog title"
+        },
+        {
+          "glyph": "Type TRASH 1 UNDER /Users/alex/Projects/safe ON mbp to confirm",
+          "meaning": "target-bound phrase prompt"
+        }
+      ],
+      "data": {
+        "phrase": "TRASH 1 UNDER /Users/alex/Projects/safe ON mbp",
+        "mode": "Trash"
+      },
+      "state": {
+        "focus": "dialog",
+        "phase": "gate 2 of 2",
+        "armed": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-delete-safety (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down then Space (one row is selected)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press d (gate 1 opens)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Esc (gate 2 cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 7,
+          "action": "press Right+Enter then Esc again (the roundtrip repeats)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate2",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the dialog title reads Trash 1 items · gate 2 of 2"
+          },
+          {
+            "id": "V2",
+            "text": "the prompt reads Type TRASH 1 UNDER /Users/alex/Projects/safe ON mbp to confirm"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the gate-2 footer pairs Enter Confirm with Esc Cancel"
+          },
+          {
+            "id": "S2",
+            "text": "the choice row pairs Cancel with Execute"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc cancels the dialog back to gate 1 (gate-2 chrome expires)"
+          },
+          {
+            "id": "A2",
+            "text": "Right+Enter re-opens gate 2 and Esc cancels it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "neither gate 2 of 2 nor the phrase prompt may show after Esc cancels the dialog"
+          },
+          {
+            "id": "N2",
+            "text": "nothing may stay open after the second cancel either"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "366",
+            "note": "Right moves focus to Continue"
+          },
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2284-2297",
+            "note": "gate-2 typed-phrase dialog construction"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "110-121",
+            "note": "facts dialog with the ack prompt"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/gate2/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_gate2 live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-CLEANUP-004",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "delete-safety gate-2 dialog with the phrase typed",
+      "ref_symbols": [
+        {
+          "glyph": "▎ TRASH 1 UNDER /Users/alex/Projects/safe ON mbp",
+          "meaning": "armed ack field showing the typed phrase"
+        },
+        {
+          "glyph": "Trash 1 items · gate 2 of 2",
+          "meaning": "gate-2 dialog title"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎ TRASH 1 UNDER /Users/alex/Projects/safe ON mbp",
+          "meaning": "armed ack field showing the typed phrase"
+        },
+        {
+          "glyph": "Trash 1 items · gate 2 of 2",
+          "meaning": "gate-2 dialog title"
+        }
+      ],
+      "data": {
+        "phrase": "TRASH 1 UNDER /Users/alex/Projects/safe ON mbp",
+        "typed": true
+      },
+      "state": {
+        "focus": "dialog-ack",
+        "phase": "gate 2 of 2",
+        "armed": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-delete-safety (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down then Space (one row is selected)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press d (gate 1 opens)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Enter then type the target-bound phrase (the ack arms)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 7,
+          "action": "press Esc (the typed text clears; the dialog stays open)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 8,
+          "action": "press Esc (the dialog cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate2-typed",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the armed ack field shows ▎ TRASH 1 UNDER /Users/alex/Projects/safe ON mbp"
+          },
+          {
+            "id": "V2",
+            "text": "the dialog title reads Trash 1 items · gate 2 of 2"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the edit footer pairs EDIT with Type Phrase"
+          },
+          {
+            "id": "S2",
+            "text": "the gate-1 page survives below the dialog (gate 1 of 2 status)"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "the first Esc clears the typed text while the dialog stays open"
+          },
+          {
+            "id": "A2",
+            "text": "the second Esc cancels the dialog back to gate 1"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the typed ▎ phrase line must NOT show after the clear (the prompt naming the same words stays)"
+          },
+          {
+            "id": "N2",
+            "text": "neither gate 2 of 2 nor the phrase prompt may show after the cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2284-2297",
+            "note": "gate-2 typed-phrase dialog construction"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "121",
+            "note": "ack input prompts Type {token} to confirm"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "547",
+            "note": "gate-1 status line below the dialog"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/gate2_typed/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_gate2_typed live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-CLEANUP-005",
+      "app": "holla",
+      "component": "Panel",
+      "part": "cleanup history page over one prior record",
+      "ref_symbols": [
+        {
+          "glyph": "Entries  1 · 1 operation log records",
+          "meaning": "history header counting the log"
+        },
+        {
+          "glyph": "2026-08-29 08:41  ~/work/legacy/node_modules",
+          "meaning": "prior record row with its timestamp"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Entries  1 · 1 operation log records",
+          "meaning": "history header counting the log"
+        },
+        {
+          "glyph": "2026-08-29 08:41  ~/work/legacy/node_modules",
+          "meaning": "prior record row with its timestamp"
+        }
+      ],
+      "data": {
+        "records": 1,
+        "log": "~/.cache/holla/ops.log · JSONL v1",
+        "outcome": "trashed"
+      },
+      "state": {
+        "focus": "snapshot",
+        "page": "history",
+        "readonly": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-cleanup-results (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Show cleanup history`, then press Enter (the history opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the history leaves back to the finder; the query stays)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Enter (the intact query re-opens the history)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "history",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the header pairs Entries with 1 operation log records"
+          },
+          {
+            "id": "V2",
+            "text": "the record row pairs 2026-08-29 08:41 with trashed"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the Log fact reads ~/.cache/holla/ops.log"
+          },
+          {
+            "id": "S2",
+            "text": "the footer pairs ↑↓ Scroll with Esc Back"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc leaves the history back to the finder (history chrome expires)"
+          },
+          {
+            "id": "A2",
+            "text": "Enter on the intact query re-opens the history"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the history page must NOT show at boot (the query later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "neither the log counts nor the history title may show after Esc leaves"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/snapshot.rs",
+            "lines": "691-697",
+            "note": "history title plus operation-log counts"
+          },
+          {
+            "path": "src/bin/holla/screens/snapshot.rs",
+            "lines": "729",
+            "note": "newest-last log framing"
+          },
+          {
+            "path": "src/bin/holla/screens/snapshot.rs",
+            "lines": "752",
+            "note": "operation-log record parsing"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/history/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_history live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-CLEANUP-007",
+      "app": "holla",
+      "component": "Panel",
+      "part": "cleanup report where every item failed (no Trash backend)",
+      "ref_symbols": [
+        {
+          "glyph": "Outcome   1 failed",
+          "meaning": "failed outcome row"
+        },
+        {
+          "glyph": "Trash unavailable: no Trash backend on this host",
+          "meaning": "backend failure reason"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Outcome   1 failed",
+          "meaning": "failed outcome row"
+        },
+        {
+          "glyph": "Trash unavailable: no Trash backend on this host",
+          "meaning": "backend failure reason"
+        }
+      ],
+      "data": {
+        "outcome": "1 failed",
+        "mode": "trash",
+        "host": "devbox · local",
+        "revision": "c4d729e20ca0805b"
+      },
+      "state": {
+        "focus": "snapshot",
+        "page": "report",
+        "outcome": "failed"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-platforms-linux (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Review cleanup candidates`, Enter, Right, Down, Space (one candidate is selected)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press d (gate 1 opens)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Enter, type the phrase, Enter, Tab, Enter (the simulated trash commits)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Esc (the report leaves back to the finder)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "linux-report",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the outcome row pairs Outcome with 1 failed"
+          },
+          {
+            "id": "V2",
+            "text": "the reason reads Trash unavailable: no Trash backend on this host"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the failure status reads ! 1 failed"
+          },
+          {
+            "id": "S2",
+            "text": "the Revision fact reads c4d729e20ca0805b"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "the two gates plus the typed phrase commit the simulated trash (Cleanup report lands)"
+          },
+          {
+            "id": "A2",
+            "text": "Esc leaves the report back to the finder"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the report page must NOT show at boot (the commit later lands it)"
+          },
+          {
+            "id": "N2",
+            "text": "the report page must NOT show after Esc leaves (the finder returns)"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/snapshot.rs",
+            "lines": "1031",
+            "note": "report title"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "366",
+            "note": "Right moves focus to Continue"
+          },
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2284-2297",
+            "note": "gate-2 typed-phrase dialog construction"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/linux_report/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_linux_report live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-CLEANUP-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "cleanup plan page with its four steps",
+      "ref_symbols": [
+        {
+          "glyph": "4 steps · 4 included · 0 excluded · ~9 s",
+          "meaning": "plan header counts"
+        },
+        {
+          "glyph": "▎[✓] 01 Trash frontend › node_modules",
+          "meaning": "cursor on the first step"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "4 steps · 4 included · 0 excluded · ~9 s",
+          "meaning": "plan header counts"
+        },
+        {
+          "glyph": "▎[✓] 01 Trash frontend › node_modules",
+          "meaning": "cursor on the first step"
+        }
+      ],
+      "data": {
+        "steps": 4,
+        "branches": 3,
+        "effect": "8.4 GB · 121,402 items · Trash"
+      },
+      "state": {
+        "focus": "plan",
+        "cursor": "step-1",
+        "ready": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario disk-cleanup (paused frame 80)"
+        },
+        {
+          "step": 2,
+          "action": "press c (the plan page opens)",
+          "key": "c",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down then Up (the step cursor roundtrips)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press c (gate 1 opens)",
+          "key": "c",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (gate 1 leaves back to the plan)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "plan",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the header reads 4 steps · 4 included · 0 excluded · ~9 s"
+          },
+          {
+            "id": "V2",
+            "text": "the cursor pairs ▎[✓] 01 Trash frontend › node_modules with optional"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the plan footer pairs c Confirm with p Facts"
+          },
+          {
+            "id": "S2",
+            "text": "the State fact reads ready"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the step cursor to 02 and Up returns it to 01"
+          },
+          {
+            "id": "A2",
+            "text": "c opens gate 1 and Esc returns to the plan"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "gate 1 of 2 must NOT show at the plan state (c later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "gate 1 of 2 must NOT persist after Esc returns to the plan"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/plan.rs",
+            "lines": "462",
+            "note": "Confirm plan button"
+          },
+          {
+            "path": "src/bin/holla/screens/plan.rs",
+            "lines": "654",
+            "note": "c confirms the plan"
+          },
+          {
+            "path": "src/bin/holla/screens/plan.rs",
+            "lines": "777",
+            "note": "plan header counts steps"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/plan/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_plan live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-CLEANUP-002",
+      "app": "holla",
+      "component": "Panel",
+      "part": "cleanup report after the simulated trash commits",
+      "ref_symbols": [
+        {
+          "glyph": "Outcome   1 trashed",
+          "meaning": "trashed outcome row"
+        },
+        {
+          "glyph": "trashed          5.9 GiB   ~/Projects/safe/big",
+          "meaning": "detail row naming path and bytes"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Outcome   1 trashed",
+          "meaning": "trashed outcome row"
+        },
+        {
+          "glyph": "trashed          5.9 GiB   ~/Projects/safe/big",
+          "meaning": "detail row naming path and bytes"
+        }
+      ],
+      "data": {
+        "outcome": "1 trashed",
+        "bytes": "5.9 GiB left the tree",
+        "path": "~/Projects/safe/big"
+      },
+      "state": {
+        "focus": "snapshot",
+        "page": "report",
+        "outcome": "trashed"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-cleanup-results (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down then Space (one row is selected)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press d (gate 1 opens)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Enter, type the phrase, Enter, Tab, Enter (the simulated trash commits)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 7,
+          "action": "press Esc (the report leaves)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "report",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the outcome row pairs Outcome with 1 trashed"
+          },
+          {
+            "id": "V2",
+            "text": "the detail row pairs trashed with ~/Projects/safe/big beside 5.9 GiB left the tree"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the trashed status reads 1 trashed"
+          },
+          {
+            "id": "S2",
+            "text": "the Next line pairs with Cleanup history"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "the two gates plus the typed phrase commit the simulated trash (Cleanup report lands)"
+          },
+          {
+            "id": "A2",
+            "text": "Esc leaves the report (report chrome expires)"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the report page must NOT show at boot (the commit later lands it)"
+          },
+          {
+            "id": "N2",
+            "text": "neither the report title nor the detail row may show after Esc leaves"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/snapshot.rs",
+            "lines": "1031",
+            "note": "report title"
+          },
+          {
+            "path": "src/bin/holla/screens/snapshot.rs",
+            "lines": "1156",
+            "note": "report links the history page"
+          },
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2299-2301",
+            "note": "gate-2 confirm re-resolves before executing"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/cleanup/report/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_cleanup_report live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-DISK-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "finished disk scan with its unreadable warning",
+      "ref_symbols": [
+        {
+          "glyph": "scan complete · 852.0 KiB allocated · 66 entries",
+          "meaning": "completion summary"
+        },
+        {
+          "glyph": "▲ 2 unreadable · grant Full Disk Access to include them",
+          "meaning": "unreadable warning"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "scan complete · 852.0 KiB allocated · 66 entries",
+          "meaning": "completion summary"
+        },
+        {
+          "glyph": "▲ 2 unreadable · grant Full Disk Access to include them",
+          "meaning": "unreadable warning"
+        }
+      ],
+      "data": {
+        "root": "~/work/data",
+        "allocated": "852.0 KiB",
+        "entries": 66,
+        "unreadable": 2
+      },
+      "state": {
+        "focus": "tree",
+        "scan": "complete",
+        "sort": "allocated",
+        "selected": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-scan (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down then Up (the cursor roundtrips into the tree)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press s (apparent sort switches on)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press s (allocated sort switches back)",
+          "key": "s",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "scan-complete",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the summary reads scan complete · 852.0 KiB allocated"
+          },
+          {
+            "id": "V2",
+            "text": "the warning pairs 2 unreadable with Full Disk Access"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the Freshness fact reads live · complete"
+          },
+          {
+            "id": "S2",
+            "text": "the selection reads 0 selected · 0 B"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the cursor onto many and Up returns it to data"
+          },
+          {
+            "id": "A2",
+            "text": "s switches to apparent sort and s switches back to allocated"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "largest first · apparent must NOT show at the scan state (s later switches it on)"
+          },
+          {
+            "id": "N2",
+            "text": "the apparent label must NOT persist after s switches back"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1419",
+            "note": "completion summary line"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1077",
+            "note": "s toggles the sort mode"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1091",
+            "note": "f toggles noise folding"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/disk/scan_complete/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_disk_scan_complete live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-DISK-002",
+      "app": "holla",
+      "component": "Panel",
+      "part": "Spotlight top-files page over the finished scan",
+      "ref_symbols": [
+        {
+          "glyph": "Top files · Spotlight",
+          "meaning": "top-files title"
+        },
+        {
+          "glyph": "~/Downloads/iso.iso                   700.0 MiB",
+          "meaning": "first file row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Top files · Spotlight",
+          "meaning": "top-files title"
+        },
+        {
+          "glyph": "~/Downloads/iso.iso                   700.0 MiB",
+          "meaning": "first file row"
+        }
+      ],
+      "data": {
+        "files": 3,
+        "threshold": "100 MiB or more",
+        "first": "iso.iso · 700.0 MiB"
+      },
+      "state": {
+        "focus": "topfiles",
+        "view": "top",
+        "selected": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-navigation (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press t (the top-files page opens)",
+          "key": "t",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the tree returns)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press t (the top page re-opens over the same scan)",
+          "key": "t",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "top-files",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the title reads Top files · Spotlight"
+          },
+          {
+            "id": "V2",
+            "text": "the first row pairs iso.iso with 700.0 MiB, beside a stat failed row"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the counts read 3 files · 0 selected"
+          },
+          {
+            "id": "S2",
+            "text": "the footer pairs y Copy path with Esc Back"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc returns to the tree (top page expires, sort label returns)"
+          },
+          {
+            "id": "A2",
+            "text": "t re-opens the top page over the same scan"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the top page must NOT show after Esc returns to the tree"
+          },
+          {
+            "id": "N2",
+            "text": "the tree sort label must NOT show while the top page is open"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1004",
+            "note": "t opens the top-files view"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1372",
+            "note": "Top files Spotlight title"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1451",
+            "note": "top-files scope line"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/disk/top_files/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_disk_top_files live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "TREE-DISK-001",
+      "app": "holla",
+      "component": "Tree",
+      "part": "finished disk tree",
+      "ref_symbols": [
+        {
+          "glyph": "scan complete · 2.3 MiB allocated · 21 entries",
+          "meaning": "completion summary"
+        },
+        {
+          "glyph": "▾   big                                                 2.3 MiB · 100%",
+          "meaning": "root row with its share"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "scan complete · 2.3 MiB allocated · 21 entries",
+          "meaning": "completion summary"
+        },
+        {
+          "glyph": "▾   big                                                 2.3 MiB · 100%",
+          "meaning": "root row with its share"
+        }
+      ],
+      "data": {
+        "root": "~/work/big",
+        "allocated": "2.3 MiB",
+        "entries": 21
+      },
+      "state": {
+        "focus": "tree",
+        "scan": "complete",
+        "sort": "allocated",
+        "noise": "folded"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-navigation (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down then Up (the cursor roundtrips into the tree)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press s (apparent sort switches on)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press s (allocated sort switches back)",
+          "key": "s",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tree",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the summary reads scan complete · 2.3 MiB allocated · 21 entries"
+          },
+          {
+            "id": "V2",
+            "text": "the root row pairs ▾   big with 2.3 MiB · 100%"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the sort state reads largest first · allocated · noise folded"
+          },
+          {
+            "id": "S2",
+            "text": "the Selection fact reads not selected · Space selects"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Down moves the cursor onto target and Up returns it to big"
+          },
+          {
+            "id": "A2",
+            "text": "s switches to apparent sort and s switches back to allocated"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "largest first · apparent must NOT show at the tree state (s later switches it on)"
+          },
+          {
+            "id": "N2",
+            "text": "the apparent label must NOT persist after s switches back"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1419",
+            "note": "completion summary line"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1500",
+            "note": "sort/noise status label"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1029",
+            "note": "Space toggles the row selection"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/disk/tree/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_disk_tree live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "TREE-DISK-002",
+      "app": "holla",
+      "component": "Tree",
+      "part": "finished disk tree sorted by apparent size",
+      "ref_symbols": [
+        {
+          "glyph": "largest first · apparent · noise folded",
+          "meaning": "apparent sort label"
+        },
+        {
+          "glyph": "vm.img                                            3.5 MiB",
+          "meaning": "apparent-first row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "largest first · apparent · noise folded",
+          "meaning": "apparent sort label"
+        },
+        {
+          "glyph": "vm.img                                            3.5 MiB",
+          "meaning": "apparent-first row"
+        }
+      ],
+      "data": {
+        "sort": "apparent",
+        "apparent_total": "5.6 MiB · sparse",
+        "first": "vm.img · 3.5 MiB"
+      },
+      "state": {
+        "focus": "tree",
+        "scan": "complete",
+        "sort": "apparent",
+        "noise": "folded"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-navigation (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press s (apparent sort switches on)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press s (allocated sort switches back on)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press s (apparent sort switches on again)",
+          "key": "s",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tree-apparent",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the label reads largest first · apparent · noise folded"
+          },
+          {
+            "id": "V2",
+            "text": "the apparent-first row pairs vm.img with 3.5 MiB"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer reads Sorted by apparent size · rows still show allocated bytes"
+          },
+          {
+            "id": "S2",
+            "text": "the Apparent fact reads 5.6 MiB · sparse"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "s toggles back to allocated (apparent label expires)"
+          },
+          {
+            "id": "A2",
+            "text": "s toggles forward to apparent again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the apparent label must NOT show after s toggles to allocated"
+          },
+          {
+            "id": "N2",
+            "text": "the allocated label must NOT show while apparent is active"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1077",
+            "note": "s toggles the sort mode"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1500",
+            "note": "sort/noise status label"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "151-152",
+            "note": "allocated/apparent byte measures"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/disk/tree_apparent/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_disk_tree_apparent live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "TREE-DISK-004",
+      "app": "holla",
+      "component": "Tree",
+      "part": "finished disk tree with one entry selected",
+      "ref_symbols": [
+        {
+          "glyph": "1 selected (176.0 KiB)",
+          "meaning": "selection summary"
+        },
+        {
+          "glyph": "✓ noise                                           176.0 KiB",
+          "meaning": "checked noise row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "1 selected (176.0 KiB)",
+          "meaning": "selection summary"
+        },
+        {
+          "glyph": "✓ noise                                           176.0 KiB",
+          "meaning": "checked noise row"
+        }
+      ],
+      "data": {
+        "selected": "noise · 176.0 KiB",
+        "parent": "big · partial",
+        "entries": 21
+      },
+      "state": {
+        "focus": "tree",
+        "scan": "complete",
+        "sort": "allocated",
+        "selected": 1
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-navigation (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press s twice (allocated sort is confirmed)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Down twice (the cursor reaches noise)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press f twice (the fold roundtrips)",
+          "key": "f",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Space (the noise row is selected)",
+          "key": "Space",
+          "ticks": 0
+        },
+        {
+          "step": 7,
+          "action": "press Space (the row is unselected)",
+          "key": "Space",
+          "ticks": 0
+        },
+        {
+          "step": 8,
+          "action": "press Space (the same row is re-selected)",
+          "key": "Space",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tree-selected",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the summary reads 1 selected (176.0 KiB)"
+          },
+          {
+            "id": "V2",
+            "text": "the checked row pairs ✓ noise with 176.0 KiB"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the partial parent pairs ◐ big with 2.3 MiB · 100%"
+          },
+          {
+            "id": "S2",
+            "text": "the Selection fact reads selected · Space unselects"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Space unselects the row (check and partial marker expire, 0 selected)"
+          },
+          {
+            "id": "A2",
+            "text": "Space re-selects the same row"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "neither the ✓ check nor the ◐ parent marker may show after the unselect"
+          },
+          {
+            "id": "N2",
+            "text": "the empty 0 selected state must NOT show while selected"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1029",
+            "note": "Space toggles the row selection"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1012-1016",
+            "note": "d refuses an empty selection"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1091",
+            "note": "f toggles noise folding"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/disk/tree_selected/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_disk_tree_selected live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "TREE-DISK-003",
+      "app": "holla",
+      "component": "Tree",
+      "part": "finished disk tree with noise folders unfolded",
+      "ref_symbols": [
+        {
+          "glyph": "largest first · allocated · unfolded",
+          "meaning": "unfolded sort label"
+        },
+        {
+          "glyph": "Noise folders unfolded",
+          "meaning": "unfold footer"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "largest first · allocated · unfolded",
+          "meaning": "unfolded sort label"
+        },
+        {
+          "glyph": "Noise folders unfolded",
+          "meaning": "unfold footer"
+        }
+      ],
+      "data": {
+        "sort": "allocated",
+        "noise": "unfolded",
+        "cursor": "noise · 176.0 KiB"
+      },
+      "state": {
+        "focus": "tree",
+        "scan": "complete",
+        "sort": "allocated",
+        "noise": "unfolded"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-navigation (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, then press Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press s twice (allocated sort is confirmed)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Down twice (the cursor reaches noise)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press f (the noise unfolds)",
+          "key": "f",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press f (the noise folds back)",
+          "key": "f",
+          "ticks": 0
+        },
+        {
+          "step": 7,
+          "action": "press f (the noise unfolds once more)",
+          "key": "f",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "tree-unfolded",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the label reads largest first · allocated · unfolded"
+          },
+          {
+            "id": "V2",
+            "text": "the cursor row pairs ▎ with noise beside the ~/work/big/noise detail path"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer reads Noise folders unfolded"
+          },
+          {
+            "id": "S2",
+            "text": "the Entries fact reads 15 · hardlinks counted once"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "f folds the noise back (unfolded label expires)"
+          },
+          {
+            "id": "A2",
+            "text": "f unfolds the noise once more"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "neither the unfolded label nor its footer may show after f folds the noise"
+          },
+          {
+            "id": "N2",
+            "text": "the noise folded label must NOT show while unfolded"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1091",
+            "note": "f toggles noise folding"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1500",
+            "note": "sort/noise status label"
+          },
+          {
+            "path": "src/bin/holla/screens/disk.rs",
+            "lines": "1077",
+            "note": "s toggles the sort mode"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/disk/tree_unfolded/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_disk_tree_unfolded live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-DOCKER-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "finished Docker cleanup run, 7 of 7 done",
+      "ref_symbols": [
+        {
+          "glyph": "Clean Docker completely · 7 of 7 done",
+          "meaning": "finished run header"
+        },
+        {
+          "glyph": "reclaimed 18.4 GB on devbox",
+          "meaning": "reclaimed-bytes fact in the rescan output"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Clean Docker completely · 7 of 7 done",
+          "meaning": "finished run header"
+        },
+        {
+          "glyph": "reclaimed 18.4 GB on devbox",
+          "meaning": "reclaimed-bytes fact in the rescan output"
+        }
+      ],
+      "data": {
+        "steps": "7 of 7 done",
+        "reclaimed": "18.4 GB",
+        "host": "devbox",
+        "elapsed": "14 s"
+      },
+      "state": {
+        "focus": "plan",
+        "run": "done",
+        "ok": 7,
+        "failed": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario docker-cleanup (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter then c (the plan opens and gate 1 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Enter, type the phrase, Enter, Tab, Enter (the first Execute bounces on drift)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right+Enter plus the phrase and Execute again (the run completes)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Up then Down (the step cursor roundtrips)",
+          "key": "Up",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "done",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the header reads Clean Docker completely · 7 of 7 done"
+          },
+          {
+            "id": "V2",
+            "text": "the rescan output reads reclaimed 18.4 GB on devbox"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the status reads finished · 7 ok"
+          },
+          {
+            "id": "S2",
+            "text": "the tail reads 7 succeeded beside the Next Docker disk usage link"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "the first Execute bounces on the drift and the second pass completes the run"
+          },
+          {
+            "id": "A2",
+            "text": "Up moves the step cursor to 06 and Down returns it to 07"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the Plan changed bounce must NOT show once the second pass completes"
+          },
+          {
+            "id": "N2",
+            "text": "neither gate phase may return once the run is done"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/action.rs",
+            "lines": "523-528",
+            "note": "docker cleanup phrase and expected token"
+          },
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2300-2319",
+            "note": "drift consumes the first confirmation"
+          },
+          {
+            "path": "src/bin/holla/domain/plan.rs",
+            "lines": "187-188",
+            "note": "drift plus consumed flag"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/docker/done/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_docker_done live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-DOCKER-001",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "docker gate-1 review after the drift bounce",
+      "ref_symbols": [
+        {
+          "glyph": "Changed  since the last review: a new container (tmp-shell-3) appeared",
+          "meaning": "Changed row naming the drift"
+        },
+        {
+          "glyph": "! Plan changed · a new container (tmp-shell-3) appeared",
+          "meaning": "invalidated-confirmation footer"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Changed  since the last review: a new container (tmp-shell-3) appeared",
+          "meaning": "Changed row naming the drift"
+        },
+        {
+          "glyph": "! Plan changed · a new container (tmp-shell-3) appeared",
+          "meaning": "invalidated-confirmation footer"
+        }
+      ],
+      "data": {
+        "plan": "Clean Docker completely",
+        "drift": "tmp-shell-3",
+        "reclaimable": "~18.4 GB"
+      },
+      "state": {
+        "focus": "gate1",
+        "phase": "gate 1 of 2",
+        "drift": "unconsumed"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario docker-cleanup (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter then c (the plan opens and gate 1 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Enter, type the phrase, Enter, Tab, Enter (the Execute bounces on drift)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right then Enter (gate 2 opens again)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Esc (gate 2 cancels back to the drifted gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 7,
+          "action": "press Right+Enter then Esc again (the roundtrip repeats)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "drift",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the Changed row pairs with tmp-shell-3"
+          },
+          {
+            "id": "V2",
+            "text": "the footer reads ! Plan changed · a new container (tmp-shell-3) appeared"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the title pairs Review · Clean Docker completely with gate 1 of 2"
+          },
+          {
+            "id": "S2",
+            "text": "the Reclaimable fact reads ~18.4 GB"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Right+Enter re-opens gate 2 and Esc cancels it back to the drifted gate 1"
+          },
+          {
+            "id": "A2",
+            "text": "the open/cancel roundtrip repeats with the drift intact"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "gate 2 of 2 must NOT show at the drifted gate 1 (Right+Enter later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "gate 2 of 2 must NOT persist after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/plan.rs",
+            "lines": "187-188",
+            "note": "drift plus consumed flag"
+          },
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2311-2319",
+            "note": "drift bounces back to the gate-1 page"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "435",
+            "note": "gate-1 review subtitle"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/docker/drift/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_docker_drift live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-DOCKER-002",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "docker gate-2 dialog with the phrase typed",
+      "ref_symbols": [
+        {
+          "glyph": "▎ I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox",
+          "meaning": "armed ack field showing the typed phrase"
+        },
+        {
+          "glyph": "Clean Docker completely · gate 2 of 2",
+          "meaning": "gate-2 dialog title"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎ I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox",
+          "meaning": "armed ack field showing the typed phrase"
+        },
+        {
+          "glyph": "Clean Docker completely · gate 2 of 2",
+          "meaning": "gate-2 dialog title"
+        }
+      ],
+      "data": {
+        "phrase": "I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox",
+        "typed": true
+      },
+      "state": {
+        "focus": "dialog-ack",
+        "phase": "gate 2 of 2",
+        "armed": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario docker-cleanup (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "press Enter then c (the plan opens and gate 1 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Enter then type the target-bound phrase (the ack arms)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (the typed text clears; the dialog stays open)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Esc (the dialog cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate2-typed",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the armed ack field shows ▎ I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox"
+          },
+          {
+            "id": "V2",
+            "text": "the dialog title reads Clean Docker completely · gate 2 of 2"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the edit footer pairs EDIT with Type Phrase"
+          },
+          {
+            "id": "S2",
+            "text": "the Reclaimable fact reads ~18.4 GB"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "the first Esc clears the typed text while the dialog stays open"
+          },
+          {
+            "id": "A2",
+            "text": "the second Esc cancels the dialog back to gate 1"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the typed ▎ phrase line must NOT show after the clear (the prompt stays)"
+          },
+          {
+            "id": "N2",
+            "text": "neither gate 2 of 2 nor the phrase prompt may show after the cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "2200",
+            "note": "docker cleanup two-gate confirmation"
+          },
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2284-2297",
+            "note": "gate-2 typed-phrase dialog construction"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "121",
+            "note": "ack input prompts Type {token} to confirm"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/docker/gate2_typed/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_docker_gate2_typed live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-DOCKER-002",
+      "app": "holla",
+      "component": "Panel",
+      "part": "failed stop-all-containers activity tab",
+      "ref_symbols": [
+        {
+          "glyph": "stop all containers · failed · 0 s · exit 1",
+          "meaning": "failed activity header"
+        },
+        {
+          "glyph": "cannot stop container",
+          "meaning": "daemon refusal in the output"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "stop all containers · failed · 0 s · exit 1",
+          "meaning": "failed activity header"
+        },
+        {
+          "glyph": "cannot stop container",
+          "meaning": "daemon refusal in the output"
+        }
+      ],
+      "data": {
+        "action": "Stop all containers",
+        "exit": 1,
+        "container": "acme-scheduler-1"
+      },
+      "state": {
+        "focus": "activity",
+        "tab": "failed",
+        "exit": 1
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-docker (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Stop all containers`, Enter, Right, Enter (the simulated run fails)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the failed tab leaves for Here; the query stays)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Enter, Right, Enter (the intact query fails the same way again)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "remove-failed",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the header reads stop all containers · failed · 0 s · exit 1"
+          },
+          {
+            "id": "V2",
+            "text": "the output pairs cannot stop container with acme-scheduler-1"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the failure status reads ! stop all containers failed · exit 1"
+          },
+          {
+            "id": "S2",
+            "text": "the footer pairs r Restart with x Close"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc leaves the failed tab for Here (tab-local chrome expires)"
+          },
+          {
+            "id": "A2",
+            "text": "running Stop-all again fails the same simulated way"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the failure tab must NOT show at boot (the run later fails)"
+          },
+          {
+            "id": "N2",
+            "text": "neither the failed header nor the daemon output may show after Esc leaves"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "2002",
+            "note": "Stop all containers action row"
+          },
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "2023",
+            "note": "one-confirmation gate on stop-all"
+          },
+          {
+            "path": "src/bin/holla/screens/activity.rs",
+            "lines": "906",
+            "note": "failed exit status line"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/docker/remove_failed/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_docker_remove_failed live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-DOCKER-003",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "stop-and-remove gate-1 review",
+      "ref_symbols": [
+        {
+          "glyph": "Review · Stop and remove all containers · gate 1 of 2",
+          "meaning": "gate-1 title naming action and phase"
+        },
+        {
+          "glyph": "Changes  6 containers removed · writable layers lost",
+          "meaning": "destructive changes fact"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Review · Stop and remove all containers · gate 1 of 2",
+          "meaning": "gate-1 title naming action and phase"
+        },
+        {
+          "glyph": "Changes  6 containers removed · writable layers lost",
+          "meaning": "destructive changes fact"
+        }
+      ],
+      "data": {
+        "action": "Stop and remove all containers",
+        "changes": "6 containers removed",
+        "risk": "destructive"
+      },
+      "state": {
+        "focus": "gate1",
+        "phase": "gate 1 of 2",
+        "dialog_open": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-docker (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Stop and remove all`, then press Enter (gate 1 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (gate 2 cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right+Enter then Esc again (the roundtrip repeats)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "remove-gate1",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the gate-1 title pairs the action with gate 1 of 2"
+          },
+          {
+            "id": "V2",
+            "text": "the Changes fact reads 6 containers removed"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the Risk fact reads destructive"
+          },
+          {
+            "id": "S2",
+            "text": "the sequence pairs Sequence · 2 commands with y copies"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Right+Enter opens gate 2 and Esc cancels it back to gate 1"
+          },
+          {
+            "id": "A2",
+            "text": "the open/cancel roundtrip repeats with gate 1 intact"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "gate 2 of 2 must NOT show at the gate-1 state (Right+Enter later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "neither gate 2 of 2 nor the phrase prompt may persist after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "2041",
+            "note": "remove-all action row"
+          },
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "2049",
+            "note": "two-gate target-bound phrase"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "435",
+            "note": "gate-1 review subtitle"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/docker/remove_gate1/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_docker_remove_gate1 live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-DOCKER-004",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "stop-and-remove gate-2 typed-phrase dialog, unarmed",
+      "ref_symbols": [
+        {
+          "glyph": "Stop and remove all containers · gate 2 of 2",
+          "meaning": "gate-2 dialog title"
+        },
+        {
+          "glyph": "Type REMOVE ALL CONTAINERS ON mbp to confirm",
+          "meaning": "target-bound phrase prompt"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Stop and remove all containers · gate 2 of 2",
+          "meaning": "gate-2 dialog title"
+        },
+        {
+          "glyph": "Type REMOVE ALL CONTAINERS ON mbp to confirm",
+          "meaning": "target-bound phrase prompt"
+        }
+      ],
+      "data": {
+        "phrase": "REMOVE ALL CONTAINERS ON mbp"
+      },
+      "state": {
+        "focus": "dialog",
+        "phase": "gate 2 of 2",
+        "armed": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-docker (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Stop and remove all`, then press Enter (gate 1 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (gate 2 cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right+Enter then Esc again (the roundtrip repeats)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "remove-gate2",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the dialog title reads Stop and remove all containers · gate 2 of 2"
+          },
+          {
+            "id": "V2",
+            "text": "the prompt reads Type REMOVE ALL CONTAINERS ON mbp to confirm"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the gate-2 footer pairs Enter Confirm with Esc Cancel"
+          },
+          {
+            "id": "S2",
+            "text": "the Risk fact reads destructive"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc cancels the dialog back to gate 1 (gate-2 chrome expires)"
+          },
+          {
+            "id": "A2",
+            "text": "Right+Enter re-opens gate 2 and Esc cancels it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "neither gate 2 of 2 nor the phrase prompt may show after Esc cancels the dialog"
+          },
+          {
+            "id": "N2",
+            "text": "nothing may stay open after the second cancel either"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "2049",
+            "note": "two-gate target-bound phrase"
+          },
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2284-2297",
+            "note": "gate-2 typed-phrase dialog construction"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "110-121",
+            "note": "facts dialog with the ack prompt"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/docker/remove_gate2/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_docker_remove_gate2 live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-GRADLE-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "Gradle cleanup review with its fold opened",
+      "ref_symbols": [
+        {
+          "glyph": "Cleanup · Gradle outputs",
+          "meaning": "Gradle cleanup title"
+        },
+        {
+          "glyph": "▾ Gradle outputs             49.0 MiB",
+          "meaning": "opened fold with its bytes"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Cleanup · Gradle outputs",
+          "meaning": "Gradle cleanup title"
+        },
+        {
+          "glyph": "▾ Gradle outputs             49.0 MiB",
+          "meaning": "opened fold with its bytes"
+        }
+      ],
+      "data": {
+        "category": "gradle.clean-all",
+        "bytes": "49.0 MiB",
+        "candidates": "4 of 4"
+      },
+      "state": {
+        "focus": "review-list",
+        "fold_open": true,
+        "prerequisite": "gradle --stop"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-gradle (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Clean Gradle outputs`, then press Enter (the review opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right (the fold opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Left then Right (the fold closes and re-opens)",
+          "key": "Left",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press d (gate 1 opens)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Esc (gate 1 leaves back to the review)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "cleanup",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the title reads Cleanup · Gradle outputs"
+          },
+          {
+            "id": "V2",
+            "text": "the opened fold pairs ▾ Gradle outputs with 49.0 MiB"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the Prerequisite fact names gradle --stop"
+          },
+          {
+            "id": "S2",
+            "text": "the Selection fact reads 4 of 4 candidates eligible"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Left closes the fold and Right re-opens it"
+          },
+          {
+            "id": "A2",
+            "text": "d opens gate 1 and Esc returns to the review"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "gate 1 of 2 must NOT show at the cleanup state (d later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "neither gate phase may show after Esc returns to the review"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "2769",
+            "note": "gradle.clean-all cleanup row"
+          },
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "2777",
+            "note": "cleanup launch scoped to the category"
+          },
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "1355-1359",
+            "note": "gradle --stop prerequisite"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/gradle/cleanup/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_gradle_cleanup live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-GRADLE-001",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "Gradle trash gate-1 review",
+      "ref_symbols": [
+        {
+          "glyph": "Review · trash 4 items · gate 1 of 2",
+          "meaning": "gate-1 title naming count and phase"
+        },
+        {
+          "glyph": "Prerequisite  gradle --stop first",
+          "meaning": "daemon prerequisite in the review"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Review · trash 4 items · gate 1 of 2",
+          "meaning": "gate-1 title naming count and phase"
+        },
+        {
+          "glyph": "Prerequisite  gradle --stop first",
+          "meaning": "daemon prerequisite in the review"
+        }
+      ],
+      "data": {
+        "items": 4,
+        "bytes": "49.0 MiB allocated",
+        "mode": "Trash"
+      },
+      "state": {
+        "focus": "gate1",
+        "phase": "gate 1 of 2",
+        "dialog_open": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-gradle (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Clean Gradle outputs`, then press Enter (the review opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right then d (the fold opens and gate 1 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (gate 2 cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Right+Enter then Esc again (the roundtrip repeats)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate1",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the gate-1 title pairs Review · trash 4 items with gate 1 of 2"
+          },
+          {
+            "id": "V2",
+            "text": "the Prerequisite fact reads gradle --stop first"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the sequence pairs Sequence · 4 commands with y copies"
+          },
+          {
+            "id": "S2",
+            "text": "the Paths fact names the .gradle tree"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Right+Enter opens gate 2 and Esc cancels it back to gate 1"
+          },
+          {
+            "id": "A2",
+            "text": "the open/cancel roundtrip repeats with gate 1 intact"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "gate 2 of 2 must NOT show at the gate-1 state (Right+Enter later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "neither gate 2 of 2 nor the phrase prompt may persist after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "1355-1359",
+            "note": "gradle --stop prerequisite"
+          },
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "998",
+            "note": "d opens the deletion review"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "435",
+            "note": "gate-1 review subtitle"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/gradle/gate1/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8j10 H1 h1_gradle_gate1 live-PTY FAIL @ea7a054a (N2: gate-2 phrase prompt stuck after second cancel; nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          },
+          {
+            "at": "2026-10-07T21:28:30Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j16 H1 h1_gradle_gate1 live-PTY PASS @06259dc7 (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 29 pass/0 fail/444 skip; h1_gradle_gate1 gate-1 asserts 3/3 + gate-2 asserts 2/2; bin target/debug/holla 19297016B sha256:6bed7fa72bf1 built 2026-10-07T21:26:56Z; log /tmp/phase8j16-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-IDEA-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "IntelliJ cleanup review with its fold opened",
+      "ref_symbols": [
+        {
+          "glyph": "Cleanup · IntelliJ metadata",
+          "meaning": "IntelliJ cleanup title"
+        },
+        {
+          "glyph": "▾ IntelliJ metadata          44.0 KiB",
+          "meaning": "opened fold with its bytes"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Cleanup · IntelliJ metadata",
+          "meaning": "IntelliJ cleanup title"
+        },
+        {
+          "glyph": "▾ IntelliJ metadata          44.0 KiB",
+          "meaning": "opened fold with its bytes"
+        }
+      ],
+      "data": {
+        "category": "idea.clean",
+        "bytes": "44.0 KiB",
+        "candidates": "4 of 4"
+      },
+      "state": {
+        "focus": "review-list",
+        "fold_open": true,
+        "unreadable": "~/work/ide/locked"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-idea (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Clean IntelliJ`, Enter, Right (the review opens and the fold opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Left then Right (the fold closes and re-opens)",
+          "key": "Left",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press d (gate 1 opens)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (gate 1 leaves back to the review)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "cleanup",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the title reads Cleanup · IntelliJ metadata"
+          },
+          {
+            "id": "V2",
+            "text": "the opened fold pairs ▾ IntelliJ metadata with 44.0 KiB"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the Unreadable fact names ~/work/ide/locked"
+          },
+          {
+            "id": "S2",
+            "text": "the Selection fact reads 4 of 4 candidates eligible"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Left closes the fold and Right re-opens it"
+          },
+          {
+            "id": "A2",
+            "text": "d opens gate 1 and Esc returns to the review"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "gate 1 of 2 must NOT show at the cleanup state (d later opens it)"
+          },
+          {
+            "id": "N2",
+            "text": "neither gate phase may show after Esc returns to the review"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "2795",
+            "note": "idea.clean cleanup row"
+          },
+          {
+            "path": "src/bin/holla/domain/catalog.rs",
+            "lines": "2803",
+            "note": "cleanup launch scoped to the category"
+          },
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "115",
+            "note": "idea category naming"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/idea/cleanup/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_idea_cleanup live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-IDEA-001",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "IntelliJ trash gate-2 typed-phrase dialog, unarmed",
+      "ref_symbols": [
+        {
+          "glyph": "Trash 4 items · gate 2 of 2",
+          "meaning": "gate-2 dialog title"
+        },
+        {
+          "glyph": "Type TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm",
+          "meaning": "target-bound phrase prompt"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Trash 4 items · gate 2 of 2",
+          "meaning": "gate-2 dialog title"
+        },
+        {
+          "glyph": "Type TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm",
+          "meaning": "target-bound phrase prompt"
+        }
+      ],
+      "data": {
+        "phrase": "TRASH 4 UNDER /Users/alex/work/ide ON mbp",
+        "items": 4
+      },
+      "state": {
+        "focus": "dialog",
+        "phase": "gate 2 of 2",
+        "armed": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-idea (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Clean IntelliJ`, Enter, Right (the review opens and the fold opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press d (gate 1 opens)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Right then Enter (gate 2 opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (gate 2 cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Right+Enter then Esc again (the roundtrip repeats)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate2",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the dialog title reads Trash 4 items · gate 2 of 2"
+          },
+          {
+            "id": "V2",
+            "text": "the prompt reads Type TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the Paths fact names ~/work/ide/.idea through mod/mod.iml"
+          },
+          {
+            "id": "S2",
+            "text": "the gate-2 footer pairs Enter Confirm with Esc Cancel"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc cancels the dialog back to gate 1 (gate-2 chrome expires)"
+          },
+          {
+            "id": "A2",
+            "text": "Right+Enter re-opens gate 2 and Esc cancels it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "neither gate 2 of 2 nor the phrase prompt may show after Esc cancels the dialog"
+          },
+          {
+            "id": "N2",
+            "text": "nothing may stay open after the second cancel either"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "998",
+            "note": "d opens the deletion review"
+          },
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2284-2297",
+            "note": "gate-2 typed-phrase dialog construction"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "110-121",
+            "note": "facts dialog with the ack prompt"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/idea/gate2/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-07T16:37:51Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8j10 H1 h1_idea_gate2 live-PTY PASS @ea7a054a (nextest visual_baseline --run-ignored only -E 'test(h1_)' --test-threads 2, 28 pass/1 fail/444 skip; bin target/debug/holla 19297144B sha256:dbe99215f090 built 2026-10-07T16:35:58Z; log /tmp/phase8j10-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "legacy_roots": [
     {
