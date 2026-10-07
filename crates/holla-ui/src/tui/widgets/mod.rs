@@ -20,6 +20,7 @@ pub mod scrollbar;
 pub mod segments;
 pub mod select;
 pub mod statusbar;
+pub mod stock_dialog;
 pub mod tabs;
 pub mod tree;
 pub mod viewport;
