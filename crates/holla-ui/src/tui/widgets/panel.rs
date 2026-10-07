@@ -14,10 +14,10 @@ use ratatui::widgets::{Block, BorderType, Borders, Widget};
 
 use crate::tui::core::event::{Key, Outcome};
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::theme::Theme;
 use crate::tui::ui::ctx::{RenderCtx, fill};
 use crate::tui::widgets::scrollbar;
+use termrock::ScrollState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PanelKind {
@@ -275,7 +275,8 @@ impl ScrollPanel {
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
-        let moved = match key.code {
+        let before = self.scroll.offset();
+        match key.code {
             KeyCode::Up | KeyCode::Char('k') if key.plain() => self.scroll.scroll_by(-1),
             KeyCode::Down | KeyCode::Char('j') if key.plain() => self.scroll.scroll_by(1),
             KeyCode::PageUp => self.scroll.page_up(),
@@ -294,6 +295,7 @@ impl ScrollPanel {
             }
             _ => return Outcome::Ignored,
         };
+        let moved = self.scroll.offset() != before;
         let was = self.follow;
         self.settle_follow();
         if moved || was != self.follow {
@@ -304,7 +306,9 @@ impl ScrollPanel {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        let moved = self.scroll.scroll_by(delta as isize);
+        let before = self.scroll.offset();
+        self.scroll.scroll_by(delta as isize);
+        let moved = self.scroll.offset() != before;
         let was = self.follow;
         self.settle_follow();
         if moved || was != self.follow {
@@ -555,9 +559,9 @@ mod scroll_panel_tests {
         assert!(!prose.follow, "End is a jump, never a follow");
         // a resize after End keeps the offset clamped, not re-anchored
         prose.on_key(&key(KeyCode::Up));
-        let before = prose.scroll.offset;
+        let before = prose.scroll.offset();
         drawn(&mut prose, 20, 10);
-        assert!(prose.scroll.offset <= before);
+        assert!(prose.scroll.offset() <= before);
         assert!(!prose.follow);
     }
 
@@ -577,7 +581,7 @@ mod scroll_panel_tests {
         assert!(p.scroll.overflows());
         assert_eq!(
             scrollbar::position_label(&p.scroll),
-            format!("1–2 of {}", p.scroll.content_len)
+            format!("1–2 of {}", p.scroll.content_len())
         );
     }
 }

@@ -16,7 +16,6 @@ pub mod snapshot;
 use crate::tui::core::event::{Key, Outcome};
 use crate::tui::core::focus::{Focus, FocusRing};
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::theme::Tone;
 use crate::tui::ui::ctx::RenderCtx;
 use crate::tui::widgets::dialog::Dialog;
@@ -27,6 +26,7 @@ use crate::tui::widgets::scrollbar;
 use crate::tui::widgets::statusbar::StatusItem;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
+use termrock::ScrollState;
 
 use holla_domain::context::Scope;
 use holla_sim::world::{Msg, World};

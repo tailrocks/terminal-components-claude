@@ -32,11 +32,11 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::tui::core::event::{Key, Outcome};
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::theme::Tone;
 use crate::tui::ui::ctx::{RenderCtx, fill};
 use crate::tui::ui::text::width;
 use crate::tui::widgets::scrollbar;
+use termrock::ScrollState;
 
 /// One styled run. Tone maps through `Theme::tone`; bold/italic/underline
 /// are the only modifiers.
@@ -518,7 +518,8 @@ impl TextViewport {
         self.scroll.set_content(self.visual.len());
         if !self.follow {
             // the reading row keeps its content, not its number
-            self.scroll.offset = self.scroll.offset.saturating_sub(gone);
+            let offset = self.scroll.offset().saturating_sub(gone);
+            self.scroll.scroll_to(offset);
         }
     }
 
@@ -827,7 +828,7 @@ impl TextViewport {
             self.reading = None;
             return;
         }
-        let Some(vr) = self.visual.get(self.scroll.offset) else {
+        let Some(vr) = self.visual.get(self.scroll.offset()) else {
             self.reading = None;
             return;
         };
@@ -950,12 +951,14 @@ impl TextViewport {
     }
 
     pub fn is_at_tail(&self) -> bool {
-        self.scroll.offset >= self.scroll.max_offset()
+        self.scroll.offset() >= self.scroll.max_offset()
     }
 
     /// Lines behind the live tail (scrollback depth).
     pub fn scrollback_depth(&self) -> usize {
-        self.scroll.max_offset().saturating_sub(self.scroll.offset)
+        self.scroll
+            .max_offset()
+            .saturating_sub(self.scroll.offset())
     }
 
     pub fn set_follow(&mut self, on: bool) {
@@ -981,7 +984,7 @@ impl TextViewport {
         if self.area.is_empty() || self.visual.is_empty() {
             return None;
         }
-        let row = (pos.y.saturating_sub(self.area.y) as usize + self.scroll.offset)
+        let row = (pos.y.saturating_sub(self.area.y) as usize + self.scroll.offset())
             .min(self.visual.len().saturating_sub(1));
         let vr = self.visual.get(row)?;
         let x = pos.x.saturating_sub(self.area.x) as usize;
@@ -1130,7 +1133,9 @@ impl TextViewport {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if !self.scroll.scroll_by(delta as isize) {
+        let before = self.scroll.offset();
+        self.scroll.scroll_by(delta as isize);
+        if self.scroll.offset() == before {
             return Outcome::Consumed;
         }
         self.follow = self.is_at_tail();
@@ -1364,7 +1369,8 @@ impl TextViewport {
             let o = self.extend_selection(key.code, word);
             return (o, Some(ViewportEvent::SelectionChanged));
         }
-        let moved = match key.code {
+        let before = self.scroll.offset();
+        match key.code {
             KeyCode::Up | KeyCode::Char('k') if key.plain() => self.scroll.scroll_by(-1),
             KeyCode::Down | KeyCode::Char('j') if key.plain() => self.scroll.scroll_by(1),
             KeyCode::PageUp if key.plain() => self.scroll.page_up(),
@@ -1397,7 +1403,7 @@ impl TextViewport {
             }
             _ => return (Outcome::Ignored, None),
         };
-        if !moved {
+        if self.scroll.offset() == before {
             return (Outcome::Consumed, None);
         }
         let was = self.follow;
@@ -1527,7 +1533,7 @@ impl TextViewport {
             let vr = self.visual[vi];
             let base = self.col_of(vr.line, vr.start);
             let cx = area.x + (c.col.saturating_sub(base) as u16).min(text_w.saturating_sub(1));
-            let cy = area.y + (vi - self.scroll.offset) as u16;
+            let cy = area.y + (vi - self.scroll.offset()) as u16;
             ctx.set_cursor(Position::new(cx, cy));
         }
     }
@@ -1575,7 +1581,7 @@ mod tests {
         let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(50));
         render(&mut v, 40, 10);
         assert!(v.is_at_tail());
-        assert_eq!(v.scroll.offset, 40);
+        assert_eq!(v.scroll.offset(), 40);
         v.on_wheel(-3);
         assert!(!v.follow);
         assert_eq!(v.scrollback_depth(), 3);

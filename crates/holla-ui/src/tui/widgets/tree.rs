@@ -5,9 +5,9 @@ use ratatui::style::{Color, Modifier};
 
 use crate::tui::core::event::{Key, Outcome};
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::ui::ctx::{RenderCtx, fill};
 use crate::tui::widgets::scrollbar;
+use termrock::ScrollState;
 
 /// A node in a tree: label, optional trailing metadata, children.
 #[derive(Debug, Clone)]
@@ -378,11 +378,14 @@ impl TreeView {
                 Outcome::Changed
             }
             KeyCode::PageUp => {
-                self.set_cursor(self.cursor.saturating_sub(self.scroll.viewport_len.max(1)));
+                self.set_cursor(
+                    self.cursor
+                        .saturating_sub(self.scroll.viewport_len().max(1)),
+                );
                 Outcome::Changed
             }
             KeyCode::PageDown => {
-                self.set_cursor(self.cursor + self.scroll.viewport_len.max(1));
+                self.set_cursor(self.cursor + self.scroll.viewport_len().max(1));
                 Outcome::Changed
             }
             KeyCode::Home | KeyCode::Char('g') => {
@@ -469,7 +472,9 @@ impl TreeView {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if self.scroll.scroll_by(delta as isize) {
+        let before = self.scroll.offset();
+        self.scroll.scroll_by(delta as isize);
+        if self.scroll.offset() != before {
             Outcome::Changed
         } else {
             Outcome::Consumed

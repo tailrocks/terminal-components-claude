@@ -3,7 +3,6 @@
 
 use crate::tui::core::event::{Key, Outcome};
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::theme::Tone;
 use crate::tui::ui::ctx::{RenderCtx, fill};
 use crate::tui::ui::popup::{Placement, place};
@@ -13,6 +12,7 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
+use termrock::ScrollState;
 
 /// One line of a text modal: an optional bold key column and a value.
 #[derive(Debug, Clone, PartialEq, Eq)]

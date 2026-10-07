@@ -6,7 +6,6 @@
 
 use crate::tui::core::event::{Key, Outcome};
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::theme::Tone;
 use crate::tui::ui::ctx::{RenderCtx, fill};
 use crate::tui::ui::text::{fit, fit_right, truncate, truncate_middle, width};
@@ -22,6 +21,7 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
+use termrock::ScrollState;
 
 use crate::screens::{
     Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, plural, scroll_drag,
@@ -476,7 +476,7 @@ impl FilesPage {
         ];
         let anchor = Rect::new(
             self.list_area.x + 4,
-            self.list_area.y + (self.cursor.saturating_sub(self.scroll.offset)) as u16,
+            self.list_area.y + (self.cursor.saturating_sub(self.scroll.offset())) as u16,
             1,
             1,
         );
@@ -1277,7 +1277,9 @@ impl Screen for FilesPage {
                 Outcome::Changed
             }
             (_, KeyCode::PageUp) => {
-                self.cursor = self.cursor.saturating_sub(self.scroll.viewport_len.max(1));
+                self.cursor = self
+                    .cursor
+                    .saturating_sub(self.scroll.viewport_len().max(1));
                 self.scroll.ensure_visible(self.cursor);
                 Outcome::Changed
             }
@@ -1287,7 +1289,7 @@ impl Screen for FilesPage {
                     Mode::Find => self.hits.len(),
                 };
                 self.cursor =
-                    (self.cursor + self.scroll.viewport_len.max(1)).min(n.saturating_sub(1));
+                    (self.cursor + self.scroll.viewport_len().max(1)).min(n.saturating_sub(1));
                 self.scroll.ensure_visible(self.cursor);
                 Outcome::Changed
             }

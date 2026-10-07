@@ -5,7 +5,6 @@
 
 use crate::tui::core::event::{Key, Outcome};
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::theme::Tone;
 use crate::tui::ui::ctx::RenderCtx;
 use crate::tui::ui::text::{truncate, width};
@@ -19,6 +18,7 @@ use crate::tui::widgets::statusbar::StatusItem;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
+use termrock::ScrollState;
 
 use crate::screens::{Cx, Go, Screen, StatusBits, plural, scroll_drag, scroll_press};
 use holla_sim::world::World;

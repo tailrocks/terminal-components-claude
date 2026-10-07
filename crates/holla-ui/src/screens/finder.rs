@@ -5,7 +5,6 @@
 
 use crate::tui::core::event::{Key, Outcome};
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::theme::{Theme, Tone};
 use crate::tui::ui::ctx::{RenderCtx, fill};
 use crate::tui::ui::text::{fit, truncate, truncate_middle, width, wrap};
@@ -18,6 +17,7 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
+use termrock::ScrollState;
 
 use crate::screens::{
     Cx, Go, Page, Screen, StatusBits, heading, plural, risk_tone, scroll_drag, scroll_press,
@@ -360,7 +360,7 @@ impl FinderPage {
 
     #[cfg(test)]
     pub fn preview_offset(&self) -> usize {
-        self.preview_scroll.offset
+        self.preview_scroll.offset()
     }
 
     fn first_selectable(&self) -> usize {
@@ -405,7 +405,7 @@ impl FinderPage {
                 self.scroll.ensure_visible(self.cursor);
                 // keep the heading above the first row in view
                 if self.cursor > 0
-                    && self.cursor == self.scroll.offset
+                    && self.cursor == self.scroll.offset()
                     && matches!(self.rows[self.cursor - 1], Row::Heading(_))
                 {
                     self.scroll.scroll_by(-1);
@@ -1072,7 +1072,7 @@ impl FinderPage {
             .map(|i| {
                 Rect::new(
                     self.list_area.x + 6,
-                    self.list_area.y + (i - self.scroll.offset) as u16,
+                    self.list_area.y + (i - self.scroll.offset()) as u16,
                     1,
                     1,
                 )
@@ -1224,13 +1224,13 @@ impl Screen for FinderPage {
                 Outcome::Changed
             }
             KeyCode::PageUp => {
-                for _ in 0..self.scroll.viewport_len.max(1) {
+                for _ in 0..self.scroll.viewport_len().max(1) {
                     self.step(-1);
                 }
                 Outcome::Changed
             }
             KeyCode::PageDown => {
-                for _ in 0..self.scroll.viewport_len.max(1) {
+                for _ in 0..self.scroll.viewport_len().max(1) {
                     self.step(1);
                 }
                 Outcome::Changed

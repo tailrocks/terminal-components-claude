@@ -29,6 +29,9 @@ pub struct ScrollState {
     content_len: usize,
     viewport_len: usize,
     reveal: Option<usize>,
+    /// The thumb row held by an in-progress track press, so a drag keeps
+    /// the grabbed row under the pointer instead of recentring the thumb.
+    grab: Option<usize>,
 }
 
 impl ScrollState {
@@ -39,6 +42,7 @@ impl ScrollState {
             content_len,
             viewport_len: 0,
             reveal: None,
+            grab: None,
         }
     }
 
@@ -227,6 +231,59 @@ impl ScrollState {
         (start.min(usable), len)
     }
 
+    /// Inverse of [`thumb`](Self::thumb): the offset whose thumb starts at
+    /// `start` on a track of `track_len` cells.
+    pub fn offset_for_thumb_start(&self, start: usize, track_len: usize) -> usize {
+        if !self.overflows() || track_len == 0 {
+            return 0;
+        }
+        let (_, len) = self.thumb(track_len);
+        let usable = track_len.saturating_sub(len).max(1);
+        let start = start.min(usable);
+        start
+            .saturating_mul(self.max_offset())
+            .saturating_add(usable / 2)
+            .checked_div(usable)
+            .unwrap_or(0)
+    }
+
+    /// The pointer went down on the track at row `pos`. On the thumb this
+    /// only remembers where the thumb was grabbed; on the bare track it
+    /// jumps the thumb under the pointer.
+    pub fn press_track(&mut self, pos: usize, track_len: usize) {
+        if !self.overflows() || track_len == 0 {
+            self.grab = None;
+            return;
+        }
+        let (start, len) = self.thumb(track_len);
+        if (start..start + len).contains(&pos) {
+            self.grab = Some(pos - start);
+            return;
+        }
+        self.grab = Some(len / 2);
+        self.scroll_to(self.offset_for_track_pos(pos, track_len));
+    }
+
+    /// The pointer moved to row `pos` while held: the thumb follows it,
+    /// keeping the grabbed row under the pointer. A drag without a press
+    /// behaves like a press.
+    pub fn drag_track(&mut self, pos: usize, track_len: usize) {
+        if !self.overflows() || track_len == 0 {
+            return;
+        }
+        let Some(grab) = self.grab else {
+            self.press_track(pos, track_len);
+            return;
+        };
+        let target = self.offset_for_thumb_start(pos.saturating_sub(grab), track_len);
+        self.scroll_to(target);
+    }
+
+    /// The pointer was released: the next press starts a new grab.
+    pub fn release_track(&mut self) {
+        self.grab = None;
+    }
+
     /// Inverse of [`thumb`](Self::thumb): a track position to an offset.
     pub fn offset_for_track_pos(&self, pos: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {
@@ -356,5 +413,53 @@ mod tests {
         assert_eq!(s.offset(), 0);
         assert_eq!(s.visible_range(), 0..100);
         assert_eq!(s.headroom_v().down, 0);
+    }
+
+    #[test]
+    fn pressing_the_thumb_grabs_it_and_dragging_keeps_the_grabbed_row_under_the_pointer() {
+        let mut s = ScrollState::new(120);
+        s.set_viewport(31);
+        let track = 31;
+        let (start, len) = s.thumb(track);
+        assert_eq!((start, len), (0, 8));
+        // a press inside the thumb does not move the view
+        s.press_track(7, track);
+        assert_eq!(s.offset(), 0);
+        // one row of pointer motion moves the thumb one row, not fifteen
+        s.drag_track(8, track);
+        assert_eq!(s.thumb(track).0, 1);
+        assert!(s.offset() > 0 && s.offset() < 8, "{}", s.offset());
+        // dragging to the bottom of the track reaches the end exactly
+        s.drag_track(track - 1, track);
+        assert!(s.at_end());
+        assert_eq!(s.thumb(track).0, track - len);
+        // and back to the top
+        s.drag_track(0, track);
+        assert_eq!(s.offset(), 0);
+        // a press on the bare track jumps the thumb under the pointer
+        s.release_track();
+        s.press_track(20, track);
+        let (start, len) = s.thumb(track);
+        assert!(
+            (start..start + len).contains(&20),
+            "{start}..{}",
+            start + len
+        );
+        // a drag without a press falls back to a press
+        let mut fresh = ScrollState::new(120);
+        fresh.set_viewport(31);
+        fresh.drag_track(track - 1, track);
+        assert!(fresh.at_end());
+    }
+
+    #[test]
+    fn track_press_and_drag_are_no_ops_without_overflow() {
+        let mut s = ScrollState::new(3);
+        s.set_viewport(5);
+        s.press_track(2, 5);
+        s.drag_track(4, 5);
+        assert_eq!(s.offset(), 0);
+        s.release_track();
+        assert_eq!(s.offset(), 0);
     }
 }

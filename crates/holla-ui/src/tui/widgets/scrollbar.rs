@@ -2,8 +2,8 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::ui::ctx::RenderCtx;
+use termrock::ScrollState;
 
 pub const TRACK: &str = "│";
 pub const THUMB: &str = "┃";
@@ -61,14 +61,18 @@ fn track_row(track: Rect, pos: Position) -> usize {
 /// bare track it jumps the thumb under the pointer. Returns whether the
 /// offset changed. `track` must be the rectangle the scrollbar was drawn in.
 pub fn press(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
-    scroll.press_track(track_row(track, pos), track.height as usize)
+    let before = scroll.offset();
+    scroll.press_track(track_row(track, pos), track.height as usize);
+    scroll.offset() != before
 }
 
 /// The pointer moved while held after [`press`]: the thumb follows,
 /// keeping the grabbed row under the pointer. Returns whether the offset
 /// changed.
 pub fn drag(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
-    scroll.drag_track(track_row(track, pos), track.height as usize)
+    let before = scroll.offset();
+    scroll.drag_track(track_row(track, pos), track.height as usize);
+    scroll.offset() != before
 }
 
 /// "12–24 of 120" style position label.
@@ -77,5 +81,5 @@ pub fn position_label(scroll: &ScrollState) -> String {
         return String::new();
     }
     let r = scroll.visible_range();
-    format!("{}–{} of {}", r.start + 1, r.end, scroll.content_len)
+    format!("{}–{} of {}", r.start + 1, r.end, scroll.content_len())
 }

@@ -19,8 +19,8 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
 
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::ui::ctx::RenderCtx;
+use termrock::ScrollState;
 
 /// Fraction of the foreground contrast kept on the outermost faded row.
 pub const OUTER_KEEP: f32 = 0.55;
@@ -52,8 +52,9 @@ pub fn scroll_edges_except(
     if area.is_empty() || area.height < MIN_ROWS {
         return;
     }
-    let up = scroll.offset > 0;
-    let down = scroll.viewport_len > 0 && scroll.offset + scroll.viewport_len < scroll.content_len;
+    let up = scroll.offset() > 0;
+    let down =
+        scroll.viewport_len() > 0 && scroll.offset() + scroll.viewport_len() < scroll.content_len();
     if !up && !down {
         return;
     }
@@ -168,14 +169,16 @@ mod tests {
         }
     }
 
+    fn scrolled(offset: usize, content_len: usize, viewport_len: usize) -> ScrollState {
+        let mut s = ScrollState::new(content_len);
+        s.set_viewport(viewport_len);
+        s.scroll_to(offset);
+        s
+    }
+
     #[test]
     fn fades_only_the_edges_that_hide_more_content_and_clears_at_the_boundary() {
-        let s = |offset: usize| ScrollState {
-            offset,
-            content_len: 30,
-            viewport_len: 6,
-            ..Default::default()
-        };
+        let s = |offset: usize| scrolled(offset, 30, 6);
         // at the top: only the bottom row fades
         let mut b = painted(6);
         fade(&mut b, ColorLevel::TrueColor, s(0), None);
@@ -194,17 +197,7 @@ mod tests {
         assert_eq!(grey(&b, 5), 200);
         // everything fits: nothing fades
         let mut b = painted(6);
-        fade(
-            &mut b,
-            ColorLevel::TrueColor,
-            ScrollState {
-                offset: 0,
-                content_len: 6,
-                viewport_len: 6,
-                ..Default::default()
-            },
-            None,
-        );
+        fade(&mut b, ColorLevel::TrueColor, scrolled(0, 6, 6), None);
         assert_eq!(grey(&b, 0), 200);
         assert_eq!(grey(&b, 5), 200);
     }
@@ -212,34 +205,14 @@ mod tests {
     #[test]
     fn tall_viewports_fade_two_rows_and_short_ones_none() {
         let mut b = painted(12);
-        fade(
-            &mut b,
-            ColorLevel::TrueColor,
-            ScrollState {
-                offset: 5,
-                content_len: 100,
-                viewport_len: 12,
-                ..Default::default()
-            },
-            None,
-        );
+        fade(&mut b, ColorLevel::TrueColor, scrolled(5, 100, 12), None);
         assert_eq!(grey(&b, 0), 110);
         assert_eq!(grey(&b, 1), 160, "inner row keeps 80%");
         assert_eq!(grey(&b, 2), 200);
         assert_eq!(grey(&b, 11), 110);
         assert_eq!(grey(&b, 10), 160);
         let mut b = painted(3);
-        fade(
-            &mut b,
-            ColorLevel::TrueColor,
-            ScrollState {
-                offset: 5,
-                content_len: 100,
-                viewport_len: 3,
-                ..Default::default()
-            },
-            None,
-        );
+        fade(&mut b, ColorLevel::TrueColor, scrolled(5, 100, 3), None);
         assert_eq!(grey(&b, 0), 200, "three rows are all content");
     }
 
@@ -260,17 +233,7 @@ mod tests {
             Style::new().fg(FG).bg(BG).add_modifier(Modifier::REVERSED),
         );
         b.set_string(2, 5, "c", Style::new().fg(FG).bg(Color::Rgb(40, 40, 0)));
-        fade(
-            &mut b,
-            ColorLevel::TrueColor,
-            ScrollState {
-                offset: 10,
-                content_len: 30,
-                viewport_len: 6,
-                ..Default::default()
-            },
-            None,
-        );
+        fade(&mut b, ColorLevel::TrueColor, scrolled(10, 30, 6), None);
         assert_eq!(grey(&b, 0), 200, "selected row untouched");
         assert_eq!(grey(&b, 5), 200, "reversed cell untouched");
         assert!(
@@ -286,12 +249,7 @@ mod tests {
         fade(
             &mut b,
             ColorLevel::TrueColor,
-            ScrollState {
-                offset: 10,
-                content_len: 30,
-                viewport_len: 6,
-                ..Default::default()
-            },
+            scrolled(10, 30, 6),
             Some(Position::new(4, 5)),
         );
         assert_eq!(grey(&b, 5), 200);
@@ -306,18 +264,7 @@ mod tests {
         let mut ring = FocusRing::default();
         let ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         let area = *b.area();
-        scroll_edges_except(
-            &mut b,
-            &ctx,
-            area,
-            &ScrollState {
-                offset: 10,
-                content_len: 30,
-                viewport_len: 6,
-                ..Default::default()
-            },
-            &[5],
-        );
+        scroll_edges_except(&mut b, &ctx, area, &scrolled(10, 30, 6), &[5]);
         assert_eq!(grey(&b, 0), 110);
         assert_eq!(grey(&b, 5), 200, "the kept row is untouched");
     }
@@ -334,17 +281,7 @@ mod tests {
                     Style::new().fg(Color::Gray).bg(Color::Black),
                 );
             }
-            fade(
-                &mut b,
-                level,
-                ScrollState {
-                    offset: 5,
-                    content_len: 100,
-                    viewport_len: 12,
-                    ..Default::default()
-                },
-                None,
-            );
+            fade(&mut b, level, scrolled(5, 100, 12), None);
             assert!(b[(0, 0)].modifier.contains(Modifier::DIM), "{level:?}");
             assert!(
                 !b[(0, 1)].modifier.contains(Modifier::DIM),

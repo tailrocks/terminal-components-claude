@@ -8,10 +8,10 @@ use ratatui::style::{Color, Modifier};
 
 use crate::tui::core::event::{Key, Outcome};
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::theme::{Theme, Tone};
 use crate::tui::ui::ctx::{RenderCtx, fill};
 use crate::tui::widgets::scrollbar;
+use termrock::ScrollState;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Prop {
@@ -182,10 +182,11 @@ impl PropsList {
                 self.set_cursor(self.cursor.saturating_sub(1))
             }
             KeyCode::Down | KeyCode::Char('j') if key.plain() => self.set_cursor(self.cursor + 1),
-            KeyCode::PageUp => {
-                self.set_cursor(self.cursor.saturating_sub(self.scroll.viewport_len.max(1)))
-            }
-            KeyCode::PageDown => self.set_cursor(self.cursor + self.scroll.viewport_len.max(1)),
+            KeyCode::PageUp => self.set_cursor(
+                self.cursor
+                    .saturating_sub(self.scroll.viewport_len().max(1)),
+            ),
+            KeyCode::PageDown => self.set_cursor(self.cursor + self.scroll.viewport_len().max(1)),
             KeyCode::Home | KeyCode::Char('g') if key.plain() => self.set_cursor(0),
             KeyCode::End | KeyCode::Char('G') => self.set_cursor(usize::MAX),
             KeyCode::Enter => return (Outcome::Changed, Some(PropsEvent::Activate(self.cursor))),
@@ -209,7 +210,9 @@ impl PropsList {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if self.scroll.scroll_by(delta as isize) {
+        let before = self.scroll.offset();
+        self.scroll.scroll_by(delta as isize);
+        if self.scroll.offset() != before {
             Outcome::Changed
         } else {
             Outcome::Consumed

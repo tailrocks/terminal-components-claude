@@ -9,11 +9,11 @@ use ratatui::style::{Modifier, Style};
 
 use crate::tui::core::event::{Key, Outcome};
 use crate::tui::core::id::WidgetId;
-use crate::tui::core::scroll::ScrollState;
 use crate::tui::ui::ctx::{RenderCtx, fill};
 use crate::tui::ui::popup::{Placement, place};
 use crate::tui::ui::text::{truncate, width};
 use crate::tui::widgets::scrollbar;
+use termrock::ScrollState;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PickerItem {
@@ -159,7 +159,7 @@ impl Picker {
             .get(self.cursor)
             .filter(|i| !i.key.is_empty())
             .map(|i| i.key.clone());
-        let offset = self.scroll.offset;
+        let offset = self.scroll.offset();
         self.items = items;
         self.cursor = keep
             .and_then(|k| self.items.iter().position(|i| i.key == k && !i.disabled))
@@ -307,11 +307,11 @@ impl Picker {
                 (Outcome::Changed, None)
             }
             KeyCode::PageDown => {
-                self.step(self.scroll.viewport_len.max(1) as isize);
+                self.step(self.scroll.viewport_len().max(1) as isize);
                 (Outcome::Changed, None)
             }
             KeyCode::PageUp => {
-                self.step(-(self.scroll.viewport_len.max(1) as isize));
+                self.step(-(self.scroll.viewport_len().max(1) as isize));
                 (Outcome::Changed, None)
             }
             KeyCode::Tab => (Outcome::Changed, Some(PickerEvent::NextScope)),
@@ -375,9 +375,9 @@ impl Picker {
 
     /// Wheel scrolls the viewport and keeps the selection where it is.
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        let before = self.scroll.offset;
+        let before = self.scroll.offset();
         self.scroll.scroll_by(delta as isize);
-        if self.scroll.offset == before {
+        if self.scroll.offset() == before {
             Outcome::Consumed
         } else {
             Outcome::Changed
@@ -860,7 +860,7 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 60, 8));
         p.render(Rect::new(0, 0, 60, 8), &mut buf, &mut ctx, "hints");
         assert!(
-            p.scroll.viewport_len >= 1,
+            p.scroll.viewport_len() >= 1,
             "a short screen still shows a row"
         );
         let shown: String = (0..8)
@@ -872,7 +872,7 @@ mod tests {
             })
             .collect();
         assert!(shown.contains("item 00"), "{shown}");
-        let view = p.scroll.viewport_len;
+        let view = p.scroll.viewport_len();
         let key = Key {
             code: KeyCode::PageDown,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
@@ -908,11 +908,11 @@ mod tests {
         let after = render(&mut p);
         assert!(!after.contains("Item 00"), "wheel moved the viewport");
         assert!(after.contains("Item 03"));
-        assert_eq!(p.scroll.offset, 3);
+        assert_eq!(p.scroll.offset(), 3);
         // a second render keeps the offset
         let again = render(&mut p);
         assert_eq!(again, after);
-        assert_eq!(p.scroll.offset, 3);
+        assert_eq!(p.scroll.offset(), 3);
         assert_eq!(p.cursor, 0, "selection is preserved while wheel scrolling");
         p.on_wheel(-3);
         let back = render(&mut p);
@@ -925,7 +925,7 @@ mod tests {
         render(&mut p);
         p.on_wheel(10);
         render(&mut p);
-        assert_eq!(p.scroll.offset, 10);
+        assert_eq!(p.scroll.offset(), 10);
         let key = Key {
             code: KeyCode::Down,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
