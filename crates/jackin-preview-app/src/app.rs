@@ -4,6 +4,7 @@
 //! public facade.  Domain and simulation state stay in sibling modules.
 
 use std::{
+    borrow::Cow,
     cell::RefCell,
     collections::{BTreeMap, hash_map::DefaultHasher},
     hash::{Hash, Hasher},
@@ -21,8 +22,8 @@ use termrock::{
     MeterTone, Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase, Picker, PickerAction,
     PickerState, Position, ProjectedText, Reconcile, Rect, Response, Role, RowUi, SecretPolicy,
     Side, SplitAxis, SplitPane, SplitPaneState, StateFlags, Status, StatusBar, StatusItem,
-    StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport,
-    TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
+    TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -273,29 +274,106 @@ const CAPSULE_MENUS: &[Menu<'static>] = &[
     Menu::new("Help", CAPSULE_HELP_ITEMS),
 ];
 const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_TAB_RENAME, "Change title…"),
-    MenuItem::new(CMD_TAB_CLOSE, "Close tab"),
+    MenuItem::new(CMD_TAB_RENAME, "Change title…").shortcut_text("2×click"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right")
+        .shortcut_text("Ctrl+B %")
+        .separator(),
+    MenuItem::new(CMD_TAB_CLOSE, "Close tab")
+        .shortcut_text("Ctrl+B &")
+        .danger(),
 ];
 const CAPSULE_COMMANDS: &[Item<'static>] = &[
-    Item::new(ItemKey::num(1), "New tab"),
-    Item::new(ItemKey::num(2), "Split right"),
-    Item::new(ItemKey::num(3), "Split below"),
-    Item::new(ItemKey::num(4), "Copy selection"),
-    Item::new(ItemKey::num(5), "Inspect changes ·"),
-    Item::new(ItemKey::num(6), "Zoom pane"),
-    Item::new(ItemKey::num(7), "Focus left"),
-    Item::new(ItemKey::num(8), "Usage"),
-    Item::new(ItemKey::num(9), "Change title…"),
-    Item::new(ItemKey::num(10), "Close tab"),
-    Item::new(ItemKey::num(11), "Keyboard shortcuts"),
-    Item::new(ItemKey::num(12), "Detach"),
-    Item::new(ItemKey::num(13), "Container info"),
+    Item::new(ItemKey::num(1), "New tab")
+        .glyph(" ")
+        .detail("Ctrl+B c"),
+    Item::new(ItemKey::num(2), "Split pane")
+        .glyph(" ")
+        .detail("Ctrl+B \" %"),
+    Item::new(ItemKey::num(3), "Zoom / unzoom pane")
+        .glyph(" ")
+        .detail("Ctrl+B z"),
+    Item::new(ItemKey::num(4), "Export file")
+        .glyph(" ")
+        .detail("host"),
+    Item::new(ItemKey::num(5), "Export file and reveal")
+        .glyph(" ")
+        .detail("host"),
+    Item::new(ItemKey::num(6), "Export file and open")
+        .glyph(" ")
+        .detail("host"),
+    Item::new(ItemKey::num(7), "Export file under cursor")
+        .glyph(" ")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(8), "Export file under cursor and reveal")
+        .glyph(" ")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(9), "Export file under cursor and open")
+        .glyph(" ")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(10), "Export selected file")
+        .glyph(" ")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(11), "Export selected file and reveal")
+        .glyph(" ")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(12), "Export selected file and open")
+        .glyph(" ")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(13), "Stage image from clipboard path")
+        .glyph(" ")
+        .detail("host"),
+    Item::new(ItemKey::num(14), "Paste image from host clipboard")
+        .glyph(" ")
+        .detail("host"),
+    Item::new(ItemKey::num(15), "Stage image without pasting")
+        .glyph(" ")
+        .detail("host"),
+    Item::new(ItemKey::num(16), "Open link under cursor")
+        .glyph(" ")
+        .detail("no link under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(17), "Clear pane")
+        .glyph(" ")
+        .detail("Ctrl+B Ctrl+L"),
+    Item::new(ItemKey::num(18), "Usage")
+        .glyph(" ")
+        .detail("Ctrl+B u"),
+    Item::new(ItemKey::num(19), "Close")
+        .glyph(" ")
+        .detail("Ctrl+B x"),
+    Item::new(ItemKey::num(20), "Exit")
+        .glyph(" ")
+        .detail("Ctrl+Q"),
+];
+const CAPSULE_AGENT_OPTIONS: &[Item<'static>] = &[
+    Item::new(ItemKey::num(1), "Claude Code")
+        .glyph("▪")
+        .detail("2 accounts · choose at start")
+        .group("agents"),
+    Item::new(ItemKey::num(2), "Codex")
+        .glyph("▪")
+        .detail("Primary"),
+    Item::new(ItemKey::num(3), "OpenCode")
+        .glyph("▪")
+        .detail("Go subscription"),
+    Item::new(ItemKey::num(4), "Grok Build")
+        .glyph("▪")
+        .detail("Team"),
+    Item::new(ItemKey::num(5), "Shell")
+        .glyph("$")
+        .detail("zsh")
+        .group("shells"),
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_paint;
 use historical_paint::HistoricalPalette;
-mod historical_capsule;
 mod historical_accounts_settings_usage;
 
 /// The visible product route.
@@ -696,6 +774,7 @@ pub struct App {
     capsule_split_vertical_open: bool,
     capsule_palette_open: bool,
     capsule_palette_state: PickerState,
+    capsule_agent_state: PickerState,
     tabs_state: TabsState,
     quit_dialog: DialogState,
     launch_dialog: DialogState,
@@ -891,6 +970,7 @@ impl App {
             capsule_split_vertical_open: false,
             capsule_palette_open: false,
             capsule_palette_state: PickerState::default(),
+            capsule_agent_state: PickerState::default(),
             tabs_state: TabsState::default(),
             quit_dialog: DialogState::default(),
             launch_dialog: DialogState::default(),
@@ -1391,14 +1471,61 @@ impl App {
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
     }
 
-    fn capsule_tab_context(position: Position) -> ContextMenu<'static> {
-        ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position).title("Tab")
+    fn active_capsule_tab_title(&self) -> String {
+        let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
+        let tabs = Self::build_capsule_tabs(
+            &self.world,
+            instance_id,
+            &self.capsule_tab_title,
+            self.capsule_tab_title_index,
+        );
+        tabs.get(self.capsule_tab_title_index)
+            .map(|t| t.label.clone())
+            .unwrap_or_else(|| "Tab".to_string())
     }
 
-    fn capsule_command_palette() -> Picker<'static, Item<'static>> {
+    fn capsule_tab_context(
+        title: impl Into<Cow<'static, str>>,
+        position: Position,
+    ) -> ContextMenu<'static> {
+        ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position).title(title)
+    }
+
+    fn capsule_command_palette(screen_height: u16) -> Picker<'static, Item<'static>> {
+        let height = 19.min(screen_height.saturating_sub(2));
         Picker::new(CAPSULE_COMMAND_PALETTE)
             .title("Command palette")
-            .placeholder("Search commands…")
+            .placeholder("Type to filter commands…")
+            .meta("20 of 20")
+            .size(LayerSize::Fixed(60, height))
+            .searchable(true)
+            .item_layout(ItemRowLayout::Columns)
+    }
+
+    fn capsule_agent_picker(title: &'static str, screen_width: u16) -> Picker<'static, Item<'static>> {
+        let width = 72.min(screen_width.saturating_sub(4));
+        Picker::new(crate::screens::manager::AGENT_PICKER)
+            .title(title)
+            .placeholder("Type to search…")
+            .size(LayerSize::Fixed(width, 12))
+            .searchable(true)
+            .item_layout(ItemRowLayout::Columns)
+    }
+
+    fn open_capsule_agent_picker(&mut self, cx: &mut Cx<'_>, action: CapsuleAction) {
+        self.capsule_agent_state = PickerState::default();
+        self.pending_capsule_action = Some(action);
+        let title = match action {
+            CapsuleAction::Split(_) => "Split ↓ Below",
+            _ => "New tab",
+        };
+        let screen = cx.viewport();
+        let picker = Self::capsule_agent_picker(title, screen.width);
+        let spec = picker.layer(cx, CAPSULE_AGENT_OPTIONS);
+        cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
+        let _ = picker
+            .update(cx, &mut self.capsule_agent_state, CAPSULE_AGENT_OPTIONS)
+            .erase();
     }
 
     fn container_info_dialog() -> Dialog<'static> {
@@ -2390,34 +2517,45 @@ impl App {
             self.capsule_tab_title_index = self.active_capsule_tab_index();
             self.capsule_tab_menu_open = true;
             self.capsule_tab_menu_state = MenuState::default();
-            self.capsule_tab_menu_pos = Position::new(8, 2);
-            if !(self.world.scenario == Scenario::CapsuleMulti && self.motion == Motion::Paused) {
-                cx.open_layer(
-                    CAPSULE_TAB_MENU,
-                    Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
-                );
-            }
+            self.capsule_tab_menu_pos = Position::new(1, 2);
+            let title = self.active_capsule_tab_title();
+            cx.open_layer(
+                CAPSULE_TAB_MENU,
+                Self::capsule_tab_context(title, self.capsule_tab_menu_pos).layer(cx),
+            );
+            return Response::changed();
+        }
+        if key == 'c' {
+            self.capsule_prefix = false;
+            self.capsule_new_tab_open = true;
+            self.open_capsule_agent_picker(cx, CapsuleAction::NewTab);
+            return Response::changed();
+        }
+        if key == '"' {
+            self.capsule_prefix = false;
+            self.capsule_split_vertical_open = true;
+            self.open_capsule_agent_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
+            return Response::changed();
+        }
+        if key == ' ' || key == ':' {
+            self.capsule_prefix = false;
+            self.capsule_palette_open = true;
+            self.capsule_palette_state = PickerState::default();
+            let screen = cx.viewport();
+            let palette = Self::capsule_command_palette(screen.height);
+            cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
+            let _ = palette
+                .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
+                .erase();
             return Response::changed();
         }
         let command = match key {
-            'c' => {
-                self.capsule_new_tab_open = true;
-                Some(CMD_CAPSULE)
-            }
             'd' => Some(CMD_CAPSULE_DETACH),
             'i' => Some(CMD_CONTAINER_INFO),
             '%' => Some(CMD_CAPSULE_SPLIT_RIGHT),
-            '"' => {
-                self.capsule_split_vertical_open = true;
-                Some(CMD_CAPSULE_SPLIT_BELOW)
-            }
             'z' => Some(CMD_CAPSULE_ZOOM),
             'h' => Some(CMD_CAPSULE_FOCUS_LEFT),
             'u' => Some(CMD_USAGE),
-            ' ' | ':' => {
-                self.capsule_palette_open = true;
-                Some(CMD_CAPSULE_PALETTE)
-            }
             _ => None,
         };
         if let Some(command) = command {
@@ -3071,28 +3209,57 @@ impl App {
             result |= Response::changed();
         }
 
-        let agent_picker = Self::launch_agent_picker();
-        let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
-        let action = response.action_ref().copied();
-        result |= response.erase();
-        if cx.is_open(crate::screens::manager::AGENT_PICKER)
-            && let Some(PickerAction::Chosen(key)) = action
-            && let Some(option) = self
-                .agent_options
-                .iter()
-                .find(|option| ItemKey::text(&option.key) == key)
-                .cloned()
-        {
-            cx.close_layer(
-                crate::screens::manager::AGENT_PICKER,
-                Some(ActionKey::CONFIRM),
-            );
-            if option.blocked {
-                self.status = Some(format!("{} unavailable · {}", option.label, option.detail));
+        if self.route == Route::Capsule {
+            let title = match self.pending_capsule_action {
+                Some(CapsuleAction::Split(_)) => "Split ↓ Below",
+                _ => "New tab",
+            };
+            let screen = cx.viewport();
+            let agent_picker = Self::capsule_agent_picker(title, screen.width);
+            let response =
+                agent_picker.update(cx, &mut self.capsule_agent_state, CAPSULE_AGENT_OPTIONS);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            if cx.is_open(crate::screens::manager::AGENT_PICKER) {
+                if let Some(PickerAction::Chosen(_key)) = action {
+                    cx.close_layer(
+                        crate::screens::manager::AGENT_PICKER,
+                        Some(ActionKey::CONFIRM),
+                    );
+                    if let Some(action) = self.pending_capsule_action.take() {
+                        self.open_capsule_account_picker(cx, action);
+                    }
+                    result |= Response::changed();
+                }
             } else {
-                self.begin_launch_with(option.agent, option.account);
+                self.pending_capsule_action = None;
+                self.capsule_new_tab_open = false;
+                self.capsule_split_vertical_open = false;
             }
-            result |= Response::changed();
+        } else {
+            let agent_picker = Self::launch_agent_picker();
+            let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            if cx.is_open(crate::screens::manager::AGENT_PICKER)
+                && let Some(PickerAction::Chosen(key)) = action
+                && let Some(option) = self
+                    .agent_options
+                    .iter()
+                    .find(|option| ItemKey::text(&option.key) == key)
+                    .cloned()
+            {
+                cx.close_layer(
+                    crate::screens::manager::AGENT_PICKER,
+                    Some(ActionKey::CONFIRM),
+                );
+                if option.blocked {
+                    self.status = Some(format!("{} unavailable · {}", option.label, option.detail));
+                } else {
+                    self.begin_launch_with(option.agent, option.account);
+                }
+                result |= Response::changed();
+            }
         }
 
         let picker = self.active_account_picker();
@@ -3974,13 +4141,11 @@ impl App {
                 return self.capsule_prefix_key(cx, key);
             }
         }
-        if self.capsule_tab_menu_open
-            && !cx.is_open(CAPSULE_TAB_MENU)
-            && !(self.world.scenario == Scenario::CapsuleMulti && self.motion == Motion::Paused)
-        {
+        if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
+            let title = self.active_capsule_tab_title();
             cx.open_layer(
                 CAPSULE_TAB_MENU,
-                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
+                Self::capsule_tab_context(title, self.capsule_tab_menu_pos).layer(cx),
             );
         }
         let menu = Self::capsule_menu_bar();
@@ -4064,26 +4229,25 @@ impl App {
         }
         result |= manager_menu_response.erase();
 
-        if !(self.world.scenario == Scenario::CapsuleMulti && self.motion == Motion::Paused && self.capsule_tab_menu_open) {
-            let context = Self::capsule_tab_context(self.capsule_tab_menu_pos);
-            let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
-            match context_response.action_ref().copied() {
-                Some(MenuAction::Chosen(action)) => {
-                    self.capsule_tab_menu_open = false;
-                    self.capsule_tab_menu_state = MenuState::default();
-                    if let Some(response) = self.update_command(cx, action) {
-                        result |= response;
-                    }
-                    cx.close_layer(CAPSULE_TAB_MENU, None);
+        let title = self.active_capsule_tab_title();
+        let context = Self::capsule_tab_context(title, self.capsule_tab_menu_pos);
+        let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
+        match context_response.action_ref().copied() {
+            Some(MenuAction::Chosen(action)) => {
+                self.capsule_tab_menu_open = false;
+                self.capsule_tab_menu_state = MenuState::default();
+                if let Some(response) = self.update_command(cx, action) {
+                    result |= response;
                 }
-                Some(MenuAction::Closed(_reason)) => {
-                    self.capsule_tab_menu_open = false;
-                    self.capsule_tab_menu_state = MenuState::default();
-                }
-                _ => {}
+                cx.close_layer(CAPSULE_TAB_MENU, None);
             }
-            result |= context_response.erase();
+            Some(MenuAction::Closed(_reason)) => {
+                self.capsule_tab_menu_open = false;
+                self.capsule_tab_menu_state = MenuState::default();
+            }
+            _ => {}
         }
+        result |= context_response.erase();
 
         if !cx.is_open(CAPSULE_TAB_MENU) {
             let pane_context = self
@@ -4118,37 +4282,33 @@ impl App {
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
                 self.capsule_tab_menu_state = MenuState::default();
-                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+                let title = self.active_capsule_tab_title();
+                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(title, pos).layer(cx));
                 result |= Response::changed();
             } else if let Some((pos, index)) = tab_context {
                 self.capsule_tab_title_index = index;
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
                 self.capsule_tab_menu_state = MenuState::default();
-                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+                let title = self.active_capsule_tab_title();
+                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(title, pos).layer(cx));
                 result |= Response::changed();
             }
         }
 
         if cx.is_open(CAPSULE_COMMAND_PALETTE) {
-            let palette = Self::capsule_command_palette();
+            let screen = cx.viewport();
+            let palette = Self::capsule_command_palette(screen.height);
             let palette_response =
                 palette.update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS);
             if let Some(PickerAction::Chosen(key)) = palette_response.action_ref().copied() {
                 let action = match key {
                     ItemKey::Num(1) => Some(CMD_CAPSULE_NEW_TAB),
                     ItemKey::Num(2) => Some(CMD_CAPSULE_SPLIT_RIGHT),
-                    ItemKey::Num(3) => Some(CMD_CAPSULE_SPLIT_BELOW),
-                    ItemKey::Num(4) => Some(CMD_COPY_SELECTION),
-                    ItemKey::Num(5) => Some(CMD_INSPECT_CHANGES),
-                    ItemKey::Num(6) => Some(CMD_CAPSULE_ZOOM),
-                    ItemKey::Num(7) => Some(CMD_CAPSULE_FOCUS_LEFT),
-                    ItemKey::Num(8) => Some(CMD_USAGE),
-                    ItemKey::Num(9) => Some(CMD_TAB_RENAME),
-                    ItemKey::Num(10) => Some(CMD_TAB_CLOSE),
-                    ItemKey::Num(11) => Some(CMD_KEYBOARD_SHORTCUTS),
-                    ItemKey::Num(12) => Some(CMD_CAPSULE_DETACH),
-                    ItemKey::Num(13) => Some(CMD_CONTAINER_INFO),
+                    ItemKey::Num(3) => Some(CMD_CAPSULE_ZOOM),
+                    ItemKey::Num(18) => Some(CMD_USAGE),
+                    ItemKey::Num(19) => Some(CMD_TAB_CLOSE),
+                    ItemKey::Num(20) => Some(CMD_EXIT_DIALOG),
                     _ => None,
                 };
                 if let Some(action) = action
@@ -4648,7 +4808,6 @@ impl App {
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
                 self.capsule_prefix = true;
                 self.capsule_viewport_focused = false;
-                self.status = Some("prefix… New tab · Split · Copy · Detach".into());
                 cx.focus(CAPSULE_INPUT);
                 Some(Response::changed())
             }
@@ -4724,17 +4883,15 @@ impl App {
                 self.capsule_prefix = false;
                 self.capsule_palette_open = true;
                 self.capsule_palette_state = PickerState::default();
-                if !(self.world.scenario == Scenario::CapsuleMulti && self.motion == Motion::Paused) {
-                    let palette = Self::capsule_command_palette();
-                    cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
-                    // Seed the first cursor in the opening update. Otherwise the
-                    // first wheel event initializes it after the baseline frame,
-                    // so wheel-down/wheel-up cannot restore byte identity.
-                    let _ = palette
-                        .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
-                        .erase();
-                }
-                self.status = Some("Command palette · type an action".into());
+                let screen = cx.viewport();
+                let palette = Self::capsule_command_palette(screen.height);
+                cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
+                // Seed the first cursor in the opening update. Otherwise the
+                // first wheel event initializes it after the baseline frame,
+                // so wheel-down/wheel-up cannot restore byte identity.
+                let _ = palette
+                    .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
+                    .erase();
                 Some(Response::changed())
             }
             CMD_CONTAINER_INFO if self.route == Route::Capsule => {
@@ -5952,26 +6109,9 @@ impl App {
         }
     }
 
+
     /// Border patch for the focused pane frame (bright, never bold).
-    const CAPSULE_BORDER_FOCUSED: [(Part, StylePatch); 1] = [(
-        Part::BORDER,
-        StylePatch::new()
-            .set_fg(Role::BorderStrong)
-            .remove(Modifier::BOLD),
-    )];
-
-    /// Border patch for unfocused pane frames (subtle, never bold).
-    const CAPSULE_BORDER_UNFOCUSED: [(Part, StylePatch); 1] = [(
-        Part::BORDER,
-        StylePatch::new()
-            .set_fg(Role::BorderSubtle)
-            .remove(Modifier::BOLD),
-    )];
-
-    /// Border + meta patch for the zoomed pane frame (focused): the stock
-    /// `Panel` meta renders the frozen `zoomed` badge, wearing the focused
-    /// border color, never bold.
-    const CAPSULE_BORDER_ZOOMED: [(Part, StylePatch); 2] = [
+    const CAPSULE_BORDER_FOCUSED: [(Part, StylePatch); 2] = [
         (
             Part::BORDER,
             StylePatch::new()
@@ -5986,9 +6126,8 @@ impl App {
         ),
     ];
 
-    /// Border + meta patch for a zoomed but unfocused pane frame: the meta
-    /// wears the unfocused border color, like the frame around it.
-    const CAPSULE_BORDER_ZOOMED_UNFOCUSED: [(Part, StylePatch); 2] = [
+    /// Border patch for unfocused pane frames (subtle, never bold).
+    const CAPSULE_BORDER_UNFOCUSED: [(Part, StylePatch); 2] = [
         (
             Part::BORDER,
             StylePatch::new()
@@ -6163,7 +6302,6 @@ impl App {
             return;
         };
         let focused = ctx.tab.focused == pane_id;
-        let zoomed = ctx.tab.zoomed == Some(pane_id);
         let frame = self.capsule_frame.borrow();
         let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
             return;
@@ -6217,22 +6355,22 @@ impl App {
         } else {
             format!("{label_run}{glyph}")
         };
-        let border_patch: &[(Part, StylePatch)] = match (focused, zoomed) {
-            (true, true) => &Self::CAPSULE_BORDER_ZOOMED,
-            (true, false) => &Self::CAPSULE_BORDER_FOCUSED,
-            (false, true) => &Self::CAPSULE_BORDER_ZOOMED_UNFOCUSED,
-            (false, false) => &Self::CAPSULE_BORDER_UNFOCUSED,
+        let border_patch = if focused {
+            &Self::CAPSULE_BORDER_FOCUSED
+        } else {
+            &Self::CAPSULE_BORDER_UNFOCUSED
         };
         let pane_width = pane_area.width;
         let label_width = label_run.chars().count() as u16;
-        let panel = Panel::new(Self::capsule_viewport_id(pane_id))
+        let mut panel = Panel::new(Self::capsule_viewport_id(pane_id))
             .kind(PanelKind::Framed)
             .title(title_prop.as_str())
             .inner_inset(Insets::all(1))
             .patch_part(border_patch);
-        let panel = if zoomed { panel.meta("zoomed") } else { panel };
-        panel
-            .slot(Part::TITLE, &|ui: &mut Ui<'_>, rect: Rect| {
+        if ctx.tab.zoomed == Some(pane_id) {
+            panel = panel.meta("zoomed");
+        }
+        panel.slot(Part::TITLE, &|ui: &mut Ui<'_>, rect: Rect| {
                 // The stock framed title pads both sides; the frozen run has
                 // no trailing blank after the glyph, so the TITLE part slot
                 // paints the exact two-style run, clipped to the head span.
@@ -6367,6 +6505,7 @@ impl App {
     }
 
     fn draw_capsule_shell(&self, ui: &mut Ui<'_>, area: Rect) {
+        ui.suppress_cursor();
         ui.register_decor(APP, PartRef::of(Part::CONTAINER), area);
         let palette = HistoricalPalette::new(ui);
         ui.fill(area, palette.primary_on_canvas);
@@ -6470,12 +6609,38 @@ impl App {
 
     fn draw_capsule_hints(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
+
+        const BASE_HINTS: &[(&str, &str)] = &[
+            ("Ctrl+B", "Prefix"),
+            ("F10", "Menu"),
+            ("Ctrl+\\", "Palette"),
+            ("Alt+Shift+↑↓←→", "Resize"),
+            ("right-click", "Tab menu"),
+            ("Ctrl+Q", "Quit"),
+        ];
+
+        let hint_base = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(termrock::Surface::Canvas)),
+        );
+        let hint_key = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        );
+        let hint_action = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
+
+        let is_modal = self.capsule_palette_open
+            || self.capsule_new_tab_open
+            || self.capsule_split_vertical_open;
 
         let hints: &[(&str, &str)] = if self.capsule_help_open {
             &[("↑↓", "Move"), ("Esc", "Close")]
         } else if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
-            &[("← →", "Menu"), ("↑↓", "Move"), ("Enter", "Choose"), ("Esc", "Close")]
+            &[("↑↓", "Move"), ("Enter", "Choose"), ("Esc", "Close")]
+        } else if is_modal {
+            &[("Type", "Filter"), ("↑↓", "Move"), ("Enter", "Choose"), ("Esc", "Cancel")]
         } else if self.capsule_prefix {
             &[
                 ("c", "New tab"),
@@ -6495,63 +6660,68 @@ impl App {
         } else if self.inspect_files {
             &[("Tab", "Open diff"), ("Esc", "Close")]
         } else {
-            &[
-                ("Ctrl+B", "Prefix"),
-                ("F10", "Menu"),
-                ("Ctrl+\\", "Palette"),
-                ("Alt+Shift+↑↓←→", "Resize"),
-                ("right-click", "Tab menu"),
-                ("Ctrl+Q", "Quit"),
-            ]
+            BASE_HINTS
+        };
+
+        let runs: &[(&[(&str, &str)], bool)] = if is_modal {
+            &[(BASE_HINTS, true), (hints, false)]
+        } else {
+            &[(hints, false)]
         };
 
         let str_w = |s: &str| s.chars().count() as u16;
 
-        let mut right_w = 0u16;
-        if let Some(r) = self.status.as_deref() {
-            let w = str_w(r);
-            if w > 0 && area.width > w + 2 {
-                let sx = area.right().saturating_sub(w).saturating_sub(1);
-                ui.paint_str(Rect::new(sx, area.y, w, 1), r, palette.secondary_on_canvas);
-                right_w = w + 3;
+        for &(run_hints, blank_after) in runs {
+            let mut right_w = 0u16;
+            if let Some(r) = self.status.as_deref() {
+                let w = str_w(r);
+                if w > 0 && area.width > w + 2 {
+                    let sx = area.right().saturating_sub(w).saturating_sub(1);
+                    ui.paint_str(Rect::new(sx, area.y, w, 1), r, palette.secondary_on_canvas);
+                    right_w = w + 3;
+                }
             }
-        }
 
-        let limit = area.right().saturating_sub(right_w);
-        let hint_w = |(k, a): &(&str, &str)| str_w(k) + 1 + str_w(a) + 2;
-        let mut used = 0u16;
-        let mut n = 0usize;
-        for (i, h) in hints.iter().enumerate() {
-            let reserve = if i + 1 < hints.len() { 2 } else { 0 };
-            if 1 + used + hint_w(h) + reserve > limit {
-                break;
+            let limit = area.right().saturating_sub(right_w);
+            let hint_w = |(k, a): &(&str, &str)| str_w(k) + 1 + str_w(a) + 2;
+            let mut used = 0u16;
+            let mut n = 0usize;
+            for (i, h) in run_hints.iter().enumerate() {
+                let reserve = if i + 1 < run_hints.len() { 2 } else { 0 };
+                if 1 + used + hint_w(h) + reserve > limit {
+                    break;
+                }
+                used += hint_w(h);
+                n += 1;
             }
-            used += hint_w(h);
-            n += 1;
-        }
-        if n < hints.len() {
-            used += 2;
-        }
-        let free = area.width.saturating_sub(used);
-        let mid = area.x + free / 2;
-        let mut x = mid.max(area.x + 1).min(limit.saturating_sub(used).max(area.x + 1));
+            if n < run_hints.len() {
+                used += 2;
+            }
+            let free = area.width.saturating_sub(used);
+            let mid = area.x + free / 2;
+            let mut x = mid.max(area.x + 1).min(limit.saturating_sub(used).max(area.x + 1));
 
-        let mut drawn = 0usize;
-        for (i, (key, action)) in hints.iter().enumerate() {
-            let kw = str_w(key);
-            let aw = str_w(action);
-            let w = kw + 1 + aw + 2;
-            let reserve = if i + 1 < hints.len() { 2 } else { 0 };
-            if x + w + reserve > limit {
-                break;
+            let mut drawn = 0usize;
+            for (i, (key, action)) in run_hints.iter().enumerate() {
+                let kw = str_w(key);
+                let aw = str_w(action);
+                let w = kw + 1 + aw + 2;
+                let reserve = if i + 1 < run_hints.len() { 2 } else { 0 };
+                if x + w + reserve > limit {
+                    break;
+                }
+                ui.paint_str(Rect::new(x, area.y, kw, 1), key, hint_key);
+                ui.paint_str(Rect::new(x + kw + 1, area.y, aw, 1), action, hint_action);
+                x += w;
+                drawn += 1;
             }
-            ui.paint_str(Rect::new(x, area.y, kw, 1), key, palette.primary_on_canvas_bold);
-            ui.paint_str(Rect::new(x + kw + 1, area.y, aw, 1), action, palette.muted_on_canvas);
-            x += w;
-            drawn += 1;
-        }
-        if drawn < hints.len() && x < limit {
-            ui.paint_str(Rect::new(x, area.y, 1, 1), "…", palette.border_on_canvas);
+            if drawn < run_hints.len() && x < limit {
+                ui.paint_str(Rect::new(x, area.y, 1, 1), "…", palette.border_on_canvas);
+            }
+            if blank_after {
+                let spaces = " ".repeat(area.width as usize);
+                ui.paint_str(area, &spaces, hint_base);
+            }
         }
     }
 
@@ -7528,15 +7698,17 @@ impl App {
                 help.draw(ui, area, &self.capsule_help_state)
             })
         });
+        let tab_title = self.active_capsule_tab_title();
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
-            Self::capsule_tab_context(self.capsule_tab_menu_pos).draw(
+            Self::capsule_tab_context(tab_title, self.capsule_tab_menu_pos).draw(
                 ui,
                 area,
                 &self.capsule_tab_menu_state,
             )
         });
         let _ = ui.layer(CAPSULE_COMMAND_PALETTE, |ui, area| {
-            Self::capsule_command_palette().draw(
+            let screen = ui.full();
+            Self::capsule_command_palette(screen.height).draw(
                 ui,
                 area,
                 &self.capsule_palette_state,
@@ -7571,6 +7743,16 @@ impl App {
                 agent_picker
                     .meta(&meta)
                     .draw(ui, area, &self.agent_state, &self.agent_options)
+            });
+        } else if self.route == Route::Capsule {
+            let title = match self.pending_capsule_action {
+                Some(CapsuleAction::Split(_)) => "Split ↓ Below",
+                _ => "New tab",
+            };
+            let screen = ui.full();
+            let agent_picker = Self::capsule_agent_picker(title, screen.width);
+            let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
+                agent_picker.draw(ui, area, &self.capsule_agent_state, CAPSULE_AGENT_OPTIONS)
             });
         } else {
             let agent_picker = Self::launch_agent_picker();
@@ -7743,25 +7925,8 @@ impl TuiApp for App {
         }
         if self.route == Route::Capsule {
             self.draw_capsule_shell(ui, full);
-            if full.width == 120 && full.height == 40 && self.motion == Motion::Paused && self.world.scenario == Scenario::CapsuleMulti {
-                if self.capsule_tab_menu_open {
-                    self.draw_historical_capsule_menu_120_40(ui, full);
-                    return;
-                }
-                if self.capsule_new_tab_open {
-                    self.draw_historical_capsule_new_tab_120_40(ui, full);
-                    return;
-                }
-                if self.capsule_split_vertical_open {
-                    self.draw_historical_capsule_split_vertical_120_40(ui, full);
-                    return;
-                }
-                if self.capsule_palette_open {
-                    self.draw_historical_capsule_palette_120_40(ui, full);
-                    return;
-                }
-            }
             self.draw_layers(ui);
+            ui.suppress_cursor();
             return;
         }
 

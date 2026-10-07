@@ -708,7 +708,7 @@ fn grid(m: &mut PartMap<PartRecipe>) {
 
 fn picker(m: &mut PartMap<PartRecipe>) {
     row_like(m);
-    part(m, Part::LABEL, p()).when(
+    part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Primary))).when(
         StateFlags::ACTIVE | StateFlags::FOCUSED,
         p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
     );

@@ -356,13 +356,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         if let Some(patch) = self.patch {
             list = list.patch(patch);
         }
-        static LIST_PATCHES: &[(Part, StylePatch)] = &[(
-            Part::CONTAINER,
-            StylePatch::new().clear_fg().set_bg(Role::CurrentSurface),
-        )];
-        if self.parts.is_empty() {
-            list = list.patch_part(LIST_PATCHES);
-        } else {
+        if !self.parts.is_empty() {
             list = list.patch_part(self.parts);
         }
         list
@@ -732,13 +726,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                 // the list; nonsearchable pickers retain the bottom breathing
                 // room so the drawn rows match the requested outer height.
                 let list_offset = if self.searchable { 3 } else { 1 };
-                let footer_reserve = if self.footer.is_some() {
-                    1
-                } else if self.searchable {
-                    0
-                } else {
-                    1
-                };
+                let footer_reserve = 1;
                 let list = Rect {
                     y: content.y.saturating_add(list_offset),
                     height: content

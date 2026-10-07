@@ -677,7 +677,7 @@ fn draw_glitched(buf: &mut Buffer, area: Rect, text: &str, y: u16, j: u64, tone:
     let pass = j / GLITCH_PASS_TICKS;
     for (i, ch) in text.chars().enumerate() {
         let x = x0 + i as u16;
-        let shown = if pass < GLITCH_PASSES && mix(x as u64, y as u64, pass) % 3 == 0 {
+        let shown = if pass < GLITCH_PASSES && mix(x as u64, y as u64, pass).is_multiple_of(3) {
             glyph(x as u64, y as u64, pass)
         } else {
             ch

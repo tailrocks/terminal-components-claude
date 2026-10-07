@@ -24,7 +24,7 @@ pub(crate) struct LayerDraw {
     roles: Vec<CellRoles>,
     sub_modifiers: Vec<Modifier>,
     pub(crate) drawn: bool,
-    pub(crate) fade_rows: Vec<(u16, f32, Color)>,
+    pub(crate) fade_rows: Vec<(Rect, f32, Color)>,
 }
 
 impl LayerDraw {
@@ -168,8 +168,8 @@ impl LayerDraw {
                 }
             }
         }
-        for &(y, keep, container) in &self.fade_rows {
-            let row = Rect::new(screen.x, y, screen.width, 1).intersection(area);
+        for &(fade_rect, keep, container) in &self.fade_rows {
+            let row = fade_rect.intersection(area);
             for pos in row.positions() {
                 if !self.is_written(pos) {
                     continue;

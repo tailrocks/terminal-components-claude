@@ -289,11 +289,20 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
     };
     let raw = match anchor {
         Anchor::Screen(align) => {
+            let max_h = if align == ScreenAlign::UpperThird && screen.height >= 3 {
+                screen.height.saturating_sub(2)
+            } else {
+                screen.height
+            };
+            let h = h.min(max_h);
             let x = screen.centered_horizontally(Constraint::Length(w)).x;
             let free = screen.height.saturating_sub(h);
             let y = match align {
                 ScreenAlign::Center => screen.centered_vertically(Constraint::Length(h)).y,
-                ScreenAlign::UpperThird => screen.y.saturating_add(free / 3),
+                ScreenAlign::UpperThird => {
+                    let offset = if free > 0 { (free / 3).max(1) } else { 0 };
+                    screen.y.saturating_add(offset.min(free))
+                }
                 ScreenAlign::Bottom => screen.y.saturating_add(free),
             };
             Rect {

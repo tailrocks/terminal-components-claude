@@ -892,7 +892,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             }
             ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
         }
-        ui.scroll_edges_except(content, st.core.scroll(), &keep);
+        ui.scroll_edges_except(content, &view, &keep);
     }
 
     /// Draw the last computed filtered rows.
@@ -917,7 +917,9 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             Part::CONTAINER,
             live,
         );
-        ui.fill(area, container.style);
+        let mut bg_only = container.style.into_style();
+        bg_only.fg = None;
+        ui.fill(area, bg_only);
         let identity = !st.initialized && st.query.is_empty();
         let visible_len = if identity {
             items.len()

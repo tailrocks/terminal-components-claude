@@ -2,6 +2,7 @@
 //! §14.1, §18.2, Appendix A 4F).
 
 use core::fmt;
+use std::borrow::Cow;
 
 use ratatui_core::layout::{Position, Rect};
 
@@ -22,13 +23,16 @@ use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
-/// One command row. Its optional [`Chord`] is both painted and handled; no
-/// parallel display-only shortcut string exists.
+/// One command row. Its optional [`Chord`] is both painted and handled.
+/// When an action has an unbindable chord sequence or pointer gesture
+/// (e.g. "2×click", "Ctrl+B %"), [`MenuItem::shortcut_text`] provides
+/// the display label.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MenuItem<'a> {
     action: ActionKey,
     label: &'a str,
     chord: Option<Chord>,
+    shortcut_text: Option<&'a str>,
     disabled: bool,
     danger: bool,
     separator_after: bool,
@@ -42,6 +46,7 @@ impl<'a> MenuItem<'a> {
             action,
             label,
             chord: None,
+            shortcut_text: None,
             disabled: false,
             danger: false,
             separator_after: false,
@@ -53,6 +58,13 @@ impl<'a> MenuItem<'a> {
     #[must_use]
     pub const fn chord(mut self, chord: Chord) -> Self {
         self.chord = Some(chord);
+        self
+    }
+
+    /// Attach display shortcut text (e.g. for pointer gestures or chord sequences).
+    #[must_use]
+    pub const fn shortcut_text(mut self, text: &'a str) -> Self {
+        self.shortcut_text = Some(text);
         self
     }
 
@@ -458,7 +470,7 @@ pub struct ContextMenu<'a> {
     id: Id,
     items: &'a [MenuItem<'a>],
     anchor: Anchor,
-    title: Option<&'a str>,
+    title: Option<Cow<'a, str>>,
     ov: PartStyle<'a>,
     chord_case: ChordCase,
     bar_navigation: Option<(usize, usize)>,
@@ -510,8 +522,8 @@ impl<'a> ContextMenu<'a> {
 
     /// Optional heading.
     #[must_use]
-    pub const fn title(mut self, title: &'a str) -> Self {
-        self.title = Some(title);
+    pub fn title(mut self, title: impl Into<Cow<'a, str>>) -> Self {
+        self.title = Some(title.into());
         self
     }
 
@@ -561,11 +573,17 @@ impl<'a> ContextMenu<'a> {
     }
 
     fn natural_width(&self, effective: impl Fn(ActionKey, Option<Chord>) -> Option<Chord>) -> u16 {
-        let title = self.title.map_or(0, width);
+        let title = self.title.as_deref().map_or(0, width);
         let rows = self.items.iter().map(|item| {
-            let shortcut = effective(item.action, item.chord).map_or(0, |chord| {
-                width(ChordText::with_case(chord, self.chord_case).as_str()).saturating_add(3)
-            });
+            let shortcut = item.shortcut_text.map_or_else(
+                || {
+                    effective(item.action, item.chord).map_or(0, |chord| {
+                        width(ChordText::with_case(chord, self.chord_case).as_str())
+                            .saturating_add(3)
+                    })
+                },
+                |s| width(s).saturating_add(3),
+            );
             width(item.label)
                 .saturating_add(shortcut)
                 .saturating_add(u16::from(item.submenu.is_some()))
@@ -815,7 +833,7 @@ impl<'a> ContextMenu<'a> {
             );
             ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
             let mut y = inner.y;
-            if let Some(title) = self.title {
+            if let Some(title) = self.title.as_deref() {
                 let row = Rect {
                     x: inner.x.saturating_add(2),
                     y,
@@ -931,11 +949,16 @@ impl<'a> ContextMenu<'a> {
         }
         let label = shift(row, 2);
         let effective_chord = ui.effective_chord(self.id, item.action, item.chord);
-        let key_width = effective_chord.map_or(0, |chord| {
-            width(ChordText::with_case(chord, self.chord_case).as_str())
-        });
+        let shortcut_width = item.shortcut_text.map_or_else(
+            || {
+                effective_chord.map_or(0, |chord| {
+                    width(ChordText::with_case(chord, self.chord_case).as_str())
+                })
+            },
+            width,
+        );
         let label = Rect {
-            width: label.width.saturating_sub(key_width.saturating_add(2)),
+            width: label.width.saturating_sub(shortcut_width.saturating_add(2)),
             ..label
         };
         let label_style = self
@@ -949,11 +972,24 @@ impl<'a> ContextMenu<'a> {
             item.label,
             label_style.style,
         );
-        if let Some(chord) = effective_chord {
+        if let Some(text) = item.shortcut_text {
+            let key = Rect {
+                x: row.right().saturating_sub(shortcut_width.saturating_add(1)),
+                width: shortcut_width.min(row.width),
+                ..row
+            };
+            let mut key_style = self
+                .ov
+                .style(ui, self.id, Family::MENU, variant, Part::KEY, flags);
+            key_style.style = key_style
+                .style
+                .remove_modifier(ratatui::style::Modifier::BOLD);
+            paint_or_slot(ui, &self.ov, Part::KEY, key, text, key_style.style);
+        } else if let Some(chord) = effective_chord {
             let text = ChordText::with_case(chord, self.chord_case);
             let key = Rect {
-                x: row.right().saturating_sub(key_width.saturating_add(1)),
-                width: key_width.min(row.width),
+                x: row.right().saturating_sub(shortcut_width.saturating_add(1)),
+                width: shortcut_width.min(row.width),
                 ..row
             };
             let mut key_style = self
@@ -1794,5 +1830,22 @@ mod tests {
             .map(ratatui_core::buffer::Cell::symbol)
             .collect::<String>();
         assert!(!painted.contains("F4"));
+    }
+
+    #[test]
+    fn context_menu_renders_custom_shortcut_text_and_owned_title() {
+        let items = [
+            MenuItem::new(ActionKey::application("item1"), "Change title…").shortcut_text("2×click"),
+            MenuItem::new(ActionKey::application("item2"), "Split right")
+                .shortcut_text("Ctrl+B %")
+                .separator(),
+            MenuItem::new(ActionKey::application("item3"), "Close tab")
+                .shortcut_text("Ctrl+B &")
+                .danger(),
+        ];
+        let menu = ContextMenu::at(Id::root("test.menu"), &items, Position::new(1, 2))
+            .title(String::from("Mix (3)"));
+        assert_eq!(menu.natural_width(|_, _| None), 29);
+        assert_eq!(menu.natural_height(), 7);
     }
 }

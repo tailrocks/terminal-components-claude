@@ -636,7 +636,7 @@ fn help_mono_rules() -> [MonoRule; 2] {
     ]
 }
 
-fn picker_mono_rules() -> [MonoRule; 3] {
+fn picker_mono_rules() -> [MonoRule; 7] {
     [
         (
             Part::GUTTER,
@@ -655,6 +655,26 @@ fn picker_mono_rules() -> [MonoRule; 3] {
                 .set_fg(Role::Surface(Surface::Canvas))
                 .set_bg(Role::Fg(FgStep::Primary))
                 .add(Modifier::BOLD | Modifier::UNDERLINED),
+        ),
+        (
+            Part::GUTTER,
+            StateFlags::DISABLED,
+            StylePatch::new().add(Modifier::DIM),
+        ),
+        (
+            Part::META,
+            StateFlags::DISABLED,
+            StylePatch::new().add(Modifier::DIM),
+        ),
+        (
+            Part::CONTAINER,
+            StateFlags::DISABLED,
+            StylePatch::new().add(Modifier::DIM),
+        ),
+        (
+            Part::ICON,
+            StateFlags::DISABLED,
+            StylePatch::new().add(Modifier::DIM),
         ),
     ]
 }
@@ -1275,7 +1295,7 @@ mod tests {
         assert_eq!(grid.len(), 2);
         assert_eq!(menu.len(), 2);
         assert_eq!(help.len(), 2);
-        assert_eq!(picker.len(), 3);
+        assert_eq!(picker.len(), 7);
         assert_eq!(select.len(), 3);
         assert!(grid.iter().any(|(part, when, patch)| {
             *part == Part::ROW && *when == StateFlags::PRESSED && patch.add.contains(Modifier::BOLD)
@@ -1410,7 +1430,7 @@ mod tests {
             (Family::HELP, 20),
             // `PICKER`'s `(LABEL, PRESSED)` used to retarget a generic pair;
             // since Q65-S4 deleted that generic rule it answers on its own
-            (Family::PICKER, 21),
+            (Family::PICKER, 24),
             (Family::SELECT, 21),
         ] {
             assert_eq!(responding_pairs(&r, f), pairs, "{f:?}");

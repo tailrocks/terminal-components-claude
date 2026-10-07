@@ -715,13 +715,6 @@
       "rule": "OWN-02"
     },
     {
-      "max": 1382,
-      "path": "crates/jackin-preview-app/src/app/historical_capsule.rs",
-      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
       "max": 28,
       "path": "crates/jackin-preview-host-ui/src/prelude.rs",
       "reason": "Transitional prelude painters (FIX-001 follow-up); ratcheted G1 corpus.",

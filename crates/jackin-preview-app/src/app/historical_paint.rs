@@ -355,7 +355,9 @@ const MONO_RULES: &[MonoRule] = &[
     (
         Part::custom("jackin.historical.primary_on_canvas_bold"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD),
     ),
     (
         Part::custom("jackin.historical.primary_on_elevated"),

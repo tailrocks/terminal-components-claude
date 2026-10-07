@@ -241,7 +241,8 @@ impl Ui<'_> {
         if let Target::Layer(i) = self.target
             && let Some(d) = self.frame.layers.active_mut().get_mut(i)
         {
-            d.fade_rows.push((y, keep, container));
+            d.fade_rows
+                .push((Rect::new(area.x, y, area.width, 1), keep, container));
         }
         let outer = keep <= FADE_OUTER_KEEP;
         // Fading changes only physical cell attributes for this frame. Keep
@@ -552,6 +553,10 @@ impl Ui<'_> {
                 let was_blended = match roles.fg {
                     Some(Role::Fg(FgStep::Primary)) => cell_fg.is_some_and(|c| c != theme.color.fg[0]),
                     Some(Role::Fg(FgStep::Secondary)) => cell_fg.is_some_and(|c| c != theme.color.fg[1]),
+                    Some(Role::Success) => cell_fg.is_some_and(|c| c != theme.color.success),
+                    Some(Role::Accent) => cell_fg.is_some_and(|c| c != theme.color.accent),
+                    Some(Role::Danger) => cell_fg.is_some_and(|c| c != theme.color.danger),
+                    Some(Role::Warning) => cell_fg.is_some_and(|c| c != theme.color.warning),
                     _ => false,
                 };
                 if was_blended {
