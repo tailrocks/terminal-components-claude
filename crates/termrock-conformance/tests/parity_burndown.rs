@@ -168,14 +168,6 @@ const BURNDOWN: &[Burndown] = &[
         reason: "Enter submits while submit action is disabled; enter path ignores eligibility",
     },
     Burndown {
-        id: "BD-19",
-        cases: &["W12-06"],
-        test: "w12_list_label_patch_reaches_labels",
-        component: "W12",
-        owner: "termrock-navigation",
-        reason: "List LABEL patch_part silently dropped; no new_with_patches forwarding",
-    },
-    Burndown {
         id: "BD-20",
         cases: &["W13-02"],
         test: "w13_filter_backspace_removes_grapheme",
@@ -285,7 +277,7 @@ fn burndown_matches_ignored_tests() {
         BURNDOWN.len()
     );
     let deferred_refs: usize = BURNDOWN.iter().map(|row| row.cases.len()).sum();
-    assert_eq!(deferred_refs, 26, "deferred case references must total 26");
+    assert_eq!(deferred_refs, 25, "deferred case references must total 25");
     for row in BURNDOWN {
         assert!(
             !row.reason.is_empty(),

@@ -1345,8 +1345,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     ..row
                 };
                 if !rest.is_empty() {
-                    let mut r =
-                        RowUi::new(ui, id, Family::LIST, Variant::DEFAULT, flags, key, rest);
+                    let mut r = RowUi::new_with_patches(
+                        ui,
+                        id,
+                        Family::LIST,
+                        Variant::DEFAULT,
+                        flags,
+                        key,
+                        rest,
+                        ov.part_patch(Part::CONTAINER),
+                        ov.part_patch(Part::LABEL),
+                    );
                     self.row.row(item, &mut r);
                 }
             });

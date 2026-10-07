@@ -5118,7 +5118,6 @@ fn w12_list_marker_patch_scopes_to_markers() {
 /// row painter. Siblings (`chip.rs`, `nav_list.rs`, `steps.rs`, `tree.rs`)
 /// all forward `ov.part_patch(...)` through `RowUi::new_with_patches`.
 #[test]
-#[ignore = "PARITY W12-06: List LABEL patch_part is silently dropped (bare RowUi::new, no new_with_patches forwarding)"]
 fn w12_list_label_patch_reaches_labels() {
     let bold = StylePatch::new().add(Modifier::BOLD);
     let mut patched = ListRig::with(
