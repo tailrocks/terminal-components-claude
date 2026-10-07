@@ -618,6 +618,13 @@
     },
     {
       "max": 1,
+      "path": "crates/holla-ui/src/tui/widgets/stock_dialog.rs",
+      "reason": "S7 quit-confirm bridge: Buffer passed to stock Dialog via standalone Ui only; zero paint calls (OWN-02 clean).",
+      "review": "Q65-S7 worker; admitted pending S-H3 host bridge (holla runtime still Buffer-based)",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 1,
       "path": "crates/holla-ui/src/tui/widgets/tabs.rs",
       "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",

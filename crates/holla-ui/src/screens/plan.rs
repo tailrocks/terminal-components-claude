@@ -1176,6 +1176,7 @@ impl Screen for PlanTab {
             }
             KeyCode::Char('c') if key.ctrl() => {
                 if p.phase == PlanPhase::Running {
+                    // TODO(S-H2): migrate cancel-plan to stock Dialog.
                     let d = Dialog::destructive(
                         WidgetId::of("cancel-plan"),
                         "Cancel the remaining steps?",

@@ -13,6 +13,7 @@ use crate::tui::ui::ctx::{RenderCtx, fill};
 use crate::tui::widgets::button::{Button, row_layout_right};
 use crate::tui::widgets::input::{InputEvent, TextInput};
 use crate::tui::widgets::panel::Panel;
+use crate::tui::widgets::stock_dialog::decide_dismiss;
 
 #[derive(Debug, Clone)]
 pub enum DialogBody {
@@ -52,9 +53,18 @@ pub struct Dialog {
     pub area: Rect,
     pub result: Option<DialogResult>,
     pub initial_focus: WidgetId,
+    /// Render through the stock component (S-H2 quit slice only).
+    pub stock: bool,
 }
 
 impl Dialog {
+    /// Render through the stock component instead of the legacy painter.
+    /// S-H2 quit slice only; all other sites keep legacy rendering.
+    pub fn stock(mut self) -> Self {
+        self.stock = true;
+        self
+    }
+
     pub fn confirm(id: WidgetId, title: &str, text: &str, confirm: &str) -> Self {
         let cancel = Button::subtle(id.sub("cancel"), "Cancel");
         let ok = Button::primary(id.sub("ok"), confirm);
@@ -69,6 +79,7 @@ impl Dialog {
             area: Rect::ZERO,
             result: None,
             initial_focus: ok_id,
+            stock: false,
         }
     }
 
@@ -86,6 +97,7 @@ impl Dialog {
             area: Rect::ZERO,
             result: None,
             initial_focus: cancel_id,
+            stock: false,
         }
     }
 
@@ -103,6 +115,7 @@ impl Dialog {
             area: Rect::ZERO,
             result: None,
             initial_focus: input_id,
+            stock: false,
         }
     }
 
@@ -132,6 +145,7 @@ impl Dialog {
             area: Rect::ZERO,
             result: None,
             initial_focus: initial,
+            stock: false,
         }
     }
 
@@ -269,11 +283,8 @@ impl Dialog {
         }
         match key.code {
             KeyCode::Esc => {
-                if let Some(ci) = self.cancel_index {
-                    self.finish(DialogResult::Action(ci))
-                } else {
-                    self.finish(DialogResult::Cancelled)
-                }
+                let r = decide_dismiss(self.cancel_index, termrock::DismissReason::Esc);
+                self.finish(r)
             }
             KeyCode::Tab => {
                 focus.next(ring);
@@ -356,14 +367,18 @@ impl Dialog {
     /// Click outside the dialog: cancel if cancelable.
     pub fn on_click_outside(&mut self) -> Outcome {
         match self.cancel_index {
-            Some(ci) => self.finish(DialogResult::Action(ci)),
+            Some(_) => {
+                let r = decide_dismiss(self.cancel_index, termrock::DismissReason::OutsideClick);
+                self.finish(r)
+            }
             None => Outcome::Consumed,
         }
     }
 
-    pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    /// Shared modal prologue: dim the backdrop (the footer row stays live
+    /// because its hints belong to the dialog) and enter modal mode.
+    pub(crate) fn prologue(screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // dim backdrop; the footer row stays live because its hints belong to the dialog
         let dim = Rect::new(
             screen.x,
             screen.y,
@@ -378,6 +393,15 @@ impl Dialog {
             }
         }
         ctx.begin_modal();
+    }
+
+    pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        Self::prologue(screen, buf, ctx);
+        if self.stock && matches!(self.body, DialogBody::Text(_)) {
+            super::stock_dialog::render_stock_body(self, screen, buf, ctx);
+            return;
+        }
+        let t = ctx.theme;
         let width = self.width.min(screen.width.saturating_sub(4)).max(20);
         let height = self.height(width).min(screen.height.saturating_sub(2));
         let area = screen.centered(Constraint::Length(width), Constraint::Length(height));

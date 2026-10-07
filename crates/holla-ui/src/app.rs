@@ -934,11 +934,12 @@ impl App {
             body
         };
         let d = if n > 0 {
-            Dialog::destructive(WidgetId::of("quit"), &title, &body, "Stop and quit")
+            Dialog::destructive(WidgetId::of("quit"), &title, &body, "Stop and quit").stock()
         } else if cleanup.is_some() {
             Dialog::destructive(WidgetId::of("quit"), &title, &body, "Leave when it settles")
+                .stock()
         } else {
-            Dialog::confirm(WidgetId::of("quit"), &title, &body, "Quit")
+            Dialog::confirm(WidgetId::of("quit"), &title, &body, "Quit").stock()
         };
         self.push_modal(Modal::Dialog(d), ModalTag::new("quit"));
     }
@@ -1919,6 +1920,7 @@ impl App {
         };
         if live {
             let name = self.tab_label(self.active);
+            // TODO(S-H2): migrate close-tab to stock Dialog.
             let d = Dialog::destructive(
                 WidgetId::of("close-tab"),
                 &format!("Stop {name}?"),
@@ -2113,6 +2115,7 @@ impl App {
         } else {
             Button::primary(WidgetId::of("confirm-one").sub("ok"), "Run")
         };
+        // TODO(S-H2): migrate confirm-one to stock Dialog.
         let mut d = Dialog::facts(
             WidgetId::of("confirm-one"),
             &it.label,
@@ -2202,6 +2205,7 @@ impl App {
             // one risk level per action: a plan without a phrase is not
             // destructive, so its confirmation is the primary button
             let confirm = Button::primary(WidgetId::of("start-plan").sub("ok"), "Start plan");
+            // TODO(S-H2): migrate start-plan to stock Dialog.
             let mut d = Dialog::facts(
                 WidgetId::of("start-plan"),
                 &format!("Start {}?", p.title.to_lowercase()),
@@ -2286,6 +2290,7 @@ impl App {
             }
         };
         let confirm = Button::danger(WidgetId::of("gate2").sub("ok"), &confirm_label);
+        // TODO(S-H2): migrate gate2 to stock Dialog.
         let mut d = Dialog::facts(
             WidgetId::of("gate2"),
             &format!("{title} · gate 2 of 2"),
@@ -2880,6 +2885,7 @@ impl App {
                     .value(&existing)
                     .placeholder("gp · du · dc")
                     .help("exact match beats every learned signal · never drifts");
+                // TODO(S-H2): migrate alias prompt to stock Dialog.
                 let d = Dialog::prompt(WidgetId::of("alias"), "Set an alias", input, "Save");
                 self.push_modal(Modal::Dialog(d), ModalTag::new("alias").key(id.to_owned()));
             }
