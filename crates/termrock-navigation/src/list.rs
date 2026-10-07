@@ -1336,7 +1336,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Slot::Set(glyph) => {
                             ui.glyph(marker_cell, glyph, m.style);
                         }
-                        Slot::Inherit | Slot::Clear => {}
+                        // W12-06: a declared MARKER patch must voice the marker
+                        // cell even when the glyph slot is Clear; without a
+                        // patch the cell keeps riding the container fill
+                        // (F1-L4 mono-disabled DarkGray DIM).
+                        Slot::Inherit | Slot::Clear => {
+                            if ov.part_patch(Part::MARKER).is_some() {
+                                ui.fill(marker_cell, m.style);
+                            }
+                        }
                     }
                 }
                 let rest = Rect {
