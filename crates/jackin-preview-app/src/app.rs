@@ -1472,6 +1472,15 @@ impl App {
             .remove(Modifier::BOLD),
     )];
 
+    /// Dim patch for the prelude brand lockup (faint on overlay, never bold).
+    const PRELUDE_BRAND_DIM: [(Part, StylePatch); 1] = [(
+        Part::LABEL,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Faint))
+            .set_bg(Role::Surface(Surface::Overlay))
+            .remove(Modifier::BOLD),
+    )];
+
     fn manager_menu_bar() -> MenuBar<'static> {
         MenuBar::new(MANAGER_MENU_BAR, MANAGER_MENUS)
     }
@@ -5567,14 +5576,10 @@ impl App {
         if self.route == Route::Prelude {
             let canvas = self.historical_span_style((128, 128, 128), (0, 0, 0), false);
             ui.fill(area, canvas);
-            let dim_brand = self.historical_span_style((77, 77, 77), (39, 39, 42), false);
             let dim_sec = self.historical_span_style((77, 77, 77), (0, 0, 0), false);
             let dim_muted = self.historical_span_style((38, 38, 38), (0, 0, 0), false);
-            let brand_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                ui.paint_str(cell, " jackin❯ ", dim_brand);
-            };
             Brand::new(APP.sub("brand"), "jackin❯")
-                .slot(Part::LABEL, &brand_slot)
+                .patch_part(&Self::PRELUDE_BRAND_DIM)
                 .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
             Self::manager_menu_bar()
                 .patch_part(&Self::PRELUDE_MENU_DIM)
