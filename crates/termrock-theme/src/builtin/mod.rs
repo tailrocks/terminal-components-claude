@@ -94,7 +94,12 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
                 .add(Modifier::BOLD),
         )
         .when(StateFlags::HOVERED, p().set_bg(Role::AccentHover))
-        .when(StateFlags::PRESSED, p().set_bg(Role::AccentPressed))
+        .when(
+            StateFlags::PRESSED,
+            p().set_fg(Role::OnAccent)
+                .set_bg(Role::AccentPressed)
+                .add(Modifier::BOLD),
+        )
         .when(
             StateFlags::DISABLED,
             p().set_fg(Role::DisabledFg)
@@ -114,7 +119,9 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(StateFlags::FOCUSED, p().add(Modifier::BOLD))
         .when(
             StateFlags::PRESSED,
-            p().set_fg(Role::OnDanger).set_bg(Role::Danger),
+            p().set_fg(Role::OnDanger)
+                .set_bg(Role::Danger)
+                .remove(Modifier::BOLD),
         )
         .when(
             StateFlags::DISABLED,
@@ -140,7 +147,8 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(
             StateFlags::PRESSED,
             p().set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary)),
+                .set_bg(Role::Fg(FgStep::Primary))
+                .remove(Modifier::BOLD),
         )
         .when(
             StateFlags::DISABLED,
@@ -160,7 +168,8 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(
             StateFlags::PRESSED,
             p().set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary)),
+                .set_bg(Role::Fg(FgStep::Primary))
+                .remove(Modifier::BOLD),
         )
         .when(
             StateFlags::DISABLED,
@@ -1441,6 +1450,213 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    // Q65-S1: button-state recipe fixes (G1+G2+G3). Each test resolves
+    // `Family::BUTTON / Part::CONTAINER` through `Theme::junie()` at the
+    // pressed row state (`PRESSED|FOCUSED`, the showcase matrix row per
+    // `showcase-demos/src/pages/buttons.rs:202`) and the real mouse path
+    // (`HOVERED|PRESSED|FOCUSED`; pressed implies hover per
+    // `Interaction::pressed`). Expected cells are pinned by the Q64 oracle
+    // against the frozen `visual-baseline` tag (8/8 MATCH-LEGACY).
+    fn q65s1_pressed_live() -> [StateFlags; 2] {
+        let row = StateFlags::PRESSED | StateFlags::FOCUSED;
+        [row, row | StateFlags::HOVERED]
+    }
+
+    fn q65s1_container(theme: &Theme, v: Variant, live: StateFlags) -> crate::Resolved {
+        theme.resolve(Family::BUTTON, v, Part::CONTAINER, live, Surface::Canvas)
+    }
+
+    fn q65s1_bold_on(r: &crate::Resolved) -> bool {
+        r.style.add_modifier.contains(Modifier::BOLD)
+            && !r.style.sub_modifier.contains(Modifier::BOLD)
+    }
+
+    /// G1: PRIMARY PRESSED carries its own fg (`OnAccent`); the family
+    /// DEFAULT PRESSED fg (Canvas) must not win by default. Oracle:
+    /// confirm/Quit pressed, TrueColor — fg `Rgb(25,25,28)`
+    /// (`ON_GREEN`), bg `Rgb(43,134,50)` (`GREEN_60`), BOLD.
+    #[test]
+    fn q65s1_g1_primary_pressed_fg_is_on_accent() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for live in q65s1_pressed_live() {
+            let r = q65s1_container(&theme, Variant::PRIMARY, live);
+            assert_eq!(
+                r.style.fg,
+                Some(Color::Rgb(25, 25, 28)),
+                "PRIMARY pressed fg at {live:?}"
+            );
+            assert_eq!(
+                r.style.bg,
+                Some(Color::Rgb(43, 134, 50)),
+                "PRIMARY pressed bg at {live:?}"
+            );
+        }
+    }
+
+    /// PRIMARY pressed+focused stays BOLD (frozen
+    /// `buttons/audit/120x40/truecolor.ansi:28` pins BOLD on the pressed
+    /// row for PRIMARY). Retention pin: green before and after the fix.
+    #[test]
+    fn q65s1_primary_pressed_focused_retains_bold() {
+        let theme = Theme::junie();
+        for live in q65s1_pressed_live() {
+            let r = q65s1_container(&theme, Variant::PRIMARY, live);
+            assert!(
+                q65s1_bold_on(&r),
+                "PRIMARY pressed+focused BOLD at {live:?}"
+            );
+        }
+    }
+
+    /// G2: DEFAULT pressed+focused strips focus-BOLD. Oracle:
+    /// confirm/Cancel pressed+focused, TrueColor — fg black, bg white,
+    /// modifiers NONE.
+    #[test]
+    fn q65s1_g2_default_pressed_focused_strips_bold() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for live in q65s1_pressed_live() {
+            let r = q65s1_container(&theme, Variant::DEFAULT, live);
+            assert!(
+                !q65s1_bold_on(&r),
+                "DEFAULT pressed+focused must not be BOLD at {live:?}"
+            );
+            assert_eq!(
+                r.style.fg,
+                Some(Color::Rgb(0, 0, 0)),
+                "DEFAULT pressed fg at {live:?}"
+            );
+            assert_eq!(
+                r.style.bg,
+                Some(Color::Rgb(255, 255, 255)),
+                "DEFAULT pressed bg at {live:?}"
+            );
+        }
+    }
+
+    /// G3: DANGER pressed+focused strips focus-BOLD. Oracle:
+    /// destructive/Stop-and-quit pressed+focused, TrueColor — fg white
+    /// (`OnDanger`), bg `Rgb(228,69,69)` (`Danger`), NONE. (G2b's
+    /// black-on-white Cancel is a DEFAULT button, covered by the G2
+    /// test above.)
+    #[test]
+    fn q65s1_g3_danger_pressed_focused_strips_bold() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for live in q65s1_pressed_live() {
+            let r = q65s1_container(&theme, Variant::DANGER, live);
+            assert!(
+                !q65s1_bold_on(&r),
+                "DANGER pressed+focused must not be BOLD at {live:?}"
+            );
+            assert_eq!(
+                r.style.fg,
+                Some(Color::Rgb(255, 255, 255)),
+                "DANGER pressed fg at {live:?}"
+            );
+            assert_eq!(
+                r.style.bg,
+                Some(Color::Rgb(228, 69, 69)),
+                "DANGER pressed bg at {live:?}"
+            );
+        }
+    }
+
+    /// G3: SUBTLE/QUIET/GHOST pressed+focused strips focus-BOLD (the
+    /// QUIET-arm variant-delta PRESSED patch).
+    #[test]
+    fn q65s1_g3_quiet_family_pressed_focused_strips_bold() {
+        let theme = Theme::junie();
+        for v in [Variant::SUBTLE, Variant::QUIET, Variant::GHOST] {
+            for live in q65s1_pressed_live() {
+                let r = q65s1_container(&theme, v, live);
+                assert!(
+                    !q65s1_bold_on(&r),
+                    "{v:?} pressed+focused must not be BOLD at {live:?}"
+                );
+            }
+        }
+    }
+
+    /// G2/G3 `_`-arm coverage: SECONDARY and TOGGLE resolve through the
+    /// same `_`-arm PRESSED patch that serves the family DEFAULT base,
+    /// so they strip focus-BOLD when pressed exactly like DEFAULT.
+    #[test]
+    fn q65s1_fallback_variants_pressed_focused_strip_bold() {
+        let theme = Theme::junie();
+        for v in [Variant::SECONDARY, Variant::TOGGLE] {
+            for live in q65s1_pressed_live() {
+                let r = q65s1_container(&theme, v, live);
+                assert!(
+                    !q65s1_bold_on(&r),
+                    "{v:?} pressed+focused must not be BOLD at {live:?}"
+                );
+            }
+        }
+    }
+
+    /// HOLD: unpressed FOCUSED keeps BOLD on every variant that declares
+    /// it (the fix touches PRESSED patches only).
+    #[test]
+    fn q65s1_hold_unpressed_focused_keeps_bold() {
+        let theme = Theme::junie();
+        for v in [
+            Variant::DEFAULT,
+            Variant::PRIMARY,
+            Variant::SECONDARY,
+            Variant::DANGER,
+            Variant::SUBTLE,
+            Variant::QUIET,
+            Variant::GHOST,
+            Variant::TOGGLE,
+        ] {
+            let r = q65s1_container(&theme, v, StateFlags::FOCUSED);
+            assert!(q65s1_bold_on(&r), "{v:?} focused keeps BOLD");
+        }
+    }
+
+    /// HOLD: DISABLED fg is untouched by the pressed-state fix (the G4
+    /// bg change is a later slice, deliberately not pinned here).
+    #[test]
+    fn q65s1_hold_disabled_fg_unchanged() {
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie();
+        for v in [
+            Variant::DEFAULT,
+            Variant::PRIMARY,
+            Variant::DANGER,
+            Variant::QUIET,
+        ] {
+            let r = q65s1_container(&theme, v, StateFlags::DISABLED);
+            assert_eq!(
+                r.style.fg,
+                Some(Color::Rgb(77, 77, 77)),
+                "{v:?} disabled fg"
+            );
+        }
+    }
+
+    /// HOLD: Ansi16 PRIMARY pressed fg stays Black. At base the fg is the
+    /// family DEFAULT PRESSED Canvas; after the G1 fix it is OnAccent —
+    /// both must quantize to Black or the fix regresses the 16-colour
+    /// pressed row.
+    #[test]
+    fn q65s1_hold_ansi16_primary_pressed_stays_black() {
+        use crate::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().for_level(ColorLevel::Ansi16);
+        for live in q65s1_pressed_live() {
+            let r = q65s1_container(&theme, Variant::PRIMARY, live);
+            assert_eq!(r.style.fg, Some(Color::Black), "Ansi16 PRIMARY pressed fg");
         }
     }
 }
