@@ -1951,4 +1951,150 @@ mod tests {
             );
         }
     }
+
+    // Q66-S3 (F1-L1+L3+L4+DIM, F1-L7c): Junie LIST targeted mono set is
+    // (CONTAINER+GUTTER+META+BADGE, DISABLED)+DIM. The tag fills a disabled
+    // list row with `disabled_style()` (DIM at Mono, `tag:theme.rs:330-337`)
+    // and every later paint unions modifiers, so pads, gutter, marker cell,
+    // meta, and badge are all DIM in the frozen `lists/hover/120x40/none`
+    // run. The candidate `ui.fill` OVERWRITES modifiers (`paint.rs:389`), so
+    // each fill-painted part needs its own targeted +DIM rule — the PICKER
+    // mirror (`downgrade.rs:639-681`) — while the List marker cell is left
+    // unpainted (`list.rs:1331` Clear arm) and rides the container fill.
+    // LIST-scoped deliberately (S2 rule): the S8
+    // `q65s8_hold_gutter_dim_free` pin forbids a generic
+    // (CONTAINER,DISABLED)+DIM, and Paper keeps the empty built-in LIST set.
+    fn q66s3_list_disabled_dim_at_mono_only(part: Part) {
+        use crate::theme::ColorLevel;
+
+        let tc = Theme::junie();
+        for theme in [
+            tc.clone(),
+            tc.downgrade(ColorLevel::Ansi256),
+            tc.downgrade(ColorLevel::Ansi16),
+            tc.downgrade(ColorLevel::Mono),
+        ] {
+            let r = theme.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                part,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                r.style.add_modifier.contains(Modifier::DIM),
+                theme.capability.color == ColorLevel::Mono,
+                "LIST {part:?} DISABLED DIM at {:?}",
+                theme.capability.color
+            );
+        }
+    }
+
+    /// F1-L1: LIST CONTAINER DISABLED is DisabledFg +DIM at Mono (pads),
+    /// DIM-free above it.
+    #[test]
+    fn q66s3_l1_list_container_disabled_dim_at_mono_only() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        q66s3_list_disabled_dim_at_mono_only(Part::CONTAINER);
+        let tc = Theme::junie();
+        for (theme, want_fg) in [
+            (tc.clone(), Some(Color::Rgb(77, 77, 77))),
+            (tc.downgrade(ColorLevel::Ansi256), Some(Color::Indexed(238))),
+            (tc.downgrade(ColorLevel::Ansi16), Some(Color::DarkGray)),
+            (tc.downgrade(ColorLevel::Mono), Some(Color::DarkGray)),
+        ] {
+            let r = theme.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                r.style.fg, want_fg,
+                "LIST CONTAINER DISABLED fg at {:?}",
+                theme.capability.color
+            );
+        }
+    }
+
+    /// F1-L3: LIST GUTTER DISABLED gains +DIM at Mono and keeps the Clear glyph.
+    #[test]
+    fn q66s3_l3_list_gutter_disabled_dim_at_mono_only() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        q66s3_list_disabled_dim_at_mono_only(Part::GUTTER);
+        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        let r = mono.resolve(
+            Family::LIST,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            StateFlags::DISABLED,
+            Surface::Canvas,
+        );
+        assert_eq!(
+            r.style.fg,
+            Some(Color::Black),
+            "gutter fg stays surface-black"
+        );
+        assert!(
+            matches!(r.glyph, Slot::Clear),
+            "gutter keeps the Clear glyph, got {:?}",
+            r.glyph
+        );
+    }
+
+    /// F1-L2+DIM: LIST META DISABLED gains +DIM at Mono; fg stays
+    /// DisabledFg per S2.
+    #[test]
+    fn q66s3_l2_list_meta_disabled_dim_at_mono_only() {
+        q66s3_list_disabled_dim_at_mono_only(Part::META);
+    }
+
+    /// F1-L7c: LIST BADGE DISABLED gains its OWN +DIM at Mono — the
+    /// fill-then-paint order (`nav_list.rs:1212-1216` + `paint.rs:389`) wipes
+    /// to the BADGE resolution's own modifiers, so container +DIM cannot
+    /// reach it. The fg still inherits the container fill.
+    #[test]
+    fn q66s3_l7c_list_badge_disabled_dim_at_mono_only() {
+        use crate::theme::ColorLevel;
+
+        q66s3_list_disabled_dim_at_mono_only(Part::BADGE);
+        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        let r = mono.resolve(
+            Family::LIST,
+            Variant::DEFAULT,
+            Part::BADGE,
+            StateFlags::DISABLED,
+            Surface::Canvas,
+        );
+        assert_eq!(
+            r.style.fg, None,
+            "BADGE carries no fg of its own — it inherits the container fill"
+        );
+    }
+
+    /// F1-L4 HOLD: LIST MARKER DISABLED has NO own DIM at Mono — the List
+    /// marker cell is unpainted (`list.rs:1331` Clear arm) and rides the
+    /// container fill. GREEN on base and after; guards against a MARKER rule.
+    #[test]
+    fn q66s3_l4_hold_list_marker_disabled_has_no_own_dim() {
+        use crate::theme::ColorLevel;
+
+        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        let r = mono.resolve(
+            Family::LIST,
+            Variant::DEFAULT,
+            Part::MARKER,
+            StateFlags::DISABLED,
+            Surface::Canvas,
+        );
+        assert!(
+            !r.style.add_modifier.contains(Modifier::DIM),
+            "MARKER must ride the container fill, not carry its own DIM"
+        );
+    }
 }

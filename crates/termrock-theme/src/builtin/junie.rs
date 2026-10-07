@@ -256,11 +256,29 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
         .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
     row.entry(Part::ICON)
         .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
-    // Generic mono press fallback runs after ordinary recipes; keep its
-    // explicit inversion but restore the disabled container if both are live.
+    // Q66-S3 (F1-L1+L3+L4+DIM, F1-L7c): the LIST targeted mono set is
+    // (CONTAINER+GUTTER+META+BADGE, DISABLED)+DIM — the PICKER mirror
+    // (`downgrade.rs:639-681`). The tag's disabled row is a full DIM run at
+    // Mono; the generic press fallback runs after ordinary recipes, and
+    // `ui.fill` overwrites modifiers, so each fill-painted part needs its
+    // own rule. The CONTAINER rule keeps its explicit disabled restore
+    // (pressed+disabled) and gains +DIM; GUTTER/META/BADGE are DIM-only. No
+    // MARKER rule: the List marker cell is unpainted and rides the container.
+    // LIST-scoped: a generic (CONTAINER,DISABLED)+DIM would regress the
+    // button gutter (`q65s8_hold_gutter_dim_free` pins it DIM-free).
+    let dim = p().add(Modifier::DIM);
     recipes.set_mono_rules(
         Family::LIST,
-        vec![(Part::CONTAINER, StateFlags::DISABLED, disabled)],
+        vec![
+            (
+                Part::CONTAINER,
+                StateFlags::DISABLED,
+                disabled.add(Modifier::DIM),
+            ),
+            (Part::GUTTER, StateFlags::DISABLED, dim),
+            (Part::META, StateFlags::DISABLED, dim),
+            (Part::BADGE, StateFlags::DISABLED, dim),
+        ],
     );
     recipes
         .get_mut(Family::TREE)

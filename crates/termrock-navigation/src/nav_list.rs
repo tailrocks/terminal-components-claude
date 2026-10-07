@@ -1964,4 +1964,51 @@ mod tests {
             assert_eq!(calls.get(), 0, "forbidden slot {part:?} executed");
         }
     }
+
+    /// F1-L7c: the disabled badge cell carries the BADGE resolution's own DIM
+    /// at Mono (tag badge is `st` when disabled,
+    /// `tag:pages/sidebars.rs:248-252`). Fill-then-paint wipes to the BADGE
+    /// resolution's own modifiers, so container +DIM cannot reach it — the
+    /// targeted `(BADGE, DISABLED)`+DIM rule does. The fg still inherits the
+    /// container fill (BADGE resolves no fg of its own).
+    #[test]
+    fn q66s3_l7c_disabled_badge_cell_carries_dim_at_mono() {
+        use crate::theme::ColorLevel;
+        use ratatui_core::style::Color;
+
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        let area = Rect::new(0, 0, 24, 2);
+        let items = [E("One", "", "1", false), E("Two", "", "2", true)];
+        let nav = NavList::new(NAV)
+            .key(keyed as fn(&E) -> ItemKey)
+            .icon(&icon)
+            .disabled_item(&off)
+            .badge(&badge);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            nav.draw(&mut ui, area, &NavListState::new(), &items);
+        }
+        let disabled = page.cell((23, 1)).expect("disabled badge cell");
+        assert_eq!(disabled.symbol(), "9");
+        assert_eq!(
+            disabled.style().fg,
+            Some(Color::DarkGray),
+            "badge inherits the container fg"
+        );
+        assert!(
+            disabled.modifier.contains(Modifier::DIM),
+            "disabled badge lost DIM"
+        );
+        let enabled = page.cell((23, 0)).expect("enabled badge cell");
+        assert_eq!(enabled.symbol(), "9");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled badge gained DIM"
+        );
+    }
 }

@@ -1641,4 +1641,85 @@ mod tests {
             Some(Theme::junie().design.glyphs.get(GlyphRole::Chosen))
         );
     }
+
+    /// Q66-S3 draw helper: two rows at Mono, the second row disabled.
+    fn draw_q66s3_mono_disabled() -> Buffer {
+        use crate::theme::ColorLevel;
+
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        let disabled = |item: &&str| *item == "two";
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID)
+                    .disabled_item(&disabled)
+                    .draw(ui, area, &state, &["one", "two"]);
+            })
+            .commit_presented();
+        buffer
+    }
+
+    /// F1-L1: disabled pad cells are DarkGray+DIM at Mono (tag full-run
+    /// `fg8+DIM`, frozen `lists/hover/120x40/none` y10); enabled pads stay
+    /// DIM-free.
+    #[test]
+    fn q66s3_l1_disabled_pad_cells_carry_dim_at_mono() {
+        use ratatui_core::style::Color;
+
+        let buf = draw_q66s3_mono_disabled();
+        let pad = buf.cell(Position::new(15, 1)).expect("pad cell");
+        assert_eq!(pad.symbol(), " ");
+        assert_eq!(pad.style().fg, Some(Color::DarkGray), "disabled pad fg");
+        assert!(
+            pad.modifier.contains(Modifier::DIM),
+            "disabled pad lost DIM"
+        );
+        let enabled = buf.cell(Position::new(15, 0)).expect("enabled pad cell");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled pad gained DIM"
+        );
+    }
+
+    /// F1-L3: the disabled gutter cell is surface-black+DIM at Mono (tag
+    /// `' ' fg=0 bg=0 DIM`, frozen y10 x60); the enabled gutter stays DIM-free.
+    #[test]
+    fn q66s3_l3_disabled_gutter_cell_carries_dim_at_mono() {
+        use ratatui_core::style::Color;
+
+        let buf = draw_q66s3_mono_disabled();
+        let gutter = buf.cell(Position::new(0, 1)).expect("gutter cell");
+        assert_eq!(gutter.symbol(), " ");
+        assert_eq!(gutter.style().fg, Some(Color::Black), "disabled gutter fg");
+        assert!(
+            gutter.modifier.contains(Modifier::DIM),
+            "disabled gutter lost DIM"
+        );
+        let enabled = buf.cell(Position::new(0, 0)).expect("enabled gutter cell");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled gutter gained DIM"
+        );
+    }
+
+    /// F1-L4: the disabled marker cell rides the container fill — blank
+    /// symbol, same fg as the pads, +DIM — with no paint of its own.
+    #[test]
+    fn q66s3_l4_disabled_marker_cell_rides_container_dim_at_mono() {
+        let buf = draw_q66s3_mono_disabled();
+        let marker = buf.cell(Position::new(1, 1)).expect("marker cell");
+        let pad = buf.cell(Position::new(15, 1)).expect("pad cell");
+        assert_eq!(marker.symbol(), " ", "marker stays blank when unchosen");
+        assert_eq!(
+            marker.style().fg,
+            pad.style().fg,
+            "marker cell must show the container fill"
+        );
+        assert!(
+            marker.modifier.contains(Modifier::DIM),
+            "marker cell lost the container DIM"
+        );
+    }
 }
