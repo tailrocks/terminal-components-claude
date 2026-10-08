@@ -768,6 +768,18 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                         acc.action(st.push_query_char(c));
                     }
                 }
+                Intent::Key(key) if !self.searchable => {
+                    // No query editor exists here: j/k navigate, every other
+                    // typing key is swallowed so nothing leaks or accumulates
+                    // (S4 PICKER-TABS-002 A2; the Level picker contract).
+                    let cur = st.core.cursor_index();
+                    match key.bare_char() {
+                        Some('j') => Self::move_to(st, items, cur.saturating_add(1), &mut acc),
+                        Some('k') => Self::move_to(st, items, cur.saturating_sub(1), &mut acc),
+                        Some(_) => acc.consumed(),
+                        None => {}
+                    }
+                }
                 Intent::Pointer {
                     phase,
                     part:

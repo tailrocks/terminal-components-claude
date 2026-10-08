@@ -1585,7 +1585,9 @@ impl App {
     }
 
     fn role_picker(title: &'static str) -> Picker<'static, RoleOption> {
-        Picker::new(ROLE_PICKER).title(title)
+        Picker::new(ROLE_PICKER)
+            .title(title)
+            .item_layout(ItemRowLayout::Compact)
     }
 
     fn launch_agent_picker() -> Picker<'static, AgentOption> {
@@ -1597,7 +1599,9 @@ impl App {
     }
 
     fn account_picker() -> Picker<'static, AccountOption> {
-        Picker::new(ACCOUNT_PICKER).title("Choose a configured account")
+        Picker::new(ACCOUNT_PICKER)
+            .title("Choose a configured account")
+            .item_layout(ItemRowLayout::Compact)
     }
 
     fn active_account_picker(&self) -> Picker<'static, AccountOption> {

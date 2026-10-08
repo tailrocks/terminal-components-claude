@@ -189,7 +189,10 @@ impl<T> Picker<'_, T, ItemRow> {
             align: None,
             empty: None,
             row: ItemRow,
-            item_layout: ItemRowLayout::Compact,
+            // the contract form: fixed gutter/glyph/label/detail/tag/group
+            // columns with group labels on first-of-group rows (S4
+            // PICKER-QUERY-001 V1); Compact stays an explicit opt-in
+            item_layout: ItemRowLayout::Columns,
             footer: None,
             patch: None,
             parts: &[],
@@ -377,10 +380,15 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .min(usize::from(d.size.popup_max_rows))
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
-        // Searchable pickers reserve title, query and spacing before the list.
-        // Nonsearchable pickers move the list above that query space and retain
-        // the bottom breathing room. Both request the same outer height.
-        LayerSize::Fixed(width, rows.saturating_add(5))
+        // Searchable pickers reserve title, query and spacing before the list
+        // plus the footer/breathing row below it (draw subtracts 3 + 1 from
+        // the inner height), so the outer height is rows + 6: chrome 2 +
+        // title 1 + query 1 + spacing 1 + rows + bottom 1 (oracle
+        // showcase/pickers/open/80x24 shows 13 rows in a 19-tall modal).
+        // Nonsearchable pickers move the list above that query space and
+        // retain the bottom breathing room: rows + 5.
+        let extra = if self.searchable { 6 } else { 5 };
+        LayerSize::Fixed(width, rows.saturating_add(extra))
     }
 
     /// Layer specification supplied by this picker.
