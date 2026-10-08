@@ -119,6 +119,7 @@ pub struct Panel<'a> {
     meta: Option<&'a str>,
     badge: Option<&'a str>,
     focused: bool,
+    meta_late: bool,
     custom_inset: Option<Insets>,
     ov: PartStyle<'a>,
 }
@@ -132,6 +133,7 @@ impl fmt::Debug for Panel<'_> {
             .field("meta", &self.meta)
             .field("badge", &self.badge)
             .field("focused", &self.focused)
+            .field("meta_late", &self.meta_late)
             .field("custom_inset", &self.custom_inset)
             .field("overrides", &self.ov)
             .finish()
@@ -158,6 +160,7 @@ impl<'a> Panel<'a> {
             meta: None,
             badge: None,
             focused: false,
+            meta_late: false,
             custom_inset: None,
             ov: PartStyle::new(),
         }
@@ -186,6 +189,16 @@ impl<'a> Panel<'a> {
     #[must_use]
     pub const fn meta(mut self, m: &'a str) -> Self {
         self.meta = Some(m);
+        self
+    }
+
+    /// The meta was derived from child layout at draw time (a scroll
+    /// position), so the head row keeps the historical second-pass net
+    /// effect: where the meta truncates the title, the title style shows
+    /// through the gap. Construction-time metas leave the gap untouched.
+    #[must_use]
+    pub const fn meta_late(mut self, yes: bool) -> Self {
+        self.meta_late = yes;
         self
     }
 
@@ -597,6 +610,11 @@ impl<'a> Panel<'a> {
             .map(|m| crate::text::width(m).saturating_add(pad.saturating_mul(2)))
             .unwrap_or(0);
         let mut cx = text_x;
+        // A late meta truncates a title the historical first pass painted
+        // in full; the recorded span lets the pass below reproduce the
+        // second-pass net effect directly: (style, gap start, full-title
+        // end). It stays unused for construction-time metas.
+        let mut title_gap: Option<(crate::theme::PaintStyle, u16, u16)> = None;
         if let Some(t) = self.title {
             let room = if meta_w > 0 {
                 span_w.saturating_sub(meta_w + 1 + pad.saturating_mul(2))
@@ -622,17 +640,23 @@ impl<'a> Panel<'a> {
                 if pad == 1 {
                     ui.fill(cell_at(head, rect.right()), s.style);
                 }
+                let full_end = text_x
+                    .saturating_add(crate::text::width(t))
+                    .saturating_add(pad.saturating_mul(2));
+                title_gap = Some((s.style, rect.right().saturating_add(pad), full_end));
             }
             cx = text_x
                 .saturating_add(tw)
                 .saturating_add(pad.saturating_mul(2));
         }
         let mut right = text_x.saturating_add(span_w);
+        let mut meta_x: Option<u16> = None;
         if let Some(m) = meta_trunc {
             let tw = crate::text::width(&m);
             let needed = tw.saturating_add(pad.saturating_mul(2));
             if right >= cx + needed + u16::from(cx > text_x) {
                 right = right.saturating_sub(needed);
+                meta_x = Some(right);
                 let rect = Rect {
                     x: right.saturating_add(pad),
                     y: head.y,
@@ -651,6 +675,27 @@ impl<'a> Panel<'a> {
                         ui.fill(cell_at(head, rect.right()), s.style);
                     }
                 }
+            }
+        }
+        // The historical row was painted twice only when the meta arrived
+        // late via `draw_meta`: a symbol-only clear kept the full title's
+        // style under the gap. Construction-time metas paint once, so the
+        // gap keeps the fill style unless the caller declares `meta_late`.
+        if let Some((style, start, full_end)) = title_gap
+            && self.meta_late
+            && self.meta.is_some()
+        {
+            let end = meta_x.map_or(full_end, |x| x.min(full_end));
+            if end > start {
+                ui.fill(
+                    Rect {
+                        x: start,
+                        y: head.y,
+                        width: end.saturating_sub(start),
+                        height: 1,
+                    },
+                    style,
+                );
             }
         }
     }

@@ -168,6 +168,15 @@ impl DialogState {
         self.ack_draft.zeroize();
     }
 
+    /// Preset the committed prompt text, e.g. the current name a rename
+    /// dialog edits. This is prompt-only: it clears the acknowledgement
+    /// token and leaves secret mode, so call it before opening.
+    pub fn set_draft(&mut self, draft: &str) {
+        self.ack_draft.zeroize();
+        self.input.set_sensitive(false);
+        self.draft = draft.into();
+    }
+
     fn set_secret_mode(&mut self, secret: bool) {
         if self.input.is_sensitive() == secret {
             return;
@@ -206,8 +215,9 @@ fn zeroize_string(value: &mut String) {
 /// (`design.size.dialog_width`), `.body_rows(u16)` (rows for the body slot;
 /// `code_preview_lines` for `new`, `0` for the conveniences — the dialog
 /// never sees the body closure before `draw`, so the caller states it),
-/// `.error(Option<&str>)` for caller-owned prompt validation, `.patch`,
-/// `.patch_part`.
+/// `.error(Option<&str>)` for caller-owned prompt validation,
+/// `.input_help(&str)` / `.input_required(bool)` forwarded to the prompt
+/// field, `.patch`, `.patch_part`.
 ///
 /// ## Variants
 /// `Family::DIALOG`, `DEFAULT` only; the action buttons carry their
@@ -229,7 +239,9 @@ fn zeroize_string(value: &mut String) {
 ///
 /// ## Keyboard
 /// `←` / `→` move between enabled actions. Esc reaches the focused control
-/// first, then the layer's `Dismiss.esc`.
+/// first, then the layer's `Dismiss.esc`. On a [`Dialog::quick_answer`]
+/// dialog `y` fires the first enabled primary / danger action and `n` the
+/// cancel action.
 ///
 /// ## Mouse
 /// The surface is `Decorative` (a click inside is never "outside"); buttons
@@ -277,6 +289,8 @@ pub struct Dialog<'a> {
     body_rows: Option<u16>,
     prompt: Option<&'a str>,
     input_label: Option<&'a str>,
+    input_help: Option<&'a str>,
+    input_required: bool,
     ack: Option<&'a str>,
     error: Option<&'a str>,
     max_height: Option<u16>,
@@ -325,6 +339,8 @@ impl<'a> Dialog<'a> {
             body_rows: None,
             prompt: None,
             input_label: None,
+            input_help: None,
+            input_required: false,
             ack: None,
             error: None,
             max_height: None,
@@ -367,6 +383,22 @@ impl<'a> Dialog<'a> {
     #[must_use]
     pub const fn input_label(mut self, label: &'a str) -> Self {
         self.input_label = Some(label);
+        self
+    }
+
+    /// Help text under the prompt control, shown when there is no error.
+    /// Forwarded to the prompt `Field`; ignored without one.
+    #[must_use]
+    pub const fn input_help(mut self, help: &'a str) -> Self {
+        self.input_help = Some(help);
+        self
+    }
+
+    /// Whether the prompt control shows the required marker. This only
+    /// annotates the label; validation stays caller-owned (`.error`).
+    #[must_use]
+    pub const fn input_required(mut self, yes: bool) -> Self {
+        self.input_required = yes;
         self
     }
 
@@ -499,6 +531,15 @@ impl<'a> Dialog<'a> {
         self.prompt.is_some() || self.ack.is_some()
     }
 
+    /// Whether `y` / `n` answer this dialog directly: a text question with
+    /// no prompt or acknowledgement editor to consume the keystroke
+    /// (tag `dialog.rs` `y` / `n` arms, `DialogBody::Text`). Callers also
+    /// read this to decide whether the footer may advertise the quick
+    /// answer; the help dialog keeps the keys but hides the hint by id.
+    pub const fn quick_answer(&self) -> bool {
+        self.description.is_some() && !self.has_input()
+    }
+
     fn input_control(&self) -> TextInput<'static> {
         let input = TextInput::new(self.input_id());
         if self.ack.is_some() {
@@ -532,6 +573,18 @@ impl<'a> Dialog<'a> {
         } else {
             a.variant()
         }
+    }
+
+    /// The key `y` answers with: the first enabled primary / danger action.
+    fn quick_yes(&self, st: &DialogState) -> Option<ActionKey> {
+        self.effective_actions()
+            .iter()
+            .enumerate()
+            .find_map(|(i, a)| {
+                (self.enabled(i, a, st)
+                    && matches!(self.variant_of(a), Variant::PRIMARY | Variant::DANGER))
+                .then_some(a.key())
+            })
     }
 
     /// The first enabled action that is not the cancel action.
@@ -625,6 +678,30 @@ impl<'a> Dialog<'a> {
                 acc.fold(&r.erase());
             }
             for it in cx.intents(bid) {
+                if self.quick_answer()
+                    && let Intent::Key(key) = it
+                {
+                    // `y` / `n` answer a text dialog from any focused action
+                    // (tag `dialog.rs`): `y` takes the first enabled primary
+                    // or danger action, `n` the cancel action.
+                    if key.is(KeyCode::Char('y')) {
+                        if let Some(yes) = self.quick_yes(st) {
+                            acc.action(DialogAction::Action(yes));
+                            action_fired = true;
+                        } else {
+                            acc.consumed();
+                        }
+                    } else if key.is(KeyCode::Char('n')) {
+                        if let Some(cancel) = self.cancel
+                            && self.effective_actions().iter().any(|a| a.key() == cancel)
+                        {
+                            acc.action(DialogAction::Action(cancel));
+                            action_fired = true;
+                        } else {
+                            acc.consumed();
+                        }
+                    }
+                }
                 if let Intent::Binding(action) = it {
                     match Binding::command(BINDINGS, action) {
                         Some(DialogCmd::PrevAction) => {
@@ -723,15 +800,26 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    /// The control that holds initial focus when the dialog opens:
-    /// the input control for prompt / acknowledgement dialogs,
-    /// otherwise the Cancel action if present, otherwise the first action.
+    /// The control that holds initial focus when the dialog opens: the
+    /// input control for prompt / acknowledgement dialogs, otherwise the
+    /// primary action if present, otherwise the Cancel action if present,
+    /// otherwise the first action.
     #[must_use]
     pub fn initial_focus(&self) -> Option<Id> {
         if self.has_input() {
             Some(self.input_id())
+        } else if let Some(primary) = self.primary
+            && let Some(idx) = self
+                .effective_actions()
+                .iter()
+                .position(|a| a.key() == primary)
+        {
+            Some(self.action_id(idx))
         } else if let Some(cancel) = self.cancel
-            && let Some(idx) = self.effective_actions().iter().position(|a| a.key() == cancel)
+            && let Some(idx) = self
+                .effective_actions()
+                .iter()
+                .position(|a| a.key() == cancel)
         {
             Some(self.action_id(idx))
         } else if !self.effective_actions().is_empty() {
@@ -892,10 +980,11 @@ impl<'a> Dialog<'a> {
                         .input_label
                         .or(self.prompt)
                         .unwrap_or("Type the token to confirm");
-                    Field::new(label, input)
-                        .plain(true)
-                        .error(self.error)
-                        .draw(ui, r, &st.input);
+                    let mut field = Field::new(label, input).plain(true).error(self.error);
+                    if let Some(help) = self.input_help {
+                        field = field.help(help);
+                    }
+                    field.required(self.input_required).draw(ui, r, &st.input);
                     y = y.saturating_add(field_h);
                     if self.ack.is_some() {
                         y = y.saturating_add(1);
@@ -1035,6 +1124,78 @@ mod tests {
 
     fn acknowledge() -> Dialog<'static> {
         Dialog::acknowledge(DLG, "Delete table", TOKEN)
+    }
+
+    /// A choice-shaped dialog (tag `dialogs.rs` "Unsaved changes"): three
+    /// actions with Save primary and focused.
+    fn choice() -> Dialog<'static> {
+        const ACTIONS: [Action<'static>; 3] = [
+            Action::quiet(ActionKey::CANCEL, "Cancel"),
+            Action::secondary(ActionKey::DISCARD, "Discard"),
+            Action::new(ActionKey::CONFIRM, "Save"),
+        ];
+        Dialog::confirm(
+            DLG,
+            "Unsaved changes",
+            "The description was edited. Save before leaving this page?",
+        )
+        .actions(&ACTIONS)
+    }
+
+    struct KeyApp {
+        st: DialogState,
+        opened: bool,
+        make: fn() -> Dialog<'static>,
+        chosen: Vec<ActionKey>,
+    }
+
+    impl App for KeyApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if !self.opened {
+                self.opened = true;
+                cx.open_layer(DLG, (self.make)().layer(cx));
+            }
+            let r = (self.make)().update(cx, &mut self.st);
+            if let Some(DialogAction::Action(key)) = r.action_ref() {
+                self.chosen.push(*key);
+            }
+            r.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.layer(DLG, |ui, a| {
+                (self.make)().draw(ui, a, &self.st, |_, _| {});
+            });
+        }
+    }
+
+    /// Open `make` headless, send bare `codes`, and collect the fired keys.
+    fn drive(make: fn() -> Dialog<'static>, codes: &[KeyCode]) -> Vec<ActionKey> {
+        let mut rt = Runtime::new(
+            KeyApp {
+                st: DialogState::default(),
+                opened: false,
+                make,
+                chosen: Vec::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        for code in codes {
+            let _ = crate::runtime::stub::deliver(
+                &mut rt,
+                Input::Key(Key {
+                    code: *code,
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        }
+        rt.app().chosen.clone()
     }
 
     fn esc() -> Input {
@@ -1795,5 +1956,55 @@ mod tests {
         assert_eq!(prompt_focused.matches('▎').count(), 1);
         assert!(!prompt_focused.contains("▎Cancel"));
         assert!(!prompt_focused.contains("▎OK"));
+    }
+
+    #[test]
+    fn choice_dialog_focuses_save_and_answers_yn_or_buttons() {
+        // Tag `dialogs.rs` "Unsaved changes": [subtle Cancel, secondary
+        // Discard, primary Save], Save focused first.
+        assert!(choice().quick_answer());
+        assert_eq!(choice().initial_focus(), Some(choice().action_id(2)));
+        assert_eq!(
+            drive(choice, &[KeyCode::Char('y')]),
+            vec![ActionKey::CONFIRM]
+        );
+        assert_eq!(
+            drive(choice, &[KeyCode::Char('n')]),
+            vec![ActionKey::CANCEL]
+        );
+        assert_eq!(
+            drive(choice, &[KeyCode::Left, KeyCode::Enter]),
+            vec![ActionKey::DISCARD]
+        );
+    }
+
+    #[test]
+    fn yn_answer_text_dialogs_but_never_prompts() {
+        assert!(confirm().quick_answer());
+        assert_eq!(
+            drive(confirm, &[KeyCode::Char('y')]),
+            vec![ActionKey::CONFIRM]
+        );
+        assert_eq!(
+            drive(confirm, &[KeyCode::Char('n')]),
+            vec![ActionKey::CANCEL]
+        );
+        assert!(!prompt().quick_answer());
+        assert!(
+            drive(prompt, &[KeyCode::Char('y'), KeyCode::Char('n')]).is_empty(),
+            "prompt keystrokes belong to the editor, not the actions"
+        );
+    }
+
+    #[test]
+    fn help_shaped_dialog_answers_n_but_has_no_primary_for_y() {
+        fn help() -> Dialog<'static> {
+            Dialog::info(DLG, "Keyboard & mouse").description("keys and clicks")
+        }
+        // The keys stay live on help (tag `dialog.rs` has no HELP
+        // exclusion): only the footer hint is suppressed, by id.
+        assert!(help().quick_answer());
+        assert!(drive(help, &[KeyCode::Char('y')]).is_empty());
+        assert_eq!(drive(help, &[KeyCode::Char('n')]), vec![ActionKey::CLOSE]);
     }
 }

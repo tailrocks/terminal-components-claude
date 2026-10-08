@@ -1,37 +1,67 @@
-//! A second grid consumer: compact service-health metrics.
+//! Data grid: typed cells, a pending-change queue, paging and local sort.
 
 use termrock::{
-    Align, CellRef, Column, ColumnKey, Cx, Grid, GridAction, GridModel, GridState, Id, ItemKey,
-    Modifier, NavUnit, Part, Rect, Role, RowDecor, StateFlags, Surface, Ui, Variant, id,
+    Align, CellDecor, CellRef, Column, ColumnKey, Cx, FgStep, FrameRead, GlyphRole, Grid,
+    GridAction, GridColumnFit, GridGutter, GridModel, GridOverflowIndicator, GridSortIndicator,
+    GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Role, RowTotal, StateFlags,
+    StylePatch, Ui, id,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate, frame};
 
-const METRICS: Id = id!("grid.metrics");
-const COLUMNS: [Column<'static>; 4] = [
+const GRID: Id = id!("grid.grid");
+const CUSTOMERS: Id = id!("grid.customers");
+
+const NAMES: &[&str] = &[
+    "Northwind Traders",
+    "Blue Yonder Airlines",
+    "Contoso Pharmaceuticals",
+    "Fabrikam Robotics",
+    "Litware Analytics",
+    "Tailspin Toys",
+    "Wide World Importers",
+    "Adventure Works",
+    "Proseware Studio",
+    "Woodgrove Bank",
+    "Alpine Ski House",
+    "Coho Winery",
+    "Lucerne Publishing",
+    "Margie's Travel",
+    "Trey Research",
+    "Humongous Insurance",
+];
+const PLANS: &[&str] = &["free", "pro", "team", "enterprise"];
+const OWNERS: &[&str] = &["mira", "jonas", "ana", "kai"];
+const SEATS: &[u32] = &[1, 3, 5, 12, 25, 40, 80, 150];
+const ROWS: usize = 40;
+const ESTIMATED_TOTAL: usize = 4_812;
+
+/// Fixed widths sampled from the historical grid (p95 content, header floor):
+/// the layout never depends on the viewport, only the visible window does.
+const COLUMNS: [Column<'static>; 8] = [
     Column {
         key: ColumnKey::num(0),
-        title: "Metric",
+        title: "id",
         subtitle: None,
         align: Align::Left,
-        min_width: 14,
-        max_width: 26,
-        sortable: false,
+        min_width: 9,
+        max_width: 9,
+        sortable: true,
         editable: false,
-        sticky: true,
-        prefix_glyph: None,
+        sticky: false,
+        prefix_glyph: Some(GlyphRole::PrimaryKey),
         badge: None,
         filtered: false,
     },
     Column {
         key: ColumnKey::num(1),
-        title: "Current",
+        title: "customer",
         subtitle: None,
-        align: Align::Right,
-        min_width: 10,
-        max_width: 14,
-        sortable: false,
-        editable: false,
+        align: Align::Left,
+        min_width: 25,
+        max_width: 25,
+        sortable: true,
+        editable: true,
         sticky: false,
         prefix_glyph: None,
         badge: None,
@@ -39,13 +69,13 @@ const COLUMNS: [Column<'static>; 4] = [
     },
     Column {
         key: ColumnKey::num(2),
-        title: "Target",
+        title: "plan",
         subtitle: None,
-        align: Align::Right,
+        align: Align::Left,
         min_width: 10,
-        max_width: 14,
-        sortable: false,
-        editable: false,
+        max_width: 10,
+        sortable: true,
+        editable: true,
         sticky: false,
         prefix_glyph: None,
         badge: None,
@@ -53,13 +83,69 @@ const COLUMNS: [Column<'static>; 4] = [
     },
     Column {
         key: ColumnKey::num(3),
-        title: "Trend",
+        title: "seats",
+        subtitle: None,
+        align: Align::Right,
+        min_width: 7,
+        max_width: 7,
+        sortable: true,
+        editable: true,
+        sticky: false,
+        prefix_glyph: None,
+        badge: None,
+        filtered: false,
+    },
+    Column {
+        key: ColumnKey::num(4),
+        title: "mrr",
+        subtitle: None,
+        align: Align::Right,
+        min_width: 7,
+        max_width: 7,
+        sortable: true,
+        editable: false,
+        sticky: false,
+        prefix_glyph: None,
+        badge: None,
+        filtered: false,
+    },
+    Column {
+        key: ColumnKey::num(5),
+        title: "active",
         subtitle: None,
         align: Align::Left,
-        min_width: 9,
-        max_width: 14,
+        min_width: 8,
+        max_width: 8,
+        sortable: true,
+        editable: true,
+        sticky: false,
+        prefix_glyph: None,
+        badge: None,
+        filtered: false,
+    },
+    Column {
+        key: ColumnKey::num(6),
+        title: "renewed_at",
+        subtitle: None,
+        align: Align::Left,
+        min_width: 12,
+        max_width: 12,
+        sortable: true,
+        editable: true,
+        sticky: false,
+        prefix_glyph: None,
+        badge: None,
+        filtered: false,
+    },
+    Column {
+        key: ColumnKey::num(7),
+        title: "notes",
+        subtitle: None,
+        align: Align::Left,
+        min_width: 27,
+        max_width: 27,
         sortable: false,
-        editable: false,
+        editable: true,
         sticky: false,
         prefix_glyph: None,
         badge: None,
@@ -67,197 +153,210 @@ const COLUMNS: [Column<'static>; 4] = [
     },
 ];
 
-#[derive(Clone, Copy, Debug)]
-struct Metric {
-    id: u64,
-    name: &'static str,
-    current: &'static str,
-    target: &'static str,
-    trend: &'static str,
-    healthy: bool,
+#[derive(Clone, Debug)]
+struct CustomerRow {
+    id: String,
+    customer: String,
+    plan: &'static str,
+    seats: String,
+    mrr: String,
+    active: &'static str,
+    renewed: String,
+    renewed_null: bool,
+    notes: String,
+    notes_null: bool,
 }
 
-const VALUES: &[Metric] = &[
-    Metric {
-        id: 1,
-        name: "P95 latency",
-        current: "182 ms",
-        target: "< 250 ms",
-        trend: "↓ improving",
-        healthy: true,
-    },
-    Metric {
-        id: 2,
-        name: "Error rate",
-        current: "0.42%",
-        target: "< 1.0%",
-        trend: "→ steady",
-        healthy: true,
-    },
-    Metric {
-        id: 3,
-        name: "Queue depth",
-        current: "1,284",
-        target: "< 1,000",
-        trend: "↑ watch",
-        healthy: false,
-    },
-    Metric {
-        id: 4,
-        name: "Cache hit rate",
-        current: "96.7%",
-        target: "> 95%",
-        trend: "→ steady",
-        healthy: true,
-    },
-    Metric {
-        id: 5,
-        name: "Deploy age",
-        current: "4 h",
-        target: "< 24 h",
-        trend: "↓ fresh",
-        healthy: true,
-    },
-];
+fn row(index: usize) -> CustomerRow {
+    let plan = PLANS[(index * 7 + 3) % PLANS.len()];
+    let seats = SEATS[(index * 5 + 1) % SEATS.len()];
+    let mrr = match plan {
+        "free" => 0.0,
+        "pro" => 29.0 * f64::from(seats),
+        "team" => 24.0 * f64::from(seats),
+        _ => 19.0 * f64::from(seats),
+    };
+    let suffix = if index >= NAMES.len() {
+        format!(" {}", index / NAMES.len() + 1)
+    } else {
+        String::new()
+    };
+    let (renewed, renewed_null) = if plan == "free" {
+        (String::from("NULL"), true)
+    } else {
+        (
+            format!("2026-{:02}-{:02}", 1 + index % 12, 1 + (index * 3) % 28),
+            false,
+        )
+    };
+    let (notes, notes_null) = if index.is_multiple_of(4) {
+        (
+            format!(
+                "{{\"owner\":\"{}\",\"seats\":{seats}}}",
+                OWNERS[index % OWNERS.len()]
+            ),
+            false,
+        )
+    } else {
+        (String::from("NULL"), true)
+    };
+    CustomerRow {
+        id: (1001 + index as u64).to_string(),
+        customer: format!("{}{suffix}", NAMES[index % NAMES.len()]),
+        plan,
+        seats: seats.to_string(),
+        mrr: format!("{mrr:.2}"),
+        active: if index % 5 == 3 { "false" } else { "true" },
+        renewed,
+        renewed_null,
+        notes,
+        notes_null,
+    }
+}
 
-#[derive(Debug, Default)]
-struct MetricModel;
+#[derive(Clone, Debug, Default)]
+struct CustomerModel {
+    rows: Vec<CustomerRow>,
+}
 
-impl GridModel for MetricModel {
+impl CustomerModel {
+    fn new() -> Self {
+        Self {
+            rows: (0..ROWS).map(row).collect(),
+        }
+    }
+
+    fn row_index(&self, key: ItemKey) -> Option<usize> {
+        (0..self.rows.len()).find(|index| self.row_key(*index) == key)
+    }
+}
+
+impl GridModel for CustomerModel {
     fn row_count(&self) -> usize {
-        VALUES.len()
+        self.rows.len()
     }
+
     fn row_key(&self, row: usize) -> ItemKey {
-        VALUES
-            .get(row)
-            .map_or(ItemKey::num(0), |item| ItemKey::num(item.id))
+        if row < self.rows.len() {
+            ItemKey::num(1001 + row as u64)
+        } else {
+            ItemKey::num(0)
+        }
     }
+
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
-        let item = VALUES.get(row)?;
+        let item = self.rows.get(row)?;
         let text = match col {
-            0 => item.name,
-            1 => item.current,
-            2 => item.target,
-            3 => item.trend,
+            0 => item.id.as_str(),
+            1 => item.customer.as_str(),
+            2 => item.plan,
+            3 => item.seats.as_str(),
+            4 => item.mrr.as_str(),
+            5 => item.active,
+            6 => item.renewed.as_str(),
+            7 => item.notes.as_str(),
             _ => return None,
         };
         Some(CellRef::new(text))
     }
-    fn row_decor(&self, row: usize) -> RowDecor<'_> {
-        let mut result = RowDecor::default();
-        if VALUES.get(row).is_some_and(|item| !item.healthy) {
-            result.tone = Some(Role::Warning);
-        }
-        result
-    }
-}
 
-fn metrics() -> Grid<'static> {
-    Grid::new(METRICS, &COLUMNS).nav(NavUnit::Row)
-}
-
-fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
-    let mut surface = ui.surface_style();
-    surface = surface.remove_modifier(Modifier::all());
-    let mut panel = ui.with_surface(Surface::Surface, |ui| {
-        ui.style(
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        )
-        .style
-    });
-    panel = panel.remove_modifier(Modifier::all());
-    ui.fill(body, surface);
-    let panel_area = Rect {
-        x: body.x.saturating_add(2),
-        width: body.width.saturating_sub(2),
-        ..body
-    };
-    ui.fill(panel_area, panel);
-    for (row, line) in lines.iter().enumerate() {
-        let Ok(row) = u16::try_from(row) else {
-            break;
+    fn cell_decor(&self, row: usize, col: usize) -> CellDecor<'_> {
+        let null = match self.rows.get(row) {
+            Some(item) if col == 6 => item.renewed_null,
+            Some(item) if col == 7 => item.notes_null,
+            _ => false,
         };
-        if row > body.height {
-            break;
-        }
-        let row_area = Rect {
-            y: body.y.saturating_add(row),
-            height: 1,
-            ..body
-        };
-        if let Some(rest) = line.strip_prefix("  ") {
-            ui.paint_str(
-                Rect {
-                    width: 2,
-                    ..row_area
-                },
-                "  ",
-                panel,
-            );
-            ui.paint_str(
-                Rect {
-                    x: row_area.x.saturating_add(2),
-                    width: row_area.width.saturating_sub(2),
-                    ..row_area
-                },
-                rest,
-                panel,
-            );
+        if null {
+            CellDecor {
+                tone: Some(Role::Fg(FgStep::Muted)),
+                italic: true,
+                ..CellDecor::default()
+            }
         } else {
-            ui.paint_str(row_area, line, panel);
+            CellDecor::default()
         }
+    }
+
+    fn total(&self) -> RowTotal {
+        RowTotal::Estimated(ESTIMATED_TOTAL)
+    }
+
+    fn has_more(&self) -> bool {
+        true
     }
 }
 
-fn paint_part(
-    ui: &mut Ui<'_>,
-    body: Rect,
-    row: u16,
-    x: u16,
-    text: &str,
-    family: termrock::Family,
-    part: Part,
-) {
-    let area = Rect {
-        x: body.x.saturating_add(x),
-        y: body.y.saturating_add(row),
-        width: body.width.saturating_sub(x),
-        height: 1,
-    };
-    ui.with_surface(Surface::Surface, |ui| {
-        let style = ui
-            .style(family, Variant::DEFAULT, part, StateFlags::empty())
-            .style;
-        ui.paint_str(area, text, style);
-    });
+fn grid() -> Grid<'static> {
+    Grid::new(GRID, &COLUMNS)
+        .nav(NavUnit::Cell)
+        .column_gap(2)
+        .gutter(GridGutter::Detailed {
+            row_numbers: true,
+            min_digits: 2,
+        })
+        .right_reserve(4)
+        .column_fit(GridColumnFit::CompleteWithPreview { min_width: 6 })
+        .sort_indicator(GridSortIndicator::ActiveOnly)
+        .overflow_indicator(GridOverflowIndicator::Count)
+        .fetch_label("Enter fetches more")
 }
 
-fn paint_invisible(ui: &mut Ui<'_>, body: Rect, row: u16, x: u16, text: &str) {
-    let area = Rect {
-        x: body.x.saturating_add(x),
-        y: body.y.saturating_add(row),
-        width: body.width.saturating_sub(x),
-        height: 1,
-    };
-    ui.with_surface(Surface::Surface, |ui| {
-        let style = ui.surface_style().with_fg_from_bg(ui.surface_style());
-        ui.paint_str(area, text, style);
-    });
+/// Page-local meta tone: the historical meta reads faint while the shared
+/// `PANEL` detail stays secondary (T4). The title keeps the recipe's own
+/// base (secondary) and focused (primary + bold) rules untouched.
+const PANEL_PARTS: &[(Part, StylePatch)] = &[(
+    Part::DETAIL,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+)];
+
+/// The one customers-card constructor: the meta gate reads its geometry and
+/// draw paints through it, so the two can never disagree.
+fn customers_panel(meta: &str, focused: bool) -> Panel<'_> {
+    Panel::new(CUSTOMERS)
+        .kind(PanelKind::Card)
+        .title("customers")
+        .meta(meta)
+        .meta_late(true)
+        .focused(focused)
+        .patch_part(PANEL_PARTS)
 }
 
-/// A read-only health dashboard demonstrates row identity and typed cell data.
-#[derive(Debug, Default)]
+/// `rows a–b of n loaded · ~t total · cols a–b of n`, from draw-time panel
+/// geometry: last-frame layout is unavailable on frame 1, which is what the
+/// no-input default capture presents.
+fn position_label(
+    grid: &Grid<'_>,
+    state: &GridState,
+    model: &CustomerModel,
+    grid_area: Rect,
+) -> String {
+    let rows = grid.rows_label_for(state, model, grid_area);
+    match grid.cols_label_for(state, model, grid_area) {
+        Some(cols) => format!("{rows} · {cols}"),
+        None => rows,
+    }
+}
+
+/// The data grid: typed cells over the shared [`Grid`] engine, with the
+/// paging position composed into the card meta.
+#[derive(Debug)]
 pub struct GridPage {
+    model: CustomerModel,
     state: GridState,
-    selected: Option<ItemKey>,
 }
 
 impl GridPage {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            model: CustomerModel::new(),
+            state: GridState::default(),
+        }
+    }
+}
+
+impl Default for GridPage {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -265,13 +364,21 @@ impl Page for GridPage {
     fn title(&self) -> &'static str {
         "Data grid"
     }
+
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
-        let action = metrics().update(cx, &mut self.state, &MetricModel);
-        if let Some(GridAction::Activated(key)) = action.action_ref() {
-            self.selected = Some(*key);
+        let action = grid().update(cx, &mut self.state, &self.model);
+        let mut status = None;
+        if let Some(GridAction::Activated(key)) = action.action_ref()
+            && let Some(row) = self.model.row_index(*key)
+        {
+            status = Some(PageStatus(format!("Row {} activated", row + 1)));
         }
-        action.erase().into()
+        PageUpdate {
+            response: action.erase(),
+            status,
+        }
     }
+
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(
             ui,
@@ -279,77 +386,16 @@ impl Page for GridPage {
             self.title(),
             "Typed cells, a pending-change queue, paging and local sort",
             |ui, body| {
-                // Keep the migrated Grid live. The compatibility paint below
-                // owns the historical body pixels, but reference rendering
-                // would also make the Grid inert and let Enter bubble into
-                // the shell's page navigation.
-                metrics().draw(ui, body, &self.state, &MetricModel);
-                paint_body(
-                    ui,
-                    body,
-                    &[
-                        "  customers          rows 1–0 of 40 loaded · ~4,812 total",
-                        "",
-                        "        ⚷ id       customer                   plan   6›",
-                        "  ▎   1 1001       Northwind Traders          enter…    ┃",
-                        "  ▎   2 1002       Blue Yonder Airlines       team      ┃",
-                        "  ▎   3 1003       Contoso Pharmaceuticals    pro       ┃",
-                        "  ▎   4 1004       Fabrikam Robotics          free      ┃",
-                        "  ▎   5 1005       Litware Analytics          enter…    │",
-                        "  ▎   6 1006       Tailspin Toys              team      │",
-                        "  ▎   7 1007       Wide World Importers       pro       │",
-                        "  ▎   8 1008       Adventure Works            free      │",
-                        "  ▎   9 1009       Proseware Studio           enter…    │",
-                        "  ▎  10 1010       Woodgrove Bank             team      │",
-                        "  ▎  11 1011       Alpine Ski House           pro       │",
-                        "  ▎  12 1012       Coho Winery                free      │",
-                        "  ▎  13 1013       Lucerne Publishing         enter…    │",
-                        "  ▎  14 1014       Margie's Travel            team      │",
-                    ],
-                );
-                paint_part(
-                    ui,
-                    body,
-                    0,
-                    2,
-                    "customers",
-                    termrock::Family::PANEL,
-                    Part::DETAIL,
-                );
-                paint_part(
-                    ui,
-                    body,
-                    0,
-                    21,
-                    "rows 1–0 of 40 loaded · ~4,812 total",
-                    termrock::Family::EMPTY,
-                    Part::HELP,
-                );
-                paint_part(ui, body, 2, 8, "⚷", termrock::Family::EMPTY, Part::HELP);
-                for (x, text) in [
-                    (9, " id     "),
-                    (19, "customer                 "),
-                    (46, "plan  "),
-                ] {
-                    paint_part(ui, body, 2, x, text, termrock::Family::LIST, Part::META);
-                }
-                paint_part(ui, body, 2, 53, "6›", termrock::Family::EMPTY, Part::HELP);
-                paint_rows(ui, body);
-                if let Some(key) = self.selected {
-                    let row = body.y.saturating_add(17);
-                    if row < body.bottom() {
-                        let selected = format!("  selected metric: {key:?}");
-                        ui.paint_str(
-                            Rect {
-                                y: row,
-                                height: 1,
-                                ..body
-                            },
-                            &selected,
-                            ui.surface_style(),
-                        );
-                    }
-                }
+                let card = Rect {
+                    height: body.height.min(30),
+                    ..body
+                };
+                let focused = ui.state(GRID).contains(StateFlags::FOCUSED);
+                let probe = customers_panel("", focused).inner(ui, card);
+                let meta = position_label(&grid(), &self.state, &self.model, probe);
+                customers_panel(&meta, focused).draw(ui, card, |ui, inner| {
+                    grid().draw(ui, inner, &self.state, &self.model);
+                });
             },
         );
     }
@@ -374,43 +420,109 @@ impl Page for GridPage {
     }
 }
 
-fn paint_rows(ui: &mut Ui<'_>, body: Rect) {
-    for row in 3..=16 {
-        paint_invisible(ui, body, row, 2, "▎");
-        paint_part(
-            ui,
-            body,
-            row,
-            5,
-            &format!("{:>2}", row.saturating_sub(2)),
-            termrock::Family::GRID,
-            Part::OVERFLOW,
+#[cfg(test)]
+mod model_tests {
+    use super::*;
+
+    #[test]
+    fn typed_model_matches_the_historical_rows() {
+        let model = CustomerModel::new();
+        assert_eq!(model.row_count(), 40);
+        assert_eq!(model.total(), RowTotal::Estimated(4_812));
+        assert!(model.has_more());
+
+        let text = |row: usize, col: usize| model.cell(row, col).unwrap().text.to_owned();
+        assert_eq!(model.row_key(0), ItemKey::num(1001));
+        assert_eq!(text(0, 0), "1001");
+        assert_eq!(text(0, 1), "Northwind Traders");
+        assert_eq!(text(0, 2), "enterprise");
+        assert_eq!(text(0, 3), "3");
+        assert_eq!(text(0, 4), "57.00");
+        assert_eq!(text(0, 5), "true");
+        assert_eq!(text(0, 6), "2026-01-01");
+        assert_eq!(text(0, 7), "{\"owner\":\"mira\",\"seats\":3}");
+
+        // Free plans have no renewal date; sparse rows carry no notes.
+        assert_eq!(text(3, 2), "free");
+        assert_eq!(text(3, 6), "NULL");
+        assert!(model.cell_decor(3, 6).italic);
+        assert_eq!(text(1, 7), "NULL");
+        assert!(model.cell_decor(1, 7).italic);
+        assert!(!model.cell_decor(0, 7).italic);
+
+        // Second page of names carries a suffix; inactive rows read false.
+        assert_eq!(text(16, 1), "Northwind Traders 2");
+        assert_eq!(text(3, 5), "false");
+        assert_eq!(model.row_key(39), ItemKey::num(1040));
+        assert_eq!(model.row_index(ItemKey::num(1002)), Some(1));
+        assert_eq!(model.cell(0, 8), None);
+        assert_eq!(model.cell(40, 0), None);
+    }
+}
+
+#[cfg(test)]
+mod meta_tests {
+    use super::*;
+
+    fn harness() -> (Grid<'static>, GridState, CustomerModel) {
+        (grid(), GridState::default(), CustomerModel::new())
+    }
+
+    #[test]
+    fn paging_meta_matches_the_historical_labels() {
+        let (grid, state, model) = harness();
+        // 120x40: the card inner rect the panel hands the grid.
+        let area = Rect::new(28, 7, 90, 27);
+        assert_eq!(
+            grid.rows_label_for(&state, &model, area),
+            "rows 1–26 of 40 loaded · ~4,812 total"
         );
-        paint_part(
-            ui,
-            body,
-            row,
-            8,
-            &format!("{}     ", 1000_u16.saturating_add(row.saturating_sub(2))),
-            termrock::Family::PANEL,
-            Part::DETAIL,
+        assert_eq!(
+            grid.cols_label_for(&state, &model, area).as_deref(),
+            Some("cols 1–6 of 8")
         );
-        paint_part(
-            ui,
-            body,
-            row,
-            56,
-            if row <= 6 { "┃" } else { "│" },
-            if row <= 6 {
-                termrock::Family::GRID
-            } else {
-                termrock::Family::PANEL
-            },
-            if row == 3 {
-                Part::OVERFLOW
-            } else {
-                Part::BORDER
-            },
+        assert_eq!(
+            position_label(&grid, &state, &model, area),
+            "rows 1–26 of 40 loaded · ~4,812 total · cols 1–6 of 8"
+        );
+    }
+
+    #[test]
+    fn narrow_viewports_clip_columns_and_rows() {
+        let (grid, state, model) = harness();
+        // 72x20: the card inner rect the panel hands the grid.
+        let area = Rect::new(23, 7, 47, 11);
+        assert_eq!(
+            grid.rows_label_for(&state, &model, area),
+            "rows 1–10 of 40 loaded · ~4,812 total"
+        );
+        assert_eq!(
+            grid.cols_label_for(&state, &model, area).as_deref(),
+            Some("cols 1–2 of 8")
+        );
+    }
+
+    #[test]
+    fn wide_viewports_drop_the_column_label() {
+        let (grid, state, model) = harness();
+        // 160x50: every column fits, so only the rows read out.
+        let area = Rect::new(28, 7, 130, 27);
+        assert_eq!(grid.cols_label_for(&state, &model, area), None,);
+        assert_eq!(
+            position_label(&grid, &state, &model, area),
+            "rows 1–26 of 40 loaded · ~4,812 total"
+        );
+    }
+
+    #[test]
+    fn scrolled_state_moves_the_window_not_the_paint() {
+        let (grid, mut state, model) = harness();
+        let area = Rect::new(28, 7, 90, 27);
+        state.scroll_mut().apply_layout(26, model.row_count());
+        state.scroll_mut().jump_end();
+        assert_eq!(
+            grid.rows_label_for(&state, &model, area),
+            "rows 15–40 of 40 loaded · ~4,812 total"
         );
     }
 }
@@ -418,7 +530,7 @@ fn paint_rows(ui: &mut Ui<'_>, body: Rect) {
 #[cfg(test)]
 mod row_number_tests {
     use super::*;
-    use termrock::{App, Family, FgStep, KeyCode, Response, StylePatch, Theme};
+    use termrock::{App, Family, FgStep, KeyCode, Response, StylePatch, Surface, Theme, Variant};
     use termrock_test_support::Harness;
 
     struct PageApp(GridPage);
@@ -467,9 +579,11 @@ mod row_number_tests {
 
         let mut h = Harness::new(PageApp(GridPage::new()), theme, 120, 40);
         let _ = h.key(KeyCode::Null);
-        let (x, y) = h.find("1001").expect("datagrid id column renders");
+        // The cursor row wears the focused secondary number; the row below
+        // must stay faint.
+        let (x, y) = h.find("1002").expect("datagrid id column renders");
         let cell = h.cell(x - 2, y);
-        assert_eq!(cell.symbol(), "1");
+        assert_eq!(cell.symbol(), "2");
         assert_eq!(Some(cell.fg), faint, "row number must stay faint");
     }
 }

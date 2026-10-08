@@ -1,11 +1,11 @@
 //! Modal confirmation and prompt flows.
 
 use termrock::{
-    ActionKey, Button, Constraints, Cx, Dialog, DialogAction, DialogState, Id, Panel, Rect,
+    Action, ActionKey, Button, Constraints, Cx, Dialog, DialogAction, DialogState, Id, Panel, Rect,
     Response, Ui, Variant, id, layout,
 };
 
-use super::{Page, PageUpdate, frame, lines};
+use super::{ModalFooter, Page, PageUpdate, frame, lines, lines_secondary};
 
 const OPEN_CONFIRM: Id = id!("dialogs.confirm.open");
 const OPEN_PROMPT: Id = id!("dialogs.prompt.open");
@@ -13,8 +13,13 @@ const OPEN_CHOICE: Id = id!("dialogs.choice.open");
 const OPEN_DELETE: Id = id!("dialogs.delete.open");
 const CONFIRM: Id = id!("dialogs.confirm.layer");
 const PROMPT: Id = id!("dialogs.prompt.layer");
+const CHOICE: Id = id!("dialogs.choice.layer");
+const DELETE: Id = id!("dialogs.delete.layer");
 const OPEN_PANEL: Id = id!("dialogs.open.panel");
 const RESULTS_PANEL: Id = id!("dialogs.results.panel");
+
+/// Direct access to the destructive flow, bound to `d` by the shell keymap.
+pub const DELETE_COMMAND: ActionKey = ActionKey::application("showcase.dialogs.delete");
 fn confirm_button() -> Button<'static> {
     Button::new(OPEN_CONFIRM, "Confirm run").variant(Variant::PRIMARY)
 }
@@ -44,6 +49,8 @@ enum OpenDialog {
     None,
     Confirm,
     Prompt,
+    Choice,
+    Delete,
 }
 
 /// Dialog launchers and their durable prompt states.
@@ -52,31 +59,86 @@ pub struct DialogsPage {
     open: OpenDialog,
     confirm_state: DialogState,
     prompt_state: DialogState,
+    choice_state: DialogState,
+    delete_state: DialogState,
     error: Option<String>,
     result: String,
 }
 
 impl DialogsPage {
     pub fn new() -> Self {
+        let mut prompt_state = DialogState::default();
+        prompt_state.set_draft("Migrate sessions table");
         Self {
             open: OpenDialog::None,
             confirm_state: DialogState::default(),
-            prompt_state: DialogState::default(),
+            prompt_state,
+            choice_state: DialogState::default(),
+            delete_state: DialogState::default(),
             error: None,
             result: String::from("Nothing yet"),
         }
     }
 
+    const RUN_ACTIONS: [Action<'static>; 2] = [
+        Action::quiet(ActionKey::CANCEL, "Cancel"),
+        Action::new(ActionKey::CONFIRM, "Run"),
+    ];
+
+    const RENAME_ACTIONS: [Action<'static>; 2] = [
+        Action::quiet(ActionKey::CANCEL, "Cancel"),
+        Action::new(ActionKey::CONFIRM, "Rename"),
+    ];
+
+    const DELETE_ACTIONS: [Action<'static>; 2] = [
+        Action::secondary(ActionKey::CANCEL, "Cancel"),
+        Action::danger(ActionKey::CONFIRM, "Delete branch"),
+    ];
+
+    const CHOICE_ACTIONS: [Action<'static>; 3] = [
+        Action::quiet(ActionKey::CANCEL, "Cancel"),
+        Action::secondary(ActionKey::DISCARD, "Discard"),
+        Action::new(ActionKey::CONFIRM, "Save"),
+    ];
+
     fn confirm() -> Dialog<'static> {
         Dialog::confirm(
             CONFIRM,
             "Run task now?",
-            "The task will be queued for the workspace.",
+            "Junie will check out chore/uuid-sessions, apply the plan and run the test suite. You can pause at any step.",
         )
+        .actions(&Self::RUN_ACTIONS)
     }
 
     fn prompt(error: Option<&str>) -> Dialog<'_> {
-        Dialog::prompt(PROMPT, "Rename task", "Task name").error(error)
+        Dialog::prompt(PROMPT, "Rename task", "Task name")
+            .actions(&Self::RENAME_ACTIONS)
+            .input_required(true)
+            .input_help("Shown in the task list and PR title")
+            .error(error)
+    }
+
+    fn delete() -> Dialog<'static> {
+        Dialog::destructive(
+            DELETE,
+            "Delete branch?",
+            "feat/rate-limit has 14 commits that are not on main. This cannot be undone.",
+        )
+        .actions(&Self::DELETE_ACTIONS)
+    }
+
+    fn choice() -> Dialog<'static> {
+        Dialog::confirm(
+            CHOICE,
+            "Unsaved changes",
+            "The description was edited. Save before leaving this page?",
+        )
+        .actions(&Self::CHOICE_ACTIONS)
+    }
+
+    fn open_delete(&mut self, cx: &mut Cx<'_>) {
+        self.open = OpenDialog::Delete;
+        cx.open_layer(DELETE, Self::delete().layer(cx));
     }
 
     fn close(&mut self, cx: &mut Cx<'_>, id: Id) {
@@ -101,6 +163,20 @@ impl Page for DialogsPage {
         "Dialogs"
     }
 
+    fn command(&mut self, cx: &mut Cx<'_>, action: ActionKey) -> Response<()> {
+        if action == DELETE_COMMAND
+            && !cx.is_open(CONFIRM)
+            && !cx.is_open(PROMPT)
+            && !cx.is_open(CHOICE)
+            && !cx.is_open(DELETE)
+        {
+            self.open_delete(cx);
+            Response::changed()
+        } else {
+            Response::ignored()
+        }
+    }
+
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let _ = open_panel();
@@ -119,13 +195,14 @@ impl Page for DialogsPage {
         }
         response |= prompt_button.erase();
         let choice_button = choice_button().update(cx);
-        if choice_button.activated() {
-            self.result = String::from("Save selected");
+        if choice_button.activated() && !cx.is_open(CHOICE) {
+            self.open = OpenDialog::Choice;
+            cx.open_layer(CHOICE, Self::choice().layer(cx));
         }
         response |= choice_button.erase();
         let delete_button = delete_button().update(cx);
-        if delete_button.activated() {
-            self.result = String::from("Cancelled");
+        if delete_button.activated() && !cx.is_open(DELETE) {
+            self.open_delete(cx);
         }
         response |= delete_button.erase();
 
@@ -154,10 +231,14 @@ impl Page for DialogsPage {
         {
             match action {
                 DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
-                    let name = self.prompt_state.draft().trim();
+                    let draft = self.prompt_state.draft().to_owned();
+                    let name = draft.trim();
                     if name.is_empty() {
                         self.error = Some(String::from("Name cannot be empty"));
                         self.result = String::from("Name cannot be empty");
+                    } else if draft.len() > 40 {
+                        self.error = Some(String::from("Keep it under 40 characters"));
+                        self.result = String::from("Keep it under 40 characters");
                     } else {
                         self.result = format!("Task: {name}");
                         self.close(cx, PROMPT);
@@ -166,6 +247,42 @@ impl Page for DialogsPage {
                 DialogAction::Action(_) | DialogAction::Dismissed(_) => {
                     self.result = String::from("Rename cancelled");
                     self.close(cx, PROMPT);
+                }
+            }
+        }
+        response |= action.erase();
+        let action = Self::choice().update(cx, &mut self.choice_state);
+        if self.open == OpenDialog::Choice
+            && let Some(action) = action.action_ref()
+        {
+            match action {
+                DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
+                    self.result = String::from("Description saved");
+                    self.close(cx, CHOICE);
+                }
+                DialogAction::Action(key) if *key == ActionKey::DISCARD => {
+                    self.result = String::from("Changes discarded");
+                    self.close(cx, CHOICE);
+                }
+                DialogAction::Action(_) | DialogAction::Dismissed(_) => {
+                    self.result = String::from("Cancelled");
+                    self.close(cx, CHOICE);
+                }
+            }
+        }
+        response |= action.erase();
+        let action = Self::delete().update(cx, &mut self.delete_state);
+        if self.open == OpenDialog::Delete
+            && let Some(action) = action.action_ref()
+        {
+            match action {
+                DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
+                    self.result = String::from("Branch feat/rate-limit deleted");
+                    self.close(cx, DELETE);
+                }
+                DialogAction::Action(_) | DialogAction::Dismissed(_) => {
+                    self.result = String::from("Cancelled");
+                    self.close(cx, DELETE);
                 }
             }
         }
@@ -224,8 +341,16 @@ impl Page for DialogsPage {
                             "Confirm: primary action focused first · y / n answer directly",
                             "Prompt: editing inside a modal, Enter submits, validation blocks",
                             "Destructive: Cancel focused first, action in danger style",
-                            "Task: Migrate sessions table",
                         ],
+                    );
+                    lines_secondary(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(5),
+                            height: inner.height.saturating_sub(5),
+                            ..inner
+                        },
+                        &["Task: Migrate sessions table"],
                     );
                 });
                 if let Some(results) = regions.get(2).copied() {
@@ -245,9 +370,48 @@ impl Page for DialogsPage {
                 let _ = ui.paint_str(body, "Type a name, then Enter", ui.surface_style());
             });
         });
+        ui.layer(CHOICE, |ui, layer| {
+            Self::choice().draw(ui, layer, &self.choice_state, |ui, body| {
+                let _ = ui.paint_str(body, "Enter confirms · Esc cancels", ui.surface_style());
+            });
+        });
+        ui.layer(DELETE, |ui, layer| {
+            Self::delete().draw(ui, layer, &self.delete_state, |ui, body| {
+                let _ = ui.paint_str(body, "Enter confirms · Esc cancels", ui.surface_style());
+            });
+        });
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         &[("Enter", "Open")]
+    }
+
+    fn modal_footer(&self, ui: &Ui<'_>) -> Option<ModalFooter> {
+        // One dialog layer at a time; the prompt is the only input body.
+        // Each spec reports its own quick-answer kind so the hint cannot
+        // drift from the keys the dialog honors.
+        if ui.is_open(PROMPT) {
+            Some(ModalFooter {
+                editing: self.prompt_state.is_editing(),
+                quick_answer: Self::prompt(self.error.as_deref()).quick_answer(),
+            })
+        } else if ui.is_open(CONFIRM) {
+            Some(ModalFooter {
+                editing: self.confirm_state.is_editing(),
+                quick_answer: Self::confirm().quick_answer(),
+            })
+        } else if ui.is_open(CHOICE) {
+            Some(ModalFooter {
+                editing: self.choice_state.is_editing(),
+                quick_answer: Self::choice().quick_answer(),
+            })
+        } else if ui.is_open(DELETE) {
+            Some(ModalFooter {
+                editing: self.delete_state.is_editing(),
+                quick_answer: Self::delete().quick_answer(),
+            })
+        } else {
+            None
+        }
     }
 }

@@ -1078,6 +1078,13 @@ impl<'f> Ui<'f> {
         });
     }
 
+    /// Whether layer `id` is open this frame: the draw-side read of the
+    /// resolver [`Ui::layer`] draws through. Reference fixtures see no
+    /// layers, so this is always false there.
+    pub fn is_open(&self, id: Id) -> bool {
+        self.reference.is_none() && self.frame.layers.find(id).is_some()
+    }
+
     /// Draw layer `id`'s content. Resolves `id` to the `LayerId` assigned at
     /// `open_layer`, paints into its pooled buffer and pushes its focus
     /// scope; returns `None` without running `f` if `id` is not open, and
