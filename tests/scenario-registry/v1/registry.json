@@ -2889,7 +2889,17 @@
       "snapshots": {"ref": ["snapshots/jackin/accounts/add_form/80x24/truecolor.txt", "snapshots/jackin/accounts/add_form_required/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T12:32:34Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8ah J2 j2_input_required_error live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-FORM-010",
@@ -5314,8 +5324,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T12:32:34Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8ah J2 j2_cockpit_rail live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+          }
+        ]
       }
     },
     {
@@ -5869,8 +5886,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T12:32:34Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8ah J2 j2_cockpit_info_copy live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+          }
+        ]
       }
     },
     {
@@ -6032,8 +6056,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T12:32:34Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8ah J2 j2_capsule_about_scroll live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+          }
+        ]
       }
     },
   {
@@ -7160,8 +7191,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_capsule_palette live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -7345,8 +7383,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_settings_op_chain live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -8420,8 +8465,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_dialog_cancel_quit live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -8963,8 +9015,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_capsule_tab_menu live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -9329,8 +9388,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_menubar_capsule_host live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -9661,8 +9727,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_manager_help live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -10323,8 +10396,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_accounts_add_form live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -10670,8 +10750,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_prelude_chain live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -10826,8 +10913,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_prelude_validate live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -10990,8 +11084,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_prelude_branch_create live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -12701,8 +12802,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_footer_layers live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -15172,8 +15280,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_capsule_inspect_diff live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
@@ -15345,8 +15460,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T12:32:34Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8ah J2 j2_capsule_panes live-PTY PASS @0ae8cbe8 (nextest visual_baseline --run-ignored all --test-threads 2 j2_, 17 pass/0 fail/644 skip; bin tests/harness/target/debug/jackin-preview 14434400B sha256:31311e5a5971 built 2026-10-08T11:05:07Z; log /tmp/j2final.log)"
+        }
+      ]
     }
   },
   {
