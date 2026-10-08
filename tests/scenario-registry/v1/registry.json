@@ -2667,7 +2667,15 @@
       "snapshots": {"ref": ["snapshots/showcase/flows/inputs/selected/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection", "cursor-capture"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {"status": "fail", "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_input_keys isolated FAIL @8c2dcd96 (A2: Up Ignored, want Consumed (single-line nav keys bubble instead of swallowing); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-NOOP-004",
@@ -2694,7 +2702,15 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/inputs/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {"status": "fail", "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_input_noop isolated FAIL @8c2dcd96 (S1: ctrl+z Ignored, want Consumed (noop keys bubble instead of swallowing); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-SELECT-005",
@@ -2721,7 +2737,15 @@
       "snapshots": {"ref": ["snapshots/showcase/flows/inputs/selected/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {"status": "fail", "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_input_select live FAIL @8c2dcd96 (V2: `Project name saved` never rendered (page sets last but never paints it; select-all + replace pass); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-PASTE-006",
@@ -2748,7 +2772,15 @@
       "snapshots": {"ref": ["snapshots/showcase/flows/inputs/editing/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {"status": "fail", "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_input_paste isolated FAIL @8c2dcd96 (S1: paste-while-navigating Ignored, want Consumed; cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-MASK-007",
@@ -2775,7 +2807,15 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/inputs/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {"status": "fail", "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_input_mask isolated FAIL @8c2dcd96 (V1: synthetic tail `h5rt`, want value tail `c1f2` (SecretPolicy.synthetic_tail); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-SCROLL-008",
@@ -2802,7 +2842,15 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/inputs/72x20/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection", "cursor-capture"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {"status": "fail", "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_input_scroll live FAIL @8c2dcd96 (Search files never focused (only name+branch are live; search/owner/token/key are reference paint); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-VALIDATE-009",
@@ -2883,7 +2931,15 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/textareas/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection", "cursor-capture"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {"status": "fail", "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_area_lifecycle isolated FAIL @8c2dcd96 (A1: begin-Enter caret (4,2), want (4,1) (impl runs begin + Newline in one keystroke); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TA-VIEW-002",
@@ -2910,7 +2966,15 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/textareas/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {"status": "fail", "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_area_view isolated FAIL @8c2dcd96 (A1: Down moves no offset line (navigating-mode Down ignored); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TA-FOLLOW-003",
@@ -2937,7 +3001,15 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/textareas/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection", "cursor-capture"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {"status": "fail", "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_area_follow isolated FAIL @8c2dcd96 (V1: hscrolled unicode line shows no … markers (begin-at-end + Up/End/Left land correctly); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
+      }
     },
     {
       "id": "CHIP-BAR-001",
@@ -3145,8 +3217,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_chip_bar isolated FAIL @8c2dcd96 (S1: Left after set_cursor(99) clamp Ignored, want Consumed; cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
       }
     },
     {
@@ -3493,8 +3572,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_list_single isolated FAIL @8c2dcd96 (A1: Enter leaves chosen None, want Some(2); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
       }
     },
     {
@@ -3674,8 +3760,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_list_multi isolated FAIL @8c2dcd96 (A1: Enter does not flip the cursor-row check (shift-range, `a`, disabled-skip pass); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
       }
     },
     {
@@ -3861,8 +3954,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_picker_query isolated FAIL @8c2dcd96 (A1: Enter on no eligible row emits no Submit fallback; cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
       }
     },
     {
@@ -4056,8 +4156,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_picker_choice isolated FAIL @8c2dcd96 (S1: vanished-key fallback Text(17949859495745242599), want Text(17949858396233614388) (different eligible row); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
       }
     },
     {
@@ -4221,8 +4328,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_nav_shell live PTY-only FAIL @8c2dcd96 (`0` never refocused the sidebar (no `0` binding in app.rs; Tab/Esc/click/[/] paths pass); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
       }
     },
     {
@@ -4420,8 +4534,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_nav_side live PTY-only FAIL @8c2dcd96 (collapsed mode paints icon-only, no ···· leaders (Enter toggle itself works; probe-verified); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
       }
     },
     {
@@ -4613,8 +4734,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_tree_fold live FAIL @8c2dcd96 (boot opens 5 folders, want 10 (`open 5 folders`, 16 visible rows, 1-15 of 16); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
       }
     },
     {
@@ -4979,8 +5107,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_steps_life live FAIL @8c2dcd96 (rail shows full labels + metas at 80x24, want 18-cell truncated rows with hidden metas; cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
       }
     },
     {
@@ -5313,8 +5448,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T06:34:10Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8aa S3 s3_tabs_strip live FAIL @8c2dcd96 (click on Environment never activates (keys/arrows/`2`/Enter pass; rule stays on General under Members body; stale `devroved PRs`/`NRemove member` fragments); cargo nextest run -p termrock-conformance --run-ignored all s3_, 0 pass/19 fail/706 skip; bin target/debug/showcase 11928280B sha256:7c8329d86ed2 built 2026-10-08T05:52:18Z; log /tmp/s3-run3.log)"
+          }
+        ]
       }
     },
     {
