@@ -1460,6 +1460,28 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
 
     /// Paints the radio marker of one option row.
     fn paint_marker(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags, on: bool) {
+        let g = if on {
+            GlyphRole::RadioOn
+        } else {
+            GlyphRole::RadioOff
+        };
+        self.paint_marker_role(ui, cell, flags, g);
+    }
+
+    /// Paints the single-cell state dot of a narrow option row: the marker
+    /// roles have no compact half, so the dot reuses the switch-knob pair
+    /// (the `Toggle` compact precedent).
+    fn paint_narrow_marker(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags, on: bool) {
+        let g = if on {
+            GlyphRole::SwitchKnob
+        } else {
+            GlyphRole::SwitchKnobOff
+        };
+        self.paint_marker_role(ui, cell, flags, g);
+    }
+
+    /// Paints one marker glyph through the `MARKER` part style.
+    fn paint_marker_role(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags, g: GlyphRole) {
         if let Some(f) = self.ov.slot_for(Part::MARKER) {
             f(ui, cell);
             return;
@@ -1472,11 +1494,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             Part::MARKER,
             flags,
         );
-        let g = if on {
-            GlyphRole::RadioOn
-        } else {
-            GlyphRole::RadioOff
-        };
         ui.glyph(cell, g, ms.style);
     }
 
@@ -1507,7 +1524,23 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             width: Self::MARKER_W.min(row.width.saturating_sub(1)),
             height: 1,
         };
-        self.paint_marker(ui, marker_cell, flags, on);
+        // Narrow vertical allocations (reference `RadioGroup::render`): under
+        // four columns the marker collapses to its single-cell state dot. A
+        // one-column row skips the marker entirely — the legacy x+1 write
+        // lands outside the area (W05-04 containment).
+        if (2..4).contains(&row.width) {
+            self.paint_narrow_marker(
+                ui,
+                Rect {
+                    width: 1,
+                    ..marker_cell
+                },
+                flags,
+                on,
+            );
+        } else if row.width >= 4 {
+            self.paint_marker(ui, marker_cell, flags, on);
+        }
         let rest = Rect {
             x: row
                 .x
@@ -1519,7 +1552,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             height: 1,
         };
         if !rest.is_empty() {
-            let mut r = RowUi::new(
+            // Forward the instance patches (the `List` precedent): a bare
+            // `RowUi::new` would never see them, so a LABEL patch would not
+            // reach the row painter.
+            let mut r = RowUi::new_with_patches(
                 ui,
                 self.id,
                 Family::CHOICE,
@@ -1527,6 +1563,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                 flags,
                 key,
                 rest,
+                self.ov.part_patch(Part::CONTAINER),
+                self.ov.part_patch(Part::LABEL),
             );
             self.row.row(item, &mut r);
         }
@@ -1658,7 +1696,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                 height: 1,
             };
             if !content.is_empty() {
-                let mut r = RowUi::new(
+                let mut r = RowUi::new_with_patches(
                     ui,
                     self.id,
                     Family::CHOICE,
@@ -1666,6 +1704,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                     flags,
                     key,
                     content,
+                    self.ov.part_patch(Part::CONTAINER),
+                    self.ov.part_patch(Part::LABEL),
                 );
                 self.row.row(item, &mut r);
             }
@@ -2155,5 +2195,104 @@ mod tests {
         assert!(text.contains(glyphs.get(GlyphRole::RadioOn)), "{text}");
         assert!(text.contains(glyphs.get(GlyphRole::RadioOff)), "{text}");
         assert!(text.contains("alpha") && text.contains("beta"));
+    }
+
+    fn draw_radio(items: &[&str], value: usize, area: Rect) -> Buffer {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                let g: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(value));
+                g.draw(ui, area, &RadioGroupState::default(), items);
+            })
+            .commit_presented();
+        buffer
+    }
+
+    /// L1: the off marker is the frozen `( )`, not the theme's old `(○)`.
+    #[test]
+    fn radio_off_marker_is_blank() {
+        let buf = draw_radio(
+            &["alpha", "beta"],
+            0,
+            Rect {
+                x: 0,
+                y: 0,
+                width: 30,
+                height: 2,
+            },
+        );
+        assert_eq!(buf_row(&buf, 0, 1, 3), "(●)", "on row marker");
+        assert_eq!(buf_row(&buf, 1, 1, 3), "( )", "off row marker");
+        assert!(
+            !buf_row(&buf, 1, 0, 29).contains('○'),
+            "no ○ may survive in the off row"
+        );
+    }
+
+    /// L2: narrow rows collapse the marker to its single-cell state dot;
+    /// a one-column row skips the marker — the legacy x+1 write lands
+    /// outside the area (W05-04 containment).
+    #[test]
+    fn radio_narrow_markers() {
+        use ratatui_core::style::Color;
+        let items = ["aa", "bb"];
+        // w=1: gutter only; the x+1 cell is untouched.
+        let buf = draw_radio(&items, 0, Rect::new(2, 1, 1, 2));
+        for y in 1..3 {
+            assert_eq!(buf_row(&buf, y, 2, 2), " ", "w=1 gutter");
+            let outside = buf.cell(Position::new(3, y)).expect("the x+1 cell exists");
+            assert_eq!(outside.symbol(), " ", "w=1 x+1 symbol");
+            assert_eq!(outside.fg, Color::Reset, "w=1 x+1 untouched");
+        }
+        // w=2..3: one dot at x+1, no label chars.
+        let buf = draw_radio(&items, 0, Rect::new(2, 1, 2, 2));
+        assert_eq!(buf_row(&buf, 1, 2, 3), " ●", "w=2 on row");
+        assert_eq!(buf_row(&buf, 2, 2, 3), " ○", "w=2 off row");
+        let buf = draw_radio(&items, 0, Rect::new(2, 1, 3, 2));
+        assert_eq!(buf_row(&buf, 1, 2, 4), " ● ", "w=3 on row");
+        assert_eq!(buf_row(&buf, 2, 2, 4), " ○ ", "w=3 off row");
+        // w=4: full markers, still no room for labels.
+        let buf = draw_radio(&items, 0, Rect::new(2, 1, 4, 2));
+        assert_eq!(buf_row(&buf, 1, 2, 5), " (●)", "w=4 on row");
+        assert_eq!(buf_row(&buf, 2, 2, 5), " ( )", "w=4 off row");
+    }
+
+    /// L3: the unselected marker resolves Muted, the selected one Accent;
+    /// the shared recipe keeps checkbox/toggle on Accent and off Muted.
+    #[test]
+    fn radio_off_marker_muted() {
+        use ratatui_core::style::Color;
+        const MUTED: Color = Color::Rgb(128, 128, 128);
+        const ACCENT: Color = Color::Rgb(72, 224, 84);
+        let fg = |buf: &Buffer, x: u16, y: u16| {
+            buf.cell(Position::new(x, y))
+                .expect("marker cell exists")
+                .fg
+        };
+        let buf = draw_radio(
+            &["alpha", "beta"],
+            0,
+            Rect {
+                x: 0,
+                y: 0,
+                width: 30,
+                height: 2,
+            },
+        );
+        for x in 1..4 {
+            assert_eq!(fg(&buf, x, 0), ACCENT, "on marker x={x}");
+            assert_eq!(fg(&buf, x, 1), MUTED, "off marker x={x}");
+        }
+        for x in 1..4 {
+            assert_eq!(fg(&draw_checkbox(true), x, 0), ACCENT, "checked box x={x}");
+            assert_eq!(
+                fg(&draw_checkbox(false), x, 0),
+                MUTED,
+                "unchecked box x={x}"
+            );
+        }
+        assert_eq!(fg(&draw_toggle(true), 3, 0), ACCENT, "on knob");
+        assert_eq!(fg(&draw_toggle(false), 1, 0), MUTED, "off knob");
     }
 }

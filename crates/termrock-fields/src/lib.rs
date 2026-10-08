@@ -37,6 +37,7 @@ pub(crate) use termrock_runtime::{Acc, PartStyle, SlotFn, cell_at, first_row, sh
 pub(crate) mod edit_keys;
 pub mod field;
 pub mod input;
+pub mod note;
 pub mod textarea;
 
 pub use field::Field;
@@ -44,4 +45,5 @@ pub use input::{
     BlurPolicy, EditPhase, ErrorState, TextAction, TextCmd, TextInput, TextInputState,
     discard_error, redacted_text,
 };
+pub use note::Note;
 pub use textarea::{TextArea, TextAreaState};

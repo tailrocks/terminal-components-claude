@@ -45,6 +45,7 @@ pub mod choice;
 pub mod empty;
 pub mod panel;
 pub mod props;
+pub mod radio_field;
 pub mod split;
 pub mod too_small;
 
@@ -56,5 +57,6 @@ pub use choice::{
 pub use empty::Empty;
 pub use panel::{Panel, PanelKind};
 pub use props::{Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue};
+pub use radio_field::RadioField;
 pub use split::{SplitAction, SplitCmd, SplitPane, SplitPaneState};
 pub use too_small::TooSmall;

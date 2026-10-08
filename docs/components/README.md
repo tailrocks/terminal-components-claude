@@ -1,6 +1,6 @@
 # Component contracts
 
-These 45 pages define the proposed Termrock component and API surfaces. Each page owns that surface's purpose, construction, state/action model, applicable behavior, visual parts, and component-specific conformance cases. Shared mechanisms belong to [foundations](../foundations/README.md); public type and author rules belong to [API](../api/README.md).
+These 46 pages define the proposed Termrock component and API surfaces. Each page owns that surface's purpose, construction, state/action model, applicable behavior, visual parts, and component-specific conformance cases. Shared mechanisms belong to [foundations](../foundations/README.md); public type and author rules belong to [API](../api/README.md).
 
 These are target contracts, not claims that the current source already implements Termrock. Source names and paths describe the frozen starting implementation. Per-surface capture cases are planning metadata, not approved output; see [verification](../verification/README.md).
 
@@ -19,6 +19,7 @@ These are target contracts, not claims that the current source already implement
 | TextInput | [text-input.md](text-input.md) |
 | TextArea | [text-area.md](text-area.md) |
 | Form | [form.md](form.md) |
+| Note | [note.md](note.md) |
 
 ## Collections and navigation
 

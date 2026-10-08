@@ -546,6 +546,18 @@ impl FormState {
             .and_then(|slot| slot.input.draft_text())
     }
 
+    /// Live radio cursor state for a radio field while its form edits.
+    ///
+    /// Owners whose painters mirror component state read this to draw the
+    /// same cursor the update path seeded; unknown ids report `None` so the
+    /// caller falls back to a fresh state.
+    pub fn radio_state(&self, id: Id) -> Option<&RadioGroupState> {
+        self.slots
+            .iter()
+            .find(|slot| slot.id == id)
+            .map(|slot| &slot.radio)
+    }
+
     /// Local validation error for `id`.
     ///
     /// Errors are returned as the generic `"Invalid value"`.
