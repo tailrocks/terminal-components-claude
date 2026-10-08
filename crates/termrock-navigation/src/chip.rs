@@ -324,9 +324,11 @@ impl Reconcile for ChipBarState {
 ///
 /// ## Layout
 /// One row: an optional lead (` {lead} ` plus one gap), then tight chips
-/// (`gutter | label | pad [ × pad ]`, one blank column between chips),
-/// then the add affordance at the flow position. The strip starts at the
-/// window head ([`ChipBarState::first`]) and the window follows the cursor,
+/// (`gutter | label | pad [ × pad pad ]`, one blank column between
+/// chips), then the add affordance at the flow position. A closable chip
+/// with an 18-cell label spans exactly 23 cells, `×` at right-3. The
+/// strip starts at the window head ([`ChipBarState::first`]) and the
+/// window follows the cursor,
 /// so the cursor chip is always painted and always addressable. A chip that
 /// does not fit is replaced by the `OVERFLOW` glyph and the strip stops;
 /// the add affordance hides unless it fits past the chips. `measure` is
@@ -961,7 +963,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 self.row.row(item, &mut r);
             }
             let label_w = painted_width(ui, content).max(1);
-            let close_w: u16 = if self.closable { 2 } else { 0 };
+            // The closable close zone is `×` plus two pads: `×` sits at
+            // right-3 (oracle `w = 1 + label_w + 1 + 2 + 1`, `×` at `x + 2
+            // + label_w`, `src/widgets/chips.rs:194-195` and `:217`).
+            let close_w: u16 = if self.closable { 3 } else { 0 };
             let chip_w = 1u16
                 .saturating_add(label_w)
                 .saturating_add(1)
@@ -1043,7 +1048,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 ui.register_part(self.id, PartRef::item(Part::LABEL, key), chip);
             }
             if self.closable {
-                let close_cell = cell_at(chip, chip.right().saturating_sub(2));
+                let close_cell = cell_at(chip, chip.right().saturating_sub(close_w));
                 let mut close_flags = flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
                 if ui.hovered_part(self.id) == Some(PartRef::item(Part::CLOSE, key)) {
                     close_flags |= StateFlags::HOVERED;
@@ -2314,5 +2319,83 @@ mod tests {
             [ChipBarAction::Closed(ItemKey::index(0))],
             "a click on × closes without toggling"
         );
+    }
+
+    /// L11: a closable chip reserves a three-cell close zone — `×` plus two
+    /// pads — so `×` sits at right-3 and an 18-character label spans exactly
+    /// 23 cells (oracle `w = 1 + label_w + 1 + 2 + 1`, `×` at `x + 2 +
+    /// label_w`, `src/widgets/chips.rs:194-195` and `:217`).
+    fn closable_scene(items: &[&str], width: u16) -> (Runtime<Stub>, Buffer) {
+        let patches = [(
+            Part::CONTAINER,
+            StylePatch::new().set_bg(Role::Surface(Surface::Overlay)),
+        )];
+        let area = Rect::new(0, 0, width, 1);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ChipBar::new(BAR).closable(true).patch_part(&patches).draw(
+                    ui,
+                    area,
+                    &ChipBarState::default(),
+                    items,
+                );
+            })
+            .commit_presented();
+        (runtime, buffer)
+    }
+
+    #[test]
+    fn closable_chips_reserve_a_three_cell_close_zone() {
+        let theme = Theme::junie();
+        let overlay = crate::theme::resolve::bind_role(
+            &theme,
+            Role::Surface(Surface::Overlay),
+            Surface::Canvas,
+        )
+        .expect("overlay binds");
+        let canvas = theme.bg(Surface::Canvas);
+        let close_glyph = theme.design.glyphs.get(GlyphRole::Close);
+
+        // Short label: `gutter | ab | pad | × | pad | pad` is 7 cells.
+        let (runtime, buffer) = closable_scene(&["ab"], 32);
+        let key = ItemKey::index(0);
+        assert_eq!(
+            runtime.area_of_part(BAR, PartRef::item(Part::LABEL, key)),
+            Some(Rect::new(0, 0, 7, 1))
+        );
+        assert_eq!(
+            runtime.area_of_part(BAR, PartRef::item(Part::CLOSE, key)),
+            Some(Rect::new(4, 0, 1, 1)),
+            "× sits at right-3 of the chip"
+        );
+        let cell = |x| buffer.cell(Position::new(x, 0)).expect("strip cell");
+        assert_eq!(cell(4).symbol(), close_glyph);
+        for x in [5, 6] {
+            assert_eq!(cell(x).symbol(), " ", "pad {x} stays blank");
+            assert_eq!(cell(x).bg, overlay, "pad {x} keeps the chip fill");
+        }
+        assert_eq!(cell(7).bg, canvas, "the cell past the chip is the gap");
+
+        // Tablepro fidelity: an 18-character label spans exactly 23 cells
+        // with × at label-start + 20 and two trailing pads.
+        let (runtime, buffer) = closable_scene(&["abcdefghijklmnopqr"], 32);
+        let label = runtime
+            .area_of_part(BAR, PartRef::item(Part::LABEL, key))
+            .expect("the chip registers");
+        assert_eq!(label, Rect::new(0, 0, 23, 1));
+        let close = runtime
+            .area_of_part(BAR, PartRef::item(Part::CLOSE, key))
+            .expect("the close cell registers");
+        assert_eq!(close.x, label.x.saturating_add(20));
+        assert_eq!(close.x, label.right().saturating_sub(3));
+        let cell = |x| buffer.cell(Position::new(x, 0)).expect("strip cell");
+        assert_eq!(cell(20).symbol(), close_glyph);
+        for x in [21, 22] {
+            assert_eq!(cell(x).symbol(), " ", "pad {x} stays blank");
+            assert_eq!(cell(x).bg, overlay, "pad {x} keeps the chip fill");
+        }
+        assert_eq!(cell(23).bg, canvas, "the cell past the chip is the gap");
     }
 }

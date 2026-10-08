@@ -72,12 +72,18 @@ Shared dependencies:
 Parts are `CONTAINER`, `MARKER`, `LABEL`, `CLOSE`, `OVERFLOW`, `NEW`, and `LEAD`. Preserve baseline strip density, toggle/check marker, hover lifting, close glyph, Add affordance, lead label, gaps, overflow ellipsis, disabled/error tones, and clipping. [`ScrollRegion`](scroll-region.md) and [`theme`](../foundations/theme.md) own shared scroll/style policy. A row painter may style supported parts but cannot replace subpart hit ownership.
 
 The baseline anatomy is an optional lead such as `match all ▾`, then chips
-rendered as `▎label ×`, a subtle `+ Add filter` stop, and one `…` overflow
-marker when the strip cannot show every chip. Disabled chips are faint and
-invalid chips use the error tone. The whole bar is one focus stop; the
-logical cursor moves among chips and the Add stop, while the lead is
-click-only and never a cursor stop (the oracle wins over the earlier
-cursor-among-lead clause).
+rendered as `▎ label ␣ × ␣␣` when closable (gutter | label | pad | × |
+pad | pad — the close zone is `×` plus two pads, `×` at right-3, so an
+18-cell label spans exactly 23 cells per the oracle `w = 1 + label_w + 1
++ 2 + 1`, `src/widgets/chips.rs:194-195`) and `▎ label ␣` when not
+(non-closable width is unchanged; whether it also gains a trailing cell
+is deferred to the holla-activity adoption slice, whose chips are
+removable=false). A subtle `+ Add filter` stop follows, and one `…`
+overflow marker when the strip cannot show every chip. Disabled chips are
+faint and invalid chips use the error tone. The whole bar is one focus
+stop; the logical cursor moves among chips and the Add stop, while the
+lead is click-only and never a cursor stop (the oracle wins over the
+earlier cursor-among-lead clause).
 
 Ordinary example: `ChipBar::new(id).closable(true).lead("match all ▾").add("+ Add filter")`.
 
