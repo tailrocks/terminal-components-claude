@@ -328,6 +328,9 @@ pub const FILTER_VALUE: termrock::Id = termrock::Id::root("tablepro.filter.value
 pub const FILTER_VALUE2: termrock::Id = termrock::Id::root("tablepro.filter.value2");
 pub const FILTER_CANCEL: termrock::Id = termrock::Id::root("tablepro.filter.cancel");
 pub const FILTER_APPLY: termrock::Id = termrock::Id::root("tablepro.filter.apply");
+pub const FILTER_TITLE: termrock::Id = termrock::Id::root("tablepro.filter.title");
+pub const FILTER_NOTE: termrock::Id = termrock::Id::root("tablepro.filter.note");
+pub const FILTER_PREVIEW: termrock::Id = termrock::Id::root("tablepro.filter.preview");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FilterFocus {
@@ -337,6 +340,20 @@ pub enum FilterFocus {
     Value2,
     Cancel,
     Apply,
+}
+
+impl FilterFocus {
+    /// The component id that owns this stop.
+    pub(crate) fn id(self) -> termrock::Id {
+        match self {
+            FilterFocus::Column => FILTER_COL,
+            FilterFocus::Op => FILTER_OP,
+            FilterFocus::Value => FILTER_VALUE,
+            FilterFocus::Value2 => FILTER_VALUE2,
+            FilterFocus::Cancel => FILTER_CANCEL,
+            FilterFocus::Apply => FILTER_APPLY,
+        }
+    }
 }
 
 /// Stable key for one column option: the column name.
@@ -461,7 +478,7 @@ impl FilterEditor {
         }
     }
 
-    fn next_focus(&self) -> FilterFocus {
+    pub(crate) fn next_focus(&self) -> FilterFocus {
         match self.focus {
             FilterFocus::Column => FilterFocus::Op,
             FilterFocus::Op => {
@@ -484,7 +501,7 @@ impl FilterEditor {
         }
     }
 
-    fn prev_focus(&self) -> FilterFocus {
+    pub(crate) fn prev_focus(&self) -> FilterFocus {
         match self.focus {
             FilterFocus::Column => FilterFocus::Apply,
             FilterFocus::Op => FilterFocus::Column,
@@ -576,258 +593,199 @@ impl FilterEditor {
     }
 
     pub fn draw(&self, ui: &mut termrock::Ui<'_>, area: termrock::Rect) {
-        use termrock::{FgStep, Modifier, Role, StylePatch, Surface, truncate};
-
-        let fill_bg = termrock::PaintStyle::new().bg(ui.theme_ref().bg(Surface::Elevated));
-        ui.fill(area, fill_bg);
-
-        let elevated_style = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Elevated))));
-
-        let border_style =
-            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
-        let w = area.width;
-        let h = area.height;
-        if w >= 2 && h >= 2 {
-            let mut top = String::with_capacity(w as usize);
-            top.push('╭');
-            for _ in 0..w.saturating_sub(2) {
-                top.push('─');
-            }
-            top.push('╮');
-            ui.paint_str(
-                termrock::Rect::new(area.x, area.y, w, 1),
-                &top,
-                border_style,
-            );
-
-            let mut bot = String::with_capacity(w as usize);
-            bot.push('╰');
-            for _ in 0..w.saturating_sub(2) {
-                bot.push('─');
-            }
-            bot.push('╯');
-            ui.paint_str(
-                termrock::Rect::new(area.x, area.bottom().saturating_sub(1), w, 1),
-                &bot,
-                border_style,
-            );
-
-            for y in (area.y + 1)..area.bottom().saturating_sub(1) {
-                ui.paint_str(termrock::Rect::new(area.x, y, 1, 1), "│", border_style);
-                ui.paint_str(
-                    termrock::Rect::new(area.right().saturating_sub(1), y, 1, 1),
-                    "│",
-                    border_style,
-                );
-            }
-        }
-
-        // Title
-        let title_text = if self.index.is_some() {
-            "Edit filter"
-        } else {
-            "Add filter"
+        use termrock::{
+            FgStep, Field, Insets, List, ListState, Modifier, Panel, PanelKind, Part, Role, RowUi,
+            SelectField, StylePatch, Surface, truncate,
         };
-        let title_style = elevated_style.patch(
-            ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .add(Modifier::BOLD),
-            ),
-        );
-        ui.paint_str(
-            termrock::Rect::new(area.x + 3, area.y + 1, area.width.saturating_sub(6), 1),
-            title_text,
-            title_style,
-        );
 
-        // Labels
-        let col_focused = self.focus == FilterFocus::Column;
-        let col_label_style = if col_focused {
-            elevated_style.patch(
-                ui.paint_patch(
-                    &StylePatch::new()
+        // Draw order is the ring order: the title `List` first, then the
+        // fields and controls in ring sequence. Static `List` rows register
+        // `Focusable` stops; `update_filter_editor` bounces or skips them so
+        // they never hold focus at draw.
+        ui.with_surface(Surface::Elevated, |ui| {
+            Panel::new(FILTER_EDITOR)
+                .kind(PanelKind::Framed)
+                // Props-derived: the region holds focus, so the border paints
+                // BorderStrong via the recipe.
+                .focused(true)
+                // Keep the frame rule: the head cell stays recipe-owned `─`.
+                .slot(Part::GUTTER, &|_, _| {})
+                // Control column x+2 inside the clip; freezes all four sides.
+                .inner_inset(Insets {
+                    l: 2,
+                    t: 1,
+                    r: 2,
+                    b: 1,
+                })
+                .draw(ui, area, |ui, _body| {
+                    // Title row: a 1-item `List`; chrome at x/x+1 clips (both
+                    // are left of the inner rect), text lands at x+3.
+                    let title_text = if self.index.is_some() {
+                        "Edit filter"
+                    } else {
+                        "Add filter"
+                    };
+                    let clear = StylePatch::new().clear_fg();
+                    let parts = [(Part::CONTAINER, clear)];
+                    let title_label = StylePatch::new()
                         .set_fg(Role::Fg(FgStep::Primary))
-                        .add(Modifier::BOLD),
-                ),
-            )
-        } else {
-            elevated_style
-                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
-        };
-        ui.paint_str(
-            termrock::Rect::new(area.x + 4, area.y + 3, 20, 1),
-            "Column",
-            col_label_style,
-        );
+                        .add(Modifier::BOLD);
+                    let title_items = [title_text];
+                    let title_state = ListState::default();
+                    List::new(FILTER_TITLE)
+                        .row(|item: &&str, r: &mut RowUi<'_>| {
+                            r.label_patched(item, &title_label);
+                        })
+                        .patch_part(&parts)
+                        .draw(
+                            ui,
+                            termrock::Rect::new(area.x, area.y + 1, area.width, 1),
+                            &title_state,
+                            &title_items,
+                        );
 
-        let op_focused = self.focus == FilterFocus::Op;
-        let op_label_style = if op_focused {
-            elevated_style.patch(
-                ui.paint_patch(
-                    &StylePatch::new()
-                        .set_fg(Role::Fg(FgStep::Primary))
-                        .add(Modifier::BOLD),
-                ),
-            )
-        } else {
-            elevated_style
-                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
-        };
-        ui.paint_str(
-            termrock::Rect::new(area.x + 34, area.y + 3, 20, 1),
-            "Operator",
-            op_label_style,
-        );
-
-        // Fields
-        let muted_fg = elevated_style
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-
-        // Column select field (owned by termrock::Select).
-        let col_rect = termrock::Rect::new(area.x + 2, area.y + 4, 28, 1);
-        termrock::Select::new(FILTER_COL)
-            .key(column_key)
-            .row(column_row)
-            .draw(ui, col_rect, &self.col_select, &self.columns);
-
-        // Operator select field (owned by termrock::Select).
-        let op_rect = termrock::Rect::new(area.x + 32, area.y + 4, 29, 1);
-        termrock::Select::new(FILTER_OP)
-            .key(op_key)
-            .row(op_row)
-            .draw(ui, op_rect, &self.op_select, &self.ops);
-
-        // Operator help text
-        ui.paint_str(
-            termrock::Rect::new(area.x + 34, area.y + 5, 27, 1),
-            "Operators that fit the col…",
-            muted_fg,
-        );
-
-        // Value field(s). `Between` renders value + value2 side by side
-        // on the SAME row: oracle `Split::new(50, 12, 12).horizontal` with
-        // gap 2 over the 59-wide value field is usable 57, first 28, gap 2,
-        // second 29 (the same 28/29 split as the Column/Op row above).
-        if self.op.needs_value() {
-            let between = self.op == FilterOp::Between;
-            let val_focused = self.focus == FilterFocus::Value;
-            let val_label_style = if val_focused {
-                elevated_style.patch(
-                    ui.paint_patch(
-                        &StylePatch::new()
-                            .set_fg(Role::Fg(FgStep::Primary))
-                            .add(Modifier::BOLD),
-                    ),
-                )
-            } else {
-                elevated_style
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
-            };
-            let mut label_str = String::from("Value");
-            let target_w = if between { 26usize } else { 57usize };
-            if label_str.len() < target_w {
-                label_str.push_str(&" ".repeat(target_w - label_str.len()));
-            }
-            ui.paint_str(
-                termrock::Rect::new(area.x + 4, area.y + 6, target_w as u16, 1),
-                &label_str,
-                val_label_style,
-            );
-
-            let val_rect =
-                termrock::Rect::new(area.x + 2, area.y + 7, if between { 28 } else { 59 }, 1);
-            termrock::TextInput::new(FILTER_VALUE)
-                .value(&self.value)
-                .placeholder("value")
-                .draw(ui, val_rect, &self.value_state);
-
-            // Second value field, `Between` only (owned by
-            // termrock::TextInput). Label mirrors the sibling value label
-            // exactly; legacy text is "and".
-            if between {
-                let val2_focused = self.focus == FilterFocus::Value2;
-                let val2_label_style = if val2_focused {
-                    elevated_style.patch(
-                        ui.paint_patch(
-                            &StylePatch::new()
-                                .set_fg(Role::Fg(FgStep::Primary))
-                                .add(Modifier::BOLD),
+                    // Column + Operator labels and controls (owned by
+                    // termrock::Field over the Select adapter).
+                    Field::new(
+                        "Column",
+                        SelectField::new(
+                            termrock::Select::new(FILTER_COL)
+                                .key(column_key)
+                                .row(column_row),
+                            &self.columns,
                         ),
                     )
-                } else {
-                    elevated_style.patch(
-                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+                    .plain(true)
+                    .optional_suffix(false)
+                    .draw(
+                        ui,
+                        termrock::Rect::new(area.x + 2, area.y + 3, 28, 2),
+                        &self.col_select,
+                    );
+
+                    Field::new(
+                        "Operator",
+                        SelectField::new(
+                            termrock::Select::new(FILTER_OP).key(op_key).row(op_row),
+                            &self.ops,
+                        ),
                     )
-                };
-                let mut label2_str = String::from("and");
-                let target2_w = 27usize;
-                if label2_str.len() < target2_w {
-                    label2_str.push_str(&" ".repeat(target2_w - label2_str.len()));
-                }
-                ui.paint_str(
-                    termrock::Rect::new(area.x + 34, area.y + 6, target2_w as u16, 1),
-                    &label2_str,
-                    val2_label_style,
-                );
+                    .plain(true)
+                    .optional_suffix(false)
+                    .help("Operators that fit the col…")
+                    .draw(
+                        ui,
+                        termrock::Rect::new(area.x + 32, area.y + 3, 29, 3),
+                        &self.op_select,
+                    );
 
-                let val2_rect = termrock::Rect::new(area.x + 32, area.y + 7, 29, 1);
-                termrock::TextInput::new(FILTER_VALUE2)
-                    .value(&self.value2)
-                    .placeholder("value")
-                    .draw(ui, val2_rect, &self.value2_state);
-            }
-        } else {
-            ui.paint_str(
-                termrock::Rect::new(area.x + 4, area.y + 7, 56, 1),
-                "No value needed for this operator",
-                muted_fg,
-            );
-        }
+                    // Value field(s). `Between` renders value + value2 side by side
+                    // on the SAME row: oracle `Split::new(50, 12, 12).horizontal` with
+                    // gap 2 over the 59-wide value field is usable 57, first 28, gap 2,
+                    // second 29 (the same 28/29 split as the Column/Op row above).
+                    if self.op.needs_value() {
+                        let between = self.op == FilterOp::Between;
+                        Field::new(
+                            "Value",
+                            termrock::TextInput::new(FILTER_VALUE)
+                                .value(&self.value)
+                                .placeholder("value"),
+                        )
+                        .plain(true)
+                        .draw(
+                            ui,
+                            termrock::Rect::new(
+                                area.x + 2,
+                                area.y + 6,
+                                if between { 28 } else { 59 },
+                                2,
+                            ),
+                            &self.value_state,
+                        );
 
-        // SQL Preview (live: draft while editing, committed otherwise)
-        let mut preview_filter = self.to_filter();
-        if let Some(draft) = self.value_state.draft_text() {
-            preview_filter.value = draft.trim().to_owned();
-        }
-        if let Some(draft) = self.value2_state.draft_text() {
-            preview_filter.value2 = draft.trim().to_owned();
-        }
-        let sql_filter = preview_filter.to_sql();
-        let preview = format!("WHERE {sql_filter}");
-        let sec_elevated = elevated_style
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
-        ui.paint_str(
-            termrock::Rect::new(area.x + 3, area.y + 10, area.width.saturating_sub(6), 1),
-            &truncate(&preview, 58),
-            sec_elevated,
-        );
+                        // Second value field, `Between` only (owned by
+                        // termrock::TextInput). Label mirrors the sibling value label
+                        // exactly; legacy text is "and".
+                        if between {
+                            Field::new(
+                                "and",
+                                termrock::TextInput::new(FILTER_VALUE2)
+                                    .value(&self.value2)
+                                    .placeholder("value"),
+                            )
+                            .plain(true)
+                            .draw(
+                                ui,
+                                termrock::Rect::new(area.x + 32, area.y + 6, 29, 2),
+                                &self.value2_state,
+                            );
+                        }
+                    } else {
+                        let note_label = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                        let note_items = ["No value needed for this operator"];
+                        let note_state = ListState::default();
+                        List::new(FILTER_NOTE)
+                            .row(|item: &&str, r: &mut RowUi<'_>| {
+                                r.label_patched(item, &note_label);
+                            })
+                            .patch_part(&parts)
+                            .draw(
+                                ui,
+                                termrock::Rect::new(area.x + 1, area.y + 7, area.width - 2, 1),
+                                &note_state,
+                                &note_items,
+                            );
+                    }
 
-        // Buttons (owned by termrock::Button: focus, hover, press and
-        // activation all come from the component).
-        let confirm_label: &str = if self.index.is_some() {
-            "Update filter"
-        } else {
-            "Add filter"
-        };
-        let confirm_w = (confirm_label.len() + 2) as u16;
-        let cancel_w = 8u16;
-        let confirm_x = area.right().saturating_sub(3 + confirm_w);
-        let cancel_x = confirm_x.saturating_sub(1 + cancel_w);
+                    // SQL Preview (live: draft while editing, committed otherwise)
+                    let mut preview_filter = self.to_filter();
+                    if let Some(draft) = self.value_state.draft_text() {
+                        preview_filter.value = draft.trim().to_owned();
+                    }
+                    if let Some(draft) = self.value2_state.draft_text() {
+                        preview_filter.value2 = draft.trim().to_owned();
+                    }
+                    let sql_filter = preview_filter.to_sql();
+                    let preview = format!("WHERE {sql_filter}");
+                    let preview_label = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    let fitted = truncate(&preview, 58);
+                    let preview_items = [fitted.as_str()];
+                    let preview_state = ListState::default();
+                    List::new(FILTER_PREVIEW)
+                        .row(|item: &&str, r: &mut RowUi<'_>| {
+                            r.label_patched(item, &preview_label);
+                        })
+                        .patch_part(&parts)
+                        .draw(
+                            ui,
+                            termrock::Rect::new(area.x, area.y + 10, area.width, 1),
+                            &preview_state,
+                            &preview_items,
+                        );
 
-        let cancel_rect = termrock::Rect::new(cancel_x, area.y + 13, cancel_w, 1);
-        let confirm_rect = termrock::Rect::new(confirm_x, area.y + 13, confirm_w, 1);
-        // The dialog paints `Elevated`; scope the buttons to that plane so
-        // the quiet-arm `CurrentSurface` container resolves to it.
-        ui.with_surface(Surface::Elevated, |ui| {
-            termrock::Button::new(FILTER_CANCEL, "Cancel")
-                .variant(termrock::Variant::SUBTLE)
-                .draw(ui, cancel_rect);
-            termrock::Button::new(FILTER_APPLY, confirm_label)
-                .variant(termrock::Variant::PRIMARY)
-                .draw(ui, confirm_rect);
+                    // Buttons (owned by termrock::Button: focus, hover, press and
+                    // activation all come from the component).
+                    let confirm_label: &str = if self.index.is_some() {
+                        "Update filter"
+                    } else {
+                        "Add filter"
+                    };
+                    let confirm_w = (confirm_label.len() + 2) as u16;
+                    let cancel_w = 8u16;
+                    let confirm_x = area.right().saturating_sub(3 + confirm_w);
+                    let cancel_x = confirm_x.saturating_sub(1 + cancel_w);
+
+                    let cancel_rect = termrock::Rect::new(cancel_x, area.y + 13, cancel_w, 1);
+                    let confirm_rect = termrock::Rect::new(confirm_x, area.y + 13, confirm_w, 1);
+                    // The body already runs on the Elevated plane via the
+                    // framed panel, so no inner `with_surface` is needed.
+                    termrock::Button::new(FILTER_CANCEL, "Cancel")
+                        .variant(termrock::Variant::SUBTLE)
+                        .draw(ui, cancel_rect);
+                    termrock::Button::new(FILTER_APPLY, confirm_label)
+                        .variant(termrock::Variant::PRIMARY)
+                        .draw(ui, confirm_rect);
+                })
         });
     }
 }
