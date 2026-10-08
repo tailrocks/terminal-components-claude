@@ -1073,20 +1073,6 @@
       "rule": "OWN-11"
     },
     {
-      "max": 7,
-      "path": "crates/showcase-demos/src/pages/sidebars.rs",
-      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 1,
-      "path": "crates/showcase-demos/src/pages/sidebars.rs",
-      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-04"
-    },
-    {
       "max": 8,
       "path": "crates/showcase-demos/src/pages/tables.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
