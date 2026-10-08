@@ -1012,6 +1012,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 }
                 Intent::Binding(action) => {
                     st.click_cursor = None;
+                    if len == 0 {
+                        // Baseline: an empty list ignores every key.
+                        continue;
+                    }
                     let cur = st.core.cursor_index();
                     match Binding::command(table, action) {
                         Some(ListCmd::Up)
@@ -1065,7 +1069,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Some(ListCmd::Choose) => self.choose(st, items, cur, &mut acc),
                         Some(ListCmd::Activate) => {
                             if self.enabled_at(items, cur) && len > 0 {
-                                acc.action(ListAction::Activated(key_at(&self.key, items, cur)));
+                                // Enter commits the cursor row (chosen in
+                                // Single, idempotent check in
+                                // Multi/Range — Space/click toggle), then
+                                // reports it.
+                                let key = key_at(&self.key, items, cur);
+                                match self.select_mode {
+                                    SelectMode::Single => {
+                                        st.chosen = Some(key);
+                                    }
+                                    SelectMode::Multi | SelectMode::Range => {
+                                        st.core.checked_mut().insert(key);
+                                    }
+                                    SelectMode::None => {}
+                                }
+                                acc.action(ListAction::Activated(key));
                             } else {
                                 acc.consumed();
                             }
@@ -1261,6 +1279,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     .style;
                 empty.draw_inherited(ui, mid, 0, inherited);
             }
+            if !ui.is_inert() {
+                // An empty body is still a click target: it consumes,
+                // like the baseline `on_click` past the end.
+                ui.register_part(self.id, PartRef::of(Part::CONTAINER), content);
+            }
             return area;
         }
         let cursor = st.core.cursor();
@@ -1273,6 +1296,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         let status = live
             & (StateFlags::ERROR | StateFlags::WARNING | StateFlags::BUSY | StateFlags::LOADING);
         let mut keep = Vec::new();
+        let mut painted_bottom = content.y;
         for i in self.item_at_line(view.offset())..len {
             let row_i = i
                 .saturating_mul(self.stride())
@@ -1320,6 +1344,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 width: content.width,
                 height: self.row_height,
             };
+            painted_bottom = painted_bottom.max(row.bottom().min(content.bottom()));
             if is_cursor {
                 keep.push(row.y);
             }
@@ -1408,12 +1433,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         }
                     }
                 }
+                // Oracle row geometry (`tag:list.rs`): gutter + marker +
+                // gap take 3 left cells; the label runs to the row edge
+                // with no right reserve.
                 let rest = if row_bare {
                     row
                 } else {
                     Rect {
                         x: row.x.saturating_add(3),
-                        width: row.width.saturating_sub(4),
+                        width: row.width.saturating_sub(3),
                         ..row
                     }
                 };
@@ -1439,6 +1467,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     PartRef::of(Part::BODY)
                 };
                 ui.register_part(self.id, part, row.intersection(content));
+            }
+        }
+        if !ui.is_inert() {
+            // The unpainted tail of the body is one hit region (registered
+            // after the rows, so rows win): clicks past the last row route
+            // here and consume, like the baseline `on_click` past the end.
+            // A whole-area region cannot serve: the scroll layer's
+            // decorative region would shadow it.
+            let gap = Rect {
+                y: painted_bottom,
+                height: content.bottom().saturating_sub(painted_bottom),
+                ..content
+            };
+            if !gap.is_empty() {
+                ui.register_part(self.id, PartRef::of(Part::CONTAINER), gap);
             }
         }
         ui.scroll_edges_except(content, &view, &keep);

@@ -43,6 +43,15 @@ impl<T: core::fmt::Display> RowFn<T> for termrock_collections::DefaultRow {
     }
 }
 
+/// What one [`RowUi::meta`] call needed and painted (all-or-none per row).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MetaPaint {
+    /// Meta text width (0 when the row carries no meta text).
+    pub need: u16,
+    /// Painted width (0 when dropped, else equal to `need`).
+    pub painted: u16,
+}
+
 /// A painter for one collection row, its parts pre-styled.
 pub struct RowUi<'u> {
     ui: Ui<'u>,
@@ -57,6 +66,10 @@ pub struct RowUi<'u> {
     left: u16,
     /// Columns reserved from the right (already consumed).
     right: u16,
+    /// Last [`RowUi::meta`] outcome (`None` when meta was never called).
+    last_meta: Option<MetaPaint>,
+    /// Drop meta text unconditionally (column-level veto repaint).
+    suppress_meta: bool,
 }
 
 impl fmt::Debug for RowUi<'_> {
@@ -125,7 +138,19 @@ impl<'u> RowUi<'u> {
             label_patch,
             left: 0,
             right: 0,
+            last_meta: None,
+            suppress_meta: false,
         }
+    }
+
+    /// Drop meta text unconditionally (a column-level veto repaint).
+    pub fn set_suppress_meta(&mut self, suppress: bool) {
+        self.suppress_meta = suppress;
+    }
+
+    /// The last [`RowUi::meta`] outcome, if meta was called.
+    pub const fn meta_paint(&self) -> Option<MetaPaint> {
+        self.last_meta
     }
 
     /// The row's state flags.
@@ -250,6 +275,29 @@ impl<'u> RowUi<'u> {
         self.label_in(s, st);
     }
 
+    /// Paint the label with bold emphasis at matched grapheme ordinals
+    /// (oracle picker rows bold `matched` bytes).
+    pub fn label_matched(&mut self, s: &str, matched: &[usize]) {
+        let st = self.style_of(Part::LABEL);
+        let area = self.remaining();
+        let used = if width(s) <= area.width {
+            self.ui.paint_matched(area, s, matched, st)
+        } else {
+            let head = Rect {
+                width: area.width.saturating_sub(1),
+                ..area
+            };
+            let used = self.ui.paint_str(head, s, st);
+            let tail = Rect {
+                x: area.x.saturating_add(used),
+                width: area.width.saturating_sub(used),
+                ..area
+            };
+            used.saturating_add(self.ui.glyph(tail, GlyphRole::Ellipsis, st))
+        };
+        self.left = self.left.saturating_add(used);
+    }
+
     fn label_in(&mut self, s: &str, st: PaintStyle) {
         let area = self.remaining();
         let used = if width(s) <= area.width {
@@ -298,7 +346,8 @@ impl<'u> RowUi<'u> {
     pub fn meta(&mut self, s: &str) {
         let need = width(s);
         let area = self.remaining();
-        if need == 0 || need.saturating_add(2) > area.width {
+        if need == 0 || self.suppress_meta || need.saturating_add(2) > area.width {
+            self.last_meta = Some(MetaPaint { need, painted: 0 });
             return;
         }
         let st = self.style_of(Part::META);
@@ -310,6 +359,10 @@ impl<'u> RowUi<'u> {
         };
         self.ui.paint_str(cell, s, st);
         self.right = self.right.saturating_add(need).saturating_add(1);
+        self.last_meta = Some(MetaPaint {
+            need,
+            painted: need,
+        });
     }
 
     /// Right-aligned trailing text with an instance patch (dropped when it
