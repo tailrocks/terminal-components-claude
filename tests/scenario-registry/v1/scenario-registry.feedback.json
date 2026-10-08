@@ -178,8 +178,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T05:56:36Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ab S4 s4_pb_states isolated+live-PTY PASS @b712422 (nextest visual_baseline --run-ignored only s4_ --test-threads 2, 20 pass/0 fail/596 skip; 0/half/full/Done/error/overflow-cap stills; bin tests/harness/target/debug/showcase 10977640B sha256:3a1574eb1d69c5a1 built 2026-10-08T12:45:15Z; log /tmp/phase8ab-s4.log)"
+     }
+    ]
    }
   },
   {
@@ -350,8 +357,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T05:56:36Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ab S4 s4_pb_live isolated+live-PTY PASS @b712422 (nextest visual_baseline --run-ignored only s4_ --test-threads 2, 20 pass/0 fail/596 skip; climb/pause-freeze/restart/Done-once; bin tests/harness/target/debug/showcase 10977640B sha256:3a1574eb1d69c5a1 built 2026-10-08T12:45:15Z; log /tmp/phase8ab-s4.log)"
+     }
+    ]
    }
   },
   {
@@ -513,8 +527,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T05:56:36Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ab S4 s4_spin_frame isolated+live-PTY PASS @b712422 (nextest visual_baseline --run-ignored only s4_ --test-threads 2, 20 pass/0 fail/596 skip; 10-frame cycle + 2 live frames; bin tests/harness/target/debug/showcase 10977640B sha256:3a1574eb1d69c5a1 built 2026-10-08T12:45:15Z; log /tmp/phase8ab-s4.log)"
+     }
+    ]
    }
   },
   {
@@ -668,8 +689,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T05:56:36Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ab S4 s4_spin_sweep isolated+live-PTY PASS @b712422 (nextest visual_baseline --run-ignored only s4_ --test-threads 2, 20 pass/0 fail/596 skip; segment math + live motion; bin tests/harness/target/debug/showcase 10977640B sha256:3a1574eb1d69c5a1 built 2026-10-08T12:45:15Z; log /tmp/phase8ab-s4.log)"
+     }
+    ]
    }
   },
   {
@@ -824,8 +852,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T05:56:36Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ab S4 s4_meter_tones isolated+live-PTY PASS @b712422 (nextest visual_baseline --run-ignored only s4_ --test-threads 2, 20 pass/0 fail/596 skip; tone planes + live rows; bin tests/harness/target/debug/showcase 10977640B sha256:3a1574eb1d69c5a1 built 2026-10-08T12:45:15Z; log /tmp/phase8ab-s4.log)"
+     }
+    ]
    }
   },
   {
@@ -991,8 +1026,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T05:56:36Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ab S4 s4_meter_domain isolated+live-PTY PASS @b712422 (nextest visual_baseline --run-ignored only s4_ --test-threads 2, 20 pass/0 fail/596 skip; domain rows incl Unknown at 160x50; bin tests/harness/target/debug/showcase 10977640B sha256:3a1574eb1d69c5a1 built 2026-10-08T12:45:15Z; log /tmp/phase8ab-s4.log)"
+     }
+    ]
    }
   },
   {
@@ -1158,8 +1200,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T05:56:36Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ab S4 s4_sb_groups isolated+live-PTY PASS @b712422 (nextest visual_baseline --run-ignored only s4_ --test-threads 2, 20 pass/0 fail/596 skip; 6-place layout + 160x50 full bar + chip hover; bin tests/harness/target/debug/showcase 10977640B sha256:3a1574eb1d69c5a1 built 2026-10-08T12:45:15Z; log /tmp/phase8ab-s4.log)"
+     }
+    ]
    }
   },
   {
@@ -1298,8 +1347,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T05:56:36Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ab S4 s4_sb_collapse isolated+live-PTY PASS @b712422 (nextest visual_baseline --run-ignored only s4_ --test-threads 2, 20 pass/0 fail/596 skip; priority eviction + collapse widths; bin tests/harness/target/debug/showcase 10977640B sha256:3a1574eb1d69c5a1 built 2026-10-08T12:45:15Z; log /tmp/phase8ab-s4.log)"
+     }
+    ]
    }
   },
   {
