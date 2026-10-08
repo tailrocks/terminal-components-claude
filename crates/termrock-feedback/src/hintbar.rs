@@ -456,7 +456,11 @@ impl<'a> HintBar<'a> {
             f(ui, area);
         } else {
             let container = ov.style(ui, id, Family::HINTBAR, self.variant, Part::CONTAINER, live);
-            ui.fill(area, container.style);
+            // Tag `draw_footer` fills with `t.base()` through ratatui
+            // `set_style`, which never clears modifiers: modal hints paint
+            // over the screen footer in the same frame and keep its key-chip
+            // weight in the gaps.
+            ui.fill_keep_modifiers(area, container.style);
         }
 
         // the status message keeps the right edge and wins the space

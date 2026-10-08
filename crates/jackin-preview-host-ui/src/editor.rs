@@ -54,6 +54,8 @@ pub const ENV_SOURCE: Id = FORM.sub("env-source");
 pub const ENV_VALUE: Id = FORM.sub("env-value");
 /// Workspace name field on the General tab.
 pub const NAME: Id = FORM.sub("name");
+/// Working-directory picker button on the General tab.
+pub const WORKDIR_CHOOSE: Id = FORM.sub("choose");
 /// Mounts body list.
 pub const MOUNTS_LIST: Id = FORM.sub("mounts-list");
 /// Roles body list.
@@ -62,8 +64,8 @@ pub const ROLES_LIST: Id = FORM.sub("roles-list");
 pub const ENV_LIST: Id = FORM.sub("env-list");
 /// Accounts body list.
 pub const ACCOUNTS_LIST: Id = FORM.sub("accounts-list");
-/// Save-preview dialog Cancel action (holds initial dialog focus).
-pub const PREVIEW_CANCEL: Id = CFG_FORM.sub("cancel");
+/// Save-preview dialog layer (tag `editor.preview` modal dialog).
+pub const PREVIEW: Id = ROOT.sub("preview");
 /// Dirty-exit dialog root.
 pub const EXIT: Id = ROOT.sub("exit");
 /// Dirty-exit dialog Cancel action (holds initial dialog focus).
@@ -173,6 +175,20 @@ pub enum EditorFocus {
     Body,
 }
 
+/// Which editor control holds runtime focus (tag `hints` focus branches).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum FooterFocus {
+    /// The tab strip (tag `TABS`).
+    Tabs,
+    /// Workspace name field (tag `NAME`).
+    Name,
+    /// Working-directory picker button (tag `WORKDIR`).
+    Workdir,
+    /// Any other body control (checkboxes, selects, lists).
+    #[default]
+    Other,
+}
+
 /// Durable editor state.
 #[derive(PartialEq, Eq, Default)]
 pub struct EditorState {
@@ -184,6 +200,9 @@ pub struct EditorState {
     pub dirty: bool,
     /// Whether the read-only preview is open.
     pub preview_open: bool,
+    /// Runtime focus when the preview opened (tag paints the screen footer
+    /// under the modal footer in the same frame; our trap moved focus on).
+    pub preview_base_focus: Option<FooterFocus>,
     /// Whether the dirty-exit dialog is open.
     pub exit_open: bool,
     /// Whether the environment-variable form is open.
@@ -210,6 +229,7 @@ impl Clone for EditorState {
             focus: self.focus,
             dirty: self.dirty,
             preview_open: self.preview_open,
+            preview_base_focus: self.preview_base_focus,
             exit_open: self.exit_open,
             env_form_open: self.env_form_open,
             env_key: self.env_key.clone(),
@@ -288,6 +308,7 @@ impl EditorState {
         self.focus = EditorFocus::Tabs;
         self.dirty = false;
         self.preview_open = false;
+        self.preview_base_focus = None;
         self.exit_open = false;
         self.pending = PendingWorkspace::from_workspace(workspace);
         self.original = Some(Box::new(workspace.clone()));
@@ -301,11 +322,26 @@ impl EditorState {
         self.reviewed = None;
         self.dirty = true;
         self.preview_open = false;
+        self.preview_base_focus = None;
     }
 
-    /// Return the count of unsaved changes.
-    pub const fn change_count(&self) -> usize {
-        if self.dirty { 1 } else { 0 }
+    /// Return the count of unsaved changes (tag `Workspace::change_count`).
+    pub fn change_count(&self) -> usize {
+        let blank = Workspace::new(0, "", "");
+        let o = self.original.as_deref().unwrap_or(&blank);
+        let p = &self.pending;
+        let mut n = 0;
+        n += usize::from(p.name != o.name);
+        n += usize::from(p.workdir != o.workdir);
+        n += usize::from(p.keep_awake != o.keep_awake);
+        n += usize::from(p.git_pull != o.git_pull);
+        n += usize::from(p.roles != o.roles);
+        n += usize::from(p.dirty_policy != o.dirty_policy);
+        n += keyed(&p.mounts, &o.mounts, |m| m.destination.clone());
+        n += keyed(&p.env, &o.env, |e| e.key.clone());
+        n += usize::from(p.role_env != o.role_env);
+        n += policy_change_count(&p.accounts, &o.accounts);
+        n
     }
 
     /// Mark a successful save and close the preview.
@@ -313,6 +349,7 @@ impl EditorState {
         self.reviewed = None;
         self.dirty = false;
         self.preview_open = false;
+        self.preview_base_focus = None;
     }
 
     /// Open the save preview only when there are pending changes.
@@ -330,6 +367,7 @@ impl EditorState {
     /// Close a save preview without discarding the draft.
     pub fn close_preview(&mut self) {
         self.preview_open = false;
+        self.preview_base_focus = None;
         self.reviewed = None;
     }
 
@@ -733,6 +771,33 @@ fn wipe_string_owned(value: String) {
     secret.zeroize();
 }
 
+/// Added + modified + removed rows by identity, mirroring tag `keyed`.
+fn keyed<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
+    let mut n = 0;
+    for x in a {
+        match b.iter().find(|y| key(y) == key(x)) {
+            None => n += 1,
+            Some(y) if y != x => n += 1,
+            _ => {}
+        }
+    }
+    n += b
+        .iter()
+        .filter(|y| !a.iter().any(|x| key(x) == key(y)))
+        .count();
+    n
+}
+
+/// Tag `AccountPolicy::change_count`.
+fn policy_change_count(a: &AccountPolicy, b: &AccountPolicy) -> usize {
+    a.disabled_defaults
+        .symmetric_difference(&b.disabled_defaults)
+        .count()
+        + a.enabled.symmetric_difference(&b.enabled).count()
+        + usize::from(a.preferred != b.preferred)
+        + usize::from(a.role_preferred != b.role_preferred)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // UI Composition: EditorScreen
 // ─────────────────────────────────────────────────────────────────────────────
@@ -922,7 +987,7 @@ impl EditorScreen {
 
         // Drawn last so the focus ring visits the workdir row before the
         // picker button (TABS → NAME → WORKDIR → KEEP_AWAKE).
-        Button::new(FORM.sub("choose"), "Choose…").draw(
+        Button::new(WORKDIR_CHOOSE, "Choose…").draw(
             ui,
             Rect::new(
                 x.saturating_add(fw.saturating_sub(11)),
@@ -2066,75 +2131,94 @@ impl EditorScreen {
             .draw(ui, body, &state, &rows);
     }
 
-    /// Draw the save preview modal dialog over the editor screen.
-    pub fn draw_save_preview(ui: &mut Ui<'_>, _area: Rect, editor: &EditorState, _world: &World) {
-        let modal_area = Rect::new(27, 14, 66, 13);
-        Panel::new(CFG_FORM)
-            .kind(PanelKind::Framed)
-            .draw(ui, modal_area, |ui, body| {
-                let list_state = ListState::default();
-                let ws_name = editor.pending.name.as_str();
-                let rows: [(&str, &str, bool, bool); 7] = [
-                    ("Save workspace", "", false, true),
-                    ("", "", false, false),
-                    ("Workspace", ws_name, true, false),
-                    (
-                        "Scope",
-                        "workspace config · ~/.jackin/workspaces/payments…",
-                        true,
-                        false,
-                    ),
-                    ("Changes", "1 change", true, false),
-                    ("", "", false, false),
-                    ("~ keep_awake true → false", "", false, false),
-                ];
-
-                List::new(CFG_FORM.sub("preview-rows"))
-                    .row(
-                        |&(label, val, is_kv, is_title): &(&str, &str, bool, bool), row| {
-                            if is_title {
-                                let p_bold = StylePatch::new()
-                                    .set_fg(Role::Fg(FgStep::Primary))
-                                    .add(Modifier::BOLD);
-                                row.label_patched(&format!("  {label}"), &p_bold);
-                            } else if is_kv {
-                                let mut cols =
-                                    row.columns_with_gap(&[Track::Fixed(11), Track::Flex(1)], 2);
-                                let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                                cols.cell(0).patch(&p_muted).text(&format!("  {label}"));
-                                cols.cell(1).text(val);
-                            } else if !label.is_empty() {
-                                let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                                row.label_patched(&format!("  {label}"), &p_sec);
-                            }
-                        },
-                    )
-                    .draw(
-                        ui,
-                        Rect::new(body.x, body.y.saturating_add(1), body.width, 8),
-                        &list_state,
-                        &rows,
-                    );
-
-                Button::new(PREVIEW_CANCEL, "Cancel").draw(
-                    ui,
-                    Rect::new(
-                        body.right().saturating_sub(18),
-                        body.bottom().saturating_sub(2),
-                        8,
-                        1,
-                    ),
-                );
-                Button::new(SAVE, "Save").draw(
-                    ui,
-                    Rect::new(
-                        body.right().saturating_sub(9),
-                        body.bottom().saturating_sub(2),
-                        6,
-                        1,
-                    ),
-                );
-            });
+    /// Save-preview dialog content mirroring tag `open_preview`: the title,
+    /// facts as (label, value, is_blocker), and diff code lines. The app
+    /// presents these through the stock facts [`Dialog`](termrock::Dialog).
+    pub fn preview_parts(
+        editor: &EditorState,
+        world: &World,
+    ) -> (String, Vec<(String, String, bool)>, Vec<String>) {
+        let create = editor.is_create();
+        let blank = Workspace::new(0, "", "");
+        let o = editor.original.as_deref().unwrap_or(&blank);
+        let p = &editor.pending;
+        let n = editor.change_count();
+        let changes = if n.max(1) == 1 {
+            "1 change".to_owned()
+        } else {
+            format!("{} changes", n.max(1))
+        };
+        let mut facts = vec![
+            (
+                "Workspace".to_owned(),
+                if create {
+                    format!("{} · new", p.name)
+                } else {
+                    p.name.clone()
+                },
+                false,
+            ),
+            (
+                "Scope".to_owned(),
+                format!(
+                    "workspace config · {}",
+                    world.tilde(&format!(
+                        "{}/.jackin/workspaces/{}.toml",
+                        world.home, p.name
+                    ))
+                ),
+                false,
+            ),
+            ("Changes".to_owned(), changes, false),
+        ];
+        if p.name != o.name && !create {
+            facts.push(("Name".to_owned(), format!("{} → {}", o.name, p.name), false));
+        }
+        if p.workdir != o.workdir {
+            facts.push((
+                "Working dir".to_owned(),
+                format!("{} → {}", o.workdir, p.workdir),
+                false,
+            ));
+        }
+        // Tag `cfg.summary_facts` (mount/env config diffs) and blockers have
+        // no counterpart in this editor state and no S1 coverage; the dialog
+        // shows the scalar facts until that projection exists.
+        if p.roles != o.roles {
+            facts.push((
+                "Roles".to_owned(),
+                format!(
+                    "{} · default {}",
+                    p.roles.summary().to_lowercase(),
+                    p.roles.default.clone().unwrap_or("none".into())
+                ),
+                false,
+            ));
+        }
+        let mut code: Vec<String> = vec![];
+        if create {
+            code.push(format!("+ workspace {}  {}", p.name, p.workdir));
+        }
+        if p.keep_awake != o.keep_awake {
+            code.push(format!("~ keep_awake {} → {}", o.keep_awake, p.keep_awake));
+        }
+        if p.git_pull != o.git_pull {
+            code.push(format!("~ git_pull {} → {}", o.git_pull, p.git_pull));
+        }
+        if p.dirty_policy != o.dirty_policy {
+            code.push(format!(
+                "~ dirty_exit {} → {}",
+                o.dirty_policy.label(),
+                p.dirty_policy.label()
+            ));
+        }
+        let title = if create {
+            "Create workspace"
+        } else {
+            "Save workspace"
+        }
+        .to_owned();
+        (title, facts, code)
     }
 
     /// Render the dirty-exit dialog: Cancel/Discard/Save over the stay-or-leave question.
@@ -2205,7 +2289,7 @@ impl EditorScreen {
     }
 
     /// Editor hints for the bottom hint bar.
-    pub fn hints(editor: &EditorState) -> HintLayer {
+    pub fn hints(editor: &EditorState, focus: FooterFocus) -> HintLayer {
         if editor.preview_open || editor.exit_open {
             HintLayer {
                 hints: vec![
@@ -2224,17 +2308,20 @@ impl EditorScreen {
                         label: "Cancel",
                         priority: 80,
                     },
-                    Hint {
-                        key: HintKey::Label("y / n"),
-                        label: "Quick answer",
-                        priority: 70,
-                    },
                 ],
                 badge: None,
                 status: None,
                 centered: true,
             }
-        } else if editor.focus == EditorFocus::Tabs {
+        } else {
+            Self::base_hints(editor, focus)
+        }
+    }
+
+    /// Screen footer without any modal arm (tag `draw_frame` step). The
+    /// modal frame paints this first, then the modal hints over it.
+    pub fn base_hints(editor: &EditorState, focus: FooterFocus) -> HintLayer {
+        if focus == FooterFocus::Tabs {
             HintLayer {
                 hints: vec![
                     Hint {
@@ -2274,43 +2361,47 @@ impl EditorScreen {
             }
         } else {
             match editor.tab {
-                Tab::General => HintLayer {
-                    hints: vec![
-                        Hint {
-                            key: HintKey::Label("Enter"),
-                            label: "Edit",
-                            priority: 100,
-                        },
-                        Hint {
-                            key: HintKey::Label("Space"),
-                            label: "Toggle",
-                            priority: 90,
-                        },
-                        Hint {
-                            key: HintKey::Label("Tab"),
-                            label: "Next",
-                            priority: 80,
-                        },
-                        Hint {
-                            key: HintKey::Label("[ ]"),
-                            label: "Switch tab",
-                            priority: 70,
-                        },
-                        Hint {
-                            key: HintKey::Label("Ctrl+S"),
-                            label: "Save",
-                            priority: 60,
-                        },
-                        Hint {
-                            key: HintKey::Label("Esc"),
-                            label: "Back",
-                            priority: 50,
-                        },
-                    ],
-                    badge: None,
-                    status: None,
-                    centered: true,
-                },
+                Tab::General => {
+                    // Tag `hints`: the head hint follows the focused body
+                    // control (name field, workdir picker, anything else).
+                    let head = match focus {
+                        FooterFocus::Name => ("Enter", "Edit"),
+                        FooterFocus::Workdir => ("Enter", "Choose…"),
+                        FooterFocus::Other | FooterFocus::Tabs => ("Space", "Toggle"),
+                    };
+                    HintLayer {
+                        hints: vec![
+                            Hint {
+                                key: HintKey::Label(head.0),
+                                label: head.1,
+                                priority: 100,
+                            },
+                            Hint {
+                                key: HintKey::Label("Tab"),
+                                label: "Next",
+                                priority: 90,
+                            },
+                            Hint {
+                                key: HintKey::Label("[ ]"),
+                                label: "Switch tab",
+                                priority: 80,
+                            },
+                            Hint {
+                                key: HintKey::Label("Ctrl+S"),
+                                label: "Save",
+                                priority: 70,
+                            },
+                            Hint {
+                                key: HintKey::Label("Esc"),
+                                label: "Back",
+                                priority: 60,
+                            },
+                        ],
+                        badge: None,
+                        status: None,
+                        centered: true,
+                    }
+                }
                 Tab::Mounts => HintLayer {
                     hints: vec![
                         Hint {
