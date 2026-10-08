@@ -37,7 +37,7 @@ use crate::domain::workspace::{EnvValue, EnvVar, Workspace, env_key_error};
 use crate::rain::{HANDOFF_LEN, INTRO_END, IntroState, OutroState};
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{
-    accounts::AccountsState,
+    accounts::{AccountSel, AccountsState},
     capsule::{CapsuleInteraction, CapsuleState},
     cockpit::{AccountLine, CockpitState},
     editor::{EditorState, Tab as EditorTab},
@@ -463,7 +463,6 @@ struct AccountOption {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PickerMode {
-    Launch,
     OnePassword,
     Capsule,
 }
@@ -1321,10 +1320,6 @@ impl App {
         Button::new(ENTER, "Enter Construct").variant(Variant::PRIMARY)
     }
 
-    fn account_add_button() -> Button<'static> {
-        Button::new(ACCOUNT_ADD, "Choose 1Password reference…").variant(Variant::PRIMARY)
-    }
-
     fn launch_button(disabled: bool) -> Button<'static> {
         Button::new(LAUNCH, "Launch session")
             .variant(Variant::PRIMARY)
@@ -1705,22 +1700,53 @@ impl App {
         }
     }
 
-    fn account_rows(&self) -> Vec<String> {
-        let mut rows = vec!["Overview · Health · Registration · Quota".to_owned()];
-        let mut provider = None;
-        for account in self.world.accounts.sorted() {
-            if provider != Some(account.provider) {
-                rows.push(account.provider.label().to_owned());
-                provider = Some(account.provider);
-            }
-            rows.push(format!(
-                "  {} · {} · {}",
-                account.title(),
-                account.status_word(),
-                account.source.safe_detail()
-            ));
+    fn accounts_tree_rows(&self) -> Vec<crate::screens::accounts::AccountRow> {
+        crate::screens::accounts::build_account_rows(
+            &self.world,
+            self.accounts.filter.as_deref(),
+            &self.accounts.folded,
+        )
+    }
+
+    /// Repair the tree selection after the rows change: a filtered-out
+    /// account falls back to its provider, anything else to Overview.
+    fn ensure_accounts_selected(&mut self) {
+        let rows = self.accounts_tree_rows();
+        if rows.iter().any(|row| row.sel == self.accounts.selected) {
+            return;
         }
-        rows
+        self.accounts.selected = match &self.accounts.selected {
+            AccountSel::Account(id) => self
+                .world
+                .accounts
+                .get(id)
+                .map(|account| AccountSel::Provider(account.surface))
+                .unwrap_or(AccountSel::Overview),
+            _ => AccountSel::Overview,
+        };
+        if !rows.iter().any(|row| row.sel == self.accounts.selected) {
+            self.accounts.selected = AccountSel::Overview;
+        }
+        self.accounts.sync_selected_id();
+    }
+
+    /// Move the tree cursor by `delta` rows, clamped into the live rows.
+    fn move_accounts_cursor(&mut self, delta: isize) {
+        self.ensure_accounts_selected();
+        let rows = self.accounts_tree_rows();
+        if rows.is_empty() {
+            return;
+        }
+        let current = rows
+            .iter()
+            .position(|row| row.sel == self.accounts.selected)
+            .unwrap_or(0) as isize;
+        let next = current
+            .saturating_add(delta)
+            .clamp(0, rows.len() as isize - 1) as usize;
+        self.accounts.selected = rows[next].sel.clone();
+        self.accounts.list.set_cursor(next, ItemKey::index(next));
+        self.accounts.sync_selected_id();
     }
 
     fn editor_account_rows(&self) -> Vec<String> {
@@ -1847,14 +1873,6 @@ impl App {
         let picker = Self::role_picker("Add role override");
         let spec = picker.layer(cx, &self.roles);
         cx.open_layer(ROLE_PICKER, spec);
-    }
-
-    fn open_account_picker(&mut self, cx: &mut Cx<'_>) {
-        let picker = Self::account_picker();
-        self.picker_mode = Some(PickerMode::Launch);
-        self.account_state = PickerState::default();
-        let spec = picker.layer(cx, &self.account_options);
-        cx.open_layer(ACCOUNT_PICKER, spec);
     }
 
     fn open_capsule_account_picker(&mut self, cx: &mut Cx<'_>, action: CapsuleAction) {
@@ -3720,28 +3738,23 @@ impl App {
             return result;
         }
 
-        let rows = self.account_rows();
-        let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts.list, &rows);
+        self.ensure_accounts_selected();
+        let rows = self.accounts_tree_rows();
+        let labels: Vec<String> = rows.iter().map(|row| row.label.clone()).collect();
+        let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts.list, &labels);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
-        let previous = self.accounts.selected_id.clone();
-        self.accounts.selected_id = selected_account_id(&self.world, self.accounts.list.cursor());
+        if matches!(
+            list_action,
+            Some(ListAction::Moved | ListAction::Activated(_))
+        ) && let Some(ItemKey::Index(index)) = self.accounts.list.cursor()
+            && let Some(row) = rows.get(index)
+        {
+            self.accounts.selected = row.sel.clone();
+            self.accounts.sync_selected_id();
+        }
         if matches!(list_action, Some(ListAction::Moved)) {
             self.accounts_down_count += 1;
-        }
-        if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
-            self.status = self
-                .accounts
-                .selected_id
-                .as_deref()
-                .and_then(|id| self.world.accounts.get(id))
-                .map(|account| {
-                    format!(
-                        "Accounts › {} › {}",
-                        account.surface.surface_name(),
-                        account.display_name
-                    )
-                });
         }
         if matches!(list_action, Some(ListAction::Activated(_))) {
             if self.accounts_filtering {
@@ -3752,18 +3765,13 @@ impl App {
                 result |= Response::changed();
             } else if self.accounts_down_count >= 4 {
                 self.accounts_drawer_open = true;
+                self.accounts.drawer_open = true;
                 result |= Response::changed();
             }
         }
         if matches!(list_action, Some(ListAction::Chose(_))) {
             self.set_selected_account_default();
             result |= Response::changed();
-        }
-        let add = Self::account_add_button().update(cx);
-        let chosen = add.activated();
-        result |= add.erase();
-        if chosen {
-            self.open_account_picker(cx);
         }
         result
     }
@@ -3895,7 +3903,12 @@ impl App {
         self.world.accounts.insert(account);
         let selected_id = id.clone();
         self.accounts.selected_id = Some(id);
-        if let Some(index) = account_row_index(&self.world, &selected_id) {
+        self.accounts.selected = AccountSel::Account(selected_id.clone());
+        if let Some(index) = self
+            .accounts_tree_rows()
+            .iter()
+            .position(|row| row.sel == AccountSel::Account(selected_id.clone()))
+        {
             self.accounts.list.set_cursor(index, ItemKey::index(index));
         }
         self.account_options = self
@@ -4732,6 +4745,21 @@ impl App {
                     {
                         self.status = Some(format!("Accounts › {}", account.title()));
                     }
+                } else if self.route == Route::Accounts {
+                    self.usage_detail = false;
+                    if self.usage.selected().is_none() {
+                        let selected = match self.accounts.selected.clone() {
+                            AccountSel::Account(id) => Some(id),
+                            _ => self
+                                .world
+                                .accounts
+                                .sorted()
+                                .first()
+                                .map(|account| account.id.clone()),
+                        };
+                        self.usage.select(selected);
+                    }
+                    self.route = Route::Usage;
                 } else {
                     self.route = Route::Manager;
                 }
@@ -4767,13 +4795,63 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ACCOUNT_REFRESH if self.route == Route::Accounts && !self.accounts.form_open => {
-                if let Some(id) = self.accounts.selected_id.clone() {
-                    self.accounts.pending_refresh = Some(id.clone());
-                    self.status = Some("Refreshing account…".into());
+                self.ensure_accounts_selected();
+                let ids: Vec<String> = match &self.accounts.selected {
+                    AccountSel::Account(id) => vec![id.clone()],
+                    AccountSel::Provider(surface) => self
+                        .world
+                        .accounts
+                        .accounts
+                        .iter()
+                        .filter(|account| account.surface == *surface && account.enabled)
+                        .map(|account| account.id.clone())
+                        .collect(),
+                    _ => self
+                        .world
+                        .accounts
+                        .accounts
+                        .iter()
+                        .filter(|account| account.enabled)
+                        .map(|account| account.id.clone())
+                        .collect(),
+                };
+                if ids.is_empty() {
+                    self.status = Some("Nothing to refresh".into());
+                    return Some(Response::changed());
+                }
+                let mut started = 0;
+                for (i, id) in ids.iter().enumerate() {
+                    let Some(account) = self.world.accounts.get_mut(id) else {
+                        continue;
+                    };
+                    if account.usage.freshness.phase == Freshness::Refreshing {
+                        continue;
+                    }
+                    account.usage.freshness.phase = Freshness::Refreshing;
+                    let duration = provider::refresh_duration_ms(account) + i as i64 * 160;
                     self.world.schedule(
-                        1_000,
-                        crate::sim::world::Msg::AccountRefreshed { account: id },
+                        duration,
+                        crate::sim::world::Msg::AccountRefreshed {
+                            account: id.clone(),
+                        },
                     );
+                    started += 1;
+                }
+                if started == 0 {
+                    self.status = Some("Refresh already running".into());
+                } else {
+                    let scope = match &self.accounts.selected {
+                        AccountSel::Account(id) => self
+                            .world
+                            .accounts
+                            .get(id)
+                            .map(|account| account.title())
+                            .unwrap_or_default(),
+                        AccountSel::Provider(surface) => surface.label().to_owned(),
+                        _ => "all".into(),
+                    };
+                    let noun = if started == 1 { "account" } else { "accounts" };
+                    self.status = Some(format!("Refreshing {scope} · {started} {noun}"));
                 }
                 Some(Response::changed())
             }
@@ -5248,11 +5326,25 @@ impl App {
                     }
                     return Some(Response::changed());
                 }
-                if self.accounts_down_count >= 4 {
-                    self.accounts_drawer_open = true;
-                    return Some(Response::changed());
+                self.ensure_accounts_selected();
+                match self.accounts.selected.clone() {
+                    AccountSel::Add => {
+                        self.accounts_form_stage = 1;
+                        self.accounts_form_enters = 0;
+                        self.accounts.open_new();
+                        self.op_item_key.clear();
+                    }
+                    AccountSel::Provider(surface) => {
+                        if !self.accounts.folded.remove(&surface) {
+                            self.accounts.folded.insert(surface);
+                        }
+                    }
+                    _ => {
+                        self.accounts_drawer_open = true;
+                        self.accounts.drawer_open = true;
+                    }
                 }
-                None
+                Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.route == Route::Usage => {
                 self.usage_detail = true;
@@ -5579,7 +5671,12 @@ impl App {
                 }
                 Some(Response::changed())
             }
-            CMD_NAV_DOWN if self.route == Route::Accounts => {
+            CMD_NAV_UP if self.route == Route::Accounts && !self.accounts.form_open => {
+                self.move_accounts_cursor(-1);
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Accounts && !self.accounts.form_open => {
+                self.move_accounts_cursor(1);
                 self.accounts_down_count += 1;
                 Some(Response::changed())
             }
@@ -5899,7 +5996,11 @@ impl App {
                     };
                     manager_crumb.as_str()
                 }
-                Route::Accounts => "Accounts",
+                Route::Accounts => {
+                    manager_crumb =
+                        crate::screens::accounts::crumb(&self.world, &self.accounts.selected);
+                    manager_crumb.as_str()
+                }
                 Route::Usage => "Usage",
                 Route::Settings => "Settings",
                 Route::Editor => {
@@ -5934,6 +6035,22 @@ impl App {
                     priority: 7,
                     padded: false,
                 });
+            }
+            let refreshing_text;
+            if self.route == Route::Accounts {
+                let n = crate::screens::accounts::refreshing_count(&self.world);
+                if n > 0 {
+                    refreshing_text = format!(
+                        "{} refreshing {n}",
+                        crate::screens::accounts::spinner_frame(self.world.now_ms() as u64 / 80)
+                    );
+                    segs.push(HeaderSegment {
+                        text: &refreshing_text,
+                        style: palette.secondary_on_canvas,
+                        priority: 6,
+                        padded: false,
+                    });
+                }
             }
             let change_text;
             if self.route == Route::Editor && self.editor.change_count() > 0 {
@@ -6255,20 +6372,13 @@ impl App {
             );
             return;
         }
-        let rows = self.account_rows();
-        let list_area = Rect {
-            height: area.height.saturating_sub(3),
-            ..area
-        };
-        List::new(ACCOUNTS_LIST).draw(ui, list_area, &self.accounts.list, &rows);
-        Self::account_add_button().draw(
+        let focused = !self.help_open;
+        crate::screens::accounts::AccountsScreen::draw(
             ui,
-            Rect {
-                y: area.bottom().saturating_sub(1),
-                width: area.width.min(34),
-                height: 1,
-                ..area
-            },
+            area,
+            &self.accounts,
+            &self.world,
+            focused,
         );
     }
 
@@ -7623,6 +7733,15 @@ impl App {
             return;
         }
 
+        if self.route == Route::Accounts && !self.accounts.form_open {
+            let hints =
+                crate::screens::accounts::AccountsScreen::hints(&self.accounts, &self.world);
+            HintBar::new(APP.sub("hint"), &hints)
+                .status_text(self.status.as_deref())
+                .draw(ui, area);
+            return;
+        }
+
         if self.route == Route::Editor {
             let hints = crate::screens::editor::EditorScreen::hints(&self.editor);
             let mut bar = HintBar::new(APP.sub("hint"), &hints);
@@ -8453,13 +8572,27 @@ impl TuiApp for App {
                 self.status = None;
                 return self.route_changed();
             }
+            if self.accounts_drawer_open || self.accounts.drawer_open {
+                self.accounts_drawer_open = false;
+                self.accounts.drawer_open = false;
+                self.status = None;
+                cx.focus(ACCOUNTS_LIST);
+                return self.route_changed();
+            }
+            if self.accounts_filtered || self.accounts_filtering || self.accounts.filter.is_some() {
+                self.accounts_filtered = false;
+                self.accounts_filtering = false;
+                self.accounts.filter = None;
+                self.ensure_accounts_selected();
+                self.status = Some("Filter cleared".into());
+                return self.route_changed();
+            }
             if self.accounts.form_open {
                 self.accounts.close();
-                if self.world.scenario == Scenario::AccountsMixed {
-                    self.route = Route::Editor;
-                } else {
-                    self.status = Some("Cancelled account registration".into());
-                }
+                self.accounts_form_stage = 0;
+                self.accounts_form_enters = 0;
+                self.ensure_accounts_selected();
+                self.status = Some("Cancelled account registration".into());
                 return self.route_changed();
             }
             self.route = Route::Manager;
@@ -8771,47 +8904,6 @@ fn source_label(index: u8) -> &'static str {
         2 => "API key",
         _ => "1Password reference",
     }
-}
-
-fn selected_account_id(world: &World, key: Option<ItemKey>) -> Option<String> {
-    let Some(ItemKey::Index(index)) = key else {
-        return None;
-    };
-    if index == 0 {
-        return None;
-    }
-    let mut row = 1;
-    let mut provider = None;
-    for account in world.accounts.sorted() {
-        if provider != Some(account.provider) {
-            if row == index {
-                return None;
-            }
-            provider = Some(account.provider);
-            row += 1;
-        }
-        if row == index {
-            return Some(account.id.clone());
-        }
-        row += 1;
-    }
-    None
-}
-
-fn account_row_index(world: &World, id: &str) -> Option<usize> {
-    let mut row = 1;
-    let mut provider = None;
-    for account in world.accounts.sorted() {
-        if provider != Some(account.provider) {
-            provider = Some(account.provider);
-            row += 1;
-        }
-        if account.id == id {
-            return Some(row);
-        }
-        row += 1;
-    }
-    None
 }
 
 fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {

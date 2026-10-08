@@ -722,6 +722,27 @@
       "rule": "OWN-02"
     },
     {
+      "max": 27,
+      "path": "crates/jackin-preview-host-ui/src/accounts.rs",
+      "reason": "Accounts screen component composition (FIX-002): tree/inspector rows painted inside stock Panel/SplitPane/Meter/Button draw closures, manager.rs pattern; ratcheted Q67-J1d.",
+      "review": "Q67-J1d accounts live tree; independent review pending at land time",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 5,
+      "path": "crates/jackin-preview-host-ui/src/accounts.rs",
+      "reason": "Accounts screen component composition (FIX-002): row/inspector text helpers inside stock component draw closures, manager.rs pattern; ratcheted Q67-J1d.",
+      "review": "Q67-J1d accounts live tree; independent review pending at land time",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 3,
+      "path": "crates/jackin-preview-host-ui/src/accounts.rs",
+      "reason": "Accounts screen component composition (FIX-002): narrow/wide responsive layout switches, manager.rs pattern; ratcheted Q67-J1d.",
+      "review": "Q67-J1d accounts live tree; independent review pending at land time",
+      "rule": "OWN-11"
+    },
+    {
       "max": 25,
       "path": "crates/jackin-preview-host-ui/src/prelude.rs",
       "reason": "Transitional prelude painters (FIX-001 follow-up); ratcheted G1 corpus.",
