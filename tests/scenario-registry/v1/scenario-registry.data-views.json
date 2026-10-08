@@ -3480,8 +3480,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T13:17:37Z",
+      "branch": "termrock-implementation",
+      "status": "pass",
+      "note": "phase-8al H7 h7_preview_find live-PTY PASS @74fbd17a (nextest visual_baseline --run-ignored all h7_ --test-threads 2, 2 pass/0 fail/791 skip; bin target/debug/holla 19321736B sha256:20d657af3168 built 2026-10-08T13:17:13Z; log /tmp/phase8al-h7.log)"
+     }
+    ]
    },
    "cand_source": []
   },

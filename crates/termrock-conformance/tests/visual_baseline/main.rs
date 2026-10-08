@@ -45,6 +45,7 @@ mod holla_pending_h3;
 mod holla_pending_h4;
 mod holla_pending_h5;
 mod holla_pending_h6;
+mod holla_pending_h7;
 mod jackin;
 mod jackin_journeys;
 mod jackin_pending_j1;
