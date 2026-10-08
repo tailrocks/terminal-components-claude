@@ -51,6 +51,7 @@ mod jackin_journeys;
 mod jackin_pending_j1;
 mod jackin_pending_j2;
 mod negative_controls_phase6a;
+mod negative_controls_phase8ap;
 mod pointer;
 mod showcase;
 mod showcase_journeys;
