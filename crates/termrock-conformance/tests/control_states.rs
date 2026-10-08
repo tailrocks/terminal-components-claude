@@ -2283,6 +2283,45 @@ fn w06_chipbar_disabled_body_and_close_inert() {
     );
 }
 
+/// W06-02 press-flash pin (WI-TABLEPRO-SAFETY-TOKEN ride-along): a close-click
+/// on the cursor chip's own × starts `CHIP` activation feedback, and once the
+/// 140 ms flash expires the strip settles back to the pre-click bytes. The
+/// rig records `Closed` without mutating items, and `close()` re-selects the
+/// cursor chip, so only the cursor chip's × is a sound settle target. A `Move`
+/// parks the pointer first so hover is identical on both sides of the click.
+#[test]
+fn w06_chipbar_close_press_flash_settles_to_pre_click_bytes() {
+    let (mut app, _items, actions) = keyed_chip_rig();
+    assert!(app.tab_to(CHIP));
+    let close = app
+        .area_of_part(CHIP, PartRef::item(Part::CLOSE, ItemKey::text("alpha")))
+        .expect("W06-02: the alpha close part must be registered");
+    let _ = app.mouse(MouseKind::Move, close.x, close.y);
+    let before = app.buffer().clone();
+    let _ = app.mouse(MouseKind::Down, close.x, close.y);
+    let _ = app.mouse(MouseKind::Up, close.x, close.y);
+    assert_eq!(
+        app.activation_feedback().map(|f| f.owner),
+        Some(CHIP),
+        "W06-02: the close-click must start CHIP feedback"
+    );
+    assert_eq!(
+        actions.borrow().as_slice(),
+        &[ChipBarAction::Closed(ItemKey::text("alpha"))],
+        "W06-02: the close-click must record Closed(alpha)"
+    );
+    let _ = app.advance(Duration::from_millis(150));
+    assert!(
+        app.activation_feedback().is_none(),
+        "W06-02: the press flash must expire after the advance"
+    );
+    assert_eq!(
+        app.buffer(),
+        &before,
+        "W06-02: the strip must settle to the pre-click bytes"
+    );
+}
+
 // ---------------------------------------------------------------------------
 // W07 Field (termrock-fields)
 // ---------------------------------------------------------------------------
