@@ -71,6 +71,13 @@ pub trait App {
     fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
         Response::ignored()
     }
+
+    /// Pin the animation tick the UI reads: paused-motion capture renders
+    /// tick-derived surfaces (spinners) at `--frame N` instead of the live
+    /// counter. `None` (the default) leaves the counter running.
+    fn pinned_tick(&self) -> Option<u64> {
+        None
+    }
 }
 
 /// Narrow physical key origin for an admitted update; never an activation grant.
@@ -573,6 +580,20 @@ impl<A: App> Runtime<A> {
     /// Current animation tick.
     pub const fn tick(&self) -> u64 {
         self.tick
+    }
+
+    /// The tick the UI reads: the app's pin wins over the live counter.
+    fn effective_tick(&self) -> u64 {
+        self.app.pinned_tick().unwrap_or(self.tick)
+    }
+
+    /// Publish the effective tick to the update channel, advancing the
+    /// live counter unless the app pins it.
+    fn advance_tick(&mut self) {
+        if self.app.pinned_tick().is_none() {
+            self.tick = self.tick.wrapping_add(1);
+        }
+        self.services.tick = self.effective_tick();
     }
 
     /// The terminal size as last resized or successfully presented.
@@ -1378,8 +1399,7 @@ impl<A: App> Runtime<A> {
             if !core::mem::take(&mut self.pending_tick) {
                 return Response::ignored();
             }
-            self.tick = self.tick.wrapping_add(1);
-            self.services.tick = self.tick;
+            self.advance_tick();
             self.intents.clear();
             self.pump_layer_events();
             let r = self.run_update(None, UpdateCause::Tick, None);
@@ -1439,8 +1459,7 @@ impl<A: App> Runtime<A> {
                 return Ok(self.finish(r));
             }
             Input::Tick => {
-                self.tick = self.tick.wrapping_add(1);
-                self.services.tick = self.tick;
+                self.advance_tick();
                 update_cause = UpdateCause::Tick;
                 // Explicit ticks request an update at unchanged time. Only
                 // advance_to consumes an elapsed absolute deadline.
@@ -1585,7 +1604,7 @@ impl<A: App> Runtime<A> {
         self.core.begin_cache_frame(self.generation);
         self.core.style_cache.clear();
         self.frame.reset(self.generation, area);
-        self.frame.tick = snapshot.map_or(self.tick, |value| value.last.tick);
+        self.frame.tick = snapshot.map_or_else(|| self.effective_tick(), |value| value.last.tick);
         self.frame.inert_floor = snapshot.map_or_else(
             || self.services.layers.inert_floor(),
             |value| value.inert_floor,

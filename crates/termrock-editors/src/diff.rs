@@ -980,11 +980,13 @@ mod tests {
         }
     }
 
-    /// Review columns are measured from the viewport text width, so a review
-    /// row fits the painted cells: at area `W` every row is at most `W − 1`
-    /// wide and — for content that fills its column — the `│` sits at the
-    /// center column. The centering needs a full-width fixture (C5): short
-    /// content leaves the separator wherever the text ends.
+    /// Review columns are measured from the conservative viewport text width,
+    /// so a review row fits the painted cells: at area `W` every row is at
+    /// most `W − 1` wide and — for content that fills its column — the `│`
+    /// sits at the center column. The centering needs a full-width fixture
+    /// (C5): short content leaves the separator wherever the text ends. The
+    /// fitting fixture takes the full area width in the viewport itself; the
+    /// projection built before the line count was known stays conservative.
     #[test]
     fn review_rows_fit_the_text_width_with_a_centered_separator() {
         let area = Rect::new(0, 0, 80, 6);
@@ -1000,7 +1002,7 @@ mod tests {
                 used = view.draw(ui, rect, &state);
             })
             .commit_presented();
-        assert_eq!(usize::from(used.width), text_w);
+        assert_eq!(usize::from(used.width), usize::from(area.width));
 
         let mut lines = Vec::new();
         review_lines(&Wide, text_w as u16, &mut lines);

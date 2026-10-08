@@ -945,11 +945,14 @@ fn shift(p: &mut CellPos, dropped: usize) {
 /// [`ScrollRegion`].
 ///
 /// ## Layout
-/// The text, then the scrollbar column. **The scrollbar column is reserved
-/// whether or not the bar is painted**, so the wrap layout is a function of
-/// `area` alone and is computed once — the legacy two-pass layout is what
-/// made `viewport_100k_lines_render` unreachable (P-A). `measure` asks for
-/// the bar and twenty text columns. `draw` returns the text rect; `0×0`
+/// The text, then the scrollbar column. **A wrapped pane reserves the
+/// scrollbar column whether or not the bar is painted**, so the wrap layout
+/// is a function of `area` alone and is computed once — the legacy two-pass
+/// layout is what made `viewport_100k_lines_render` unreachable (P-A). An
+/// unwrapped pane whose lines all fit takes the full width instead: with one
+/// visual row per line the overflow decision needs no layout, so the width
+/// is still settled before the single layout pass. `measure` asks for the
+/// bar and twenty text columns. `draw` returns the text rect; `0×0`
 /// registers nothing (R5).
 ///
 /// ## Parts
@@ -1130,9 +1133,25 @@ impl<'a> TextViewport<'a> {
 
     /// The text width for a container `width` columns wide: the text
     /// starts at the container's left edge and one scrollbar column is
-    /// always reserved.
+    /// always reserved. Composite projections (which are built before the
+    /// viewport sees the line count) use this conservative width; the
+    /// viewport itself widens an unwrapped pane whose lines all fit (see
+    /// [`TextViewport::content_width`]).
     pub const fn text_width(width: u16) -> u16 {
         width.saturating_sub(1)
+    }
+
+    /// The text width for a `width`-wide area holding `lines` source lines
+    /// in `height` rows. An unwrapped pane whose lines all fit takes the
+    /// full width: with one visual row per line the overflow decision needs
+    /// no layout, so the width is still settled before the single layout
+    /// pass. Wrapped panes always reserve the column (finding P-A).
+    fn content_width(&self, width: u16, lines: usize, height: u16) -> u16 {
+        if !self.wrap && lines <= usize::from(height) {
+            width
+        } else {
+            width.saturating_sub(1)
+        }
     }
 
     const fn layout_key(&self, st: &ViewportState, width: u16) -> LayoutKey {
@@ -1206,9 +1225,10 @@ impl<'a> TextViewport<'a> {
         lines: LineSet<'_>,
     ) -> Response<ViewportAction> {
         let area = cx.area(self.id).unwrap_or(Rect::ZERO);
-        let width = cx
-            .layout(self.id)
-            .map_or_else(|| Self::text_width(area.width), |l| l.cols);
+        let width = cx.layout(self.id).map_or_else(
+            || self.content_width(area.width, lines.len(), area.height),
+            |l| l.cols,
+        );
         let key = self.layout_key(st, width);
         let (total, indexed) = {
             let layout = cx.cache::<ViewportLayout>(self.id);
@@ -1423,7 +1443,7 @@ impl<'a> TextViewport<'a> {
         let id = self.id;
         let runtime = ui.state(id).difference(StateFlags::SELECTED);
         let live = PartStyle::flags(runtime, StateFlags::empty());
-        let text_w = Self::text_width(area.width);
+        let text_w = self.content_width(area.width, lines.len(), area.height);
         let key = self.layout_key(st, text_w);
         let (total, indexed) = {
             let lay = ui.cache::<ViewportLayout>(id);
@@ -2397,9 +2417,11 @@ mod tests {
 
     /// Finding P-A: the legacy viewport laid the whole buffer out at `width`,
     /// discovered it overflowed, and laid it out **again** at `width − 1` for
-    /// the scrollbar. Reserving the column unconditionally makes the layout a
-    /// function of `area` alone, so the text rect — and therefore the wrap —
-    /// is the same whether or not the bar is painted.
+    /// the scrollbar. A wrapped pane reserves the column unconditionally, so
+    /// the layout stays a function of `area` alone and the text rect — and
+    /// therefore the wrap — is the same whether or not the bar is painted.
+    /// An unwrapped pane instead takes the full width when its lines all fit
+    /// (the overflow decision needs no layout at one row per line).
     #[test]
     fn the_text_width_does_not_depend_on_whether_the_bar_is_painted() {
         let area = Rect {
@@ -2410,20 +2432,25 @@ mod tests {
         };
         let short = [ViewportLine::Plain("one"), ViewportLine::Plain("two")];
         let long: Vec<ViewportLine<'_>> = (0..50).map(|_| ViewportLine::Plain("row")).collect();
-        let width_of = |lines: &[ViewportLine<'_>]| {
+        let width_of = |wrap: bool, lines: &[ViewportLine<'_>]| {
             let mut rt = Runtime::new(Stub::default(), Theme::junie());
             let mut buf = Buffer::empty(SCREEN);
             let st = ViewportState::default();
             let mut w = 0;
             rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                w = TextViewport::new(ID).draw(ui, area, &st, lines).width;
+                w = TextViewport::new(ID)
+                    .wrap(wrap)
+                    .draw(ui, area, &st, lines)
+                    .width;
             })
             .commit_presented();
             w
         };
-        assert_eq!(width_of(&short), width_of(&long));
-        assert_eq!(width_of(&short), TextViewport::text_width(area.width));
-        assert_eq!(width_of(&short), area.width.saturating_sub(1));
+        assert_eq!(width_of(true, &short), width_of(true, &long));
+        assert_eq!(width_of(true, &short), TextViewport::text_width(area.width));
+        assert_eq!(width_of(true, &short), area.width.saturating_sub(1));
+        assert_eq!(width_of(false, &long), area.width.saturating_sub(1));
+        assert_eq!(width_of(false, &short), area.width);
     }
 
     /// The viewport is a focus stop and wears its focus on the scrollbar
