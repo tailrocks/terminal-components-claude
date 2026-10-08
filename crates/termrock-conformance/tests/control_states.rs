@@ -2136,10 +2136,10 @@ fn w05_radio_no_horizontal() {
     });
     // "First" measures 10 cells, "Second" 11, "Third" 10; the tail is
     // blank. The focused cursor segment wears the gutter; unselected
-    // markers are the theme's `(○)` binding.
+    // markers are the theme's `( )` binding (frozen baseline choice.rs).
     assert_eq!(
         row_text(&buf, 0, H_AREA.width),
-        " (●) First▎(○) Second (○) Third ",
+        " (●) First▎( ) Second ( ) Third ",
         "W05-04: the options share one horizontal strip"
     );
     assert_eq!(

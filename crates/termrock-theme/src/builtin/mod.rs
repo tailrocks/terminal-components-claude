@@ -707,7 +707,7 @@ fn choice(m: &mut PartMap<PartRecipe>) {
         StateFlags::SELECTED | StateFlags::FOCUSED | StateFlags::HOVERED,
         p().set_bg(Role::HoverSurface),
     );
-    part(m, Part::MARKER, p())
+    part(m, Part::MARKER, p().set_fg(Role::Fg(FgStep::Muted)))
         .when(
             StateFlags::CHECKED,
             p().set_glyph(GlyphRole::CheckboxOn).set_fg(Role::Accent),

@@ -126,7 +126,7 @@ pub(crate) const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴"
 /// The Junie glyph set, one entry per `GlyphRole` in declaration order.
 pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
     [
-        "▎", "›", "✓", "[✓]", "[ ]", "(●)", "(○)", "●", "•", "+", "−", "!", "▲", "▸", "▾", "▴",
+        "▎", "›", "✓", "[✓]", "[ ]", "(●)", "( )", "●", "•", "+", "−", "!", "▲", "▸", "▾", "▴",
         "▾", "∇", "▪", "▪", "→", "↓", "‹", "›", "…", "×", "›", "◆", "◇",
         // Indices 29–32 (`RuleQuiet`, `RuleActive`, `ScrollTrack`,
         // `ScrollThumb`) are **dead**: `GlyphSet::get`/`set` route those four

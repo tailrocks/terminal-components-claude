@@ -155,15 +155,15 @@ pub use termrock_runtime::{
 // components: controls
 pub use termrock_controls::{
     Brand, Button, ButtonCmd, Checkbox, ChoiceCmd, Empty, LabelRadio, Panel, PanelKind, Props,
-    PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue, RadioGroup,
+    PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue, RadioField, RadioGroup,
     RadioGroupAction, RadioGroupState, SplitAction, SplitCmd, SplitPane, SplitPaneState, Toggle,
     TooSmall,
 };
 
 // components: fields
 pub use termrock_fields::{
-    BlurPolicy, EditPhase, ErrorState, Field, NoValidate, TextAction, TextArea, TextAreaState,
-    TextCmd, TextInput, TextInputState, Validate, discard_error, redacted_text,
+    BlurPolicy, EditPhase, ErrorState, Field, NoValidate, Note, TextAction, TextArea,
+    TextAreaState, TextCmd, TextInput, TextInputState, Validate, discard_error, redacted_text,
 };
 pub use termrock_runtime::field_control::FieldControl;
 
