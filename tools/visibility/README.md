@@ -37,11 +37,14 @@ does not show that a product check ran.
 
 ## Generate and check
 
-Run from the repository root with Python 3.9 or later:
+Run the report CLI from the repository root with Python 3.9 or later:
 
     python3 tools/visibility/status.py --write
     python3 tools/visibility/status.py --check
-    python3 -m unittest discover -s tools/visibility/tests -v
+
+Run its black-box CLI contract tests with Rust nextest:
+
+    mise exec -- cargo nextest run --manifest-path crates/termrock-visibility-tests/Cargo.toml --test status --locked
 
 The `--role reference` option renders the same measured pair, result rows, and
 accepted task records with `visual-baseline` as the local role. Keep the source
