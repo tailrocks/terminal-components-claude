@@ -30,11 +30,11 @@ This bootstrap was generated from measured facts in [source-facts.json](tools/vi
 | Identity | Value |
 | --- | --- |
 | Local role | Candidate (termrock-implementation) |
-| Candidate observed commit | [543359da94cdf16be33c87923f4787319b8ce8b1](https://github.com/tailrocks/terminal-components-claude/commit/543359da94cdf16be33c87923f4787319b8ce8b1) |
-| Reference observed commit | [b712422fcc23a19859b851c9ec583b08a1b40136](https://github.com/tailrocks/terminal-components-claude/commit/b712422fcc23a19859b851c9ec583b08a1b40136) |
+| Candidate observed commit | [85b51da2e9832dba642abf7d64d032f848cade0e](https://github.com/tailrocks/terminal-components-claude/commit/85b51da2e9832dba642abf7d64d032f848cade0e) |
+| Reference observed commit | [5f6e52f31861f9f4281f1db264ab012457b9bc2e](https://github.com/tailrocks/terminal-components-claude/commit/5f6e52f31861f9f4281f1db264ab012457b9bc2e) |
 | Immutable visual tag object | 1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5 |
 | Immutable visual tag commit | [4a79c0a2d40fca46fc406b77157ce3b3f12ec16b](https://github.com/tailrocks/terminal-components-claude/commit/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b) |
-| Facts observed at | 2026-10-08T05:20:13Z |
+| Facts observed at | 2026-10-08T06:22:51Z |
 | Report commit | Set after this report is committed; the generated page cannot include its own commit ID. |
 | Shared suite / case-set / expected-generation digests | NOT_RECORDED |
 
@@ -42,10 +42,10 @@ This bootstrap was generated from measured facts in [source-facts.json](tools/vi
 
 | Check | Observation | Scope |
 | --- | --- | --- |
-| [CI run 37731048990](https://github.com/tailrocks/terminal-components-claude/actions/runs/37731048990) | failure at 543359da94cdf16be33c87923f4787319b8ce8b1; 0 jobs; 0 artifacts. Failure reason: Workflow file exceeds the maximum allowed size of 500 KB.; [source](https://github.com/tailrocks/terminal-components-claude/actions/runs/37731048990). | The run head matches the measured candidate SHA. This workflow result is not a product test result. |
-| [DCO check 113160036229](https://github.com/tailrocks/terminal-components-claude/commit/543359da94cdf16be33c87923f4787319b8ce8b1/checks) | action_required; 2 commits are reported with sign-off problems. | PR gate status; separate from product results. Existing history is unchanged. |
+| [CI run 37736017446](https://github.com/tailrocks/terminal-components-claude/actions/runs/37736017446) | failure at 85b51da2e9832dba642abf7d64d032f848cade0e; 0 jobs; 0 artifacts. Failure reason: Workflow file exceeds the maximum allowed size of 500 KB.; [source](https://github.com/tailrocks/terminal-components-claude/actions/runs/37736017446). | The run head matches the measured candidate SHA. This workflow result is not a product test result. |
+| [DCO check 113175645948](https://github.com/tailrocks/terminal-components-claude/commit/85b51da2e9832dba642abf7d64d032f848cade0e/checks) | action_required; 2 commits are reported with sign-off problems. | PR gate status; separate from product results. Existing history is unchanged. |
 
-Available in this environment: Python 3.9.6, Rust 1.98.1, and cargo-nextest 0.9.146 through mise on aarch64-apple-darwin. This records installed tools only; it does not show that a product check ran.
+Available in this environment: Python 3.9.6, Rust 1.98.1, and cargo-nextest 0.9.146 through mise on Darwin arm64. This records installed tools only; it does not show that a product check ran.
 
 ## Applications
 
@@ -66,7 +66,7 @@ No compatible previous paired run is recorded, so trend changes are not measured
 
 ## Next work
 
-Highest open priority: **P0**, from accepted queue revision 17.
+Highest open priority: **P0**, from accepted queue revision 19.
 
 | Work | State | Owner | Reviewer | Priority reason |
 | --- | --- | --- | --- | --- |
@@ -78,6 +78,7 @@ Highest open priority: **P0**, from accepted queue revision 17.
 | VIS-07 | in_progress | /root/language_review | /root/technical_review | Keep actual independent review and commit bindings in repository evidence. |
 | VIS-08 | in_progress | /root/rust_test_infrastructure | /root/technical_review | Use Rust tests to preserve and verify the reporting, queue, deferred, and binary-build requirements. |
 | VIS-09 | in_progress | /root/coordination_luna | /root/reference_luna | Preserve all queue assertions in Rust tests before further queue changes. |
+| VIS-10 | in_progress | /root/coordination_luna | /root/jackin_owner | Implement the repository-aware amendment prerequisite before reference and isolated tool claims. |
 
 See [WORK_QUEUE.md](WORK_QUEUE.md) for dependencies and claim details.
 
@@ -85,7 +86,7 @@ See [WORK_QUEUE.md](WORK_QUEUE.md) for dependencies and claim details.
 
 - [Work queue](WORK_QUEUE.md)
 - [Implementation PR #17](https://github.com/tailrocks/terminal-components-claude/pull/17)
-- [Current CI run](https://github.com/tailrocks/terminal-components-claude/actions/runs/37731048990)
+- [Current CI run](https://github.com/tailrocks/terminal-components-claude/actions/runs/37736017446)
 - [Product checklist](CHECKLIST.md)
 - [Source facts and observation commands](tools/visibility/README.md)
 

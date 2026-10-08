@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 17,
+  "queue_revision": 19,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -287,6 +287,37 @@
       ],
       "handoff": null,
       "accepted_queue_revision": 15
+    },
+    {
+      "work_id": "VIS-10",
+      "requirement_ids": [
+        "VIS-P02",
+        "VIS-P03",
+        "VIS-P04",
+        "VIS-P05",
+        "VIS-V01"
+      ],
+      "priority": "P0",
+      "priority_reason": "Implement the repository-aware amendment prerequisite before reference and isolated tool claims.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
+      "allowed_paths": [
+        "tools/visibility/queue.py",
+        "crates/termrock-visibility-tests/tests/queue_v2.rs",
+        "docs/implementation/visibility/queue-v2.md"
+      ],
+      "owner": "/root/coordination_luna",
+      "reviewer": "/root/jackin_owner",
+      "claim_token": "visibility-queue-v2-20261008-10",
+      "expiry": "2026-10-09T00:00:00Z",
+      "state": "in_progress",
+      "evidence": [
+        "Independent plan approval /private/tmp/termrock-vis10-queue-v2-plan-review.json SHA-256 bd9dbce82a27aa57608fde5d3870828765448daf53fc7a936e6cb405e3607aa0. Code prerequisite uses committed helper 8189; actual migration remains blocked until status v2 compatibility and separately qualified roots/preflight.",
+        "Independent reviewed implementation scope accepted; live migration is not authorized by this transition."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 18
     }
   ]
 }

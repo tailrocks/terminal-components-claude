@@ -1,7 +1,7 @@
 # Work queue
 
 Generated from [accepted task records](docs/implementation/visibility/tasks.json).
-Queue revision: 17. Acceptance owner: `/root`.
+Queue revision: 19. Acceptance owner: `/root`.
 
 Highest open priority: **P0**.
 
@@ -16,6 +16,7 @@ Highest open priority: **P0**.
 | VIS-07 | VIS-A01, VIS-V01 | P0 | in_progress | — | /root/language_review | /root/technical_review | docs/implementation/visibility/evidence/reviews/** |
 | VIS-08 | VIS-V01, VIS-P02 | P0 | in_progress | — | /root/rust_test_infrastructure | /root/technical_review | crates/termrock-visibility-tests/Cargo.toml, crates/termrock-visibility-tests/Cargo.lock, crates/termrock-visibility-tests/src/**, crates/termrock-visibility-tests/README.md |
 | VIS-09 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | in_progress | — | /root/coordination_luna | /root/reference_luna | crates/termrock-visibility-tests/tests/queue.rs, tools/visibility/tests/test_queue.py |
+| VIS-10 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | in_progress | — | /root/coordination_luna | /root/jackin_owner | tools/visibility/queue.py, crates/termrock-visibility-tests/tests/queue_v2.rs, docs/implementation/visibility/queue-v2.md |
 
 ## Claim details
 
@@ -108,6 +109,16 @@ Claim token: `visibility-rust-queue-tests-20261008-09`; accepted at queue revisi
 Branch/base: `termrock-implementation` / `effccf68d68a8ecc702bc7935b820e9c7b38b408`.
 
 Evidence: Independent Rust-only black-box test architecture approved by /root/technical_review. Preserve all 34 queue assertion groups before removing the Python test file., Implement Rust assertions against the actual queue CLI, with disposable Git and filesystem fixtures; no production test backdoors.
+
+### VIS-10
+
+Priority reason: Implement the repository-aware amendment prerequisite before reference and isolated tool claims.
+
+Claim token: `visibility-queue-v2-20261008-10`; accepted at queue revision 18; expires `2026-10-09T00:00:00Z`.
+
+Branch/base: `termrock-implementation` / `85b51da2e9832dba642abf7d64d032f848cade0e`.
+
+Evidence: Independent plan approval /private/tmp/termrock-vis10-queue-v2-plan-review.json SHA-256 bd9dbce82a27aa57608fde5d3870828765448daf53fc7a936e6cb405e3607aa0. Code prerequisite uses committed helper 8189; actual migration remains blocked until status v2 compatibility and separately qualified roots/preflight., Independent reviewed implementation scope accepted; live migration is not authorized by this transition.
 
 Expiry does not release an active claim. Reassignment requires a recorded safe handoff.
 Task state is assignment state; it does not prove test results or requirement completion.

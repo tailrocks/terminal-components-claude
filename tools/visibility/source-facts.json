@@ -1,52 +1,66 @@
 {
   "schema_version": 1,
   "repository": "tailrocks/terminal-components-claude",
-  "observed_at": "2026-10-08T05:20:13Z",
+  "observed_at": "2026-10-08T06:22:51Z",
   "candidate": {
     "branch": "termrock-implementation",
-    "head_sha": "543359da94cdf16be33c87923f4787319b8ce8b1",
-    "local_head_sha": "543359da94cdf16be33c87923f4787319b8ce8b1",
-    "remote_head_sha": "543359da94cdf16be33c87923f4787319b8ce8b1",
-    "remote_updated_at": "2026-10-08T05:10:25Z"
+    "head_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
+    "local_head_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
+    "remote_head_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
+    "remote_updated_at": "2026-10-08T06:08:27Z"
   },
   "reference": {
     "branch": "visual-baseline",
-    "head_sha": "b712422fcc23a19859b851c9ec583b08a1b40136",
-    "remote_updated_at": "2026-10-08T05:03:30Z"
+    "head_sha": "5f6e52f31861f9f4281f1db264ab012457b9bc2e",
+    "remote_updated_at": "2026-10-08T06:02:21Z"
   },
   "visual_authority": {
     "tag": "visual-baseline",
     "tag_object_sha": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
     "commit_sha": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
   },
+  "visual_authority_release_observation": {
+    "tag_name": "visual-baseline",
+    "target_commitish": "visual-baseline",
+    "created_at": "2026-09-14T16:37:35Z",
+    "published_at": "2026-09-14T16:37:40Z",
+    "draft": false,
+    "prerelease": false,
+    "api_immutable": false,
+    "html_url": "https://github.com/tailrocks/terminal-components-claude/releases/tag/visual-baseline",
+    "scope": "Release metadata only; tag ref and peeled commit are recorded above. The repository contract forbids changing either."
+  },
   "ci_observation": {
-    "run_id": "37731048990",
+    "run_id": "37736017446",
     "workflow": ".github/workflows/ci.yml",
-    "created_at": "2026-10-08T05:10:30Z",
-    "head_sha": "543359da94cdf16be33c87923f4787319b8ce8b1",
+    "created_at": "2026-10-08T06:08:43Z",
+    "head_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
     "status": "completed",
     "conclusion": "failure",
+    "run_number": 748,
+    "run_attempt": 1,
     "job_count": 0,
     "artifact_count": 0,
-    "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37731048990",
+    "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37736017446",
     "failure_reason": {
       "reason": "Workflow file exceeds the maximum allowed size of 500 KB.",
-      "source_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37731048990",
-      "documentation_url": "https://docs.github.com/actions/reference/limits#workflow-file-size"
+      "source_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37736017446",
+      "documentation_url": "https://docs.github.com/actions/reference/limits#workflow-file-size",
+      "observation_method": "The GitHub run HTML page annotation was fetched read-only and contains this exact sentence."
     }
   },
   "dco_observation": {
-    "check_run_id": "113160036229",
+    "check_run_id": "113175645948",
     "name": "DCO",
-    "head_sha": "543359da94cdf16be33c87923f4787319b8ce8b1",
+    "head_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
     "status": "completed",
     "conclusion": "action_required",
-    "affected_commit_count": 2,
     "details_url": "https://github.com/cncf/dco2",
-    "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113160036229",
-    "started_at": "2026-10-08T05:10:38Z",
-    "completed_at": "2026-10-08T05:10:39Z",
+    "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113175645948",
+    "started_at": "2026-10-08T06:08:50Z",
+    "completed_at": "2026-10-08T06:08:55Z",
     "summary": "There are 2 commits incorrectly signed off, the check did not pass.",
+    "affected_commit_count": 2,
     "affected_commits": [
       {
         "sha": "cb89f1d61a0d8d78a1b7b7c872de16c12131e8b1",
@@ -63,29 +77,53 @@
     "mise_rust": "1.98.1",
     "cargo_nextest": "0.9.146",
     "nextest_command": "mise exec -- cargo nextest --version",
-    "host": "aarch64-apple-darwin"
+    "host": "Darwin arm64"
   },
   "observation_sources": {
-    "observed_at": "2026-10-08T05:20:13Z",
+    "observed_at": "2026-10-08T06:22:51Z",
     "candidate_branch_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/termrock-implementation",
-    "candidate_commit": "https://github.com/tailrocks/terminal-components-claude/commit/543359da94cdf16be33c87923f4787319b8ce8b1",
+    "candidate_commit": "https://github.com/tailrocks/terminal-components-claude/commit/85b51da2e9832dba642abf7d64d032f848cade0e",
+    "candidate_manifest": "https://github.com/tailrocks/terminal-components-claude/blob/85b51da2e9832dba642abf7d64d032f848cade0e/.velnor/release-manifest.json",
+    "candidate_workflow": "https://github.com/tailrocks/terminal-components-claude/blob/85b51da2e9832dba642abf7d64d032f848cade0e/.github/workflows/ci.yml",
     "reference_branch_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/visual-baseline",
     "visual_tag_ref_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/git/ref/tags/visual-baseline",
     "visual_tag_object_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/git/tags/1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
-    "ci_run_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37731048990",
-    "ci_jobs_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37731048990/jobs",
-    "ci_artifacts_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37731048990/artifacts",
-    "ci_run_page": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37731048990",
+    "visual_release_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/releases/tags/visual-baseline",
+    "ci_run_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37736017446",
+    "ci_jobs_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37736017446/jobs",
+    "ci_artifacts_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37736017446/artifacts",
+    "ci_run_page": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37736017446",
     "ci_limit_documentation": "https://docs.github.com/actions/reference/limits#workflow-file-size",
-    "dco_check_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/check-runs/113160036229",
-    "dco_result_page": "https://github.com/tailrocks/terminal-components-claude/runs/113160036229",
+    "dco_check_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/check-runs/113175645948",
+    "dco_result_page": "https://github.com/tailrocks/terminal-components-claude/runs/113175645948",
+    "pull_request_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/pulls/17",
+    "pull_request_commits_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/pulls/17/commits?per_page=100",
     "pull_request_page": "https://github.com/tailrocks/terminal-components-claude/pull/17",
+    "generator_tag_ref_api": "https://api.github.com/repos/tailrocks/velnor-new/git/ref/tags/generator-38eb3174d7111420c9cccbff2764229aade2bf1c",
+    "generator_release_api": "https://api.github.com/repos/tailrocks/velnor-new/releases/tags/generator-38eb3174d7111420c9cccbff2764229aade2bf1c",
+    "latest_stable_generator_release_api": "https://api.github.com/repos/tailrocks/velnor-new/releases/latest",
     "local_head_command": "git rev-parse HEAD",
     "ambient_tool_commands": [
       "python3 --version",
       "mise current --quiet",
       "mise exec -- cargo nextest --version",
       "uname -sm"
+    ],
+    "read_only_gh_api_and_page_commands": [
+      "gh api repos/tailrocks/terminal-components-claude/branches/termrock-implementation",
+      "gh api repos/tailrocks/terminal-components-claude/branches/visual-baseline",
+      "gh api repos/tailrocks/terminal-components-claude/git/ref/tags/visual-baseline",
+      "gh api repos/tailrocks/terminal-components-claude/git/tags/1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+      "gh api repos/tailrocks/terminal-components-claude/releases/tags/visual-baseline",
+      "gh api repos/tailrocks/terminal-components-claude/pulls/17",
+      "gh api repos/tailrocks/terminal-components-claude/pulls/17/commits?per_page=100",
+      "gh api repos/tailrocks/terminal-components-claude/actions/runs?head_sha=85b51da2e9832dba642abf7d64d032f848cade0e&per_page=100",
+      "gh api repos/tailrocks/terminal-components-claude/actions/runs/37736017446",
+      "gh api repos/tailrocks/terminal-components-claude/actions/runs/37736017446/jobs",
+      "gh api repos/tailrocks/terminal-components-claude/actions/runs/37736017446/artifacts",
+      "gh api repos/tailrocks/terminal-components-claude/commits/85b51da2e9832dba642abf7d64d032f848cade0e/check-runs?per_page=100",
+      "gh api repos/tailrocks/terminal-components-claude/check-runs/113175645948",
+      "curl --compressed -fsSL https://github.com/tailrocks/terminal-components-claude/actions/runs/37736017446"
     ]
   },
   "pull_request_observation": {
@@ -93,21 +131,46 @@
     "state": "OPEN",
     "is_draft": true,
     "merge_state_status": "DIRTY",
-    "head_sha": "543359da94cdf16be33c87923f4787319b8ce8b1",
+    "head_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
     "base_branch": "main",
     "base_sha": "84482d066c5f0bc531f875f7f9d7716929c1b9c6",
-    "updated_at": "2026-10-08T05:10:30Z",
+    "updated_at": "2026-10-08T06:08:42Z",
     "url": "https://github.com/tailrocks/terminal-components-claude/pull/17",
     "current_ci_status": "failure",
     "current_dco_status": "action_required"
   },
   "generator_tool_release_observation": {
-    "qualification": "verified tool-release provenance only; not Termrock CI or product-test evidence",
+    "qualification": "Current committed Termrock generator pin and GitHub release metadata align on source and Linux asset SHA-256, but the asset was not downloaded or independently checked and no attestation was observed or verified. This is not CI or product-test evidence.",
+    "current_ci_pin": true,
+    "version": "0.1.0",
+    "repository": "tailrocks/velnor-new",
+    "release_url": "https://github.com/tailrocks/velnor-new/releases/tag/generator-38eb3174d7111420c9cccbff2764229aade2bf1c",
+    "termrock_manifest_url": "https://github.com/tailrocks/terminal-components-claude/blob/85b51da2e9832dba642abf7d64d032f848cade0e/.velnor/release-manifest.json",
+    "source_ref": "refs/tags/generator-38eb3174d7111420c9cccbff2764229aade2bf1c",
+    "source_commit": "38eb3174d7111420c9cccbff2764229aade2bf1c",
+    "signer_workflow": null,
+    "verified_attestation_count": 0,
+    "asset": "velnor-actions-0.1.0-x86_64-unknown-linux-gnu",
+    "asset_url": "https://github.com/tailrocks/velnor-new/releases/download/generator-38eb3174d7111420c9cccbff2764229aade2bf1c/velnor-actions-0.1.0-x86_64-unknown-linux-gnu",
+    "manifest_sha256": "beb98faaca561942e0eb38f5062caebb1c97188b892f9007f6bb266d93c5f087",
+    "release_asset_digest": "sha256:beb98faaca561942e0eb38f5062caebb1c97188b892f9007f6bb266d93c5f087",
+    "release_api_immutable": true,
+    "release_created_at": "2026-10-05T01:16:40Z",
+    "release_published_at": "2026-10-05T01:19:32Z",
+    "release_attestation_assets_observed": []
+  },
+  "latest_stable_release_observation": {
+    "version": "0.1.4",
+    "release_url": "https://github.com/tailrocks/velnor-new/releases/tag/v0.1.4",
+    "source_commit": "d3590d321e51f7b99bfb0a92c11d3d6eb7af61cd",
+    "published_at": "2026-10-08T05:46:51Z",
+    "qualification": "Release API metadata only in this observation; not the Velnor artifact pinned by the current Termrock workflow and not Termrock CI evidence."
+  },
+  "previously_qualified_release_observation": {
+    "qualification": "Previously verified Velnor tool-release provenance only; applies to the listed v0.1.2 release assets, not the current Termrock generator pin and not Termrock product tests.",
     "version": "0.1.2",
     "repository": "tailrocks/velnor-new",
     "release_url": "https://github.com/tailrocks/velnor-new/releases/tag/v0.1.2",
-    "release_created_at": "2026-10-08T00:15:53Z",
-    "release_published_at": "2026-10-08T00:56:05Z",
     "manifest_url": "https://github.com/tailrocks/velnor-new/releases/download/v0.1.2/release-manifest.json",
     "source_ref": "refs/heads/main",
     "source_commit": "0bc92db23a4ba04801fd24097d604961190bc907",
@@ -122,19 +185,34 @@
   "proposal_scope": {
     "kind": "observed source facts, not product tests",
     "product_test_results": "NOT_RUN",
-    "qualification_limit": "The Velnor attestations establish provenance for the listed v0.1.2 tool release artifacts only. The current Termrock workflow was rejected before runner jobs; the CI API reports zero jobs and zero artifacts.",
-    "observed_at": "2026-10-08T05:20:13Z",
+    "qualification_limit": "The exact candidate push run failed before any runner job and produced no artifacts. API metadata for Velnor releases does not establish that the current Termrock CI acquired or executed a generator, and neither source observations nor past tool-release attestations are Termrock product-test results.",
+    "observed_at": "2026-10-08T06:22:51Z",
     "source_product_distinction": {
-      "S_source_observations": "Candidate/reference refs and GitHub CI/DCO records observed at observed_at.",
-      "P_product_test_results": "NOT_RUN; current CI failed before runner jobs and produced no artifacts."
-    }
+      "S_source_observations": "Remote candidate/reference refs, PR metadata, GitHub CI/DCO, the frozen tag/release, committed generator manifest, and Velnor release metadata observed at observed_at.",
+      "P_product_test_results": "NOT_RUN; GitHub rejected the workflow before runner jobs, and the run API reports zero jobs and zero artifacts."
+    },
+    "local_worktree_note": "The shared terminal-components-claude checkout was dirty during inspection even though git rev-parse HEAD matched the remote candidate. This proposal describes the committed remote identities and API observations; no shared checkout files were modified."
   },
   "reference_lineage_observation": {
-    "previous_head_sha": "91aba5102f5b4dabaff506894f8b19166afb27a6",
-    "current_head_sha": "b712422fcc23a19859b851c9ec583b08a1b40136",
-    "current_parent_sha": "91aba5102f5b4dabaff506894f8b19166afb27a6",
+    "previous_head_sha": "b712422fcc23a19859b851c9ec583b08a1b40136",
+    "current_head_sha": "5f6e52f31861f9f4281f1db264ab012457b9bc2e",
+    "current_parent_sha": "b712422fcc23a19859b851c9ec583b08a1b40136",
     "relationship": "immediate_child_fast_forward",
-    "evidence_command": "git show -s --format=%H %P b712422fcc23a19859b851c9ec583b08a1b40136",
+    "evidence_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/commits/5f6e52f31861f9f4281f1db264ab012457b9bc2e",
     "rewrite_observed": false
+  },
+  "candidate_lineage_observation": {
+    "previous_head_sha": "5bdbd7e8460aafc2d6631e47200f69a65e83c1de",
+    "current_head_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
+    "current_parent_sha": "5bdbd7e8460aafc2d6631e47200f69a65e83c1de",
+    "relationship": "immediate_child_fast_forward",
+    "evidence_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/commits/85b51da2e9832dba642abf7d64d032f848cade0e",
+    "rewrite_observed": false
+  },
+  "local_checkout_observation": {
+    "branch": "termrock-implementation",
+    "head_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
+    "working_tree": "dirty",
+    "qualification": "Source identity is the commit SHA only. Uncommitted local work is not included in the GitHub source facts."
   }
 }
