@@ -10,7 +10,7 @@ use crate::collection::EmptyState;
 use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
-use crate::text::{width, wrapped_rows};
+use crate::text::{width, wrap, wrapped_rows};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
@@ -253,21 +253,25 @@ impl<'a> Empty<'a> {
         if let Some(detail) = self.state.detail()
             && area.height >= 3
         {
-            let detail_w = width(detail).min(area.width);
-            let detail_x = area
-                .x
-                .saturating_add(area.width.saturating_sub(detail_w) / 2);
-            ui.paint_str(
-                Rect {
-                    x: detail_x,
-                    y: area.y.saturating_add(2),
-                    width: detail_w,
-                    height: 1,
-                },
-                detail,
-                help.style,
-            );
-            rows = 3;
+            let lines = wrap(detail, area.width.max(1));
+            let budget = usize::from(area.height.saturating_sub(2));
+            let mut painted = 0u16;
+            for line in lines.iter().take(budget) {
+                let line_w = width(line).min(area.width);
+                let line_x = area.x.saturating_add(area.width.saturating_sub(line_w) / 2);
+                ui.paint_str(
+                    Rect {
+                        x: line_x,
+                        y: area.y.saturating_add(2).saturating_add(painted),
+                        width: line_w,
+                        height: 1,
+                    },
+                    line,
+                    help.style,
+                );
+                painted = painted.saturating_add(1);
+            }
+            rows = 2u16.saturating_add(painted);
         }
         rows
     }
