@@ -6,8 +6,9 @@ use tablepro_domain::{Catalog, ColType, ObjectKind, ResultSet, Table, Value};
 use tablepro_domain::{History, HistoryEntry};
 use tablepro_sql as sql;
 use termrock::{
-    Align, AsItem, ChipBarState, Column, ColumnKey, CompletionState, GRID_MAX_COLUMNS, GlyphRole,
-    Grid, GridModel, GridState, Id, Item, ItemKey, SortDir, TextInputState, WidthSample,
+    Align, AsItem, ChipBarState, CodeEditorState, Column, ColumnKey, CompletionState,
+    GRID_MAX_COLUMNS, GlyphRole, Grid, GridModel, GridState, Id, Item, ItemKey, ScrollState,
+    SortDir, TextInputState, WidthSample,
 };
 
 use crate::domain::ResultGrid;
@@ -526,26 +527,60 @@ impl QueryTab {
 #[derive(Debug, Clone)]
 pub struct HistoryTab {
     pub search: String,
+    pub search_state: TextInputState,
     pub selected: usize,
+    pub scope_all: bool,
+    pub failed_only: bool,
     pub entries: Vec<HistoryEntry>,
+    pub code_state: CodeEditorState,
+    pub scroll_state: ScrollState,
 }
 
 impl HistoryTab {
     pub fn new(history: &History) -> Self {
-        Self {
+        let mut tab = Self {
             search: String::new(),
+            search_state: TextInputState::default(),
             selected: 0,
-            entries: history.entries.clone(),
-        }
+            scope_all: false,
+            failed_only: false,
+            entries: Vec::new(),
+            code_state: CodeEditorState::default(),
+            scroll_state: ScrollState::default(),
+        };
+        tab.refresh(history, "Production");
+        tab
     }
 
-    pub fn filter(&mut self, history: &History) {
+    pub fn refresh(&mut self, history: &History, connection: &str) {
+        let conn_opt = if self.scope_all {
+            None
+        } else {
+            Some(connection)
+        };
         self.entries = history
-            .search(&self.search, None, false)
+            .search(&self.search, conn_opt, self.failed_only)
             .into_iter()
             .cloned()
             .collect();
         self.selected = self.selected.min(self.entries.len().saturating_sub(1));
+        self.scroll_state.ensure_visible(self.selected);
+        self.sync_detail();
+    }
+
+    pub fn sync_detail(&mut self) {
+        let text = self.current_entry().map(|e| e.sql.as_str()).unwrap_or("");
+        if self.code_state.text() != text {
+            self.code_state = CodeEditorState::new(text);
+        }
+    }
+
+    pub fn current_entry(&self) -> Option<&HistoryEntry> {
+        self.entries.get(self.selected)
+    }
+
+    pub fn filter(&mut self, history: &History) {
+        self.refresh(history, "Production");
     }
 
     pub fn selected_query(&self) -> Option<String> {

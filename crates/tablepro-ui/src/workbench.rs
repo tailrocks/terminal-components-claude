@@ -253,12 +253,20 @@ impl Workbench {
         self.query_counter = number;
         Some(key)
     }
-    /// Open history with a fresh identity.
+    /// Open history, activating the existing history tab if already open, or creating one.
     pub fn open_history(&mut self) -> Option<TabKey> {
-        self.insert_tab(
-            self.tabs.len(),
-            Tab::History(HistoryTab::new(&self.history)),
-        )
+        if let Some(key) = self.tabs.iter().find_map(|r| match r.payload() {
+            Tab::History(_) => Some(r.key()),
+            _ => None,
+        }) {
+            self.active = Some(key);
+            let conn = self.connection.name.clone();
+            self.refresh_history_tab(key, &conn);
+            return Some(key);
+        }
+        let mut tab = HistoryTab::new(&self.history);
+        tab.refresh(&self.history, &self.connection.name);
+        self.insert_tab(self.tabs.len(), Tab::History(tab))
     }
     /// Close a clean tab; dirty tabs require explicit confirmation.
     pub fn close_tab(&mut self, index: usize) -> bool {
@@ -423,6 +431,15 @@ impl Workbench {
             .iter()
             .filter(|item| item.kind == ObjectKind::Table)
             .count()
+    }
+
+    /// Refresh a history tab against the active history and connection name.
+    pub fn refresh_history_tab(&mut self, key: TabKey, connection_name: &str) {
+        if let Some(record) = self.tabs.iter_mut().find(|r| r.key() == key) {
+            if let Tab::History(h) = record.lifecycle_payload_mut() {
+                h.refresh(&self.history, connection_name);
+            }
+        }
     }
 }
 

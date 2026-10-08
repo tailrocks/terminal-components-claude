@@ -2,16 +2,16 @@
 
 use termrock::author::PaintStyle;
 use termrock::{
-    Action, ActionKey, App, AsItem, Button, Checkbox, ChipBar, ChipBarAction, Chord, ColumnKey,
-    Completion, CompletionAction, CompletionController, Cx, Dialog, DialogAction, DialogState,
-    Empty, EmptyState, Family, FgStep, Field, FocusVia, Focusability, Form, FormAction, FormState,
-    FrameRead, Grid, GridAction, GridEditor, GridModel, Hint, HintBar, HintKey, HintLayer, Id,
-    Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec,
-    Modifier, Panel, PanelKind, Part, Phase, PickerAction, Props, PropsRow, Response, Role, RowUi,
-    Select, SelectAction, SelectField, SelectState, Size, SortDir, Span, SplitAxis, SplitPane,
-    SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
-    Theme, Toggle, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant,
-    truncate, wrap,
+    Action, ActionKey, App, AsItem, Button, Checkbox, ChipBar, ChipBarAction, Chord, CodeEditor,
+    CodeEditorState, ColumnKey, Completion, CompletionAction, CompletionController, Cx, Dialog,
+    DialogAction, DialogState, Empty, EmptyState, Family, FgStep, Field, FocusVia, Focusability,
+    Form, FormAction, FormState, FrameRead, GlyphRole, Grid, GridAction, GridEditor, GridModel,
+    Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers,
+    KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase, PickerAction,
+    Props, PropsRow, Response, Role, RowUi, ScrollRegion, Select, SelectAction, SelectField,
+    SelectState, Size, SortDir, Span, SplitAxis, SplitModel, SplitPane, SplitPaneState, StylePatch,
+    SyntaxRole, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Toggle,
+    TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -968,6 +968,10 @@ impl TableProApp {
                 self.reset_visual_workbench();
                 self.workbench.open_history();
                 self.sync_active_tab();
+                if let Some(tab_key) = self.workbench.active_key() {
+                    let ctrl = tab_key.control("history");
+                    self.workbench_focus = ctrl;
+                }
                 self.surface = surface;
             }
             Surface::SafetyDialogTypedAck => {
@@ -1914,7 +1918,7 @@ impl TableProApp {
                             q.editor_state.is_editing()
                                 || q.result.as_ref().is_some_and(|r| r.state.is_editing())
                         }
-                        Tab::History(_) => false,
+                        Tab::History(h) => h.search_state.is_editing(),
                     }
                 } else {
                     false
@@ -2956,6 +2960,8 @@ impl TableProApp {
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         let mut pending_filter_edit: Option<Option<usize>> = None;
+        let mut open_query: Option<(String, bool)> = None;
+        let mut history_refresh_keys: Vec<TabKey> = Vec::new();
         for (key, tab) in self.workbench.payloads_mut() {
             let ctrl = match tab {
                 Tab::Table(t) if t.is_structure() => key.control("structure"),
@@ -3127,7 +3133,166 @@ impl TableProApp {
                         response |= grid_response.erase();
                     }
                 }
-                Tab::History(_) => {}
+                Tab::History(history) => {
+                    let search_id = key.control("search");
+                    let list_id = key.control("history");
+                    let open_id = key.control("open");
+                    let rerun_id = key.control("rerun");
+                    let copy_id = key.control("copy");
+
+                    if cx
+                        .intents(search_id)
+                        .any(|it| matches!(it, Intent::FocusIn { .. }))
+                    {
+                        self.workbench_focus = search_id;
+                    }
+
+                    let search_resp = TextInput::new(search_id)
+                        .placeholder("Search history · terms are ANDed")
+                        .update(cx, &mut history.search_state, &mut history.search);
+                    if search_resp.is_changed() || search_resp.action_ref().is_some() {
+                        history_refresh_keys.push(key);
+                        response |= Response::changed();
+                    }
+
+                    if history.search_state.is_editing()
+                        && cx.intents(search_id).any(|it| match it {
+                            Intent::Key(termrock::Key {
+                                code: KeyCode::Down,
+                                ..
+                            }) => true,
+                            _ => false,
+                        })
+                    {
+                        let _ = history
+                            .search_state
+                            .commit(&mut history.search, &termrock::NoValidate);
+                        self.workbench_focus = list_id;
+                        cx.focus(list_id);
+                        response |= Response::changed();
+                    }
+
+                    for it in cx.intents(list_id) {
+                        match it {
+                            Intent::Key(k) => match k.code {
+                                KeyCode::Char('/') => {
+                                    history.search_state.begin(&history.search);
+                                    self.workbench_focus = search_id;
+                                    cx.focus(search_id);
+                                    response |= Response::changed();
+                                }
+                                KeyCode::Char('c') => {
+                                    history.scope_all = !history.scope_all;
+                                    history_refresh_keys.push(key);
+                                    response |= Response::changed();
+                                }
+                                KeyCode::Char('s') => {
+                                    history.failed_only = !history.failed_only;
+                                    history_refresh_keys.push(key);
+                                    response |= Response::changed();
+                                }
+                                KeyCode::Enter => {
+                                    if let Some(e) = history.current_entry() {
+                                        open_query = Some((e.sql.clone(), false));
+                                        response |= Response::changed();
+                                    }
+                                }
+                                KeyCode::Char('r') => {
+                                    if let Some(e) = history.current_entry() {
+                                        open_query = Some((e.sql.clone(), true));
+                                        response |= Response::changed();
+                                    }
+                                }
+                                KeyCode::Char('y') => {
+                                    "Query copied".clone_into(&mut self.status);
+                                    response |= Response::changed();
+                                }
+                                KeyCode::Down => {
+                                    if !history.entries.is_empty() {
+                                        history.selected = (history.selected.saturating_add(1))
+                                            .min(history.entries.len().saturating_sub(1));
+                                        history.scroll_state.ensure_visible(history.selected);
+                                        history.sync_detail();
+                                        response |= Response::changed();
+                                    }
+                                }
+                                KeyCode::Up => {
+                                    if !history.entries.is_empty() {
+                                        history.selected = history.selected.saturating_sub(1);
+                                        history.scroll_state.ensure_visible(history.selected);
+                                        history.sync_detail();
+                                        response |= Response::changed();
+                                    }
+                                }
+                                KeyCode::Home => {
+                                    if !history.entries.is_empty() {
+                                        history.selected = 0;
+                                        history.scroll_state.ensure_visible(history.selected);
+                                        history.sync_detail();
+                                        response |= Response::changed();
+                                    }
+                                }
+                                KeyCode::End => {
+                                    if !history.entries.is_empty() {
+                                        history.selected = history.entries.len().saturating_sub(1);
+                                        history.scroll_state.ensure_visible(history.selected);
+                                        history.sync_detail();
+                                        response |= Response::changed();
+                                    }
+                                }
+                                KeyCode::PageDown => {
+                                    if !history.entries.is_empty() {
+                                        history.selected = (history.selected.saturating_add(10))
+                                            .min(history.entries.len().saturating_sub(1));
+                                        history.scroll_state.ensure_visible(history.selected);
+                                        history.sync_detail();
+                                        response |= Response::changed();
+                                    }
+                                }
+                                KeyCode::PageUp => {
+                                    if !history.entries.is_empty() {
+                                        history.selected = history.selected.saturating_sub(10);
+                                        history.scroll_state.ensure_visible(history.selected);
+                                        history.sync_detail();
+                                        response |= Response::changed();
+                                    }
+                                }
+                                _ => {}
+                            },
+                            _ => {}
+                        }
+                    }
+
+                    let open_resp = Button::new(open_id, "Open in new tab").update(cx);
+                    if open_resp.activated() {
+                        if let Some(e) = history.current_entry() {
+                            open_query = Some((e.sql.clone(), false));
+                            response |= Response::changed();
+                        }
+                    }
+                    let rerun_resp = Button::new(rerun_id, "Run in new tab").update(cx);
+                    if rerun_resp.activated() {
+                        if let Some(e) = history.current_entry() {
+                            open_query = Some((e.sql.clone(), true));
+                            response |= Response::changed();
+                        }
+                    }
+                    let copy_resp = Button::new(copy_id, "Copy").update(cx);
+                    if copy_resp.activated() {
+                        "Query copied".clone_into(&mut self.status);
+                        response |= Response::changed();
+                    }
+                }
+            }
+        }
+        for tab_key in history_refresh_keys {
+            self.workbench
+                .refresh_history_tab(tab_key, &self.connection.name);
+        }
+        if let Some((sql, rerun)) = open_query {
+            self.new_query(sql);
+            if rerun {
+                self.request_query(cx);
             }
         }
         if let Some(index) = pending_filter_edit {
@@ -5243,6 +5408,32 @@ impl TableProApp {
         }
     }
 
+    fn highlight_sql(src: &str) -> Vec<(std::ops::Range<usize>, SyntaxRole)> {
+        sql::tokenize(src)
+            .into_iter()
+            .filter_map(|t| {
+                let role = match t.kind {
+                    sql::TokKind::Keyword => SyntaxRole::Keyword,
+                    sql::TokKind::Ident => SyntaxRole::Ident,
+                    sql::TokKind::Number => SyntaxRole::Number,
+                    sql::TokKind::String => SyntaxRole::Str,
+                    sql::TokKind::Operator => SyntaxRole::Operator,
+                    sql::TokKind::Punct => SyntaxRole::Punct,
+                    sql::TokKind::Comment => SyntaxRole::Comment,
+                    sql::TokKind::Whitespace => return None,
+                };
+                Some((t.start..t.end, role))
+            })
+            .collect()
+    }
+
+    fn segment_sql(src: &str) -> Vec<std::ops::Range<usize>> {
+        tablepro_sql::split_statements(src)
+            .into_iter()
+            .map(|(a, b)| a..b)
+            .collect()
+    }
+
     fn draw_content(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         let (title, meta) = match self.workbench.active() {
             Some(Tab::Table(table)) => (
@@ -5959,14 +6150,243 @@ impl TableProApp {
                 }
             }
             Some(Tab::History(history)) => {
-                ui.paint_str(inner, "Query history", ui.surface_style());
-                for (offset, entry) in history.entries.iter().take(6).enumerate() {
-                    let row = termrock::Rect {
-                        y: inner.y.saturating_add(1).saturating_add(offset as u16),
-                        height: 1,
-                        ..inner
+                let active_key = self.workbench.active_key();
+                let tab_key = active_key.unwrap_or_else(|| TabKey::new(1));
+                let search_id = tab_key.control("search");
+                let list_id = tab_key.control("history");
+                let card_id = tab_key.control("card");
+                let open_id = tab_key.control("open");
+                let rerun_id = tab_key.control("rerun");
+                let copy_id = tab_key.control("copy");
+
+                // Toolbar: search field + scope/status readout
+                let scope = format!(
+                    "scope: {}  ·  status: {}",
+                    if history.scope_all {
+                        "all connections"
+                    } else {
+                        &self.connection.name
+                    },
+                    if history.failed_only { "failed" } else { "any" }
+                );
+                let scope_w = termrock::width(&scope);
+                let search_w = inner
+                    .width
+                    .min(60)
+                    .min(inner.width.saturating_sub(scope_w.saturating_add(2)))
+                    .max(30)
+                    .min(inner.width);
+                let search_rect =
+                    termrock::Rect::new(inner.x, inner.y.saturating_add(1), search_w, 1);
+                let search_input =
+                    TextInput::new(search_id).placeholder("Search history · terms are ANDed");
+                search_input.draw(ui, search_rect, &history.search_state);
+
+                let sx = inner.x.saturating_add(search_w).saturating_add(2);
+                if sx.saturating_add(20) < inner.right() {
+                    let scope_rect = termrock::Rect::new(
+                        sx,
+                        inner.y.saturating_add(1),
+                        inner.right().saturating_sub(sx),
+                        1,
+                    );
+                    let muted_style = ui.surface_style().patch(
+                        ui.paint_patch(
+                            &termrock::StylePatch::new()
+                                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted)),
+                        ),
+                    );
+                    let _ =
+                        ui.paint_str(scope_rect, &truncate(&scope, scope_rect.width), muted_style);
+                }
+
+                // Body: split horizontally at inner.y + 3
+                let body = termrock::Rect::new(
+                    inner.x,
+                    inner.y.saturating_add(3),
+                    inner.width,
+                    inner.height.saturating_sub(3),
+                );
+                let (left_pane, right_pane) =
+                    SplitModel::new(SplitAxis::Horizontal, 50, 30, 30).layout(body, 2);
+
+                // Left pane: history query list
+                let in_picker = self.switcher_open || self.tab_list_open || self.safe_mode_open;
+                let in_dialog = self.safety_dialog.is_some()
+                    || self.destructive_intent.is_some()
+                    || self.help_open;
+                let list_focused = !in_picker && !in_dialog && self.workbench_focus == list_id;
+
+                let view =
+                    ScrollRegion::view(&history.scroll_state, left_pane, history.entries.len());
+                let content_rect = ScrollRegion::new(list_id).draw(
+                    ui,
+                    left_pane,
+                    &history.scroll_state,
+                    history.entries.len(),
+                );
+
+                if !ui.is_inert() {
+                    ui.register_control(list_id, left_pane, Focusability::Focusable);
+                }
+
+                let entries = &history.entries;
+                for (row_idx, entry_idx) in view.visible_range().enumerate() {
+                    let Some(entry) = entries.get(entry_idx) else {
+                        break;
                     };
-                    ui.paint_str(row, &entry.sql, ui.surface_style());
+                    let is_selected = entry_idx == history.selected;
+                    let row_y = content_rect.y.saturating_add(row_idx as u16);
+                    let row_rect = termrock::Rect::new(
+                        content_rect.x,
+                        row_y,
+                        content_rect.width.saturating_sub(1),
+                        1,
+                    );
+
+                    let mut flags = termrock::StateFlags::empty();
+                    if is_selected {
+                        flags |= termrock::StateFlags::SELECTED;
+                        if list_focused {
+                            flags |=
+                                termrock::StateFlags::FOCUSED | termrock::StateFlags::FOCUS_VISIBLE;
+                        }
+                    }
+                    if !entry.ok() {
+                        flags |= termrock::StateFlags::ERROR;
+                    }
+
+                    let mut r = RowUi::new(
+                        ui,
+                        list_id,
+                        Family::LIST,
+                        Variant::DEFAULT,
+                        flags,
+                        ItemKey::num(entry.id as u64),
+                        row_rect,
+                    );
+
+                    r.gutter();
+
+                    if !entry.ok() {
+                        r.marker(GlyphRole::Error);
+                    } else if is_selected {
+                        r.marker(GlyphRole::Chosen);
+                    } else {
+                        r.indent(1);
+                    }
+
+                    let meta_str = format!("{} · {}", entry.when(), entry.duration());
+                    let meta_w = termrock::width(&meta_str);
+                    let label_w = row_rect.width.saturating_sub(4);
+                    if label_w.saturating_sub(meta_w + 2) >= 12 {
+                        r.meta(&meta_str);
+                    }
+                    r.label(&truncate(&entry.first_line(), 90));
+                }
+
+                // Right pane: query detail card
+                if !right_pane.is_empty() {
+                    if let Some(entry) = history.current_entry() {
+                        let meta = format!("{} · {}", entry.source.label(), entry.when());
+                        let card = Panel::new(card_id)
+                            .kind(PanelKind::Card)
+                            .title("Query")
+                            .meta(&meta)
+                            .patch_part(&CONNECTION_DETAILS_TITLE_PATCH)
+                            .focused(false);
+                        card.draw(ui, right_pane, |ui, inner| {
+                            let wrapped = entry
+                                .sql
+                                .lines()
+                                .flat_map(|l| wrap(l, inner.width.saturating_sub(8)))
+                                .collect::<Vec<_>>()
+                                .join("\n");
+                            let code_state = CodeEditorState::new(&wrapped);
+                            let line_count = wrapped.lines().count() as u16;
+                            let editor_h = (line_count.saturating_add(1))
+                                .clamp(3, inner.height.saturating_sub(8).max(3));
+
+                            let editor_area = termrock::Rect::new(
+                                inner.x.saturating_sub(1),
+                                inner.y,
+                                inner.width.saturating_add(1),
+                                editor_h,
+                            );
+                            let code_editor = CodeEditor::new(card_id.sub("detail"), editor_h)
+                                .read_only(true)
+                                .highlighter(&Self::highlight_sql)
+                                .segmenter(&Self::segment_sql);
+                            code_editor.draw(ui, editor_area, &code_state);
+
+                            let conn_str = format!(
+                                "{} · {}.{}",
+                                entry.connection, entry.database, entry.schema
+                            );
+                            let duration_str = entry.duration();
+                            let rows_str = entry
+                                .rows
+                                .map(format_thousands)
+                                .unwrap_or_else(|| "–".into());
+
+                            let mut facts = vec![
+                                PropsRow::new(ItemKey::num(0), "Connection", &conn_str)
+                                    .tone(Role::Fg(FgStep::Secondary)),
+                                PropsRow::new(ItemKey::num(1), "Duration", &duration_str)
+                                    .tone(Role::Fg(FgStep::Secondary)),
+                                PropsRow::new(ItemKey::num(2), "Rows", &rows_str)
+                                    .tone(Role::Fg(FgStep::Secondary)),
+                            ];
+                            let err_str = entry.error.clone();
+                            if let Some(err) = &err_str {
+                                facts.push(
+                                    PropsRow::new(ItemKey::num(3), "Error", err)
+                                        .tone(Role::Danger)
+                                        .wrap(),
+                                );
+                            }
+
+                            let fy = inner.y.saturating_add(editor_h).saturating_add(1);
+                            let props_area = termrock::Rect::new(
+                                inner.x,
+                                fy,
+                                inner.width,
+                                inner.bottom().saturating_sub(fy.saturating_add(2)),
+                            );
+                            let drawn_props = Props::rich(&facts).draw(ui, props_area);
+                            let used = drawn_props.height;
+
+                            let ay = (fy.saturating_add(used).saturating_add(1))
+                                .min(inner.bottom().saturating_sub(1));
+                            let widths = [17, 16, 6];
+                            let btn_area = termrock::Rect::new(inner.x, ay, inner.width, 1);
+                            let rects = Self::row_layout(btn_area, &widths, 2);
+                            if let Some(&rect) = rects.get(0) {
+                                Button::new(open_id, "Open in new tab")
+                                    .variant(Variant::PRIMARY)
+                                    .draw(ui, rect);
+                            }
+                            if let Some(&rect) = rects.get(1) {
+                                Button::new(rerun_id, "Run in new tab")
+                                    .variant(Variant::SECONDARY)
+                                    .draw(ui, rect);
+                            }
+                            if let Some(&rect) = rects.get(2) {
+                                Button::new(copy_id, "Copy")
+                                    .variant(Variant::SUBTLE)
+                                    .draw(ui, rect);
+                            }
+                        });
+                    } else {
+                        Empty::new(
+                            card_id,
+                            EmptyState::Empty {
+                                title: "Select a query",
+                                hint: None,
+                            },
+                        )
+                        .draw(ui, right_pane);
+                    }
                 }
             }
             None => {
@@ -6929,12 +7349,27 @@ fn footer_layer(app: &TableProApp, ui: &Ui, width: u16) -> HintLayer {
                 ("/", "Find"),
                 ("Tab", "Next"),
             ],
-            Some(Tab::History(_)) => &[
-                ("↑ ↓", "Move"),
-                ("Enter", "Open"),
-                ("/", "Filter"),
-                ("Tab", "Next"),
-            ],
+            Some(Tab::History(h)) => {
+                if h.search_state.is_editing() {
+                    &[
+                        ("Type", "Search"),
+                        ("Enter", "Done"),
+                        ("Esc", "Clear"),
+                        ("Tab", "Next"),
+                    ]
+                } else if !explorer_focused {
+                    &[
+                        ("Enter", "Open in new tab"),
+                        ("r", "Rerun"),
+                        ("y", "Copy"),
+                        ("/", "Search"),
+                        ("c s", "Scope · Status"),
+                        ("Tab", "Next"),
+                    ]
+                } else {
+                    &[("↑ ↓", "Move"), ("/", "Search"), ("Tab", "Next")]
+                }
+            }
             None => &[
                 ("Ctrl+N", "New query"),
                 ("Ctrl+O", "Quick open"),
@@ -7255,6 +7690,11 @@ impl App for TableProApp {
                 c if c == HISTORY => {
                     self.workbench.open_history();
                     self.sync_active_tab();
+                    if let Some(tab_key) = self.workbench.active_key() {
+                        let ctrl = tab_key.control("history");
+                        self.workbench_focus = ctrl;
+                        cx.focus(ctrl);
+                    }
                     response |= Response::changed();
                 }
                 c if c == STRUCTURE => {
@@ -7666,6 +8106,10 @@ impl App for TableProApp {
                         if let Some(tab_key) = self.workbench.active_key() {
                             if let Some(Tab::Table(_)) = self.workbench.active() {
                                 let ctrl = tab_key.control("data");
+                                self.workbench_focus = ctrl;
+                                cx.focus(ctrl);
+                            } else if let Some(Tab::History(_)) = self.workbench.active() {
+                                let ctrl = tab_key.control("history");
                                 self.workbench_focus = ctrl;
                                 cx.focus(ctrl);
                             } else if let Some(focus) = self.query_id().or_else(|| self.result_id())

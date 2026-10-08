@@ -104,7 +104,7 @@ impl History {
     /// Build the deterministic demo history.
     pub fn seeded() -> Self {
         let mut out = Self::default();
-        let rows = [
+        let seed = [
             (
                 "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 200",
                 "Production",
@@ -126,7 +126,7 @@ impl History {
                 HistorySource::Editor,
             ),
             (
-                "EXPLAIN ANALYZE SELECT * FROM orders WHERE customer_id = '3f1a…'",
+                "EXPLAIN ANALYZE SELECT * FROM orders WHERE customer_id = '3f1a…' ",
                 "Production",
                 "acme_prod",
                 15,
@@ -156,27 +156,109 @@ impl History {
                 HistorySource::RowEdits,
             ),
             (
+                "SELECT o.id, o.total_amount, c.email\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nWHERE o.total_amount > 500\n  AND o.status IN ('paid', 'shipped')\nORDER BY o.total_amount DESC\nLIMIT 50",
+                "Production",
+                "acme_prod",
+                95,
+                Some(61),
+                Some(50),
+                None,
+                HistorySource::Editor,
+            ),
+            (
                 "SELECT * FROM ordres",
                 "Production",
                 "acme_prod",
                 96,
                 None,
                 None,
-                Some("relation \\\"ordres\\\" does not exist"),
+                Some("relation \"ordres\" does not exist"),
+                HistorySource::Editor,
+            ),
+            (
+                "SELECT day, revenue, refunds FROM analytics.daily_revenue WHERE day >= '2025-01-01' ORDER BY day",
+                "Production",
+                "acme_prod",
+                3 * 60,
+                Some(14),
+                Some(244),
+                None,
+                HistorySource::Editor,
+            ),
+            (
+                "DELETE FROM audit.login_attempts WHERE attempted_at < '2024-01-01'",
+                "Development",
+                "acme_dev",
+                5 * 60,
+                Some(1_820),
+                Some(41_002),
+                None,
                 HistorySource::Editor,
             ),
             (
                 "ALTER TABLE orders ADD COLUMN is_gift boolean NOT NULL DEFAULT false",
                 "Development",
                 "acme_dev",
-                1_560,
+                26 * 60,
                 Some(88),
                 Some(0),
                 None,
                 HistorySource::Structure,
             ),
+            (
+                "SELECT email, full_name FROM customers WHERE email LIKE '%@northwind.io'",
+                "Development",
+                "acme_dev",
+                27 * 60,
+                Some(7),
+                Some(412),
+                None,
+                HistorySource::Editor,
+            ),
+            (
+                "SELECT * FROM payments WHERE status = 'failed' AND created_at > now() - interval '7 days'",
+                "Production",
+                "acme_prod",
+                30 * 60,
+                Some(24),
+                Some(318),
+                None,
+                HistorySource::Editor,
+            ),
+            (
+                "SELECT plan, count(*) FROM subscriptions GROUP BY plan",
+                "Production",
+                "acme_prod",
+                3 * 24 * 60,
+                Some(5),
+                Some(3),
+                None,
+                HistorySource::Editor,
+            ),
+            (
+                "TRUNCATE analytics.events",
+                "Development",
+                "acme_dev",
+                4 * 24 * 60,
+                Some(210),
+                Some(0),
+                None,
+                HistorySource::Editor,
+            ),
+            (
+                "SELECT * FROM events WHERE event_type = 'checkout' LIMIT 100",
+                "Development",
+                "acme_dev",
+                5 * 24 * 60,
+                None,
+                None,
+                Some("canceling statement due to user request"),
+                HistorySource::Editor,
+            ),
         ];
-        for (sql_text, connection, database, minutes, duration, rows_count, error, source) in rows {
+        for (sql_text, connection, database, minutes, duration, rows_count, error, source) in
+            seed.into_iter().rev()
+        {
             out.push(HistoryEntry {
                 id: 0,
                 sql: sql_text.to_owned(),
@@ -190,6 +272,7 @@ impl History {
                 source,
             });
         }
+        out.entries.reverse();
         out
     }
 
