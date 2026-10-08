@@ -7,7 +7,7 @@ use termrock::{
     TabsState, Ui, Variant, id, width,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{ModalFooter, Page, PageUpdate, frame};
 
 const TAB: Id = id!("settings.tabs");
 const MEMBERS: Id = id!("settings.members");
@@ -448,6 +448,13 @@ impl Page for SettingsPage {
         } else {
             &[("Enter", "Edit / activate"), ("Ctrl+S", "Save")]
         }
+    }
+
+    fn modal_footer(&self, ui: &Ui<'_>) -> Option<ModalFooter> {
+        ui.is_open(REMOVE_DIALOG).then(|| ModalFooter {
+            editing: self.remove_state.is_editing(),
+            quick_answer: remove_dialog().quick_answer(),
+        })
     }
 }
 

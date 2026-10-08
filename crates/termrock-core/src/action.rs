@@ -84,6 +84,20 @@ impl<'a> Action<'a> {
         }
     }
 
+    /// A primary-emphasis action. Unlike the dialog's primary key, this
+    /// styles without moving initial focus (tag facts dialogs focus
+    /// Cancel while the confirming action stays primary).
+    pub const fn primary(key: ActionKey, label: &'a str) -> Self {
+        Action {
+            key,
+            label,
+            variant: Variant::PRIMARY,
+            chord: None,
+            enabled: true,
+            danger: false,
+        }
+    }
+
     /// A destructive action.
     pub const fn danger(key: ActionKey, label: &'a str) -> Self {
         Action {
@@ -93,6 +107,18 @@ impl<'a> Action<'a> {
             chord: None,
             enabled: true,
             danger: true,
+        }
+    }
+
+    /// A secondary-emphasis action.
+    pub const fn secondary(key: ActionKey, label: &'a str) -> Self {
+        Action {
+            key,
+            label,
+            variant: Variant::SECONDARY,
+            chord: None,
+            enabled: true,
+            danger: false,
         }
     }
 

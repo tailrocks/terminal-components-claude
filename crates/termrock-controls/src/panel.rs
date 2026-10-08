@@ -10,7 +10,7 @@ use crate::id::{Id, Part, PartRef};
 use crate::layout::{Insets, inset};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
+use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, Surface, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// How a panel marks its edge.
@@ -27,6 +27,14 @@ pub enum PanelKind {
     /// A bordered pane on the parent's own surface.
     Framed,
 }
+
+/// Component-default meta tone: the historical panel paints its meta
+/// `t.faint()` unconditionally (`tag:panel.rs:200`; frozen tables y4,
+/// editable y4, lists y4, datagrid y5). It rides under any instance
+/// `Part::DETAIL` patch, so explicit patches keep winning and the shared
+/// `(PANEL, DETAIL)` recipe slot — which also voices shell chrome and
+/// page headings — stays untouched.
+const META_FAINT: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Faint));
 
 /// A titled container that fills a rectangle, marks its edge and hands its
 /// content the inner rect on its own surface.
@@ -119,6 +127,7 @@ pub struct Panel<'a> {
     meta: Option<&'a str>,
     badge: Option<&'a str>,
     focused: bool,
+    meta_late: bool,
     custom_inset: Option<Insets>,
     ov: PartStyle<'a>,
 }
@@ -132,6 +141,7 @@ impl fmt::Debug for Panel<'_> {
             .field("meta", &self.meta)
             .field("badge", &self.badge)
             .field("focused", &self.focused)
+            .field("meta_late", &self.meta_late)
             .field("custom_inset", &self.custom_inset)
             .field("overrides", &self.ov)
             .finish()
@@ -158,6 +168,7 @@ impl<'a> Panel<'a> {
             meta: None,
             badge: None,
             focused: false,
+            meta_late: false,
             custom_inset: None,
             ov: PartStyle::new(),
         }
@@ -183,9 +194,22 @@ impl<'a> Panel<'a> {
     }
 
     /// Right-aligned secondary text in the head row.
+    ///
+    /// The meta paints faint unless the instance patches `Part::DETAIL`
+    /// (the historical panel paints `t.faint()` unconditionally).
     #[must_use]
     pub const fn meta(mut self, m: &'a str) -> Self {
         self.meta = Some(m);
+        self
+    }
+
+    /// The meta was derived from child layout at draw time (a scroll
+    /// position), so the head row keeps the historical second-pass net
+    /// effect: where the meta truncates the title, the title style shows
+    /// through the gap. Construction-time metas leave the gap untouched.
+    #[must_use]
+    pub const fn meta_late(mut self, yes: bool) -> Self {
+        self.meta_late = yes;
         self
     }
 
@@ -556,7 +580,15 @@ impl<'a> Panel<'a> {
             if let Some(f) = ov.slot_for(Part::DETAIL) {
                 f(ui, rect);
             } else {
-                let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
+                let s = ov.style_with_default(
+                    ui,
+                    id,
+                    Family::PANEL,
+                    Variant::DEFAULT,
+                    Part::DETAIL,
+                    live,
+                    &META_FAINT,
+                );
                 paint_label(ui, rect, m, pad, s.style);
             }
         }
@@ -597,6 +629,11 @@ impl<'a> Panel<'a> {
             .map(|m| crate::text::width(m).saturating_add(pad.saturating_mul(2)))
             .unwrap_or(0);
         let mut cx = text_x;
+        // A late meta truncates a title the historical first pass painted
+        // in full; the recorded span lets the pass below reproduce the
+        // second-pass net effect directly: (style, gap start, full-title
+        // end). It stays unused for construction-time metas.
+        let mut title_gap: Option<(crate::theme::PaintStyle, u16, u16)> = None;
         if let Some(t) = self.title {
             let room = if meta_w > 0 {
                 span_w.saturating_sub(meta_w + 1 + pad.saturating_mul(2))
@@ -622,17 +659,23 @@ impl<'a> Panel<'a> {
                 if pad == 1 {
                     ui.fill(cell_at(head, rect.right()), s.style);
                 }
+                let full_end = text_x
+                    .saturating_add(crate::text::width(t))
+                    .saturating_add(pad.saturating_mul(2));
+                title_gap = Some((s.style, rect.right().saturating_add(pad), full_end));
             }
             cx = text_x
                 .saturating_add(tw)
                 .saturating_add(pad.saturating_mul(2));
         }
         let mut right = text_x.saturating_add(span_w);
+        let mut meta_x: Option<u16> = None;
         if let Some(m) = meta_trunc {
             let tw = crate::text::width(&m);
             let needed = tw.saturating_add(pad.saturating_mul(2));
             if right >= cx + needed + u16::from(cx > text_x) {
                 right = right.saturating_sub(needed);
+                meta_x = Some(right);
                 let rect = Rect {
                     x: right.saturating_add(pad),
                     y: head.y,
@@ -642,7 +685,15 @@ impl<'a> Panel<'a> {
                 if let Some(f) = ov.slot_for(Part::DETAIL) {
                     f(ui, rect);
                 } else {
-                    let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
+                    let s = ov.style_with_default(
+                        ui,
+                        id,
+                        Family::PANEL,
+                        Variant::DEFAULT,
+                        Part::DETAIL,
+                        live,
+                        &META_FAINT,
+                    );
                     if pad == 1 {
                         ui.fill(cell_at(head, right), s.style);
                     }
@@ -651,6 +702,27 @@ impl<'a> Panel<'a> {
                         ui.fill(cell_at(head, rect.right()), s.style);
                     }
                 }
+            }
+        }
+        // The historical row was painted twice only when the meta arrived
+        // late via `draw_meta`: a symbol-only clear kept the full title's
+        // style under the gap. Construction-time metas paint once, so the
+        // gap keeps the fill style unless the caller declares `meta_late`.
+        if let Some((style, start, full_end)) = title_gap
+            && self.meta_late
+            && self.meta.is_some()
+        {
+            let end = meta_x.map_or(full_end, |x| x.min(full_end));
+            if end > start {
+                ui.fill(
+                    Rect {
+                        x: start,
+                        y: head.y,
+                        width: end.saturating_sub(start),
+                        height: 1,
+                    },
+                    style,
+                );
             }
         }
     }
@@ -988,5 +1060,83 @@ mod tests {
             plain,
             "a slot on Part::CONTAINER changes cells, and `## Overrides` says it does not"
         );
+    }
+
+    /// Q67-owed (T4-O1): an unpatched meta paints faint. The historical
+    /// panel paints `t.faint()` unconditionally (`tag:panel.rs:200`), and
+    /// the shared `(PANEL, DETAIL)` recipe slot cannot carry it (shell
+    /// chrome and page headings resolve Secondary from the same slot) —
+    /// so the default lives inside the component.
+    #[test]
+    fn q67owed_unpatched_meta_is_faint() {
+        use crate::theme::Surface;
+        use crate::theme::resolve::bind_role;
+
+        let theme = Theme::junie();
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 30,
+            height: 5,
+        };
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            Panel::new(ID)
+                .title("T")
+                .meta("mm")
+                .draw(ui, area, |_, inner| inner);
+        })
+        .commit_presented();
+        let faint = bind_role(&theme, Role::Fg(FgStep::Faint), Surface::Canvas);
+        let mut hits = 0;
+        for x in 0..30 {
+            let pos = Position::new(x, 0);
+            if buf.cell(pos).is_some_and(|c| c.symbol() == "m") {
+                assert_eq!(buf.cell(pos).map(|c| c.fg), faint, "meta fg at x={x}");
+                hits += 1;
+            }
+        }
+        assert_eq!(hits, 2, "the meta must paint exactly its own cells");
+    }
+
+    /// Q67-owed (T4-O1): an explicit `Part::DETAIL` patch wins over the
+    /// faint component default on every slot it speaks on.
+    #[test]
+    fn q67owed_detail_patch_wins_over_faint_default() {
+        use crate::theme::Surface;
+        use crate::theme::resolve::bind_role;
+
+        const PATCH: [(Part, StylePatch); 1] = [(
+            Part::DETAIL,
+            StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        )];
+        let theme = Theme::junie();
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 30,
+            height: 5,
+        };
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            Panel::new(ID)
+                .title("T")
+                .meta("mm")
+                .patch_part(&PATCH)
+                .draw(ui, area, |_, inner| inner);
+        })
+        .commit_presented();
+        let secondary = bind_role(&theme, Role::Fg(FgStep::Secondary), Surface::Canvas);
+        let mut hits = 0;
+        for x in 0..30 {
+            let pos = Position::new(x, 0);
+            if buf.cell(pos).is_some_and(|c| c.symbol() == "m") {
+                assert_eq!(buf.cell(pos).map(|c| c.fg), secondary, "meta fg at x={x}");
+                hits += 1;
+            }
+        }
+        assert_eq!(hits, 2, "the meta must paint exactly its own cells");
     }
 }

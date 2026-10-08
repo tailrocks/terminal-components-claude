@@ -271,6 +271,10 @@ impl Page for ChipsPage {
                 ChipBarAction::Activated(_) => "filter activated",
                 ChipBarAction::Closed(_) => "filter closed",
                 ChipBarAction::AddRequested => "filter add requested",
+                // Inert: this page sets neither `.lead()` nor `.clear_all()`,
+                // so the bar never emits these.
+                ChipBarAction::Lead => "lead activated",
+                ChipBarAction::Cleared => "filters cleared",
             };
         }
         result |= chips.erase();

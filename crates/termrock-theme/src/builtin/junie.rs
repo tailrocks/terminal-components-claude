@@ -136,6 +136,11 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         "", "", "", "", //
         // Canonical pause mark; Paper/from_tokens inherit this design too.
         "✓", "‖", "+", "[", "]", "•", "▾", "▴",
+        // Index 41 (`PrimaryKey`) is dead: `GlyphSet::get`/`set` route that
+        // role to its own field and never index the array. Index 42 is the
+        // off half of the switch-knob pair (Q67-F5). Index 43 is the narrow
+        // checkbox off mark (W03-01).
+        "", "○", "□",
     ],
     scrollbar::Set {
         track: "│",
@@ -261,8 +266,83 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
     // is `st.fg(muted)` and must keep `row_like`'s Muted (M2).
     row.entry(Part::META)
         .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
-    row.entry(Part::ICON)
+    // Q67-S14 (N3): a nav-list icon is muted whenever enabled
+    // (`tag:sidebars.rs:242-246`). LIST-scoped: TREE/MENU/CHIP/PICKER
+    // keep `row_like` Secondary under their own families. The List
+    // readiness cell is the only other (LIST, ICON) resolve
+    // (`list.rs:1182`, list-level live flags); NavList rows never carry
+    // BUSY|LOADING|ERROR|WARNING (`nav_list.rs` row flags), so the four
+    // preservation rules voice exactly the readiness
+    // spinner/error/warning and nothing else. DISABLED stays last so
+    // spec-1 ties resolve to it (Q66-S2 F1-L7b-fg; S13 precedent).
+    let icon = row.entry(Part::ICON);
+    icon.base = p().set_fg(Role::Fg(FgStep::Muted));
+    let readiness = p().set_fg(Role::Fg(FgStep::Secondary));
+    icon.when(StateFlags::BUSY, readiness)
+        .when(StateFlags::LOADING, readiness)
+        .when(StateFlags::ERROR, readiness)
+        .when(StateFlags::WARNING, readiness)
         .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
+    // Q67-S14 (N5): a nav-list badge is accent whenever enabled
+    // (`tag:sidebars.rs:249-252`; frozen y6 x52 green). LIST-scoped:
+    // Panel/Hintbar/Tabs badges resolve under their own families and
+    // no List site resolves (LIST, BADGE), so this entry voices exactly
+    // NavList badges. DISABLED clears the fg instead of naming one
+    // (Q66-S3 F1-L7c: the badge inherits the container fill — the row
+    // fill paints first, `fill`/`set_style` keeps cell fg on None —
+    // which IS the tag's disabled `st`).
+    let badge = row.entry(Part::BADGE);
+    badge.base = p().set_fg(Role::Accent);
+    badge.when(StateFlags::DISABLED, p().clear_fg());
+    // Q67-S13 (L-R1/L-R2 + N-L1): the LIST marker is secondary unless the
+    // row is live — the tag keys accent on focus-or-hover
+    // (`tag:list.rs:296-302`) and keeps the row style `st` for disabled
+    // rows. SELECTED|ACTIVE keeps the NavList current destination
+    // accent-always (`tag:sidebars.rs:225-226`; NavList resolves
+    // current-row markers with ACTIVE, List never sets it). DISABLED
+    // compounds mirror the
+    // CONTAINER pattern above so a disabled List row never takes accent;
+    // there is deliberately NO SELECTED|ACTIVE|DISABLED rule — the tag
+    // paints a current marker accent unconditionally, and
+    // disabled-current is unreachable (choose/click guard on enabled,
+    // `set_current` callers use never-disabled shell keys).
+    let marker = row.entry(Part::MARKER);
+    marker.states.clear();
+    let accent = p().set_fg(Role::Accent);
+    let marker_disabled = p().set_fg(Role::DisabledFg);
+    marker
+        .when(
+            StateFlags::SELECTED,
+            p().set_glyph(GlyphRole::Chosen)
+                .set_fg(Role::Fg(FgStep::Secondary)),
+        )
+        .when(
+            StateFlags::CHECKED,
+            p().set_glyph(GlyphRole::Checked)
+                .set_fg(Role::Fg(FgStep::Secondary)),
+        )
+        .when(StateFlags::DISABLED, marker_disabled)
+        .when(StateFlags::SELECTED | StateFlags::FOCUSED, accent)
+        .when(StateFlags::SELECTED | StateFlags::HOVERED, accent)
+        .when(StateFlags::CHECKED | StateFlags::FOCUSED, accent)
+        .when(StateFlags::CHECKED | StateFlags::HOVERED, accent)
+        .when(StateFlags::SELECTED | StateFlags::ACTIVE, accent)
+        .when(
+            StateFlags::SELECTED | StateFlags::FOCUSED | StateFlags::DISABLED,
+            marker_disabled,
+        )
+        .when(
+            StateFlags::SELECTED | StateFlags::HOVERED | StateFlags::DISABLED,
+            marker_disabled,
+        )
+        .when(
+            StateFlags::CHECKED | StateFlags::FOCUSED | StateFlags::DISABLED,
+            marker_disabled,
+        )
+        .when(
+            StateFlags::CHECKED | StateFlags::HOVERED | StateFlags::DISABLED,
+            marker_disabled,
+        );
     // Q66-S3 (F1-L1+L3+L4+DIM, F1-L7c): the LIST targeted mono set is
     // (CONTAINER+GUTTER+META+BADGE, DISABLED)+DIM — the PICKER mirror
     // (`downgrade.rs:639-681`). The tag's disabled row is a full DIM run at

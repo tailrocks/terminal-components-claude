@@ -13,6 +13,7 @@
 
 use core::fmt;
 use core::marker::PhantomData;
+use core::time::Duration;
 
 use ratatui_core::layout::Rect;
 
@@ -706,6 +707,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         if self.disabled {
             return Response::ignored();
         }
+        // W16-02: a running step animates (button precedent) — keep the
+        // tick cadence flowing at the theme's period while one runs.
+        if items
+            .iter()
+            .any(|item| self.state_of(item) == StepState::Running)
+        {
+            cx.request_repaint_after(Duration::from_millis(cx.design().motion.tick_ms));
+        }
         let mut acc = Acc::<StepsAction>::new();
         let len = items.len();
         if let Reconciliation::CursorMoved(key) =
@@ -921,16 +930,30 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                 Part::ICON,
                 flags,
             );
-            let glyph = match icon.glyph {
-                Slot::Set(g) => Some(g),
-                Slot::Inherit => step.glyph(),
-                Slot::Clear => None,
-            };
-            match glyph {
-                Some(g) => {
-                    ui.glyph(mark, g, icon.style);
+            // W16-02: the running step cycles the theme's tick-driven
+            // spinner (reference `spinner_frame`); an explicit glyph
+            // override still wins.
+            let running = step == StepState::Running && matches!(icon.glyph, Slot::Inherit);
+            if running {
+                let frames = ui.design().motion.spinner_frames;
+                let frame = if frames.is_empty() {
+                    ""
+                } else {
+                    frames[ui.tick() as usize % frames.len()]
+                };
+                ui.paint_str(mark, frame, icon.style);
+            } else {
+                let glyph = match icon.glyph {
+                    Slot::Set(g) => Some(g),
+                    Slot::Inherit => step.glyph(),
+                    Slot::Clear => None,
+                };
+                match glyph {
+                    Some(g) => {
+                        ui.glyph(mark, g, icon.style);
+                    }
+                    None => ui.fill(mark, icon.style),
                 }
-                None => ui.fill(mark, icon.style),
             }
         }
         let mut body = Rect {

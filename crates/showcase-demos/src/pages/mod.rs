@@ -9,7 +9,7 @@ use termrock::author::{
     Family, FgStep, Id, Modifier, PaintStyle, Part, PartRef, PartStyle, Rect, Response, Role,
     StateFlags, StylePatch, Ui, Variant,
 };
-use termrock::{id, truncate, width};
+use termrock::{id, truncate, width, wrap};
 
 /// Product intent returned to the shell, which owns its display lifetime.
 pub struct PageStatus(pub String);
@@ -28,6 +28,19 @@ impl From<Response<()>> for PageUpdate {
             status: None,
         }
     }
+}
+
+/// Modal-dialog footer state: what the shell footer shows while a page
+/// holds an open dialog layer (tag `app.rs` `draw_footer`). `editing`
+/// selects the Enter/Esc pair; otherwise the footer shows the
+/// arrow/Enter/Esc hints plus the `y / n` quick answer iff
+/// `quick_answer` (a text question, never the help dialog).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ModalFooter {
+    /// Whether the open dialog's editor is actively editing.
+    pub editing: bool,
+    /// Whether the open dialog answers `y` / `n` directly.
+    pub quick_answer: bool,
 }
 
 /// A stateful screen in the showcase.
@@ -53,6 +66,12 @@ pub trait Page: Send {
     /// Whether the focused page control is in edit mode.
     fn editing(&self, _ui: &Ui<'_>) -> bool {
         false
+    }
+    /// Footer state while this page holds an open dialog layer; `None`
+    /// keeps the page hints. Only `Dialog` layers report here — menus and
+    /// pickers are not dialogs.
+    fn modal_footer(&self, _ui: &Ui<'_>) -> Option<ModalFooter> {
+        None
     }
     /// Set an animation state for deterministic, paused inspection.
     fn seek_paused(&mut self, _frame: usize) {}
@@ -85,16 +104,47 @@ pub fn lines_faint(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
     PageFrame::NOTES.draw_faint_lines(ui, area, text);
 }
 
+/// Paint secondary annotation lines with one-cell spacing, clipping at the body edge.
+pub fn lines_secondary(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
+    PageFrame::NOTES.draw_secondary_lines(ui, area, text);
+}
+
+/// One prose line for [`lines_prose`]: body text plus whether its first
+/// glyph takes the accent marker style (the tag keys that style on the
+/// line's identity, so the page supplies the flag).
+pub struct ProseLine<'a> {
+    /// Body text, wrapped to the area width.
+    pub text: &'a str,
+    /// Whether the first glyph of the first wrapped row paints accent.
+    pub marker: bool,
+}
+
+/// Paint wrapped prose lines, clipping at the body edge.
+///
+/// Thin composition root over the [`PageFrame`] prose path: it paints
+/// nothing itself, so callers inherit the component path unchanged.
+pub fn lines_prose(ui: &mut Ui<'_>, area: Rect, text: &[ProseLine<'_>]) {
+    PageFrame::NOTES.draw_prose_lines(ui, area, text);
+}
+
 /// Stable identity for the page-chrome component. The shell shows one page
 /// at a time, so a single id never collides across pages.
 const FRAME_ID: Id = id!("showcase.page.frame");
 
 const FRAME_FAMILY: Family = Family::custom("showcase-page-frame");
-const FRAME_PARTS: &[Part] = &[Part::CONTAINER, Part::TITLE, Part::DETAIL, Part::TEXT];
+const FRAME_PARTS: &[Part] = &[
+    Part::CONTAINER,
+    Part::TITLE,
+    Part::DETAIL,
+    Part::TEXT,
+    Part::MARKER,
+];
 const TITLE_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
 const DETAIL_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
 const TEXT_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
 const FAINT_TEXT_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Faint));
+const SECONDARY_TEXT_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+const MARKER_PATCH: StylePatch = StylePatch::new().set_fg(Role::Accent);
 const FRAME_PART_PATCHES: &[(Part, StylePatch)] = &[
     (Part::TITLE, TITLE_PATCH),
     (Part::DETAIL, DETAIL_PATCH),
@@ -104,6 +154,17 @@ const FAINT_FRAME_PART_PATCHES: &[(Part, StylePatch)] = &[
     (Part::TITLE, TITLE_PATCH),
     (Part::DETAIL, DETAIL_PATCH),
     (Part::TEXT, FAINT_TEXT_PATCH),
+];
+const SECONDARY_FRAME_PART_PATCHES: &[(Part, StylePatch)] = &[
+    (Part::TITLE, TITLE_PATCH),
+    (Part::DETAIL, DETAIL_PATCH),
+    (Part::TEXT, SECONDARY_TEXT_PATCH),
+];
+const PROSE_FRAME_PART_PATCHES: &[(Part, StylePatch)] = &[
+    (Part::TITLE, TITLE_PATCH),
+    (Part::DETAIL, DETAIL_PATCH),
+    (Part::TEXT, SECONDARY_TEXT_PATCH),
+    (Part::MARKER, MARKER_PATCH),
 ];
 
 /// Page chrome as a downstream-authored reusable component, following the
@@ -153,6 +214,18 @@ impl PageFrame {
             .part(FAINT_FRAME_PART_PATCHES)
     }
 
+    fn secondary_styles() -> PartStyle<'static> {
+        PartStyle::new()
+            .declare(FRAME_PARTS)
+            .part(SECONDARY_FRAME_PART_PATCHES)
+    }
+
+    fn prose_styles() -> PartStyle<'static> {
+        PartStyle::new()
+            .declare(FRAME_PARTS)
+            .part(PROSE_FRAME_PART_PATCHES)
+    }
+
     /// Resolve one part layered over the current surface (§11.3 final
     /// layering, as `Panel` does): unpatched slots inherit the surface, so
     /// `TITLE`/`DETAIL`/`TEXT` bind exactly the legacy styles. Empty flags:
@@ -174,6 +247,34 @@ impl PageFrame {
     fn faint_part_style(ui: &mut Ui<'_>, part: Part) -> PaintStyle {
         let base = ui.surface_style();
         Self::faint_styles()
+            .style(
+                ui,
+                FRAME_ID,
+                FRAME_FAMILY,
+                Variant::DEFAULT,
+                part,
+                StateFlags::empty(),
+            )
+            .over(base)
+    }
+
+    fn secondary_part_style(ui: &mut Ui<'_>, part: Part) -> PaintStyle {
+        let base = ui.surface_style();
+        Self::secondary_styles()
+            .style(
+                ui,
+                FRAME_ID,
+                FRAME_FAMILY,
+                Variant::DEFAULT,
+                part,
+                StateFlags::empty(),
+            )
+            .over(base)
+    }
+
+    fn prose_part_style(ui: &mut Ui<'_>, part: Part) -> PaintStyle {
+        let base = ui.surface_style();
+        Self::prose_styles()
             .style(
                 ui,
                 FRAME_ID,
@@ -250,6 +351,84 @@ impl PageFrame {
         self.draw_styled_lines(ui, area, text, style);
     }
 
+    /// Paint secondary annotation lines with one-cell spacing, clipping at the edge.
+    pub(crate) fn draw_secondary_lines(&self, ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
+        let style = Self::secondary_part_style(ui, Part::TEXT);
+        self.draw_styled_lines(ui, area, text, style);
+    }
+
+    /// Paint prose lines wrapped to the area width, clipping at the edge.
+    ///
+    /// Wrap geometry is owned by the shared [`wrap`] primitive (the same
+    /// word/hard-wrap walk the tag's `text::wrap` runs); rows flow
+    /// top-down across lines and stop at the area bottom. Body rows take
+    /// secondary; a marked line's first wrapped row paints its first
+    /// character accent (`tag:sidebars.rs:431-450`).
+    pub(crate) fn draw_prose_lines(&self, ui: &mut Ui<'_>, area: Rect, text: &[ProseLine<'_>]) {
+        ui.register_decor(FRAME_ID, PartRef::of(Part::TEXT), area);
+        let body = Self::prose_part_style(ui, Part::TEXT);
+        let marker = Self::prose_part_style(ui, Part::MARKER);
+        let rows = text.iter().flat_map(|line| {
+            wrap(line.text, area.width)
+                .into_iter()
+                .enumerate()
+                .map(|(index, wrapped)| (wrapped, line.marker && index == 0))
+        });
+        let mut row = 0u16;
+        for (wrapped, marked) in rows.take(usize::from(area.height)) {
+            let row_area = Rect {
+                y: area.y.saturating_add(row),
+                height: 1,
+                ..area
+            };
+            if marked {
+                self.paint_marker_row(ui, row_area, &wrapped, marker, body);
+            } else {
+                self.paint_row(ui, row_area, &wrapped, body);
+            }
+            row = row.saturating_add(1);
+        }
+    }
+
+    /// Paint one marker row: the first character accent, the rest body.
+    ///
+    /// An empty row (a wrapped blank line) paints nothing; the glyph run
+    /// only ever covers its own measured width, mirroring the tag's two
+    /// `set_string` runs.
+    fn paint_marker_row(
+        &self,
+        ui: &mut Ui<'_>,
+        row_area: Rect,
+        wrapped: &str,
+        marker: PaintStyle,
+        body: PaintStyle,
+    ) {
+        let Some(first) = wrapped.chars().next() else {
+            self.paint_row(ui, row_area, wrapped, body);
+            return;
+        };
+        let glyph = &wrapped[..first.len_utf8()];
+        let glyph_width = width(glyph).min(row_area.width);
+        let glyph_area = Rect {
+            width: glyph_width,
+            ..row_area
+        };
+        ui.register_decor(FRAME_ID, PartRef::of(Part::MARKER), glyph_area);
+        self.paint_row(ui, glyph_area, glyph, marker);
+        let rest_area = Rect {
+            x: row_area.x.saturating_add(glyph_width),
+            width: row_area.width.saturating_sub(glyph_width),
+            ..row_area
+        };
+        self.paint_row(ui, rest_area, &wrapped[first.len_utf8()..], body);
+    }
+
+    /// Paint one pre-clipped annotation row: the single row-painting site
+    /// shared by the truncated and wrapped annotation paths.
+    fn paint_row(&self, ui: &mut Ui<'_>, row_area: Rect, text: &str, style: PaintStyle) {
+        let _ = ui.paint_str(row_area, text, style);
+    }
+
     fn draw_styled_lines(&self, ui: &mut Ui<'_>, area: Rect, text: &[&str], style: PaintStyle) {
         ui.register_decor(FRAME_ID, PartRef::of(Part::TEXT), area);
         for (offset, line) in text.iter().enumerate() {
@@ -260,7 +439,8 @@ impl PageFrame {
                 break;
             }
             let text_to_paint = truncate(line, area.width);
-            let _ = ui.paint_str(
+            self.paint_row(
+                ui,
                 Rect {
                     y: area.y.saturating_add(offset),
                     height: 1,
@@ -300,7 +480,7 @@ pub mod trees;
 
 #[cfg(test)]
 mod clipping_tests {
-    use super::PageFrame;
+    use super::{PageFrame, ProseLine, lines_prose};
     use termrock::{App, Cx, FgStep, Rect, Response, Theme, Ui};
     use termrock_test_support::Harness;
 
@@ -347,5 +527,47 @@ mod clipping_tests {
                 );
             }
         }
+    }
+
+    struct ProseSample;
+    impl App for ProseSample {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+        fn draw(&self, ui: &mut Ui<'_>) {
+            lines_prose(
+                ui,
+                Rect::new(0, 0, 8, 4),
+                &[
+                    ProseLine {
+                        text: "aa bb cc dd",
+                        marker: false,
+                    },
+                    ProseLine {
+                        text: "›  current item",
+                        marker: true,
+                    },
+                ],
+            );
+        }
+    }
+
+    #[test]
+    fn q67b2_prose_wraps_and_marks_first_glyph() {
+        let h = Harness::new(ProseSample, Theme::junie(), 8, 4);
+        // Shared wrap geometry: "aa bb cc dd" breaks after "cc",
+        // "›  current item" breaks after the leading "› ".
+        assert_eq!(h.row(0), "aa bb cc");
+        assert_eq!(h.row(1), "dd      ");
+        assert_eq!(h.row(2), "›       ");
+        assert_eq!(h.row(3), "current ");
+        let theme = Theme::junie();
+        let secondary = theme.color.fg.get(FgStep::Secondary.index()).copied();
+        assert_eq!(Some(h.cell(0, 0).fg), secondary);
+        assert_eq!(Some(h.cell(0, 3).fg), secondary);
+        // Marked line: first glyph accent, the rest secondary.
+        assert_eq!(h.cell(0, 2).symbol(), "›");
+        assert_eq!(h.cell(0, 2).fg, theme.color.accent);
+        assert_eq!(Some(h.cell(1, 2).fg), secondary);
     }
 }

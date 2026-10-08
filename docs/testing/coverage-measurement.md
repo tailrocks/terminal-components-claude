@@ -102,19 +102,44 @@ Each sentence holds one fact.
 - The candidate tip adds 9 commits after the run.
   Six change product code: Q53, FIX-002, Q54, Q55, FIX-002E, Q56.
   The candidate numbers are stale for those 6 deltas.
-- Registry-driven execution is zero on both branches except slices 8A-S1, 8A-T1, and 8A-J1.
+- Registry-driven execution is zero on both branches except slices 8A-S1, 8A-T1, 8A-J1, 8A-S2, 8A-S3, 8A-S4, 8A-S5, 8A-T2, and 8A-J2.
   On the reference branch, phase-8c executed slice 8A-S1 with 21 passes,
-  phase-8e executed slice 8A-T1 with 14 passes, and phase-8g executed
-  slice 8A-J1 with 30 passes.
+  phase-8e executed slice 8A-T1 with 14 passes, phase-8g executed
+  slice 8A-J1 with 30 passes, phase-8v executed slice 8A-S2 with
+  20 passes, slice 8A-S3 added 19 checks (b712422f), slice 8A-S4
+  added 20 checks (5f6e52f31), slice 8A-S5 added 14 checks
+  (68d98ac99), slice 8A-T2 added 14 checks (0ae8cbe8c), and slice
+  8A-J2 added 17 checks (9ae8b8712).
   On the candidate branch, phase-8d executed the ported S1 slice: 3 rows
   report `results.status = pass`, 18 report `fail`.
   Phase-8f executed the ported T1 slice: 5 rows report `pass`, 9 report
   `fail`.
   Phase-8h3 executed the ported J1 slice: 5 rows report `pass`, 25 report
-  `fail`, and 106 rows remain `unrun`.
+  `fail`.
+  Phase-8y executed the ported S2 slice: 2 rows report `pass`, 18 report
+  `fail`.
+  Phase-8aa executed the ported S3 slice: 0 rows report `pass`, 19 report
+  `fail`.
+  Phase-8ad executed the ported S4 slice: 5 rows report `pass`, 15 report
+  `fail`.
+  Phase-8ag executed the ported S5 slice: 4 rows report `pass`, 10 report
+  `fail`.
+  Phase-8ai executed the ported T2 slice: 0 rows report `pass`, 14 report
+  `fail`.
+  Phase-8ak executed the ported J2 slice: 0 rows report `pass`, 17 report
+  `fail`.
+  Phase-8al executed the ported H7 slice: 2 rows report `pass`, 0 report
+  `fail`, and 0 rows remain `unrun`.
   Evidence: `/tmp/phase8d-focused.log` (3 pass / 18 fail / 379 skip),
   `/tmp/phase8f-focused.log` (5 pass / 9 fail / 527 skip),
-  `/tmp/phase8h3-focused.log` (5 pass / 25 fail / 534 skip).
+  `/tmp/phase8h3-focused.log` (5 pass / 25 fail / 534 skip),
+  `/tmp/s2-run2.log` (2 pass / 18 fail / 686 skip),
+  `/tmp/s3-run3.log` (0 pass / 19 fail / 706 skip),
+  `/tmp/s4-run3.log` (5 pass / 15 fail / 725 skip),
+  `/tmp/s5-run2.log` (4 pass / 10 fail / 745 skip),
+  `/tmp/phase8ai-t2.log` (0 pass / 14 fail / 759 skip),
+  `/tmp/phase8ak-j2.log` (0 pass / 17 fail / 774 skip),
+  `/tmp/phase8al-h7.log` (2 pass / 0 fail / 791 skip).
 
 ## Reference passes
 
@@ -208,7 +233,12 @@ Each sentence holds one fact.
   The 42 in S1 rows were exercised live (3 rows pass, 18 fail).
   The 28 in T1 rows were exercised live (5 rows pass, 9 fail).
   The 60 in J1 rows were exercised live (5 rows pass, 25 fail).
-  The other 202 remain unrun.
+  The 30 in S2 rows were exercised live (2 rows pass, 18 fail).
+  The 38 in S3 rows were exercised live (0 rows pass, 19 fail).
+  The 40 in S4 rows were exercised live (5 rows pass, 15 fail).
+  The 28 in S5 rows were exercised live (4 rows pass, 10 fail).
+  The 28 in T2 rows were exercised live (0 rows pass, 14 fail).
+  The other 38 remain unrun.
 - Candidate: no dedicated negative-controls module exists.
 
 ## Uncovered inventory
@@ -228,11 +258,22 @@ Each sentence holds one fact.
   It is a behavioral probe.
 - No full-suite rerun exists at either current tip.
 - No registry-driven runner exists yet; the 21 S1 rows plus the 14 T1
-  rows plus the 30 J1 rows were executed as live-PTY tests
+  rows plus the 30 J1 rows plus the 20 S2 rows plus the 19 S3 rows plus
+  the 20 S4 rows plus the 14 S5 rows plus the 14 T2 rows were executed
+  as tests
   (`showcase_pending_s1.rs`, phase-8d port of 76537c27;
   `tablepro_pending_t1.rs`, phase-8f port of 07a56acf;
-  `jackin_pending_j1.rs`, phase-8h3 port of 3f167a6e), so 106 rows
-  remain unrun as cases.
+  `jackin_pending_j1.rs`, phase-8h3 port of 3f167a6e;
+  `showcase_pending_s2.rs`, phase-8y port of 91aba510: 18 both-adapter,
+  1 headless-only, 1 PTY-only;
+  `showcase_pending_s3.rs`, phase-8aa port of b712422f: 17 both-adapter,
+  2 PTY-only;
+  `showcase_pending_s4.rs`, phase-8ad port of 5f6e52f31: 17 both-adapter,
+  3 PTY-only;
+  `showcase_pending_s5.rs`, phase-8ag port of 68d98ac99: 13 both-adapter,
+  1 PTY-only;
+  `tablepro_pending_t2.rs`, phase-8ai port of 0ae8cbe8c: 14 PTY-only),
+  so 19 rows remain unrun as cases.
 
 ## Evidence paths
 

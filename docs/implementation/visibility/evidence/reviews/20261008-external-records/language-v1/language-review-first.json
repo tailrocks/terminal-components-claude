@@ -1,0 +1,216 @@
+{
+  "record_type": "termrock-language-review",
+  "record_version": 1,
+  "review_id": "language-review-first",
+  "review_sequence": "first language review",
+  "reviewed_at": "2026-10-08",
+  "reviewer": "/root/language_review",
+  "repository": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+  "subject_binding": {
+    "parent_commit": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+    "tree": "238cd2581ab5afa5e07c9cca7525122aa0729990",
+    "diff_sha256": "5415a9bb8b5dcfaa6e2e1bfd5e1cad74997afc4ead22637a55f288da5ff66f40",
+    "subject_manifest": "/tmp/termrock-visibility-bootstrap-review/subject.json",
+    "paths": [
+      "AGENTS.md",
+      "GOAL.md",
+      "README.md",
+      "STATUS.md",
+      "WORK_QUEUE.md",
+      "docs/implementation/visibility/tasks.json",
+      "tools/visibility/README.md",
+      "tools/visibility/source-facts.json",
+      "tools/visibility/status.py",
+      "tools/visibility/tests/test_status.py"
+    ],
+    "later_commit_binding": "Not included. Parent will bind this external review record to a commit separately."
+  },
+  "profile": {
+    "name": "Practical clarity",
+    "claim": "This is a focused language review. It is not a formal ASD-STE100 conformity audit or certification."
+  },
+  "official_reference": {
+    "standard": "ASD-STE100 Simplified Technical English, Issue 9, January 2025",
+    "official_pdf_url": "https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf",
+    "official_site_url": "https://www.asd-ste100.org/",
+    "retrieved_at": "2026-10-08",
+    "http_result": "HTTP/2 200",
+    "bytes": 3316157,
+    "sha256": "d1f4ea9e7cd6e46b47aa9057209f99e78c0e9cfc4e27a5b07895b05c1a166431",
+    "title_page_observation": "The title page identifies Issue 9, January 2025, and © ASD, 2025.",
+    "pdf_page_count_read_by_pdfkit": 434,
+    "local_copy": "/tmp/asd-ste100-issue9-official.pdf",
+    "local_text_extraction": "/tmp/asd-ste100-issue9-official.txt",
+    "authority_note": "The PDF came from the official ASD/STEMG domain. A pre-existing local search found no official PDF under /Users/donbeave. The skill bundle names Issue 9 and page locations but does not state extraction provenance, so it was not treated as the authority."
+  },
+  "scope_reviewed": [
+    {
+      "path": "AGENTS.md",
+      "portion": "Only the added Active Visibility Prerequisite section in the frozen diff."
+    },
+    {
+      "path": "GOAL.md",
+      "portion": "Only the added Active visibility prerequisite section in the frozen diff."
+    },
+    {
+      "path": "README.md",
+      "portion": "Only the added Current status sentence."
+    },
+    {
+      "path": "STATUS.md",
+      "portion": "All newly generated headings, status descriptions, table labels, task reasons, and evidence-navigation prose."
+    },
+    {
+      "path": "WORK_QUEUE.md",
+      "portion": "All new queue prose and labels."
+    },
+    {
+      "path": "tools/visibility/README.md",
+      "portion": "All new prose and command instructions."
+    },
+    {
+      "path": "docs/implementation/visibility/tasks.json",
+      "portion": "Used to confirm queue_revision and inspect priority-reason text shown in STATUS.md; no full schema or field-name audit."
+    }
+  ],
+  "checks_performed": [
+    "Reviewed vocabulary meaning, sentence structure, grammar, referents, instruction sequence, and technical terminology in the scoped new prose.",
+    "Confirmed STATUS.md, WORK_QUEUE.md, and tasks.json all use queue revision 5 in the frozen subject.",
+    "Confirmed the report keeps product-result states at NOT_RUN and does not state that product checks passed; the underlying facts were not independently re-verified by this language review.",
+    "Checked selected Issue 9 Part 2 entries against the downloaded official PDF."
+  ],
+  "targeted_dictionary_checks": {
+    "coverage": "Partial targeted lookup only; no complete word-by-word dictionary audit.",
+    "entries": [
+      {
+        "word_and_part_of_speech": "TASK (n)",
+        "official_result": "Listed as an approved alternative in action/activity entries.",
+        "application": "This supports the ordinary procedural task sense. Use for a task-record work item remains project terminology; no full conformity claim is made."
+      },
+      {
+        "word_and_part_of_speech": "ACTIVE (adj)",
+        "official_result": "Approved; the listed meaning is a system, function, or feature in a state of action (Part 2, printed page 2-1-A7).",
+        "application": "The instruction phrase active priority uses a different sense.",
+        "suggested_change": "Confirm that the task remains open at its assigned priority."
+      },
+      {
+        "word_and_part_of_speech": "priority (n)",
+        "official_result": "Unapproved; the entry lists IMPORTANT (adj), BEFORE (prep), and FIRST (adv) as alternatives (Part 2, printed page 2-1-P12).",
+        "application": "Those alternatives do not preserve the queue-ranking sense. Retain priority as a defined project term if needed; do not make a mechanical substitution."
+      },
+      {
+        "word_and_part_of_speech": "AUTHORITY (n)",
+        "official_result": "Approved with the meaning an official organization that gives approval to something.",
+        "application": "STATUS.md uses product requirement authority for checklist files. That use does not match the listed meaning.",
+        "suggested_change": "Use source of product requirements."
+      },
+      {
+        "word_and_part_of_speech": "evidence (n)",
+        "official_result": "Unapproved; the entry lists INDICATION (n) and SIGN (n) as alternatives (Part 2, printed page 2-1-E11).",
+        "application": "These alternatives may not preserve the project's proof or artifact sense. Keep evidence as a project technical term or define the intended sense; no mechanical replacement was requested."
+      }
+    ],
+    "unresolved_project_terms": [
+      "queue",
+      "record",
+      "receipt",
+      "candidate commit SHA",
+      "claim token",
+      "source pair",
+      "expected visual output"
+    ],
+    "note": "The unresolved terms were considered for clarity and context but were not individually classified against all Technical Noun and Technical Verb categories."
+  },
+  "findings_sent_for_frozen_v1": [
+    {
+      "id": "LANG-V1-01",
+      "location": "STATUS.md:13",
+      "finding": "Ready remains separate from each command layer does not explain what Ready or command layer means.",
+      "requested_change": "State that overall readiness has its own column, separate from build, launch, frame, interaction, exit, restoration, visual, and ownership results.",
+      "sent_to": ["/root"]
+    },
+    {
+      "id": "LANG-V1-02",
+      "location": "STATUS.md:26",
+      "finding": "Product requirement authority applies authority to checklist files, which conflicts with the dictionary sense of an approving organization.",
+      "requested_change": "Use source of product requirements, or state that product requirements remain in the listed files.",
+      "sent_to": ["/root"]
+    },
+    {
+      "id": "LANG-V1-03",
+      "location": "STATUS.md:33, STATUS.md:38",
+      "finding": "Candidate source S and Report commit P contain unexplained letter labels.",
+      "requested_change": "Use Candidate commit SHA and Report commit; state that the report commit is available after publication.",
+      "sent_to": ["/root"]
+    },
+    {
+      "id": "LANG-V1-04",
+      "location": "STATUS.md:9, STATUS.md:26, STATUS.md:89, tools/visibility/README.md:6-8",
+      "finding": "Receipt is used without a local definition, and A missing receipt remains NOT_RUN assigns a test state to the receipt.",
+      "requested_change": "Define run receipt or use run record. For the final sentence, say that a missing receipt keeps the result at NOT_RUN and that an old pass is not current evidence.",
+      "sent_to": ["/root"]
+    },
+    {
+      "id": "LANG-V1-05",
+      "location": "STATUS.md:74; tasks.json VIS-02 priority_reason",
+      "finding": "One shared real-binary driver is prerequisite to measured visibility is missing an article. The VIS-01, VIS-03, and VIS-04 priority reasons also use dense phrases.",
+      "requested_change": "Add a before prerequisite or rewrite as A shared driver for real binaries is needed before visibility can be measured. Simplify Expose absent paired execution, accepted scopes, and remain red on real failures.",
+      "sent_to": ["/root"]
+    },
+    {
+      "id": "LANG-V1-06",
+      "location": "AGENTS.md:5, AGENTS.md:7, GOAL.md:6, GOAL.md:8",
+      "finding": "The accepted VIS-01 owner is ambiguous; active priority does not use the dictionary's approved sense; its output as expected visual output has an unclear referent.",
+      "requested_change": "Use VIS-01 owner; use task remains open at its assigned priority; say Do not use captures from this branch as expected visual output.",
+      "sent_to": ["/root/showcase_owner"]
+    },
+    {
+      "id": "LANG-V1-07",
+      "location": "STATUS.md:48, tools/visibility/README.md:30",
+      "finding": "Ambient tooling observations and ambient capability observation are technical and abstract phrases.",
+      "requested_change": "Use tools available in this environment and state that tool availability does not prove a product check ran.",
+      "sent_to": ["/root"]
+    }
+  ],
+  "reviewer_correction": {
+    "issue": "The initial V1 message also named WORK_QUEUE.md:21 as containing product requirement authority.",
+    "correction": "That was inaccurate for the frozen subject. WORK_QUEUE.md:21 says Product requirements remain in the listed files. LANG-V1-02 applies to STATUS.md:26 only; WORK_QUEUE.md:21 has no such finding.",
+    "sent_to": ["/root"]
+  },
+  "first_corrections_observed_separately": {
+    "basis": "Observed by comparing the earlier, unfrozen draft reviewed before STATUS.md existed with the frozen V1 subject. This comparison does not establish why the changes were made.",
+    "items": [
+      "The frozen V1 instructions identify the VIS-01 owner for publishing the first status report and state what to read before that report exists.",
+      "The verification checks use separate sentences and name the candidate commit SHA, claim token, allowed paths, and priority.",
+      "The instructions explicitly state that the records are not enforced automatically and name the protected branch, tag, release, and permitted reference-branch updates.",
+      "The queue now uses revision 5, matching queue_revision 5 in tasks.json and revision 5 in STATUS.md.",
+      "WORK_QUEUE.md:21 now states that product requirements remain in CHECKLIST.md and checklist.json; it does not repeat the authority wording used in STATUS.md:26."
+    ],
+    "approval_note": "These observed corrections are separate from the V1 findings above. They do not approve V1 or any later version."
+  },
+  "prior_unfrozen_draft_findings_sent": [
+    "The earlier draft was missing STATUS.md; the initial-task path needed to name who creates it and what agents should read before it exists.",
+    "The first instruction draft used opaque field lists, bootstrap jargon, abstract branch-enforcement wording, unclear expected-output wording, and ambiguous branch/tag/release targets.",
+    "The first queue draft used dense terms such as base, token, expiry, atomic acceptance controls, and product requirement authority.",
+    "The first draft queue revision did not match its task-record revision; the frozen V1 subject now has revision 5 in both."
+  ],
+  "verdict": {
+    "status": "changes_requested",
+    "approval": "not granted",
+    "summary": "The frozen V1 subject needs the language changes listed above before it is ready for a second language review. The initial V1 status sentence about product requirement authority needs correction only in STATUS.md:26."
+  },
+  "v2_status": {
+    "reviewed": false,
+    "approved": false,
+    "note": "This record makes no claim that V2 or any later subject was reviewed or approved."
+  },
+  "exclusions": [
+    "No full word-by-word Part 2 dictionary audit was performed.",
+    "No complete audit of all 53 ASD-STE100 writing rules was performed.",
+    "No formal ASD-STE100 conformity or certification claim is made.",
+    "No implementation review of status.py, no test review, and no JSON schema or key-name audit were performed for this language verdict.",
+    "No factual re-verification of source-facts.json, GitHub observations, CI, or DCO results was performed.",
+    "No review was made of files outside the frozen subject paths or of pre-existing prose outside the changed sections."
+  ],
+  "repository_edits": "None. This JSON record was written only under /tmp/termrock-visibility-bootstrap-review/."
+}

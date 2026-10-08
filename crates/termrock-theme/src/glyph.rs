@@ -97,11 +97,17 @@ pub enum GlyphRole {
     SelectOpen,
     /// Primary-key header glyph, distinct from the compact primary marker.
     PrimaryKey,
+    /// Switch knob, off half of the [`GlyphRole::SwitchKnob`] pair.
+    SwitchKnobOff,
+    /// Narrow checkbox off mark: the single-cell empty box a row under
+    /// four columns paints instead of [`GlyphRole::CheckboxOff`] (W03-01).
+    /// The on half reuses [`GlyphRole::Checked`].
+    CheckboxEmpty,
 }
 
 impl GlyphRole {
     /// Every role, in declaration order.
-    pub const ALL: [GlyphRole; 42] = [
+    pub const ALL: [GlyphRole; 44] = [
         GlyphRole::FocusBar,
         GlyphRole::Chosen,
         GlyphRole::Checked,
@@ -144,6 +150,8 @@ impl GlyphRole {
         GlyphRole::SelectClosed,
         GlyphRole::SelectOpen,
         GlyphRole::PrimaryKey,
+        GlyphRole::SwitchKnobOff,
+        GlyphRole::CheckboxEmpty,
     ];
 
     const fn index(self) -> usize {
@@ -156,7 +164,7 @@ impl GlyphRole {
 /// typed `symbols::line::Set`s (§22 R‑11).
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct GlyphSet {
-    glyphs: [&'static str; 41],
+    glyphs: [&'static str; 44],
     primary_key: &'static str,
     scroll: scrollbar::Set<'static>,
     rule_quiet: line::Set<'static>,
@@ -164,10 +172,11 @@ pub struct GlyphSet {
 }
 
 impl GlyphSet {
-    /// A set from the original 41-role table plus typed symbol sets.
+    /// A set from the role table plus typed symbol sets. Index 41
+    /// (`PrimaryKey`) is dead: `get`/`set` route that role to its own field.
     /// `PrimaryKey` defaults to `⚷`; use `set` to customize it independently.
     pub const fn new(
-        glyphs: [&'static str; 41],
+        glyphs: [&'static str; 44],
         scroll: scrollbar::Set<'static>,
         rule_quiet: line::Set<'static>,
         rule_active: line::Set<'static>,
@@ -323,7 +332,7 @@ mod tests {
 
     #[test]
     fn every_role_reads_and_writes_its_slot() {
-        let mut g = GlyphSet::new(["x"; 41], scrollbar::VERTICAL, line::NORMAL, line::THICK);
+        let mut g = GlyphSet::new(["x"; 44], scrollbar::VERTICAL, line::NORMAL, line::THICK);
         for r in GlyphRole::ALL {
             g.set(r, "y");
             assert_eq!(g.get(r), "y", "{r:?}");
@@ -333,11 +342,13 @@ mod tests {
 
     #[test]
     fn select_roles_are_appended_without_shifting_existing_discriminants() {
-        assert_eq!(GlyphRole::ALL.len(), 42);
+        assert_eq!(GlyphRole::ALL.len(), 44);
         assert_eq!(GlyphRole::PrimaryKey as usize, 41);
         assert_eq!(GlyphRole::SecretMask as usize, 38);
         assert_eq!(GlyphRole::SelectClosed as usize, 39);
         assert_eq!(GlyphRole::SelectOpen as usize, 40);
+        assert_eq!(GlyphRole::SwitchKnobOff as usize, 42);
+        assert_eq!(GlyphRole::CheckboxEmpty as usize, 43);
     }
 
     /// Adjudication O2: `borders_set(border::ASCII)` must leave **nothing** in

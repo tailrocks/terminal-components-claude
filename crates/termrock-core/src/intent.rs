@@ -26,7 +26,9 @@ pub enum Intent<'f> {
     Binding(ActionKey),
     /// A key press delivered to the focused owner.
     Key(Key),
-    /// Pasted text delivered to the focused owner iff it declared `EDITING`.
+    /// Pasted text delivered to the typing owner, else to the focused
+    /// editor — navigation-mode paste begins editing there (`text-input.md`
+    /// Paste). Non-editors never receive paste.
     Paste(&'f str),
     /// A pointer phase over one of the owner's parts.
     Pointer {

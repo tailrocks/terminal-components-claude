@@ -1,0 +1,899 @@
+{
+  "artifacts": {
+    "list_json": {
+      "path": "docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-list.stdout.json",
+      "sha256": "167659417ee5e974c2b37cd860fa303098dd2686d2a1a46387385c966c17e75d",
+      "size_bytes": 15219
+    },
+    "list_stderr": {
+      "path": "docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-list.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    "stderr": {
+      "path": "docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-run.stderr.log",
+      "sha256": "38c9b1988e1406bd91e61c286385163d9f6c5e86473e50e28d41e0b19e642365",
+      "size_bytes": 582
+    },
+    "stdout": {
+      "path": "docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-run.stdout.jsonl",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    }
+  },
+  "execution": {
+    "block_reason": "nextest run executed zero tests; inspect build or runner diagnostics",
+    "counts": {
+      "executed": 0,
+      "expected": 23,
+      "failed": 0,
+      "listed": 23,
+      "not_run": 23,
+      "passed": 0,
+      "skipped": 0
+    },
+    "executed_tests": [
+      {
+        "application": null,
+        "case_ids": [
+          "W01-02"
+        ],
+        "component_id": "W01",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W01-02: pressed lockup repaints the hover frame, reference paints accent_pressed (BRAND recipe has no PRESSED rule)",
+        "requirement_id": "BD-01",
+        "source_recorded_reason": "pressed lockup repaints hover; BRAND recipe has no PRESSED rule",
+        "status": "not_run",
+        "test_name": "w01_brand_press_paints_distinct_from_hover"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W02-01"
+        ],
+        "component_id": "W02",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W02-01: disabled+focused paints ▎, reference demands space (theme GUTTER recipe keys on FOCUSED alone)",
+        "requirement_id": "BD-02",
+        "source_recorded_reason": "disabled+focused paints gutter; GUTTER recipe keys on FOCUSED alone",
+        "status": "not_run",
+        "test_name": "w02_button_disabled_suppresses_focus_gutter"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W03-01"
+        ],
+        "component_id": "W03",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W03-01: narrow checkbox clips [✓]/[ ] instead of compact ✓/□ marks (no compact branch)",
+        "requirement_id": "BD-03",
+        "source_recorded_reason": "narrow checkbox clips instead of compact marks; no compact branch",
+        "status": "not_run",
+        "test_name": "w03_checkbox_compact_markers"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W03-01"
+        ],
+        "component_id": "W03",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W03-01: checked+focus+hover repaints checked+focus (SELECTED|FOCUSED swallows the hover lift), reference lifts over the tint",
+        "requirement_id": "BD-04",
+        "source_recorded_reason": "checked+focus swallows the hover lift",
+        "status": "not_run",
+        "test_name": "w03_checkbox_checked_focus_hover_independent"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W04-01"
+        ],
+        "component_id": "W04",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W04-01: narrow toggle clips the switch instead of compact ●/○ dots (no compact branch)",
+        "requirement_id": "BD-05",
+        "source_recorded_reason": "narrow toggle clips instead of compact dots; no compact branch",
+        "status": "not_run",
+        "test_name": "w04_toggle_compact_markers"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W05-02",
+          "W05-04"
+        ],
+        "component_id": "W05",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W05-02/W05-04: RadioGroup has no per-option disabled (whole-group .disabled only)",
+        "requirement_id": "BD-06",
+        "source_recorded_reason": "RadioGroup has no per-option disabled (whole-group only)",
+        "status": "not_run",
+        "test_name": "w05_radio_per_option_disabled"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W05-04"
+        ],
+        "component_id": "W05",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W05-04: RadioGroup has no horizontal orientation (vertical only)",
+        "requirement_id": "BD-07",
+        "source_recorded_reason": "RadioGroup has no horizontal orientation (vertical only)",
+        "status": "not_run",
+        "test_name": "w05_radio_no_horizontal"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W06-02",
+          "W06-05"
+        ],
+        "component_id": "W06",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W06-02/W06-05: closable ChipBar ignores all keys (triplicate Remove action rejects the whole binding table)",
+        "requirement_id": "BD-08",
+        "source_recorded_reason": "closable ChipBar ignores all keys; triplicate Remove rejects binding table",
+        "status": "not_run",
+        "test_name": "w06_chipbar_closable_keyboard_dead"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W06-02"
+        ],
+        "component_id": "W06",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W06-02: pressing × toggles the chip instead of closing (LABEL part covers CLOSE in hit-test)",
+        "requirement_id": "BD-09",
+        "source_recorded_reason": "pressing × toggles; LABEL part covers CLOSE in hit-test",
+        "status": "not_run",
+        "test_name": "w06_chipbar_close_press_then_reorder_or_delete"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W08-02"
+        ],
+        "component_id": "W08",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W08-02: masked clicks use plaintext widths (caret lands on cell 1 of 2), reference follows display graphemes",
+        "requirement_id": "BD-10",
+        "source_recorded_reason": "masked clicks use plaintext widths, not display graphemes",
+        "status": "not_run",
+        "test_name": "w08_input_masked_clicks_follow_display"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W08-02"
+        ],
+        "component_id": "W08",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W08-02: mouse Down alone begins the draft (Press arm calls begin), reference demands completed click",
+        "requirement_id": "BD-11",
+        "source_recorded_reason": "mouse Down alone begins the draft; reference demands completed click",
+        "status": "not_run",
+        "test_name": "w08_input_down_only_does_not_edit"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W08-03"
+        ],
+        "component_id": "W08",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W08-03: paste while navigating is dropped (paste arm requires is_editing), reference begins editing",
+        "requirement_id": "BD-12",
+        "source_recorded_reason": "paste while navigating is dropped; paste arm requires is_editing",
+        "status": "not_run",
+        "test_name": "w08_input_navigation_paste_begins_editing"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W08-07"
+        ],
+        "component_id": "W08",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W08-07: commit blindly overwrites external value changes (no revision/stamp check)",
+        "requirement_id": "BD-13",
+        "source_recorded_reason": "commit overwrites external value changes; no revision check",
+        "status": "not_run",
+        "test_name": "w08_input_external_change_is_not_silently_overwritten"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W09-01"
+        ],
+        "component_id": "W09",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W09-01: nav Enter begins AND inserts a newline (begin then Newline run for one key), reference begins only",
+        "requirement_id": "BD-14",
+        "source_recorded_reason": "nav Enter begins AND inserts a newline; reference begins only",
+        "status": "not_run",
+        "test_name": "w09_area_nav_enter_begins_without_newline"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W09-03"
+        ],
+        "component_id": "W09",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W09-03: nav PageUp/Home/End begin editing and move the caret, reference scrolls the view",
+        "requirement_id": "BD-15",
+        "source_recorded_reason": "nav PageUp/Home/End begin editing; reference scrolls the view",
+        "status": "not_run",
+        "test_name": "w09_area_nav_page_home_end_scroll_without_editing"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W09-05"
+        ],
+        "component_id": "W09",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W09-05: wheel-while-editing snaps back when the caret leaves view (ensure_visible every update), reference holds until caret moves",
+        "requirement_id": "BD-16",
+        "source_recorded_reason": "wheel-while-editing snaps back; ensure_visible runs every update",
+        "status": "not_run",
+        "test_name": "w09_area_wheel_holds_past_caret_until_it_moves"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W10-05"
+        ],
+        "component_id": "W10",
+        "component_owner": "termrock-overlays",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W10-05: select popup never fades its scrolled edges (no scroll_edges call), reference requires edge fade",
+        "requirement_id": "BD-17",
+        "source_recorded_reason": "select popup never fades scrolled edges; no scroll_edges call",
+        "status": "not_run",
+        "test_name": "w10_select_popup_edge_fade"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W11-04"
+        ],
+        "component_id": "W11",
+        "component_owner": "termrock-forms",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W11-04: Enter submits while the submit action is disabled (enter path ignores eligibility), reference blocks busy submit",
+        "requirement_id": "BD-18",
+        "source_recorded_reason": "Enter submits while submit action is disabled; enter path ignores eligibility",
+        "status": "not_run",
+        "test_name": "w11_form_busy_enter_submit_blocked"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W13-02"
+        ],
+        "component_id": "W13",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W13-02: query backspace pops one char and splits grapheme clusters (String::pop), reference pops the cluster",
+        "requirement_id": "BD-20",
+        "source_recorded_reason": "query backspace pops one char and splits grapheme clusters",
+        "status": "not_run",
+        "test_name": "w13_filter_backspace_removes_grapheme"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W13-05"
+        ],
+        "component_id": "W13",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W13-05: wide-char trail cells are never cleared, stale glyphs leak across repaints",
+        "requirement_id": "BD-21",
+        "source_recorded_reason": "wide-char trail cells never cleared; stale glyphs leak",
+        "status": "not_run",
+        "test_name": "w13_filter_wide_trail_cells_clear"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W13-04"
+        ],
+        "component_id": "W13",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W13-04: reseed picks nearest-from-index (a2), reference picks first eligible (a1)",
+        "requirement_id": "BD-22",
+        "source_recorded_reason": "reseed picks nearest-from-index; reference picks first eligible",
+        "status": "not_run",
+        "test_name": "w13_filter_reseed_selects_first_eligible"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W16-02"
+        ],
+        "component_id": "W16",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W16-02: running step shows a static Bullet, reference cycles a 10-phase spinner",
+        "requirement_id": "BD-23",
+        "source_recorded_reason": "running step shows static Bullet; reference cycles a 10-phase spinner",
+        "status": "not_run",
+        "test_name": "w16_steps_running_spinner_cycles_phases"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W17-01"
+        ],
+        "component_id": "W17",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W17-01: focused/pressed tabs render as inactive, reference bolds the cursor tab",
+        "requirement_id": "BD-24",
+        "source_recorded_reason": "focused/pressed tabs render inactive; reference bolds the cursor tab",
+        "status": "not_run",
+        "test_name": "w17_tabs_focused_pressed_bold"
+      }
+    ],
+    "exit_code": 2,
+    "expected_failure_treatment": "none",
+    "nextest_list_exit_code": 0,
+    "parse_errors": [],
+    "result": "blocked"
+  },
+  "finished_at": "2026-10-08T03:30:19.720249Z",
+  "run_id": "20261008T033018.476230Z",
+  "schema": "termrock-deferred-run/v1",
+  "schema_version": 1,
+  "selection": {
+    "binary": "control_states",
+    "count": 23,
+    "expected_tests": [
+      {
+        "application": null,
+        "case_ids": [
+          "W01-02"
+        ],
+        "component_id": "W01",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W01-02: pressed lockup repaints the hover frame, reference paints accent_pressed (BRAND recipe has no PRESSED rule)",
+        "requirement_id": "BD-01",
+        "source_recorded_reason": "pressed lockup repaints hover; BRAND recipe has no PRESSED rule",
+        "test_name": "w01_brand_press_paints_distinct_from_hover"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W02-01"
+        ],
+        "component_id": "W02",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W02-01: disabled+focused paints ▎, reference demands space (theme GUTTER recipe keys on FOCUSED alone)",
+        "requirement_id": "BD-02",
+        "source_recorded_reason": "disabled+focused paints gutter; GUTTER recipe keys on FOCUSED alone",
+        "test_name": "w02_button_disabled_suppresses_focus_gutter"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W03-01"
+        ],
+        "component_id": "W03",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W03-01: narrow checkbox clips [✓]/[ ] instead of compact ✓/□ marks (no compact branch)",
+        "requirement_id": "BD-03",
+        "source_recorded_reason": "narrow checkbox clips instead of compact marks; no compact branch",
+        "test_name": "w03_checkbox_compact_markers"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W03-01"
+        ],
+        "component_id": "W03",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W03-01: checked+focus+hover repaints checked+focus (SELECTED|FOCUSED swallows the hover lift), reference lifts over the tint",
+        "requirement_id": "BD-04",
+        "source_recorded_reason": "checked+focus swallows the hover lift",
+        "test_name": "w03_checkbox_checked_focus_hover_independent"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W04-01"
+        ],
+        "component_id": "W04",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W04-01: narrow toggle clips the switch instead of compact ●/○ dots (no compact branch)",
+        "requirement_id": "BD-05",
+        "source_recorded_reason": "narrow toggle clips instead of compact dots; no compact branch",
+        "test_name": "w04_toggle_compact_markers"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W05-02",
+          "W05-04"
+        ],
+        "component_id": "W05",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W05-02/W05-04: RadioGroup has no per-option disabled (whole-group .disabled only)",
+        "requirement_id": "BD-06",
+        "source_recorded_reason": "RadioGroup has no per-option disabled (whole-group only)",
+        "test_name": "w05_radio_per_option_disabled"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W05-04"
+        ],
+        "component_id": "W05",
+        "component_owner": "termrock-controls",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W05-04: RadioGroup has no horizontal orientation (vertical only)",
+        "requirement_id": "BD-07",
+        "source_recorded_reason": "RadioGroup has no horizontal orientation (vertical only)",
+        "test_name": "w05_radio_no_horizontal"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W06-02",
+          "W06-05"
+        ],
+        "component_id": "W06",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W06-02/W06-05: closable ChipBar ignores all keys (triplicate Remove action rejects the whole binding table)",
+        "requirement_id": "BD-08",
+        "source_recorded_reason": "closable ChipBar ignores all keys; triplicate Remove rejects binding table",
+        "test_name": "w06_chipbar_closable_keyboard_dead"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W06-02"
+        ],
+        "component_id": "W06",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W06-02: pressing × toggles the chip instead of closing (LABEL part covers CLOSE in hit-test)",
+        "requirement_id": "BD-09",
+        "source_recorded_reason": "pressing × toggles; LABEL part covers CLOSE in hit-test",
+        "test_name": "w06_chipbar_close_press_then_reorder_or_delete"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W08-02"
+        ],
+        "component_id": "W08",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W08-02: masked clicks use plaintext widths (caret lands on cell 1 of 2), reference follows display graphemes",
+        "requirement_id": "BD-10",
+        "source_recorded_reason": "masked clicks use plaintext widths, not display graphemes",
+        "test_name": "w08_input_masked_clicks_follow_display"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W08-02"
+        ],
+        "component_id": "W08",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W08-02: mouse Down alone begins the draft (Press arm calls begin), reference demands completed click",
+        "requirement_id": "BD-11",
+        "source_recorded_reason": "mouse Down alone begins the draft; reference demands completed click",
+        "test_name": "w08_input_down_only_does_not_edit"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W08-03"
+        ],
+        "component_id": "W08",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W08-03: paste while navigating is dropped (paste arm requires is_editing), reference begins editing",
+        "requirement_id": "BD-12",
+        "source_recorded_reason": "paste while navigating is dropped; paste arm requires is_editing",
+        "test_name": "w08_input_navigation_paste_begins_editing"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W08-07"
+        ],
+        "component_id": "W08",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W08-07: commit blindly overwrites external value changes (no revision/stamp check)",
+        "requirement_id": "BD-13",
+        "source_recorded_reason": "commit overwrites external value changes; no revision check",
+        "test_name": "w08_input_external_change_is_not_silently_overwritten"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W09-01"
+        ],
+        "component_id": "W09",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W09-01: nav Enter begins AND inserts a newline (begin then Newline run for one key), reference begins only",
+        "requirement_id": "BD-14",
+        "source_recorded_reason": "nav Enter begins AND inserts a newline; reference begins only",
+        "test_name": "w09_area_nav_enter_begins_without_newline"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W09-03"
+        ],
+        "component_id": "W09",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W09-03: nav PageUp/Home/End begin editing and move the caret, reference scrolls the view",
+        "requirement_id": "BD-15",
+        "source_recorded_reason": "nav PageUp/Home/End begin editing; reference scrolls the view",
+        "test_name": "w09_area_nav_page_home_end_scroll_without_editing"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W09-05"
+        ],
+        "component_id": "W09",
+        "component_owner": "termrock-fields",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W09-05: wheel-while-editing snaps back when the caret leaves view (ensure_visible every update), reference holds until caret moves",
+        "requirement_id": "BD-16",
+        "source_recorded_reason": "wheel-while-editing snaps back; ensure_visible runs every update",
+        "test_name": "w09_area_wheel_holds_past_caret_until_it_moves"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W10-05"
+        ],
+        "component_id": "W10",
+        "component_owner": "termrock-overlays",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W10-05: select popup never fades its scrolled edges (no scroll_edges call), reference requires edge fade",
+        "requirement_id": "BD-17",
+        "source_recorded_reason": "select popup never fades scrolled edges; no scroll_edges call",
+        "test_name": "w10_select_popup_edge_fade"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W11-04"
+        ],
+        "component_id": "W11",
+        "component_owner": "termrock-forms",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W11-04: Enter submits while the submit action is disabled (enter path ignores eligibility), reference blocks busy submit",
+        "requirement_id": "BD-18",
+        "source_recorded_reason": "Enter submits while submit action is disabled; enter path ignores eligibility",
+        "test_name": "w11_form_busy_enter_submit_blocked"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W13-02"
+        ],
+        "component_id": "W13",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W13-02: query backspace pops one char and splits grapheme clusters (String::pop), reference pops the cluster",
+        "requirement_id": "BD-20",
+        "source_recorded_reason": "query backspace pops one char and splits grapheme clusters",
+        "test_name": "w13_filter_backspace_removes_grapheme"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W13-05"
+        ],
+        "component_id": "W13",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W13-05: wide-char trail cells are never cleared, stale glyphs leak across repaints",
+        "requirement_id": "BD-21",
+        "source_recorded_reason": "wide-char trail cells never cleared; stale glyphs leak",
+        "test_name": "w13_filter_wide_trail_cells_clear"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W13-04"
+        ],
+        "component_id": "W13",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W13-04: reseed picks nearest-from-index (a2), reference picks first eligible (a1)",
+        "requirement_id": "BD-22",
+        "source_recorded_reason": "reseed picks nearest-from-index; reference picks first eligible",
+        "test_name": "w13_filter_reseed_selects_first_eligible"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W16-02"
+        ],
+        "component_id": "W16",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W16-02: running step shows a static Bullet, reference cycles a 10-phase spinner",
+        "requirement_id": "BD-23",
+        "source_recorded_reason": "running step shows static Bullet; reference cycles a 10-phase spinner",
+        "test_name": "w16_steps_running_spinner_cycles_phases"
+      },
+      {
+        "application": null,
+        "case_ids": [
+          "W17-01"
+        ],
+        "component_id": "W17",
+        "component_owner": "termrock-navigation",
+        "dimension": "behavior",
+        "ignore_reason": "PARITY W17-01: focused/pressed tabs render as inactive, reference bolds the cursor tab",
+        "requirement_id": "BD-24",
+        "source_recorded_reason": "focused/pressed tabs render inactive; reference bolds the cursor tab",
+        "test_name": "w17_tabs_focused_pressed_bold"
+      }
+    ],
+    "filterset": "package(=termrock-conformance) & binary(=control_states) & (test(=w01_brand_press_paints_distinct_from_hover) | test(=w02_button_disabled_suppresses_focus_gutter) | test(=w03_checkbox_compact_markers) | test(=w03_checkbox_checked_focus_hover_independent) | test(=w04_toggle_compact_markers) | test(=w05_radio_per_option_disabled) | test(=w05_radio_no_horizontal) | test(=w06_chipbar_closable_keyboard_dead) | test(=w06_chipbar_close_press_then_reorder_or_delete) | test(=w08_input_masked_clicks_follow_display) | test(=w08_input_down_only_does_not_edit) | test(=w08_input_navigation_paste_begins_editing) | test(=w08_input_external_change_is_not_silently_overwritten) | test(=w09_area_nav_enter_begins_without_newline) | test(=w09_area_nav_page_home_end_scroll_without_editing) | test(=w09_area_wheel_holds_past_caret_until_it_moves) | test(=w10_select_popup_edge_fade) | test(=w11_form_busy_enter_submit_blocked) | test(=w13_filter_backspace_removes_grapheme) | test(=w13_filter_wide_trail_cells_clear) | test(=w13_filter_reseed_selects_first_eligible) | test(=w16_steps_running_spinner_cycles_phases) | test(=w17_tabs_focused_pressed_bold)) - test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write)/)",
+    "ignored_only": true,
+    "lane": "deferred-behavior",
+    "listed_test_names": [
+      "w01_brand_press_paints_distinct_from_hover",
+      "w02_button_disabled_suppresses_focus_gutter",
+      "w03_checkbox_checked_focus_hover_independent",
+      "w03_checkbox_compact_markers",
+      "w04_toggle_compact_markers",
+      "w05_radio_no_horizontal",
+      "w05_radio_per_option_disabled",
+      "w06_chipbar_closable_keyboard_dead",
+      "w06_chipbar_close_press_then_reorder_or_delete",
+      "w08_input_down_only_does_not_edit",
+      "w08_input_external_change_is_not_silently_overwritten",
+      "w08_input_masked_clicks_follow_display",
+      "w08_input_navigation_paste_begins_editing",
+      "w09_area_nav_enter_begins_without_newline",
+      "w09_area_nav_page_home_end_scroll_without_editing",
+      "w09_area_wheel_holds_past_caret_until_it_moves",
+      "w10_select_popup_edge_fade",
+      "w11_form_busy_enter_submit_blocked",
+      "w13_filter_backspace_removes_grapheme",
+      "w13_filter_reseed_selects_first_eligible",
+      "w13_filter_wide_trail_cells_clear",
+      "w16_steps_running_spinner_cycles_phases",
+      "w17_tabs_focused_pressed_bold"
+    ],
+    "listed_tests": [
+      "BD-01",
+      "BD-02",
+      "BD-03",
+      "BD-04",
+      "BD-05",
+      "BD-06",
+      "BD-07",
+      "BD-08",
+      "BD-09",
+      "BD-10",
+      "BD-11",
+      "BD-12",
+      "BD-13",
+      "BD-14",
+      "BD-15",
+      "BD-16",
+      "BD-17",
+      "BD-18",
+      "BD-20",
+      "BD-21",
+      "BD-22",
+      "BD-23",
+      "BD-24"
+    ],
+    "listed_total_count": 109,
+    "package": "termrock-conformance",
+    "writer_exclusion": "test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write)/)"
+  },
+  "started_at": "2026-10-08T03:30:18.476016Z",
+  "subject": {
+    "accepted_base_is_ancestor": null,
+    "accepted_base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+    "branch": "termrock-implementation",
+    "commit": "5572f09f57053adb74c886cdab748650452531b6",
+    "repository": "tailrocks/terminal-components-claude",
+    "source_inputs_sha256": "6ea7494886e79f514f6d83610e7c049ef48f46ff623f8ffae8650a2a9f0c745c",
+    "working_tree": {
+      "porcelain_v1": [
+        "M  AGENTS.md",
+        "M  GOAL.md",
+        "M  README.md",
+        "A  STATUS.md",
+        "A  WORK_QUEUE.md",
+        "A  docs/implementation/visibility/tasks.json",
+        "A  tools/visibility/README.md",
+        "A  tools/visibility/source-facts.json",
+        "A  tools/visibility/status.py",
+        "A  tools/visibility/tests/test_status.py",
+        "?? crates/termrock-e2e/Cargo.lock",
+        "?? crates/termrock-e2e/Cargo.toml",
+        "?? crates/termrock-e2e/README.md",
+        "?? crates/termrock-e2e/cases/deferred-obligations.json",
+        "?? crates/termrock-e2e/cases/registry.json",
+        "?? crates/termrock-e2e/profile.json",
+        "?? crates/termrock-e2e/schemas/receipt-v1.schema.json",
+        "?? crates/termrock-e2e/schemas/subject-manifest-v1.schema.json",
+        "?? crates/termrock-e2e/src/lib.rs",
+        "?? crates/termrock-e2e/tests/contract.rs",
+        "?? crates/termrock-e2e/tests/holla_help_overlay.rs",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-list.stderr.log",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-list.stdout.json",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-run.stderr.log",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-run.stdout.jsonl",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/receipt.json",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T032312.502069Z/nextest-list.stderr.log",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T032312.502069Z/nextest-list.stdout.json",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T032312.502069Z/nextest-run.stderr.log",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T032312.502069Z/nextest-run.stdout.jsonl",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T032312.502069Z/receipt.json",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-list.stderr.log",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-list.stdout.json",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-run.stderr.log",
+        "?? docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-run.stdout.jsonl",
+        "?? tools/visibility/deferred.py",
+        "?? tools/visibility/queue.py",
+        "?? tools/visibility/tests/test_deferred.py",
+        "?? tools/visibility/tests/test_queue.py"
+      ],
+      "state": "dirty"
+    }
+  },
+  "tool": {
+    "cargo_nextest_path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+    "cargo_path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "environment_inputs": {
+      "CARGO": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_NEXTTEST_EXECUTABLE": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "CARGO_TERM_COLOR": "never",
+      "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1",
+      "RUSTUP_TOOLCHAIN": "1.98.1",
+      "build": {
+        "CARGO_HOME": "/Users/donbeave/.cargo",
+        "RUSTUP_TOOLCHAIN": "1.99.0"
+      }
+    },
+    "list_argv": [
+      "rustup",
+      "run",
+      "1.98.1",
+      "cargo",
+      "nextest",
+      "list",
+      "--locked",
+      "--package",
+      "termrock-conformance",
+      "--test",
+      "control_states",
+      "--run-ignored",
+      "only",
+      "--ignore-default-filter",
+      "--color",
+      "never",
+      "--show-progress",
+      "none",
+      "--filterset",
+      "package(=termrock-conformance) & binary(=control_states) & (test(=w01_brand_press_paints_distinct_from_hover) | test(=w02_button_disabled_suppresses_focus_gutter) | test(=w03_checkbox_compact_markers) | test(=w03_checkbox_checked_focus_hover_independent) | test(=w04_toggle_compact_markers) | test(=w05_radio_per_option_disabled) | test(=w05_radio_no_horizontal) | test(=w06_chipbar_closable_keyboard_dead) | test(=w06_chipbar_close_press_then_reorder_or_delete) | test(=w08_input_masked_clicks_follow_display) | test(=w08_input_down_only_does_not_edit) | test(=w08_input_navigation_paste_begins_editing) | test(=w08_input_external_change_is_not_silently_overwritten) | test(=w09_area_nav_enter_begins_without_newline) | test(=w09_area_nav_page_home_end_scroll_without_editing) | test(=w09_area_wheel_holds_past_caret_until_it_moves) | test(=w10_select_popup_edge_fade) | test(=w11_form_busy_enter_submit_blocked) | test(=w13_filter_backspace_removes_grapheme) | test(=w13_filter_wide_trail_cells_clear) | test(=w13_filter_reseed_selects_first_eligible) | test(=w16_steps_running_spinner_cycles_phases) | test(=w17_tabs_focused_pressed_bold)) - test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write)/)",
+      "--cargo-quiet",
+      "--cargo-quiet",
+      "--message-format",
+      "json"
+    ],
+    "name": "cargo nextest",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python_version": "3.9.6",
+    "run_argv": [
+      "rustup",
+      "run",
+      "1.98.1",
+      "cargo",
+      "nextest",
+      "run",
+      "--locked",
+      "--package",
+      "termrock-conformance",
+      "--test",
+      "control_states",
+      "--run-ignored",
+      "only",
+      "--ignore-default-filter",
+      "--color",
+      "never",
+      "--show-progress",
+      "none",
+      "--filterset",
+      "package(=termrock-conformance) & binary(=control_states) & (test(=w01_brand_press_paints_distinct_from_hover) | test(=w02_button_disabled_suppresses_focus_gutter) | test(=w03_checkbox_compact_markers) | test(=w03_checkbox_checked_focus_hover_independent) | test(=w04_toggle_compact_markers) | test(=w05_radio_per_option_disabled) | test(=w05_radio_no_horizontal) | test(=w06_chipbar_closable_keyboard_dead) | test(=w06_chipbar_close_press_then_reorder_or_delete) | test(=w08_input_masked_clicks_follow_display) | test(=w08_input_down_only_does_not_edit) | test(=w08_input_navigation_paste_begins_editing) | test(=w08_input_external_change_is_not_silently_overwritten) | test(=w09_area_nav_enter_begins_without_newline) | test(=w09_area_nav_page_home_end_scroll_without_editing) | test(=w09_area_wheel_holds_past_caret_until_it_moves) | test(=w10_select_popup_edge_fade) | test(=w11_form_busy_enter_submit_blocked) | test(=w13_filter_backspace_removes_grapheme) | test(=w13_filter_wide_trail_cells_clear) | test(=w13_filter_reseed_selects_first_eligible) | test(=w16_steps_running_spinner_cycles_phases) | test(=w17_tabs_focused_pressed_bold)) - test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write)/)",
+      "--cargo-quiet",
+      "--cargo-quiet",
+      "--no-tests",
+      "fail",
+      "--no-fail-fast",
+      "--max-fail",
+      "all",
+      "--retries",
+      "0",
+      "--test-threads",
+      "1",
+      "--flaky-result",
+      "fail",
+      "--failure-output",
+      "immediate-final",
+      "--final-status-level",
+      "all",
+      "--no-output-indent",
+      "--message-format",
+      "libtest-json-plus",
+      "--message-format-version",
+      "0.1"
+    ],
+    "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)"
+  },
+  "tool_inputs": {
+    "claim": {
+      "accepted_base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+      "claim_token": "visibility-deferred-20261008-04",
+      "owner": "/root/deferred_execution",
+      "queue_revision": 6,
+      "work_id": "VIS-04"
+    },
+    "inventory_sha256": "ff296990aaf6f067ea8e36d07ef856c0908d4a0b2ac3f198f3362007697f8c6a",
+    "runner_source": {
+      "path": "tools/visibility/deferred.py",
+      "sha256": "f9524fe7dc66e83878cd9156877d8b220ada9c5d90575a4178a865685c1d7886",
+      "size_bytes": 38629
+    },
+    "runner_test_source": {
+      "path": "tools/visibility/tests/test_deferred.py",
+      "sha256": "4738f4e8f687174904ddd55d59e94cd222c43b99e7fa6726cac3d81e12678af6",
+      "size_bytes": 11245
+    },
+    "source_inputs_sha256": "6ea7494886e79f514f6d83610e7c049ef48f46ff623f8ffae8650a2a9f0c745c",
+    "work_item": "VIS-04"
+  }
+}

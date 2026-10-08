@@ -375,9 +375,14 @@ impl<'a> ScrollRegion<'a> {
         let track_len = usize::from(track_rect.height);
         let (start, len) = view.thumb(track_len);
         let ov = self.ov;
+        // Tag `scrollbar.rs`: the bar answers focus plus its own exact
+        // hover/press only. Owner-level hover (the pointer over a row, not
+        // the bar — a wheel event sets `pointer_position` too) must not
+        // brighten the track or thumb. The exact THUMB hover/press joins
+        // `thumb_live` below.
         let part_live = match self.focus_override {
-            Some(true) => ui.state(self.id) | StateFlags::FOCUSED,
-            Some(false) => ui.state(self.id) & !StateFlags::FOCUSED,
+            Some(true) => StateFlags::FOCUSED,
+            Some(false) => StateFlags::empty(),
             None => ui.state(self.id) & StateFlags::FOCUSED,
         };
         let track = ov.style(

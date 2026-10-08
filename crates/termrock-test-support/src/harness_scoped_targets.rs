@@ -1,4 +1,4 @@
-//! Scoped unique text targets for [`Harness`](crate::harness::Harness).
+//! Scoped unique text targets for [`Harness`].
 //!
 //! Mirror of the reference `scoped_targets` helper, adapted to the
 //! candidate harness API (audit G2/P2). Bare first-occurrence search over
