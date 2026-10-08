@@ -1524,8 +1524,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T13:02:51Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8aj H7 h7_statusbar_screens live-PTY PASS @9ae8b8712 (nextest visual_baseline --run-ignored all --test-threads 2 h7_, 2 pass/0 fail/661 skip; bin tests/harness/target/debug/holla 16635704B sha256:926d69e7679a built 2026-10-08T12:52:20Z; log /tmp/phase8aj-h7.log)"
+     }
+    ]
    }
   },
   {
