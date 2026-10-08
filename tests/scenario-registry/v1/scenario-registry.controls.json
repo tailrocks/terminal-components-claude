@@ -210,9 +210,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_busy_frames isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "BTN-BUSY-CHECKED-GEOM-002",
@@ -374,9 +381,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_busy_checked_geom isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "BRAND-HOVER-001",
@@ -560,9 +574,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_brand_hover isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "BTN-STATE-FOCUS-003",
@@ -795,9 +816,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_button_focus isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "BTN-DISABLED-PRECEDENCE-004",
@@ -993,9 +1021,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_button_disabled isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "CHK-STATE-MATRIX-001",
@@ -1212,9 +1247,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_checkbox_matrix isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "TGL-STATE-MATRIX-001",
@@ -1423,9 +1465,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_toggle_matrix isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "RADIO-STATE-MATRIX-001",
@@ -1645,9 +1694,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_radio_matrix isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "PANEL-FOCUS-READONLY-001",
@@ -1850,9 +1906,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_panel_focus isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "PANEL-STATIC-002",
@@ -2273,9 +2336,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_split_drag isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "PROPS-CURSOR-TONE-001",
@@ -2506,9 +2576,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_props_cursor isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "EMPTY-KIND-NARROW-001",
@@ -2679,9 +2756,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_empty_narrow isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "TOOSMALL-NOTICE-001",
@@ -2869,9 +2953,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_toosmall_notice live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "TOOSMALL-GROWN-002",
@@ -3439,9 +3530,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_narrow_clip isolated PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "CTRL-HOVER-COVERAGE-001",
@@ -3610,9 +3708,16 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
-   }
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T03:07:57Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8v S2 s2_hover_coverage isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+        }
+      ]
+    }
   },
   {
    "id": "INSPECT-OPEN-001",

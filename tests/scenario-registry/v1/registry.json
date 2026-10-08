@@ -160,8 +160,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_busy_frames isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -291,8 +298,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_busy_checked_geom isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -437,8 +451,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_brand_hover isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -623,8 +644,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_button_focus isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -777,8 +805,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_button_disabled isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -953,8 +988,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_checkbox_matrix isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -1121,8 +1163,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_toggle_matrix isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -1288,8 +1337,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_radio_matrix isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -1447,8 +1503,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_panel_focus isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -1633,8 +1696,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_split_drag isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -1794,8 +1864,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_props_cursor isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -1937,8 +2014,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_empty_narrow isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -2090,8 +2174,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_toosmall_notice live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -2221,8 +2312,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_narrow_clip isolated PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -2348,8 +2446,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_hover_coverage isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
       }
     },
     {
@@ -2377,7 +2482,17 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/inputs/80x24/truecolor.txt", "snapshots/showcase/audit/textareas/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_field_chrome isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
+      }
     },
     {
       "id": "FLD-DISABLED-002",
@@ -2404,7 +2519,17 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/inputs/80x24/truecolor.txt", "snapshots/showcase/audit/textareas/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_field_disabled isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
+      }
     },
     {
       "id": "FLD-FOCUSLOSS-003",
@@ -2431,7 +2556,17 @@
       "snapshots": {"ref": ["snapshots/showcase/flows/inputs/editing/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_field_focusloss isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-COMMIT-001",
@@ -2458,7 +2593,17 @@
       "snapshots": {"ref": ["snapshots/showcase/flows/inputs/editing/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection", "cursor-capture"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_input_commit isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-CANCEL-002",
@@ -2485,7 +2630,17 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/inputs/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T03:07:57Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8v S2 s2_input_cancel isolated+live-PTY PASS @75afd0a (nextest visual_baseline --run-ignored all s2_ --test-threads 2, 20 pass/0 fail/557 skip; bin tests/harness/target/debug/showcase 10977512B sha256:2d5a82b28e71 built 2026-10-08T02:53:34Z; log /tmp/phase8v-focused.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-KEYS-003",
