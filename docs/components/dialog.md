@@ -220,6 +220,8 @@ The default `Theme::termrock()` recipe must reproduce the frozen output:
 - a typed acknowledgement reserves the field and code preview above actions;
   facts clip first on short screens, while the acknowledgement and actions stay
   inside the frame;
+- `input_after_body(true)` reserves the acknowledgement field below the body
+  slot, above the actions; facts clip first;
 - Unicode body and title content are measured by display cells and never split
   a grapheme or wide-cell continuation;
 - truecolor, 256-color, 16-color, explicit `none` and `NO_COLOR` lanes resolve
