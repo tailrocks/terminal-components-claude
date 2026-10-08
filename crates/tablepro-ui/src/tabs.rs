@@ -6,8 +6,8 @@ use tablepro_domain::{Catalog, ColType, ObjectKind, ResultSet, Table, Value};
 use tablepro_domain::{History, HistoryEntry};
 use tablepro_sql as sql;
 use termrock::{
-    Align, ChipBarState, Column, ColumnKey, GRID_MAX_COLUMNS, GlyphRole, Grid, GridModel,
-    GridState, Id, ItemKey, SortDir, TextInputState, WidthSample,
+    Align, AsItem, ChipBarState, Column, ColumnKey, CompletionState, GRID_MAX_COLUMNS, GlyphRole,
+    Grid, GridModel, GridState, Id, Item, ItemKey, SortDir, TextInputState, WidthSample,
 };
 
 use crate::domain::ResultGrid;
@@ -392,6 +392,29 @@ pub enum QueryPaneMaximized {
     Results,
 }
 
+/// One cached SQL completion row for the stock popover.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QueryCompletion(pub sql::Completion);
+
+impl AsItem for QueryCompletion {
+    fn as_item(&self) -> Item<'_> {
+        let glyph = match self.0.kind {
+            sql::CompletionKind::Keyword => "K",
+            sql::CompletionKind::Table => "T",
+            sql::CompletionKind::View => "V",
+            sql::CompletionKind::Column => "C",
+            sql::CompletionKind::Function => "F",
+            sql::CompletionKind::Schema => "S",
+            sql::CompletionKind::Alias => "A",
+        };
+        Item::new(ItemKey::text(&self.0.label), &self.0.label)
+            .glyph(glyph)
+            .detail(&self.0.detail)
+            .insert(&self.0.text)
+            .matched(&self.0.matched)
+    }
+}
+
 /// Query editor tab.
 #[derive(Clone)]
 pub struct QueryTab {
@@ -399,6 +422,8 @@ pub struct QueryTab {
     pub name: String,
     pub query: String,
     pub editor_state: TextInputState,
+    pub completion: CompletionState,
+    pub completions: Vec<QueryCompletion>,
     pub saved_text: String,
     pub result: Option<GridView>,
     pub error: Option<String>,
@@ -417,6 +442,8 @@ impl core::fmt::Debug for QueryTab {
             .field("name", &self.name)
             .field("query", &"[redacted]")
             .field("editor_state", &"<input state>")
+            .field("completion_open", &self.completion.is_open())
+            .field("completions", &self.completions.len())
             .field("saved_text", &"[redacted]")
             .field("has_result", &self.result.is_some())
             .field("has_error", &self.error.is_some())
@@ -437,6 +464,8 @@ impl QueryTab {
             saved_text: query.clone(),
             query,
             editor_state: TextInputState::default(),
+            completion: CompletionState::default(),
+            completions: Vec::new(),
             result: None,
             error: None,
             plan: None,

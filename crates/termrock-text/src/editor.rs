@@ -212,6 +212,12 @@ impl TextEditorCore {
         self.buf.set_cursor_line_col(line, col);
     }
 
+    /// Place the caret at byte `at` (snapped, clamped) with no selection.
+    pub fn set_cursor_offset(&mut self, at: usize) {
+        self.buf.select_range(at, at);
+        self.buf.clear_selection();
+    }
+
     /// Select `a..b` (either order), cursor at `b`.
     pub fn select_range(&mut self, a: usize, b: usize) {
         self.buf.select_range(a, b);

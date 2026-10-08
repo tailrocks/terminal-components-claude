@@ -829,6 +829,7 @@ pub struct App {
     cockpit_info_open: bool,
     cockpit_cancel_confirm: bool,
     cockpit_debug_open: bool,
+    cockpit_failure_open: bool,
     accounts_form_stage: u8,
     accounts_form_enters: u8,
     accounts_filtering: bool,
@@ -1027,6 +1028,7 @@ impl App {
             cockpit_info_open: false,
             cockpit_cancel_confirm: false,
             cockpit_debug_open: false,
+            cockpit_failure_open: false,
             accounts_form_stage: 0,
             accounts_form_enters: 0,
             accounts_filtering: false,
@@ -1040,6 +1042,9 @@ impl App {
         };
         if app.launch.as_ref().is_some_and(|run| run.done) {
             app.materialize_launch();
+        }
+        if app.launch.as_ref().is_some_and(|run| run.failure.is_some()) {
+            app.present_boot_failure();
         }
         if app.route == Route::Handoff {
             app.cockpit.handoff.start();
@@ -2097,6 +2102,97 @@ impl App {
         self.active_instance = Some(instance_id.clone());
         self.world.sync_arbiter();
         self.manager_rows_cache.clear();
+    }
+
+    /// Present a failure the boot seek already reached.
+    ///
+    /// `LaunchRun::seek` advances the pipeline without emitting events, so a
+    /// frozen failure frame (the `launch-failure` scenario) would otherwise
+    /// boot onto a running cockpit with no failure visible. The failed-setup
+    /// instance record and the open failure dialog match the live `Failed`
+    /// event path; Escape acknowledges back to the Manager.
+    fn present_boot_failure(&mut self) {
+        let Some(run) = self.launch.as_ref() else {
+            return;
+        };
+        if run.failure.is_none() {
+            return;
+        }
+        let run_id = run.run_id;
+        if !self
+            .world
+            .instances
+            .iter()
+            .any(|instance| instance.run_id == run_id)
+        {
+            let agent = run.agent;
+            let container = run.container.clone();
+            let role = self.selected_role().to_owned();
+            let workspace = self.world.workspaces.first().cloned();
+            let now_secs = self.world.now_secs();
+            let mut instance = crate::sim::fixtures::fixture_instance(
+                InstanceStatus::FailedSetup,
+                run_id,
+                now_secs,
+                DaemonSnapshot::Unavailable,
+            );
+            instance.id = self.world.new_instance_id();
+            instance.container = container;
+            instance.workspace = workspace.as_ref().map(|workspace| workspace.id);
+            instance.workdir = workspace
+                .as_ref()
+                .map_or_else(String::new, |workspace| workspace.workdir.clone());
+            instance.role = role;
+            instance.agent = agent;
+            instance.created_secs = now_secs;
+            instance.last_seen_secs = now_secs;
+            self.world.instances.push(instance);
+            self.world.sync_arbiter();
+            self.manager_rows_cache.clear();
+        }
+        self.cockpit_failure_open = true;
+    }
+
+    /// Acknowledge the launch-failure dialog: tear down the cockpit and
+    /// return to the Manager with the failed instance selected.
+    fn acknowledge_launch_failure(&mut self) {
+        self.cockpit_failure_open = false;
+        let failed_id = self.launch.as_ref().and_then(|run| {
+            self.world
+                .instances
+                .iter()
+                .find(|instance| instance.run_id == run.run_id)
+                .map(|instance| instance.id.clone())
+        });
+        self.launch = None;
+        let running = self.world.running_count();
+        if running > 0 {
+            self.route = Route::Manager;
+            self.ensure_manager_rows();
+            if let Some(id) = failed_id
+                && let Some(index) = self
+                    .manager_rows_cache
+                    .iter()
+                    .position(|row| row.domain == ManagerRowKey::Instance(id.clone()))
+            {
+                let key = self.manager_rows_cache[index].key;
+                let domain = self.manager_rows_cache[index].domain.clone();
+                self.manager.list.set_cursor(index, key);
+                self.manager.select_row(domain);
+            }
+            let noun = if running == 1 {
+                "instance"
+            } else {
+                "instances"
+            };
+            self.status = Some(format!(
+                "Launch failed · {running} {noun} still running in the Construct"
+            ));
+        } else {
+            self.status = Some("Launch failed · the Construct is empty".into());
+            self.route = Route::Outro;
+            self.outro = Some(OutroState::new(self.motion, None, 0));
+        }
     }
 
     fn capsule_input() -> TextInput<'static> {
@@ -4045,7 +4141,22 @@ impl App {
                     result |= Response::changed();
                 }
             }
-            EditorTab::General => {}
+            EditorTab::General => {
+                let keep_awake = Checkbox::new(crate::screens::editor::KEEP_AWAKE, "Keep awake")
+                    .update(cx, &mut self.editor.pending.keep_awake);
+                if keep_awake.action_ref().is_some() {
+                    self.editor.mark_dirty();
+                    result |= Response::changed();
+                }
+                result |= keep_awake.erase();
+                let git_pull = Checkbox::new(crate::screens::editor::GIT_PULL, "Git pull")
+                    .update(cx, &mut self.editor.pending.git_pull);
+                if git_pull.action_ref().is_some() {
+                    self.editor.mark_dirty();
+                    result |= Response::changed();
+                }
+                result |= git_pull.erase();
+            }
         }
 
         let save = Self::editor_save_button("Save workspace").update(cx);
@@ -4078,6 +4189,9 @@ impl App {
     }
 
     fn update_launch(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
+        if self.cockpit_failure_open {
+            return Response::ignored();
+        }
         let mut result = Response::ignored();
         let failed = self
             .launch
@@ -4795,7 +4909,10 @@ impl App {
                 self.status = Some("Close tab? · Enter confirm · Esc cancel".into());
                 Some(Response::changed())
             }
-            CMD_COCKPIT_LOG if matches!(self.route, Route::Launch | Route::Cockpit) => {
+            CMD_COCKPIT_LOG
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && !self.cockpit_failure_open =>
+            {
                 self.cockpit.log_open = true;
                 self.cockpit.log_scroll = 0;
                 self.status = Some("Docker build · scroll to inspect output".into());
@@ -4847,6 +4964,7 @@ impl App {
                 self.editor_accounts = ListState::default();
                 self.editor_role_picker = false;
                 self.editor_env_role = None;
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
@@ -4996,7 +5114,10 @@ impl App {
                 self.manager.set_detail_open(!current);
                 Some(Response::changed())
             }
-            CMD_COCKPIT_INFO if matches!(self.route, Route::Cockpit | Route::Launch) => {
+            CMD_COCKPIT_INFO
+                if matches!(self.route, Route::Cockpit | Route::Launch)
+                    && !self.cockpit_failure_open =>
+            {
                 self.cockpit_info_open = !self.cockpit_info_open;
                 if self.cockpit_info_open {
                     self.status = Some("Debug info".into());
@@ -5005,12 +5126,18 @@ impl App {
                 }
                 Some(Response::changed())
             }
-            CMD_COCKPIT_CANCEL if matches!(self.route, Route::Cockpit | Route::Launch) => {
+            CMD_COCKPIT_CANCEL
+                if matches!(self.route, Route::Cockpit | Route::Launch)
+                    && !self.cockpit_failure_open =>
+            {
                 self.cockpit_cancel_confirm = true;
                 self.status = Some("Cancel the launch?".into());
                 Some(Response::changed())
             }
-            CMD_COCKPIT_DEBUG if matches!(self.route, Route::Cockpit | Route::Launch) => {
+            CMD_COCKPIT_DEBUG
+                if matches!(self.route, Route::Cockpit | Route::Launch)
+                    && !self.cockpit_failure_open =>
+            {
                 self.cockpit_debug_open = !self.cockpit_debug_open;
                 if self.cockpit_debug_open {
                     self.status = Some("run-2026".into());
@@ -5161,6 +5288,14 @@ impl App {
                 }
                 Some(Response::changed())
             }
+            CMD_NAV_UP if self.route == Route::Editor => {
+                cx.focus_prev();
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Editor => {
+                cx.focus_next();
+                Some(Response::changed())
+            }
             CMD_PRELUDE_SPACE if self.route == Route::Manager => {
                 if let ManagerRowKey::Workspace(workspace) = *self.manager.selected_row() {
                     self.manager.toggle(workspace);
@@ -5197,6 +5332,29 @@ impl App {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor_accounts_transition = false;
                     self.toggle_editor_account();
+                }
+                Some(Response::changed())
+            }
+            CMD_PRELUDE_SPACE
+                if self.route == Route::Editor && self.editor.tab == EditorTab::General =>
+            {
+                // Space arrives through the app capture binding (as on the
+                // prelude), so the focused General checkbox flips here; the
+                // component update below never sees the chord.
+                if cx.update_cause() == UpdateCause::Event {
+                    if cx
+                        .state(crate::screens::editor::KEEP_AWAKE)
+                        .contains(StateFlags::FOCUSED)
+                    {
+                        self.editor.pending.keep_awake = !self.editor.pending.keep_awake;
+                        self.editor.mark_dirty();
+                    } else if cx
+                        .state(crate::screens::editor::GIT_PULL)
+                        .contains(StateFlags::FOCUSED)
+                    {
+                        self.editor.pending.git_pull = !self.editor.pending.git_pull;
+                        self.editor.mark_dirty();
+                    }
                 }
                 Some(Response::changed())
             }
@@ -6148,6 +6306,26 @@ impl App {
         }
         if self.cockpit_cancel_confirm {
             crate::screens::cockpit::CockpitScreen::draw_cancel_confirm(ui, area);
+        }
+        if self.cockpit_failure_open
+            && let Some(run) = self.launch.as_ref()
+            && let Some(failure) = run.failure.as_ref()
+        {
+            let run_id = run.run_id.short();
+            let ws_name = self
+                .world
+                .workspaces
+                .first()
+                .map_or("payments-platform", |workspace| workspace.name.as_str());
+            crate::screens::cockpit::CockpitScreen::draw_failure(
+                ui,
+                area,
+                failure,
+                &run_id,
+                self.selected_role(),
+                ws_name,
+                &run.container,
+            );
         }
     }
 
@@ -8106,6 +8284,10 @@ impl TuiApp for App {
             self.quit = true;
             return self.route_changed();
         }
+        if matches!(self.route, Route::Launch | Route::Cockpit) && self.cockpit_failure_open {
+            self.acknowledge_launch_failure();
+            return self.route_changed();
+        }
         if self.cockpit_info_open {
             self.cockpit_info_open = false;
             self.status = None;
@@ -8242,6 +8424,12 @@ impl TuiApp for App {
         if self.route == Route::Editor {
             if self.editor.env_form_open {
                 self.editor.clear_env_form();
+                return self.route_changed();
+            }
+            if self.editor.preview_open {
+                self.editor.close_preview();
+                self.status = Some("Not saved · keep editing".into());
+                cx.focus(crate::screens::editor::SAVE);
                 return self.route_changed();
             }
             if self.editor.dirty {

@@ -1008,6 +1008,13 @@ impl<A: App> Runtime<A> {
                 if let Some(h) = self.last.registry.hit_scroll(m.pos, axis)
                     && h.layer == top
                 {
+                    // One notch scrolls `wheel_rows`: a real terminal
+                    // notch arrives as `Wheel(±1)` (`event.rs`), and the
+                    // reference apps map every notch to ±3 rows at the
+                    // dispatch layer — centralized here so every
+                    // scrollable keeps the reference feel. Components
+                    // must hold this offset per their own follow gate
+                    // (W09-05), never rely on a snap-back.
                     let rows = self.theme.design.motion.wheel_rows as i16;
                     self.intents
                         .wheel(h.owner, axis, delta.saturating_mul(rows), h.part, m.pos);
@@ -1458,7 +1465,16 @@ impl<A: App> Runtime<A> {
             }
             Input::Mouse(m) => self.enqueue_mouse(*m),
             Input::Paste(s) => {
-                if let Some(owner) = self.last.typing.owner {
+                // W08-03: paste reaches the typing owner; with no owner, the
+                // focused editor — navigation-mode paste begins editing
+                // there (`text-input.md` Paste). Non-editors never receive
+                // paste, so `paste_reaches_only_an_editing_owner` still holds.
+                let owner = self.last.typing.owner.or_else(|| {
+                    self.focus
+                        .current()
+                        .filter(|f| self.last.ring.entry(*f).is_some_and(|e| e.swallows_typing))
+                });
+                if let Some(owner) = owner {
                     self.intents.paste(owner, s.as_str());
                 }
             }
