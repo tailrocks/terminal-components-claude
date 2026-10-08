@@ -934,3 +934,61 @@ fn subject(role: &str, source_nibble: char) -> Subject {
         builder_receipt,
     }
 }
+
+#[test]
+fn immutable_tag_capture_receipt_schema_is_separate_and_closed() {
+    let schema: serde_json::Value = serde_json::from_str(include_str!(
+        "../schemas/oracle-capture-receipt-v1.schema.json"
+    ))
+    .expect("immutable-tag capture schema parses");
+    assert!(jsonschema::draft202012::meta::is_valid(&schema));
+    let validator =
+        jsonschema::draft202012::new(&schema).expect("immutable-tag capture schema compiles");
+    assert_eq!(
+        schema["$id"],
+        serde_json::json!("termrock-spec/parity-oracle-capture-receipt-v1")
+    );
+    assert_eq!(schema["additionalProperties"], serde_json::json!(false));
+    for forbidden in ["source_pair", "expected_generation", "trust"] {
+        assert!(schema["properties"].get(forbidden).is_none());
+        assert!(!schema["required"]
+            .as_array()
+            .expect("required fields")
+            .iter()
+            .any(|field| field.as_str() == Some(forbidden)));
+    }
+    let validator_execution = &schema["$defs"]["validator_execution"];
+    let required = validator_execution["required"]
+        .as_array()
+        .expect("validator execution required fields");
+    for field in ["git_dir", "git_common_dir"] {
+        assert!(required.iter().any(|value| value.as_str() == Some(field)));
+        assert!(validator_execution["properties"].get(field).is_some());
+    }
+    assert!(validator.is_valid(&serde_json::json!({})) == false);
+}
+
+#[test]
+fn generation_admission_and_independent_review_schemas_are_closed() {
+    for (path, source, expected_id) in [
+        (
+            "generation-admission-v1.schema.json",
+            include_str!("../schemas/generation-admission-v1.schema.json"),
+            "termrock-spec/visual-generation-admission-v1",
+        ),
+        (
+            "qualification-review-v1.schema.json",
+            include_str!("../schemas/qualification-review-v1.schema.json"),
+            "termrock-spec/visual-oracle-qualification-review-v1",
+        ),
+    ] {
+        let schema: serde_json::Value =
+            serde_json::from_str(source).unwrap_or_else(|error| panic!("{path} parses: {error}"));
+        assert!(jsonschema::draft202012::meta::is_valid(&schema), "{path}");
+        let validator = jsonschema::draft202012::new(&schema)
+            .unwrap_or_else(|error| panic!("{path} compiles: {error}"));
+        assert_eq!(schema["$id"], serde_json::json!(expected_id));
+        assert_eq!(schema["additionalProperties"], serde_json::json!(false));
+        assert!(!validator.is_valid(&serde_json::json!({})), "{path}");
+    }
+}

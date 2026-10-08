@@ -2,12 +2,16 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime};
 
+use serde::de::{Error as DeError, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
+use std::fmt;
 
+mod admission;
 mod visual;
 pub use visual::VisualComparisonEvidence;
 
@@ -29,8 +33,120 @@ const TRUST_RECORD_SHA_ENV: &str = "TERMROCK_E2E_TRUST_RECORD_SHA256";
 const RECEIPT_PATH_ENV: &str = "TERMROCK_E2E_RECEIPT_PATH";
 const WRITE_ROOT_ENV: &str = "TERMROCK_E2E_WRITE_ROOT";
 const PROTECTED_ROOTS_ENV: &str = "TERMROCK_E2E_PROTECTED_ROOTS";
+const TAG_BUILD_EVIDENCE_PATH_ENV: &str = "TERMROCK_E2E_ORACLE_BUILD_RECEIPT";
+const TAG_BUILD_EVIDENCE_SHA_ENV: &str = "TERMROCK_E2E_ORACLE_BUILD_RECEIPT_SHA256";
+const TAG_ACTUAL_ROOT_ENV: &str = "TERMROCK_E2E_ORACLE_ACTUAL_ROOT";
+const TAG_SOURCE_VALIDATOR_PATH_ENV: &str = "TERMROCK_VIS06_SUBJECTS_PY";
+const TAG_SOURCE_REPOSITORY_ENV: &str = "TERMROCK_VIS06_GIT_REPOSITORY";
+const TAG_VALIDATOR_TOOLCHAIN_PATH_ENV: &str = "TERMROCK_VIS06_VALIDATOR_TOOLCHAIN";
+const TAG_VALIDATOR_TOOLCHAIN_SHA_ENV: &str = "TERMROCK_VIS06_VALIDATOR_TOOLCHAIN_SHA256";
+const GENERATION_ADMISSION_PATH_ENV: &str = "TERMROCK_E2E_GENERATION_ADMISSION";
+const GENERATION_ADMISSION_SHA_ENV: &str = "TERMROCK_E2E_GENERATION_ADMISSION_SHA256";
+const TAG_SOURCE_VALIDATOR_SHA256: &str =
+    "0e09a25178749178252846512a66ad1dd1787ac9f27c96b5251e5a3aa61680c3";
+const TAG_VALIDATOR_TOOLCHAIN_SCHEMA: &str = "termrock-spec/visual-tag-validator-toolchain-v1";
+const TAG_VALIDATOR_HELPER_TRANSPORT: &str = "checked-source-absolute-git-dispatch-v1";
+const TAG_VALIDATED_IDENTITY_SCHEMA: &str = "termrock-spec/visual-tag-holla-validated-identity-v1";
+const TAG_CAPTURE_PREFLIGHT_SCHEMA: &str = "termrock-spec/parity-oracle-capture-preflight-v1";
+pub const ORACLE_CAPTURE_RECEIPT_SCHEMA: &str = "termrock-spec/parity-oracle-capture-receipt-v1";
+pub const ORACLE_CAPTURE_RECEIPT_SCHEMA_JSON: &str =
+    include_str!("../schemas/oracle-capture-receipt-v1.schema.json");
+const TAG_BUILD_EVIDENCE_SCHEMA: &str = "termrock-spec/visual-tag-holla-build-evidence-v1";
 pub const WRITE_POLICY_SCHEMA: &str = "termrock-spec/parity-write-policy-v2";
 pub const COMPILED_SUITE_SHA256: &str = env!("TERMROCK_E2E_COMPILED_SUITE_SHA256");
+
+struct NoDuplicateJson;
+
+impl<'de> Deserialize<'de> for NoDuplicateJson {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(NoDuplicateJsonVisitor)
+    }
+}
+
+struct NoDuplicateJsonVisitor;
+
+impl<'de> Visitor<'de> for NoDuplicateJsonVisitor {
+    type Value = NoDuplicateJson;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("JSON without duplicate object keys")
+    }
+
+    fn visit_bool<E>(self, _: bool) -> Result<Self::Value, E> {
+        Ok(NoDuplicateJson)
+    }
+
+    fn visit_i64<E>(self, _: i64) -> Result<Self::Value, E> {
+        Ok(NoDuplicateJson)
+    }
+
+    fn visit_u64<E>(self, _: u64) -> Result<Self::Value, E> {
+        Ok(NoDuplicateJson)
+    }
+
+    fn visit_f64<E>(self, _: f64) -> Result<Self::Value, E> {
+        Ok(NoDuplicateJson)
+    }
+
+    fn visit_str<E>(self, _: &str) -> Result<Self::Value, E> {
+        Ok(NoDuplicateJson)
+    }
+
+    fn visit_string<E>(self, _: String) -> Result<Self::Value, E> {
+        Ok(NoDuplicateJson)
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E> {
+        Ok(NoDuplicateJson)
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E> {
+        Ok(NoDuplicateJson)
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        NoDuplicateJson::deserialize(deserializer)
+    }
+
+    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        while sequence.next_element::<NoDuplicateJson>()?.is_some() {}
+        Ok(NoDuplicateJson)
+    }
+
+    fn visit_map<A>(self, mut object: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut seen = BTreeSet::new();
+        while let Some(key) = object.next_key::<String>()? {
+            if !seen.insert(key.clone()) {
+                return Err(A::Error::custom(format!(
+                    "duplicate JSON object key {key:?}"
+                )));
+            }
+            object.next_value::<NoDuplicateJson>()?;
+        }
+        Ok(NoDuplicateJson)
+    }
+}
+
+fn reject_duplicate_json_keys(bytes: &[u8], label: &str) -> Result<(), String> {
+    let mut deserializer = serde_json::Deserializer::from_slice(bytes);
+    NoDuplicateJson::deserialize(&mut deserializer)
+        .map_err(|error| format!("{label} contains invalid JSON: {error}"))?;
+    deserializer
+        .end()
+        .map_err(|error| format!("{label} has trailing JSON data: {error}"))
+}
 
 static CAPTURE_DIRECTORY_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -161,7 +277,7 @@ pub struct Subject {
     pub builder_receipt_sha256: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct BuildFacts {
     pub package_id: String,
@@ -265,7 +381,7 @@ pub struct TrustedExpectedGeneration {
     pub admission_receipt_sha256: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Executable {
     pub path: PathBuf,
@@ -304,6 +420,282 @@ pub struct RunReceipt {
     pub artifacts: Vec<ArtifactReceipt>,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TagBuilderEvidence {
+    schema: String,
+    run_id: String,
+    purpose: String,
+    build_result: String,
+    qualification: QualificationEvidence,
+    oracle_lineage: TagOracleLineage,
+    source_snapshot: TagSourceSnapshotEvidence,
+    build_artifact_root: PathBuf,
+    build: BuildFacts,
+    executable: Executable,
+    builder_receipt: BuilderReceipt,
+    builder_receipt_sha256: String,
+    build_environment: TagBuildEnvironmentEvidence,
+    capture_status: String,
+    admission_status: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct TagSourceSnapshotEvidence {
+    materialized_root: String,
+    source_commit: String,
+    tree_oid: String,
+    git_object_replacement_policy: String,
+    recipe: String,
+    archive_argv: Vec<String>,
+    git_ls_tree_stdout_sha256: String,
+    excluded_roots: Vec<String>,
+    path_blob_digest_algorithm: String,
+    tracked_path_blob_map_sha256: String,
+    tracked_file_count: u64,
+    included_path_blob_map_sha256: String,
+    included_file_count: u64,
+    excluded_path_blob_map_sha256: String,
+    excluded_file_count: u64,
+    archive_sha256: String,
+    archive_member_count: u64,
+    read_only: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct TagValidatorToolIdentity {
+    pub path: PathBuf,
+    pub sha256: String,
+    pub version: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct TagValidatorToolchain {
+    schema: String,
+    python: TagValidatorToolIdentity,
+    git: TagValidatorToolIdentity,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct TagValidatorExecutionEvidence {
+    pub repository: PathBuf,
+    pub git_dir: PathBuf,
+    pub git_common_dir: PathBuf,
+    pub toolchain: EvidenceReference,
+    pub python: TagValidatorToolIdentity,
+    pub git: TagValidatorToolIdentity,
+    pub helper_transport: String,
+    pub executed_helper_sha256: String,
+    pub python_sha256_before: String,
+    pub python_sha256_after: String,
+    pub git_sha256_before: String,
+    pub git_sha256_after: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct TagBuildEnvironmentEvidence {
+    cargo_config_sha256: BTreeMap<String, BTreeMap<String, String>>,
+    external_cargo_config_policy: String,
+    rustup: RustupEvidence,
+    toolchain_binaries: BTreeMap<String, ToolchainBinaryEvidence>,
+    cargo_version: String,
+    rustc_version: String,
+    host_triple: String,
+    target_triple: String,
+    environment: BTreeMap<String, BuildEnvironmentFacts>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct TagMetadataTargetEvidence {
+    package_id: String,
+    package_name: String,
+    target_name: String,
+    manifest_path: String,
+    source_path: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct TagValidatedEvidenceReference {
+    path: PathBuf,
+    sha256: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct TagValidatedSourceSnapshot {
+    source_commit: String,
+    tree_oid: String,
+    materialized_root: PathBuf,
+    included_path_blob_map_sha256: String,
+    included_file_count: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct TagValidatedIdentity {
+    schema: String,
+    receipt: TagValidatedEvidenceReference,
+    run: TagValidatedEvidenceReference,
+    oracle_lineage: TagOracleLineage,
+    source_snapshot: TagValidatedSourceSnapshot,
+    metadata_target: TagMetadataTargetEvidence,
+    build: BuildFacts,
+    executable: Executable,
+    builder_receipt_sha256: String,
+    build_environment: TagBuildEnvironmentEvidence,
+    execution_anchor_status: String,
+    qualification: QualificationEvidence,
+    capture_status: String,
+    admission_status: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct TagOracleLineage {
+    tag_ref: String,
+    tag_object: String,
+    tag_commit: String,
+    git_object_replacement_policy: String,
+    git_lazy_fetch_policy: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct OracleCaptureReceipt {
+    pub schema: String,
+    pub run_id: String,
+    pub state: String,
+    pub oracle_identity: OracleCaptureIdentity,
+    pub builder_evidence: EvidenceReference,
+    pub builder_run: EvidenceReference,
+    pub validator_helper: EvidenceReference,
+    pub suite: SuiteIdentity,
+    pub case: CaseCaptureIdentity,
+    pub environment: EnvironmentReceipt,
+    pub renderer: RendererIdentity,
+    pub write_policy: WritePolicyReceipt,
+    pub checks: Vec<CheckReceipt>,
+    pub artifacts: Vec<ArtifactReceipt>,
+    pub capture_status: String,
+    pub execution_anchor_status: String,
+    pub qualification: QualificationEvidence,
+    pub admission_status: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdmissionWriteReceipt {
+    pub schema: String,
+    pub admission_path: PathBuf,
+    pub admission_sha256: String,
+    pub generation_id: String,
+    pub generation_tree_sha256: String,
+    pub decision: String,
+}
+
+/// Read-only identity and policy preflight for the immutable-tag oracle.
+/// `execution_anchor_status` is permanently `unverified` in this entrypoint,
+/// so no product process or capture receipt can be produced from it.
+#[derive(Clone, Debug, Serialize)]
+pub struct TagCapturePreflight {
+    schema: String,
+    state: String,
+    run_id: String,
+    case: CaseCaptureIdentity,
+    suite: SuiteIdentity,
+    tag_identity: TagValidatedIdentity,
+    validator_helper: TagValidatedEvidenceReference,
+    validator_execution: TagValidatorExecutionEvidence,
+    environment: EnvironmentReceipt,
+    renderer: RendererIdentity,
+    write_policy: WritePolicyReceipt,
+    execution_anchor_status: String,
+    qualification: QualificationEvidence,
+    capture_status: String,
+    admission_status: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct OracleCaptureIdentity {
+    pub tag_ref: String,
+    pub tag_object: String,
+    pub tag_commit: String,
+    pub git_object_replacement_policy: String,
+    pub git_lazy_fetch_policy: String,
+    pub source_snapshot_commit: String,
+    pub source_snapshot_tree: String,
+    pub source_snapshot_root: PathBuf,
+    pub source_snapshot_included_file_count: u64,
+    pub build_artifact_root: PathBuf,
+    pub build: BuildFacts,
+    pub builder_receipt_sha256: String,
+    pub source_inputs_sha256: String,
+    pub build_environment_sha256: String,
+    pub executable: ExecutableReceipt,
+    pub validator_execution: TagValidatorExecutionEvidence,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CaseCaptureIdentity {
+    pub id: String,
+    pub app: String,
+    pub binary: String,
+    pub args: Vec<String>,
+    pub geometry: Geometry,
+    pub color_path: String,
+    pub legacy_snapshot_root: String,
+    pub screen: String,
+    pub substep: String,
+    pub case_set_sha256: String,
+    pub input_program_sha256: String,
+    pub checkpoints: Vec<CheckpointCaptureIdentity>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CheckpointCaptureIdentity {
+    pub id: String,
+    pub assertions: Vec<Assertion>,
+}
+
+#[derive(Clone, Debug)]
+struct LoadedTagBuildEvidence {
+    record: TagBuilderEvidence,
+    identity: TagValidatedIdentity,
+    validator_helper: TagValidatedEvidenceReference,
+    validator_execution: TagValidatorExecutionEvidence,
+    path: PathBuf,
+    sha256: String,
+    source_snapshot_root: PathBuf,
+    build_artifact_root: PathBuf,
+    subject: Subject,
+}
+
+#[derive(Clone, Debug)]
+struct SubjectDriveResult {
+    checks: Vec<CheckReceipt>,
+    artifacts: Vec<ArtifactReceipt>,
+    actual_sha256: Option<String>,
+    post_run_failure: Option<String>,
+}
+
+struct VisualComparisonContext<'a> {
+    expected_supplied: bool,
+    loaded_expected: Option<&'a Result<visual::ExpectedGeneration, String>>,
+    admission: Option<&'a TrustedExpectedGeneration>,
+    trust_record_sha256: &'a str,
+    renderer: &'a RendererIdentity,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(deny_unknown_fields)]
 pub struct ProtectedRoot {
@@ -321,7 +713,8 @@ where
     Option::<T>::deserialize(deserializer)
 }
 
-#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct ActualOutputRoot {
     pub role: String,
     pub path: PathBuf,
@@ -347,7 +740,8 @@ struct ResolvedPath {
     nearest_directory: ResolvedDirectory,
 }
 
-#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct WritePolicyReceipt {
     pub schema: String,
     pub write_root: PathBuf,
@@ -387,6 +781,12 @@ pub struct PreparedTrustRecord {
 
 #[derive(Clone, Debug)]
 struct TrustRecordSource {
+    canonical_path: PathBuf,
+    expected_sha256: String,
+}
+
+#[derive(Clone, Debug)]
+struct GenerationAdmissionSource {
     canonical_path: PathBuf,
     expected_sha256: String,
 }
@@ -480,7 +880,7 @@ struct BuildEnvironmentEvidence {
     environment: BTreeMap<String, BuildEnvironmentFacts>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct RustupEvidence {
     path: String,
@@ -488,14 +888,14 @@ struct RustupEvidence {
     home: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct ToolchainBinaryEvidence {
     path: String,
     sha256: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct BuildEnvironmentFacts {
     home: String,
@@ -546,11 +946,11 @@ struct BuilderRunEvidence {
     subject_manifest_sha256: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-struct QualificationEvidence {
-    status: String,
-    reason: String,
+pub struct QualificationEvidence {
+    pub status: String,
+    pub reason: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
@@ -602,14 +1002,16 @@ pub struct SubjectIdentity {
     pub actual_output_root: PathBuf,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ExecutableReceipt {
     pub path: PathBuf,
     pub expected_sha256: String,
     pub actual_sha256: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SuiteIdentity {
     pub revision: String,
     pub digest: String,
@@ -631,7 +1033,8 @@ pub struct ExpectedGenerationReceipt {
     pub root: Option<PathBuf>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct EnvironmentReceipt {
     pub cleared: bool,
     pub cwd: PathBuf,
@@ -684,7 +1087,8 @@ struct VerifiedTrustRecord {
     verification: TrustVerification,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct CheckReceipt {
     pub id: String,
     pub subject_role: String,
@@ -694,11 +1098,12 @@ pub struct CheckReceipt {
     pub status: String,
     pub reason: String,
     pub evidence: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", skip_deserializing)]
     pub visual_comparison: Option<VisualComparisonEvidence>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ArtifactReceipt {
     pub subject_role: String,
     pub case_id: String,
@@ -2030,6 +2435,35 @@ fn load_trust_record_source() -> Result<TrustRecordSource, String> {
     })
 }
 
+fn load_generation_admission_source_optional() -> Result<Option<GenerationAdmissionSource>, String>
+{
+    let path = std::env::var_os(GENERATION_ADMISSION_PATH_ENV).map(PathBuf::from);
+    let expected_sha256 = std::env::var(GENERATION_ADMISSION_SHA_ENV).ok();
+    match (path, expected_sha256) {
+        (None, None) => Ok(None),
+        (Some(_), None) => Err(format!(
+            "{GENERATION_ADMISSION_SHA_ENV} is required with {GENERATION_ADMISSION_PATH_ENV}"
+        )),
+        (None, Some(_)) => Err(format!(
+            "{GENERATION_ADMISSION_PATH_ENV} is required with {GENERATION_ADMISSION_SHA_ENV}"
+        )),
+        (Some(path), Some(expected_sha256)) => {
+            if !path.is_absolute() {
+                return Err(format!("{GENERATION_ADMISSION_PATH_ENV} must be absolute"));
+            }
+            require_sha256(GENERATION_ADMISSION_SHA_ENV, &expected_sha256)?;
+            let canonical_path = canonical_existing_regular_file_without_symlinks(
+                &path,
+                "generation admission receipt",
+            )?;
+            Ok(Some(GenerationAdmissionSource {
+                canonical_path,
+                expected_sha256,
+            }))
+        }
+    }
+}
+
 fn load_future_trust_record_path() -> Result<PathBuf, String> {
     let path = std::env::var_os(TRUST_RECORD_PATH_ENV)
         .map(PathBuf::from)
@@ -2066,9 +2500,10 @@ fn resolve_write_policy_with_evidence(
     input: WritePolicyInput,
     subjects: &[Subject],
     expected_root: Option<&Path>,
-    trust_record_path: &Path,
+    trust_record_path: Option<&Path>,
     evidence: Option<&LoadedEvidenceContext>,
     test_binary: &Path,
+    tag_builder_evidence_path: Option<&Path>,
 ) -> Result<WritePolicyReceipt, String> {
     let resolved_write_root =
         resolve_existing_directory_without_symlinks(&input.write_root, WRITE_ROOT_ENV)?;
@@ -2082,7 +2517,12 @@ fn resolve_write_policy_with_evidence(
         ));
     }
     let resolved_receipt_path = resolve_path_for_overlap(&receipt_path, "run receipt")?;
-    let mut protected_roots = canonical_caller_protected_roots(input.protected_roots)?;
+    let subject_roles = subjects
+        .iter()
+        .map(|subject| subject.role.as_str())
+        .collect::<Vec<_>>();
+    let mut protected_roots =
+        canonical_caller_protected_roots_for(input.protected_roots, &subject_roles)?;
 
     let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let checkout_root = suite_checkout_root(package_root)?;
@@ -2110,19 +2550,159 @@ fn resolve_write_policy_with_evidence(
             canonical_output_root(expected_root)?,
         )?);
     }
-    protected_roots.push(protected_root(
-        "trust_record",
-        None,
-        trust_record_path.to_path_buf(),
-    )?);
-    if let Some(parent) = trust_record_path.parent() {
-        let canonical_parent =
-            canonical_existing_directory_without_symlinks(parent, "trust record parent")?;
+    if let Some(trust_record_path) = trust_record_path {
         protected_roots.push(protected_root(
-            "trust_record_parent",
+            "trust_record",
             None,
-            canonical_parent,
+            trust_record_path.to_path_buf(),
         )?);
+        if let Some(parent) = trust_record_path.parent() {
+            let canonical_parent =
+                canonical_existing_directory_without_symlinks(parent, "trust record parent")?;
+            protected_roots.push(protected_root(
+                "trust_record_parent",
+                None,
+                canonical_parent,
+            )?);
+        }
+    }
+    if let Some(tag_builder_evidence_path) = tag_builder_evidence_path {
+        let evidence_path = canonical_existing_regular_file_without_symlinks(
+            tag_builder_evidence_path,
+            "immutable-tag builder evidence",
+        )?;
+        let evidence_parent = evidence_path
+            .parent()
+            .ok_or_else(|| "immutable-tag builder evidence has no parent".to_string())?;
+        let evidence_parent = canonical_existing_directory_without_symlinks(
+            evidence_parent,
+            "immutable-tag builder evidence parent",
+        )?;
+        protected_roots.push(protected_root("tag_builder_evidence", None, evidence_path)?);
+        protected_roots.push(protected_root(
+            "tag_builder_evidence_parent",
+            None,
+            evidence_parent,
+        )?);
+    }
+    if let Some(validator_path) = std::env::var_os(TAG_SOURCE_VALIDATOR_PATH_ENV).map(PathBuf::from)
+    {
+        push_protected_external_file(
+            &mut protected_roots,
+            "tag_validator_helper",
+            &validator_path,
+        )?;
+    }
+    if let Some(toolchain_path) =
+        std::env::var_os(TAG_VALIDATOR_TOOLCHAIN_PATH_ENV).map(PathBuf::from)
+    {
+        push_protected_external_file(
+            &mut protected_roots,
+            "tag_validator_toolchain",
+            &toolchain_path,
+        )?;
+    }
+    if let Some(source) = load_generation_admission_source_optional()? {
+        let admission =
+            admission::load_admission_envelope(&source.canonical_path, &source.expected_sha256)?;
+        let binding = &admission.receipt.binding;
+        let review = admission::load_qualification_review(
+            Some(Path::new(&admission.receipt.qualification_review.path)),
+            Some(&admission.receipt.qualification_review.sha256),
+            binding,
+        )?;
+        let capture =
+            load_oracle_capture(Path::new(&binding.capture.path), &binding.capture.sha256)?;
+        if capture.path.display().to_string() != binding.capture.path {
+            return Err("admitted capture path is not canonical".to_string());
+        }
+        push_protected_external_file(
+            &mut protected_roots,
+            "generation_admission_evidence",
+            &source.canonical_path,
+        )?;
+        push_protected_external_file(
+            &mut protected_roots,
+            "generation_admission_evidence",
+            &review.path,
+        )?;
+        push_protected_external_file(
+            &mut protected_roots,
+            "generation_admission_evidence",
+            &capture.path,
+        )?;
+        push_protected_external_file(
+            &mut protected_roots,
+            "generation_admission_evidence",
+            Path::new(&capture.receipt.builder_evidence.path),
+        )?;
+        push_protected_external_file(
+            &mut protected_roots,
+            "generation_admission_evidence",
+            Path::new(&capture.receipt.builder_run.path),
+        )?;
+        push_protected_external_file(
+            &mut protected_roots,
+            "generation_admission_evidence",
+            Path::new(&capture.receipt.validator_helper.path),
+        )?;
+        push_protected_external_file(
+            &mut protected_roots,
+            "generation_admission_evidence",
+            Path::new(
+                &capture
+                    .receipt
+                    .oracle_identity
+                    .validator_execution
+                    .toolchain
+                    .path,
+            ),
+        )?;
+        for tool in [
+            &capture.receipt.oracle_identity.validator_execution.python,
+            &capture.receipt.oracle_identity.validator_execution.git,
+        ] {
+            push_protected_external_file(
+                &mut protected_roots,
+                "generation_admission_evidence",
+                &tool.path,
+            )?;
+        }
+        protected_roots.push(protected_root(
+            "oracle_capture_artifacts",
+            None,
+            capture.receipt.write_policy.write_root.clone(),
+        )?);
+        protected_roots.push(protected_root(
+            "oracle_capture_artifacts",
+            None,
+            capture
+                .receipt
+                .write_policy
+                .actual_output_roots
+                .iter()
+                .find(|root| root.role == "oracle")
+                .ok_or_else(|| "admitted capture lacks oracle output root".to_string())?
+                .path
+                .clone(),
+        )?);
+        protected_roots.push(protected_root(
+            "tag_source_snapshot",
+            None,
+            capture.receipt.oracle_identity.source_snapshot_root.clone(),
+        )?);
+        protected_roots.push(protected_root(
+            "tag_build_artifacts",
+            None,
+            capture.receipt.oracle_identity.build_artifact_root.clone(),
+        )?);
+        for evidence in &review.review.execution_anchor_evidence {
+            push_protected_external_file(
+                &mut protected_roots,
+                "generation_admission_evidence",
+                Path::new(&evidence.path),
+            )?;
+        }
     }
     let canonical_test_binary = fs::canonicalize(test_binary).map_err(|error| {
         format!(
@@ -2215,52 +2795,59 @@ fn resolve_write_policy_with_evidence(
                 .map(|resolved| (root, resolved))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let resolved_trust_record =
-        resolve_path_for_overlap(trust_record_path, "external trust record")?;
-    let resolved_trust_parent = resolved_protected_roots
-        .iter()
-        .find(|(root, _)| root.kind == "trust_record_parent")
-        .and_then(|(_, resolved)| resolved.directory.as_ref())
-        .ok_or_else(|| "external trust record parent is not an existing directory".to_string())?;
+    let resolved_trust_record = trust_record_path
+        .map(|path| resolve_path_for_overlap(path, "external trust record"))
+        .transpose()?;
+    if let Some(resolved_trust_record) = &resolved_trust_record {
+        let resolved_trust_parent = resolved_protected_roots
+            .iter()
+            .find(|(root, _)| root.kind == "trust_record_parent")
+            .and_then(|(_, resolved)| resolved.directory.as_ref())
+            .ok_or_else(|| {
+                "external trust record parent is not an existing directory".to_string()
+            })?;
 
-    for (root, resolved_root) in &resolved_protected_roots {
-        if !matches!(
-            root.kind.as_str(),
-            "subject_source" | "subject_artifact" | "oracle"
-        ) {
-            continue;
+        for (root, resolved_root) in &resolved_protected_roots {
+            if !matches!(
+                root.kind.as_str(),
+                "subject_source" | "subject_artifact" | "oracle"
+            ) {
+                continue;
+            }
+            let protected_directory = resolved_root.directory.as_ref().ok_or_else(|| {
+                format!("protected {} root is not an existing directory", root.kind)
+            })?;
+            validate_external_trust_parent_relation(
+                resolved_trust_parent,
+                protected_directory,
+                &root.kind,
+                &root.path,
+            )?;
         }
-        let protected_directory = resolved_root
-            .directory
-            .as_ref()
-            .ok_or_else(|| format!("protected {} root is not an existing directory", root.kind))?;
-        validate_external_trust_parent_relation(
-            resolved_trust_parent,
-            protected_directory,
-            &root.kind,
-            &root.path,
-        )?;
-    }
 
-    for (root, resolved_root) in &resolved_protected_roots {
-        if matches!(root.kind.as_str(), "trust_record" | "trust_record_parent") {
-            continue;
+        for (root, resolved_root) in &resolved_protected_roots {
+            if matches!(
+                root.kind.as_str(),
+                "trust_record" | "trust_record_parent" | "generation_admission_evidence_parent"
+            ) {
+                continue;
+            }
+            if physical_paths_overlap(resolved_trust_record, resolved_root) {
+                return Err(format!(
+                    "external trust record must be outside protected {} root {}",
+                    root.kind,
+                    root.path.display()
+                ));
+            }
         }
-        if physical_paths_overlap(&resolved_trust_record, resolved_root) {
-            return Err(format!(
-                "external trust record must be outside protected {} root {}",
-                root.kind,
-                root.path.display()
-            ));
-        }
-    }
-    for (role, output) in &resolved_actual_output_roots {
-        if directory_overlaps_path(output, &resolved_trust_record) {
-            return Err(format!(
-                "external trust record must be outside {} actual output root {}",
-                role,
-                output.path.display()
-            ));
+        for (role, output) in &resolved_actual_output_roots {
+            if directory_overlaps_path(output, resolved_trust_record) {
+                return Err(format!(
+                    "external trust record must be outside {} actual output root {}",
+                    role,
+                    output.path.display()
+                ));
+            }
         }
     }
 
@@ -2355,14 +2942,16 @@ fn resolve_write_policy(
         input,
         subjects,
         expected_root,
-        &trust_source.canonical_path,
+        Some(&trust_source.canonical_path),
         None,
         test_binary,
+        None,
     )
 }
 
-fn canonical_caller_protected_roots(
+fn canonical_caller_protected_roots_for(
     mut roots: Vec<ProtectedRoot>,
+    subject_roles: &[&str],
 ) -> Result<Vec<ProtectedRoot>, String> {
     let mut seen = BTreeSet::new();
     let mut coverage = BTreeSet::new();
@@ -2373,7 +2962,7 @@ fn canonical_caller_protected_roots(
                 let role = root.role.as_deref().ok_or_else(|| {
                     format!("protected {} root must name a subject role", root.kind)
                 })?;
-                if role != "reference" && role != "candidate" {
+                if !subject_roles.contains(&role) {
                     return Err(format!("protected root has unknown subject role {role:?}"));
                 }
                 coverage.insert((root.kind.as_str().to_string(), role.to_string()));
@@ -2398,9 +2987,16 @@ fn canonical_caller_protected_roots(
             ));
         }
     }
-    for role in ["reference", "candidate"] {
+    if subject_roles.is_empty()
+        || subject_roles
+            .iter()
+            .any(|role| !["reference", "candidate", "oracle"].contains(role))
+    {
+        return Err("write policy has unsupported subject roles".to_string());
+    }
+    for role in subject_roles {
         for kind in ["subject_source", "subject_artifact"] {
-            if !coverage.contains(&(kind.to_string(), role.to_string())) {
+            if !coverage.contains(&(kind.to_string(), (*role).to_string())) {
                 return Err(format!(
                     "{PROTECTED_ROOTS_ENV} must include {kind} for {role}"
                 ));
@@ -2517,6 +3113,22 @@ fn protected_root(
                 )
             })?,
     })
+}
+
+fn push_protected_external_file(
+    roots: &mut Vec<ProtectedRoot>,
+    kind: &str,
+    path: &Path,
+) -> Result<(), String> {
+    let canonical_file = canonical_existing_regular_file_without_symlinks(path, kind)?;
+    let parent = canonical_file
+        .parent()
+        .ok_or_else(|| format!("protected {kind} has no parent directory"))?;
+    let parent =
+        canonical_existing_directory_without_symlinks(parent, &format!("protected {kind} parent"))?;
+    roots.push(protected_root(kind, None, canonical_file)?);
+    roots.push(protected_root(&format!("{kind}_parent"), None, parent)?);
+    Ok(())
 }
 
 fn paths_overlap(left: &Path, right: &Path) -> bool {
@@ -3143,9 +3755,10 @@ pub fn prepare_holla_help_overlay_preflight() -> Result<WritePolicyPreflightRece
             .expected_generation
             .as_ref()
             .and_then(|expected| expected.root.as_deref()),
-        &trust_record_path,
+        Some(&trust_record_path),
         Some(&evidence),
         &test_binary_path,
+        None,
     )?;
     validate_case_capture_paths(case, &write_policy.actual_output_roots)?;
 
@@ -3193,6 +3806,2330 @@ pub fn prepare_holla_help_overlay_preflight() -> Result<WritePolicyPreflightRece
             state: "required_absent".to_string(),
         },
         write_policy,
+    })
+}
+
+fn run_tag_source_validator(
+    receipt_path: &Path,
+    expected_receipt_sha256: &str,
+) -> Result<
+    (
+        TagValidatedIdentity,
+        TagValidatedEvidenceReference,
+        TagValidatorExecutionEvidence,
+    ),
+    String,
+> {
+    let helper_path = std::env::var_os(TAG_SOURCE_VALIDATOR_PATH_ENV)
+        .map(PathBuf::from)
+        .ok_or_else(|| format!("{TAG_SOURCE_VALIDATOR_PATH_ENV} is required"))?;
+    if !helper_path.is_absolute() {
+        return Err(format!("{TAG_SOURCE_VALIDATOR_PATH_ENV} must be absolute"));
+    }
+    let repository = std::env::var_os(TAG_SOURCE_REPOSITORY_ENV)
+        .map(PathBuf::from)
+        .ok_or_else(|| format!("{TAG_SOURCE_REPOSITORY_ENV} is required"))?;
+    if !repository.is_absolute() {
+        return Err(format!("{TAG_SOURCE_REPOSITORY_ENV} must be absolute"));
+    }
+    let (toolchain, toolchain_reference) = load_caller_pinned_tag_validator_toolchain()?;
+    execute_tag_source_validator(
+        receipt_path,
+        expected_receipt_sha256,
+        &helper_path,
+        &repository,
+        &toolchain,
+        toolchain_reference,
+    )
+}
+
+fn load_caller_pinned_tag_validator_toolchain()
+-> Result<(TagValidatorToolchain, EvidenceReference), String> {
+    let toolchain_path = std::env::var_os(TAG_VALIDATOR_TOOLCHAIN_PATH_ENV)
+        .map(PathBuf::from)
+        .ok_or_else(|| format!("{TAG_VALIDATOR_TOOLCHAIN_PATH_ENV} is required"))?;
+    let expected_toolchain_sha256 = std::env::var(TAG_VALIDATOR_TOOLCHAIN_SHA_ENV)
+        .map_err(|_| format!("{TAG_VALIDATOR_TOOLCHAIN_SHA_ENV} must be caller-pinned"))?;
+    require_sha256(TAG_VALIDATOR_TOOLCHAIN_SHA_ENV, &expected_toolchain_sha256)?;
+    load_tag_validator_toolchain(&toolchain_path, &expected_toolchain_sha256)
+}
+
+fn require_caller_pinned_toolchain_reference(
+    captured: &EvidenceReference,
+    caller_pinned: &EvidenceReference,
+) -> Result<(), String> {
+    if captured != caller_pinned {
+        return Err("captured validator toolchain differs from the current caller pin".to_string());
+    }
+    Ok(())
+}
+
+fn load_tag_validator_toolchain(
+    supplied_path: &Path,
+    expected_sha256: &str,
+) -> Result<(TagValidatorToolchain, EvidenceReference), String> {
+    if !supplied_path.is_absolute() {
+        return Err(format!(
+            "{TAG_VALIDATOR_TOOLCHAIN_PATH_ENV} must be absolute"
+        ));
+    }
+    require_sha256(TAG_VALIDATOR_TOOLCHAIN_SHA_ENV, expected_sha256)?;
+    let path = canonical_existing_regular_file_without_symlinks(
+        supplied_path,
+        "pinned immutable-tag validator toolchain",
+    )?;
+    let bytes = fs::read(&path).map_err(|error| {
+        format!(
+            "read immutable-tag validator toolchain {}: {error}",
+            path.display()
+        )
+    })?;
+    let sha256 = sha256_bytes(&bytes);
+    if sha256 != expected_sha256 {
+        return Err(format!(
+            "immutable-tag validator toolchain digest mismatch: expected {expected_sha256}, got {sha256}"
+        ));
+    }
+    reject_duplicate_json_keys(&bytes, "immutable-tag validator toolchain")?;
+    let toolchain: TagValidatorToolchain = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("parse immutable-tag validator toolchain: {error}"))?;
+    if toolchain.schema != TAG_VALIDATOR_TOOLCHAIN_SCHEMA {
+        return Err("unexpected immutable-tag validator toolchain schema".to_string());
+    }
+    validate_tag_validator_tool("Python runtime", &toolchain.python, false)?;
+    validate_tag_validator_tool("Git executable", &toolchain.git, true)?;
+    Ok((
+        toolchain,
+        EvidenceReference {
+            path: path.display().to_string(),
+            sha256,
+        },
+    ))
+}
+
+fn validate_tag_validator_tool(
+    label: &str,
+    tool: &TagValidatorToolIdentity,
+    require_git_basename: bool,
+) -> Result<(), String> {
+    if !tool.path.is_absolute() || tool.version.trim().is_empty() {
+        return Err(format!(
+            "pinned {label} path and version must be absolute and nonempty"
+        ));
+    }
+    require_sha256(&format!("pinned {label} SHA-256"), &tool.sha256)?;
+    let canonical = canonical_existing_regular_file_without_symlinks(&tool.path, label)?;
+    if canonical != tool.path {
+        return Err(format!("pinned {label} path is not canonical"));
+    }
+    if require_git_basename && tool.path.file_name().and_then(|name| name.to_str()) != Some("git") {
+        return Err("pinned Git executable must have the basename git".to_string());
+    }
+    let actual_sha256 = sha256_file(&canonical)?;
+    if actual_sha256 != tool.sha256 {
+        return Err(format!("pinned {label} bytes changed"));
+    }
+    let output = Command::new(&canonical)
+        .arg("--version")
+        .env_clear()
+        .env("LC_ALL", "C")
+        .output()
+        .map_err(|error| format!("run pinned {label} version query: {error}"))?;
+    if !output.status.success() || output.stdout.len() > 4096 || output.stderr.len() > 4096 {
+        return Err(format!(
+            "pinned {label} version query failed or exceeded its output limit"
+        ));
+    }
+    let version_bytes = if output.stdout.is_empty() {
+        &output.stderr
+    } else {
+        &output.stdout
+    };
+    let version = std::str::from_utf8(version_bytes)
+        .map_err(|error| format!("pinned {label} version is not UTF-8: {error}"))?
+        .trim()
+        .to_string();
+    if version != tool.version {
+        return Err(format!(
+            "pinned {label} version mismatch: expected {:?}, got {:?}",
+            tool.version, version
+        ));
+    }
+    Ok(())
+}
+
+fn execute_tag_source_validator(
+    receipt_path: &Path,
+    expected_receipt_sha256: &str,
+    supplied_helper_path: &Path,
+    supplied_repository: &Path,
+    toolchain: &TagValidatorToolchain,
+    toolchain_reference: EvidenceReference,
+) -> Result<
+    (
+        TagValidatedIdentity,
+        TagValidatedEvidenceReference,
+        TagValidatorExecutionEvidence,
+    ),
+    String,
+> {
+    let helper_path = canonical_existing_regular_file_without_symlinks(
+        supplied_helper_path,
+        "pinned immutable-tag source validator",
+    )?;
+    // Execute the exact bytes hashed here through stdin; never reopen the helper
+    // path as Python's script argument after validating its digest.
+    let helper_bytes = fs::read(&helper_path)
+        .map_err(|error| format!("read pinned immutable-tag source validator: {error}"))?;
+    let helper_sha256 = sha256_bytes(&helper_bytes);
+    if helper_sha256 != TAG_SOURCE_VALIDATOR_SHA256 {
+        return Err(format!(
+            "immutable-tag source validator digest mismatch: expected {TAG_SOURCE_VALIDATOR_SHA256}, got {helper_sha256}"
+        ));
+    }
+    validate_tag_validator_tool("Python runtime", &toolchain.python, false)?;
+    validate_tag_validator_tool("Git executable", &toolchain.git, true)?;
+    let executed_helper_bytes =
+        transform_tag_validator_git_dispatch(&helper_bytes, &toolchain.git.path)?;
+    let executed_helper_sha256 = sha256_bytes(&executed_helper_bytes);
+    let repository = canonical_existing_directory_without_symlinks(
+        supplied_repository,
+        "immutable-tag Git object repository",
+    )?;
+    let git_dir_before = pinned_git_metadata_directory(
+        &toolchain.git.path,
+        &repository,
+        &["rev-parse", "--absolute-git-dir"],
+        "immutable-tag Git directory",
+    )?;
+    let git_common_dir_before = pinned_git_metadata_directory(
+        &toolchain.git.path,
+        &repository,
+        &["rev-parse", "--path-format=absolute", "--git-common-dir"],
+        "immutable-tag Git common directory",
+    )?;
+    let receipt_path = canonical_existing_regular_file_without_symlinks(
+        receipt_path,
+        "immutable-tag builder receipt",
+    )?;
+    let output = run_pinned_validator_python(
+        &toolchain.python.path,
+        &executed_helper_bytes,
+        &repository,
+        &receipt_path,
+        expected_receipt_sha256,
+    )?;
+    validate_tag_validator_tool("Python runtime", &toolchain.python, false)?;
+    validate_tag_validator_tool("Git executable", &toolchain.git, true)?;
+    let git_dir_after = pinned_git_metadata_directory(
+        &toolchain.git.path,
+        &repository,
+        &["rev-parse", "--absolute-git-dir"],
+        "immutable-tag Git directory",
+    )?;
+    let git_common_dir_after = pinned_git_metadata_directory(
+        &toolchain.git.path,
+        &repository,
+        &["rev-parse", "--path-format=absolute", "--git-common-dir"],
+        "immutable-tag Git common directory",
+    )?;
+    if git_dir_before != git_dir_after || git_common_dir_before != git_common_dir_after {
+        return Err("immutable-tag Git metadata paths changed during validation".to_string());
+    }
+    if output.stdout.len() > 2 * 1024 * 1024 || output.stderr.len() > 64 * 1024 {
+        return Err("immutable-tag source validator output exceeded its size limit".to_string());
+    }
+    if !output.status.success() {
+        let detail = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "immutable-tag source validation failed with {}: {}",
+            output.status,
+            detail.trim()
+        ));
+    }
+    let identity =
+        parse_tag_validator_identity(&output.stdout, &receipt_path, expected_receipt_sha256)?;
+    Ok((
+        identity,
+        TagValidatedEvidenceReference {
+            path: helper_path,
+            sha256: helper_sha256,
+        },
+        TagValidatorExecutionEvidence {
+            repository,
+            git_dir: git_dir_before,
+            git_common_dir: git_common_dir_before,
+            toolchain: toolchain_reference,
+            python: toolchain.python.clone(),
+            git: toolchain.git.clone(),
+            helper_transport: TAG_VALIDATOR_HELPER_TRANSPORT.to_string(),
+            executed_helper_sha256,
+            python_sha256_before: toolchain.python.sha256.clone(),
+            python_sha256_after: toolchain.python.sha256.clone(),
+            git_sha256_before: toolchain.git.sha256.clone(),
+            git_sha256_after: toolchain.git.sha256.clone(),
+        },
+    ))
+}
+
+fn pinned_git_metadata_directory(
+    git_executable: &Path,
+    repository: &Path,
+    rev_parse_arguments: &[&str],
+    label: &str,
+) -> Result<PathBuf, String> {
+    if !git_executable.is_absolute() || !repository.is_absolute() {
+        return Err(format!("{label} query requires absolute paths"));
+    }
+    let output = Command::new(git_executable)
+        .arg("--no-replace-objects")
+        .arg("-C")
+        .arg(repository)
+        .args(rev_parse_arguments)
+        .env_clear()
+        .env("LC_ALL", "C")
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_NO_REPLACE_OBJECTS", "1")
+        .env("GIT_NO_LAZY_FETCH", "1")
+        .env("GIT_OPTIONAL_LOCKS", "0")
+        .output()
+        .map_err(|error| format!("run pinned {label} query: {error}"))?;
+    if !output.status.success() || output.stdout.len() > 4096 || output.stderr.len() > 4096 {
+        return Err(format!(
+            "pinned {label} query failed or exceeded its output limit"
+        ));
+    }
+    let mut reported = output.stdout.as_slice();
+    if reported.last() == Some(&b'\n') {
+        reported = &reported[..reported.len() - 1];
+    }
+    if reported.last() == Some(&b'\r') {
+        reported = &reported[..reported.len() - 1];
+    }
+    if reported.is_empty() || reported.contains(&b'\n') || reported.contains(&b'\r') {
+        return Err(format!("pinned {label} query did not return one path"));
+    }
+    let reported = std::str::from_utf8(reported)
+        .map_err(|error| format!("pinned {label} path is not UTF-8: {error}"))?;
+    let reported_path = Path::new(reported);
+    if !reported_path.is_absolute() {
+        return Err(format!("pinned {label} path is not absolute"));
+    }
+    let canonical = canonical_existing_directory_without_symlinks(reported_path, label)?;
+    if canonical.as_path() != reported_path {
+        return Err(format!("pinned {label} path is not canonical"));
+    }
+    Ok(canonical)
+}
+
+fn transform_tag_validator_git_dispatch(
+    helper_bytes: &[u8],
+    git_path: &Path,
+) -> Result<Vec<u8>, String> {
+    if !git_path.is_absolute() {
+        return Err("pinned Git executable path must be absolute".to_string());
+    }
+    let needle = br#"["git", "--no-replace-objects", *arguments]"#;
+    let positions = helper_bytes
+        .windows(needle.len())
+        .enumerate()
+        .filter_map(|(index, window)| (window == needle).then_some(index))
+        .collect::<Vec<_>>();
+    if positions.len() != 1 {
+        return Err(format!(
+            "pinned validator must contain exactly one expected Git dispatch site; found {}",
+            positions.len()
+        ));
+    }
+    let git_text = git_path
+        .to_str()
+        .ok_or_else(|| "pinned Git executable path is not UTF-8".to_string())?;
+    let python_literal = serde_json::to_string(git_text)
+        .map_err(|error| format!("encode pinned Git executable path: {error}"))?;
+    let replacement = format!("[{python_literal}, \"--no-replace-objects\", *arguments]");
+    let position = positions[0];
+    let mut transformed = Vec::with_capacity(helper_bytes.len() - needle.len() + replacement.len());
+    transformed.extend_from_slice(&helper_bytes[..position]);
+    transformed.extend_from_slice(replacement.as_bytes());
+    transformed.extend_from_slice(&helper_bytes[position + needle.len()..]);
+    Ok(transformed)
+}
+
+fn run_pinned_validator_python(
+    python: &Path,
+    helper_bytes: &[u8],
+    repository: &Path,
+    receipt_path: &Path,
+    expected_receipt_sha256: &str,
+) -> Result<std::process::Output, String> {
+    let mut child = Command::new(python)
+        .arg("-I")
+        .arg("-")
+        .arg("validate-frozen-tag-holla")
+        .arg("--repository")
+        .arg(repository)
+        .arg("--receipt")
+        .arg(receipt_path)
+        .arg("--receipt-sha256")
+        .arg(expected_receipt_sha256)
+        .env_clear()
+        // Git calls in the checked helper are rewritten to its pinned absolute
+        // path before transport. No caller or fallback PATH is provided.
+        .env("LC_ALL", "C")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("start pinned immutable-tag source validator: {error}"))?;
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| "pinned validator stdin was not opened".to_string())?;
+    if let Err(error) = stdin.write_all(helper_bytes) {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err(format!(
+            "write checked validator bytes to Python stdin: {error}"
+        ));
+    }
+    drop(stdin);
+    child
+        .wait_with_output()
+        .map_err(|error| format!("wait for pinned immutable-tag source validator: {error}"))
+}
+
+fn parse_tag_validator_identity(
+    bytes: &[u8],
+    receipt_path: &Path,
+    expected_receipt_sha256: &str,
+) -> Result<TagValidatedIdentity, String> {
+    reject_duplicate_json_keys(bytes, "immutable-tag validated identity")?;
+    let identity: TagValidatedIdentity = serde_json::from_slice(bytes)
+        .map_err(|error| format!("parse immutable-tag validated identity: {error}"))?;
+    validate_tag_validator_identity(&identity, receipt_path, expected_receipt_sha256)?;
+    Ok(identity)
+}
+
+fn validate_tag_validator_identity(
+    identity: &TagValidatedIdentity,
+    receipt_path: &Path,
+    expected_receipt_sha256: &str,
+) -> Result<(), String> {
+    require_sha256("pinned tag receipt SHA-256", expected_receipt_sha256)?;
+    if identity.schema != TAG_VALIDATED_IDENTITY_SCHEMA
+        || identity.execution_anchor_status != "unverified"
+        || identity.qualification.status != "blocked"
+        || identity.qualification.reason.trim().is_empty()
+        || identity.capture_status != "NOT_RUN"
+        || identity.admission_status != "NOT_RUN"
+    {
+        return Err(
+            "immutable-tag validator identity must remain unverified and blocked".to_string(),
+        );
+    }
+    if identity.receipt.path != receipt_path
+        || identity.receipt.sha256 != expected_receipt_sha256
+        || receipt_path.file_name().and_then(|name| name.to_str())
+            != Some("tag-builder-receipt.json")
+    {
+        return Err(
+            "immutable-tag validator identity does not bind the requested receipt".to_string(),
+        );
+    }
+    if !receipt_path.is_absolute() {
+        return Err("immutable-tag receipt path must be absolute".to_string());
+    }
+    let run_root = receipt_path
+        .parent()
+        .ok_or_else(|| "immutable-tag receipt has no run directory".to_string())?;
+    if identity.run.path != run_root.join("run.json") {
+        return Err(
+            "immutable-tag validator identity does not bind the sibling run.json".to_string(),
+        );
+    }
+    require_sha256("validated tag run record", &identity.run.sha256)?;
+    for (name, actual, expected) in [
+        (
+            "tag ref",
+            identity.oracle_lineage.tag_ref.as_str(),
+            ORACLE_TAG_REF,
+        ),
+        (
+            "tag object",
+            identity.oracle_lineage.tag_object.as_str(),
+            ORACLE_TAG_OBJECT,
+        ),
+        (
+            "tag commit",
+            identity.oracle_lineage.tag_commit.as_str(),
+            ORACLE_TAG_COMMIT,
+        ),
+        (
+            "replacement-object policy",
+            identity
+                .oracle_lineage
+                .git_object_replacement_policy
+                .as_str(),
+            "disabled-by-option-and-environment",
+        ),
+        (
+            "lazy-fetch policy",
+            identity.oracle_lineage.git_lazy_fetch_policy.as_str(),
+            "disabled-by-environment",
+        ),
+    ] {
+        if actual != expected {
+            return Err(format!(
+                "immutable-tag validated {name} differs from the fixed oracle"
+            ));
+        }
+    }
+    require_git_oid(
+        "validated immutable-tag object",
+        &identity.oracle_lineage.tag_object,
+    )?;
+    require_git_oid(
+        "validated immutable-tag commit",
+        &identity.oracle_lineage.tag_commit,
+    )?;
+    require_git_oid(
+        "validated immutable-tag tree",
+        &identity.source_snapshot.tree_oid,
+    )?;
+    if identity.source_snapshot.source_commit != ORACLE_TAG_COMMIT
+        || identity.source_snapshot.materialized_root != run_root.join("source/oracle")
+        || identity.source_snapshot.included_file_count == 0
+    {
+        return Err(
+            "immutable-tag validator source closure is not rooted at the fixed tag".to_string(),
+        );
+    }
+    require_sha256(
+        "validated included source path/blob map",
+        &identity.source_snapshot.included_path_blob_map_sha256,
+    )?;
+    if identity.build.target_name != "holla"
+        || identity.build.features.len() != 0
+        || !identity.build.default_features
+        || identity.build.profile != "release"
+        || identity.build.toolchain != "1.98.1"
+        || identity.build.package_id.trim().is_empty()
+        || identity.build.target_triple.trim().is_empty()
+        || identity.metadata_target.package_id != identity.build.package_id
+        || identity.metadata_target.target_name != "holla"
+        || identity.metadata_target.package_name.trim().is_empty()
+    {
+        return Err(
+            "immutable-tag validator identity is not the pinned Holla release target".to_string(),
+        );
+    }
+    require_sha256(
+        "validated immutable-tag executable",
+        &identity.executable.sha256,
+    )?;
+    if !identity.executable.path.is_absolute() {
+        return Err("validated immutable-tag executable path must be absolute".to_string());
+    }
+    require_sha256(
+        "validated nested builder receipt",
+        &identity.builder_receipt_sha256,
+    )?;
+    if identity.build_environment.target_triple != identity.build.target_triple
+        || identity.build_environment.host_triple != identity.build.target_triple
+        || identity.build_environment.external_cargo_config_policy
+            != "reject-ancestor-config-and-hash-source-local-config"
+        || identity.build_environment.environment.len() != 1
+        || !identity
+            .build_environment
+            .environment
+            .contains_key("oracle")
+        || identity.build_environment.cargo_config_sha256.len() != 1
+        || !identity
+            .build_environment
+            .cargo_config_sha256
+            .contains_key("oracle")
+    {
+        return Err(
+            "immutable-tag validator build environment does not match its Holla target".to_string(),
+        );
+    }
+    let source_root = &identity.source_snapshot.materialized_root;
+    if !Path::new(&identity.metadata_target.manifest_path).starts_with(source_root)
+        || !Path::new(&identity.metadata_target.source_path).starts_with(source_root)
+        || Path::new(&identity.metadata_target.manifest_path) != source_root.join("Cargo.toml")
+    {
+        return Err("immutable-tag metadata target escapes its validated source root".to_string());
+    }
+    Ok(())
+}
+
+fn validate_tag_record_binding(
+    record: &TagBuilderEvidence,
+    identity: &TagValidatedIdentity,
+    receipt_path: &Path,
+    expected_receipt_sha256: &str,
+) -> Result<(), String> {
+    validate_tag_validator_identity(identity, receipt_path, expected_receipt_sha256)?;
+    let run_root = receipt_path
+        .parent()
+        .ok_or_else(|| "immutable-tag receipt has no run directory".to_string())?;
+    if record.schema != TAG_BUILD_EVIDENCE_SCHEMA
+        || record.purpose != "frozen-visual-tag-holla-build-only"
+        || record.build_result != "PASS"
+        || record.qualification.status != "blocked"
+        || record.qualification.reason.trim().is_empty()
+        || record.capture_status != "NOT_RUN"
+        || record.admission_status != "NOT_RUN"
+        || record.run_id.trim().is_empty()
+        || record.oracle_lineage != identity.oracle_lineage
+        || record.source_snapshot.source_commit != identity.source_snapshot.source_commit
+        || record.source_snapshot.tree_oid != identity.source_snapshot.tree_oid
+        || Path::new(&record.source_snapshot.materialized_root)
+            != identity.source_snapshot.materialized_root
+        || record.source_snapshot.included_path_blob_map_sha256
+            != identity.source_snapshot.included_path_blob_map_sha256
+        || record.source_snapshot.included_file_count
+            != identity.source_snapshot.included_file_count
+        || record.build_artifact_root != run_root.join("targets/oracle")
+        || record.build != identity.build
+        || record.executable != identity.executable
+        || record.builder_receipt_sha256 != identity.builder_receipt_sha256
+        || record.build_environment != identity.build_environment
+        || record.builder_receipt.source_commit != ORACLE_TAG_COMMIT
+        || record.builder_receipt.package_id != identity.build.package_id
+        || record.builder_receipt.target_name != "holla"
+        || record.builder_receipt.executable_path != identity.executable.path
+        || record.builder_receipt.executable_sha256 != identity.executable.sha256
+    {
+        return Err(
+            "immutable-tag receipt fields do not match the pinned validator identity".to_string(),
+        );
+    }
+    let nested_sha256 = builder_receipt_digest(&record.builder_receipt)?;
+    if record.builder_receipt.sha256 != nested_sha256
+        || record.builder_receipt_sha256 != nested_sha256
+    {
+        return Err("immutable-tag nested Cargo builder receipt digest is invalid".to_string());
+    }
+    Ok(())
+}
+
+fn load_tag_builder_evidence(
+    actual_output_root: PathBuf,
+) -> Result<LoadedTagBuildEvidence, String> {
+    let path = std::env::var_os(TAG_BUILD_EVIDENCE_PATH_ENV)
+        .map(PathBuf::from)
+        .ok_or_else(|| format!("{TAG_BUILD_EVIDENCE_PATH_ENV} is required for tag preflight"))?;
+    if !path.is_absolute() {
+        return Err(format!("{TAG_BUILD_EVIDENCE_PATH_ENV} must be absolute"));
+    }
+    let expected_sha256 = std::env::var(TAG_BUILD_EVIDENCE_SHA_ENV)
+        .map_err(|_| format!("{TAG_BUILD_EVIDENCE_SHA_ENV} must be caller-pinned"))?;
+    require_sha256(TAG_BUILD_EVIDENCE_SHA_ENV, &expected_sha256)?;
+    let path = canonical_existing_regular_file_without_symlinks(&path, "tag builder receipt")?;
+    let bytes = fs::read(&path).map_err(|error| {
+        format!(
+            "read immutable-tag builder receipt {}: {error}",
+            path.display()
+        )
+    })?;
+    let sha256 = sha256_bytes(&bytes);
+    verify_external_record_digest(&expected_sha256, &sha256)?;
+    reject_duplicate_json_keys(&bytes, "immutable-tag builder receipt")?;
+    let (identity, validator_helper, validator_execution) =
+        run_tag_source_validator(&path, &expected_sha256)?;
+    let record: TagBuilderEvidence = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("parse immutable-tag builder receipt: {error}"))?;
+    validate_tag_record_binding(&record, &identity, &path, &expected_sha256)?;
+
+    let run_path = canonical_existing_regular_file_without_symlinks(
+        &identity.run.path,
+        "immutable-tag builder run record",
+    )?;
+    let run_bytes = fs::read(&run_path)
+        .map_err(|error| format!("read immutable-tag builder run record: {error}"))?;
+    let run_sha256 = sha256_bytes(&run_bytes);
+    if run_sha256 != identity.run.sha256 {
+        return Err("immutable-tag run.json changed after source validation".to_string());
+    }
+    reject_duplicate_json_keys(&run_bytes, "immutable-tag builder run record")?;
+
+    let run_root = path
+        .parent()
+        .ok_or_else(|| "tag builder receipt has no run directory".to_string())?;
+    let source_snapshot_directory = resolve_existing_directory_without_symlinks(
+        &identity.source_snapshot.materialized_root,
+        "validated immutable-tag source snapshot",
+    )?;
+    let source_snapshot_root = source_snapshot_directory.path.clone();
+    let expected_source_root = canonical_existing_directory_without_symlinks(
+        &run_root.join("source/oracle"),
+        "expected immutable-tag source root",
+    )?;
+    let build_artifact_directory = resolve_existing_directory_without_symlinks(
+        &record.build_artifact_root,
+        "immutable-tag build artifact root",
+    )?;
+    let build_artifact_root = build_artifact_directory.path.clone();
+    let expected_artifact_root = canonical_existing_directory_without_symlinks(
+        &run_root.join("targets/oracle"),
+        "expected immutable-tag artifact root",
+    )?;
+    if source_snapshot_root != expected_source_root || build_artifact_root != expected_artifact_root
+    {
+        return Err(
+            "validated tag source/artifact roots do not match the run-owned layout".to_string(),
+        );
+    }
+    if physical_directories_overlap(&source_snapshot_directory, &build_artifact_directory) {
+        return Err("immutable-tag source and artifact roots overlap".to_string());
+    }
+    if path.starts_with(&source_snapshot_root) || path.starts_with(&build_artifact_root) {
+        return Err(
+            "immutable-tag receipt must remain outside source and artifact roots".to_string(),
+        );
+    }
+    let suite_root = suite_checkout_root(Path::new(env!("CARGO_MANIFEST_DIR")))?;
+    if path.starts_with(&suite_root) {
+        return Err("immutable-tag receipt must remain outside the suite checkout".to_string());
+    }
+    let executable_path = canonical_existing_regular_file_without_symlinks(
+        &identity.executable.path,
+        "validated immutable-tag executable",
+    )?;
+    if executable_path != identity.executable.path
+        || !executable_path.starts_with(&build_artifact_root)
+        || sha256_file(&executable_path)? != identity.executable.sha256
+    {
+        return Err(
+            "validated immutable-tag executable is outside or differs from its artifact root"
+                .to_string(),
+        );
+    }
+
+    let receipt = &record.builder_receipt;
+    let build_inputs = BuildInputs {
+        manifest_sha256: receipt.manifest_sha256.clone(),
+        lock_sha256: receipt.lock_sha256.clone(),
+        mise_config: receipt.mise_config.clone(),
+        cargo_version: receipt.cargo_version.clone(),
+        rustc_version: receipt.rustc_version.clone(),
+        host_triple: receipt.host_triple.clone(),
+        executed_argv: receipt.executed_argv.clone(),
+    };
+    let subject = Subject {
+        role: "oracle".to_string(),
+        source_commit: identity.oracle_lineage.tag_commit.clone(),
+        build: identity.build.clone(),
+        executable: identity.executable.clone(),
+        actual_output_root,
+        build_inputs,
+        builder_receipt: receipt.clone(),
+        builder_receipt_sha256: identity.builder_receipt_sha256.clone(),
+    };
+    validate_build_receipt(&subject)?;
+    Ok(LoadedTagBuildEvidence {
+        record,
+        identity: identity.clone(),
+        validator_helper,
+        validator_execution,
+        path,
+        sha256,
+        source_snapshot_root,
+        build_artifact_root,
+        subject,
+    })
+}
+
+fn require_tag_validator_outside_write_roots(
+    validator_path: &Path,
+    execution: &TagValidatorExecutionEvidence,
+    write_root: &Path,
+    actual_output_roots: &[ActualOutputRoot],
+) -> Result<(), String> {
+    let write = resolve_path_for_overlap(write_root, "tag write root")?;
+    for path in tag_validator_protected_paths(validator_path, execution)? {
+        let protected = resolve_path_for_overlap(&path, "tag validator protected input")?;
+        if physical_paths_overlap(&protected, &write) {
+            return Err(format!(
+                "tag validator protected input {} overlaps the writable receipt root",
+                path.display()
+            ));
+        }
+        for actual in actual_output_roots {
+            let output = resolve_path_for_overlap(&actual.path, "tag actual output root")?;
+            if physical_paths_overlap(&protected, &output) {
+                return Err(format!(
+                    "tag validator protected input {} overlaps actual output root for {}",
+                    path.display(),
+                    actual.role
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn tag_validator_protected_paths(
+    validator_path: &Path,
+    execution: &TagValidatorExecutionEvidence,
+) -> Result<Vec<PathBuf>, String> {
+    let mut protected = Vec::new();
+    let repository = canonical_existing_directory_without_symlinks(
+        &execution.repository,
+        "pinned immutable-tag Git repository",
+    )?;
+    if repository != execution.repository {
+        return Err("pinned immutable-tag Git repository path is not canonical".to_string());
+    }
+
+    let git_dir = canonical_existing_directory_without_symlinks(
+        &execution.git_dir,
+        "captured immutable-tag Git directory",
+    )?;
+    if git_dir != execution.git_dir {
+        return Err("captured immutable-tag Git directory is not canonical".to_string());
+    }
+    protected.push(git_dir);
+
+    let git_common_dir = canonical_existing_directory_without_symlinks(
+        &execution.git_common_dir,
+        "captured immutable-tag Git common directory",
+    )?;
+    if git_common_dir != execution.git_common_dir {
+        return Err("captured immutable-tag Git common directory is not canonical".to_string());
+    }
+    protected.push(git_common_dir);
+
+    // Protect the worktree's .git indirection file as well as the resolved
+    // metadata directories, without treating the whole source checkout as a
+    // protected path. Approved expected data may live beside the source tree.
+    let git_entry = repository.join(".git");
+    match fs::symlink_metadata(&git_entry) {
+        Ok(metadata) if metadata.file_type().is_symlink() => {
+            return Err("immutable-tag Git metadata entry must not be a symlink".to_string());
+        }
+        Ok(metadata) if metadata.is_dir() => {
+            protected.push(canonical_existing_directory_without_symlinks(
+                &git_entry,
+                "immutable-tag Git metadata entry",
+            )?)
+        }
+        Ok(metadata) if metadata.is_file() => {
+            protected.push(canonical_existing_regular_file_without_symlinks(
+                &git_entry,
+                "immutable-tag Git metadata entry",
+            )?)
+        }
+        Ok(_) => {
+            return Err("immutable-tag Git metadata entry has an unsupported type".to_string());
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(format!(
+                "inspect immutable-tag Git metadata entry {}: {error}",
+                git_entry.display()
+            ));
+        }
+    }
+
+    push_protected_validator_file(
+        &mut protected,
+        validator_path,
+        "pinned tag source validator",
+    )?;
+    push_protected_validator_file(
+        &mut protected,
+        Path::new(&execution.toolchain.path),
+        "pinned validator toolchain",
+    )?;
+    push_protected_validator_file(
+        &mut protected,
+        &execution.python.path,
+        "pinned Python runtime",
+    )?;
+    push_protected_validator_file(&mut protected, &execution.git.path, "pinned Git executable")?;
+
+    Ok(protected)
+}
+
+fn push_protected_validator_file(
+    protected: &mut Vec<PathBuf>,
+    path: &Path,
+    label: &str,
+) -> Result<(), String> {
+    let canonical_file = canonical_existing_regular_file_without_symlinks(path, label)?;
+    let parent = canonical_file
+        .parent()
+        .ok_or_else(|| format!("{label} has no parent directory"))?;
+    let canonical_parent =
+        canonical_existing_directory_without_symlinks(parent, &format!("{label} parent"))?;
+    protected.push(canonical_file);
+    protected.push(canonical_parent);
+    Ok(())
+}
+
+fn require_tag_policy_roots(
+    roots: &[ProtectedRoot],
+    source_snapshot_root: &Path,
+    build_artifact_root: &Path,
+) -> Result<(), String> {
+    for (kind, role, expected) in [
+        ("subject_source", Some("oracle"), source_snapshot_root),
+        ("subject_artifact", Some("oracle"), build_artifact_root),
+        ("oracle", None, source_snapshot_root),
+    ] {
+        let matches = roots
+            .iter()
+            .filter(|root| root.kind == kind && root.role.as_deref() == role)
+            .collect::<Vec<_>>();
+        if matches.len() != 1 {
+            return Err(format!(
+                "{PROTECTED_ROOTS_ENV} must include exactly one {kind} protected root for the immutable tag"
+            ));
+        }
+        let actual = canonical_existing_directory_without_symlinks(&matches[0].path, kind)?;
+        if actual != expected {
+            return Err(format!(
+                "{PROTECTED_ROOTS_ENV} {kind} root must match the tag builder receipt path {}",
+                expected.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn tag_case_capture_identity(
+    case: &Case,
+    case_set_sha256: &str,
+) -> Result<CaseCaptureIdentity, String> {
+    let steps_bytes = serde_json::to_vec(&case.steps)
+        .map_err(|error| format!("serialize Holla case input program: {error}"))?;
+    let checkpoints = case
+        .steps
+        .iter()
+        .filter_map(|step| match step {
+            Step::Checkpoint { id, assertions, .. } => Some(CheckpointCaptureIdentity {
+                id: id.clone(),
+                assertions: assertions.clone(),
+            }),
+            Step::Press { .. } => None,
+        })
+        .collect();
+    Ok(CaseCaptureIdentity {
+        id: case.id.clone(),
+        app: case.app.clone(),
+        binary: case.binary.clone(),
+        args: case.args.clone(),
+        geometry: case.geometry.clone(),
+        color_path: case.color_path.clone(),
+        legacy_snapshot_root: case.legacy_snapshot_root.clone(),
+        screen: case.screen.clone(),
+        substep: case.substep.clone(),
+        case_set_sha256: case_set_sha256.to_string(),
+        input_program_sha256: sha256_bytes(&steps_bytes),
+        checkpoints,
+    })
+}
+
+pub fn prepare_frozen_tag_holla_preflight(case_id: &str) -> Result<TagCapturePreflight, String> {
+    if case_id != "HELP-HOLLA-004" {
+        return Err(format!(
+            "immutable-tag preflight is only enabled for HELP-HOLLA-004, got {case_id:?}"
+        ));
+    }
+    let current_suite_digest = suite_digest()?;
+    verify_compiled_suite_digest(COMPILED_SUITE_SHA256, &current_suite_digest)?;
+    let registry = registry()?;
+    let case = registry
+        .cases
+        .iter()
+        .find(|case| case.id == case_id)
+        .ok_or_else(|| format!("unknown case ID {case_id}"))?;
+    validate_case_contract(case)?;
+    if case.app != "holla" || case.binary != "holla" {
+        return Err("HELP-HOLLA-004 must resolve to the Holla application binary".to_string());
+    }
+
+    let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let case_set_digest = digest_tree(&package_root.join("cases"))?;
+    let profile_digest = sha256_file(&package_root.join("profile.json"))?;
+    let dependency_lock_digest = sha256_file(&package_root.join("Cargo.lock"))?;
+    let test_binary =
+        std::env::current_exe().map_err(|error| format!("locate test binary: {error}"))?;
+    let test_binary_digest = sha256_file(&test_binary)?;
+    let profile: Profile = serde_json::from_str(PROFILE_JSON)
+        .map_err(|error| format!("parse suite profile: {error}"))?;
+    validate_profile_and_case(&profile, case)?;
+    let strict_profile = tuiscotti::profile::RenderProfile::vendored();
+    let renderer = renderer_identity(&strict_profile);
+    if renderer.hash != profile.renderer.expected_hash
+        || renderer.renderer_version != profile.renderer.renderer_version
+        || renderer.name != profile.renderer.id
+        || profile.renderer.implementation != "strict-vendored-profile"
+    {
+        return Err(
+            "resolved Tuiscotti renderer identity does not match the suite profile".to_string(),
+        );
+    }
+
+    let actual_output_root = std::env::var_os(TAG_ACTUAL_ROOT_ENV)
+        .map(PathBuf::from)
+        .ok_or_else(|| format!("{TAG_ACTUAL_ROOT_ENV} is required for tag preflight"))?;
+    if !actual_output_root.is_absolute() {
+        return Err(format!("{TAG_ACTUAL_ROOT_ENV} must be absolute"));
+    }
+    let tag = load_tag_builder_evidence(actual_output_root)?;
+    if tag.identity.build.target_name != case.binary {
+        return Err("tag builder binary does not match HELP-HOLLA-004".to_string());
+    }
+    let write_input = load_write_policy_input()?;
+    require_tag_policy_roots(
+        &write_input.protected_roots,
+        &tag.source_snapshot_root,
+        &tag.build_artifact_root,
+    )?;
+    let write_policy = resolve_write_policy_with_evidence(
+        write_input,
+        std::slice::from_ref(&tag.subject),
+        None,
+        None,
+        None,
+        &test_binary,
+        Some(&tag.path),
+    )?;
+    validate_case_capture_paths(case, &write_policy.actual_output_roots)?;
+    require_tag_validator_outside_write_roots(
+        &tag.validator_helper.path,
+        &tag.validator_execution,
+        &write_policy.write_root,
+        &write_policy.actual_output_roots,
+    )?;
+
+    let initial = verify_subject_executable(&tag.subject)?;
+    let current = inspect_executable(&tag.subject.executable.path)?;
+    validate_executable_snapshot(&tag.subject, &initial, &current).map_err(|error| {
+        format!("immutable-tag preflight executable validation failed: {error}")
+    })?;
+
+    Ok(TagCapturePreflight {
+        schema: TAG_CAPTURE_PREFLIGHT_SCHEMA.to_string(),
+        state: "blocked".to_string(),
+        run_id: tag.record.run_id.clone(),
+        case: tag_case_capture_identity(case, &case_set_digest)?,
+        suite: SuiteIdentity {
+            revision: registry.suite_revision,
+            digest: current_suite_digest,
+            compiled_digest: COMPILED_SUITE_SHA256.to_string(),
+            case_set_digest,
+            profile_digest,
+            test_binary_digest,
+            dependency_lock_sha256: dependency_lock_digest,
+            platform: std::env::consts::OS.to_string(),
+        },
+        tag_identity: tag.identity,
+        validator_helper: tag.validator_helper,
+        validator_execution: tag.validator_execution,
+        environment: EnvironmentReceipt {
+            cleared: profile.environment.clear,
+            cwd: write_policy.subject_cwd.clone(),
+            common: common_environment(&profile),
+            case_allowlist: profile.environment.case_allowlist.clone(),
+            case_values: case.environment.clone(),
+        },
+        renderer,
+        write_policy,
+        execution_anchor_status: "unverified".to_string(),
+        qualification: QualificationEvidence {
+            status: "blocked".to_string(),
+            reason: "tag source closure and build record are consistent, but no independent execution anchor is accepted; product launch, capture, and admission remain not run".to_string(),
+        },
+        capture_status: "NOT_RUN".to_string(),
+        admission_status: "NOT_RUN".to_string(),
+    })
+}
+
+/// Capture actual output from the independently built immutable-tag binary.
+/// This records execution evidence only; it cannot create expected data,
+/// qualification, admission, or a paired trust record.
+pub fn run_tag_capture(case_id: &str) -> Result<OracleCaptureReceipt, String> {
+    if load_generation_admission_source_optional()?.is_some() {
+        return Err(
+            "immutable-tag capture must run without a generation-admission input".to_string(),
+        );
+    }
+    let prepared = prepare_frozen_tag_holla_preflight(case_id)?;
+    if prepared.execution_anchor_status != "unverified"
+        || prepared.qualification.status != "blocked"
+        || prepared.admission_status != "NOT_RUN"
+    {
+        return Err("tag capture preflight unexpectedly changed its blocked state".to_string());
+    }
+
+    let registry = registry()?;
+    let case = registry
+        .cases
+        .iter()
+        .find(|case| case.id == case_id)
+        .cloned()
+        .ok_or_else(|| format!("unknown case ID {case_id}"))?;
+    let profile: Profile = serde_json::from_str(PROFILE_JSON)
+        .map_err(|error| format!("parse suite profile: {error}"))?;
+    let actual_output_root = std::env::var_os(TAG_ACTUAL_ROOT_ENV)
+        .map(PathBuf::from)
+        .ok_or_else(|| format!("{TAG_ACTUAL_ROOT_ENV} is required for tag capture"))?;
+    let tag = load_tag_builder_evidence(actual_output_root)?;
+    let prepared_identity = serde_json::to_vec(&prepared.tag_identity)
+        .map_err(|error| format!("serialize prepared tag identity: {error}"))?;
+    let current_identity = serde_json::to_vec(&tag.identity)
+        .map_err(|error| format!("serialize current tag identity: {error}"))?;
+    if prepared_identity != current_identity
+        || prepared.validator_helper != tag.validator_helper
+        || prepared.validator_execution != tag.validator_execution
+        || prepared.run_id != tag.record.run_id
+    {
+        return Err("immutable-tag evidence changed after capture preflight".to_string());
+    }
+    let initial = verify_subject_executable(&tag.subject)?;
+    let pre_spawn = inspect_executable(&tag.subject.executable.path)?;
+    validate_executable_snapshot(&tag.subject, &initial, &pre_spawn)
+        .map_err(|error| format!("immutable-tag pre-spawn validation failed: {error}"))?;
+
+    let mut driven = drive_case_subject(
+        &tag.subject,
+        &case,
+        &profile,
+        &prepared.renderer,
+        &initial,
+        &prepared.write_policy,
+        None,
+    )?;
+    if let Some(reason) = &driven.post_run_failure {
+        mark_subject_build_stale(
+            &mut driven.checks,
+            "oracle",
+            &case.id,
+            reason,
+            driven.actual_sha256.as_deref(),
+        );
+    }
+    let checkpoint_ids = checkpoints(&case);
+    let required_formats = [
+        "frame_json",
+        "ansi",
+        "html",
+        "png",
+        "ascii",
+        "txt",
+        "ascii_loss_json",
+        "png_fidelity_json",
+        "observations_json",
+        "manifest_json",
+    ];
+    let artifacts_complete = checkpoint_ids.len() == 4
+        && driven.artifacts.len() == checkpoint_ids.len() * required_formats.len()
+        && checkpoint_ids.iter().all(|checkpoint| {
+            required_formats.iter().all(|format| {
+                driven
+                    .artifacts
+                    .iter()
+                    .filter(|artifact| {
+                        artifact.subject_role == "oracle"
+                            && artifact.case_id == case.id
+                            && artifact.checkpoint_id == *checkpoint
+                            && artifact.format == *format
+                    })
+                    .count()
+                    == 1
+            })
+        });
+    let assertions_complete = case.steps.iter().all(|step| match step {
+        Step::Press { .. } => true,
+        Step::Checkpoint { id, assertions, .. } => assertions.iter().all(|assertion| {
+            let expected_id = format!("{}:{}:{}", case.id, id, assertion.id);
+            driven
+                .checks
+                .iter()
+                .filter(|check| {
+                    check.id == expected_id
+                        && check.subject_role == "oracle"
+                        && check.dimension == "interaction"
+                        && check.status == "PASS"
+                })
+                .count()
+                == 1
+        }),
+    }) && driven.checks.iter().all(|check| {
+        check.dimension == "visual" || matches!(check.status.as_str(), "PASS" | "NOT_APPLICABLE")
+    });
+    let complete = driven.post_run_failure.is_none() && artifacts_complete && assertions_complete;
+    let actual_sha256 = driven.actual_sha256.clone();
+    let artifacts = driven.artifacts;
+    let checks = driven.checks;
+    validate_checkpoint_dimensions(&checks, std::slice::from_ref(&tag.subject), &case)?;
+    let source_identity_bytes = serde_json::to_vec(&tag.record.source_snapshot)
+        .map_err(|error| format!("serialize immutable-tag source identity: {error}"))?;
+    let build_environment_bytes = serde_json::to_vec(&tag.record.build_environment)
+        .map_err(|error| format!("serialize immutable-tag build environment: {error}"))?;
+    let receipt = OracleCaptureReceipt {
+        schema: ORACLE_CAPTURE_RECEIPT_SCHEMA.to_string(),
+        run_id: tag.record.run_id.clone(),
+        state: if complete { "capture_recorded" } else { "capture_partial" }.to_string(),
+        oracle_identity: OracleCaptureIdentity {
+            tag_ref: tag.record.oracle_lineage.tag_ref.clone(),
+            tag_object: tag.record.oracle_lineage.tag_object.clone(),
+            tag_commit: tag.record.oracle_lineage.tag_commit.clone(),
+            git_object_replacement_policy: tag.record.oracle_lineage.git_object_replacement_policy.clone(),
+            git_lazy_fetch_policy: tag.record.oracle_lineage.git_lazy_fetch_policy.clone(),
+            source_snapshot_commit: tag.identity.source_snapshot.source_commit.clone(),
+            source_snapshot_tree: tag.identity.source_snapshot.tree_oid.clone(),
+            source_snapshot_root: tag.source_snapshot_root.clone(),
+            source_snapshot_included_file_count: tag.identity.source_snapshot.included_file_count,
+            build_artifact_root: tag.build_artifact_root.clone(),
+            build: tag.record.build.clone(),
+            builder_receipt_sha256: tag.record.builder_receipt_sha256.clone(),
+            source_inputs_sha256: sha256_bytes(&source_identity_bytes),
+            build_environment_sha256: sha256_bytes(&build_environment_bytes),
+            executable: ExecutableReceipt {
+                path: tag.subject.executable.path.clone(),
+                expected_sha256: tag.subject.executable.sha256.clone(),
+                actual_sha256,
+            },
+            validator_execution: tag.validator_execution.clone(),
+        },
+        builder_evidence: EvidenceReference {
+            path: tag.path.display().to_string(),
+            sha256: tag.sha256.clone(),
+        },
+        builder_run: EvidenceReference {
+            path: tag.identity.run.path.display().to_string(),
+            sha256: tag.identity.run.sha256.clone(),
+        },
+        validator_helper: EvidenceReference {
+            path: tag.validator_helper.path.display().to_string(),
+            sha256: tag.validator_helper.sha256.clone(),
+        },
+        suite: prepared.suite.clone(),
+        case: tag_case_capture_identity(&case, &prepared.suite.case_set_digest)?,
+        environment: EnvironmentReceipt {
+            cleared: profile.environment.clear,
+            cwd: prepared.write_policy.subject_cwd.clone(),
+            common: common_environment(&profile),
+            case_allowlist: profile.environment.case_allowlist.clone(),
+            case_values: case.environment.clone(),
+        },
+        renderer: prepared.renderer,
+        write_policy: prepared.write_policy.clone(),
+        checks,
+        artifacts,
+        capture_status: if complete { "COMPLETE" } else { "PARTIAL" }.to_string(),
+        execution_anchor_status: "unverified".to_string(),
+        qualification: QualificationEvidence {
+            status: "blocked".to_string(),
+            reason: "immutable-tag capture records actual output only; independent source/build qualification and explicit generation admission remain separate".to_string(),
+        },
+        admission_status: "NOT_RUN".to_string(),
+    };
+    validate_oracle_capture_receipt(&receipt, &prepared.write_policy)?;
+    publish_oracle_capture_receipt(&receipt, &prepared.write_policy)?;
+    Ok(receipt)
+}
+
+fn validate_oracle_capture_receipt(
+    receipt: &OracleCaptureReceipt,
+    policy: &WritePolicyReceipt,
+) -> Result<(), String> {
+    let expected_state = if receipt.capture_status == "COMPLETE" {
+        "capture_recorded"
+    } else {
+        "capture_partial"
+    };
+    if receipt.schema != ORACLE_CAPTURE_RECEIPT_SCHEMA
+        || receipt.write_policy != *policy
+        || write_policy_digest(policy)? != policy.sha256
+        || receipt.qualification.status != "blocked"
+        || receipt.qualification.reason.trim().is_empty()
+        || receipt.admission_status != "NOT_RUN"
+        || receipt.execution_anchor_status != "unverified"
+        || receipt.state != expected_state
+        || !["COMPLETE", "PARTIAL"].contains(&receipt.capture_status.as_str())
+        || receipt.case.id != "HELP-HOLLA-004"
+        || receipt.oracle_identity.tag_ref != ORACLE_TAG_REF
+        || receipt.oracle_identity.tag_object != ORACLE_TAG_OBJECT
+        || receipt.oracle_identity.tag_commit != ORACLE_TAG_COMMIT
+        || receipt.oracle_identity.source_snapshot_commit != ORACLE_TAG_COMMIT
+    {
+        return Err(
+            "immutable-tag capture receipt has an inconsistent identity or blocked state"
+                .to_string(),
+        );
+    }
+    let registry = registry()?;
+    let case = registry
+        .cases
+        .iter()
+        .find(|case| case.id == receipt.case.id)
+        .ok_or_else(|| {
+            "immutable-tag capture case is absent from the current registry".to_string()
+        })?;
+    validate_case_contract(case)?;
+    let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let current_case_set_digest = digest_tree(&package_root.join("cases"))?;
+    let expected_case = tag_case_capture_identity(case, &current_case_set_digest)?;
+    if receipt.suite.case_set_digest != current_case_set_digest
+        || serde_json::to_vec(&expected_case)
+            .map_err(|error| format!("serialize current immutable-tag case: {error}"))?
+            != serde_json::to_vec(&receipt.case)
+                .map_err(|error| format!("serialize captured immutable-tag case: {error}"))?
+    {
+        return Err(
+            "immutable-tag capture case identity does not match the current suite registry"
+                .to_string(),
+        );
+    }
+    if receipt
+        .checks
+        .iter()
+        .any(|check| check.visual_comparison.is_some())
+        || receipt
+            .checks
+            .iter()
+            .any(|check| check.dimension == "visual" && check.status == "PASS")
+    {
+        return Err("immutable-tag capture cannot report a visual comparison PASS".to_string());
+    }
+    let write_root = canonical_existing_directory_without_symlinks(
+        &policy.write_root,
+        "immutable-tag capture write root",
+    )?;
+    if write_root != policy.write_root
+        || policy.receipt_path == write_root
+        || !policy.receipt_path.starts_with(&write_root)
+        || canonical_new_file_path(&policy.receipt_path, "immutable-tag capture receipt")?
+            != policy.receipt_path
+    {
+        return Err(
+            "immutable-tag capture receipt must be a canonical new file under its write root"
+                .to_string(),
+        );
+    }
+    let mut output_roles = BTreeSet::new();
+    for output in &policy.actual_output_roots {
+        let canonical = canonical_existing_directory_without_symlinks(
+            &output.path,
+            "immutable-tag actual-output root",
+        )?;
+        if canonical != output.path
+            || !output_roles.insert(output.role.as_str())
+            || output.path == write_root
+            || !output.path.starts_with(&write_root)
+        {
+            return Err("immutable-tag actual-output roots must be unique canonical children of the write root".to_string());
+        }
+    }
+    if output_roles.len() != 1 || !output_roles.contains("oracle") {
+        return Err(
+            "immutable-tag capture policy must have exactly one oracle actual-output root"
+                .to_string(),
+        );
+    }
+    require_git_oid(
+        "immutable-tag source snapshot tree",
+        &receipt.oracle_identity.source_snapshot_tree,
+    )?;
+    for (name, digest) in [
+        (
+            "tag builder receipt",
+            receipt.oracle_identity.builder_receipt_sha256.as_str(),
+        ),
+        (
+            "tag source inputs",
+            receipt.oracle_identity.source_inputs_sha256.as_str(),
+        ),
+        (
+            "tag build environment",
+            receipt.oracle_identity.build_environment_sha256.as_str(),
+        ),
+        (
+            "tag executable",
+            receipt.oracle_identity.executable.expected_sha256.as_str(),
+        ),
+        (
+            "tag validator toolchain",
+            receipt
+                .oracle_identity
+                .validator_execution
+                .toolchain
+                .sha256
+                .as_str(),
+        ),
+        (
+            "tag validator Python runtime",
+            receipt
+                .oracle_identity
+                .validator_execution
+                .python
+                .sha256
+                .as_str(),
+        ),
+        (
+            "tag validator Git executable",
+            receipt
+                .oracle_identity
+                .validator_execution
+                .git
+                .sha256
+                .as_str(),
+        ),
+        (
+            "transformed tag validator helper",
+            receipt
+                .oracle_identity
+                .validator_execution
+                .executed_helper_sha256
+                .as_str(),
+        ),
+    ] {
+        require_sha256(name, digest)?;
+    }
+    if !receipt
+        .oracle_identity
+        .validator_execution
+        .repository
+        .is_absolute()
+        || !receipt
+            .oracle_identity
+            .validator_execution
+            .python
+            .path
+            .is_absolute()
+        || !receipt
+            .oracle_identity
+            .validator_execution
+            .git
+            .path
+            .is_absolute()
+        || receipt
+            .oracle_identity
+            .validator_execution
+            .python
+            .version
+            .trim()
+            .is_empty()
+        || receipt
+            .oracle_identity
+            .validator_execution
+            .git
+            .version
+            .trim()
+            .is_empty()
+        || receipt.oracle_identity.validator_execution.helper_transport
+            != TAG_VALIDATOR_HELPER_TRANSPORT
+        || receipt
+            .oracle_identity
+            .validator_execution
+            .python_sha256_before
+            != receipt.oracle_identity.validator_execution.python.sha256
+        || receipt
+            .oracle_identity
+            .validator_execution
+            .python_sha256_after
+            != receipt.oracle_identity.validator_execution.python.sha256
+        || receipt
+            .oracle_identity
+            .validator_execution
+            .git_sha256_before
+            != receipt.oracle_identity.validator_execution.git.sha256
+        || receipt.oracle_identity.validator_execution.git_sha256_after
+            != receipt.oracle_identity.validator_execution.git.sha256
+    {
+        return Err(
+            "capture validator tool identity must use absolute paths and versions".to_string(),
+        );
+    }
+    let actual_root = policy
+        .actual_output_roots
+        .iter()
+        .find(|root| root.role == "oracle")
+        .ok_or_else(|| "capture write policy lacks the oracle actual-output root".to_string())?;
+    let mut seen = BTreeSet::new();
+    for artifact in &receipt.artifacts {
+        if artifact.subject_role != "oracle" || artifact.case_id != receipt.case.id {
+            return Err(
+                "oracle capture contains an artifact for a different role or case".to_string(),
+            );
+        }
+        let path = canonical_existing_regular_file_without_symlinks(
+            &artifact.path,
+            "oracle capture artifact",
+        )?;
+        let relative_stem = capture_relative_stem(case, &artifact.checkpoint_id)?;
+        let filename = capture_filename(&artifact.format)
+            .ok_or_else(|| format!("unsupported oracle capture format {:?}", artifact.format))?;
+        let expected_path = actual_root.path.join(relative_stem).join(filename);
+        if path != expected_path {
+            return Err(format!(
+                "oracle capture artifact is outside its canonical case/checkpoint path: {}",
+                path.display()
+            ));
+        }
+        if !path.starts_with(&actual_root.path) {
+            return Err(format!(
+                "oracle capture artifact escapes its output root: {}",
+                path.display()
+            ));
+        }
+        let bytes = fs::read(&path)
+            .map_err(|error| format!("read oracle capture artifact {}: {error}", path.display()))?;
+        if bytes.len() as u64 != artifact.bytes || sha256_bytes(&bytes) != artifact.sha256 {
+            return Err(format!(
+                "oracle capture artifact digest mismatch: {}",
+                path.display()
+            ));
+        }
+        let key = (artifact.checkpoint_id.as_str(), artifact.format.as_str());
+        if !seen.insert(key) {
+            return Err("oracle capture repeats a checkpoint artifact format".to_string());
+        }
+    }
+    if receipt.capture_status == "COMPLETE" {
+        if receipt.artifacts.len() != 40
+            || seen.len() != 40
+            || receipt.case.checkpoints.len() != 4
+            || receipt.case.checkpoints.iter().any(|checkpoint| {
+                [
+                    "frame_json",
+                    "ansi",
+                    "html",
+                    "png",
+                    "ascii",
+                    "txt",
+                    "ascii_loss_json",
+                    "png_fidelity_json",
+                    "observations_json",
+                    "manifest_json",
+                ]
+                .iter()
+                .any(|format| !seen.contains(&(checkpoint.id.as_str(), *format)))
+            })
+        {
+            return Err(
+                "complete oracle capture must bind all 40 artifacts across four checkpoints"
+                    .to_string(),
+            );
+        }
+        let expected_assertions = receipt
+            .case
+            .checkpoints
+            .iter()
+            .flat_map(|checkpoint| {
+                checkpoint.assertions.iter().map(move |assertion| {
+                    format!("{}:{}:{}", receipt.case.id, checkpoint.id, assertion.id)
+                })
+            })
+            .collect::<BTreeSet<_>>();
+        if expected_assertions.len() != 12
+            || expected_assertions.iter().any(|id| {
+                receipt
+                    .checks
+                    .iter()
+                    .filter(|check| {
+                        check.id == *id
+                            && check.subject_role == "oracle"
+                            && check.case_id == receipt.case.id
+                            && check.dimension == "interaction"
+                            && check.status == "PASS"
+                    })
+                    .count()
+                    != 1
+            })
+            || receipt.checks.iter().any(|check| {
+                check.dimension != "visual"
+                    && !matches!(check.status.as_str(), "PASS" | "NOT_APPLICABLE")
+            })
+        {
+            return Err("complete oracle capture must record all 12 passing assertions and nonvisual checks".to_string());
+        }
+        for checkpoint in &receipt.case.checkpoints {
+            verify_oracle_capture_manifest(receipt, &actual_root.path, &checkpoint.id)?;
+        }
+    }
+    Ok(())
+}
+
+fn capture_filename(format: &str) -> Option<&'static str> {
+    match format {
+        "frame_json" => Some("frame.json"),
+        "ansi" => Some("ansi"),
+        "html" => Some("html"),
+        "png" => Some("png"),
+        "ascii" => Some("ascii"),
+        "txt" => Some("txt"),
+        "ascii_loss_json" => Some("ascii.loss.json"),
+        "png_fidelity_json" => Some("png.fidelity.json"),
+        "observations_json" => Some("observations.json"),
+        "manifest_json" => Some("manifest.json"),
+        _ => None,
+    }
+}
+
+fn verify_oracle_capture_manifest(
+    receipt: &OracleCaptureReceipt,
+    actual_root: &Path,
+    checkpoint_id: &str,
+) -> Result<(), String> {
+    let manifest_artifact = receipt
+        .artifacts
+        .iter()
+        .find(|artifact| {
+            artifact.checkpoint_id == checkpoint_id && artifact.format == "manifest_json"
+        })
+        .ok_or_else(|| format!("capture manifest is missing for {checkpoint_id}"))?;
+    let manifest_path = canonical_existing_regular_file_without_symlinks(
+        &manifest_artifact.path,
+        "oracle capture manifest",
+    )?;
+    let manifest_bytes = fs::read(&manifest_path).map_err(|error| {
+        format!(
+            "read oracle capture manifest {}: {error}",
+            manifest_path.display()
+        )
+    })?;
+    reject_duplicate_json_keys(&manifest_bytes, "oracle capture manifest")?;
+    let manifest: serde_json::Value = serde_json::from_slice(&manifest_bytes)
+        .map_err(|error| format!("parse oracle capture manifest: {error}"))?;
+    let parent = manifest_path
+        .parent()
+        .ok_or_else(|| "oracle capture manifest has no parent".to_string())?;
+    let relative_stem = parent
+        .strip_prefix(actual_root)
+        .map_err(|_| "oracle capture manifest escaped its actual-output root".to_string())?
+        .to_str()
+        .ok_or_else(|| "oracle capture manifest path is not UTF-8".to_string())?
+        .replace(std::path::MAIN_SEPARATOR, "/");
+    let frame_artifact = receipt
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.checkpoint_id == checkpoint_id && artifact.format == "frame_json")
+        .ok_or_else(|| format!("canonical frame is missing for {checkpoint_id}"))?;
+    let frame_bytes = fs::read(&frame_artifact.path).map_err(|error| {
+        format!(
+            "read canonical frame {}: {error}",
+            frame_artifact.path.display()
+        )
+    })?;
+    let frame = visual::parse_canonical_frame(&frame_bytes, &receipt.case.geometry)?;
+    let frame_digest = frame.digest();
+    let expected_renderer = serde_json::to_value(&receipt.renderer)
+        .map_err(|error| format!("serialize capture renderer identity: {error}"))?;
+    if manifest.as_object().map(serde_json::Map::len) != Some(9)
+        || manifest["schema"].as_str() != Some("termrock-e2e/capture-manifest-v1")
+        || manifest["case_id"].as_str() != Some(receipt.case.id.as_str())
+        || manifest["checkpoint_id"].as_str() != Some(checkpoint_id)
+        || manifest["canonical_path"].as_str() != Some(relative_stem.as_str())
+        || manifest["frame_digest"].as_u64() != Some(frame_digest)
+        || manifest["screen_profile"].as_str() != Some(frame.provenance.profile.as_str())
+        || manifest["renderer_profile"] != expected_renderer
+    {
+        return Err(format!(
+            "oracle capture manifest identity mismatch for {checkpoint_id}"
+        ));
+    }
+    let entries = manifest["artifacts"].as_array().ok_or_else(|| {
+        format!("oracle capture manifest has no artifact array for {checkpoint_id}")
+    })?;
+    if entries.len() != 9 {
+        return Err(format!(
+            "oracle capture manifest must list nine companion artifacts for {checkpoint_id}"
+        ));
+    }
+    let expected = receipt
+        .artifacts
+        .iter()
+        .filter(|artifact| {
+            artifact.checkpoint_id == checkpoint_id && artifact.format != "manifest_json"
+        })
+        .collect::<Vec<_>>();
+    if expected.len() != 9 {
+        return Err(format!(
+            "capture receipt does not have nine nonmanifest artifacts for {checkpoint_id}"
+        ));
+    }
+    let mut matched = BTreeSet::new();
+    for entry in entries {
+        let object = entry
+            .as_object()
+            .ok_or_else(|| "capture manifest artifact entry must be an object".to_string())?;
+        if object.len() != 4 {
+            return Err(
+                "capture manifest artifact entry has missing or unknown fields".to_string(),
+            );
+        }
+        let format = entry["format"]
+            .as_str()
+            .ok_or_else(|| "capture manifest artifact format must be a string".to_string())?;
+        let path = entry["path"]
+            .as_str()
+            .ok_or_else(|| "capture manifest artifact path must be a string".to_string())?;
+        let sha256 = entry["sha256"]
+            .as_str()
+            .ok_or_else(|| "capture manifest artifact SHA-256 must be a string".to_string())?;
+        let bytes = entry["bytes"].as_u64().ok_or_else(|| {
+            "capture manifest artifact size must be an unsigned integer".to_string()
+        })?;
+        let artifact = expected
+            .iter()
+            .find(|artifact| {
+                let relative = artifact
+                    .path
+                    .strip_prefix(actual_root)
+                    .ok()
+                    .and_then(Path::to_str)
+                    .map(|path| path.replace(std::path::MAIN_SEPARATOR, "/"));
+                artifact.format == format && relative.as_deref() == Some(path)
+            })
+            .ok_or_else(|| format!("capture manifest lists an unbound artifact path {path:?}"))?;
+        if artifact.sha256 != sha256
+            || artifact.bytes != bytes
+            || !matched.insert(artifact.format.as_str())
+        {
+            return Err(format!(
+                "capture manifest artifact digest mismatch for {checkpoint_id}:{format}"
+            ));
+        }
+    }
+    if matched.len() != 9 {
+        return Err(format!(
+            "capture manifest does not bind every format for {checkpoint_id}"
+        ));
+    }
+    Ok(())
+}
+
+fn publish_oracle_capture_receipt(
+    receipt: &OracleCaptureReceipt,
+    policy: &WritePolicyReceipt,
+) -> Result<(), String> {
+    let bytes = serde_json::to_vec_pretty(receipt)
+        .map_err(|error| format!("serialize immutable-tag capture receipt: {error}"))?;
+    publish_receipt_no_replace(&policy.write_root, &policy.receipt_path, &bytes)
+}
+
+struct LoadedOracleCapture {
+    path: PathBuf,
+    sha256: String,
+    receipt: OracleCaptureReceipt,
+}
+
+fn verify_evidence_reference(
+    reference: &EvidenceReference,
+    label: &str,
+) -> Result<PathBuf, String> {
+    let supplied = Path::new(&reference.path);
+    if !supplied.is_absolute() {
+        return Err(format!("{label} path must be absolute"));
+    }
+    require_sha256(&format!("{label} SHA-256"), &reference.sha256)?;
+    let path = canonical_existing_regular_file_without_symlinks(supplied, label)?;
+    if path.display().to_string() != reference.path {
+        return Err(format!("{label} path is not canonical"));
+    }
+    let actual = sha256_file(&path)?;
+    if actual != reference.sha256 {
+        return Err(format!("{label} bytes no longer match the captured digest"));
+    }
+    Ok(path)
+}
+
+fn load_oracle_capture(
+    supplied_path: &Path,
+    expected_sha256: &str,
+) -> Result<LoadedOracleCapture, String> {
+    require_sha256("oracle capture receipt SHA-256", expected_sha256)?;
+    if !supplied_path.is_absolute() {
+        return Err("oracle capture receipt path must be absolute".to_string());
+    }
+    let path =
+        canonical_existing_regular_file_without_symlinks(supplied_path, "oracle capture receipt")?;
+    let checkout_root = suite_checkout_root(Path::new(env!("CARGO_MANIFEST_DIR")))?;
+    if path.starts_with(&checkout_root) {
+        return Err("oracle capture receipt must be stored outside the suite checkout".to_string());
+    }
+    let bytes = fs::read(&path)
+        .map_err(|error| format!("read oracle capture receipt {}: {error}", path.display()))?;
+    let sha256 = sha256_bytes(&bytes);
+    if sha256 != expected_sha256 {
+        return Err(format!(
+            "oracle capture receipt SHA-256 mismatch: expected {expected_sha256}, got {sha256}"
+        ));
+    }
+    reject_duplicate_json_keys(&bytes, "oracle capture receipt")?;
+    let envelope: serde_json::Value = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("parse oracle capture receipt envelope: {error}"))?;
+    if envelope["checks"].as_array().is_none_or(|checks| {
+        checks.iter().any(|check| {
+            check
+                .as_object()
+                .is_none_or(|object| object.contains_key("visual_comparison"))
+        })
+    }) {
+        return Err(
+            "actual-only oracle capture cannot contain visual-comparison evidence".to_string(),
+        );
+    }
+    let receipt: OracleCaptureReceipt = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("parse oracle capture receipt: {error}"))?;
+    let canonical = serde_json::to_vec_pretty(&receipt)
+        .map_err(|error| format!("serialize oracle capture receipt: {error}"))?;
+    if canonical != bytes {
+        return Err("oracle capture receipt must use canonical pretty JSON".to_string());
+    }
+    if receipt.write_policy.receipt_path != path {
+        return Err(
+            "oracle capture receipt path differs from its protected write policy".to_string(),
+        );
+    }
+    validate_oracle_capture_receipt(&receipt, &receipt.write_policy)?;
+    if receipt.validator_helper.sha256 != TAG_SOURCE_VALIDATOR_SHA256 {
+        return Err("tag source validator is not the pinned immutable-tag helper".to_string());
+    }
+    verify_evidence_reference(&receipt.validator_helper, "tag source validator")?;
+    verify_evidence_reference(
+        &receipt.oracle_identity.validator_execution.toolchain,
+        "tag validator toolchain",
+    )?;
+    if Path::new(&receipt.validator_helper.path).starts_with(&checkout_root)
+        || Path::new(&receipt.oracle_identity.validator_execution.toolchain.path)
+            .starts_with(&checkout_root)
+        || receipt
+            .oracle_identity
+            .validator_execution
+            .repository
+            .starts_with(&checkout_root)
+        || receipt
+            .oracle_identity
+            .validator_execution
+            .python
+            .path
+            .starts_with(&checkout_root)
+        || receipt
+            .oracle_identity
+            .validator_execution
+            .git
+            .path
+            .starts_with(&checkout_root)
+    {
+        return Err("tag validator inputs must be stored outside the suite checkout".to_string());
+    }
+    require_tag_validator_outside_write_roots(
+        Path::new(&receipt.validator_helper.path),
+        &receipt.oracle_identity.validator_execution,
+        &receipt.write_policy.write_root,
+        &receipt.write_policy.actual_output_roots,
+    )?;
+    if receipt.capture_status != "COMPLETE" {
+        return Err("partial oracle capture cannot be admitted".to_string());
+    }
+
+    let builder_path = verify_evidence_reference(&receipt.builder_evidence, "tag builder receipt")?;
+    if builder_path.starts_with(&checkout_root) {
+        return Err("tag builder evidence must be stored outside the suite checkout".to_string());
+    }
+    let builder_bytes = fs::read(&builder_path).map_err(|error| {
+        format!(
+            "read tag builder receipt {}: {error}",
+            builder_path.display()
+        )
+    })?;
+    reject_duplicate_json_keys(&builder_bytes, "tag builder receipt")?;
+    let builder: TagBuilderEvidence = serde_json::from_slice(&builder_bytes)
+        .map_err(|error| format!("parse tag builder receipt: {error}"))?;
+    revalidate_captured_tag_source(&receipt, &builder, &builder_path)?;
+    let builder_run_path =
+        verify_evidence_reference(&receipt.builder_run, "tag builder run record")?;
+    let expected_builder_run = builder_path
+        .parent()
+        .ok_or_else(|| "tag builder receipt has no parent directory".to_string())?
+        .join("run.json");
+    if builder_run_path != expected_builder_run {
+        return Err(
+            "tag builder run evidence must be the sibling run.json validated with the receipt"
+                .to_string(),
+        );
+    }
+    if builder_run_path.starts_with(&checkout_root) {
+        return Err(
+            "tag builder run evidence must be stored outside the suite checkout".to_string(),
+        );
+    }
+    let source_inputs_bytes = serde_json::to_vec(&builder.source_snapshot)
+        .map_err(|error| format!("serialize tag source inputs: {error}"))?;
+    let build_environment_bytes = serde_json::to_vec(&builder.build_environment)
+        .map_err(|error| format!("serialize tag build environment: {error}"))?;
+    let nested_builder_sha = builder_receipt_digest(&builder.builder_receipt)?;
+    if builder.schema != TAG_BUILD_EVIDENCE_SCHEMA
+        || builder.run_id != receipt.run_id
+        || builder.purpose != "frozen-visual-tag-holla-build-only"
+        || builder.build_result != "PASS"
+        || builder.qualification.status != "blocked"
+        || builder.capture_status != "NOT_RUN"
+        || builder.admission_status != "NOT_RUN"
+        || builder.oracle_lineage.tag_ref != receipt.oracle_identity.tag_ref
+        || builder.oracle_lineage.tag_object != receipt.oracle_identity.tag_object
+        || builder.oracle_lineage.tag_commit != receipt.oracle_identity.tag_commit
+        || builder.source_snapshot.source_commit != receipt.oracle_identity.source_snapshot_commit
+        || builder.source_snapshot.tree_oid != receipt.oracle_identity.source_snapshot_tree
+        || Path::new(&builder.source_snapshot.materialized_root)
+            != receipt.oracle_identity.source_snapshot_root
+        || builder.build_artifact_root != receipt.oracle_identity.build_artifact_root
+        || builder.build != receipt.oracle_identity.build
+        || builder.builder_receipt_sha256 != receipt.oracle_identity.builder_receipt_sha256
+        || nested_builder_sha != receipt.oracle_identity.builder_receipt_sha256
+        || sha256_bytes(&source_inputs_bytes) != receipt.oracle_identity.source_inputs_sha256
+        || sha256_bytes(&build_environment_bytes)
+            != receipt.oracle_identity.build_environment_sha256
+        || builder.executable.path != receipt.oracle_identity.executable.path
+        || builder.executable.sha256 != receipt.oracle_identity.executable.expected_sha256
+    {
+        return Err(
+            "oracle capture does not match the raw immutable-tag builder evidence".to_string(),
+        );
+    }
+
+    let source_root = canonical_existing_directory_without_symlinks(
+        &receipt.oracle_identity.source_snapshot_root,
+        "captured immutable-tag source snapshot",
+    )?;
+    let artifact_root = canonical_existing_directory_without_symlinks(
+        &receipt.oracle_identity.build_artifact_root,
+        "captured immutable-tag build artifacts",
+    )?;
+    let actual_root = receipt
+        .write_policy
+        .actual_output_roots
+        .iter()
+        .find(|root| root.role == "oracle")
+        .ok_or_else(|| "capture write policy lacks the oracle actual-output root".to_string())?;
+    if source_root.starts_with(&checkout_root)
+        || artifact_root.starts_with(&checkout_root)
+        || actual_root.path.starts_with(&checkout_root)
+    {
+        return Err(
+            "tag source, build, and actual-output roots must be outside the suite checkout"
+                .to_string(),
+        );
+    }
+    let executable_path = canonical_existing_regular_file_without_symlinks(
+        &receipt.oracle_identity.executable.path,
+        "captured immutable-tag executable",
+    )?;
+    if source_root != receipt.oracle_identity.source_snapshot_root
+        || artifact_root != receipt.oracle_identity.build_artifact_root
+        || !executable_path.starts_with(&artifact_root)
+        || receipt.oracle_identity.executable.actual_sha256.as_deref()
+            != Some(receipt.oracle_identity.executable.expected_sha256.as_str())
+        || sha256_file(&executable_path)? != receipt.oracle_identity.executable.expected_sha256
+    {
+        return Err(
+            "captured immutable-tag source/build/executable paths or hashes changed".to_string(),
+        );
+    }
+    Ok(LoadedOracleCapture {
+        path,
+        sha256,
+        receipt,
+    })
+}
+
+fn revalidate_captured_tag_source(
+    capture: &OracleCaptureReceipt,
+    builder: &TagBuilderEvidence,
+    builder_path: &Path,
+) -> Result<(), String> {
+    let oracle = &capture.oracle_identity;
+    // Revalidation must use the path and raw digest supplied by the current
+    // trusted caller. A capture cannot choose its own validator toolchain.
+    let (toolchain, toolchain_reference) = load_caller_pinned_tag_validator_toolchain()?;
+    require_caller_pinned_toolchain_reference(
+        &oracle.validator_execution.toolchain,
+        &toolchain_reference,
+    )?;
+    if toolchain.python != oracle.validator_execution.python
+        || toolchain.git != oracle.validator_execution.git
+    {
+        return Err("captured validator tool identity changed".to_string());
+    }
+    let (identity, helper, execution) = execute_tag_source_validator(
+        builder_path,
+        &capture.builder_evidence.sha256,
+        Path::new(&capture.validator_helper.path),
+        &oracle.validator_execution.repository,
+        &toolchain,
+        oracle.validator_execution.toolchain.clone(),
+    )?;
+    if helper.path.display().to_string() != capture.validator_helper.path
+        || helper.sha256 != capture.validator_helper.sha256
+        || execution != oracle.validator_execution
+    {
+        return Err("captured source-validator execution identity changed".to_string());
+    }
+    validate_tag_record_binding(
+        builder,
+        &identity,
+        builder_path,
+        &capture.builder_evidence.sha256,
+    )?;
+    let source_inputs_bytes = serde_json::to_vec(&builder.source_snapshot)
+        .map_err(|error| format!("serialize revalidated tag source inputs: {error}"))?;
+    let captured_snapshot = TagValidatedSourceSnapshot {
+        source_commit: oracle.source_snapshot_commit.clone(),
+        tree_oid: oracle.source_snapshot_tree.clone(),
+        materialized_root: oracle.source_snapshot_root.clone(),
+        included_path_blob_map_sha256: builder
+            .source_snapshot
+            .included_path_blob_map_sha256
+            .clone(),
+        included_file_count: oracle.source_snapshot_included_file_count,
+    };
+    if sha256_bytes(&source_inputs_bytes) != oracle.source_inputs_sha256
+        || validate_tag_source_snapshot_still_matches(&captured_snapshot, &identity.source_snapshot)
+            .is_err()
+        || identity.source_snapshot.included_path_blob_map_sha256
+            != builder.source_snapshot.included_path_blob_map_sha256
+        || identity.source_snapshot.included_file_count
+            != builder.source_snapshot.included_file_count
+    {
+        return Err("materialized immutable-tag source changed since capture".to_string());
+    }
+    Ok(())
+}
+
+fn validate_tag_source_snapshot_still_matches(
+    captured: &TagValidatedSourceSnapshot,
+    current: &TagValidatedSourceSnapshot,
+) -> Result<(), String> {
+    if captured != current {
+        return Err("materialized immutable-tag source changed since capture".to_string());
+    }
+    Ok(())
+}
+
+fn build_admission_binding(
+    generation: &visual::ExpectedGeneration,
+    capture: &LoadedOracleCapture,
+    suite_revision: &str,
+    suite_digest: &str,
+    case: &Case,
+    profile: &Profile,
+    renderer: &RendererIdentity,
+) -> Result<admission::AdmissionBinding, String> {
+    let receipt = &capture.receipt;
+    let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let case_set_digest = digest_tree(&package_root.join("cases"))?;
+    let profile_digest = sha256_file(&package_root.join("profile.json"))?;
+    let dependency_lock_sha256 = sha256_file(&package_root.join("Cargo.lock"))?;
+    let case_identity = tag_case_capture_identity(case, &case_set_digest)?;
+    let case_bytes = serde_json::to_vec(&case_identity)
+        .map_err(|error| format!("serialize selected case identity: {error}"))?;
+    let captured_case_bytes = serde_json::to_vec(&receipt.case)
+        .map_err(|error| format!("serialize captured case identity: {error}"))?;
+    if generation.case_id != case.id
+        || generation.case_set_digest != case_set_digest
+        || generation.profile_digest != profile_digest
+        || generation.dependency_lock_sha256 != dependency_lock_sha256
+        || generation.renderer_sha256 != renderer.hash
+        || receipt.suite.revision != suite_revision
+        || receipt.suite.digest != suite_digest
+        || receipt.suite.case_set_digest != case_set_digest
+        || receipt.suite.profile_digest != profile_digest
+        || receipt.suite.dependency_lock_sha256 != dependency_lock_sha256
+        || receipt.renderer != *renderer
+        || captured_case_bytes != case_bytes
+    {
+        return Err("capture or generation does not match the current suite, case, profile, lock, or renderer".to_string());
+    }
+    let checkout_root = suite_checkout_root(package_root)?;
+    if generation.root.starts_with(&checkout_root) {
+        return Err(
+            "expected-generation input must be stored outside the suite checkout".to_string(),
+        );
+    }
+    if generation.oracle.tag_ref != receipt.oracle_identity.tag_ref
+        || generation.oracle.tag_object != receipt.oracle_identity.tag_object
+        || generation.oracle.tag_commit != receipt.oracle_identity.tag_commit
+        || generation.oracle.capture_run_sha256 != capture.sha256
+        || generation.oracle.source_inputs_sha256 != receipt.oracle_identity.source_inputs_sha256
+        || generation.oracle.build_environment_sha256
+            != receipt.oracle_identity.build_environment_sha256
+        || generation.oracle.builder_receipt_sha256
+            != receipt.oracle_identity.builder_receipt_sha256
+        || generation.oracle.oracle_executable_sha256
+            != receipt.oracle_identity.executable.expected_sha256
+    {
+        return Err(
+            "expected-generation manifest does not bind this immutable-tag capture".to_string(),
+        );
+    }
+    for checkpoint in checkpoints(case) {
+        let (expected_frame, expected_png) = generation.checkpoint_refs(checkpoint)?;
+        for (format, expected) in [("frame_json", expected_frame), ("png", expected_png)] {
+            let artifact = receipt
+                .artifacts
+                .iter()
+                .find(|artifact| artifact.checkpoint_id == checkpoint && artifact.format == format)
+                .ok_or_else(|| format!("tag capture lacks {format} for {checkpoint}"))?;
+            if artifact.sha256 != expected.sha256 || artifact.bytes != expected.bytes {
+                return Err(format!(
+                    "expected-generation {format} differs from the immutable-tag capture at {checkpoint}"
+                ));
+            }
+        }
+    }
+    let checkpoint_ids = receipt
+        .case
+        .checkpoints
+        .iter()
+        .map(|checkpoint| checkpoint.id.clone())
+        .collect();
+    let binding = admission::AdmissionBinding {
+        generation: admission::GenerationBinding {
+            id: generation.id.clone(),
+            tree_sha256: generation.tree_sha256.clone(),
+            manifest_sha256: generation.manifest_sha256.clone(),
+        },
+        oracle: admission::OracleBinding {
+            tag_ref: receipt.oracle_identity.tag_ref.clone(),
+            tag_object: receipt.oracle_identity.tag_object.clone(),
+            tag_commit: receipt.oracle_identity.tag_commit.clone(),
+            source_snapshot_tree: receipt.oracle_identity.source_snapshot_tree.clone(),
+            source_inputs_sha256: receipt.oracle_identity.source_inputs_sha256.clone(),
+            build_environment_sha256: receipt.oracle_identity.build_environment_sha256.clone(),
+            builder_receipt_sha256: receipt.oracle_identity.builder_receipt_sha256.clone(),
+            executable_sha256: receipt.oracle_identity.executable.expected_sha256.clone(),
+            validator_toolchain: receipt
+                .oracle_identity
+                .validator_execution
+                .toolchain
+                .clone(),
+        },
+        capture: EvidenceReference {
+            path: capture.path.display().to_string(),
+            sha256: capture.sha256.clone(),
+        },
+        suite: admission::SuiteBinding {
+            revision: suite_revision.to_string(),
+            digest: suite_digest.to_string(),
+            case_set_digest,
+            profile_digest,
+            dependency_lock_sha256,
+            tuiscotti_revision: profile.tool_revision.clone(),
+        },
+        case: admission::CaseBinding {
+            id: case.id.clone(),
+            input_program_sha256: case_identity.input_program_sha256,
+            checkpoint_ids,
+        },
+        renderer_sha256: renderer.hash.clone(),
+    };
+    admission::validate_binding(&binding)?;
+    Ok(binding)
+}
+
+fn require_admission_write_targets_disjoint(
+    write_root: &ResolvedDirectory,
+    output: &ResolvedPath,
+    protected_paths: &[PathBuf],
+) -> Result<(), String> {
+    let resolved_write_root = resolved_path_from_directory(write_root);
+    for path in protected_paths {
+        let resolved = resolve_path_for_overlap(path, "admission protected input")?;
+        if physical_paths_overlap(&resolved_write_root, &resolved)
+            || physical_paths_overlap(output, &resolved)
+        {
+            return Err(format!(
+                "admission output overlaps protected input {}",
+                path.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Explicitly admit a prebuilt, exact nine-file expected-generation tree only
+/// after a separate immutable-tag capture and a raw-hash-pinned independent
+/// qualification review. This function writes the admission record only.
+#[allow(clippy::too_many_arguments)]
+pub fn admit_expected_generation(
+    generation_id: &str,
+    generation_root: &Path,
+    generation_sha256: &str,
+    capture_path: &Path,
+    capture_sha256: &str,
+    qualification_review_path: &Path,
+    qualification_review_sha256: &str,
+    write_root_path: &Path,
+    admission_path: &Path,
+) -> Result<AdmissionWriteReceipt, String> {
+    let current_suite_digest = suite_digest()?;
+    verify_compiled_suite_digest(COMPILED_SUITE_SHA256, &current_suite_digest)?;
+    let registry = registry()?;
+    let case = registry
+        .cases
+        .iter()
+        .find(|case| case.id == "HELP-HOLLA-004")
+        .ok_or_else(|| "suite lacks HELP-HOLLA-004".to_string())?;
+    let profile: Profile = serde_json::from_str(PROFILE_JSON)
+        .map_err(|error| format!("parse suite profile: {error}"))?;
+    validate_profile_and_case(&profile, case)?;
+    let renderer_profile = tuiscotti::profile::RenderProfile::vendored();
+    let renderer = renderer_identity(&renderer_profile);
+    if renderer.hash != profile.renderer.expected_hash
+        || renderer.renderer_version != profile.renderer.renderer_version
+        || renderer.name != profile.renderer.id
+        || profile.renderer.implementation != "strict-vendored-profile"
+    {
+        return Err("resolved renderer does not match the compiled suite profile".to_string());
+    }
+    let generation_input = ExpectedGenerationInput {
+        id: generation_id.to_string(),
+        root: Some(generation_root.to_path_buf()),
+        sha256: generation_sha256.to_string(),
+    };
+    let generation = visual::load_expected_generation(
+        &generation_input,
+        case,
+        &digest_tree(&Path::new(env!("CARGO_MANIFEST_DIR")).join("cases"))?,
+        &sha256_file(&Path::new(env!("CARGO_MANIFEST_DIR")).join("profile.json"))?,
+        &sha256_file(&Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.lock"))?,
+        &profile.tool_revision,
+        &renderer,
+    )?;
+    let capture = load_oracle_capture(capture_path, capture_sha256)?;
+    let binding = build_admission_binding(
+        &generation,
+        &capture,
+        &registry.suite_revision,
+        &current_suite_digest,
+        case,
+        &profile,
+        &renderer,
+    )?;
+    let review = admission::load_qualification_review(
+        Some(qualification_review_path),
+        Some(qualification_review_sha256),
+        &binding,
+    )?;
+    let receipt = admission::new_admission_receipt(binding.clone(), &review)?;
+    let receipt_bytes = serde_json::to_vec(&receipt)
+        .map_err(|error| format!("serialize generation admission receipt: {error}"))?;
+
+    let write_root =
+        resolve_existing_directory_without_symlinks(write_root_path, "admission write root")?;
+    let output_path = canonical_new_file_path(admission_path, "generation admission receipt")?;
+    if path_exists_no_follow(&output_path)? {
+        return Err(format!(
+            "generation admission destination already exists: {}",
+            output_path.display()
+        ));
+    }
+    let output = resolve_path_for_overlap(&output_path, "generation admission receipt")?;
+    if !path_is_within_directory(&write_root, &output) {
+        return Err(
+            "generation admission destination must be beneath its explicit write root".to_string(),
+        );
+    }
+    let suite_source_root = canonical_existing_directory_without_symlinks(
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        "suite source package",
+    )?;
+    let mut protected_paths = vec![
+        suite_source_root,
+        generation.root.clone(),
+        capture.receipt.write_policy.write_root.clone(),
+        capture.receipt.oracle_identity.source_snapshot_root.clone(),
+        capture.receipt.oracle_identity.build_artifact_root.clone(),
+    ];
+    protected_paths.extend(tag_validator_protected_paths(
+        Path::new(&capture.receipt.validator_helper.path),
+        &capture.receipt.oracle_identity.validator_execution,
+    )?);
+    for evidence_path in [
+        capture.path.as_path(),
+        review.path.as_path(),
+        Path::new(&capture.receipt.builder_evidence.path),
+        Path::new(&capture.receipt.builder_run.path),
+        Path::new(&capture.receipt.validator_helper.path),
+    ]
+    .into_iter()
+    .chain(
+        review
+            .review
+            .execution_anchor_evidence
+            .iter()
+            .map(|evidence| Path::new(&evidence.path)),
+    ) {
+        protected_paths.push(canonical_existing_regular_file_without_symlinks(
+            evidence_path,
+            "admission evidence",
+        )?);
+        protected_paths.push(
+            evidence_path
+                .parent()
+                .ok_or_else(|| "admission evidence has no parent".to_string())?
+                .to_path_buf(),
+        );
+    }
+    if let Some(actual_root) = capture
+        .receipt
+        .write_policy
+        .actual_output_roots
+        .iter()
+        .find(|root| root.role == "oracle")
+    {
+        protected_paths.push(actual_root.path.clone());
+    }
+    require_admission_write_targets_disjoint(&write_root, &output, &protected_paths)?;
+    let current_generation = visual::load_expected_generation(
+        &generation_input,
+        case,
+        &digest_tree(&Path::new(env!("CARGO_MANIFEST_DIR")).join("cases"))?,
+        &sha256_file(&Path::new(env!("CARGO_MANIFEST_DIR")).join("profile.json"))?,
+        &sha256_file(&Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.lock"))?,
+        &profile.tool_revision,
+        &renderer,
+    )?;
+    let current_capture = load_oracle_capture(capture_path, capture_sha256)?;
+    let current_binding = build_admission_binding(
+        &current_generation,
+        &current_capture,
+        &registry.suite_revision,
+        &current_suite_digest,
+        case,
+        &profile,
+        &renderer,
+    )?;
+    let current_review = admission::load_qualification_review(
+        Some(qualification_review_path),
+        Some(qualification_review_sha256),
+        &current_binding,
+    )?;
+    if current_binding != binding || current_review.sha256 != review.sha256 {
+        return Err("admission inputs changed while the receipt was being prepared".to_string());
+    }
+    publish_receipt_no_replace(&write_root.path, &output_path, &receipt_bytes)?;
+    Ok(AdmissionWriteReceipt {
+        schema: "termrock-spec/visual-generation-admission-write-result-v1".to_string(),
+        admission_path: output_path,
+        admission_sha256: sha256_bytes(&receipt_bytes),
+        generation_id: generation.id,
+        generation_tree_sha256: generation.tree_sha256,
+        decision: "admitted".to_string(),
     })
 }
 
@@ -3267,6 +6204,7 @@ pub fn run_case(case_id: &str) -> Result<RunReceipt, String> {
     let mut subjects = manifest.subjects.clone();
     subjects.sort_by(|left, right| left.role.cmp(&right.role));
     let trust_source = load_trust_record_source()?;
+    let generation_admission_source = load_generation_admission_source_optional()?;
     let write_policy_input = load_write_policy_input()?;
     let write_policy = resolve_write_policy_with_evidence(
         write_policy_input,
@@ -3275,9 +6213,10 @@ pub fn run_case(case_id: &str) -> Result<RunReceipt, String> {
             .expected_generation
             .as_ref()
             .and_then(|expected| expected.root.as_deref()),
-        &trust_source.canonical_path,
+        Some(&trust_source.canonical_path),
         Some(&evidence),
         &binary_path,
+        None,
     )?;
     validate_case_capture_paths(case, &write_policy.actual_output_roots)?;
     let trusted = load_and_verify_trust_record(
@@ -3294,6 +6233,72 @@ pub fn run_case(case_id: &str) -> Result<RunReceipt, String> {
         &test_binary_digest,
     )?;
     let generation_admission = trusted.record.expected_generation.as_ref();
+    let mut verified_admission = None;
+    let mut admitted_capture_identity = None;
+    match (generation_admission, generation_admission_source.as_ref()) {
+        (Some(expected_admission), Some(source)) => {
+            if expected_admission.admission_receipt_sha256 != source.expected_sha256 {
+                return Err(
+                    "caller-pinned admission SHA-256 does not match the external trust record"
+                        .to_string(),
+                );
+            }
+            let expected_generation = loaded_expected
+                .as_ref()
+                .and_then(|result| result.as_ref().ok())
+                .ok_or_else(|| {
+                    "trusted admission has no successfully loaded expected generation".to_string()
+                })?;
+            let envelope = admission::load_admission_envelope(
+                &source.canonical_path,
+                &source.expected_sha256,
+            )?;
+            let capture_reference = &envelope.receipt.binding.capture;
+            let capture = load_oracle_capture(
+                Path::new(&capture_reference.path),
+                &capture_reference.sha256,
+            )?;
+            require_tag_validator_outside_write_roots(
+                Path::new(&capture.receipt.validator_helper.path),
+                &capture.receipt.oracle_identity.validator_execution,
+                &write_policy.write_root,
+                &write_policy.actual_output_roots,
+            )?;
+            let binding = build_admission_binding(
+                expected_generation,
+                &capture,
+                &registry.suite_revision,
+                &current_suite_digest,
+                case,
+                &profile,
+                &renderer,
+            )?;
+            let admission = admission::load_pinned_admission_receipt(
+                &source.canonical_path,
+                &expected_admission.admission_receipt_sha256,
+                &binding,
+            )?;
+            if admission.path != source.canonical_path
+                || admission.sha256 != expected_admission.admission_receipt_sha256
+                || admission.receipt.binding.generation.id != expected_admission.id
+                || admission.receipt.binding.generation.tree_sha256 != expected_admission.sha256
+            {
+                return Err(
+                    "admission receipt is not the exact record bound by the external trust record"
+                        .to_string(),
+                );
+            }
+            admitted_capture_identity = Some((capture.path.clone(), capture.sha256.clone()));
+            verified_admission = Some(admission);
+        }
+        (Some(_), None) => {
+            return Err("external trust record admits an expected generation but no explicit admission receipt path/hash was supplied".to_string());
+        }
+        (None, Some(_)) => {
+            return Err("an admission receipt was supplied but the external trust record does not admit an expected generation".to_string());
+        }
+        (None, None) => {}
+    }
     let verified_executables = subjects
         .iter()
         .map(verify_subject_executable)
@@ -3458,331 +6463,35 @@ pub fn run_case(case_id: &str) -> Result<RunReceipt, String> {
             continue;
         }
 
-        let args = make_argv(&subject.executable.path, &case.args);
-        let launch_result = launch(&args, case, &profile, &write_policy.subject_cwd);
-        let mut session = match launch_result {
-            Ok(session) => {
-                for checkpoint in checkpoints(case) {
-                    push_check(
-                        &mut receipt.checks,
-                        &subject.role,
-                        &case.id,
-                        checkpoint,
-                        "build",
-                        "PASS",
-                        "verified executable hash",
-                        vec![initial_snapshot.sha256.clone()],
-                    );
-                    push_check(
-                        &mut receipt.checks,
-                        &subject.role,
-                        &case.id,
-                        checkpoint,
-                        "launch",
-                        "PASS",
-                        "real executable launched in a Tuiscotti PTY",
-                        vec![
-                            subject.executable.path.display().to_string(),
-                            initial_snapshot.sha256.clone(),
-                        ],
-                    );
-                }
-                session
-            }
-            Err(error) => {
-                for checkpoint in checkpoints(case) {
-                    append_not_run_checkpoint(
-                        &mut receipt.checks,
-                        &subject.role,
-                        &case.id,
-                        checkpoint,
-                        "PASS",
-                        "executable digest matched the externally admitted builder receipt",
-                        "ERROR",
-                        &format!("launch failed: {error}"),
-                    );
-                }
-                continue;
-            }
+        let visual_context = VisualComparisonContext {
+            expected_supplied: manifest.expected_generation.is_some(),
+            loaded_expected: loaded_expected.as_ref(),
+            admission: generation_admission,
+            trust_record_sha256: &trusted.verification.record_sha256,
+            renderer: &renderer,
         };
-
-        let mut passed_assertions = BTreeSet::new();
-        for step in &case.steps {
-            match step {
-                Step::Press { key } => {
-                    if let Err(error) = session.press(key) {
-                        receipt.checks.push(check(
-                            &subject.role,
-                            &case.id,
-                            "input",
-                            "interaction",
-                            "ERROR",
-                            format!("press {key} failed: {error}"),
-                            Vec::new(),
-                        ));
-                    } else {
-                        std::thread::sleep(Duration::from_millis(profile.input_pacing_ms));
-                    }
-                }
-                Step::Checkpoint {
-                    id,
-                    wait,
-                    assertions,
-                    legacy_snapshot_path,
-                } => {
-                    let checkpoint = id.as_str();
-                    let observation = match wait_for_observation(
-                        &mut session,
-                        wait,
-                        case.timeout_ms.max(profile.readiness_timeout_ms),
-                    ) {
-                        Ok(observation) => observation,
-                        Err(error) => {
-                            append_readiness_failure(
-                                &mut receipt.checks,
-                                &subject.role,
-                                &case.id,
-                                checkpoint,
-                                &error,
-                            );
-                            continue;
-                        }
-                    };
-                    let frame =
-                        tuiscotti::render::frame_from_screen(&observation.screen, "default");
-                    let screen_text = frame.text();
-                    let mut assertion_statuses = Vec::new();
-                    for assertion in assertions {
-                        let result =
-                            evaluate_assertion(assertion, &screen_text, &passed_assertions);
-                        if result.0 == "PASS" {
-                            passed_assertions.insert(assertion.id.clone());
-                        }
-                        let check_id = format!("{}:{}:{}", case.id, checkpoint, assertion.id);
-                        receipt.checks.push(CheckReceipt {
-                            id: check_id,
-                            subject_role: subject.role.clone(),
-                            case_id: case.id.clone(),
-                            checkpoint_id: checkpoint.to_string(),
-                            dimension: "interaction".to_string(),
-                            status: result.0.to_string(),
-                            reason: result.1.clone(),
-                            evidence: result.2.clone(),
-                            visual_comparison: None,
-                        });
-                        assertion_statuses.push(result.0.to_string());
-                    }
-                    let interaction_status =
-                        if assertion_statuses.iter().all(|status| status == "PASS") {
-                            "PASS"
-                        } else if assertion_statuses.iter().any(|status| status == "FAIL") {
-                            "FAIL"
-                        } else {
-                            "BLOCKED"
-                        };
-                    push_check(
-                        &mut receipt.checks,
-                        &subject.role,
-                        &case.id,
-                        checkpoint,
-                        "first_frame",
-                        "PASS",
-                        "readiness predicates held on one captured PTY observation",
-                        vec![format!("{}x{}", case.geometry.cols, case.geometry.rows)],
-                    );
-                    push_check(
-                        &mut receipt.checks,
-                        &subject.role,
-                        &case.id,
-                        checkpoint,
-                        "interaction",
-                        interaction_status,
-                        "checkpoint interaction assertions",
-                        vec![screen_text.clone()],
-                    );
-
-                    let actual_output_root = write_policy
-                        .actual_output_roots
-                        .iter()
-                        .find(|output| output.role == subject.role)
-                        .expect("resolved write policy has each subject output root");
-                    match write_capture(
-                        subject,
-                        &write_policy.write_root,
-                        &actual_output_root.path,
-                        case,
-                        checkpoint,
-                        &frame,
-                        legacy_snapshot_path.as_deref(),
-                    ) {
-                        Ok((artifacts, captured)) => {
-                            let frame_artifact = artifacts
-                                .iter()
-                                .find(|artifact| artifact.format == "frame_json")
-                                .cloned()
-                                .ok_or_else(|| {
-                                    format!("capture {checkpoint} omitted canonical frame artifact")
-                                })?;
-                            let png_artifact = artifacts
-                                .iter()
-                                .find(|artifact| artifact.format == "png")
-                                .cloned()
-                                .ok_or_else(|| {
-                                    format!("capture {checkpoint} omitted PNG artifact")
-                                })?;
-                            receipt.artifacts.extend(artifacts);
-                            let actual = visual::validate_actual_observation(
-                                &captured,
-                                &frame_artifact,
-                                &png_artifact,
-                                &case.geometry,
-                                &renderer,
-                            );
-                            let visual_outcome: Result<VisualComparisonEvidence, (String, String)> =
-                                match actual {
-                                    Err(error) => Err(("ERROR".to_string(), error)),
-                                    Ok(_) if manifest.expected_generation.is_none() => Err((
-                                        "BLOCKED".to_string(),
-                                        format!(
-                                            "no shared expected generation was supplied; exact cell, cursor, and decoded-pixel comparison remains blocked (alias: {})",
-                                            legacy_snapshot_path.as_deref().unwrap_or("none")
-                                        ),
-                                    )),
-                                    Ok(_)
-                                        if loaded_expected.as_ref().is_some_and(Result::is_err) =>
-                                    {
-                                        Err((
-                                            "ERROR".to_string(),
-                                            loaded_expected
-                                                .as_ref()
-                                                .and_then(|result| result.as_ref().err())
-                                                .cloned()
-                                                .unwrap_or_else(|| {
-                                                    "expected generation failed validation"
-                                                        .to_string()
-                                                }),
-                                        ))
-                                    }
-                                    Ok(_) if generation_admission.is_none() => Err((
-                                        "BLOCKED".to_string(),
-                                        format!(
-                                            "expected generation hash is valid but no independent admission binds it; visual comparison remains blocked (alias: {})",
-                                            legacy_snapshot_path.as_deref().unwrap_or("none")
-                                        ),
-                                    )),
-                                    Ok(validated) => {
-                                        let generation = loaded_expected
-                                            .as_ref()
-                                            .and_then(|loaded| loaded.as_ref().ok())
-                                            .expect("admitted generation passed validation");
-                                        let admission = generation_admission
-                                            .expect("trust validation requires expected admission");
-                                        visual::compare_admitted_observations(
-                                            generation,
-                                            checkpoint,
-                                            validated,
-                                            &renderer,
-                                            &trusted.verification.record_sha256,
-                                            &admission.admission_receipt_sha256,
-                                        )
-                                        .map_err(|error| ("ERROR".to_string(), error))
-                                    }
-                                };
-                            match visual_outcome {
-                                Ok(comparison) => {
-                                    let passed = comparison.renderer.equal
-                                        && comparison.frame.equal
-                                        && comparison.png.equal
-                                        && !comparison.fidelity.expected.approximate
-                                        && !comparison.fidelity.actual.approximate
-                                        && comparison.fidelity.expected.rerender_matches_bound_png
-                                        && comparison.fidelity.actual.rerender_matches_bound_png;
-                                    let status = if passed { "PASS" } else { "FAIL" };
-                                    let reason = if passed {
-                                        "canonical Frame v3, cursor, strict fidelity, renderer profile, and decoded opaque RGB pixels match the admitted generation"
-                                    } else {
-                                        "admitted expected and actual frame or decoded opaque RGB pixels differ"
-                                    };
-                                    let mut visual_check = check(
-                                        &subject.role,
-                                        &case.id,
-                                        checkpoint,
-                                        "visual",
-                                        status,
-                                        reason.to_string(),
-                                        Vec::new(),
-                                    );
-                                    visual_check.visual_comparison = Some(comparison);
-                                    receipt.checks.push(visual_check);
-                                }
-                                Err((status, reason)) => receipt.checks.push(check(
-                                    &subject.role,
-                                    &case.id,
-                                    checkpoint,
-                                    "visual",
-                                    &status,
-                                    reason,
-                                    vec![legacy_snapshot_path.clone().unwrap_or_else(|| {
-                                        "no legacy approved snapshot".to_string()
-                                    })],
-                                )),
-                            }
-                        }
-                        Err(error) => push_check(
-                            &mut receipt.checks,
-                            &subject.role,
-                            &case.id,
-                            checkpoint,
-                            "visual",
-                            "ERROR",
-                            "capture export failed",
-                            vec![error],
-                        ),
-                    }
-                    push_check(
-                        &mut receipt.checks,
-                        &subject.role,
-                        &case.id,
-                        checkpoint,
-                        "exit",
-                        "NOT_APPLICABLE",
-                        "HELP-HOLLA-004 closes and reopens an overlay but does not exit the root TUI",
-                        Vec::new(),
-                    );
-                    push_check(
-                        &mut receipt.checks,
-                        &subject.role,
-                        &case.id,
-                        checkpoint,
-                        "restoration",
-                        "NOT_APPLICABLE",
-                        "HELP-HOLLA-004 runs inside an isolated PTY and does not assert the parent terminal state",
-                        Vec::new(),
-                    );
-                }
-            }
-        }
-
-        drop(session);
-        let post_run = inspect_executable(&subject.executable.path);
-        receipt.source_pair[subject_index].executable.actual_sha256 = post_run
-            .as_ref()
-            .ok()
-            .map(|snapshot| snapshot.sha256.clone());
-        let post_run_failure = match &post_run {
-            Err(error) => Some(error.clone()),
-            Ok(snapshot) => validate_executable_snapshot(subject, initial_snapshot, snapshot).err(),
-        };
-        if let Some(reason) = post_run_failure {
+        let driven = drive_case_subject(
+            subject,
+            case,
+            &profile,
+            &renderer,
+            initial_snapshot,
+            &write_policy,
+            Some(&visual_context),
+        )?;
+        receipt.source_pair[subject_index].executable.actual_sha256 = driven.actual_sha256;
+        receipt.checks.extend(driven.checks);
+        receipt.artifacts.extend(driven.artifacts);
+        if let Some(reason) = driven.post_run_failure {
             mark_subject_build_stale(
                 &mut receipt.checks,
                 &subject.role,
                 &case.id,
                 &reason,
-                post_run
-                    .as_ref()
-                    .ok()
-                    .map(|snapshot| snapshot.sha256.as_str()),
+                receipt.source_pair[subject_index]
+                    .executable
+                    .actual_sha256
+                    .as_deref(),
             );
             paired_spawn_block = Some(format!(
                 "{} changed during the journey: {reason}",
@@ -3800,8 +6509,367 @@ pub fn run_case(case_id: &str) -> Result<RunReceipt, String> {
             .and_then(|result| result.as_ref().ok()),
         generation_admission,
     )?;
+    if let Some(admission) = &verified_admission {
+        if sha256_file(&admission.path)? != admission.sha256 {
+            return Err(
+                "generation admission receipt changed during the paired journey".to_string(),
+            );
+        }
+        verify_evidence_reference(
+            &admission.receipt.qualification_review,
+            "qualification review",
+        )?;
+    }
+    if let Some((capture_path, capture_sha256)) = &admitted_capture_identity {
+        load_oracle_capture(capture_path, capture_sha256)?;
+    }
     write_receipt(&receipt, &write_policy)?;
     Ok(receipt)
+}
+
+fn drive_case_subject(
+    subject: &Subject,
+    case: &Case,
+    profile: &Profile,
+    renderer: &RendererIdentity,
+    initial_snapshot: &ExecutableSnapshot,
+    write_policy: &WritePolicyReceipt,
+    visual_context: Option<&VisualComparisonContext<'_>>,
+) -> Result<SubjectDriveResult, String> {
+    let mut result = SubjectDriveResult {
+        checks: Vec::new(),
+        artifacts: Vec::new(),
+        actual_sha256: None,
+        post_run_failure: None,
+    };
+    let args = make_argv(&subject.executable.path, &case.args);
+    let launch_result = launch(&args, case, &profile, &write_policy.subject_cwd);
+    let mut session = match launch_result {
+        Ok(session) => {
+            for checkpoint in checkpoints(case) {
+                push_check(
+                    &mut result.checks,
+                    &subject.role,
+                    &case.id,
+                    checkpoint,
+                    "build",
+                    "PASS",
+                    "verified executable hash",
+                    vec![initial_snapshot.sha256.clone()],
+                );
+                push_check(
+                    &mut result.checks,
+                    &subject.role,
+                    &case.id,
+                    checkpoint,
+                    "launch",
+                    "PASS",
+                    "real executable launched in a Tuiscotti PTY",
+                    vec![
+                        subject.executable.path.display().to_string(),
+                        initial_snapshot.sha256.clone(),
+                    ],
+                );
+            }
+            session
+        }
+        Err(error) => {
+            result.actual_sha256 = Some(initial_snapshot.sha256.clone());
+            for checkpoint in checkpoints(case) {
+                append_not_run_checkpoint(
+                    &mut result.checks,
+                    &subject.role,
+                    &case.id,
+                    checkpoint,
+                    "PASS",
+                    "executable digest matched the nested builder receipt",
+                    "ERROR",
+                    &format!("launch failed: {error}"),
+                );
+            }
+            return Ok(result);
+        }
+    };
+
+    let mut passed_assertions = BTreeSet::new();
+    for step in &case.steps {
+        match step {
+            Step::Press { key } => {
+                if let Err(error) = session.press(key) {
+                    result.checks.push(check(
+                        &subject.role,
+                        &case.id,
+                        "input",
+                        "interaction",
+                        "ERROR",
+                        format!("press {key} failed: {error}"),
+                        Vec::new(),
+                    ));
+                } else {
+                    std::thread::sleep(Duration::from_millis(profile.input_pacing_ms));
+                }
+            }
+            Step::Checkpoint {
+                id,
+                wait,
+                assertions,
+                legacy_snapshot_path,
+            } => {
+                let checkpoint = id.as_str();
+                let observation = match wait_for_observation(
+                    &mut session,
+                    wait,
+                    case.timeout_ms.max(profile.readiness_timeout_ms),
+                ) {
+                    Ok(observation) => observation,
+                    Err(error) => {
+                        append_readiness_failure(
+                            &mut result.checks,
+                            &subject.role,
+                            &case.id,
+                            checkpoint,
+                            &error,
+                        );
+                        continue;
+                    }
+                };
+                let frame = tuiscotti::render::frame_from_screen(&observation.screen, "default");
+                let screen_text = frame.text();
+                let mut assertion_statuses = Vec::new();
+                for assertion in assertions {
+                    let assertion_result =
+                        evaluate_assertion(assertion, &screen_text, &passed_assertions);
+                    if assertion_result.0 == "PASS" {
+                        passed_assertions.insert(assertion.id.clone());
+                    }
+                    let check_id = format!("{}:{}:{}", case.id, checkpoint, assertion.id);
+                    result.checks.push(CheckReceipt {
+                        id: check_id,
+                        subject_role: subject.role.clone(),
+                        case_id: case.id.clone(),
+                        checkpoint_id: checkpoint.to_string(),
+                        dimension: "interaction".to_string(),
+                        status: assertion_result.0.to_string(),
+                        reason: assertion_result.1.clone(),
+                        evidence: assertion_result.2.clone(),
+                        visual_comparison: None,
+                    });
+                    assertion_statuses.push(assertion_result.0.to_string());
+                }
+                let interaction_status = if assertion_statuses.iter().all(|status| status == "PASS")
+                {
+                    "PASS"
+                } else if assertion_statuses.iter().any(|status| status == "FAIL") {
+                    "FAIL"
+                } else {
+                    "BLOCKED"
+                };
+                push_check(
+                    &mut result.checks,
+                    &subject.role,
+                    &case.id,
+                    checkpoint,
+                    "first_frame",
+                    "PASS",
+                    "readiness predicates held on one captured PTY observation",
+                    vec![format!("{}x{}", case.geometry.cols, case.geometry.rows)],
+                );
+                push_check(
+                    &mut result.checks,
+                    &subject.role,
+                    &case.id,
+                    checkpoint,
+                    "interaction",
+                    interaction_status,
+                    "checkpoint interaction assertions",
+                    vec![screen_text.clone()],
+                );
+
+                let actual_output_root = write_policy
+                    .actual_output_roots
+                    .iter()
+                    .find(|output| output.role == subject.role)
+                    .expect("resolved write policy has each subject output root");
+                match write_capture(
+                    subject,
+                    &write_policy.write_root,
+                    &actual_output_root.path,
+                    case,
+                    checkpoint,
+                    &frame,
+                    legacy_snapshot_path.as_deref(),
+                ) {
+                    Ok((artifacts, captured)) => {
+                        let frame_artifact = artifacts
+                            .iter()
+                            .find(|artifact| artifact.format == "frame_json")
+                            .cloned()
+                            .ok_or_else(|| {
+                                format!("capture {checkpoint} omitted canonical frame artifact")
+                            })?;
+                        let png_artifact = artifacts
+                            .iter()
+                            .find(|artifact| artifact.format == "png")
+                            .cloned()
+                            .ok_or_else(|| format!("capture {checkpoint} omitted PNG artifact"))?;
+                        result.artifacts.extend(artifacts);
+                        let actual = visual::validate_actual_observation(
+                            &captured,
+                            &frame_artifact,
+                            &png_artifact,
+                            &case.geometry,
+                            &renderer,
+                        );
+                        let visual_outcome = compare_visual_capture(
+                            actual,
+                            checkpoint,
+                            legacy_snapshot_path.as_deref(),
+                            visual_context,
+                        );
+                        match visual_outcome {
+                            Ok(comparison) => {
+                                let passed = comparison.renderer.equal
+                                    && comparison.frame.equal
+                                    && comparison.png.equal
+                                    && !comparison.fidelity.expected.approximate
+                                    && !comparison.fidelity.actual.approximate
+                                    && comparison.fidelity.expected.rerender_matches_bound_png
+                                    && comparison.fidelity.actual.rerender_matches_bound_png;
+                                let status = if passed { "PASS" } else { "FAIL" };
+                                let reason = if passed {
+                                    "canonical Frame v3, cursor, strict fidelity, renderer profile, and decoded opaque RGB pixels match the admitted generation"
+                                } else {
+                                    "admitted expected and actual frame or decoded opaque RGB pixels differ"
+                                };
+                                let mut visual_check = check(
+                                    &subject.role,
+                                    &case.id,
+                                    checkpoint,
+                                    "visual",
+                                    status,
+                                    reason.to_string(),
+                                    Vec::new(),
+                                );
+                                visual_check.visual_comparison = Some(comparison);
+                                result.checks.push(visual_check);
+                            }
+                            Err((status, reason)) => {
+                                result.checks.push(check(
+                                    &subject.role,
+                                    &case.id,
+                                    checkpoint,
+                                    "visual",
+                                    &status,
+                                    reason,
+                                    vec![legacy_snapshot_path.clone().unwrap_or_else(|| {
+                                        "no legacy approved snapshot".to_string()
+                                    })],
+                                ))
+                            }
+                        }
+                    }
+                    Err(error) => push_check(
+                        &mut result.checks,
+                        &subject.role,
+                        &case.id,
+                        checkpoint,
+                        "visual",
+                        "ERROR",
+                        "capture export failed",
+                        vec![error],
+                    ),
+                }
+                push_check(
+                    &mut result.checks,
+                    &subject.role,
+                    &case.id,
+                    checkpoint,
+                    "exit",
+                    "NOT_APPLICABLE",
+                    "HELP-HOLLA-004 closes and reopens an overlay but does not exit the root TUI",
+                    Vec::new(),
+                );
+                push_check(
+                    &mut result.checks,
+                    &subject.role,
+                    &case.id,
+                    checkpoint,
+                    "restoration",
+                    "NOT_APPLICABLE",
+                    "HELP-HOLLA-004 runs inside an isolated PTY and does not assert the parent terminal state",
+                    Vec::new(),
+                );
+            }
+        }
+    }
+
+    drop(session);
+    let post_run = inspect_executable(&subject.executable.path);
+    result.actual_sha256 = post_run
+        .as_ref()
+        .ok()
+        .map(|snapshot| snapshot.sha256.clone());
+    result.post_run_failure = match &post_run {
+        Err(error) => Some(error.clone()),
+        Ok(snapshot) => validate_executable_snapshot(subject, initial_snapshot, snapshot).err(),
+    };
+
+    Ok(result)
+}
+
+fn compare_visual_capture(
+    actual: Result<visual::ValidatedActualObservation, String>,
+    checkpoint: &str,
+    legacy_snapshot_path: Option<&str>,
+    context: Option<&VisualComparisonContext<'_>>,
+) -> Result<VisualComparisonEvidence, (String, String)> {
+    let actual = actual.map_err(|error| ("ERROR".to_string(), error))?;
+    let Some(context) = context else {
+        return Err((
+            "BLOCKED".to_string(),
+            format!(
+                "immutable-tag actual-only capture has no admitted expected generation; visual comparison remains blocked (alias: {})",
+                legacy_snapshot_path.unwrap_or("none")
+            ),
+        ));
+    };
+    if !context.expected_supplied {
+        return Err((
+            "BLOCKED".to_string(),
+            format!(
+                "no shared expected generation was supplied; exact cell, cursor, and decoded-pixel comparison remains blocked (alias: {})",
+                legacy_snapshot_path.unwrap_or("none")
+            ),
+        ));
+    }
+    let generation = match context.loaded_expected {
+        Some(Ok(generation)) => generation,
+        Some(Err(error)) => return Err(("ERROR".to_string(), error.clone())),
+        None => {
+            return Err((
+                "ERROR".to_string(),
+                "expected generation result is missing".to_string(),
+            ));
+        }
+    };
+    let Some(admission) = context.admission else {
+        return Err((
+            "BLOCKED".to_string(),
+            format!(
+                "expected generation hash is valid but no independent admission binds it; visual comparison remains blocked (alias: {})",
+                legacy_snapshot_path.unwrap_or("none")
+            ),
+        ));
+    };
+    visual::compare_admitted_observations(
+        generation,
+        checkpoint,
+        actual,
+        &context.renderer,
+        context.trust_record_sha256,
+        &admission.admission_receipt_sha256,
+    )
+    .map_err(|error| ("ERROR".to_string(), error))
 }
 
 fn validate_checkpoint_dimensions(
@@ -4322,6 +7390,11 @@ fn launch(
         .env_remove("FORCE_COLOR")
         .env_remove(TRUST_RECORD_PATH_ENV)
         .env_remove(TRUST_RECORD_SHA_ENV)
+        .env_remove(TAG_BUILD_EVIDENCE_PATH_ENV)
+        .env_remove(TAG_BUILD_EVIDENCE_SHA_ENV)
+        .env_remove(TAG_ACTUAL_ROOT_ENV)
+        .env_remove(TAG_SOURCE_VALIDATOR_PATH_ENV)
+        .env_remove(TAG_SOURCE_REPOSITORY_ENV)
         .env_remove("TERMROCK_E2E_SUBJECT_MANIFEST")
         .env_remove(RECEIPT_PATH_ENV)
         .env_remove(WRITE_ROOT_ENV)
@@ -8107,9 +11180,10 @@ mod tests {
             fixture.input.clone(),
             &fixture.subjects,
             expected_root,
-            trust_record_path,
+            Some(trust_record_path),
             None,
             &fixture.test_binary,
+            None,
         )
     }
 
@@ -8395,6 +11469,758 @@ mod tests {
         );
 
         fs::remove_dir_all(&write_fixture.base).expect("remove runtime-join fixture");
+    }
+
+    fn synthetic_tag_validator_identity(run_root: &Path) -> TagValidatedIdentity {
+        let source_root = run_root.join("source/oracle");
+        let artifact_root = run_root.join("targets/oracle");
+        let target = "aarch64-apple-darwin";
+        let repeated =
+            |ch: char, count: usize| std::iter::repeat(ch).take(count).collect::<String>();
+        serde_json::from_value(serde_json::json!({
+            "schema": TAG_VALIDATED_IDENTITY_SCHEMA,
+            "receipt": {
+                "path": run_root.join("tag-builder-receipt.json"),
+                "sha256": repeated('a', 64),
+            },
+            "run": {
+                "path": run_root.join("run.json"),
+                "sha256": repeated('b', 64),
+            },
+            "oracle_lineage": {
+                "tag_ref": ORACLE_TAG_REF,
+                "tag_object": ORACLE_TAG_OBJECT,
+                "tag_commit": ORACLE_TAG_COMMIT,
+                "git_object_replacement_policy": "disabled-by-option-and-environment",
+                "git_lazy_fetch_policy": "disabled-by-environment",
+            },
+            "source_snapshot": {
+                "source_commit": ORACLE_TAG_COMMIT,
+                "tree_oid": repeated('c', 40),
+                "materialized_root": source_root,
+                "included_path_blob_map_sha256": repeated('d', 64),
+                "included_file_count": 2,
+            },
+            "metadata_target": {
+                "package_id": "holla 0.1.0",
+                "package_name": "holla",
+                "target_name": "holla",
+                "manifest_path": source_root.join("Cargo.toml"),
+                "source_path": source_root.join("src/main.rs"),
+            },
+            "build": {
+                "package_id": "holla 0.1.0",
+                "target_name": "holla",
+                "features": [],
+                "default_features": true,
+                "target_triple": target,
+                "toolchain": "1.98.1",
+                "profile": "release",
+            },
+            "executable": {
+                "path": artifact_root.join("holla"),
+                "sha256": repeated('e', 64),
+            },
+            "builder_receipt_sha256": repeated('f', 64),
+            "build_environment": {
+                "cargo_config_sha256": {"oracle": {}},
+                "external_cargo_config_policy": "reject-ancestor-config-and-hash-source-local-config",
+                "rustup": {
+                    "path": "/toolchain/rustup",
+                    "sha256": repeated('1', 64),
+                    "home": "/toolchain/home",
+                },
+                "toolchain_binaries": {
+                    "cargo": {"path": "/toolchain/bin/cargo", "sha256": repeated('2', 64)},
+                    "rustc": {"path": "/toolchain/bin/rustc", "sha256": repeated('3', 64)},
+                },
+                "cargo_version": "cargo 1.98.1",
+                "rustc_version": "rustc 1.98.1",
+                "host_triple": target,
+                "target_triple": target,
+                "environment": {
+                    "oracle": {
+                        "home": "/private/tmp/home",
+                        "cargo_home": "/private/tmp/cargo",
+                        "cargo_home_config": "absent",
+                        "cache_home": "/private/tmp/cache",
+                        "cache_links": {},
+                        "rustup_home": "/toolchain/home",
+                        "tmpdir": "/private/tmp/run",
+                        "path": "/toolchain/bin",
+                        "platform_inputs": {},
+                    }
+                },
+            },
+            "execution_anchor_status": "unverified",
+            "qualification": {"status": "blocked", "reason": "synthetic evidence is not execution authority"},
+            "capture_status": "NOT_RUN",
+            "admission_status": "NOT_RUN",
+        }))
+        .expect("synthetic validated identity has the typed closed shape")
+    }
+
+    fn synthetic_tag_builder_record(identity: &TagValidatedIdentity) -> TagBuilderEvidence {
+        let builder_inputs = BuildInputs {
+            manifest_sha256: "1".repeat(64),
+            lock_sha256: "2".repeat(64),
+            mise_config: MiseConfigInput {
+                present: false,
+                path: None,
+                sha256: None,
+            },
+            cargo_version: identity.build_environment.cargo_version.clone(),
+            rustc_version: identity.build_environment.rustc_version.clone(),
+            host_triple: identity.build_environment.host_triple.clone(),
+            executed_argv: vec![
+                "cargo".to_string(),
+                "build".to_string(),
+                "--release".to_string(),
+            ],
+        };
+        let mut nested = BuilderReceipt {
+            schema: BUILDER_RECEIPT_SCHEMA.to_string(),
+            source_commit: ORACLE_TAG_COMMIT.to_string(),
+            package_id: identity.build.package_id.clone(),
+            target_name: "holla".to_string(),
+            requested_features: Vec::new(),
+            default_features: true,
+            target_triple: identity.build.target_triple.clone(),
+            toolchain: "1.98.1".to_string(),
+            profile: "release".to_string(),
+            manifest_sha256: builder_inputs.manifest_sha256.clone(),
+            lock_sha256: builder_inputs.lock_sha256.clone(),
+            mise_config: builder_inputs.mise_config.clone(),
+            cargo_version: builder_inputs.cargo_version.clone(),
+            rustc_version: builder_inputs.rustc_version.clone(),
+            host_triple: builder_inputs.host_triple.clone(),
+            executed_argv: builder_inputs.executed_argv.clone(),
+            executable_path: identity.executable.path.clone(),
+            executable_sha256: identity.executable.sha256.clone(),
+            sha256: String::new(),
+        };
+        nested.sha256 = builder_receipt_digest(&nested).expect("synthetic nested receipt hashes");
+        let root = identity.source_snapshot.materialized_root.clone();
+        TagBuilderEvidence {
+            schema: TAG_BUILD_EVIDENCE_SCHEMA.to_string(),
+            run_id: "synthetic-tag-run".to_string(),
+            purpose: "frozen-visual-tag-holla-build-only".to_string(),
+            build_result: "PASS".to_string(),
+            qualification: QualificationEvidence {
+                status: "blocked".to_string(),
+                reason: "synthetic fixture only".to_string(),
+            },
+            oracle_lineage: identity.oracle_lineage.clone(),
+            source_snapshot: TagSourceSnapshotEvidence {
+                materialized_root: root.display().to_string(),
+                source_commit: identity.source_snapshot.source_commit.clone(),
+                tree_oid: identity.source_snapshot.tree_oid.clone(),
+                git_object_replacement_policy: "disabled-by-option-and-environment".to_string(),
+                recipe: "git-archive-excluding-parity-oracle-roots-v1".to_string(),
+                archive_argv: vec!["git".to_string(), "archive".to_string()],
+                git_ls_tree_stdout_sha256: "3".repeat(64),
+                excluded_roots: vec!["snapshots/**".to_string(), "baselines/**".to_string()],
+                path_blob_digest_algorithm: "sha256(sorted-raw-path-nul-git-blob-oid-lf-v1)"
+                    .to_string(),
+                tracked_path_blob_map_sha256: "4".repeat(64),
+                tracked_file_count: 2,
+                included_path_blob_map_sha256: identity
+                    .source_snapshot
+                    .included_path_blob_map_sha256
+                    .clone(),
+                included_file_count: identity.source_snapshot.included_file_count,
+                excluded_path_blob_map_sha256: "5".repeat(64),
+                excluded_file_count: 0,
+                archive_sha256: "6".repeat(64),
+                archive_member_count: 2,
+                read_only: true,
+            },
+            build_artifact_root: identity.executable.path.parent().unwrap().to_path_buf(),
+            build: identity.build.clone(),
+            executable: identity.executable.clone(),
+            builder_receipt_sha256: identity.builder_receipt_sha256.clone(),
+            builder_receipt: nested,
+            build_environment: identity.build_environment.clone(),
+            capture_status: "NOT_RUN".to_string(),
+            admission_status: "NOT_RUN".to_string(),
+        }
+    }
+
+    #[test]
+    fn tag_validator_identity_rejects_fabricated_or_qualified_claims() {
+        let root = unique_temp_path("tag-validator-contract");
+        let receipt = root.join("tag-builder-receipt.json");
+        let identity = synthetic_tag_validator_identity(&root);
+        let expected = identity.receipt.sha256.clone();
+        let valid = serde_json::to_vec(&identity).expect("serialize synthetic identity");
+        assert!(parse_tag_validator_identity(&valid, &receipt, &expected).is_ok());
+
+        let mut forged = serde_json::to_value(&identity).expect("identity value");
+        forged["source_snapshot"]["source_commit"] = serde_json::json!("9".repeat(40));
+        let bytes = serde_json::to_vec(&forged).expect("serialize forged source identity");
+        assert!(
+            parse_tag_validator_identity(&bytes, &receipt, &expected)
+                .unwrap_err()
+                .contains("source closure")
+        );
+
+        let mut falsely_anchored = identity.clone();
+        falsely_anchored.execution_anchor_status = "verified".to_string();
+        assert!(
+            validate_tag_validator_identity(&falsely_anchored, &receipt, &expected)
+                .unwrap_err()
+                .contains("unverified and blocked")
+        );
+
+        let mut falsely_captured = identity.clone();
+        falsely_captured.capture_status = "COMPLETE".to_string();
+        assert!(validate_tag_validator_identity(&falsely_captured, &receipt, &expected).is_err());
+
+        let mut wrong_receipt = identity.clone();
+        wrong_receipt.receipt.sha256 = "8".repeat(64);
+        assert!(
+            validate_tag_validator_identity(&wrong_receipt, &receipt, &expected)
+                .unwrap_err()
+                .contains("requested receipt")
+        );
+
+        let mut unknown = serde_json::to_value(&identity).expect("identity value");
+        unknown["fabricated_source_proof"] = serde_json::json!(true);
+        let bytes = serde_json::to_vec(&unknown).expect("serialize unknown field");
+        assert!(parse_tag_validator_identity(&bytes, &receipt, &expected).is_err());
+    }
+
+    #[test]
+    fn tag_builder_receipt_must_crossbind_to_validator_and_path_identity() {
+        let root = unique_temp_path("tag-receipt-binding");
+        let receipt_path = root.join("tag-builder-receipt.json");
+        let mut identity = synthetic_tag_validator_identity(&root);
+        let mut record = synthetic_tag_builder_record(&identity);
+        identity.builder_receipt_sha256 = record.builder_receipt.sha256.clone();
+        record.builder_receipt_sha256 = identity.builder_receipt_sha256.clone();
+        let expected = identity.receipt.sha256.clone();
+        assert!(validate_tag_record_binding(&record, &identity, &receipt_path, &expected).is_ok());
+
+        let mut forged_source = record.clone();
+        forged_source.source_snapshot.source_commit = "9".repeat(40);
+        assert!(
+            validate_tag_record_binding(&forged_source, &identity, &receipt_path, &expected)
+                .unwrap_err()
+                .contains("pinned validator identity")
+        );
+
+        let mut swapped_artifact = record.clone();
+        swapped_artifact.build_artifact_root = root.join("other-target");
+        assert!(
+            validate_tag_record_binding(&swapped_artifact, &identity, &receipt_path, &expected)
+                .is_err()
+        );
+
+        let mut forged_executable = record;
+        forged_executable.executable.sha256 = "9".repeat(64);
+        assert!(
+            validate_tag_record_binding(&forged_executable, &identity, &receipt_path, &expected)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn duplicate_tag_validator_identity_keys_are_rejected_recursively() {
+        let duplicate = br#"{"schema":"termrock-spec/visual-tag-holla-validated-identity-v1","receipt":{"path":"a","path":"b"}}"#;
+        assert!(
+            reject_duplicate_json_keys(duplicate, "synthetic validated identity")
+                .unwrap_err()
+                .contains("duplicate JSON object key")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn tag_validator_path_must_remain_outside_receipt_and_capture_roots() {
+        let base = unique_temp_path("tag-validator-path-policy");
+        let write = base.join("write");
+        let actual = base.join("actual");
+        let external = base.join("validator/subjects.py");
+        let repository = base.join("repository");
+        let git_dir = repository.join(".git");
+        let runtime = base.join("runtime");
+        let python = runtime.join("python3");
+        let git = runtime.join("git");
+        let toolchain_dir = base.join("validator-toolchain");
+        let toolchain = toolchain_dir.join("toolchain.json");
+        fs::create_dir_all(&write).expect("create write root");
+        fs::create_dir_all(&actual).expect("create actual root");
+        fs::create_dir_all(external.parent().unwrap()).expect("create external validator parent");
+        fs::create_dir_all(&git_dir).expect("create Git metadata directory");
+        fs::create_dir_all(&runtime).expect("create runtime directory");
+        fs::create_dir_all(&toolchain_dir).expect("create toolchain directory");
+        fs::write(&external, b"pinned helper").expect("create external helper file");
+        fs::write(&python, b"pinned Python runtime").expect("create Python runtime");
+        fs::write(&git, b"pinned Git executable").expect("create Git executable");
+        fs::write(&toolchain, b"pinned toolchain").expect("create toolchain");
+        let execution = TagValidatorExecutionEvidence {
+            repository,
+            git_dir: git_dir.clone(),
+            git_common_dir: git_dir,
+            toolchain: EvidenceReference {
+                path: toolchain.display().to_string(),
+                sha256: "a".repeat(64),
+            },
+            python: TagValidatorToolIdentity {
+                path: python,
+                sha256: "b".repeat(64),
+                version: "Python fixture".to_string(),
+            },
+            git: TagValidatorToolIdentity {
+                path: git,
+                sha256: "c".repeat(64),
+                version: "Git fixture".to_string(),
+            },
+            helper_transport: TAG_VALIDATOR_HELPER_TRANSPORT.to_string(),
+            executed_helper_sha256: "d".repeat(64),
+            python_sha256_before: "b".repeat(64),
+            python_sha256_after: "b".repeat(64),
+            git_sha256_before: "c".repeat(64),
+            git_sha256_after: "c".repeat(64),
+        };
+        let outputs = vec![ActualOutputRoot {
+            role: "oracle".to_string(),
+            path: actual.clone(),
+        }];
+        assert!(require_tag_validator_outside_write_roots(&external, &execution, &write, &outputs)
+            .is_ok());
+
+        let inside_actual = actual.join("subjects.py");
+        fs::write(&inside_actual, b"synthetic helper").expect("create helper inside output");
+        assert!(
+            require_tag_validator_outside_write_roots(
+                &inside_actual,
+                &execution,
+                &write,
+                &outputs,
+            )
+                .unwrap_err()
+                .contains("actual output root")
+        );
+
+        let inside_write = write.join("subjects.py");
+        fs::write(&inside_write, b"synthetic helper").expect("create helper inside write root");
+        assert!(
+            require_tag_validator_outside_write_roots(
+                &inside_write,
+                &execution,
+                &write,
+                &outputs,
+            )
+                .unwrap_err()
+                .contains("writable receipt root")
+        );
+        fs::remove_dir_all(&base).expect("remove validator path fixture");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn admission_write_roots_protect_git_metadata_and_validator_inputs_only() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let base = unique_temp_path("admission-write-root-protection");
+        let repository = base.join("checkout");
+        let git_common_dir = repository.join(".git");
+        let git_dir = git_common_dir.join("worktrees/checkout");
+        let helper = repository.join("tools/visibility/subjects.py");
+        let runtime_dir = base.join("runtime/bin");
+        let python = runtime_dir.join("python3");
+        let git = runtime_dir.join("git");
+        let toolchain_dir = base.join("validator-tools");
+        let toolchain = toolchain_dir.join("toolchain.json");
+        for directory in [
+            git_dir.clone(),
+            repository.join("tools/visibility"),
+            runtime_dir.clone(),
+            toolchain_dir.clone(),
+            repository.join("snapshots/expected/help-holla-004"),
+            repository.join("admission-records"),
+            base.join("capture/actual"),
+        ] {
+            fs::create_dir_all(&directory).expect("create protected-path fixture directory");
+        }
+        fs::write(&helper, b"pinned helper fixture").expect("write validator helper");
+        fs::write(&python, b"#!/bin/sh\nexit 0\n").expect("write Python runtime fixture");
+        fs::write(&git, b"#!/bin/sh\nexit 0\n").expect("write Git executable fixture");
+        for executable in [&python, &git] {
+            let mut permissions = fs::metadata(executable)
+                .expect("inspect executable fixture")
+                .permissions();
+            permissions.set_mode(0o700);
+            fs::set_permissions(executable, permissions).expect("set fixture executable mode");
+        }
+        fs::write(&toolchain, b"pinned toolchain fixture").expect("write toolchain fixture");
+
+        let execution = TagValidatorExecutionEvidence {
+            repository: repository.clone(),
+            git_dir: git_dir.clone(),
+            git_common_dir: git_common_dir.clone(),
+            toolchain: EvidenceReference {
+                path: toolchain.display().to_string(),
+                sha256: "a".repeat(64),
+            },
+            python: TagValidatorToolIdentity {
+                path: python.clone(),
+                sha256: "b".repeat(64),
+                version: "Python fixture".to_string(),
+            },
+            git: TagValidatorToolIdentity {
+                path: git.clone(),
+                sha256: "c".repeat(64),
+                version: "git fixture".to_string(),
+            },
+            helper_transport: TAG_VALIDATOR_HELPER_TRANSPORT.to_string(),
+            executed_helper_sha256: "d".repeat(64),
+            python_sha256_before: "b".repeat(64),
+            python_sha256_after: "b".repeat(64),
+            git_sha256_before: "c".repeat(64),
+            git_sha256_after: "c".repeat(64),
+        };
+        let mut protected = tag_validator_protected_paths(&helper, &execution)
+            .expect("resolve the narrow validator and Git metadata inputs");
+        let expected_generation = repository.join("snapshots/expected/help-holla-004");
+        protected.push(expected_generation.clone());
+
+        let approved_write_root = repository.join("admission-records");
+        let approved_output = approved_write_root.join("admission.json");
+        let approved_write =
+            resolve_existing_directory_without_symlinks(&approved_write_root, "approved root")
+                .expect("resolve approved write root");
+        let approved_output =
+            resolve_path_for_overlap(&approved_output, "approved output").expect("resolve output");
+        assert!(require_admission_write_targets_disjoint(
+            &approved_write,
+            &approved_output,
+            &protected
+        )
+        .is_ok());
+        let capture_outputs = vec![ActualOutputRoot {
+            role: "oracle".to_string(),
+            path: base.join("capture/actual"),
+        }];
+        assert!(require_tag_validator_outside_write_roots(
+            &helper,
+            &execution,
+            &approved_write_root,
+            &capture_outputs
+        )
+        .is_ok());
+
+        for rejected_root in [
+            repository.join(".git"),
+            git_dir.clone(),
+            git_common_dir.clone(),
+            repository.join("tools/visibility"),
+            runtime_dir.clone(),
+            toolchain_dir.clone(),
+        ] {
+            let output_path = rejected_root.join("blocked-output.json");
+            let resolved_root = resolve_existing_directory_without_symlinks(
+                &rejected_root,
+                "rejected admission root",
+            )
+            .expect("resolve protected test root");
+            let resolved_output = resolve_path_for_overlap(&output_path, "blocked output")
+                .expect("resolve blocked output");
+            assert!(require_admission_write_targets_disjoint(
+                &resolved_root,
+                &resolved_output,
+                &protected
+            )
+            .is_err());
+        }
+
+        let metadata_write_root = repository.join(".git");
+        assert!(require_tag_validator_outside_write_roots(
+            &helper,
+            &execution,
+            &metadata_write_root,
+            &capture_outputs
+        )
+        .is_err());
+        fs::remove_dir_all(&base).expect("remove admission path fixture");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn pinned_git_metadata_queries_record_canonical_absolute_directories() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let base = unique_temp_path("pinned-git-metadata-query");
+        let repository = base.join("checkout");
+        let git_dir = repository.join(".git");
+        let common_dir = base.join("common-git");
+        let git = base.join("pinned-git");
+        fs::create_dir_all(&git_dir).expect("create repository Git metadata");
+        fs::create_dir_all(&common_dir).expect("create common Git metadata");
+        let script = format!(
+            "#!/bin/sh\ncase \"$*\" in\n  *--absolute-git-dir*) printf '%s\\n' '{}' ;;\n  *--git-common-dir*) printf '%s\\n' '{}' ;;\n  *) exit 91 ;;\nesac\n",
+            git_dir.display(),
+            common_dir.display()
+        );
+        fs::write(&git, script).expect("write pinned Git fixture");
+        let mut permissions = fs::metadata(&git)
+            .expect("inspect Git fixture")
+            .permissions();
+        permissions.set_mode(0o700);
+        fs::set_permissions(&git, permissions).expect("mark Git fixture executable");
+
+        assert_eq!(
+            pinned_git_metadata_directory(
+                &git,
+                &repository,
+                &["rev-parse", "--absolute-git-dir"],
+                "test Git directory"
+            )
+            .expect("query Git directory"),
+            git_dir
+        );
+        assert_eq!(
+            pinned_git_metadata_directory(
+                &git,
+                &repository,
+                &["rev-parse", "--path-format=absolute", "--git-common-dir"],
+                "test Git common directory"
+            )
+            .expect("query Git common directory"),
+            common_dir
+        );
+        fs::remove_dir_all(&base).expect("remove Git metadata query fixture");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn tag_capture_protected_roots_reject_source_or_artifact_path_swaps() {
+        let base = unique_temp_path("tag-policy-negative");
+        let source = base.join("source/oracle");
+        let artifact = base.join("targets/oracle");
+        fs::create_dir_all(&source).expect("create synthetic source root");
+        fs::create_dir_all(&artifact).expect("create synthetic artifact root");
+        let good = vec![
+            ProtectedRoot {
+                kind: "subject_source".to_string(),
+                role: Some("oracle".to_string()),
+                path: source.clone(),
+            },
+            ProtectedRoot {
+                kind: "subject_artifact".to_string(),
+                role: Some("oracle".to_string()),
+                path: artifact.clone(),
+            },
+            ProtectedRoot {
+                kind: "oracle".to_string(),
+                role: None,
+                path: source.clone(),
+            },
+        ];
+        assert!(require_tag_policy_roots(&good, &source, &artifact).is_ok());
+
+        let mut swapped = good.clone();
+        swapped[0].path = artifact.clone();
+        assert!(
+            require_tag_policy_roots(&swapped, &source, &artifact)
+                .unwrap_err()
+                .contains("must match")
+        );
+        assert!(
+            require_tag_policy_roots(&good[..2], &source, &artifact)
+                .unwrap_err()
+                .contains("exactly one oracle")
+        );
+        fs::remove_dir_all(&base).expect("remove synthetic tag policy fixture");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn validator_dispatch_uses_checked_bytes_pinned_runtime_and_absolute_git() {
+        use std::os::unix::fs::PermissionsExt;
+
+        struct RestorePath(Option<std::ffi::OsString>);
+
+        impl Drop for RestorePath {
+            fn drop(&mut self) {
+                // This test process runs serially under the focused Nextest gate.
+                // Restore the inherited value even if an assertion unwinds.
+                unsafe {
+                    if let Some(path) = self.0.take() {
+                        std::env::set_var("PATH", path);
+                    } else {
+                        std::env::remove_var("PATH");
+                    }
+                }
+            }
+        }
+
+        let root = unique_temp_path("validator-dispatch");
+        let runtime_root = root.join("runtime");
+        let git_root = root.join("git");
+        fs::create_dir_all(&runtime_root).expect("create runtime fixture directory");
+        fs::create_dir_all(&git_root).expect("create Git fixture directory");
+        let python = runtime_root.join("python3");
+        let git = git_root.join("git");
+        let shim_marker = root.join("path-shim-ran");
+        let shim = git_root.join("python3");
+        let hostile_path = git_root.to_string_lossy().into_owned();
+        let hostile_path_shell = hostile_path.replace('\'', "'\\''");
+        fs::write(
+            &python,
+            format!(
+                "#!/bin/sh\nif [ \"${{PATH-unset}}\" = '{hostile_path_shell}' ]; then python3 >/dev/null 2>&1 || true; fi\nprintf 'runtime=%s\\npath=%s\\n' \"$0\" \"${{PATH-unset}}\"\nexec /bin/cat\n"
+            ),
+        )
+        .expect("write pinned runtime shim");
+        fs::write(&git, "#!/bin/sh\nexit 0\n").expect("write pinned Git shim");
+        fs::write(
+            &shim,
+            format!("#!/bin/sh\nprintf shim > '{}'\n", shim_marker.display()),
+        )
+        .expect("write hostile PATH shim");
+        for executable in [&python, &git, &shim] {
+            let mut permissions = fs::metadata(executable)
+                .expect("inspect executable fixture")
+                .permissions();
+            permissions.set_mode(0o700);
+            fs::set_permissions(executable, permissions).expect("mark fixture executable");
+        }
+        let helper = b"subprocess.run([\"git\", \"--no-replace-objects\", *arguments])";
+        let transported = transform_tag_validator_git_dispatch(helper, &git)
+            .expect("rewrite the single checked Git dispatch site");
+        let git_literal =
+            serde_json::to_string(git.to_str().expect("UTF-8 Git path")).expect("encode Git path");
+        assert!(
+            String::from_utf8(transported.clone())
+                .expect("transported helper is UTF-8")
+                .contains(&format!(
+                    "[{git_literal}, \"--no-replace-objects\", *arguments]"
+                ))
+        );
+        let previous_path = RestorePath(std::env::var_os("PATH"));
+        // Inject a hostile inherited PATH. The pinned runtime must not pass it
+        // through; its shell may create its own default PATH, so assert against
+        // the injected value and the shim's side effect rather than "unset".
+        unsafe {
+            std::env::set_var("PATH", git_root.as_os_str());
+        }
+        let output_result = run_pinned_validator_python(
+            &python,
+            &transported,
+            Path::new("/repo"),
+            Path::new("/receipt.json"),
+            &"a".repeat(64),
+        );
+        drop(previous_path);
+        let output = output_result.expect("run the pinned runtime with exact transported bytes");
+        assert!(output.status.success());
+        let stdout = String::from_utf8(output.stdout).expect("runtime output is UTF-8");
+        assert!(stdout.contains(&format!("runtime={}\n", python.display())));
+        let observed_path = stdout
+            .lines()
+            .find(|line| line.starts_with("path="))
+            .unwrap_or_else(|| {
+                panic!("pinned runtime omitted its PATH observation; stdout:\n{stdout}")
+            });
+        let hostile_path_line = format!("path={}", git_root.display());
+        assert_ne!(
+            observed_path,
+            hostile_path_line.as_str(),
+            "pinned runtime inherited the hostile caller PATH; stdout:\n{stdout}"
+        );
+        assert!(stdout.ends_with(std::str::from_utf8(&transported).expect("helper is UTF-8")));
+        assert!(
+            !shim_marker.exists(),
+            "ambient Python shim must not run; stdout:\n{stdout}"
+        );
+        fs::remove_dir_all(&root).expect("remove validator dispatch fixture");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn validator_toolchain_manifest_binds_absolute_binary_hashes_and_versions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = unique_temp_path("validator-toolchain");
+        fs::create_dir_all(&root).expect("create toolchain fixture directory");
+        let python = root.join("python3");
+        let git = root.join("git");
+        fs::write(&python, "#!/bin/sh\nprintf 'Python fixture 1\\n'\n")
+            .expect("write Python version fixture");
+        fs::write(&git, "#!/bin/sh\nprintf 'git version fixture\\n'\n")
+            .expect("write Git version fixture");
+        for executable in [&python, &git] {
+            let mut permissions = fs::metadata(executable)
+                .expect("inspect tool fixture")
+                .permissions();
+            permissions.set_mode(0o700);
+            fs::set_permissions(executable, permissions).expect("mark tool fixture executable");
+        }
+        let manifest = TagValidatorToolchain {
+            schema: TAG_VALIDATOR_TOOLCHAIN_SCHEMA.to_string(),
+            python: TagValidatorToolIdentity {
+                path: python.clone(),
+                sha256: sha256_file(&python).expect("hash Python fixture"),
+                version: "Python fixture 1".to_string(),
+            },
+            git: TagValidatorToolIdentity {
+                path: git.clone(),
+                sha256: sha256_file(&git).expect("hash Git fixture"),
+                version: "git version fixture".to_string(),
+            },
+        };
+        let manifest_path = root.join("validator-toolchain.json");
+        let bytes = serde_json::to_vec(&manifest).expect("serialize toolchain fixture");
+        fs::write(&manifest_path, &bytes).expect("write toolchain manifest");
+        let expected_sha256 = sha256_bytes(&bytes);
+        let (loaded, reference) = load_tag_validator_toolchain(&manifest_path, &expected_sha256)
+            .expect("validate path, hash, and version for each tool");
+        assert_eq!(loaded, manifest);
+        assert_eq!(reference.path, manifest_path.display().to_string());
+        assert_eq!(reference.sha256, expected_sha256);
+        assert!(require_caller_pinned_toolchain_reference(&reference, &reference).is_ok());
+        let mut self_claimed = reference.clone();
+        self_claimed.sha256 = "f".repeat(64);
+        assert!(
+            require_caller_pinned_toolchain_reference(&self_claimed, &reference)
+                .unwrap_err()
+                .contains("current caller pin")
+        );
+
+        fs::write(&git, "#!/bin/sh\nprintf 'git version replaced\\n'\n")
+            .expect("replace Git fixture after accepted manifest");
+        assert!(
+            load_tag_validator_toolchain(&manifest_path, &expected_sha256)
+                .unwrap_err()
+                .contains("bytes changed")
+        );
+        fs::remove_dir_all(&root).expect("remove toolchain fixture");
+    }
+
+    #[test]
+    fn source_snapshot_revalidation_rejects_path_blob_and_root_tampering() {
+        let captured = TagValidatedSourceSnapshot {
+            source_commit: ORACLE_TAG_COMMIT.to_string(),
+            tree_oid: "a".repeat(40),
+            materialized_root: PathBuf::from("/private/tmp/tag/source/oracle"),
+            included_path_blob_map_sha256: "b".repeat(64),
+            included_file_count: 12,
+        };
+        assert!(validate_tag_source_snapshot_still_matches(&captured, &captured).is_ok());
+
+        let mut changed_map = captured.clone();
+        changed_map.included_path_blob_map_sha256 = "c".repeat(64);
+        assert!(
+            validate_tag_source_snapshot_still_matches(&captured, &changed_map)
+                .unwrap_err()
+                .contains("changed since capture")
+        );
+
+        let mut changed_root = captured.clone();
+        changed_root.materialized_root = PathBuf::from("/private/tmp/tag/source/replaced");
+        assert!(validate_tag_source_snapshot_still_matches(&captured, &changed_root).is_err());
     }
 
     fn unique_temp_path(label: &str) -> PathBuf {
