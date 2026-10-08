@@ -127,7 +127,9 @@ Each sentence holds one fact.
   Phase-8ai executed the ported T2 slice: 0 rows report `pass`, 14 report
   `fail`.
   Phase-8ak executed the ported J2 slice: 0 rows report `pass`, 17 report
-  `fail`, and 2 rows remain `unrun`.
+  `fail`.
+  Phase-8al executed the ported H7 slice: 2 rows report `pass`, 0 report
+  `fail`, and 0 rows remain `unrun`.
   Evidence: `/tmp/phase8d-focused.log` (3 pass / 18 fail / 379 skip),
   `/tmp/phase8f-focused.log` (5 pass / 9 fail / 527 skip),
   `/tmp/phase8h3-focused.log` (5 pass / 25 fail / 534 skip),
@@ -136,7 +138,8 @@ Each sentence holds one fact.
   `/tmp/s4-run3.log` (5 pass / 15 fail / 725 skip),
   `/tmp/s5-run2.log` (4 pass / 10 fail / 745 skip),
   `/tmp/phase8ai-t2.log` (0 pass / 14 fail / 759 skip),
-  `/tmp/phase8ak-j2.log` (0 pass / 17 fail / 774 skip).
+  `/tmp/phase8ak-j2.log` (0 pass / 17 fail / 774 skip),
+  `/tmp/phase8al-h7.log` (2 pass / 0 fail / 791 skip).
 
 ## Reference passes
 

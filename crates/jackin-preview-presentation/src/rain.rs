@@ -797,6 +797,7 @@ pub fn render_outro(buf: &mut Buffer, area: Rect, state: &OutroState, t: &Theme)
                 (_, None) => {}
             }
             draw_pill_bottom(buf, area, t);
+            draw_hint(buf, area, "Enter", "Close", t);
         }
         OutroPhase::Done => fill_canvas(buf, area, t),
     }

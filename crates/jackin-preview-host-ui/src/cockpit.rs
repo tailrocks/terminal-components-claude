@@ -5,10 +5,10 @@ use termrock::author::{FgStep, Modifier, Role, StylePatch, Ui};
 use termrock::controls::{Brand, Button, Panel, PanelKind};
 use termrock::layout::Track;
 use termrock::navigation::{List, ListState};
-use termrock::{Hint, HintKey, HintLayer, Id, Variant};
+use termrock::{Hint, HintKey, HintLayer, Id, Variant, width};
 
 use jackin_preview_presentation::rain::{HANDOFF_LEN, HandoffStage, handoff_stage};
-use jackin_preview_sim::launch::{LaunchFailure, Stage};
+use jackin_preview_sim::launch::{LaunchFailure, LaunchRun, Stage};
 use jackin_preview_sim::world::World;
 
 /// Cockpit root.
@@ -215,6 +215,7 @@ impl CockpitScreen {
         world: &World,
         role: &str,
         debug: bool,
+        run: Option<&LaunchRun>,
     ) {
         let ws_name = world
             .workspaces
@@ -418,14 +419,65 @@ impl CockpitScreen {
             })
             .draw(ui, Rect::new(47, 21, 31, 1), &quota_state, &[()]);
 
-        // 7. Bottom status line
-        let status_state = ListState::default();
-        List::new(ROOT.sub("status"))
-            .row(|_, row| {
-                let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                row.label_patched("⠋ Resolving credentials…", &p);
-            })
-            .draw(ui, Rect::new(1, 36, 24, 1), &status_state, &[()]);
+        // 7. Bottom status line. A terminal failure replaces the live
+        // activity row with the frozen failure chrome: the `! {stage}
+        // failed` activity, the container chip, and the build-log
+        // counter (tag bottom chrome).
+        let failure = run.and_then(|run| run.failure.as_ref());
+        if let (Some(run), Some(failure)) = (run, failure) {
+            // `List` rows reserve a 3-cell marker gutter on the left and
+            // one cell on the right; size rects so the chrome fits.
+            let activity = format!("! {} failed", failure.stage.label());
+            let activity_state = ListState::default();
+            List::new(ROOT.sub("status"))
+                .row(|_, row| {
+                    let p = StylePatch::new().set_fg(Role::Danger);
+                    row.label_patched(&activity, &p);
+                })
+                .draw(
+                    ui,
+                    Rect::new(1, 36, width(&activity) as u16 + 6, 1),
+                    &activity_state,
+                    &[()],
+                );
+            let chip = format!(" {} ", run.container);
+            let chip_w = width(&chip) as u16;
+            let chip_state = ListState::default();
+            List::new(ROOT.sub("status-container"))
+                .row(|_, row| {
+                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    row.label_patched(&chip, &p);
+                })
+                .draw(
+                    ui,
+                    Rect::new(119u16.saturating_sub(chip_w + 4), 36, chip_w + 4, 1),
+                    &chip_state,
+                    &[()],
+                );
+            if run.build_lines_emitted > 0 {
+                let lines = format!("{} lines · b build log", run.build_lines_emitted);
+                let log_state = ListState::default();
+                List::new(ROOT.sub("status-log"))
+                    .row(|_, row| {
+                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Faint));
+                        row.label_patched(&lines, &p);
+                    })
+                    .draw(
+                        ui,
+                        Rect::new(1, 37, width(&lines) as u16 + 6, 1),
+                        &log_state,
+                        &[()],
+                    );
+            }
+        } else {
+            let status_state = ListState::default();
+            List::new(ROOT.sub("status"))
+                .row(|_, row| {
+                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    row.label_patched("⠋ Resolving credentials…", &p);
+                })
+                .draw(ui, Rect::new(1, 36, 24, 1), &status_state, &[()]);
+        }
 
         if debug {
             let debug_state = ListState::default();
@@ -672,7 +724,33 @@ impl CockpitScreen {
     }
 
     /// Cockpit hints for the bottom hint bar.
-    pub fn hints(log_open: bool, cancel_confirm_open: bool) -> HintLayer {
+    pub fn hints(log_open: bool, cancel_confirm_open: bool, info_open: bool) -> HintLayer {
+        // An open info modal (failure, debug info) replaces the screen
+        // hints with the modal footer (tag `Modal::Info` footer hints).
+        if info_open {
+            return HintLayer {
+                hints: vec![
+                    Hint {
+                        key: HintKey::Label("↑↓"),
+                        label: "Move",
+                        priority: 100,
+                    },
+                    Hint {
+                        key: HintKey::Label("y"),
+                        label: "Copy",
+                        priority: 90,
+                    },
+                    Hint {
+                        key: HintKey::Label("Esc"),
+                        label: "Close",
+                        priority: 80,
+                    },
+                ],
+                badge: None,
+                status: None,
+                centered: true,
+            };
+        }
         if cancel_confirm_open {
             HintLayer {
                 hints: vec![
