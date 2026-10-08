@@ -8,6 +8,7 @@ use termrock::navigation::{List, ListState};
 use termrock::{Hint, HintKey, HintLayer, Id, Variant};
 
 use jackin_preview_presentation::rain::{HANDOFF_LEN, HandoffStage, handoff_stage};
+use jackin_preview_sim::launch::{LaunchFailure, Stage};
 use jackin_preview_sim::world::World;
 
 /// Cockpit root.
@@ -557,6 +558,116 @@ impl CockpitScreen {
                 Button::new(ROOT.sub("cancel-launch"), "Cancel launch")
                     .variant(Variant::DANGER)
                     .draw(ui, cancel_launch_area);
+            });
+    }
+
+    /// Render the launch-failure modal: the frozen failure summary, its
+    /// stage/run-id/next-step/container props, and the deterministic
+    /// diagnostic detail. Escape acknowledges; see the app route handler.
+    pub fn draw_failure(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        failure: &LaunchFailure,
+        run_id: &str,
+        role: &str,
+        target: &str,
+        container: &str,
+    ) {
+        let w = 70.min(area.width.saturating_sub(4)).max(20);
+        let h = 22.min(area.height.saturating_sub(2)).max(5);
+        let modal_area = Rect::new(
+            area.x + area.width.saturating_sub(w) / 2,
+            area.y + area.height.saturating_sub(h) / 2,
+            w,
+            h,
+        );
+        let title = match failure.stage {
+            Stage::DerivedImage => "Docker build failed",
+            Stage::Credentials => "Credential check failed",
+            _ => "Launch failed",
+        };
+        Panel::new(ROOT.sub("failure"))
+            .kind(PanelKind::Framed)
+            .title(&format!("! {title}"))
+            .meta("run id is the only copyable value")
+            .draw(ui, modal_area, |ui, body| {
+                let loading = format!("Loading {role} {target}");
+                let intro = [failure.summary.as_str(), loading.as_str()];
+                let intro_state = ListState::default();
+                List::new(ROOT.sub("failure-intro"))
+                    .row(|line: &&str, row| {
+                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
+                        row.label_patched(line, &p);
+                    })
+                    .draw(
+                        ui,
+                        Rect::new(body.x, body.y, body.width, 2.min(body.height)),
+                        &intro_state,
+                        &intro,
+                    );
+                let props: [(&str, String, bool); 4] = [
+                    ("Stage", failure.stage.label().to_owned(), true),
+                    ("Run id", run_id.to_owned(), false),
+                    ("Next step", failure.next_step.clone(), false),
+                    ("Container", container.to_owned(), false),
+                ];
+                let value_w = body.width.saturating_sub(13);
+                let mut rows: Vec<(String, String, bool)> = Vec::new();
+                for (label, value, is_error) in &props {
+                    let wrapped = termrock::wrap(value, value_w.max(8));
+                    for (i, line) in wrapped.iter().enumerate() {
+                        let head = if i == 0 {
+                            format!("  {label:<10}")
+                        } else {
+                            " ".repeat(12)
+                        };
+                        rows.push((head, line.clone(), *is_error));
+                    }
+                }
+                let props_state = ListState::default();
+                let props_y = body.y.saturating_add(3);
+                let props_h = (rows.len() as u16).min(body.height.saturating_sub(4));
+                List::new(ROOT.sub("failure-props"))
+                    .row(|(head, value, is_error): &(String, String, bool), row| {
+                        let mut cols = row.columns_with_gap(&[Track::Fixed(12), Track::Flex(1)], 1);
+                        let p_label = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                        cols.cell(0).patch(&p_label).text(head);
+                        let p_val = if *is_error {
+                            StylePatch::new().set_fg(Role::Danger)
+                        } else {
+                            StylePatch::new().set_fg(Role::Fg(FgStep::Primary))
+                        };
+                        cols.cell(1).patch(&p_val).text(value);
+                    })
+                    .draw(
+                        ui,
+                        Rect::new(body.x, props_y, body.width, props_h),
+                        &props_state,
+                        &rows,
+                    );
+                let detail_y = props_y.saturating_add(props_h).saturating_add(1);
+                let detail_w = body.width.saturating_sub(2);
+                let detail: Vec<String> = failure
+                    .detail
+                    .iter()
+                    .flat_map(|line| termrock::wrap(line, detail_w.max(8)))
+                    .collect();
+                let detail_state = ListState::default();
+                let close_y = body.bottom().saturating_sub(1);
+                let detail_h = close_y.saturating_sub(detail_y);
+                List::new(ROOT.sub("failure-detail"))
+                    .row(|line: &String, row| {
+                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                        row.label_patched(&format!("  {line}"), &p);
+                    })
+                    .draw(
+                        ui,
+                        Rect::new(body.x, detail_y, body.width, detail_h),
+                        &detail_state,
+                        &detail,
+                    );
+                Button::new(ROOT.sub("failure-close"), "Close")
+                    .draw(ui, Rect::new(body.right().saturating_sub(9), close_y, 7, 1));
             });
     }
 

@@ -41,6 +41,10 @@ pub const TAB_ROLES: Id = TABS.sub("roles");
 pub const TAB_ENVIRONMENTS: Id = TABS.sub("environments");
 /// Accounts tab control id.
 pub const TAB_ACCOUNTS: Id = TABS.sub("accounts");
+/// Keep-awake checkbox on the General tab.
+pub const KEEP_AWAKE: Id = FORM.sub("keep-awake");
+/// Git-pull checkbox on the General tab.
+pub const GIT_PULL: Id = FORM.sub("git-pull");
 /// New environment-variable key input.
 pub const ENV_KEY: Id = FORM.sub("env-key");
 /// New environment-variable source selector.
@@ -430,6 +434,10 @@ pub struct PendingWorkspace {
     pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
     /// Account activation policy.
     pub accounts: AccountPolicy,
+    /// Keep the workspace alive after its last session exits.
+    pub keep_awake: bool,
+    /// Pull the configured repository before starting a session.
+    pub git_pull: bool,
 }
 
 impl Default for PendingWorkspace {
@@ -445,6 +453,8 @@ impl Default for PendingWorkspace {
             env: vec![],
             role_env: BTreeMap::new(),
             accounts: AccountPolicy::default(),
+            keep_awake: true,
+            git_pull: true,
         }
     }
 }
@@ -460,6 +470,8 @@ impl PendingWorkspace {
             env: workspace.env.clone(),
             role_env: workspace.role_env.clone(),
             accounts: workspace.accounts.clone(),
+            keep_awake: workspace.keep_awake,
+            git_pull: workspace.git_pull,
         }
     }
 
@@ -472,6 +484,8 @@ impl PendingWorkspace {
         workspace.env = self.env.clone();
         workspace.role_env = self.role_env.clone();
         workspace.accounts = self.accounts.clone();
+        workspace.keep_awake = self.keep_awake;
+        workspace.git_pull = self.git_pull;
     }
 
     /// Consume this draft into a persisted workspace with `id`.
@@ -482,6 +496,8 @@ impl PendingWorkspace {
         workspace.env = self.env;
         workspace.role_env = self.role_env;
         workspace.accounts = self.accounts;
+        workspace.keep_awake = self.keep_awake;
+        workspace.git_pull = self.git_pull;
         workspace
     }
 
@@ -731,11 +747,9 @@ impl EditorScreen {
             })
             .draw(ui, Rect::new(4, 10, 60, 3), &workdir_state, &workdir_items);
 
-        Button::new(FORM.sub("choose"), "Choose…").draw(ui, Rect::new(65, 11, 10, 1));
-
         // Checkboxes
-        Checkbox::new(FORM.sub("keep-awake"), "Keep awake")
-            .checked(true)
+        Checkbox::new(KEEP_AWAKE, "Keep awake")
+            .checked(editor.pending.keep_awake)
             .draw(ui, Rect::new(4, 14, 25, 1));
 
         let badge_state = ListState::default();
@@ -746,8 +760,8 @@ impl EditorScreen {
             })
             .draw(ui, Rect::new(34, 14, 15, 1), &badge_state, &[()]);
 
-        Checkbox::new(FORM.sub("git-pull"), "Git pull before launch")
-            .checked(true)
+        Checkbox::new(GIT_PULL, "Git pull before launch")
+            .checked(editor.pending.git_pull)
             .draw(ui, Rect::new(4, 15, 30, 1));
 
         // On dirty exit
@@ -766,6 +780,11 @@ impl EditorScreen {
             &select_state,
             &["ask · show the exit dialog"],
         );
+
+        // Drawn last so the focus ring visits the workdir row before the
+        // picker button (TABS → NAME → WORKDIR → KEEP_AWAKE); the rect is
+        // unchanged.
+        Button::new(FORM.sub("choose"), "Choose…").draw(ui, Rect::new(65, 11, 10, 1));
     }
 
     fn draw_mounts(ui: &mut Ui<'_>, _area: Rect, editor: &EditorState, _focused: bool) {
