@@ -1515,9 +1515,11 @@ name = "termrock-e2e"
 version = "0.1.0"
 dependencies = [
  "jsonschema",
+ "nix 0.31.3",
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "termpane",
  "tuiscotti",
 ]
 
