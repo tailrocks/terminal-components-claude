@@ -351,6 +351,11 @@ impl Reconcile for ListState {
 /// ## Layout
 /// One row per item; an optional two-cell readiness rail, gutter, marker,
 /// then the renderer's row; a scrollbar column when the items overflow.
+/// `.bare(true)` drops the gutter/marker chrome so the row painter starts
+/// at `area.x` with the full row width (label/value rows inside dialogs and
+/// forms); selection, cursor, scroll and hit state are unchanged.
+/// `.bare_item(f)` drops the chrome per row (section headers inside an
+/// otherwise chromed list).
 /// `measure` is `(24…, items)`;
 /// `measured_size` is the same arithmetic as a [`LayerSize`] for a list used
 /// as popover content (§26 N1); `draw` returns `area`. `0×0` registers
@@ -391,12 +396,14 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     row_height: u16,
     row_gap: u16,
     whole_rows: bool,
+    bare: bool,
     select_mode: SelectMode,
     leave_at_boundary: bool,
     activate_focused_on_click: bool,
     empty: Option<EmptyState<'a>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     pointer_item: Option<&'a dyn Fn(&T) -> bool>,
+    bare_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
     /// Kept beside `ov` so the nested [`ScrollRegion`] can be built with the
     /// caller's own overrides. `PartStyle` reads back only the slot, and a
@@ -451,12 +458,14 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             row_height: 1,
             row_gap: 0,
             whole_rows: false,
+            bare: false,
             select_mode: SelectMode::Single,
             leave_at_boundary: false,
             activate_focused_on_click: false,
             empty: None,
             disabled_item: None,
             pointer_item: None,
+            bare_item: None,
             status: Status::Ready,
             patch: None,
             parts: &[],
@@ -609,12 +618,14 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row_height: self.row_height,
             row_gap: self.row_gap,
             whole_rows: self.whole_rows,
+            bare: self.bare,
             select_mode: self.select_mode,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
             empty: self.empty,
             disabled_item: self.disabled_item,
             pointer_item: self.pointer_item,
+            bare_item: self.bare_item,
             status: self.status,
             patch: self.patch,
             parts: self.parts,
@@ -635,12 +646,14 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row_height: self.row_height,
             row_gap: self.row_gap,
             whole_rows: self.whole_rows,
+            bare: self.bare,
             select_mode: self.select_mode,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
             empty: self.empty,
             disabled_item: self.disabled_item,
             pointer_item: self.pointer_item,
+            bare_item: self.bare_item,
             status: self.status,
             patch: self.patch,
             parts: self.parts,
@@ -674,6 +687,16 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         list
     }
 
+    /// Drop the gutter/marker chrome: the row painter starts at `area.x`
+    /// with the full row width. Cursor, selection, scroll, readiness and
+    /// hit registration are unchanged; only the two chrome cells and the
+    /// trailing pad reservation go away.
+    #[must_use]
+    pub fn bare(mut self, yes: bool) -> Self {
+        self.bare = yes;
+        self
+    }
+
     /// The selection mode.
     #[must_use]
     pub fn select_mode(mut self, m: SelectMode) -> Self {
@@ -705,6 +728,17 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     #[must_use]
     pub fn pointer_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.pointer_item = Some(f);
+        self
+    }
+
+    /// Which rows skip the gutter/marker chrome (section headers, provider
+    /// dividers): a bare row hands its full rect to the painter, exactly
+    /// like [`.bare(true)`](Self::bare), while sibling rows keep the
+    /// chrome. Defaults to no rows. Cursor, selection, scroll and hit
+    /// registration are unchanged.
+    #[must_use]
+    pub fn bare_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
+        self.bare_item = Some(f);
         self
     }
 
@@ -1157,6 +1191,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         }
         let ov = self.ov;
         let id = self.id;
+        let bare = self.bare;
         let container = ov.style(
             ui,
             id,
@@ -1253,6 +1288,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             let key = self.key.key(item, i);
             let is_cursor = cursor == Some(key);
             let pointer_eligible = self.pointer_item.is_none_or(|f| f(item));
+            let row_bare = bare || self.bare_item.is_some_and(|f| f(item));
             let mut flags = status;
             if is_cursor {
                 flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
@@ -1313,62 +1349,73 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     flags,
                 );
                 ui.fill(row, rs.style);
-                // gutter
-                let gutter_cell = cell_at(row, row.x);
-                if let Some(f) = ov.slot_for(Part::GUTTER) {
-                    f(ui, gutter_cell);
-                } else {
-                    let g = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::GUTTER, flags);
-                    match g.glyph {
-                        Slot::Set(glyph) => {
-                            ui.glyph(gutter_cell, glyph, g.style);
+                // Bare lists (and bare rows) hand the whole row to the
+                // painter: no gutter or marker cells, so label rows inside
+                // dialogs and forms start at the row origin instead of
+                // `+ 3`.
+                if !row_bare {
+                    // gutter
+                    let gutter_cell = cell_at(row, row.x);
+                    if let Some(f) = ov.slot_for(Part::GUTTER) {
+                        f(ui, gutter_cell);
+                    } else {
+                        let g =
+                            ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::GUTTER, flags);
+                        match g.glyph {
+                            Slot::Set(glyph) => {
+                                ui.glyph(gutter_cell, glyph, g.style);
+                            }
+                            Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                         }
-                        Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                     }
-                }
-                // marker
-                let marker_cell = cell_at(row, row.x.saturating_add(1));
-                if let Some(f) = ov.slot_for(Part::MARKER) {
-                    f(ui, marker_cell);
-                } else {
-                    // Q67-S13 (L-R1/L-R2): the tag keys the marker on
-                    // LIST-level focus (`tag:list.rs:244,297`: accent iff
-                    // focused||hovered) while the row flags only carry
-                    // FOCUSED on the cursor row. A selected row in a
-                    // focused list resolves with FOCUSED so a chosen row
-                    // the cursor has left behind (frozen `lists/moved`
-                    // y8) keeps its accent.
-                    let mut marker_flags = flags;
-                    if marker_flags.intersects(StateFlags::SELECTED | StateFlags::CHECKED) {
-                        marker_flags |= live & StateFlags::FOCUSED;
-                    }
-                    let m = ov.style(
-                        ui,
-                        id,
-                        Family::LIST,
-                        Variant::DEFAULT,
-                        Part::MARKER,
-                        marker_flags,
-                    );
-                    match m.glyph {
-                        Slot::Set(glyph) => {
-                            ui.glyph(marker_cell, glyph, m.style);
+                    // marker
+                    let marker_cell = cell_at(row, row.x.saturating_add(1));
+                    if let Some(f) = ov.slot_for(Part::MARKER) {
+                        f(ui, marker_cell);
+                    } else {
+                        // Q67-S13 (L-R1/L-R2): the tag keys the marker on
+                        // LIST-level focus (`tag:list.rs:244,297`: accent iff
+                        // focused||hovered) while the row flags only carry
+                        // FOCUSED on the cursor row. A selected row in a
+                        // focused list resolves with FOCUSED so a chosen row
+                        // the cursor has left behind (frozen `lists/moved`
+                        // y8) keeps its accent.
+                        let mut marker_flags = flags;
+                        if marker_flags.intersects(StateFlags::SELECTED | StateFlags::CHECKED) {
+                            marker_flags |= live & StateFlags::FOCUSED;
                         }
-                        // W12-06: a declared MARKER patch must voice the marker
-                        // cell even when the glyph slot is Clear; without a
-                        // patch the cell keeps riding the container fill
-                        // (F1-L4 mono-disabled DarkGray DIM).
-                        Slot::Inherit | Slot::Clear => {
-                            if ov.part_patch(Part::MARKER).is_some() {
-                                ui.fill(marker_cell, m.style);
+                        let m = ov.style(
+                            ui,
+                            id,
+                            Family::LIST,
+                            Variant::DEFAULT,
+                            Part::MARKER,
+                            marker_flags,
+                        );
+                        match m.glyph {
+                            Slot::Set(glyph) => {
+                                ui.glyph(marker_cell, glyph, m.style);
+                            }
+                            // W12-06: a declared MARKER patch must voice the marker
+                            // cell even when the glyph slot is Clear; without a
+                            // patch the cell keeps riding the container fill
+                            // (F1-L4 mono-disabled DarkGray DIM).
+                            Slot::Inherit | Slot::Clear => {
+                                if ov.part_patch(Part::MARKER).is_some() {
+                                    ui.fill(marker_cell, m.style);
+                                }
                             }
                         }
                     }
                 }
-                let rest = Rect {
-                    x: row.x.saturating_add(3),
-                    width: row.width.saturating_sub(4),
-                    ..row
+                let rest = if row_bare {
+                    row
+                } else {
+                    Rect {
+                        x: row.x.saturating_add(3),
+                        width: row.width.saturating_sub(4),
+                        ..row
+                    }
                 };
                 if !rest.is_empty() {
                     let mut r = RowUi::new_with_patches(
@@ -1899,5 +1946,96 @@ mod tests {
             !boundary_top.modifier.contains(Modifier::DIM),
             "boundary top edge gained DIM"
         );
+    }
+
+    /// Q67-JM1: `.bare(true)` hands the whole row to the painter — label
+    /// rows start at `area.x` and may use the full row width — while the
+    /// default keeps the gutter/marker chrome at `area.x + 3`.
+    #[test]
+    fn bare_list_paints_from_area_origin_with_full_width() {
+        let items = ["ab"];
+        for bare in [false, true] {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(AREA);
+            let state = ListState::default();
+            runtime
+                .draw_scene(AREA, &mut buffer, |ui, area| {
+                    List::new(ID).bare(bare).draw(ui, area, &state, &items);
+                })
+                .commit_presented();
+            let x0 = if bare { 0 } else { 3 };
+            assert_eq!(
+                buffer
+                    .cell(Position::new(x0, 0))
+                    .map(ratatui_core::buffer::Cell::symbol),
+                Some("a"),
+                "bare={bare}: row must start at x={x0}"
+            );
+            assert_eq!(
+                buffer
+                    .cell(Position::new(x0 + 1, 0))
+                    .map(ratatui_core::buffer::Cell::symbol),
+                Some("b"),
+                "bare={bare}: second cell"
+            );
+        }
+    }
+
+    /// Q67-JM1: bare mode preserves selection state — a chosen row keeps its
+    /// key (only the marker chrome goes away), so focus rings that reuse
+    /// the list state observe the same cursor/selection.
+    #[test]
+    fn bare_list_keeps_cursor_and_selection_state() {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let mut state = ListState::default();
+        state.set_cursor(0, ItemKey::index(0));
+        state.choose(Some(ItemKey::index(0)));
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID).bare(true).draw(ui, area, &state, &["ab"]);
+            })
+            .commit_presented();
+        assert_eq!(state.cursor(), Some(ItemKey::index(0)));
+        assert_eq!(
+            buffer
+                .cell(Position::new(0, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("a"),
+            "chosen bare row paints from the origin"
+        );
+        assert_eq!(
+            buffer
+                .cell(Position::new(1, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("b"),
+            "no marker chrome displaces bare content"
+        );
+    }
+
+    /// Q67-JM1: `.bare_item` drops the chrome per row — the matching row
+    /// starts at the row origin while siblings keep `area.x + 3`.
+    #[test]
+    fn bare_item_applies_per_row() {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        let bare_first = |item: &&str| *item == "hd";
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID)
+                    .bare_item(&bare_first)
+                    .draw(ui, area, &state, &["hd", "ab"]);
+            })
+            .commit_presented();
+        let at = |x, y| {
+            buffer
+                .cell(Position::new(x, y))
+                .map(ratatui_core::buffer::Cell::symbol)
+        };
+        assert_eq!(at(0, 0), Some("h"), "bare row starts at the origin");
+        assert_eq!(at(1, 0), Some("d"));
+        assert_eq!(at(3, 1), Some("a"), "chromed sibling keeps the offset");
+        assert_eq!(at(4, 1), Some("b"));
     }
 }
