@@ -19,8 +19,8 @@ use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
 use crate::theme::{
-    Family, FgStep, GlyphRole, MeterRole, MeterThresholds, Role, Slot, StyleDefaults, StylePatch,
-    Variant,
+    Family, FgStep, GlyphRole, MeterRole, MeterThresholds, Modifier, Role, Slot, StyleDefaults,
+    StylePatch, Variant,
 };
 use crate::ui::{FrameRead, Ui};
 
@@ -386,9 +386,15 @@ impl<'a> Meter<'a> {
                 .get(self.frame.checked_rem(frames.len()).unwrap_or(0))
                 .copied();
         }
+        // Tag `Meter::palette`: an explicit domain tone carries its marker —
+        // Warning ends ` ▲`, Exhausted ends ` !` (S4 METER-DOMAIN-002). A
+        // derived grade paints no marker, matching the tag's blank suffix
+        // for graded levels.
         let g = match from_recipe {
             Slot::Set(g) => Some(g),
             Slot::Inherit if live.contains(StateFlags::ERROR) => Some(GlyphRole::Error),
+            Slot::Inherit if self.tone == Some(MeterTone::Medium) => Some(GlyphRole::WarningMark),
+            Slot::Inherit if self.tone == Some(MeterTone::High) => Some(GlyphRole::Error),
             Slot::Inherit | Slot::Clear => None,
         };
         g.map(|g| ui.glyph_str(g))
@@ -418,13 +424,20 @@ impl<'a> Meter<'a> {
         ui.paint_str(cell, glyph, style);
     }
 
-    /// The value text painted beside the run.
-    fn value_text<'p>(&self, pct: &'p Pct) -> &'p str
+    /// The value text painted beside the run: the percentage when a ratio
+    /// is set, `—` for a valueless Unknown reading (tag `Meter::render`).
+    fn value_text<'p>(&self, pct: &'p Pct, tone: MeterTone) -> &'p str
     where
         'a: 'p,
     {
-        if self.value.is_empty() && self.ratio.is_some() {
-            pct.as_str()
+        if self.value.is_empty() {
+            if tone == MeterTone::Unknown {
+                "—"
+            } else if self.ratio.is_some() {
+                pct.as_str()
+            } else {
+                self.value
+            }
         } else {
             self.value
         }
@@ -468,7 +481,18 @@ impl<'a> Meter<'a> {
     }
 
     fn readout(&self, ui: &Ui<'_>, value: &str, live: StateFlags) -> Readout {
-        let icon = self.resolve_part(ui, Part::ICON, live, StylePatch::new().set_fg(Role::Accent));
+        // The domain marker reads in its run colour: warning amber for an
+        // explicit Medium, danger red for an explicit High (tag palette).
+        let icon_fg = match self.tone {
+            Some(MeterTone::Medium) => Role::Meter(MeterRole::Medium),
+            Some(MeterTone::High) => Role::Meter(MeterRole::High),
+            _ => Role::Accent,
+        };
+        let mut icon = self.resolve_part(ui, Part::ICON, live, StylePatch::new().set_fg(icon_fg));
+        if self.tone == Some(MeterTone::High) {
+            // Tag: the Exhausted marker is bold.
+            icon.style = icon.style.add_modifier(Modifier::BOLD);
+        }
         let glyph = self.icon(ui, icon.glyph, live);
         let leading = self.leading_activity && self.busy();
         let glyph_width = glyph.map_or(0, |g| width(g).saturating_add(1));
@@ -531,6 +555,17 @@ impl<'a> Meter<'a> {
             };
             self.paint_icon(ui, icon, glyph, readout.icon.style);
             lead = width(glyph).saturating_add(1).min(cell.width);
+            // the claimed separator behind the glyph is a painted space,
+            // never an inherited cell (S4 SPIN-DOMAIN-001 S2); the style
+            // inherits so a Block bar keeps its fill behind the gap
+            let sep = Rect {
+                x: icon.x.saturating_add(icon.width),
+                width: lead.saturating_sub(icon.width),
+                ..icon
+            };
+            if !sep.is_empty() {
+                ui.paint_str(sep, " ", PaintStyle::new());
+            }
             cell.x = cell.x.saturating_add(lead);
             cell.width = cell.width.saturating_sub(lead);
         }
@@ -553,7 +588,7 @@ impl<'a> Meter<'a> {
         let ov = self.ov;
         let tone = self.resolved_tone(ui);
         let pct = Pct::of((self.ratio.unwrap_or(0.0) * 100.0).round() as u16);
-        let value = self.value_text(&pct);
+        let value = self.value_text(&pct, tone);
         let readout = self.readout(ui, value, live);
         let vw = readout.width;
         let label = self.part_style(
@@ -592,7 +627,23 @@ impl<'a> Meter<'a> {
                     ..area
                 };
                 let used = self.paint_readout(ui, text, value, label.style, readout);
-                x = x.saturating_add(used).saturating_add(u16::from(used > 0));
+                x = x.saturating_add(used);
+                // the separator ahead of a trailing glyph paints too (same
+                // class as the leading-activity gap)
+                if used > 0 {
+                    if x < area.right() {
+                        ui.paint_str(
+                            Rect {
+                                x,
+                                width: 1,
+                                ..area
+                            },
+                            " ",
+                            PaintStyle::new(),
+                        );
+                    }
+                    x = x.saturating_add(1);
+                }
             }
             if let Some(g) = glyph {
                 let cell = Rect {
@@ -644,15 +695,45 @@ impl<'a> Meter<'a> {
                     }
                 }
                 Self::paint_suffix(ui, area, readout.suffix, fill);
-                let mut x = track.x.saturating_add(track_w).saturating_add(1);
+                // the separator between the track and the readout is a
+                // painted space, never an inherited cell (same class as
+                // the leading-activity gap: every claimed column paints)
+                let gap_x = track.x.saturating_add(track_w);
+                if gap_x < area.right() {
+                    ui.paint_str(
+                        Rect {
+                            x: gap_x,
+                            width: 1,
+                            ..track
+                        },
+                        " ",
+                        PaintStyle::new(),
+                    );
+                }
+                let mut x = gap_x.saturating_add(1);
                 let cell = Rect {
                     x,
                     width: area.right().saturating_sub(x),
                     ..area
                 };
                 let used = self.paint_readout(ui, cell, value, label.style, readout);
-                x = x.saturating_add(used).saturating_add(1);
+                x = x.saturating_add(used);
                 if let Some(g) = glyph {
+                    // the separator ahead of a trailing glyph paints too;
+                    // inside the suffix fill it is a no-op space over a
+                    // space, outside it (a clipped value) it closes the gap
+                    if x < area.right() {
+                        ui.paint_str(
+                            Rect {
+                                x,
+                                width: 1,
+                                ..area
+                            },
+                            " ",
+                            PaintStyle::new(),
+                        );
+                    }
+                    x = x.saturating_add(1);
                     let cell = Rect {
                         x,
                         width: area.right().saturating_sub(x),
@@ -707,13 +788,21 @@ impl<'a> Meter<'a> {
                         ..bar
                     };
                     if !filled.is_empty() {
+                        // Tag `Meter::render`: Stale fill text reads
+                        // secondary, every other tone reads canvas (S4
+                        // SPIN-DOMAIN-001 N2).
+                        let fill_fg = if tone == MeterTone::Stale {
+                            Role::Fg(FgStep::Secondary)
+                        } else {
+                            Role::OnAccent
+                        };
                         let on_fill = self
                             .part_style(
                                 ui,
                                 Part::THUMB,
                                 live,
                                 StylePatch::new()
-                                    .set_fg(Role::OnAccent)
+                                    .set_fg(fill_fg)
                                     .set_bg(Role::Meter(tone.role())),
                             )
                             .style;
@@ -739,7 +828,7 @@ impl<'a> Meter<'a> {
     /// A value-only meter has no minimum track budget.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let pct = Pct::of((self.ratio.unwrap_or(0.0) * 100.0).round() as u16);
-        let value = self.value_text(&pct);
+        let value = self.value_text(&pct, self.resolved_tone(ui));
         let readout = self.readout(ui, value, self.status.flags());
         if self.ratio.is_none() {
             return Size::exact(readout.width.saturating_add(readout.suffix), 1).fit(c);

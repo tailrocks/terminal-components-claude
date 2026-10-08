@@ -595,12 +595,18 @@ fn keyhint(m: &mut PartMap<PartRecipe>) {
 }
 
 fn progress(m: &mut PartMap<PartRecipe>) {
-    part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Secondary)));
+    // Tag `render_bar`/`render_indeterminate`: the label is primary; the
+    // filled run is white-70 while running, green only when done, danger
+    // on error (S4 PB-STATES-001 / SPIN-SWEEP-002).
+    part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Primary)));
     part(
         m,
         Part::TRACK,
         p().set_fg(Role::Meter(super::role::MeterRole::Track)),
     );
+    part(m, Part::THUMB, p().set_fg(Role::Fg(FgStep::Secondary)))
+        .when(StateFlags::ERROR, p().set_fg(Role::Danger))
+        .when(StateFlags::CHECKED, p().set_fg(Role::Success));
     part(m, Part::ICON, p().set_fg(Role::Accent))
         .when(
             StateFlags::ERROR,

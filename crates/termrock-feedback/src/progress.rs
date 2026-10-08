@@ -17,7 +17,7 @@ use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// Columns the percentage column occupies: `"100%"` is the widest value.
@@ -411,7 +411,13 @@ impl<'a> ProgressBar<'a> {
             }
         }
         let body = shift(area, label_w);
-        let tail = self.tail_columns();
+        // Tag `render_indeterminate`: the sweep takes the whole remainder —
+        // no percentage, no trailing glyph — so the track is the full body.
+        let tail = if self.ratio.is_none() {
+            0
+        } else {
+            self.tail_columns()
+        };
         let track_w = body.width.saturating_sub(tail);
         if track_w < Self::MIN_TRACK {
             // too narrow for a meaningful bar: the percentage alone
@@ -427,6 +433,29 @@ impl<'a> ProgressBar<'a> {
         } else {
             let rest = style(ui, Part::TRACK);
             let fill = style(ui, Part::THUMB);
+            // Tag `render_indeterminate`: the sweep segment is accent, not
+            // the determinate running tone; a suspended bar (the explicit
+            // paused icon) fills muted, never green (S4 SPIN-SWEEP-002 /
+            // PB-STATES-001). Patched over the resolved thumb so instance
+            // overrides on the part still apply underneath.
+            let override_fg = if self.ratio.is_none() {
+                Some(Role::Accent)
+            } else if self.icon == Some(GlyphRole::ProgressPaused) {
+                Some(Role::Fg(FgStep::Muted))
+            } else {
+                None
+            };
+            let fill_style = override_fg.map_or(fill.style, |fg| {
+                fill.style.patch(
+                    crate::theme::resolve::bind(
+                        ui.theme_ref(),
+                        StylePatch::new().set_fg(fg),
+                        None,
+                        ui.surface(),
+                    )
+                    .style,
+                )
+            });
             let (from, to) = self.filled_span(track_w);
             run_of(ui, track, GlyphRole::RuleQuiet, rest.style);
             let filled = Rect {
@@ -435,7 +464,7 @@ impl<'a> ProgressBar<'a> {
                 ..track
             };
             if !filled.is_empty() {
-                run_of(ui, filled, GlyphRole::RuleActive, fill.style);
+                run_of(ui, filled, GlyphRole::RuleActive, fill_style);
             }
         }
         let mut x = track.x.saturating_add(track_w).saturating_add(1);
@@ -459,20 +488,37 @@ impl<'a> ProgressBar<'a> {
                 f(ui, icon_cell);
             } else {
                 let s = style(ui, Part::ICON);
+                // Tag `render_bar`: the suffix reads in the fill colour, so
+                // a suspended bar ends a muted `‖`, never accent (S4
+                // PB-STATES-001 N2).
+                let icon_style =
+                    if self.ratio.is_some() && self.icon == Some(GlyphRole::ProgressPaused) {
+                        s.style.patch(
+                            crate::theme::resolve::bind(
+                                ui.theme_ref(),
+                                StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
+                                None,
+                                ui.surface(),
+                            )
+                            .style,
+                        )
+                    } else {
+                        s.style
+                    };
                 if self.busy() {
                     let frames = ui.design().motion.spinner_frames;
                     let frame = frames
                         .get(self.frame.checked_rem(frames.len()).unwrap_or(0))
                         .copied()
                         .unwrap_or("");
-                    ui.paint_str(icon_cell, frame, s.style);
+                    ui.paint_str(icon_cell, frame, icon_style);
                 } else {
                     let recipe_glyph = match s.glyph {
                         Slot::Set(g) => Some(g),
                         Slot::Inherit | Slot::Clear => None,
                     };
                     if let Some(g) = self.icon.or(recipe_glyph) {
-                        ui.glyph(icon_cell, g, s.style);
+                        ui.glyph(icon_cell, g, icon_style);
                     }
                 }
             }
@@ -741,7 +787,19 @@ impl<'a> Spinner<'a> {
                         Part::LABEL,
                         live,
                     );
-                    ui.paint_str(rest, self.label, s.style);
+                    // Tag `render_spinner`: the spinner label is secondary
+                    // while the bar label is primary; the shared family
+                    // recipe carries the bar tone (S4 SPIN-FRAME-001).
+                    let label_style = s.style.patch(
+                        crate::theme::resolve::bind(
+                            ui.theme_ref(),
+                            StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+                            None,
+                            ui.surface(),
+                        )
+                        .style,
+                    );
+                    ui.paint_str(rest, self.label, label_style);
                 }
             }
         }
