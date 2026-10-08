@@ -51,6 +51,7 @@ mod holla_pending_h6;
 mod jackin;
 mod jackin_journeys;
 mod jackin_pending_j1;
+mod jackin_pending_j2;
 mod negative_controls;
 mod negative_controls_phase6a;
 mod pointer;
