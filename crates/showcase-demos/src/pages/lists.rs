@@ -44,15 +44,11 @@ const SINGLE: Id = id!("lists.single");
 const MULTI: Id = id!("lists.multi");
 const EMPTY: Id = id!("lists.empty");
 const PANEL_PARTS: &[(Part, StylePatch)] = &[
-    (
-        Part::TITLE,
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Secondary))
-            .remove(termrock::Modifier::BOLD),
-    ),
     // Q67-S13 (L-R4): panel metas are faint (`tag:panel.rs:199`).
     // Instance-scoped: the shared (PANEL, DETAIL) recipe stays
     // Secondary (Q67-S10 STOPped the T4 recharter — O1 owns it).
+    // The TITLE base and focused (primary + bold) rules stay untouched:
+    // a focused panel voices its title like a control (`tag:panel.rs`).
     (
         Part::DETAIL,
         StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
@@ -163,7 +159,7 @@ fn file_row(value: &FileRow, row: &mut RowUi<'_>) {
     // `MIN_FILE_LABEL` stays hidden.
     let keep = row
         .remaining_width()
-        .saturating_sub(termrock::width(value.meta).saturating_add(1));
+        .saturating_sub(termrock::width(value.meta).saturating_add(2));
     if keep >= MIN_FILE_LABEL {
         row.meta(value.meta);
     }
@@ -318,6 +314,8 @@ impl Page for ListsPage {
                 let language_panel = Panel::new(id!("lists.language"))
                     .kind(PanelKind::Card)
                     .title("Language")
+                    .focused(ui.state(SINGLE).contains(StateFlags::FOCUSED))
+                    .meta_late(true)
                     .patch_part(PANEL_PARTS);
                 let language_inner = language_panel.inner(ui, language);
                 // Q67-S13 (L-R4): the tag draws the scroll position as the
@@ -354,26 +352,15 @@ impl Page for ListsPage {
                     .title("Search results")
                     .patch_part(PANEL_PARTS)
                     .draw(ui, search, |ui, inner| {
-                        empty_list(if body.width < 70 {
-                            "No results for…"
-                        } else if body.width < 90 {
-                            "No results for “retr…"
-                        } else {
-                            "No results for “retry”"
-                        })
-                        .draw(ui, inner, &self.empty, &[] as &[&str]);
-                        if body.width < 70 {
-                            let _ = ui.paint_str(
-                                Rect {
-                                    x: inner.x.saturating_add(inner.width.saturating_sub(1)),
-                                    y: inner.y.saturating_add(inner.height / 2),
-                                    width: 1,
-                                    height: 1,
-                                },
-                                "…",
-                                ui.surface_style(),
-                            );
-                        }
+                        // The full empty text always: the List owns
+                        // truncating it to the inner width (`tag:lists.rs:50`
+                        // + `tag:list.rs:251`).
+                        empty_list("No results for “retry”").draw(
+                            ui,
+                            inner,
+                            &self.empty,
+                            &[] as &[&str],
+                        );
                     });
             },
         );
@@ -408,14 +395,14 @@ impl ListsPage {
             ..files_column
         };
         let selected = RenderNumber::selected(self.multi.checked().len_in(FILES.len()));
-        let mut files_panel =
-            Panel::new(id!("lists.files"))
-                .kind(PanelKind::Card)
-                .title(if body.width < 70 {
-                    "Files to incl…"
-                } else {
-                    "Files to include"
-                });
+        let mut files_panel = Panel::new(id!("lists.files"))
+            .kind(PanelKind::Card)
+            .focused(ui.state(MULTI).contains(StateFlags::FOCUSED))
+            .title(if body.width < 70 {
+                "Files to incl…"
+            } else {
+                "Files to include"
+            });
         // Q67-S13 (L-R4): the tag sets the count meta unconditionally
         // (`tag:lists.rs`); the Panel head already truncates title and
         // meta to fit, so no width gate is needed.
@@ -425,15 +412,7 @@ impl ListsPage {
             .draw(ui, files, |ui, inner| {
                 let _ = ui.paint_str(
                     Rect { height: 1, ..inner },
-                    if body.width < 70 {
-                        "Space toggle …"
-                    } else if body.width < 90 {
-                        "Space toggle · a all…"
-                    } else if body.width < 130 {
-                        "Space toggle · a all · Sh…"
-                    } else {
-                        "Space toggle · a all · Shift+↓ range"
-                    },
+                    &termrock::truncate("Space toggle · a all · Shift+↓ range", inner.width),
                     detail,
                 );
                 multi_list().draw(

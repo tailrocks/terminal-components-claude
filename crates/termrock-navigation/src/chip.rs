@@ -1260,7 +1260,11 @@ fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
                 blank_run = blank_run.saturating_add(1);
             }
         }
-        if last == clip.width {
+        // `RowUi::meta` ends one cell before the row edge, so a
+        // meta-bearing row stops at `width - 1`, not `width`: either
+        // full row counts as meta present and measures the label
+        // before the gap.
+        if last.saturating_add(1) >= clip.width {
             gap_start.unwrap_or(last)
         } else {
             last

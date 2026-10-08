@@ -10,7 +10,7 @@ use crate::id::{Id, Part, PartRef};
 use crate::layout::{Insets, inset};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
-use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, Surface, Variant};
+use crate::theme::{Family, FgStep, GlyphRole, Modifier, Role, Slot, StylePatch, Surface, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// How a panel marks its edge.
@@ -659,8 +659,9 @@ impl<'a> Panel<'a> {
                 if pad == 1 {
                     ui.fill(cell_at(head, rect.right()), s.style);
                 }
+                let first_room = span_w.saturating_sub(pad.saturating_mul(2));
                 let full_end = text_x
-                    .saturating_add(crate::text::width(t))
+                    .saturating_add(crate::text::width(t).min(first_room))
                     .saturating_add(pad.saturating_mul(2));
                 title_gap = Some((s.style, rect.right().saturating_add(pad), full_end));
             }
@@ -670,8 +671,9 @@ impl<'a> Panel<'a> {
         }
         let mut right = text_x.saturating_add(span_w);
         let mut meta_x: Option<u16> = None;
-        if let Some(m) = meta_trunc {
-            let tw = crate::text::width(&m);
+        let mut meta_style: Option<crate::theme::PaintStyle> = None;
+        if let Some(m) = meta_trunc.as_ref() {
+            let tw = crate::text::width(m);
             let needed = tw.saturating_add(pad.saturating_mul(2));
             if right >= cx + needed + u16::from(cx > text_x) {
                 right = right.saturating_sub(needed);
@@ -697,17 +699,20 @@ impl<'a> Panel<'a> {
                     if pad == 1 {
                         ui.fill(cell_at(head, right), s.style);
                     }
-                    ui.paint_str(rect, &m, s.style);
+                    ui.paint_str(rect, m, s.style);
                     if pad == 1 {
                         ui.fill(cell_at(head, rect.right()), s.style);
                     }
+                    meta_style = Some(s.style);
                 }
             }
         }
         // The historical row was painted twice only when the meta arrived
         // late via `draw_meta`: a symbol-only clear kept the full title's
-        // style under the gap. Construction-time metas paint once, so the
-        // gap keeps the fill style unless the caller declares `meta_late`.
+        // style under the gap, and the cell merge kept its modifiers under
+        // the meta where the two overlapped. Construction-time metas paint
+        // once, so the gap keeps the fill style unless the caller declares
+        // `meta_late`.
         if let Some((style, start, full_end)) = title_gap
             && self.meta_late
             && self.meta.is_some()
@@ -723,6 +728,30 @@ impl<'a> Panel<'a> {
                     },
                     style,
                 );
+            }
+            if let (Some(mx), Some(mstyle), Some(m)) = (meta_x, meta_style, meta_trunc.as_ref())
+                && style.as_style().add_modifier.contains(Modifier::BOLD)
+            {
+                let overlap = full_end
+                    .saturating_sub(mx.saturating_add(pad))
+                    .min(crate::text::width(m));
+                if overlap > 0 {
+                    // A verbatim slice, never an ellipsis truncation: the
+                    // cells already carry the meta text; only bold is added.
+                    let end = crate::text::measure::byte_at_col(m, usize::from(overlap));
+                    let prefix = m.get(..end).unwrap_or("");
+                    let width = crate::text::width(prefix);
+                    ui.paint_str(
+                        Rect {
+                            x: mx.saturating_add(pad),
+                            y: head.y,
+                            width,
+                            height: 1,
+                        },
+                        prefix,
+                        mstyle.add_modifier(Modifier::BOLD),
+                    );
+                }
             }
         }
     }

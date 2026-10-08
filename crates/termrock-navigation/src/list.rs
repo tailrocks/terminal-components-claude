@@ -1274,10 +1274,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             if let Some(f) = ov.slot_for(Part::EMPTY) {
                 f(ui, mid);
             } else {
-                let inherited = ov
-                    .style(ui, id, Family::LIST, Variant::DEFAULT, Part::EMPTY, live)
-                    .style;
-                empty.draw_inherited(ui, mid, 0, inherited);
+                // The tag paints the empty message only
+                // (`tag:list.rs:250-259`): the blanks keep the
+                // container fill and the muted EMPTY TITLE recipe
+                // voices the message alone.
+                ui.fill(mid, container.style);
+                empty.draw(ui, mid, 0);
             }
             if !ui.is_inert() {
                 // An empty body is still a click target: it consumes,
