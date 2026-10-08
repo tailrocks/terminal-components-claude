@@ -4,20 +4,21 @@ use termrock::author::PaintStyle;
 use termrock::{
     Action, ActionKey, App, AsItem, Button, Checkbox, ChipBar, ChipBarAction, Chord, ColumnKey,
     Completion, CompletionAction, CompletionController, Cx, Dialog, DialogAction, DialogState,
-    Empty, EmptyState, Family, FgStep, Field, Focusability, Form, FormAction, FormState, FrameRead,
-    Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers,
-    KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase, PickerAction,
-    Props, PropsRow, Response, Role, RowUi, Select, SelectAction, Size, SortDir, Span, SplitAxis,
-    SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput,
-    TextInputState, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause,
-    Variant, truncate, wrap,
+    Empty, EmptyState, Family, FgStep, Field, FocusVia, Focusability, Form, FormAction, FormState,
+    FrameRead, Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap,
+    KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase,
+    PickerAction, Props, PropsRow, Response, Role, RowUi, Select, SelectAction, Size, SortDir,
+    Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState,
+    TextAction, TextInput, TextInputState, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState,
+    Ui, UpdateCause, Variant, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
 use crate::domain::ResultGrid;
 use crate::filter_editor::{
-    FILTER_APPLY, FILTER_CANCEL, FILTER_COL, FILTER_EDITOR, FILTER_OP, FILTER_VALUE, FILTER_VALUE2,
-    Filter, FilterEditor, FilterFocus, FilterOp, FilterOutcome,
+    FILTER_APPLY, FILTER_CANCEL, FILTER_COL, FILTER_EDITOR, FILTER_NOTE, FILTER_OP, FILTER_PREVIEW,
+    FILTER_TITLE, FILTER_VALUE, FILTER_VALUE2, Filter, FilterEditor, FilterFocus, FilterOp,
+    FilterOutcome,
 };
 use crate::filter_editor::{column_key, column_row, op_key, op_row};
 use crate::model::{SwitchTarget, auto_trigger, completion_batch};
@@ -2741,6 +2742,9 @@ impl TableProApp {
             FILTER_VALUE2,
             FILTER_CANCEL,
             FILTER_APPLY,
+            FILTER_TITLE,
+            FILTER_NOTE,
+            FILTER_PREVIEW,
             FILTER_EDITOR,
         ] {
             let _ = cx.intents(id).count();
@@ -2876,6 +2880,52 @@ impl TableProApp {
                         }
                     }
                     _ => {}
+                }
+            }
+        }
+        // Static `List` rows (title, no-value note, WHERE preview) register
+        // `Focusable` stops, so runtime Tab/BackTab traversal lands on them
+        // transiently and clicks focus them. They must never hold focus at
+        // draw: pointer arrivals bounce back to the editor stop (clicks stay
+        // no-ops), keyboard arrivals skip-advance along the ring. Direction
+        // is a pure mode-aware function of the (arrived static, editor stop)
+        // pair — traversal moves single-step from a control stop, so exactly
+        // one of the six reachable pairs holds; anything else bounces (we
+        // never target statics, so `Programmatic`/`Restore` arrivals can only
+        // come from runtime reconcile).
+        for id in [FILTER_TITLE, FILTER_NOTE, FILTER_PREVIEW] {
+            // `Intent::Key` on a static id is unreachable (keys address only
+            // the focused id); anything but `FocusIn` drains here.
+            for intent in cx.intents(id) {
+                if let Intent::FocusIn { via } = intent {
+                    match via {
+                        FocusVia::Keyboard => {
+                            let forward = matches!(
+                                (id, editor.focus),
+                                (FILTER_TITLE, FilterFocus::Apply)
+                                    | (FILTER_NOTE, FilterFocus::Op)
+                                    | (FILTER_PREVIEW, FilterFocus::Value)
+                                    | (FILTER_PREVIEW, FilterFocus::Value2)
+                            );
+                            let backward = matches!(
+                                (id, editor.focus),
+                                (FILTER_TITLE, FilterFocus::Column)
+                                    | (FILTER_PREVIEW, FilterFocus::Cancel)
+                            );
+                            if forward {
+                                editor.focus = editor.next_focus();
+                                cx.focus(editor.focus.id());
+                            } else if backward {
+                                editor.focus = editor.prev_focus();
+                                cx.focus(editor.focus.id());
+                            } else {
+                                cx.focus(editor.focus.id());
+                            }
+                        }
+                        _ => {
+                            cx.focus(editor.focus.id());
+                        }
+                    }
                 }
             }
         }
