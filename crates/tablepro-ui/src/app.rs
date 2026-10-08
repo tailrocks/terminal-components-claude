@@ -5,12 +5,13 @@ use termrock::{
     Action, ActionKey, App, AsItem, Button, Checkbox, ChipBar, ChipBarAction, Chord, ColumnKey,
     Completion, CompletionAction, CompletionController, Cx, Dialog, DialogAction, DialogState,
     Empty, EmptyState, Family, FgStep, Field, FocusVia, Focusability, Form, FormAction, FormState,
-    FrameRead, Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase,
-    PickerAction, Props, PropsRow, Response, Role, RowUi, Select, SelectAction, SelectField,
-    SelectState, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs,
-    TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Toggle, TooSmall, Tree,
-    TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
+    FrameRead, Grid, GridAction, GridEditor, GridModel, Hint, HintBar, HintKey, HintLayer, Id,
+    Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec,
+    Modifier, Panel, PanelKind, Part, Phase, PickerAction, Props, PropsRow, Response, Role, RowUi,
+    Select, SelectAction, SelectField, SelectState, Size, SortDir, Span, SplitAxis, SplitPane,
+    SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
+    Theme, Toggle, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant,
+    truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -54,6 +55,13 @@ const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
 const QUERY_EMPTY: Id = Id::root("tablepro.workbench.query.empty");
 const QUERY_COMPLETION: Id = Id::root("tablepro.workbench.query.completion");
 const TOO_SMALL: Id = Id::root("tablepro.too-small");
+/// Footer hint bar id (public for the ring-silence test).
+pub const FOOTER: Id = Id::root("tablepro.footer.hintbar");
+/// Notice tone patch: the legacy notice paints in base/Primary, not Danger.
+const NOTICE_LABEL: [(Part, StylePatch); 1] = [(
+    Part::LABEL,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+)];
 const RUN: ActionKey = ActionKey::application("tablepro.run");
 const UNDO: ActionKey = ActionKey::application("tablepro.undo");
 const INSERT_ROW: ActionKey = ActionKey::application("tablepro.insert-row");
@@ -1913,6 +1921,21 @@ impl TableProApp {
                 }
             }
         }
+    }
+
+    /// Footer right text: the destructive notice beats the status, and the
+    /// Connections-screen destructive suppression applies to the status only.
+    fn footer_right_text(&self) -> Option<&str> {
+        if let Some(notice) = self.destructive_notice {
+            return Some(notice);
+        }
+        if self.status.is_empty() {
+            return None;
+        }
+        if self.destructive_intent.is_some() && self.screen == Screen::Connections {
+            return None;
+        }
+        Some(self.status.as_str())
     }
 
     fn insert_defaults(&self) -> Option<Vec<bool>> {
@@ -6772,476 +6795,26 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     }
 }
 
-#[derive(Clone, Copy)]
-struct KeyHint {
-    key: &'static str,
-    action: &'static str,
+/// Map `(key, action)` pairs into [`Hint`]s with descending priority, so the
+/// leftmost hint survives width pressure longest if fitting ever reads it.
+fn hint_vec(pairs: &[(&'static str, &'static str)]) -> Vec<Hint> {
+    let n = pairs.len();
+    pairs
+        .iter()
+        .enumerate()
+        .map(|(i, &(key, label))| Hint {
+            key: HintKey::Label(key),
+            label,
+            priority: (n - i) as u8,
+        })
+        .collect()
 }
 
-fn footer_hints(app: &TableProApp, explorer_focused: bool) -> &'static [KeyHint] {
-    if app.help_open {
-        return &[
-            KeyHint {
-                key: "← →",
-                action: "Choose",
-            },
-            KeyHint {
-                key: "Enter",
-                action: "Confirm",
-            },
-            KeyHint {
-                key: "Esc",
-                action: "Cancel",
-            },
-            KeyHint {
-                key: "y / n",
-                action: "Quick answer",
-            },
-        ];
-    }
-    if app.switcher_open || app.tab_list_open || app.safe_mode_open {
-        return &[];
-    }
-    if app.filter_editor.is_some() {
-        return &[
-            KeyHint {
-                key: "Tab",
-                action: "Next field",
-            },
-            KeyHint {
-                key: "Enter",
-                action: "Apply",
-            },
-            KeyHint {
-                key: "Esc",
-                action: "Cancel",
-            },
-        ];
-    }
-    if let Some(dlg) = app.safety_dialog.as_ref() {
-        if dlg.is_editing() {
-            return &[
-                KeyHint {
-                    key: "Enter",
-                    action: "Next",
-                },
-                KeyHint {
-                    key: "Esc",
-                    action: "Cancel",
-                },
-            ];
-        } else {
-            return &[
-                KeyHint {
-                    key: "← →",
-                    action: "Choose",
-                },
-                KeyHint {
-                    key: "Enter",
-                    action: "Confirm",
-                },
-                KeyHint {
-                    key: "Esc",
-                    action: "Cancel",
-                },
-            ];
-        }
-    }
-    if app.destructive_intent.is_some() {
-        return &[
-            KeyHint {
-                key: "← →",
-                action: "Choose",
-            },
-            KeyHint {
-                key: "Enter",
-                action: "Confirm",
-            },
-            KeyHint {
-                key: "Esc",
-                action: "Cancel",
-            },
-            KeyHint {
-                key: "y / n",
-                action: "Quick answer",
-            },
-        ];
-    }
-    if app.form_open {
-        return &[
-            KeyHint {
-                key: "Enter",
-                action: "Edit",
-            },
-            KeyHint {
-                key: "← →",
-                action: "Basic / Advanced",
-            },
-            KeyHint {
-                key: "Ctrl+S",
-                action: "Save",
-            },
-            KeyHint {
-                key: "Tab",
-                action: "Next",
-            },
-        ];
-    }
-    if app.screen == Screen::Connections {
-        if app.connections_screen.filter_state.is_editing() {
-            return &[
-                KeyHint {
-                    key: "Type",
-                    action: "Filter",
-                },
-                KeyHint {
-                    key: "↓",
-                    action: "Into list",
-                },
-                KeyHint {
-                    key: "Esc",
-                    action: "Clear",
-                },
-            ];
-        }
-        &[
-            KeyHint {
-                key: "↑ ↓",
-                action: "Move",
-            },
-            KeyHint {
-                key: "Enter",
-                action: "Connect",
-            },
-            KeyHint {
-                key: "E",
-                action: "Edit",
-            },
-            KeyHint {
-                key: "D",
-                action: "Delete",
-            },
-            KeyHint {
-                key: "Ctrl+D",
-                action: "Duplicate",
-            },
-            KeyHint {
-                key: "/",
-                action: "Filter",
-            },
-            KeyHint {
-                key: "Ctrl+N",
-                action: "New",
-            },
-            KeyHint {
-                key: "Tab",
-                action: "Next",
-            },
-        ]
-    } else {
-        if explorer_focused {
-            return &[
-                KeyHint {
-                    key: "↑ ↓",
-                    action: "Move",
-                },
-                KeyHint {
-                    key: "Enter",
-                    action: "Open",
-                },
-                KeyHint {
-                    key: "→",
-                    action: "Expand",
-                },
-                KeyHint {
-                    key: "/",
-                    action: "Filter",
-                },
-                KeyHint {
-                    key: "Ctrl+O",
-                    action: "Quick open",
-                },
-                KeyHint {
-                    key: "Tab",
-                    action: "Next",
-                },
-            ];
-        }
-        match app.workbench.active() {
-            Some(Tab::Table(t)) if t.is_structure() => &[
-                KeyHint {
-                    key: "↑ ↓",
-                    action: "Move",
-                },
-                KeyHint {
-                    key: "Ctrl+D",
-                    action: "Structure",
-                },
-                KeyHint {
-                    key: "Tab",
-                    action: "Next",
-                },
-            ],
-            Some(Tab::Table(t)) => {
-                if t.result.state.is_editing() || t.structure.state.is_editing() {
-                    return &[
-                        KeyHint {
-                            key: "Enter",
-                            action: "Commit",
-                        },
-                        KeyHint {
-                            key: "Esc",
-                            action: "Cancel",
-                        },
-                        KeyHint {
-                            key: "Tab",
-                            action: "Next cell",
-                        },
-                    ];
-                }
-                if t.result.model.is_editable() {
-                    if t.result.pending_total() > 0 {
-                        &[
-                            KeyHint {
-                                key: "↑↓←→",
-                                action: "Cell",
-                            },
-                            KeyHint {
-                                key: "Enter",
-                                action: "Edit",
-                            },
-                            KeyHint {
-                                key: "Alt+D",
-                                action: "Duplicate row",
-                            },
-                            KeyHint {
-                                key: "s",
-                                action: "Sort",
-                            },
-                            KeyHint {
-                                key: "f",
-                                action: "Filter",
-                            },
-                            KeyHint {
-                                key: "Ctrl+S",
-                                action: "Save",
-                            },
-                            KeyHint {
-                                key: "Tab",
-                                action: "Next",
-                            },
-                        ]
-                    } else {
-                        &[
-                            KeyHint {
-                                key: "↑↓←→",
-                                action: "Cell",
-                            },
-                            KeyHint {
-                                key: "Enter",
-                                action: "Edit",
-                            },
-                            KeyHint {
-                                key: "Alt+D",
-                                action: "Duplicate row",
-                            },
-                            KeyHint {
-                                key: "s",
-                                action: "Sort",
-                            },
-                            KeyHint {
-                                key: "f",
-                                action: "Filter",
-                            },
-                            KeyHint {
-                                key: "Space",
-                                action: "Select row",
-                            },
-                            KeyHint {
-                                key: "Tab",
-                                action: "Next",
-                            },
-                        ]
-                    }
-                } else {
-                    &[
-                        KeyHint {
-                            key: "↑↓←→",
-                            action: "Cell",
-                        },
-                        KeyHint {
-                            key: "Enter",
-                            action: "Edit",
-                        },
-                        KeyHint {
-                            key: "s",
-                            action: "Sort",
-                        },
-                        KeyHint {
-                            key: "f",
-                            action: "Filter",
-                        },
-                        KeyHint {
-                            key: "Space",
-                            action: "Select row",
-                        },
-                        KeyHint {
-                            key: "Tab",
-                            action: "Next",
-                        },
-                    ]
-                }
-            }
-            Some(Tab::Query(_)) => &[
-                KeyHint {
-                    key: "Enter",
-                    action: "Edit",
-                },
-                KeyHint {
-                    key: "Ctrl+R",
-                    action: "Run",
-                },
-                KeyHint {
-                    key: "Alt+R",
-                    action: "Run all",
-                },
-                KeyHint {
-                    key: "Ctrl+X",
-                    action: "Explain",
-                },
-                KeyHint {
-                    key: "/",
-                    action: "Find",
-                },
-                KeyHint {
-                    key: "Tab",
-                    action: "Next",
-                },
-            ],
-            Some(Tab::History(_)) => &[
-                KeyHint {
-                    key: "↑ ↓",
-                    action: "Move",
-                },
-                KeyHint {
-                    key: "Enter",
-                    action: "Open",
-                },
-                KeyHint {
-                    key: "/",
-                    action: "Filter",
-                },
-                KeyHint {
-                    key: "Tab",
-                    action: "Next",
-                },
-            ],
-            None => &[
-                KeyHint {
-                    key: "Ctrl+N",
-                    action: "New query",
-                },
-                KeyHint {
-                    key: "Ctrl+O",
-                    action: "Quick open",
-                },
-                KeyHint {
-                    key: "Tab",
-                    action: "Next",
-                },
-            ],
-        }
-    }
-}
-
-fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
-    let base = ui.surface_style();
-    if !app.form_open {
-        ui.fill(area, base);
-    }
-    if area.is_empty() {
-        return;
-    }
-    let mut right_w = 0u16;
-    if let Some(notice) = app.destructive_notice {
-        let width = termrock::width(notice).min(area.width);
-        let right = termrock::Rect {
-            x: area.right().saturating_sub(width).saturating_sub(1),
-            width,
-            ..area
-        };
-        ui.fill(right, base);
-        ui.paint_str(right, notice, base);
-        right_w = width.saturating_add(3);
-    } else if !app.status.is_empty()
-        && (app.destructive_intent.is_none() || app.screen != Screen::Connections)
-    {
-        let width = termrock::width(&app.status);
-        if width > 0 && width < area.width {
-            let right = termrock::Rect {
-                x: area.right().saturating_sub(width).saturating_sub(1),
-                width,
-                ..area
-            };
-            let status_style = if app.form_open {
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))
-            } else {
-                base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
-            };
-            ui.paint_str(right, &app.status, status_style);
-            right_w = width.saturating_add(3);
-        }
-    }
-
-    let limit = area.right().saturating_sub(right_w);
-    let mut x = area.x.saturating_add(1);
-    if app.is_editing() && app.safety_dialog.is_none() && app.filter_editor.is_none() {
-        let badge = " EDIT ";
-        let badge_w = termrock::width(badge);
-        let badge_style = base.patch(
-            ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::OnAccent)
-                    .set_bg(Role::Accent)
-                    .add(Modifier::BOLD),
-            ),
-        );
-        ui.paint_str(
-            termrock::Rect {
-                x,
-                y: area.y,
-                width: badge_w,
-                height: 1,
-            },
-            badge,
-            badge_style,
-        );
-        x = x.saturating_add(badge_w).saturating_add(2);
-    }
-    let (key_style, action_style, faint_style) = if app.form_open {
-        (
-            ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .add(Modifier::BOLD),
-            ),
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
-        )
-    } else {
-        (
-            base.patch(
-                ui.paint_patch(
-                    &StylePatch::new()
-                        .set_fg(Role::Fg(FgStep::Primary))
-                        .add(Modifier::BOLD),
-                ),
-            ),
-            base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)))),
-            base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)))),
-        )
-    };
-
+/// Footer hint data: the whole bottom row is one stock `HintBar` fed by this
+/// layer. The badge gate and the fourteen hint arms are the legacy
+/// `footer_hints` gates verbatim; the right text rides `.status_text()` at
+/// the call site because `HintLayer.status` cannot borrow `app.status`.
+fn footer_layer(app: &TableProApp, ui: &Ui, width: u16) -> HintLayer {
     let explorer_focused = !ui.is_inert()
         && app.safety_dialog.is_none()
         && app.destructive_intent.is_none()
@@ -7251,55 +6824,133 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         && !app.safe_mode_open
         && (app.workbench_focus == EXPLORER
             || ui.state(EXPLORER).contains(termrock::StateFlags::FOCUSED)
-            || (area.width < 100 && app.workbench.active().is_none()));
-    let hints = footer_hints(app, explorer_focused);
-    let mut drawn = 0usize;
-    for (i, h) in hints.iter().enumerate() {
-        let kw = termrock::width(h.key);
-        let aw = termrock::width(h.action);
-        let w = kw.saturating_add(1).saturating_add(aw).saturating_add(2);
-        let reserve = if i.saturating_add(1) < hints.len() {
-            2
+            || (width < 100 && app.workbench.active().is_none()));
+    let pairs: &[(&'static str, &'static str)] = if app.help_open {
+        &[
+            ("← →", "Choose"),
+            ("Enter", "Confirm"),
+            ("Esc", "Cancel"),
+            ("y / n", "Quick answer"),
+        ]
+    } else if app.switcher_open || app.tab_list_open || app.safe_mode_open {
+        &[]
+    } else if app.filter_editor.is_some() {
+        &[("Tab", "Next field"), ("Enter", "Apply"), ("Esc", "Cancel")]
+    } else if let Some(dlg) = app.safety_dialog.as_ref() {
+        if dlg.is_editing() {
+            &[("Enter", "Next"), ("Esc", "Cancel")]
         } else {
-            0
-        };
-        if x.saturating_add(w).saturating_add(reserve) > limit {
-            break;
+            &[("← →", "Choose"), ("Enter", "Confirm"), ("Esc", "Cancel")]
         }
-        ui.paint_str(
-            termrock::Rect {
-                x,
-                y: area.y,
-                width: kw,
-                height: 1,
-            },
-            h.key,
-            key_style,
-        );
-        ui.paint_str(
-            termrock::Rect {
-                x: x.saturating_add(kw).saturating_add(1),
-                y: area.y,
-                width: aw,
-                height: 1,
-            },
-            h.action,
-            action_style,
-        );
-        x = x.saturating_add(w);
-        drawn += 1;
-    }
-    if drawn < hints.len() && x < limit {
-        ui.paint_str(
-            termrock::Rect {
-                x,
-                y: area.y,
-                width: 1,
-                height: 1,
-            },
-            "…",
-            faint_style,
-        );
+    } else if app.destructive_intent.is_some() {
+        &[
+            ("← →", "Choose"),
+            ("Enter", "Confirm"),
+            ("Esc", "Cancel"),
+            ("y / n", "Quick answer"),
+        ]
+    } else if app.form_open {
+        &[
+            ("Enter", "Edit"),
+            ("← →", "Basic / Advanced"),
+            ("Ctrl+S", "Save"),
+            ("Tab", "Next"),
+        ]
+    } else if app.screen == Screen::Connections {
+        if app.connections_screen.filter_state.is_editing() {
+            &[("Type", "Filter"), ("↓", "Into list"), ("Esc", "Clear")]
+        } else {
+            &[
+                ("↑ ↓", "Move"),
+                ("Enter", "Connect"),
+                ("E", "Edit"),
+                ("D", "Delete"),
+                ("Ctrl+D", "Duplicate"),
+                ("/", "Filter"),
+                ("Ctrl+N", "New"),
+                ("Tab", "Next"),
+            ]
+        }
+    } else if explorer_focused {
+        &[
+            ("↑ ↓", "Move"),
+            ("Enter", "Open"),
+            ("→", "Expand"),
+            ("/", "Filter"),
+            ("Ctrl+O", "Quick open"),
+            ("Tab", "Next"),
+        ]
+    } else {
+        match app.workbench.active() {
+            Some(Tab::Table(t)) if t.is_structure() => {
+                &[("↑ ↓", "Move"), ("Ctrl+D", "Structure"), ("Tab", "Next")]
+            }
+            Some(Tab::Table(t)) => {
+                if t.result.state.is_editing() || t.structure.state.is_editing() {
+                    &[("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+                } else if t.result.model.is_editable() {
+                    if t.result.pending_total() > 0 {
+                        &[
+                            ("↑↓←→", "Cell"),
+                            ("Enter", "Edit"),
+                            ("Alt+D", "Duplicate row"),
+                            ("s", "Sort"),
+                            ("f", "Filter"),
+                            ("Ctrl+S", "Save"),
+                            ("Tab", "Next"),
+                        ]
+                    } else {
+                        &[
+                            ("↑↓←→", "Cell"),
+                            ("Enter", "Edit"),
+                            ("Alt+D", "Duplicate row"),
+                            ("s", "Sort"),
+                            ("f", "Filter"),
+                            ("Space", "Select row"),
+                            ("Tab", "Next"),
+                        ]
+                    }
+                } else {
+                    &[
+                        ("↑↓←→", "Cell"),
+                        ("Enter", "Edit"),
+                        ("s", "Sort"),
+                        ("f", "Filter"),
+                        ("Space", "Select row"),
+                        ("Tab", "Next"),
+                    ]
+                }
+            }
+            Some(Tab::Query(_)) => &[
+                ("Enter", "Edit"),
+                ("Ctrl+R", "Run"),
+                ("Alt+R", "Run all"),
+                ("Ctrl+X", "Explain"),
+                ("/", "Find"),
+                ("Tab", "Next"),
+            ],
+            Some(Tab::History(_)) => &[
+                ("↑ ↓", "Move"),
+                ("Enter", "Open"),
+                ("/", "Filter"),
+                ("Tab", "Next"),
+            ],
+            None => &[
+                ("Ctrl+N", "New query"),
+                ("Ctrl+O", "Quick open"),
+                ("Tab", "Next"),
+            ],
+        }
+    };
+    HintLayer {
+        hints: hint_vec(pairs),
+        badge: if app.is_editing() && app.safety_dialog.is_none() && app.filter_editor.is_none() {
+            Some("EDIT")
+        } else {
+            None
+        },
+        status: None,
+        centered: false,
     }
 }
 
@@ -8119,7 +7770,13 @@ impl App for TableProApp {
                 self.draw_content(ui, main);
             }
         }
-        draw_footer(ui, rows[2], self);
+        let layer = footer_layer(self, ui, rows[2].width);
+        let right = self.footer_right_text();
+        let mut bar = HintBar::new(FOOTER, &layer).status_text(right);
+        if self.destructive_notice.is_some() {
+            bar = bar.patch_part(&NOTICE_LABEL);
+        }
+        bar.draw(ui, rows[2]);
         let (cols, screen_rows) = (full.width, full.height);
         ui.layer(quick_switcher::ID, |ui, area| {
             self.switcher.component(cols, screen_rows).draw(
@@ -8777,6 +8434,114 @@ mod replacement_tests {
         }
         assert!(h.find(ph).is_some());
         assert!(h.find("No results yet").is_some());
+    }
+
+    /// T9: the width<100 explorer rule, both sides guarded. Tab-away from
+    /// the bootstrap EXPLORER focus onto TAB_STRIP (which never writes
+    /// `workbench_focus`), then 72x20 and 99x30 show the explorer arm while
+    /// the 100x30 control shows the no-tab arm.
+    #[test]
+    fn footer_width100_rule() {
+        for (w, h, explorer) in [(72u16, 20u16, true), (99, 30, true), (100, 30, false)] {
+            let mut app = TableProApp {
+                screen: Screen::Workbench,
+                ..TableProApp::default()
+            };
+            while let Some(key) = app.workbench.active_key() {
+                let _ = app.workbench.close_tab_confirmed(key);
+            }
+            app.status.clear();
+            let mut t = Harness::new(app, Theme::junie(), w, h);
+            assert_eq!(t.focus(), Some(EXPLORER), "{w}x{h}: bootstrap trap");
+            assert!(t.tab_to(TAB_STRIP), "{w}x{h}: tab away must land");
+            t.app_mut().workbench_focus = QUERY_EMPTY;
+            t.draw();
+            assert_eq!(
+                t.focus(),
+                Some(TAB_STRIP),
+                "{w}x{h}: focus must stay off EXPLORER"
+            );
+            assert_eq!(
+                t.app().workbench_focus,
+                QUERY_EMPTY,
+                "{w}x{h}: no FocusIn clobber across settle"
+            );
+            assert!(
+                t.app().workbench.active().is_none(),
+                "{w}x{h}: workbench must stay tab-less"
+            );
+            let row = t.row(h - 1);
+            if explorer {
+                assert!(
+                    row.contains("Expand"),
+                    "{w}x{h}: explorer arm must show, got {row:?}"
+                );
+                assert!(
+                    !row.contains("New query"),
+                    "{w}x{h}: no-tab arm must hide, got {row:?}"
+                );
+            } else {
+                assert!(
+                    row.contains("New query"),
+                    "{w}x{h}: no-tab arm must show, got {row:?}"
+                );
+                assert!(
+                    !row.contains("Expand"),
+                    "{w}x{h}: explorer arm must hide, got {row:?}"
+                );
+            }
+        }
+    }
+
+    /// T10: the destructive notice beats the status in Primary (not
+    /// Secondary/Danger) at x=92-118, squeezing the hints. Zero oracle
+    /// frames cover the notice; this harness test is the only pin.
+    #[test]
+    fn footer_notice_beats_status() {
+        let app = TableProApp {
+            destructive_notice: Some("Work changed; request again"),
+            status: String::from("Connected to Production"),
+            ..TableProApp::default()
+        };
+        let t = Harness::new(app, Theme::junie(), 120, 40);
+        let notice: String = (92..=118u16).map(|x| t.cell(x, 39).symbol()).collect();
+        assert_eq!(notice, "Work changed; request again", "notice geometry");
+        for x in 92..=118u16 {
+            assert_eq!(
+                t.cell(x, 39).fg,
+                termrock::Color::Rgb(255, 255, 255),
+                "notice x={x} fg must be Primary"
+            );
+        }
+        let row = t.row(39);
+        assert!(
+            !row.contains("Connected to Production"),
+            "status must lose, got {row:?}"
+        );
+        assert!(
+            row.contains('…'),
+            "hints must squeeze to limit=90, got {row:?}"
+        );
+    }
+
+    /// T13: accepted long-status delta — a 65-cell status at 72x20 paints
+    /// in full while the badge suppresses (legacy garbled the badge over
+    /// the status here).
+    #[test]
+    fn footer_long_status_suppression() {
+        let mut t = Harness::new(TableProApp::default(), Theme::junie(), 72, 20);
+        let _ = t.key(KeyCode::Char('/'));
+        let _ = t.type_str("stag");
+        assert!(t.app().is_editing(), "filter must be editing");
+        let long = "s".repeat(65);
+        t.app_mut().status = long.clone();
+        t.draw();
+        let row = t.row(19);
+        assert!(
+            row.contains(&long),
+            "full 65-char status must paint, got {row:?}"
+        );
+        assert!(!row.contains("EDIT"), "badge must suppress, got {row:?}");
     }
 }
 
