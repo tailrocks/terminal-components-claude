@@ -1319,15 +1319,30 @@ impl<'a> Form<'a> {
             acc.fold(&response.erase());
         }
         if let Some(key) = requested {
-            let action = if key == self.submit {
-                self.submit_form(cx, st, data)
+            // W11-04: a disabled submit action blocks every submit path,
+            // including Enter (`form.md`: "Busy submit cannot emit"). A
+            // submit key with no declared action stays eligible.
+            let blocked = key == self.submit
+                && self
+                    .actions
+                    .iter()
+                    .find(|action| action.key() == self.submit)
+                    .is_some_and(|action| !action.is_enabled());
+            if blocked {
+                // Swallowed: the Enter chord is already claimed, so the
+                // field stays quiet too and the busy form reports nothing.
+                acc.consumed();
             } else {
-                FormAction::Action(key)
-            };
-            if key == self.submit {
-                first = Some(action);
-            } else {
-                Self::remember_action(&mut first, action);
+                let action = if key == self.submit {
+                    self.submit_form(cx, st, data)
+                } else {
+                    FormAction::Action(key)
+                };
+                if key == self.submit {
+                    first = Some(action);
+                } else {
+                    Self::remember_action(&mut first, action);
+                }
             }
         }
 

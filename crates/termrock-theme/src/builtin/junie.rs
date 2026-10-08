@@ -138,8 +138,9 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         "✓", "‖", "+", "[", "]", "•", "▾", "▴",
         // Index 41 (`PrimaryKey`) is dead: `GlyphSet::get`/`set` route that
         // role to its own field and never index the array. Index 42 is the
-        // off half of the switch-knob pair (Q67-F5).
-        "", "○",
+        // off half of the switch-knob pair (Q67-F5). Index 43 is the narrow
+        // checkbox off mark (W03-01).
+        "", "○", "□",
     ],
     scrollbar::Set {
         track: "│",

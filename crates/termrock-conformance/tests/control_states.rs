@@ -522,7 +522,6 @@ fn w01_brand_clickable_hover_press_release_and_typed_activation() {
 /// deleted the generic mono bracket fallback, so at `Mono` press now
 /// matches hover too — the recipe gap this record tracks is unchanged).
 #[test]
-#[ignore = "PARITY W01-02: pressed lockup repaints the hover frame, reference paints accent_pressed (BRAND recipe has no PRESSED rule)"]
 fn w01_brand_press_paints_distinct_from_hover() {
     let area = Rect::new(0, 0, 12, 1);
     let hovered = paint_state(area, BRAND, ReferenceState::HOVERED, |ui, area| {
@@ -759,7 +758,6 @@ fn w02_button_variants_all_states_and_focus_gutter() {
 /// never take focus); it is expressible only through inert reference forcing,
 /// exactly as the reference test constructs it.
 #[test]
-#[ignore = "PARITY W02-01: disabled+focused paints ▎, reference demands space (theme GUTTER recipe keys on FOCUSED alone)"]
 fn w02_button_disabled_suppresses_focus_gutter() {
     for level in LEVELS {
         let theme = Theme::junie().downgrade(level);
@@ -1113,7 +1111,6 @@ fn w03_checkbox_checked_focus_hover_matrix() {
 /// row shows `[` for both values (state unreadable). The candidate's own
 /// checkbox doc promises compact `✓`/`□` on narrow rows.
 #[test]
-#[ignore = "PARITY W03-01: narrow checkbox clips [✓]/[ ] instead of compact ✓/□ marks (no compact branch)"]
 fn w03_checkbox_compact_markers() {
     for width in [2, 3, 4] {
         for checked in [false, true] {
@@ -1153,7 +1150,6 @@ fn w03_checkbox_compact_markers() {
 /// without hover. The candidate's own checkbox doc lists focus+hover as a
 /// distinct axis state.
 #[test]
-#[ignore = "PARITY W03-01: checked+focus+hover repaints checked+focus (SELECTED|FOCUSED swallows the hover lift), reference lifts over the tint"]
 fn w03_checkbox_checked_focus_hover_independent() {
     let focused = paint_checkbox(true, ReferenceState::FOCUSED, false);
     let both = paint_checkbox(
@@ -1387,7 +1383,6 @@ fn w04_toggle_on_off_state_matrix() {
 /// for both on and off (state unreadable) and a 3-wide row shows knob-position
 /// fragments (`●─`/`─●`) instead of the state dots.
 #[test]
-#[ignore = "PARITY W04-01: narrow toggle clips the switch instead of compact ●/○ dots (no compact branch)"]
 fn w04_toggle_compact_markers() {
     for width in [2, 3] {
         for on in [false, true] {
@@ -1738,14 +1733,228 @@ fn w05_radio_disabled_group_ignores_keyboard_and_pointer() {
     );
 }
 
-/// W05-02/W05-04 parity record: the reference expects disabled first, middle
-/// and last options (plus all-disabled groups) with keyboard and pointer.
-/// The candidate `RadioGroup` has whole-group `.disabled(bool)` only — no
-/// per-option disabled — so the case is inexpressible.
+/// W05-02: disabled first, middle and last options with keyboard and
+/// pointer; the all-disabled group is the W05-04 half.
+///
+/// The cursor seeds on and steps between enabled options only, commit and
+/// clicks never choose the disabled option, the disabled row keeps its
+/// visible label in the disabled tone, and an all-disabled group takes no
+/// focus and emits no action.
 #[test]
-#[ignore = "PARITY W05-02/W05-04: RadioGroup has no per-option disabled (whole-group .disabled only)"]
 fn w05_radio_per_option_disabled() {
-    panic!("PARITY W05-02: cannot disable option 1 of 3; RadioGroup has no per-option disabled");
+    #[derive(Clone, Copy)]
+    enum DisSet {
+        Index(usize),
+        All,
+    }
+    struct DisRadio {
+        st: Rc<RefCell<RadioGroupState>>,
+        value: Rc<Cell<Option<ItemKey>>>,
+        chose: Rc<RefCell<Vec<ItemKey>>>,
+        dis: DisSet,
+    }
+    impl App for DisRadio {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let chose = Rc::clone(&self.chose);
+            let value = Rc::clone(&self.value);
+            let dis = self.dis;
+            let off = move |k: ItemKey| match dis {
+                DisSet::Index(d) => k == ItemKey::index(d),
+                DisSet::All => true,
+            };
+            let mut group = RadioGroup::new(RADIO).disabled_item(&off);
+            if let Some(v) = value.get() {
+                group = group.value(v);
+            }
+            group
+                .update(cx, &mut self.st.borrow_mut(), &RADIO_ITEMS)
+                .on_action(|action| {
+                    let RadioGroupAction::Chose(key) = action;
+                    value.set(Some(key));
+                    chose.borrow_mut().push(key);
+                })
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let dis = self.dis;
+            let off = move |k: ItemKey| match dis {
+                DisSet::Index(d) => k == ItemKey::index(d),
+                DisSet::All => true,
+            };
+            let mut group = RadioGroup::new(RADIO).disabled_item(&off);
+            if let Some(v) = self.value.get() {
+                group = group.value(v);
+            }
+            group.draw(ui, RADIO_AREA, &self.st.borrow(), &RADIO_ITEMS);
+        }
+    }
+    #[allow(clippy::type_complexity)]
+    fn rig(
+        dis: DisSet,
+    ) -> (
+        Harness<DisRadio>,
+        Rc<RefCell<RadioGroupState>>,
+        Rc<Cell<Option<ItemKey>>>,
+        Rc<RefCell<Vec<ItemKey>>>,
+    ) {
+        let st = Rc::new(RefCell::new(RadioGroupState::default()));
+        let value = Rc::new(Cell::new(None));
+        let chose = Rc::new(RefCell::new(Vec::new()));
+        let app = Harness::new(
+            DisRadio {
+                st: Rc::clone(&st),
+                value: Rc::clone(&value),
+                chose: Rc::clone(&chose),
+                dis,
+            },
+            Theme::junie(),
+            SCREEN.width,
+            SCREEN.height,
+        );
+        (app, st, value, chose)
+    }
+
+    for d in [0usize, 1, 2] {
+        let (mut app, st, value, chose) = rig(DisSet::Index(d));
+        assert!(app.tab_to(RADIO), "W05-02 d={d}: the group stays reachable");
+        let enabled: Vec<usize> = (0..3).filter(|&i| i != d).collect();
+        assert_eq!(
+            st.borrow().cursor_index(),
+            enabled[0],
+            "W05-02 d={d}: the cursor seeds on the first enabled option"
+        );
+        let _ = app.key(KeyCode::End);
+        assert_eq!(
+            st.borrow().cursor_index(),
+            enabled[1],
+            "W05-02 d={d}: End lands on the last enabled option"
+        );
+        let _ = app.key(KeyCode::Home);
+        assert_eq!(
+            st.borrow().cursor_index(),
+            enabled[0],
+            "W05-02 d={d}: Home lands on the first enabled option"
+        );
+        let _ = app.key(KeyCode::Down);
+        assert_eq!(
+            st.borrow().cursor_index(),
+            enabled[1],
+            "W05-02 d={d}: Down must skip the disabled option"
+        );
+        let _ = app.key(KeyCode::Up);
+        assert_eq!(
+            st.borrow().cursor_index(),
+            enabled[0],
+            "W05-02 d={d}: Up must skip the disabled option"
+        );
+        let _ = app.key(KeyCode::Char(' '));
+        assert_eq!(
+            chose.borrow().last(),
+            Some(&ItemKey::index(enabled[0])),
+            "W05-02 d={d}: Space chooses the enabled cursor"
+        );
+        let _ = app.key(KeyCode::Down);
+        let _ = app.key(KeyCode::Enter);
+        assert_eq!(
+            chose.borrow().last(),
+            Some(&ItemKey::index(enabled[1])),
+            "W05-02 d={d}: Enter chooses the enabled cursor"
+        );
+        assert_eq!(
+            value.get(),
+            Some(ItemKey::index(enabled[1])),
+            "W05-02 d={d}: the value follows enabled choices"
+        );
+        assert!(
+            !chose.borrow().contains(&ItemKey::index(d)),
+            "W05-02 d={d}: the disabled option must never be chosen"
+        );
+        let before = chose.borrow().len();
+        let _ = app.click(4, d as u16);
+        assert_eq!(
+            chose.borrow().len(),
+            before,
+            "W05-02 d={d}: clicking the disabled row must choose nothing"
+        );
+        assert_eq!(
+            st.borrow().cursor_index(),
+            enabled[1],
+            "W05-02 d={d}: pressing the disabled row must not move the cursor"
+        );
+        for e in enabled {
+            let _ = app.click(4, e as u16);
+            assert_eq!(
+                chose.borrow().last(),
+                Some(&ItemKey::index(e)),
+                "W05-02 d={d}: clicking an enabled row chooses it"
+            );
+        }
+    }
+
+    // The disabled row keeps its visible label in the disabled tone.
+    let buf = paint(
+        RADIO_AREA,
+        Theme::junie().downgrade(ColorLevel::Mono),
+        |ui, area| {
+            RadioGroup::new(RADIO)
+                .disabled_item(&|k| k == ItemKey::index(1))
+                .draw(ui, area, &RadioGroupState::default(), &RADIO_ITEMS);
+        },
+    );
+    assert!(
+        row_text(&buf, 1, RADIO_AREA.width).contains("Second"),
+        "W05-02: the disabled row stays visible"
+    );
+    assert!(
+        cell_dim(&buf, 5, 1),
+        "W05-02: the disabled row label must read dim"
+    );
+    assert!(
+        !cell_dim(&buf, 5, 0),
+        "W05-02: the enabled row label must not read dim"
+    );
+
+    // W05-04: an all-disabled group takes no focus and emits nothing.
+    let (mut app, st, value, chose) = rig(DisSet::All);
+    assert!(
+        !app.tab_to(RADIO),
+        "W05-04: an all-disabled group must be unreachable"
+    );
+    for code in [
+        KeyCode::Down,
+        KeyCode::Up,
+        KeyCode::Home,
+        KeyCode::End,
+        KeyCode::Enter,
+        KeyCode::Char(' '),
+    ] {
+        let _ = app.key(code);
+    }
+    for y in [0u16, 1, 2] {
+        let _ = app.click(4, y);
+    }
+    assert!(
+        chose.borrow().is_empty(),
+        "W05-04: an all-disabled group must never choose"
+    );
+    assert_eq!(value.get(), None, "W05-04: the value must not move");
+    assert_eq!(
+        st.borrow().cursor(),
+        None,
+        "W05-04: an all-disabled group keeps no cursor"
+    );
+    let buf = paint_plain(RADIO_AREA, |ui, area| {
+        RadioGroup::new(RADIO).disabled_item(&|_| true).draw(
+            ui,
+            area,
+            &RadioGroupState::default(),
+            &RADIO_ITEMS,
+        );
+    });
+    assert!(
+        row_text(&buf, 0, RADIO_AREA.width).contains("First"),
+        "W05-04: an all-disabled group still paints its rows"
+    );
 }
 
 /// W05-03: reorder or delete a chosen/cursor item between pointer press and
@@ -1898,13 +2107,220 @@ fn w05_radio_empty_and_narrow_vertical() {
     }
 }
 
-/// W05-04 parity record: the reference expects a narrow horizontal layout.
-/// The candidate `RadioGroup` has no orientation API (vertical only), so the
-/// case is inexpressible.
+/// W05-04: a narrow horizontal group lays its options out in one strip.
+///
+/// Segments are measured from their painted labels, the cursor moves with
+/// Left/Right (the vertical axis stays dead), commit and clicks choose per
+/// segment, and narrow allocations drop whole segments without writing
+/// outside.
 #[test]
-#[ignore = "PARITY W05-04: RadioGroup has no horizontal orientation (vertical only)"]
 fn w05_radio_no_horizontal() {
-    panic!("PARITY W05-04: cannot lay a radio group out horizontally; no orientation API");
+    const H_AREA: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 32,
+        height: 3,
+    };
+    let mut st = RadioGroupState::default();
+    st.set_cursor(1, ItemKey::index(1));
+    let buf = paint(H_AREA, Theme::junie(), |ui, area| {
+        ui.reference(
+            Some(ReferenceTarget::new(RADIO, ReferenceState::FOCUSED)),
+            |ui| {
+                RadioGroup::new(RADIO)
+                    .orientation(Axis::H)
+                    .value(ItemKey::index(0))
+                    .draw(ui, area, &st, &RADIO_ITEMS);
+            },
+        );
+    });
+    // "First" measures 10 cells, "Second" 11, "Third" 10; the tail is
+    // blank. The focused cursor segment wears the gutter; unselected
+    // markers are the theme's `(○)` binding.
+    assert_eq!(
+        row_text(&buf, 0, H_AREA.width),
+        " (●) First▎(○) Second (○) Third ",
+        "W05-04: the options share one horizontal strip"
+    );
+    assert_eq!(
+        row_text(&buf, 1, H_AREA.width).trim(),
+        "",
+        "W05-04: a horizontal group uses one row"
+    );
+    assert_eq!(
+        row_text(&buf, 2, H_AREA.width).trim(),
+        "",
+        "W05-04: a horizontal group uses one row"
+    );
+    assert_eq!(
+        cell_symbol(&buf, 10, 0),
+        "▎",
+        "W05-04: the cursor segment carries the gutter"
+    );
+    assert_eq!(
+        cell_symbol(&buf, 0, 0),
+        " ",
+        "W05-04: the chosen segment is not the cursor"
+    );
+    assert_eq!(
+        cell_symbol(&buf, 21, 0),
+        " ",
+        "W05-04: the idle segment carries no gutter"
+    );
+
+    struct HRadio {
+        st: Rc<RefCell<RadioGroupState>>,
+        value: Rc<Cell<Option<ItemKey>>>,
+        chose: Rc<RefCell<Vec<ItemKey>>>,
+    }
+    impl App for HRadio {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let chose = Rc::clone(&self.chose);
+            let value = Rc::clone(&self.value);
+            let mut group = RadioGroup::new(RADIO).orientation(Axis::H);
+            if let Some(v) = value.get() {
+                group = group.value(v);
+            }
+            group
+                .update(cx, &mut self.st.borrow_mut(), &RADIO_ITEMS)
+                .on_action(|action| {
+                    let RadioGroupAction::Chose(key) = action;
+                    value.set(Some(key));
+                    chose.borrow_mut().push(key);
+                })
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let mut group = RadioGroup::new(RADIO).orientation(Axis::H);
+            if let Some(v) = self.value.get() {
+                group = group.value(v);
+            }
+            group.draw(ui, H_AREA, &self.st.borrow(), &RADIO_ITEMS);
+        }
+    }
+    let st = Rc::new(RefCell::new(RadioGroupState::default()));
+    let value = Rc::new(Cell::new(None));
+    let chose = Rc::new(RefCell::new(Vec::new()));
+    let mut app = Harness::new(
+        HRadio {
+            st: Rc::clone(&st),
+            value: Rc::clone(&value),
+            chose: Rc::clone(&chose),
+        },
+        Theme::junie(),
+        SCREEN.width,
+        SCREEN.height,
+    );
+    assert!(
+        app.tab_to(RADIO),
+        "W05-04: the horizontal group stays reachable"
+    );
+    assert_eq!(
+        st.borrow().cursor_index(),
+        0,
+        "W05-04: the cursor seeds on the first option"
+    );
+    let _ = app.key(KeyCode::Right);
+    assert_eq!(
+        st.borrow().cursor_index(),
+        1,
+        "W05-04: Right moves the cursor"
+    );
+    let _ = app.key(KeyCode::Right);
+    assert_eq!(
+        st.borrow().cursor_index(),
+        2,
+        "W05-04: Right moves the cursor"
+    );
+    let _ = app.key(KeyCode::Right);
+    assert_eq!(
+        st.borrow().cursor_index(),
+        2,
+        "W05-04: Right clamps at the last option"
+    );
+    let _ = app.key(KeyCode::Left);
+    assert_eq!(
+        st.borrow().cursor_index(),
+        1,
+        "W05-04: Left moves the cursor"
+    );
+    let _ = app.key(KeyCode::Char(' '));
+    assert_eq!(
+        chose.borrow().as_slice(),
+        &[ItemKey::index(1)],
+        "W05-04: Space chooses the cursor segment"
+    );
+    let _ = app.key(KeyCode::Up);
+    let _ = app.key(KeyCode::Down);
+    assert_eq!(
+        st.borrow().cursor_index(),
+        1,
+        "W05-04: Up/Down must not move a horizontal cursor"
+    );
+    let _ = app.key(KeyCode::Home);
+    assert_eq!(
+        st.borrow().cursor_index(),
+        0,
+        "W05-04: Home jumps to the first option"
+    );
+    let _ = app.key(KeyCode::End);
+    assert_eq!(
+        st.borrow().cursor_index(),
+        2,
+        "W05-04: End jumps to the last option"
+    );
+    let _ = app.click(25, 0);
+    assert_eq!(
+        chose.borrow().last(),
+        Some(&ItemKey::index(2)),
+        "W05-04: clicking the third segment chooses it"
+    );
+    let _ = app.click(2, 0);
+    assert_eq!(
+        chose.borrow().last(),
+        Some(&ItemKey::index(0)),
+        "W05-04: clicking the first segment chooses it"
+    );
+    assert_eq!(
+        value.get(),
+        Some(ItemKey::index(0)),
+        "W05-04: the value follows segment choices"
+    );
+
+    // Narrow strips stay contained: segments that do not fit whole vanish.
+    for width in [0u16, 1, 4, 5, 9, 10, 11, 18] {
+        let at = Rect::new(2, 1, width, 1);
+        let buf = paint_contained(at, |ui, area| {
+            RadioGroup::new(RADIO)
+                .orientation(Axis::H)
+                .value(ItemKey::index(0))
+                .draw(ui, area, &RadioGroupState::default(), &RADIO_ITEMS);
+        });
+        for y in 0..3 {
+            for x in 0..20 {
+                if !at.contains(Position::new(x, y)) {
+                    assert_eq!(
+                        cell_symbol(&buf, x, y),
+                        "#",
+                        "W05-04: width={width} must not write outside {at:?}"
+                    );
+                }
+            }
+        }
+    }
+    // A 10-wide strip fits exactly the first segment, nothing of the second.
+    let at = Rect::new(2, 1, 10, 1);
+    let buf = paint_contained(at, |ui, area| {
+        RadioGroup::new(RADIO)
+            .orientation(Axis::H)
+            .value(ItemKey::index(0))
+            .draw(ui, area, &RadioGroupState::default(), &RADIO_ITEMS);
+    });
+    let strip: String = row_text(&buf, 1, 20).chars().skip(2).take(10).collect();
+    assert_eq!(
+        strip, " (●) First",
+        "W05-04: a 10-wide strip fits exactly the first segment"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -2713,7 +3129,6 @@ fn w08_input_click_positions_caret_by_grapheme() {
 /// `termrock-fields/src/input.rs`). Clicking the second mask cell of "日ab"
 /// lands the caret on the first cell instead.
 #[test]
-#[ignore = "PARITY W08-02: masked clicks use plaintext widths (caret lands on cell 1 of 2), reference follows display graphemes"]
 fn w08_input_masked_clicks_follow_display() {
     let mut rig = InputRig::with("日ab", false, true, None);
     let _ = rig.app.click(3, 0);
@@ -2736,7 +3151,6 @@ fn w08_input_masked_clicks_follow_display() {
 /// without release edits nothing. The candidate `TextInput::update` begins
 /// the draft and moves the caret on `Phase::Press`, so Down alone edits.
 #[test]
-#[ignore = "PARITY W08-02: mouse Down alone begins the draft (Press arm calls begin), reference demands completed click"]
 fn w08_input_down_only_does_not_edit() {
     let mut rig = InputRig::new("original");
     let _ = rig.app.mouse(MouseKind::Down, 5, 0);
@@ -2793,7 +3207,6 @@ fn w08_input_paste_inserts_and_disabled_ignores() {
 /// editing. The candidate paste arm requires `st.is_editing()` and drops
 /// navigation-mode paste entirely.
 #[test]
-#[ignore = "PARITY W08-03: paste while navigating is dropped (paste arm requires is_editing), reference begins editing"]
 fn w08_input_navigation_paste_begins_editing() {
     let mut rig = InputRig::new("ab");
     assert!(rig.app.tab_to(INPUT));
@@ -2974,7 +3387,6 @@ fn w08_input_secret_redacts_debug_paint_cancel_and_zeroize() {
 /// (`termrock-fields/src/input.rs`), so committing a stale draft silently
 /// discards the external change.
 #[test]
-#[ignore = "PARITY W08-07: commit blindly overwrites external value changes (no revision/stamp check)"]
 fn w08_input_external_change_is_not_silently_overwritten() {
     let mut rig = InputRig::new("orig");
     assert!(rig.app.tab_to(INPUT));
@@ -3124,7 +3536,6 @@ fn w09_area_enter_newline_escape_commits() {
 /// arm begins the draft and then runs `TextCmd::Newline` for the same key,
 /// so nav Enter inserts a newline.
 #[test]
-#[ignore = "PARITY W09-01: nav Enter begins AND inserts a newline (begin then Newline run for one key), reference begins only"]
 fn w09_area_nav_enter_begins_without_newline() {
     let mut rig = AreaRig::new("ab");
     assert!(rig.app.tab_to(AREA));
@@ -3232,7 +3643,6 @@ fn w09_area_editing_page_home_end_move_caret() {
 /// caret instead. (The same missing navigation mode also swallows nav
 /// Up/Down and nav typing, which the legacy scrolls or ignores.)
 #[test]
-#[ignore = "PARITY W09-03: nav PageUp/Home/End begin editing and move the caret, reference scrolls the view"]
 fn w09_area_nav_page_home_end_scroll_without_editing() {
     let mut rig = AreaRig::new(AREA_DOC);
     assert!(rig.app.tab_to(AREA));
@@ -3330,8 +3740,10 @@ fn w09_area_selection_spans_newline_tab_grapheme() {
     );
 }
 
-/// W09-05 green half: a wheel that keeps the caret in view holds, and caret
-/// motion keeps following. The hold past the caret is the
+/// W09-05 green half: one notch (+3 rows, the reference app mapping)
+/// holds past the caret, and caret motion resumes the follow. (The old
+/// `L1` here pinned the snap-back: +3 then `ensure_visible` every update.
+/// A true hold lands on `L3`.) The clamped hold is the
 /// `w09_area_wheel_holds_past_caret_until_it_moves` parity record.
 #[test]
 fn w09_area_wheel_holds_and_caret_motion_follows() {
@@ -3341,8 +3753,8 @@ fn w09_area_wheel_holds_and_caret_motion_follows() {
     assert_eq!(rig.app.cursor(), Some(Position::new(2, 1)));
     let _ = rig.app.mouse(MouseKind::Wheel(Axis::V, 1), 5, 1);
     assert!(
-        rig.app.row(0).contains("L1"),
-        "W09-05: wheel +1 must hold while the caret stays visible, got {:?}",
+        rig.app.row(0).contains("L3"),
+        "W09-05: one notch (+3) must hold past the caret, got {:?}",
         rig.app.row(0)
     );
     let _ = rig.app.key(KeyCode::Down);
@@ -3370,7 +3782,6 @@ fn w09_area_wheel_holds_and_caret_motion_follows() {
 /// follow. The candidate runs `ensure_visible` on every editing update, so
 /// a wheel that leaves the caret behind snaps straight back.
 #[test]
-#[ignore = "PARITY W09-05: wheel-while-editing snaps back when the caret leaves view (ensure_visible every update), reference holds until caret moves"]
 fn w09_area_wheel_holds_past_caret_until_it_moves() {
     let mut rig = AreaRig::new(AREA_DOC);
     assert!(rig.app.tab_to(AREA));
@@ -3385,10 +3796,15 @@ fn w09_area_wheel_holds_past_caret_until_it_moves() {
         "W09-05: the wheel offset must hold past the caret, got {:?}",
         rig.app.row(0)
     );
-    // And then caret motion resumes the follow.
+    // And then caret motion resumes the follow. The caret is on L1 after
+    // the Down press, and the contract pins a *minimal* reveal
+    // (`text-area.md` Scroll: "minimally scrolls to reveal that new
+    // position"), so L1 returns at the top row — the "L0" this assert
+    // named is unreachable under the contract, the reference
+    // `ensure_visible`, and the green follow test alike.
     let _ = rig.app.key(KeyCode::Down);
     assert!(
-        rig.app.row(0).contains("L0") || rig.app.row(1).contains("L0"),
+        rig.app.row(0).contains("L1") || rig.app.row(1).contains("L1"),
         "W09-05: caret motion must bring the caret line back, got {:?}/{:?}",
         rig.app.row(0),
         rig.app.row(1)
@@ -4020,7 +4436,6 @@ fn w10_select_empty_disabled_and_scrollbar() {
 /// a settled one. (The legacy select has no oracle here: it cuts the popup
 /// at ten rows instead of scrolling, so the matrix is the authority.)
 #[test]
-#[ignore = "PARITY W10-05: select popup never fades its scrolled edges (no scroll_edges call), reference requires edge fade"]
 fn w10_select_popup_edge_fade() {
     let options: Vec<String> = (0..20).map(|i| format!("opt{i:02}")).collect();
     let labels: Vec<&str> = options.iter().map(String::as_str).collect();
@@ -4577,7 +4992,6 @@ fn w11_form_busy_submit_blocked_cancel_eligible() {
 /// (`docs/components/form.md` negative tests: "Busy submit cannot emit")
 /// blocks every submit path.
 #[test]
-#[ignore = "PARITY W11-04: Enter submits while the submit action is disabled (enter path ignores eligibility), reference blocks busy submit"]
 fn w11_form_busy_enter_submit_blocked() {
     let mut rig = FormRig::new(
         vec![
@@ -5451,7 +5865,6 @@ fn w13_filter_unicode_paste_and_plain_backspace() {
 /// The candidate pops one `char`, splitting the ZWJ cluster and leaving a
 /// dangling "a👩‍".
 #[test]
-#[ignore = "PARITY W13-02: query backspace pops one char and splits grapheme clusters (String::pop), reference pops the cluster"]
 fn w13_filter_backspace_removes_grapheme() {
     let mut rig = FilterRig::plain(vec![flabel("x", "x")]);
     assert!(rig.app.tab_to(FLIST));
@@ -5702,7 +6115,6 @@ fn w13_filter_wide_trail_cells_clear() {
 /// cursor index and scans forward (`nearest` in
 /// `termrock-collections/src/collection/reconcile.rs`), landing on a2.
 #[test]
-#[ignore = "PARITY W13-04: reseed picks nearest-from-index (a2), reference picks first eligible (a1)"]
 fn w13_filter_reseed_selects_first_eligible() {
     let mut rig = FilterRig::plain(vec![
         flabel("a1", "a1"),
@@ -7206,13 +7618,15 @@ fn w16_steps_all_lifecycle_states() {
     ]);
     assert!(rig.app.tab_to(STEPS));
 
-    // Each state paints its icon cell.
+    // Each state paints its icon cell. Running animates (W16-02) — no
+    // time passes before this read, so the rest tick shows the first
+    // spinner frame, not the static Bullet the parity record retires.
     let icons: Vec<String> = (0..6)
         .map(|y| cell_symbol(rig.app.buffer(), 1, y))
         .collect();
     assert_eq!(
         icons,
-        vec!["✓", " ", "▪", " ", "!", "▲"],
+        vec!["✓", " ", "⠋", " ", "!", "▲"],
         "W16-01: every state must paint its icon, got {icons:?}"
     );
 
@@ -7252,7 +7666,6 @@ fn w16_steps_all_lifecycle_states() {
 /// `src/widgets/progress.rs` at `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`,
 /// used by `src/widgets/steps.rs`). The candidate paints a static Bullet.
 #[test]
-#[ignore = "PARITY W16-02: running step shows a static Bullet, reference cycles a 10-phase spinner"]
 fn w16_steps_running_spinner_cycles_phases() {
     let mut rig = StepsRig::plain(vec![
         step_entry("run", StepState::Running),
@@ -7620,7 +8033,6 @@ fn w17_tabs_state_variants() {
 /// FOCUSED/PRESSED flags but the TABS recipe (`builtin/mod.rs`) defines no
 /// rule for them, so focused and pressed tabs render as plain inactive.
 #[test]
-#[ignore = "PARITY W17-01: focused/pressed tabs render as inactive, reference bolds the cursor tab"]
 fn w17_tabs_focused_pressed_bold() {
     let mut rig = TabsRig::with(
         vec![tab_entry("A"), tab_entry("B"), tab_entry("C")],

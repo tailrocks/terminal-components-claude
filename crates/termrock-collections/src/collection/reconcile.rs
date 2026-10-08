@@ -261,6 +261,18 @@ impl CollectionCore {
         self.reconcile_with_extent(len, len, key, enabled)
     }
 
+    /// As [`reconcile_with`](Self::reconcile_with), but a vanished cursor
+    /// key falls to the first enabled row instead of the nearest one
+    /// (reference picker `refresh_items`; W13-04).
+    pub fn reconcile_first_with(
+        &mut self,
+        len: usize,
+        key: impl Fn(usize) -> ItemKey,
+        enabled: impl Fn(usize) -> bool,
+    ) -> Reconciliation {
+        self.reconcile_inner(len, len, key, enabled, true)
+    }
+
     /// Reconcile keyed entries whose visual extent includes non-item rows.
     pub fn reconcile_with_extent(
         &mut self,
@@ -268,6 +280,17 @@ impl CollectionCore {
         extent: usize,
         key: impl Fn(usize) -> ItemKey,
         enabled: impl Fn(usize) -> bool,
+    ) -> Reconciliation {
+        self.reconcile_inner(len, extent, key, enabled, false)
+    }
+
+    fn reconcile_inner(
+        &mut self,
+        len: usize,
+        extent: usize,
+        key: impl Fn(usize) -> ItemKey,
+        enabled: impl Fn(usize) -> bool,
+        prefer_first: bool,
     ) -> Reconciliation {
         let stamp = Self::stamp_of(len, &key);
         if self.stamp == Some(stamp) {
@@ -311,7 +334,12 @@ impl CollectionCore {
                         Reconciliation::Unchanged
                     }
                     None => {
-                        if let Some((i, k)) = self.nearest(len, &key, &enabled) {
+                        let fallback = if prefer_first {
+                            (0..len).find(|&i| enabled(i)).map(|i| (i, key(i)))
+                        } else {
+                            self.nearest(len, &key, &enabled)
+                        };
+                        if let Some((i, k)) = fallback {
                             self.cursor = Some(k);
                             self.cursor_index = i;
                             Reconciliation::CursorMoved(k)

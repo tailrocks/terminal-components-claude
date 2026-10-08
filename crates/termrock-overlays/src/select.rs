@@ -1035,6 +1035,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                 }
                 let content = scrollbar.draw(ui, list, st.core.scroll(), items.len());
                 let view = ScrollRegion::view(st.core.scroll(), content, items.len());
+                let mut keep = Vec::new();
                 for (row_i, i) in view.visible_range().enumerate() {
                     let Some(item) = items.get(i) else { break };
                     let key = key_fn.key(item, i);
@@ -1122,7 +1123,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                     if !ui.is_inert() {
                         ui.register_part(id, PartRef::item(Part::ROW, key), row);
                     }
+                    if st.core.cursor() == Some(key) {
+                        keep.push(row.y);
+                    }
                 }
+                // W10-05: fade the scrolled edges like every other
+                // scrollable (list precedent); the cursor row stays
+                // crisp so the focused option never dims.
+                ui.scroll_edges_except(content, &view, &keep);
             });
         });
     }
