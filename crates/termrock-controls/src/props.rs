@@ -814,35 +814,81 @@ impl<'a> PropsList<'a> {
             );
             ui.fill(visible_area, container.style);
 
+            // Focus gutter: the bar voices the cursor row, blank elsewhere
+            // (tag `theme.rs:391`); labels start two cells in.
+            let row_focused = flags.intersects(StateFlags::FOCUSED);
+            let gutter = self.ov.style(
+                ui,
+                self.id,
+                Family::PROPS,
+                self.variant,
+                Part::GUTTER,
+                flags,
+            );
+            let gutter_area = Rect {
+                x: content.x,
+                y,
+                width: 2.min(content.width),
+                height: 1,
+            };
+            ui.paint_str(
+                gutter_area,
+                if row_focused { "▎ " } else { "  " },
+                gutter.style,
+            );
+
             let label = self
                 .ov
                 .style(ui, self.id, Family::PROPS, self.variant, Part::META, flags);
             let label_area = Rect {
-                x: content.x,
+                x: content.x.saturating_add(2),
                 y,
                 width: label_width,
                 height: 1,
             };
             ui.paint_str(label_area, row.label, label.style);
 
+            // The focused copyable row voices the `y copy` hint at the
+            // right with one cell of margin; its value yields eight cells
+            // (tag `props.rs:294`).
+            let hinted = row_focused && row.can_copy();
+            let value_x = content
+                .x
+                .saturating_add(2)
+                .saturating_add(label_width)
+                .saturating_add(2);
+            let mut paint_width = value_width.saturating_sub(2);
+            if hinted {
+                paint_width = paint_width.saturating_sub(8);
+            }
+            paint_width = paint_width.min(content.right().saturating_sub(value_x));
             let value_area = Rect {
-                x: content.x.saturating_add(label_width).saturating_add(2),
+                x: value_x,
                 y,
-                width: value_width,
+                width: paint_width,
                 height,
             };
             let value = self
                 .ov
                 .style(ui, self.id, Family::PROPS, self.variant, Part::LABEL, flags);
             paint_value(ui, value_area, row, value.style);
+            if hinted {
+                let hint =
+                    self.ov
+                        .style(ui, self.id, Family::PROPS, self.variant, Part::HELP, flags);
+                let hint_area = Rect {
+                    x: content.right().saturating_sub(7),
+                    y,
+                    width: 6,
+                    height: 1,
+                };
+                ui.paint_str(hint_area, "y copy", hint.style);
+            }
             if matches!(value.glyph, Slot::Set(GlyphRole::PressLeft)) {
                 paint_pressed_bracket(
                     ui,
-                    cell_at(row_area, content.x.saturating_add(label_width)),
-                    cell_at(
-                        row_area,
-                        content.x.saturating_add(label_width).saturating_add(1),
-                    ),
+                    cell_at(row_area, value_x.saturating_sub(2)),
+                    cell_at(row_area, value_x.saturating_sub(1)),
                     value.style,
                 );
             }
@@ -1566,7 +1612,8 @@ mod tests {
             })
             .commit_presented();
 
-        let value_x = 8;
+        // Values start past the 2-cell focus gutter: 2 + 6 ("Second") + 2.
+        let value_x = 10;
         assert_ne!(
             buffer.cell(Position::new(value_x, 0)).map(|cell| cell.bg),
             Some(theme.color.danger)
@@ -1602,15 +1649,17 @@ mod tests {
                 .part(PartRef::item(Part::ROW, FIRST_KEY)),
         );
 
+        // The label/value gap sits past the 2-cell focus gutter and the
+        // 4-cell "Name" label: cells 6-7.
         assert_eq!(
             focused
-                .cell(Position::new(4, 0))
+                .cell(Position::new(6, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
             Some(" ")
         );
         assert_eq!(
             focused
-                .cell(Position::new(5, 0))
+                .cell(Position::new(7, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
             Some(" ")
         );
@@ -1619,13 +1668,13 @@ mod tests {
         // columns.
         assert_eq!(
             pressed
-                .cell(Position::new(4, 0))
+                .cell(Position::new(6, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
             Some(" ")
         );
         assert_eq!(
             pressed
-                .cell(Position::new(5, 0))
+                .cell(Position::new(7, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
             Some(" ")
         );
