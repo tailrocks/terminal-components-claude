@@ -781,12 +781,16 @@ impl<'a> Toggle<'a> {
         // W04-01: under four columns the switch collapses to its
         // single-cell state dot (reference `Toggle::render`).
         let compact = area.width < 4;
+        // Baseline guard (`visual-baseline:src/widgets/choice.rs:341-343`):
+        // the trailing state word paints only when the full row fits, strict,
+        // for both words (the `+3`-for-`on` quirk is the frozen authority).
+        let show_word = 6u16.saturating_add(width(self.label)).saturating_add(3) < area.width;
         FlagRow {
             id: self.id,
             ov: self.ov,
             label: self.label,
             marker_w: Self::MARKER_W,
-            trailing: Some(if on { "on" } else { "off" }),
+            trailing: show_word.then_some(if on { "on" } else { "off" }),
         }
         .draw(
             ui,
@@ -817,7 +821,12 @@ impl<'a> Toggle<'a> {
                 for col in rail.columns() {
                     ui.glyph(col, GlyphRole::RuleQuiet, style);
                 }
-                ui.glyph(cell_at(cell, knob), GlyphRole::SwitchKnob, style);
+                let knob_glyph = if on {
+                    GlyphRole::SwitchKnob
+                } else {
+                    GlyphRole::SwitchKnobOff
+                };
+                ui.glyph(cell_at(cell, knob), knob_glyph, style);
             },
         )
     }
@@ -1851,6 +1860,74 @@ mod tests {
     #[test]
     fn checked_painting_comes_only_from_the_toggle_prop() {
         assert_ne!(draw_toggle(true), draw_toggle(false));
+    }
+
+    fn draw_toggle_sized(label: &str, on: bool, w: u16) -> Buffer {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: w,
+            height: 1,
+        };
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                Toggle::new(RG, label).on(on).draw(ui, area);
+            })
+            .commit_presented();
+        buffer
+    }
+
+    /// Symbols of buffer row `y` over `x0..=x1`.
+    fn buf_row(buf: &Buffer, y: u16, x0: u16, x1: u16) -> String {
+        (x0..=x1)
+            .map(|x| {
+                buf.cell(Position::new(x, y))
+                    .map(|c| c.symbol().to_string())
+                    .unwrap_or_default()
+            })
+            .collect()
+    }
+
+    /// L1: the off knob is the `○──` half of the pair, not `●──`.
+    #[test]
+    fn toggle_off_switch_pair() {
+        let row = buf_row(&draw_toggle(false), 0, 0, 39);
+        assert!(row.contains("○──"), "off row must show ○──, got {row:?}");
+        assert!(row.contains("off"), "off row must show off, got {row:?}");
+        let row = buf_row(&draw_toggle(true), 0, 0, 39);
+        assert!(row.contains("──●"), "on row must show ──●, got {row:?}");
+        assert!(row.contains("on"), "on row must show on, got {row:?}");
+    }
+
+    /// L2: the clipped state word is suppressed unless `6+labelw+3 < width`.
+    /// A 27-char label in 34/35/36-wide rects paints no word char (pre-fix
+    /// fragments `o`/`of`/`off`); 40-wide paints `off`.
+    #[test]
+    fn toggle_suppresses_clipped_state_word() {
+        let label = "Local only (no iCloud sync)";
+        assert_eq!(width(label), 27, "test label must be 27 wide");
+        for w in [34u16, 35, 36] {
+            let buf = draw_toggle_sized(label, false, w);
+            assert_eq!(
+                buf_row(&buf, 0, 5, 31),
+                label,
+                "{w}-wide: label must be intact"
+            );
+            assert!(
+                buf_row(&buf, 0, 33, w.saturating_sub(1))
+                    .chars()
+                    .all(|c| c == ' '),
+                "{w}-wide: word zone must be blank"
+            );
+        }
+        let buf = draw_toggle_sized(label, false, 40);
+        assert_eq!(
+            buf_row(&buf, 0, 33, 35),
+            "off",
+            "40-wide: the word must paint"
+        );
     }
 
     /// A disabled collection remains drawable from its current item slice,

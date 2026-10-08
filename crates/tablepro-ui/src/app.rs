@@ -9,7 +9,7 @@ use termrock::{
     KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase,
     PickerAction, Props, PropsRow, Response, Role, RowUi, Select, SelectAction, SelectField,
     SelectState, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs,
-    TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, TooSmall, Tree,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Toggle, TooSmall, Tree,
     TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
 };
 
@@ -4399,101 +4399,6 @@ impl TableProApp {
         }
     }
 
-    fn draw_form_toggle(
-        ui: &mut Ui<'_>,
-        area: termrock::Rect,
-        label: &str,
-        on: bool,
-        disabled: bool,
-        card_bg: PaintStyle,
-    ) {
-        if area.is_empty() {
-            return;
-        }
-        let row_rect = termrock::Rect {
-            x: area.x,
-            y: area.y,
-            width: area.width,
-            height: 1,
-        };
-        let row_style =
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-        ui.fill(row_rect, row_style);
-        let gutter_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
-        );
-        ui.paint_str(
-            termrock::Rect {
-                x: area.x,
-                y: area.y,
-                width: 1,
-                height: 1,
-            },
-            " ",
-            gutter_style,
-        );
-        let accent_style = card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
-        let muted_style =
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-        let faint_style =
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
-        let text_style = if disabled {
-            faint_style
-        } else {
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))))
-        };
-
-        let (sw, ss) = if disabled {
-            (if on { "──●" } else { "○──" }, muted_style)
-        } else if on {
-            ("──●", accent_style)
-        } else {
-            ("○──", muted_style)
-        };
-        let (sw, sw_len) = if area.width < 4 {
-            (if on { "●" } else { "○" }, 1u16)
-        } else {
-            (sw, 3u16)
-        };
-        ui.paint_str(
-            termrock::Rect {
-                x: area.x.saturating_add(1),
-                y: area.y,
-                width: sw_len,
-                height: 1,
-            },
-            sw,
-            ss,
-        );
-        if area.width > 5 {
-            let label_text = truncate(label, area.width.saturating_sub(5));
-            ui.paint_str(
-                termrock::Rect {
-                    x: area.x.saturating_add(5),
-                    y: area.y,
-                    width: area.width.saturating_sub(5),
-                    height: 1,
-                },
-                &label_text,
-                text_style,
-            );
-        }
-        let state = if on { "on" } else { "off" };
-        let state_offset = 6u16.saturating_add(termrock::width(label) as u16);
-        if state_offset.saturating_add(3) < area.width {
-            ui.paint_str(
-                termrock::Rect {
-                    x: area.x.saturating_add(state_offset),
-                    y: area.y,
-                    width: 3,
-                    height: 1,
-                },
-                state,
-                if disabled { faint_style } else { muted_style },
-            );
-        }
-    }
-
     fn draw_form_basic_tab(
         &self,
         ui: &mut Ui<'_>,
@@ -4827,36 +4732,102 @@ impl TableProApp {
         let mut y = lc.y;
 
         // 1. SSL / TLS
-        Self::draw_form_toggle(
-            ui,
-            termrock::Rect {
-                x: lc.x,
-                y,
-                width: lc.width,
-                height: 1,
-            },
-            "Use SSL / TLS",
-            draft.ssl,
-            false,
-            card_bg,
-        );
+        let marker_fg = if draft.ssl {
+            Role::Accent
+        } else {
+            Role::Fg(FgStep::Muted)
+        };
+        Toggle::new(connections::field::SSL, "Use SSL / TLS")
+            .on(draft.ssl)
+            .patch_part(&[
+                (
+                    Part::CONTAINER,
+                    StylePatch::new()
+                        .set_bg(Role::Surface(termrock::Surface::Surface))
+                        .set_fg(Role::Fg(FgStep::Primary)),
+                ),
+                (
+                    Part::GUTTER,
+                    StylePatch::new()
+                        .set_bg(Role::Surface(termrock::Surface::Surface))
+                        .set_fg(Role::Surface(termrock::Surface::Surface)),
+                ),
+                (
+                    Part::MARKER,
+                    StylePatch::new()
+                        .set_bg(Role::Surface(termrock::Surface::Surface))
+                        .set_fg(marker_fg),
+                ),
+                (
+                    Part::LABEL,
+                    StylePatch::new()
+                        .set_bg(Role::Surface(termrock::Surface::Surface))
+                        .set_fg(Role::Fg(FgStep::Primary)),
+                ),
+                (
+                    Part::META,
+                    StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+                ),
+            ])
+            .draw(
+                ui,
+                termrock::Rect {
+                    x: lc.x,
+                    y,
+                    width: lc.width,
+                    height: 1,
+                },
+            );
         y = y.saturating_add(2);
 
         // 2. SSH tunnel
         let ssh_on = draft.ssh;
-        Self::draw_form_toggle(
-            ui,
-            termrock::Rect {
-                x: lc.x,
-                y,
-                width: lc.width,
-                height: 1,
-            },
-            "SSH tunnel",
-            ssh_on,
-            false,
-            card_bg,
-        );
+        let marker_fg = if ssh_on {
+            Role::Accent
+        } else {
+            Role::Fg(FgStep::Muted)
+        };
+        Toggle::new(connections::field::SSH, "SSH tunnel")
+            .on(ssh_on)
+            .patch_part(&[
+                (
+                    Part::CONTAINER,
+                    StylePatch::new()
+                        .set_bg(Role::Surface(termrock::Surface::Surface))
+                        .set_fg(Role::Fg(FgStep::Primary)),
+                ),
+                (
+                    Part::GUTTER,
+                    StylePatch::new()
+                        .set_bg(Role::Surface(termrock::Surface::Surface))
+                        .set_fg(Role::Surface(termrock::Surface::Surface)),
+                ),
+                (
+                    Part::MARKER,
+                    StylePatch::new()
+                        .set_bg(Role::Surface(termrock::Surface::Surface))
+                        .set_fg(marker_fg),
+                ),
+                (
+                    Part::LABEL,
+                    StylePatch::new()
+                        .set_bg(Role::Surface(termrock::Surface::Surface))
+                        .set_fg(Role::Fg(FgStep::Primary)),
+                ),
+                (
+                    Part::META,
+                    StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+                ),
+            ])
+            .draw(
+                ui,
+                termrock::Rect {
+                    x: lc.x,
+                    y,
+                    width: lc.width,
+                    height: 1,
+                },
+            );
         y = y.saturating_add(1);
 
         // 3. SSH host
@@ -4904,7 +4875,42 @@ impl TableProApp {
         y = y.saturating_add(fh);
 
         // 5. Local only (no iCloud sync)
-        Self::draw_form_toggle(
+        Toggle::new(
+            connections::field::LOCAL_ONLY,
+            "Local only (no iCloud sync)",
+        )
+        .on(false)
+        .patch_part(&[
+            (
+                Part::CONTAINER,
+                StylePatch::new()
+                    .set_bg(Role::Surface(termrock::Surface::Surface))
+                    .set_fg(Role::Fg(FgStep::Primary)),
+            ),
+            (
+                Part::GUTTER,
+                StylePatch::new()
+                    .set_bg(Role::Surface(termrock::Surface::Surface))
+                    .set_fg(Role::Surface(termrock::Surface::Surface)),
+            ),
+            (
+                Part::MARKER,
+                StylePatch::new()
+                    .set_bg(Role::Surface(termrock::Surface::Surface))
+                    .set_fg(Role::Fg(FgStep::Muted)),
+            ),
+            (
+                Part::LABEL,
+                StylePatch::new()
+                    .set_bg(Role::Surface(termrock::Surface::Surface))
+                    .set_fg(Role::Fg(FgStep::Primary)),
+            ),
+            (
+                Part::META,
+                StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+            ),
+        ])
+        .draw(
             ui,
             termrock::Rect {
                 x: lc.x,
@@ -4912,10 +4918,6 @@ impl TableProApp {
                 width: lc.width,
                 height: 1,
             },
-            "Local only (no iCloud sync)",
-            false,
-            false,
-            card_bg,
         );
 
         // Right column

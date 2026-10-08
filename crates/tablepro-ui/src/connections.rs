@@ -43,6 +43,8 @@ pub mod field {
     pub const SSH: Id = Id::root("tablepro.connections.form.ssh");
     /// SSH host field.
     pub const SSH_HOST: Id = Id::root("tablepro.connections.form.ssh-host");
+    /// Local-only toggle field (draw-only; no draft field, no form spec).
+    pub const LOCAL_ONLY: Id = Id::root("tablepro.connections.form.local-only");
     /// Startup command field.
     pub const STARTUP: Id = Id::root("tablepro.connections.form.startup");
     /// Form tabs selector.
