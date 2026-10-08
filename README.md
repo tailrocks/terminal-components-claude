@@ -6,6 +6,8 @@ The workspace is a multi-crate Cargo layout under `crates/`, with the Termrock l
 and the `showcase`, `tablepro`, `jackin-preview`, and `holla` preview applications.
 Crate counts alone never prove reusable component adoption; the composition contract below owns that rule.
 
+**Current status:** [Visibility and refactor status](STATUS.md) reports measured source identities and current evidence.
+
 Some current source and package names still predate the Termrock identity.
 They remain implementation names until a later implementation change.
 This documentation update does not rename the repository, Cargo packages, crates, source paths, or applications.

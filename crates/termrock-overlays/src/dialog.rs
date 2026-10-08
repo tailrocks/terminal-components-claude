@@ -20,7 +20,7 @@ use crate::layout::{RowAlign, action_row};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy};
-use crate::text::{width, wrap, wrapped_rows};
+use crate::text::{truncate, width, wrap, wrapped_rows};
 use crate::theme::{DesignTokens, Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
@@ -168,6 +168,15 @@ impl DialogState {
         self.ack_draft.zeroize();
     }
 
+    /// Preset the committed prompt text, e.g. the current name a rename
+    /// dialog edits. This is prompt-only: it clears the acknowledgement
+    /// token and leaves secret mode, so call it before opening.
+    pub fn set_draft(&mut self, draft: &str) {
+        self.ack_draft.zeroize();
+        self.input.set_sensitive(false);
+        self.draft = draft.into();
+    }
+
     fn set_secret_mode(&mut self, secret: bool) {
         if self.input.is_sensitive() == secret {
             return;
@@ -206,8 +215,9 @@ fn zeroize_string(value: &mut String) {
 /// (`design.size.dialog_width`), `.body_rows(u16)` (rows for the body slot;
 /// `code_preview_lines` for `new`, `0` for the conveniences — the dialog
 /// never sees the body closure before `draw`, so the caller states it),
-/// `.error(Option<&str>)` for caller-owned prompt validation, `.patch`,
-/// `.patch_part`.
+/// `.error(Option<&str>)` for caller-owned prompt validation,
+/// `.input_help(&str)` / `.input_required(bool)` forwarded to the prompt
+/// field, `.patch`, `.patch_part`.
 ///
 /// ## Variants
 /// `Family::DIALOG`, `DEFAULT` only; the action buttons carry their
@@ -229,7 +239,9 @@ fn zeroize_string(value: &mut String) {
 ///
 /// ## Keyboard
 /// `←` / `→` move between enabled actions. Esc reaches the focused control
-/// first, then the layer's `Dismiss.esc`.
+/// first, then the layer's `Dismiss.esc`. On a [`Dialog::quick_answer`]
+/// dialog `y` fires the first enabled primary / danger action and `n` the
+/// cancel action.
 ///
 /// ## Mouse
 /// The surface is `Decorative` (a click inside is never "outside"); buttons
@@ -242,7 +254,9 @@ fn zeroize_string(value: &mut String) {
 /// [`Dialog::update`] re-asserts them every frame (§26 N1). `draw` lays out
 /// from `area`'s origin against that measurement — title, description,
 /// prompt, a blank row, the body slot, a blank row, the action row — runs
-/// the body slot exactly once and returns its value. When no chrome fits, the
+/// the body slot exactly once and returns its value. With
+/// `.input_after_body(true)` the acknowledgement field moves below the
+/// body slot, above the actions; facts clip first. When no chrome fits, the
 /// body receives an origin-anchored empty rect under an empty clip.
 /// `measure` returns the same size.
 ///
@@ -275,11 +289,17 @@ pub struct Dialog<'a> {
     primary: Option<ActionKey>,
     width: Option<u16>,
     body_rows: Option<u16>,
+    code: Option<&'a [&'a str]>,
     prompt: Option<&'a str>,
     input_label: Option<&'a str>,
+    input_help: Option<&'a str>,
+    input_required: bool,
     ack: Option<&'a str>,
     error: Option<&'a str>,
     max_height: Option<u16>,
+    input_after_body: bool,
+    idle_ack: bool,
+    ack_secret: bool,
     ov: PartStyle<'a>,
 }
 
@@ -323,11 +343,17 @@ impl<'a> Dialog<'a> {
             primary: None,
             width: None,
             body_rows: None,
+            code: None,
             prompt: None,
             input_label: None,
+            input_help: None,
+            input_required: false,
             ack: None,
             error: None,
             max_height: None,
+            input_after_body: false,
+            idle_ack: false,
+            ack_secret: true,
             ov: PartStyle::new(),
         }
     }
@@ -370,6 +396,22 @@ impl<'a> Dialog<'a> {
         self
     }
 
+    /// Help text under the prompt control, shown when there is no error.
+    /// Forwarded to the prompt `Field`; ignored without one.
+    #[must_use]
+    pub const fn input_help(mut self, help: &'a str) -> Self {
+        self.input_help = Some(help);
+        self
+    }
+
+    /// Whether the prompt control shows the required marker. This only
+    /// annotates the label; validation stays caller-owned (`.error`).
+    #[must_use]
+    pub const fn input_required(mut self, yes: bool) -> Self {
+        self.input_required = yes;
+        self
+    }
+
     /// A typed acknowledgement: the confirming action is armed only while
     /// the draft equals `token`.
     pub const fn acknowledge(id: Id, title: &'a str, token: &'a str) -> Self {
@@ -388,6 +430,26 @@ impl<'a> Dialog<'a> {
         let mut d = Self::info(id, title);
         d.body_rows = Some(props.len().min(usize::from(u16::MAX)) as u16);
         d
+    }
+
+    /// A code preview under the facts: at most six lines and the blank row
+    /// above them (tag `code_rows`). The dialog paints it anchored above
+    /// the actions; the body slot keeps the rows above it, so facts clip
+    /// first on short screens.
+    pub fn code(mut self, lines: &'a [&'a str]) -> Self {
+        let facts = self.body_rows.unwrap_or(0);
+        self.body_rows = Some(facts.saturating_add(Self::code_block(lines)));
+        self.code = Some(lines);
+        self
+    }
+
+    /// Rows the code preview takes below the facts.
+    fn code_block(lines: &[&str]) -> u16 {
+        if lines.is_empty() {
+            0
+        } else {
+            lines.len().min(6) as u16 + 1
+        }
     }
 
     /// A choice body, sized for one row per option with Cancel / OK actions.
@@ -460,6 +522,47 @@ impl<'a> Dialog<'a> {
         self
     }
 
+    /// The primary action: styles with [`Variant::PRIMARY`] and takes
+    /// initial focus on dialogs without an input control. The
+    /// `confirm()` / `prompt()` constructors set this; plain dialogs
+    /// opt in explicitly.
+    #[must_use]
+    pub const fn primary(mut self, k: ActionKey) -> Self {
+        self.primary = Some(k);
+        self
+    }
+
+    /// Reserve the acknowledgement field below the body slot, above the
+    /// actions, instead of above the body. Facts clip first; the
+    /// measured height is unchanged (the separator moves from
+    /// before-body to before-input).
+    #[must_use]
+    pub const fn input_after_body(mut self, yes: bool) -> Self {
+        self.input_after_body = yes;
+        self
+    }
+
+    /// The idle acknowledgement gate, owned: no auto-begin on focus,
+    /// idle Enter begins, idle Esc dismisses through the layer ladder,
+    /// idle Right / Down move to the first action. Ack-only and
+    /// default-off; without it the form bridge auto-begins as before.
+    #[must_use]
+    pub const fn idle_ack(mut self, on: bool) -> Self {
+        self.idle_ack = on;
+        self
+    }
+
+    /// Whether the acknowledgement echo paints masked. Default-on;
+    /// set `false` when the token is public (it appears in the field
+    /// label itself), so committed and editing echo stay plaintext.
+    /// Storage stays secret: arming, zeroize and redaction are
+    /// unchanged. Ack-only.
+    #[must_use]
+    pub const fn ack_secret(mut self, on: bool) -> Self {
+        self.ack_secret = on;
+        self
+    }
+
     /// The dialog width (clamped to the area).
     #[must_use]
     pub const fn width(mut self, w: u16) -> Self {
@@ -499,16 +602,70 @@ impl<'a> Dialog<'a> {
         self.prompt.is_some() || self.ack.is_some()
     }
 
+    const fn above_body_input(&self) -> bool {
+        self.has_input() && !self.input_after_body
+    }
+
+    /// Paint the prompt / acknowledgement field at row `y`, clamped above
+    /// the actions row; returns the first row below the input block.
+    fn draw_input_block(
+        &self,
+        ui: &mut Ui<'_>,
+        inner: Rect,
+        y: u16,
+        actions_y: u16,
+        st: &DialogState,
+    ) -> u16 {
+        let field_h = ui.design().size.field_height;
+        let r = Rect {
+            x: inner.x.saturating_sub(1),
+            y,
+            width: inner.width.saturating_add(1),
+            height: field_h.min(actions_y.saturating_sub(y)),
+        };
+        let value = if self.ack.is_some() {
+            st.ack_draft.expose()
+        } else {
+            &st.draft
+        };
+        let input = self.input_control().value(value);
+        let label = self
+            .input_label
+            .or(self.prompt)
+            .unwrap_or("Type the token to confirm");
+        let mut field = Field::new(label, input).plain(true).error(self.error);
+        if let Some(help) = self.input_help {
+            field = field.help(help);
+        }
+        field.required(self.input_required).draw(ui, r, &st.input);
+        let mut y = y.saturating_add(field_h);
+        if self.ack.is_some() {
+            y = y.saturating_add(1);
+        }
+        y
+    }
+
+    /// Whether `y` / `n` answer this dialog directly: a text question with
+    /// no prompt or acknowledgement editor to consume the keystroke
+    /// (tag `dialog.rs` `y` / `n` arms, `DialogBody::Text`). Callers also
+    /// read this to decide whether the footer may advertise the quick
+    /// answer; the help dialog keeps the keys but hides the hint by id.
+    pub const fn quick_answer(&self) -> bool {
+        self.description.is_some() && !self.has_input()
+    }
+
     fn input_control(&self) -> TextInput<'static> {
         let input = TextInput::new(self.input_id());
-        if self.ack.is_some() {
+        if self.ack.is_some() && self.ack_secret {
             input.secret(SecretPolicy::default())
         } else {
             input
         }
     }
 
-    fn armed(&self, st: &DialogState) -> bool {
+    /// Whether the typed acknowledgement currently equals its token.
+    /// Dialogs without an acknowledgement are always armed.
+    pub fn armed(&self, st: &DialogState) -> bool {
         self.ack
             .is_none_or(|tok| st.input.visible_text_equals(st.ack_draft.expose(), tok))
     }
@@ -532,6 +689,18 @@ impl<'a> Dialog<'a> {
         } else {
             a.variant()
         }
+    }
+
+    /// The key `y` answers with: the first enabled primary / danger action.
+    fn quick_yes(&self, st: &DialogState) -> Option<ActionKey> {
+        self.effective_actions()
+            .iter()
+            .enumerate()
+            .find_map(|(i, a)| {
+                (self.enabled(i, a, st)
+                    && matches!(self.variant_of(a), Variant::PRIMARY | Variant::DANGER))
+                .then_some(a.key())
+            })
     }
 
     /// The first enabled action that is not the cancel action.
@@ -577,16 +746,37 @@ impl<'a> Dialog<'a> {
             }
         }
         let is_ack = self.ack.is_some();
-        st.set_secret_mode(is_ack);
+        st.set_secret_mode(is_ack && self.ack_secret);
         if self.has_input() {
+            // The idle gate's bare-char pre-begin: the plain drive drops
+            // typing while idle, so a focused idle field begins first and
+            // the keystroke below lands in the new draft.
+            if is_ack
+                && self.idle_ack
+                && cx.state(self.input_id()).contains(StateFlags::FOCUSED)
+                && !st.input.is_editing()
+                && cx
+                    .intents(self.input_id())
+                    .any(|intent| matches!(intent, Intent::Key(key) if key.bare_char().is_some()))
+            {
+                st.input.begin(st.ack_draft.expose());
+            }
             let r = if is_ack {
-                self.input_control()
-                    .update_in_form(cx, &mut st.input, &mut st.ack_draft, false)
+                // The form bridge auto-begins on focus; the idle gate and
+                // the plaintext mode both drive the plain generic path.
+                if self.ack_secret && !self.idle_ack {
+                    self.input_control()
+                        .update_in_form(cx, &mut st.input, &mut st.ack_draft, false)
+                } else {
+                    self.input_control()
+                        .update_value(cx, &mut st.input, &mut st.ack_draft)
+                }
             } else {
                 self.input_control()
                     .update(cx, &mut st.input, &mut st.draft)
             };
             let committed = matches!(r.action_ref(), Some(TextAction::Committed));
+            let input_acted = r.action_ref().is_some();
             acc.fold(&r.erase());
             if committed && self.prompt.is_some() {
                 // Enter in a prompt submits; in an acknowledgement it only arms
@@ -610,6 +800,32 @@ impl<'a> Dialog<'a> {
                     cx.focus(id);
                 }
             }
+            // Idle nav, owned: an idle acknowledgement field yields Right
+            // (the caret binding, unconsumed while idle) and Down
+            // (unbound in single-line) to the first action. Any input
+            // action this frame, or an active edit, keeps both inert.
+            if is_ack
+                && self.idle_ack
+                && !input_acted
+                && !st.input.is_editing()
+                && !self.effective_actions().is_empty()
+            {
+                for it in cx.intents(self.input_id()) {
+                    match it {
+                        Intent::Binding(key) if key == ActionKey::custom("Right") => {
+                            cx.focus(self.action_id(0));
+                            acc.changed();
+                            break;
+                        }
+                        Intent::Key(key) if key.code == KeyCode::Down => {
+                            cx.focus(self.action_id(0));
+                            acc.changed();
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+            }
         }
         for (i, a) in self.effective_actions().iter().enumerate() {
             let bid = self.action_id(i);
@@ -625,11 +841,37 @@ impl<'a> Dialog<'a> {
                 acc.fold(&r.erase());
             }
             for it in cx.intents(bid) {
+                if self.quick_answer()
+                    && let Intent::Key(key) = it
+                {
+                    // `y` / `n` answer a text dialog from any focused action
+                    // (tag `dialog.rs`): `y` takes the first enabled primary
+                    // or danger action, `n` the cancel action.
+                    if key.is(KeyCode::Char('y')) {
+                        if let Some(yes) = self.quick_yes(st) {
+                            acc.action(DialogAction::Action(yes));
+                            action_fired = true;
+                        } else {
+                            acc.consumed();
+                        }
+                    } else if key.is(KeyCode::Char('n')) {
+                        if let Some(cancel) = self.cancel
+                            && self.effective_actions().iter().any(|a| a.key() == cancel)
+                        {
+                            acc.action(DialogAction::Action(cancel));
+                            action_fired = true;
+                        } else {
+                            acc.consumed();
+                        }
+                    }
+                }
                 if let Intent::Binding(action) = it {
                     match Binding::command(BINDINGS, action) {
                         Some(DialogCmd::PrevAction) => {
                             if let Some(p) = self.neighbour(st, i, false) {
                                 cx.focus(self.action_id(p));
+                            } else if i == 0 && is_ack && self.idle_ack {
+                                cx.focus(self.input_id());
                             }
                             acc.changed();
                         }
@@ -671,7 +913,7 @@ impl<'a> Dialog<'a> {
 
     /// Columns available to the content: the frame minus one border column
     /// and `(dialog_inset - 1)` padding column on each side (total `dialog_inset * 2`, §26 N1).
-    fn inner_width(&self, d: &DesignTokens) -> u16 {
+    pub fn inner_width(&self, d: &DesignTokens) -> u16 {
         self.measured_width(d)
             .saturating_sub(d.space.dialog_inset.saturating_mul(2))
     }
@@ -687,10 +929,19 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    /// Rows the body slot needs, plus the blank row that separates it.
+    /// Rows the body slot needs, plus the blank row that separates it
+    /// from a preceding description or input block. A body that follows
+    /// the title directly (tag `Facts`: no description, no input) starts
+    /// at `body_y` with no separator.
     fn body_block(&self, d: &DesignTokens) -> u16 {
         let rows = self.body_rows.unwrap_or(d.size.code_preview_lines);
-        if rows == 0 { 0 } else { rows.saturating_add(1) }
+        if rows == 0 {
+            0
+        } else if self.description.is_some() || self.above_body_input() {
+            rows.saturating_add(1)
+        } else {
+            rows
+        }
     }
 
     /// `.width(w)` when set, else `design.size.dialog_width` (§26 N1).
@@ -699,7 +950,9 @@ impl<'a> Dialog<'a> {
     }
 
     /// `border(2)` + `pad(2)` + `title(1 + gap 1)` + the wrapped description +
-    /// the prompt + `[blank + body]` + `[blank + actions]` (§26 N1).
+    /// the prompt + `[blank + body]` + `[blank + actions]` (§26 N1). The
+    /// body's blank applies only after a description or input block; a
+    /// title-direct body (tag `Facts`) omits it.
     ///
     /// A pure function of the props and the design tokens, and the number
     /// [`Dialog::draw`] lays out against — the two share
@@ -723,13 +976,21 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    /// The control that holds initial focus when the dialog opens:
-    /// the input control for prompt / acknowledgement dialogs,
-    /// otherwise the Cancel action if present, otherwise the first action.
+    /// The control that holds initial focus when the dialog opens: the
+    /// input control for prompt / acknowledgement dialogs, otherwise the
+    /// primary action if present, otherwise the Cancel action if present,
+    /// otherwise the first action.
     #[must_use]
     pub fn initial_focus(&self) -> Option<Id> {
         if self.has_input() {
             Some(self.input_id())
+        } else if let Some(primary) = self.primary
+            && let Some(idx) = self
+                .effective_actions()
+                .iter()
+                .position(|a| a.key() == primary)
+        {
+            Some(self.action_id(idx))
         } else if let Some(cancel) = self.cancel
             && let Some(idx) = self
                 .effective_actions()
@@ -877,41 +1138,29 @@ impl<'a> Dialog<'a> {
                         y = y.saturating_add(1);
                     }
                 }
-                if self.has_input() {
-                    let field_h = ui.design().size.field_height;
-                    let r = Rect {
-                        x: inner.x.saturating_sub(1),
-                        y,
-                        width: inner.width.saturating_add(1),
-                        height: field_h.min(actions_y.saturating_sub(y)),
-                    };
-                    let value = if self.ack.is_some() {
-                        st.ack_draft.expose()
-                    } else {
-                        &st.draft
-                    };
-                    let input = self.input_control().value(value);
-                    let label = self
-                        .input_label
-                        .or(self.prompt)
-                        .unwrap_or("Type the token to confirm");
-                    Field::new(label, input)
-                        .plain(true)
-                        .error(self.error)
-                        .draw(ui, r, &st.input);
-                    y = y.saturating_add(field_h);
-                    if self.ack.is_some() {
-                        y = y.saturating_add(1);
-                    }
+                // `input_after_body` moves the acknowledgement field below
+                // the body slot, above the actions; otherwise it stays
+                // above the body.
+                let input_below = self.input_after_body && self.has_input();
+                if self.has_input() && !input_below {
+                    y = self.draw_input_block(ui, inner, y, actions_y, st);
                 }
-                // one blank row separates the body from what precedes it, exactly
-                // as `measured_height`'s `[blank + body]` term says
+                // one blank row separates the body from a preceding
+                // description or input block, exactly as `measured_height`'s
+                // `[blank + body]` term says; a body following the title
+                // directly starts at `body_y` (tag `Facts`). Below-body
+                // input takes no separator here — its blank sits above the
+                // field instead.
+                let sep = u16::from(self.description.is_some() || self.above_body_input());
                 let body_top = if self.body_block(ui.design()) == 0 {
                     y
                 } else {
-                    y.saturating_add(1)
+                    y.saturating_add(sep)
                 };
-                let body_bottom = actions_y.saturating_sub(u16::from(!self.actions.is_empty()));
+                let mut body_bottom = actions_y.saturating_sub(u16::from(!self.actions.is_empty()));
+                if input_below {
+                    body_bottom = body_bottom.saturating_sub(self.input_rows(ui.design()));
+                }
                 let body_rect = Rect {
                     x: inner.x,
                     y: body_top.min(inner.bottom()),
@@ -919,7 +1168,47 @@ impl<'a> Dialog<'a> {
                     height: body_bottom.saturating_sub(body_top),
                 };
                 ui.register_decor(id, PartRef::of(Part::BODY), body_rect);
-                let out = ui.with_area(body_rect, |ui| body(ui, body_rect));
+                let code_h = self.code.map_or(0, Self::code_block).min(body_rect.height);
+                let page_rect = Rect {
+                    height: body_rect.height.saturating_sub(code_h),
+                    ..body_rect
+                };
+                let out = ui.with_area(page_rect, |ui| body(ui, page_rect));
+                if let Some(lines) = self.code
+                    && code_h > 0
+                {
+                    let max = lines.len().min(6);
+                    let cs = style(ui, Part::DETAIL, StateFlags::empty());
+                    let top = body_rect.bottom().saturating_sub(max as u16);
+                    for (i, line) in lines.iter().take(max).enumerate() {
+                        let shown = if i == max - 1 && lines.len() > max {
+                            format!(
+                                "{} … {} more",
+                                truncate(line, inner.width.saturating_sub(12)),
+                                lines.len() - max
+                            )
+                        } else {
+                            truncate(line, inner.width)
+                        };
+                        let row = Rect {
+                            y: top.saturating_add(i as u16),
+                            height: 1,
+                            ..body_rect
+                        };
+                        ui.paint_str(row, &shown, cs.style);
+                    }
+                }
+                if input_below {
+                    // The separator moved from before-body to before-input:
+                    // one blank row, then the field.
+                    let _ = self.draw_input_block(
+                        ui,
+                        inner,
+                        body_bottom.saturating_add(1),
+                        actions_y,
+                        st,
+                    );
+                }
                 if !self.actions.is_empty() {
                     let row = Rect {
                         x: inner.x,
@@ -1040,6 +1329,78 @@ mod tests {
         Dialog::acknowledge(DLG, "Delete table", TOKEN)
     }
 
+    /// A choice-shaped dialog (tag `dialogs.rs` "Unsaved changes"): three
+    /// actions with Save primary and focused.
+    fn choice() -> Dialog<'static> {
+        const ACTIONS: [Action<'static>; 3] = [
+            Action::quiet(ActionKey::CANCEL, "Cancel"),
+            Action::secondary(ActionKey::DISCARD, "Discard"),
+            Action::new(ActionKey::CONFIRM, "Save"),
+        ];
+        Dialog::confirm(
+            DLG,
+            "Unsaved changes",
+            "The description was edited. Save before leaving this page?",
+        )
+        .actions(&ACTIONS)
+    }
+
+    struct KeyApp {
+        st: DialogState,
+        opened: bool,
+        make: fn() -> Dialog<'static>,
+        chosen: Vec<ActionKey>,
+    }
+
+    impl App for KeyApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if !self.opened {
+                self.opened = true;
+                cx.open_layer(DLG, (self.make)().layer(cx));
+            }
+            let r = (self.make)().update(cx, &mut self.st);
+            if let Some(DialogAction::Action(key)) = r.action_ref() {
+                self.chosen.push(*key);
+            }
+            r.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.layer(DLG, |ui, a| {
+                (self.make)().draw(ui, a, &self.st, |_, _| {});
+            });
+        }
+    }
+
+    /// Open `make` headless, send bare `codes`, and collect the fired keys.
+    fn drive(make: fn() -> Dialog<'static>, codes: &[KeyCode]) -> Vec<ActionKey> {
+        let mut rt = Runtime::new(
+            KeyApp {
+                st: DialogState::default(),
+                opened: false,
+                make,
+                chosen: Vec::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        for code in codes {
+            let _ = crate::runtime::stub::deliver(
+                &mut rt,
+                Input::Key(Key {
+                    code: *code,
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        }
+        rt.app().chosen.clone()
+    }
+
     fn esc() -> Input {
         Input::Key(Key {
             code: KeyCode::Esc,
@@ -1117,7 +1478,9 @@ mod tests {
     #[test]
     fn valid_dialog_preserves_chrome_and_clips_its_body() {
         let (mut rt, mut buf) = scene();
-        let area = Rect::new(4, 1, 20, 9);
+        // title(2) + body(2), no separator blank without a preceding
+        // description or input (tag `Facts` at `body_y`): 4 + 2 + 2
+        let area = Rect::new(4, 1, 20, 8);
         let mut inner = Rect::ZERO;
         let mut answer = 0;
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
@@ -1398,7 +1761,9 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         let after = rt.layer_area(DLG).expect("resized layer");
-        assert_eq!(after.height, before.height.saturating_add(6));
+        // no description or input precedes the body, so no separator
+        // blank joins the five new rows (tag `Facts` at `body_y`)
+        assert_eq!(after.height, before.height.saturating_add(5));
     }
 
     #[test]
@@ -1798,5 +2163,463 @@ mod tests {
         assert_eq!(prompt_focused.matches('▎').count(), 1);
         assert!(!prompt_focused.contains("▎Cancel"));
         assert!(!prompt_focused.contains("▎OK"));
+    }
+
+    #[test]
+    fn choice_dialog_focuses_save_and_answers_yn_or_buttons() {
+        // Tag `dialogs.rs` "Unsaved changes": [subtle Cancel, secondary
+        // Discard, primary Save], Save focused first.
+        assert!(choice().quick_answer());
+        assert_eq!(choice().initial_focus(), Some(choice().action_id(2)));
+        assert_eq!(
+            drive(choice, &[KeyCode::Char('y')]),
+            vec![ActionKey::CONFIRM]
+        );
+        assert_eq!(
+            drive(choice, &[KeyCode::Char('n')]),
+            vec![ActionKey::CANCEL]
+        );
+        assert_eq!(
+            drive(choice, &[KeyCode::Left, KeyCode::Enter]),
+            vec![ActionKey::DISCARD]
+        );
+    }
+
+    #[test]
+    fn yn_answer_text_dialogs_but_never_prompts() {
+        assert!(confirm().quick_answer());
+        assert_eq!(
+            drive(confirm, &[KeyCode::Char('y')]),
+            vec![ActionKey::CONFIRM]
+        );
+        assert_eq!(
+            drive(confirm, &[KeyCode::Char('n')]),
+            vec![ActionKey::CANCEL]
+        );
+        assert!(!prompt().quick_answer());
+        assert!(
+            drive(prompt, &[KeyCode::Char('y'), KeyCode::Char('n')]).is_empty(),
+            "prompt keystrokes belong to the editor, not the actions"
+        );
+    }
+
+    // WI-TABLEPRO-SAFETY-FRAME: below-body acknowledgement, the idle
+    // gate and plaintext acknowledgement echo, proved at the owner.
+
+    const SAFETY_ACTIONS: [Action<'static>; 2] = [
+        Action::new(ActionKey::CANCEL, "Cancel"),
+        Action::primary(ActionKey::CONFIRM, "Execute"),
+    ];
+
+    fn idle_ack() -> Dialog<'static> {
+        Dialog::acknowledge(DLG, "Delete table", TOKEN)
+            .actions(&SAFETY_ACTIONS)
+            .idle_ack(true)
+    }
+
+    fn safety_ack() -> Dialog<'static> {
+        Dialog::acknowledge(DLG, "Execute write query?", TOKEN)
+            .actions(&SAFETY_ACTIONS)
+            .input_after_body(true)
+            .idle_ack(true)
+            .ack_secret(false)
+    }
+
+    /// The `KeyApp` drive extended with state, focus and response capture.
+    struct AckApp {
+        st: DialogState,
+        opened: bool,
+        make: fn() -> Dialog<'static>,
+        last_action: Option<DialogAction>,
+        last_changed: bool,
+        dismissed: Vec<DismissReason>,
+    }
+
+    impl App for AckApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if !self.opened {
+                self.opened = true;
+                cx.open_layer(DLG, (self.make)().layer(cx));
+            }
+            let r = (self.make)().update(cx, &mut self.st);
+            self.last_action = r.action_ref().copied();
+            self.last_changed = r.is_changed();
+            if let Some(DialogAction::Dismissed(reason)) = r.action_ref() {
+                self.dismissed.push(*reason);
+            }
+            r.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.layer(DLG, |ui, a| {
+                (self.make)().draw(ui, a, &self.st, |_, _| {});
+            });
+        }
+    }
+
+    struct AckRig {
+        rt: Runtime<AckApp>,
+        buf: Buffer,
+    }
+
+    impl AckRig {
+        fn new(make: fn() -> Dialog<'static>) -> Self {
+            let mut rt = Runtime::new(
+                AckApp {
+                    st: DialogState::default(),
+                    opened: false,
+                    make,
+                    last_action: None,
+                    last_changed: false,
+                    dismissed: Vec::new(),
+                },
+                Theme::junie(),
+            );
+            let _ = rt.initialize();
+            let mut buf = Buffer::empty(SCREEN);
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            AckRig { rt, buf }
+        }
+
+        fn step(&mut self, input: Input) {
+            let _ = crate::runtime::stub::deliver(&mut self.rt, input);
+            self.rt
+                .draw_buffer(SCREEN, &mut self.buf)
+                .commit_presented();
+        }
+
+        fn key(&mut self, code: KeyCode) {
+            self.step(Input::Key(Key {
+                code,
+                mods: KeyModifiers::NONE,
+            }));
+        }
+
+        fn type_str(&mut self, s: &str) {
+            for c in s.chars() {
+                self.key(KeyCode::Char(c));
+            }
+        }
+
+        fn frame(&self) -> String {
+            self.buf
+                .content()
+                .iter()
+                .map(ratatui_core::buffer::Cell::symbol)
+                .collect()
+        }
+
+        fn focused(&self, id: Id) -> bool {
+            self.rt.state_of(id).contains(StateFlags::FOCUSED)
+        }
+    }
+
+    /// Below-body layout, exact rows: title / facts / code / input /
+    /// actions, with the separator moved before the input block.
+    #[test]
+    fn input_after_body_orders_facts_code_input_actions() {
+        static CODE: [&str; 1] = ["UPDATE orders SET status = 'paid'"];
+        let dlg = Dialog::acknowledge(DLG, "Execute write query?", TOKEN)
+            .actions(&SAFETY_ACTIONS)
+            .width(74)
+            .body_rows(5)
+            .code(&CODE)
+            .input_after_body(true);
+        let dt = &Theme::junie().design;
+        // 4 + title 2 + input 4 + body (5 facts + 2 code) + actions 2
+        assert_eq!(dlg.measured_height(dt), 19);
+        assert_eq!(dlg.inner_width(dt), 68);
+        let area = Rect::new(0, 0, 74, 19);
+        let (mut rt, mut buf) = scene();
+        let st = DialogState::default();
+        let mut page = Rect::ZERO;
+        rt.draw_scene(area, &mut buf, |ui, a| {
+            dlg.draw(ui, a, &st, |_, r| page = r);
+        })
+        .commit_presented();
+        // inner y2 h15: title y2, facts y4..8, code blank y9 + SQL y10,
+        // input blank y11, label y12, control y13, field spare y14,
+        // blank y15, actions y16.
+        assert_eq!(page, Rect::new(3, 4, 68, 5));
+        let input = rt.area_of(dlg.input_id()).expect("input registered");
+        assert_eq!((input.x, input.y, input.width), (2, 13, 69));
+        let cancel = rt.area_of(dlg.action_id(0)).expect("cancel placed");
+        assert_eq!(cancel.y, 16);
+        let row: String = (0..74)
+            .map(|x| {
+                buf.cell(Position::new(x, 10))
+                    .map(ratatui_core::buffer::Cell::symbol)
+                    .unwrap_or("?")
+            })
+            .collect();
+        assert!(row.contains("UPDATE orders"), "SQL anchored: {row}");
+        // Without the flag the same dialog keeps the input above the body
+        // (with its before-body separator, so one row taller).
+        let above = Dialog::acknowledge(DLG, "Execute write query?", TOKEN)
+            .actions(&SAFETY_ACTIONS)
+            .width(74)
+            .body_rows(5)
+            .code(&CODE);
+        assert_eq!(above.measured_height(dt), 20);
+        let (mut rt, mut buf) = scene();
+        let mut page = Rect::ZERO;
+        rt.draw_scene(area, &mut buf, |ui, a| {
+            above.draw(ui, a, &st, |_, r| page = r);
+        })
+        .commit_presented();
+        let input = rt.area_of(above.input_id()).expect("input registered");
+        assert_eq!((input.x, input.y, input.width), (2, 5, 69));
+        assert_eq!(page, Rect::new(3, 9, 68, 4));
+    }
+
+    /// Short screens clip facts first; code, input and actions survive.
+    #[test]
+    fn input_after_body_clips_facts_first() {
+        static CODE: [&str; 1] = ["UPDATE orders SET status = 'paid'"];
+        let dlg = Dialog::acknowledge(DLG, "Execute write query?", TOKEN)
+            .actions(&SAFETY_ACTIONS)
+            .width(74)
+            .body_rows(5)
+            .code(&CODE)
+            .input_after_body(true);
+        let area = Rect::new(0, 0, 74, 14);
+        let (mut rt, mut buf) = scene();
+        let st = DialogState::default();
+        let mut page = Rect::ZERO;
+        rt.draw_scene(area, &mut buf, |ui, a| {
+            dlg.draw(ui, a, &st, |_, r| page = r);
+        })
+        .commit_presented();
+        // inner y2 h10: title y2, body y4 h2 (code only), input y7..9,
+        // blank y10, actions y11.
+        assert_eq!(page, Rect::new(3, 4, 68, 0));
+        let input = rt.area_of(dlg.input_id()).expect("input survives");
+        assert_eq!((input.x, input.y, input.width), (2, 8, 69));
+        let cancel = rt.area_of(dlg.action_id(0)).expect("actions survive");
+        assert_eq!(cancel.y, 11);
+        let row: String = (0..74)
+            .map(|x| {
+                buf.cell(Position::new(x, 5))
+                    .map(ratatui_core::buffer::Cell::symbol)
+                    .unwrap_or("?")
+            })
+            .collect();
+        assert!(row.contains("UPDATE orders"), "code survives: {row}");
+    }
+
+    /// Arming, commit-advance and unarmed refusal through `drive`.
+    #[test]
+    fn below_body_ack_arms_advances_and_refuses() {
+        let mut armed = vec![KeyCode::Enter];
+        armed.extend(TOKEN.chars().map(KeyCode::Char));
+        armed.extend([KeyCode::Enter, KeyCode::Right, KeyCode::Enter]);
+        assert_eq!(drive(safety_ack, &armed), vec![ActionKey::CONFIRM]);
+        let mut advancing = vec![KeyCode::Enter];
+        advancing.extend(TOKEN.chars().map(KeyCode::Char));
+        advancing.push(KeyCode::Enter);
+        assert!(
+            drive(safety_ack, &advancing).is_empty(),
+            "committing only advances, never executes"
+        );
+        let mut refused = vec![KeyCode::Enter];
+        refused.extend("nope".chars().map(KeyCode::Char));
+        refused.extend([KeyCode::Enter, KeyCode::Right, KeyCode::Enter]);
+        assert_eq!(drive(safety_ack, &refused), vec![ActionKey::CANCEL]);
+    }
+
+    #[test]
+    fn primary_setter_moves_plain_initial_focus() {
+        const PLAIN: [Action<'static>; 2] = [
+            Action::new(ActionKey::CANCEL, "Cancel"),
+            Action::new(ActionKey::CONFIRM, "Execute"),
+        ];
+        let absent = Dialog::new(DLG)
+            .title("Plain")
+            .actions(&PLAIN)
+            .cancel(ActionKey::CANCEL);
+        assert_eq!(absent.initial_focus(), Some(absent.action_id(0)));
+        let primed = Dialog::new(DLG)
+            .title("Plain")
+            .actions(&PLAIN)
+            .cancel(ActionKey::CANCEL)
+            .primary(ActionKey::CONFIRM);
+        assert_eq!(primed.initial_focus(), Some(primed.action_id(1)));
+    }
+
+    /// I1: open+tick lands focused but idle — no auto-begin.
+    #[test]
+    fn idle_ack_opens_focused_without_editing() {
+        let rig = AckRig::new(idle_ack);
+        let flags = rig.rt.state_of(idle_ack().input_id());
+        assert!(flags.contains(StateFlags::FOCUSED), "input focused");
+        assert!(!flags.contains(StateFlags::EDITING), "no pre-begin");
+        assert!(!rig.rt.app().st.is_editing());
+    }
+
+    /// I2: idle Enter begins — changed, never committed, focus holds.
+    #[test]
+    fn idle_ack_enter_begins() {
+        let mut rig = AckRig::new(idle_ack);
+        rig.key(KeyCode::Enter);
+        assert!(rig.rt.app().st.is_editing(), "idle Enter begins");
+        assert_eq!(rig.rt.app().last_action, None, "nothing committed");
+        assert!(rig.rt.app().last_changed);
+        assert!(rig.focused(idle_ack().input_id()), "focus holds");
+    }
+
+    /// I3: idle Esc is unconsumed — the layer ladder dismisses and the
+    /// drain fires.
+    #[test]
+    fn idle_ack_esc_dismisses() {
+        let mut rig = AckRig::new(idle_ack);
+        rig.key(KeyCode::Esc);
+        assert!(!rig.rt.app().st.is_editing());
+        assert!(!rig.rt.is_open(DLG));
+        assert_eq!(rig.rt.app().dismissed, vec![DismissReason::Esc]);
+        assert_eq!(rig.rt.app().st.ack_draft.expose(), "");
+    }
+
+    /// I4: editing Esc drops the draft and holds focus.
+    #[test]
+    fn idle_ack_editing_esc_cancels() {
+        let mut rig = AckRig::new(idle_ack);
+        rig.key(KeyCode::Enter);
+        rig.type_str("ab");
+        rig.key(KeyCode::Esc);
+        assert!(!rig.rt.app().st.is_editing());
+        assert_eq!(rig.rt.app().st.ack_draft.expose(), "");
+        assert!(rig.focused(idle_ack().input_id()), "focus holds");
+        assert_eq!(rig.rt.app().last_action, None);
+    }
+
+    /// I5: idle Right / Down reach action 0; editing Right is caret motion.
+    #[test]
+    fn idle_ack_nav_yields_to_actions_only_while_idle() {
+        let mut rig = AckRig::new(idle_ack);
+        rig.key(KeyCode::Right);
+        assert!(rig.focused(idle_ack().action_id(0)), "idle Right");
+        let mut rig = AckRig::new(idle_ack);
+        rig.key(KeyCode::Down);
+        assert!(rig.focused(idle_ack().action_id(0)), "idle Down");
+        let mut rig = AckRig::new(idle_ack);
+        rig.key(KeyCode::Enter);
+        rig.type_str("ab");
+        rig.key(KeyCode::Left);
+        assert_eq!(rig.rt.app().st.input.draft_cursor(), Some(1));
+        rig.key(KeyCode::Right);
+        assert_eq!(rig.rt.app().st.input.draft_cursor(), Some(2));
+        assert!(rig.rt.app().st.is_editing());
+        assert!(rig.focused(idle_ack().input_id()), "editing holds");
+        assert_eq!(rig.rt.app().last_action, None);
+    }
+
+    /// I6: `PrevAction` on action 0 returns to the acknowledgement input.
+    #[test]
+    fn idle_ack_prev_action_returns_to_input() {
+        let mut rig = AckRig::new(idle_ack);
+        rig.key(KeyCode::Right);
+        assert!(rig.focused(idle_ack().action_id(0)));
+        rig.key(KeyCode::Left);
+        assert!(rig.focused(idle_ack().input_id()));
+        assert!(!rig.rt.app().st.is_editing(), "re-entry stays idle");
+    }
+
+    /// I7: default-off — without the flag the form bridge auto-begins.
+    #[test]
+    fn stock_ack_keeps_auto_begin() {
+        let rig = AckRig::new(acknowledge);
+        assert!(
+            rig.rt.app().st.is_editing(),
+            "the default path still auto-begins on focus"
+        );
+    }
+
+    /// S1: default-on — the stock acknowledgement still masks.
+    #[test]
+    fn stock_ack_still_masks() {
+        let mut rig = AckRig::new(acknowledge);
+        rig.type_str(TOKEN);
+        rig.key(KeyCode::Enter);
+        let frame = rig.frame();
+        assert!(!frame.contains(TOKEN), "the token reached the frame");
+        let policy = SecretPolicy::default();
+        let mask = Theme::junie().design.glyphs.get(policy.mask);
+        assert!(
+            frame.matches(mask).count()
+                >= TOKEN.chars().count().saturating_sub(policy.synthetic_tail),
+            "no mask run: {frame}"
+        );
+        assert!(rig.rt.app().st.input.is_sensitive());
+    }
+
+    /// S2: plaintext mode — committed echo in the clear, exact arming.
+    #[test]
+    fn plaintext_ack_echoes_and_arms_exactly() {
+        fn plain() -> Dialog<'static> {
+            Dialog::acknowledge(DLG, "Delete table", TOKEN)
+                .actions(&SAFETY_ACTIONS)
+                .ack_secret(false)
+        }
+        let mut rig = AckRig::new(plain);
+        rig.key(KeyCode::Enter);
+        rig.type_str(TOKEN);
+        rig.key(KeyCode::Enter);
+        let frame = rig.frame();
+        assert!(frame.contains(TOKEN), "plaintext echo: {frame}");
+        let policy = SecretPolicy::default();
+        let mask = Theme::junie().design.glyphs.get(policy.mask);
+        assert!(!frame.contains(mask), "a mask run survived: {frame}");
+        assert!(!rig.rt.app().st.input.is_sensitive());
+        assert!(plain().armed(&rig.rt.app().st), "exact token arms");
+        for wrong in ["delet", "delete ", "de lete", "DELETE"] {
+            let mut rig = AckRig::new(plain);
+            rig.key(KeyCode::Enter);
+            rig.type_str(wrong);
+            rig.key(KeyCode::Enter);
+            assert!(!plain().armed(&rig.rt.app().st), "{wrong:?} must not arm");
+        }
+    }
+
+    /// S3: plaintext + idle gate composed — plaintext editing echo,
+    /// commit advance, Esc-drop and zeroize-on-dismiss.
+    #[test]
+    fn plaintext_idle_ack_composes() {
+        let mut rig = AckRig::new(safety_ack);
+        rig.key(KeyCode::Enter);
+        rig.type_str("del");
+        assert!(rig.frame().contains("del"), "plaintext editing echo");
+        rig.type_str("ete");
+        rig.key(KeyCode::Enter);
+        assert!(rig.frame().contains(TOKEN), "plaintext committed echo");
+        assert!(rig.focused(safety_ack().action_id(0)), "commit advances");
+        let mut rig = AckRig::new(safety_ack);
+        rig.key(KeyCode::Enter);
+        rig.type_str("xy");
+        rig.key(KeyCode::Esc);
+        assert!(!rig.rt.app().st.is_editing());
+        assert_eq!(rig.rt.app().st.ack_draft.expose(), "");
+        assert!(rig.focused(safety_ack().input_id()));
+        let mut rig = AckRig::new(safety_ack);
+        rig.key(KeyCode::Enter);
+        rig.type_str(TOKEN);
+        rig.key(KeyCode::Enter);
+        assert_eq!(rig.rt.app().st.ack_draft.expose(), TOKEN);
+        rig.key(KeyCode::Esc);
+        assert_eq!(rig.rt.app().dismissed, vec![DismissReason::Esc]);
+        assert_eq!(rig.rt.app().st.ack_draft.expose(), "");
+    }
+
+    #[test]
+    fn help_shaped_dialog_answers_n_but_has_no_primary_for_y() {
+        fn help() -> Dialog<'static> {
+            Dialog::info(DLG, "Keyboard & mouse").description("keys and clicks")
+        }
+        // The keys stay live on help (tag `dialog.rs` has no HELP
+        // exclusion): only the footer hint is suppressed, by id.
+        assert!(help().quick_answer());
+        assert!(drive(help, &[KeyCode::Char('y')]).is_empty());
+        assert_eq!(drive(help, &[KeyCode::Char('n')]), vec![ActionKey::CLOSE]);
     }
 }

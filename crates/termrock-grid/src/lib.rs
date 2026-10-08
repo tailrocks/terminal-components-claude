@@ -25,6 +25,10 @@ pub(crate) mod input {
     pub use termrock_fields::{BlurPolicy, TextAction, TextInput, TextInputState};
 }
 
+pub(crate) mod controls {
+    pub use termrock_controls::Button;
+}
+
 pub(crate) mod progress {
     pub use termrock_feedback::Spinner;
 }
@@ -44,5 +48,6 @@ pub mod grid;
 pub use grid::{
     CellAction, CellRef, Column, ColumnKey, EditIntent, GRID_MAX_COLUMNS, Grid, GridAction,
     GridCell, GridCmd, GridColumnFit, GridCursorError, GridEditor, GridGutter, GridHeaderSizing,
-    GridModel, GridSortIndicator, GridState, NavUnit, SortDir, WidthSample, WidthSampleError,
+    GridModel, GridOverflowIndicator, GridSortIndicator, GridState, NavUnit, SortDir, WidthSample,
+    WidthSampleError,
 };

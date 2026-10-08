@@ -1,0 +1,61 @@
+{
+  "review_id": "VIS-05-queue-source-review-v2",
+  "reviewer": "/root/reference_luna",
+  "reviewed_at_utc": "2026-10-08T03:57:14Z",
+  "decision": "approved",
+  "scope": {
+    "work_id": "VIS-05",
+    "repository": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+    "branch": "termrock-implementation",
+    "observed_head": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+    "staged_subject": null,
+    "files": [
+      {
+        "path": "tools/visibility/queue.py",
+        "sha256": "c10b3389ee252c78f17df516602d32a3ce43cbc36d3b671df18e343921ce5514"
+      },
+      {
+        "path": "tools/visibility/tests/test_queue.py",
+        "sha256": "a8f61ae362b3ad129114dd51a2823f635a2b10fca917404f9f6da95214af14d4"
+      }
+    ]
+  },
+  "findings": [],
+  "reviewed_controls": [
+    {
+      "control": "repair-render uses the shared queue lock and reads the latest source while locked",
+      "evidence": "tools/visibility/queue.py:1222-1236; tools/visibility/tests/test_queue.py:460-499"
+    },
+    {
+      "control": "state reads and atomic writes reject symlinked parent and leaf paths using directory file descriptors and no-follow opens",
+      "evidence": "tools/visibility/queue.py:1013-1103; tools/visibility/tests/test_queue.py:501-526"
+    },
+    {
+      "control": "active claim scopes are preflighted for symlinks and non-regular files; instruction discovery rejects scoped symlink escapes",
+      "evidence": "tools/visibility/queue.py:680-904; tools/visibility/tests/test_queue.py:528-546,690-708"
+    },
+    {
+      "control": "mutations check the implementation branch and current subject inside the queue lock; CAS and filesystem preflights are in the locked update path",
+      "evidence": "tools/visibility/queue.py:1190-1219; tools/visibility/tests/test_queue.py:596-650"
+    },
+    {
+      "control": "source and generated view use file and parent-directory fsync; source-first partial failure is detected by exact rendered-view validation",
+      "evidence": "tools/visibility/queue.py:1170-1178,1065-1103,1049-1058"
+    },
+    {
+      "control": "strict JSON/schema, canonical UTC timestamps, path overlap, priority, dependency reservation, expiry handoff history, and shared API ownership checks remain enforced",
+      "evidence": "tools/visibility/queue.py:42-110,178-422,443-493,561-606; tools/visibility/tests/test_queue.py:141-319,396-443"
+    },
+    {
+      "control": "verification binds the raw external review file hash and current allowed-path digest to the subject recorded in accepted source",
+      "evidence": "tools/visibility/queue.py:506-558,907-1010,1209-1217; tools/visibility/tests/test_queue.py:331-394,651-668"
+    }
+  ],
+  "approval_limits": [
+    "This approval covers only the two listed file-content hashes. The staged tree, parent/tree identity, and binary diff digest were not supplied; a separate review must bind the eventual frozen staged subject and commit.",
+    "The request reported 34 focused tests passing. I inspected the test source but did not run tests or builds; no Cargo command was run.",
+    "Reviewer identity is stored as text and is not cryptographically authenticated by this tool, as its module documentation states.",
+    "Filesystem-scope checks are mutation-time preflights, not an OS sandbox; an owner can change files or introduce a symlink after preflight. Instruction discovery is explicitly static-only and does not prove runtime instruction loading.",
+    "The queue review does not qualify product behavior, visual parity, or the validity of evidence asserted by task owners."
+  ]
+}

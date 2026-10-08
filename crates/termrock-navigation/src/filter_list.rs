@@ -564,7 +564,9 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             }));
         st.initialized = true;
         let matches = &st.matches;
-        let _ = st.core.reconcile_with(
+        // W13-04: a vanished cursor falls to the first eligible row
+        // (reference `refresh_items`), never the nearest neighbour.
+        let _ = st.core.reconcile_first_with(
             matches.len(),
             |i| {
                 items
@@ -709,7 +711,14 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 acc.action(FilterListAction::Back);
             }
             FilterListCmd::Back if self.searchable => {
-                st.query.pop();
+                // W13-02: pop a whole grapheme cluster, not one char
+                // (the `Back` doc promise; reference `pop_grapheme`).
+                let cut = crate::text::measure::graphemes(&st.query)
+                    .next_back()
+                    .map(|(i, _)| i);
+                if let Some(i) = cut {
+                    st.query.truncate(i);
+                }
                 st.core.invalidate();
                 acc.action(FilterListAction::QueryChanged);
             }

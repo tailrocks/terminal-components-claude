@@ -37,20 +37,20 @@ use crate::domain::workspace::{EnvValue, EnvVar, Workspace, env_key_error};
 use crate::rain::{HANDOFF_LEN, INTRO_END, IntroState, OutroState};
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{
-    accounts::AccountsState,
+    accounts::{AccountSel, AccountsState},
     capsule::{CapsuleInteraction, CapsuleState},
     cockpit::{AccountLine, CockpitState},
     editor::{EditorState, Tab as EditorTab},
     inspect::InspectState,
     manager::{LaunchCandidate, ManagerRowKey, ManagerState},
     prelude::{PreludeState, PreludeUiState},
-    settings::SettingsState,
+    settings::{SettingsFocus, SettingsScreen, SettingsState},
     usage::{Tab as UsageTab, UsageState},
 };
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun};
 use crate::sim::provider;
 use crate::sim::pty::{Daemon, Maximized, Pane, PaneId, PaneNode, SplitDir, Tab};
-use crate::sim::world::{World, world_for};
+use crate::sim::world::{DaemonHealth, World, world_for};
 
 /// One cached projection binds domain identity, collection identity, and presentation.
 #[derive(Debug, Clone)]
@@ -137,7 +137,6 @@ pub const MANAGER_INSPECT: Id = crate::screens::manager::INSPECT;
 const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
 const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
 const EDITOR_ROLE_LOAD: Id = crate::screens::editor::ROOT.sub("role-load");
-const EDITOR_ACCOUNTS_LIST: Id = crate::screens::editor::ROOT.sub("accounts-list");
 const EDITOR_SAVE_CONFIRM: Id = crate::screens::editor::ROOT.sub("save-confirm");
 const SETTINGS_SAVE_CONFIRM: Id = crate::screens::settings::ROOT.sub("save-confirm");
 
@@ -464,7 +463,6 @@ struct AccountOption {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PickerMode {
-    Launch,
     OnePassword,
     Capsule,
 }
@@ -788,7 +786,6 @@ pub struct App {
     selected_role: usize,
     launch: Option<LaunchRun>,
     status: Option<String>,
-    trusted: bool,
     intro: IntroState,
     outro: Option<OutroState>,
     handoff_frame: Option<u64>,
@@ -829,6 +826,7 @@ pub struct App {
     cockpit_info_open: bool,
     cockpit_cancel_confirm: bool,
     cockpit_debug_open: bool,
+    cockpit_failure_open: bool,
     accounts_form_stage: u8,
     accounts_form_enters: u8,
     accounts_filtering: bool,
@@ -985,7 +983,6 @@ impl App {
             selected_role,
             launch,
             status: None,
-            trusted: false,
             intro: IntroState::new(motion, frame),
             outro: (scenario == Scenario::OutroLast && frame > 0)
                 .then(|| OutroState::new(motion, Some(8_040), frame)),
@@ -1027,6 +1024,7 @@ impl App {
             cockpit_info_open: false,
             cockpit_cancel_confirm: false,
             cockpit_debug_open: false,
+            cockpit_failure_open: false,
             accounts_form_stage: 0,
             accounts_form_enters: 0,
             accounts_filtering: false,
@@ -1040,6 +1038,9 @@ impl App {
         };
         if app.launch.as_ref().is_some_and(|run| run.done) {
             app.materialize_launch();
+        }
+        if app.launch.as_ref().is_some_and(|run| run.failure.is_some()) {
+            app.present_boot_failure();
         }
         if app.route == Route::Handoff {
             app.cockpit.handoff.start();
@@ -1062,6 +1063,14 @@ impl App {
         }
         if app.route == Route::Manager {
             app.reset_manager_cursor();
+            // Tag boot: an unreadable instance index enters the manager
+            // with the ritual warning (arbiter `Unknown` entry decision).
+            if let Err(err) = app.world.arbiter.running() {
+                app.status = Some(format!(
+                    "Could not confirm running instances: {} · entered without the ritual",
+                    err.label()
+                ));
+            }
         }
         app.sync_workspace_keymap();
         app
@@ -1106,16 +1115,20 @@ impl App {
         }
     }
 
-    /// The current selected role label.
+    /// The current launch-picker scope label: the selected workspace, the
+    /// current directory's workspace, or the directory itself, plus the
+    /// short current-role name (tag `open_launch_picker` scope).
     fn manager_picker_meta(&self) -> String {
         let ws_name = self
             .manager
             .selected()
-            .and_then(|id| self.world.workspaces.iter().find(|ws| ws.id == id))
-            .map(|ws| ws.name.as_str())
-            .unwrap_or("default");
+            .and_then(|id| self.world.workspace(id))
+            .map(|ws| ws.name.clone())
+            .or_else(|| self.world.cwd_workspace().map(|ws| ws.name.clone()))
+            .unwrap_or_else(|| self.world.tilde(&self.world.cwd));
         let role = self.selected_role();
-        let role_label = match role {
+        let short = role.rsplit('/').next().unwrap_or(role);
+        let role_label = match short {
             "developer" => "Developer",
             "reviewer" => "Reviewer",
             "qa" => "QA",
@@ -1317,18 +1330,10 @@ impl App {
         Button::new(ENTER, "Enter Construct").variant(Variant::PRIMARY)
     }
 
-    fn account_add_button() -> Button<'static> {
-        Button::new(ACCOUNT_ADD, "Choose 1Password reference…").variant(Variant::PRIMARY)
-    }
-
     fn launch_button(disabled: bool) -> Button<'static> {
         Button::new(LAUNCH, "Launch session")
             .variant(Variant::PRIMARY)
             .disabled(disabled)
-    }
-
-    fn settings_trust_button(checked: bool) -> Button<'static> {
-        Button::new(SETTINGS_TRUST, "Trust local incident role").checked(checked)
     }
 
     fn launch_retry_button() -> Button<'static> {
@@ -1370,10 +1375,6 @@ impl App {
             },
         )
         .variant(Variant::PRIMARY)
-    }
-
-    fn settings_save_button() -> Button<'static> {
-        Button::new(crate::screens::settings::SAVE, "Save settings").variant(Variant::PRIMARY)
     }
 
     fn settings_save_confirm_button() -> Button<'static> {
@@ -1701,22 +1702,53 @@ impl App {
         }
     }
 
-    fn account_rows(&self) -> Vec<String> {
-        let mut rows = vec!["Overview · Health · Registration · Quota".to_owned()];
-        let mut provider = None;
-        for account in self.world.accounts.sorted() {
-            if provider != Some(account.provider) {
-                rows.push(account.provider.label().to_owned());
-                provider = Some(account.provider);
-            }
-            rows.push(format!(
-                "  {} · {} · {}",
-                account.title(),
-                account.status_word(),
-                account.source.safe_detail()
-            ));
+    fn accounts_tree_rows(&self) -> Vec<crate::screens::accounts::AccountRow> {
+        crate::screens::accounts::build_account_rows(
+            &self.world,
+            self.accounts.filter.as_deref(),
+            &self.accounts.folded,
+        )
+    }
+
+    /// Repair the tree selection after the rows change: a filtered-out
+    /// account falls back to its provider, anything else to Overview.
+    fn ensure_accounts_selected(&mut self) {
+        let rows = self.accounts_tree_rows();
+        if rows.iter().any(|row| row.sel == self.accounts.selected) {
+            return;
         }
-        rows
+        self.accounts.selected = match &self.accounts.selected {
+            AccountSel::Account(id) => self
+                .world
+                .accounts
+                .get(id)
+                .map(|account| AccountSel::Provider(account.surface))
+                .unwrap_or(AccountSel::Overview),
+            _ => AccountSel::Overview,
+        };
+        if !rows.iter().any(|row| row.sel == self.accounts.selected) {
+            self.accounts.selected = AccountSel::Overview;
+        }
+        self.accounts.sync_selected_id();
+    }
+
+    /// Move the tree cursor by `delta` rows, clamped into the live rows.
+    fn move_accounts_cursor(&mut self, delta: isize) {
+        self.ensure_accounts_selected();
+        let rows = self.accounts_tree_rows();
+        if rows.is_empty() {
+            return;
+        }
+        let current = rows
+            .iter()
+            .position(|row| row.sel == self.accounts.selected)
+            .unwrap_or(0) as isize;
+        let next = current
+            .saturating_add(delta)
+            .clamp(0, rows.len() as isize - 1) as usize;
+        self.accounts.selected = rows[next].sel.clone();
+        self.accounts.list.set_cursor(next, ItemKey::index(next));
+        self.accounts.sync_selected_id();
     }
 
     fn editor_account_rows(&self) -> Vec<String> {
@@ -1828,6 +1860,12 @@ impl App {
         let picker = Self::launch_agent_picker();
         let spec = picker.layer(cx, &self.agent_options);
         cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
+        // The layer spec's initial focus already stages AGENT_PICKER; an
+        // explicit focus call here would only cancel the provisional
+        // focus-layer mechanism. Reconcile the replaced projection before
+        // the first draw so the cursor row paints focused (`Picker::
+        // reconcile` contract; no update runs between open and draw).
+        picker.reconcile(&mut self.agent_state, &self.agent_options);
         self.status = Some("Launch · choose Agent".into());
     }
 
@@ -1843,14 +1881,6 @@ impl App {
         let picker = Self::role_picker("Add role override");
         let spec = picker.layer(cx, &self.roles);
         cx.open_layer(ROLE_PICKER, spec);
-    }
-
-    fn open_account_picker(&mut self, cx: &mut Cx<'_>) {
-        let picker = Self::account_picker();
-        self.picker_mode = Some(PickerMode::Launch);
-        self.account_state = PickerState::default();
-        let spec = picker.layer(cx, &self.account_options);
-        cx.open_layer(ACCOUNT_PICKER, spec);
     }
 
     fn open_capsule_account_picker(&mut self, cx: &mut Cx<'_>, action: CapsuleAction) {
@@ -2097,6 +2127,116 @@ impl App {
         self.active_instance = Some(instance_id.clone());
         self.world.sync_arbiter();
         self.manager_rows_cache.clear();
+    }
+
+    /// Present a failure the boot seek already reached.
+    ///
+    /// `LaunchRun::seek` advances the pipeline without emitting events, so a
+    /// frozen failure frame (the `launch-failure` scenario) would otherwise
+    /// boot onto a running cockpit with no failure visible. The failed-setup
+    /// instance record and the open failure dialog match the live `Failed`
+    /// event path; Escape acknowledges back to the Manager.
+    fn present_boot_failure(&mut self) {
+        let Some(run) = self.launch.as_ref() else {
+            return;
+        };
+        if run.failure.is_none() {
+            return;
+        }
+        let run_id = run.run_id;
+        if !self
+            .world
+            .instances
+            .iter()
+            .any(|instance| instance.run_id == run_id)
+        {
+            let agent = run.agent;
+            let container = run.container.clone();
+            let role = self.selected_role().to_owned();
+            let workspace = self.world.workspaces.first().cloned();
+            let now_secs = self.world.now_secs();
+            let mut instance = crate::sim::fixtures::fixture_instance(
+                InstanceStatus::FailedSetup,
+                run_id,
+                now_secs,
+                DaemonSnapshot::Unavailable,
+            );
+            instance.id = self.world.new_instance_id();
+            instance.container = container;
+            instance.workspace = workspace.as_ref().map(|workspace| workspace.id);
+            instance.workdir = workspace
+                .as_ref()
+                .map_or_else(String::new, |workspace| workspace.workdir.clone());
+            instance.role = role;
+            instance.agent = agent;
+            instance.created_secs = now_secs;
+            instance.last_seen_secs = now_secs;
+            self.world.instances.push(instance);
+            self.world.sync_arbiter();
+            self.manager_rows_cache.clear();
+        }
+        self.cockpit_failure_open = true;
+    }
+
+    /// Acknowledge the launch-failure dialog: tear down the cockpit and
+    /// return to the Manager with the failed instance selected.
+    fn acknowledge_launch_failure(&mut self) {
+        self.cockpit_failure_open = false;
+        let failed_id = self.launch.as_ref().and_then(|run| {
+            self.world
+                .instances
+                .iter()
+                .find(|instance| instance.run_id == run.run_id)
+                .map(|instance| instance.id.clone())
+        });
+        self.launch = None;
+        let running = self.world.running_count();
+        if running > 0 {
+            self.route = Route::Manager;
+            self.ensure_manager_rows();
+            if let Some(id) = failed_id
+                && let Some(index) = self
+                    .manager_rows_cache
+                    .iter()
+                    .position(|row| row.domain == ManagerRowKey::Instance(id.clone()))
+            {
+                let key = self.manager_rows_cache[index].key;
+                let domain = self.manager_rows_cache[index].domain.clone();
+                self.manager.list.set_cursor(index, key);
+                self.manager.select_row(domain);
+            }
+            let noun = if running == 1 {
+                "instance"
+            } else {
+                "instances"
+            };
+            self.status = Some(format!(
+                "Launch failed · {running} {noun} still running in the Construct"
+            ));
+        } else {
+            self.status = Some("Launch failed · the Construct is empty".into());
+            self.route = Route::Outro;
+            self.outro = Some(OutroState::new(self.motion, None, 0));
+        }
+    }
+
+    /// Tag-format run label for the failure dialog: `run-{stamp12}-{suffix}`
+    /// from the world clock plus the failed instance's id suffix (tag
+    /// `CockpitScreen::new`). The typed `RunId` stays the run identity;
+    /// this is the display projection the dialog owns.
+    fn failure_run_label(&self, run: &LaunchRun) -> String {
+        let stamp = crate::domain::clock::Clock::stamp(self.world.now_secs())
+            .replace([' ', ':'], "-")
+            .replace('-', "");
+        let stamp12 = stamp.get(..12).unwrap_or(&stamp);
+        let suffix = self
+            .world
+            .instances
+            .iter()
+            .find(|instance| instance.run_id == run.run_id)
+            .map(|instance| instance.id.trim_start_matches("jk-"))
+            .unwrap_or("0000");
+        format!("run-{stamp12}-{suffix}")
     }
 
     fn capsule_input() -> TextInput<'static> {
@@ -3290,6 +3430,20 @@ impl App {
                 }
                 result |= Response::changed();
             }
+            // A closed launch layer with pending options means the picker
+            // was dismissed (Esc) or resolved to a status-only choice:
+            // consume the pending options so the tree footer comes back
+            // (tag clears pending_launch on cancel, take()s it on choice).
+            if self.route == Route::Manager
+                && !cx.is_open(crate::screens::manager::AGENT_PICKER)
+                && !self.agent_options.is_empty()
+            {
+                self.agent_options.clear();
+                if self.status.as_deref() == Some("Launch · choose Agent") {
+                    self.status = None;
+                }
+                result |= Response::changed();
+            }
         }
 
         let picker = self.active_account_picker();
@@ -3625,28 +3779,23 @@ impl App {
             return result;
         }
 
-        let rows = self.account_rows();
-        let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts.list, &rows);
+        self.ensure_accounts_selected();
+        let rows = self.accounts_tree_rows();
+        let labels: Vec<String> = rows.iter().map(|row| row.label.clone()).collect();
+        let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts.list, &labels);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
-        let previous = self.accounts.selected_id.clone();
-        self.accounts.selected_id = selected_account_id(&self.world, self.accounts.list.cursor());
+        if matches!(
+            list_action,
+            Some(ListAction::Moved | ListAction::Activated(_))
+        ) && let Some(ItemKey::Index(index)) = self.accounts.list.cursor()
+            && let Some(row) = rows.get(index)
+        {
+            self.accounts.selected = row.sel.clone();
+            self.accounts.sync_selected_id();
+        }
         if matches!(list_action, Some(ListAction::Moved)) {
             self.accounts_down_count += 1;
-        }
-        if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
-            self.status = self
-                .accounts
-                .selected_id
-                .as_deref()
-                .and_then(|id| self.world.accounts.get(id))
-                .map(|account| {
-                    format!(
-                        "Accounts › {} › {}",
-                        account.surface.surface_name(),
-                        account.display_name
-                    )
-                });
         }
         if matches!(list_action, Some(ListAction::Activated(_))) {
             if self.accounts_filtering {
@@ -3657,18 +3806,13 @@ impl App {
                 result |= Response::changed();
             } else if self.accounts_down_count >= 4 {
                 self.accounts_drawer_open = true;
+                self.accounts.drawer_open = true;
                 result |= Response::changed();
             }
         }
         if matches!(list_action, Some(ListAction::Chose(_))) {
             self.set_selected_account_default();
             result |= Response::changed();
-        }
-        let add = Self::account_add_button().update(cx);
-        let chosen = add.activated();
-        result |= add.erase();
-        if chosen {
-            self.open_account_picker(cx);
         }
         result
     }
@@ -3800,7 +3944,12 @@ impl App {
         self.world.accounts.insert(account);
         let selected_id = id.clone();
         self.accounts.selected_id = Some(id);
-        if let Some(index) = account_row_index(&self.world, &selected_id) {
+        self.accounts.selected = AccountSel::Account(selected_id.clone());
+        if let Some(index) = self
+            .accounts_tree_rows()
+            .iter()
+            .position(|row| row.sel == AccountSel::Account(selected_id.clone()))
+        {
             self.accounts.list.set_cursor(index, ItemKey::index(index));
         }
         self.account_options = self
@@ -3828,42 +3977,63 @@ impl App {
         });
     }
 
-    fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let button = Self::settings_trust_button(self.trusted).update(cx);
-        let chosen = button.activated();
-        let mut result = button.erase();
-        if chosen {
-            self.trusted = !self.trusted;
-            if self.settings.dirty {
-                self.settings.mark_dirty();
-            } else {
-                self.settings.begin_draft();
+    /// Pending settings edits (tag `change_count`): only the Trust tab is
+    /// editable while the other tabs render from stored frames.
+    fn settings_change_count(&self) -> usize {
+        self.settings.trust_change_count(&self.world.global.trust)
+    }
+
+    /// Apply the pending trust edits to the world (on a confirmed save).
+    fn apply_settings_trust(&mut self) {
+        for (index, pending) in self.settings.trust_overrides.clone() {
+            if let Some(row) = self.world.global.trust.get_mut(index) {
+                row.trusted = pending;
             }
-            result |= Response::changed();
         }
-        let save = Self::settings_save_button().update(cx);
+    }
+
+    /// Open the save preview when the draft holds edits (tag
+    /// `open_preview`); otherwise report that there is nothing to save.
+    fn request_settings_save(&mut self, cx: &mut Cx<'_>) {
+        if self.settings_change_count() == 0 {
+            self.status = Some("Nothing to save".into());
+            return;
+        }
+        self.settings_save_preview = true;
+        cx.focus(SETTINGS_SAVE_CONFIRM);
+        self.status = Some("Save settings · choose a confirmation action".into());
+    }
+
+    fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let cancel = Button::new(crate::screens::settings::CANCEL, "Cancel").update(cx);
+        let cancel_chosen = cancel.activated();
+        let mut result = cancel.erase();
+        let save = Button::new(crate::screens::settings::SAVE, "Save…").update(cx);
         let save_chosen = save.activated();
         result |= save.erase();
         let confirm = Self::settings_save_confirm_button().update(cx);
         let confirm_chosen = confirm.activated();
         result |= confirm.erase();
-        if save_chosen {
+        if cancel_chosen {
             if self.settings.dirty {
-                cx.focus(SETTINGS_SAVE_CONFIRM);
-                self.status = Some("Save settings · choose a confirmation action".into());
-                result |= Response::changed();
+                self.status = Some("Save settings before leaving?".into());
             } else {
-                self.status = Some("No settings changes".into());
+                self.route = Route::Manager;
             }
+            result |= Response::changed();
+        }
+        if save_chosen {
+            self.request_settings_save(cx);
+            result |= Response::changed();
         }
         if confirm_chosen && self.settings.dirty {
             let keep = self.settings.attempt_save(self.world.refresh_fails);
             if keep {
                 self.status = self.settings.save_error.clone();
             } else {
-                if let Some(trust) = self.world.global.trust.first_mut() {
-                    trust.trusted = self.trusted;
-                }
+                self.apply_settings_trust();
+                self.settings.clear_trust();
+                self.settings_save_preview = false;
                 self.status = Some("Settings saved".into());
                 self.route = Route::Manager;
             }
@@ -3997,6 +4167,41 @@ impl App {
             }
             return result;
         }
+        if self.editor.exit_open {
+            let mut result = Response::ignored();
+            let cancel = Button::new(crate::screens::editor::EXIT_CANCEL, "Cancel").update(cx);
+            let cancel_chosen = cancel.activated();
+            result |= cancel.erase();
+            if cancel_chosen {
+                self.editor.close_exit();
+                result |= Response::changed();
+            }
+            let discard = Button::new(crate::screens::editor::EXIT_DISCARD, "Discard").update(cx);
+            let discard_chosen = discard.activated();
+            result |= discard.erase();
+            if discard_chosen {
+                let lost = match self.editor.change_count() {
+                    1 => "1 change".to_owned(),
+                    n => format!("{n} changes"),
+                };
+                self.editor.close_exit();
+                self.status = Some(format!("Discarded {lost}"));
+                self.route = Route::Manager;
+                result |= Response::changed();
+            }
+            let save = Button::new(crate::screens::editor::EXIT_SAVE, "Save").update(cx);
+            let save_chosen = save.activated();
+            result |= save.erase();
+            if save_chosen {
+                self.editor.close_exit();
+                if self.editor.open_preview() {
+                    cx.focus(crate::screens::editor::PREVIEW_CANCEL);
+                    self.status = Some("Save workspace · preview changes before commit".into());
+                }
+                result |= Response::changed();
+            }
+            return result;
+        }
         let mut result = Response::ignored();
         match self.editor.tab {
             EditorTab::Mounts => {
@@ -4023,8 +4228,11 @@ impl App {
             }
             EditorTab::Accounts => {
                 let rows = self.editor_account_rows();
-                let list =
-                    List::new(EDITOR_ACCOUNTS_LIST).update(cx, &mut self.editor_accounts, &rows);
+                let list = List::new(crate::screens::editor::ACCOUNTS_LIST).update(
+                    cx,
+                    &mut self.editor_accounts,
+                    &rows,
+                );
                 let action = list.action_ref().copied();
                 result |= list.erase();
                 if matches!(action, Some(ListAction::Activated(_))) {
@@ -4045,7 +4253,22 @@ impl App {
                     result |= Response::changed();
                 }
             }
-            EditorTab::General => {}
+            EditorTab::General => {
+                let keep_awake = Checkbox::new(crate::screens::editor::KEEP_AWAKE, "Keep awake")
+                    .update(cx, &mut self.editor.pending.keep_awake);
+                if keep_awake.action_ref().is_some() {
+                    self.editor.mark_dirty();
+                    result |= Response::changed();
+                }
+                result |= keep_awake.erase();
+                let git_pull = Checkbox::new(crate::screens::editor::GIT_PULL, "Git pull")
+                    .update(cx, &mut self.editor.pending.git_pull);
+                if git_pull.action_ref().is_some() {
+                    self.editor.mark_dirty();
+                    result |= Response::changed();
+                }
+                result |= git_pull.erase();
+            }
         }
 
         let save = Self::editor_save_button("Save workspace").update(cx);
@@ -4065,7 +4288,7 @@ impl App {
                 self.commit_editor_save();
                 result |= Response::changed();
             } else if self.editor.open_preview() {
-                cx.focus(EDITOR_SAVE_CONFIRM);
+                cx.focus(crate::screens::editor::PREVIEW_CANCEL);
                 self.status = Some("Save workspace · preview changes before commit".into());
                 result |= Response::changed();
             }
@@ -4078,6 +4301,9 @@ impl App {
     }
 
     fn update_launch(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
+        if self.cockpit_failure_open {
+            return Response::ignored();
+        }
         let mut result = Response::ignored();
         let failed = self
             .launch
@@ -4581,6 +4807,21 @@ impl App {
                     {
                         self.status = Some(format!("Accounts › {}", account.title()));
                     }
+                } else if self.route == Route::Accounts {
+                    self.usage_detail = false;
+                    if self.usage.selected().is_none() {
+                        let selected = match self.accounts.selected.clone() {
+                            AccountSel::Account(id) => Some(id),
+                            _ => self
+                                .world
+                                .accounts
+                                .sorted()
+                                .first()
+                                .map(|account| account.id.clone()),
+                        };
+                        self.usage.select(selected);
+                    }
+                    self.route = Route::Usage;
                 } else {
                     self.route = Route::Manager;
                 }
@@ -4616,13 +4857,63 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ACCOUNT_REFRESH if self.route == Route::Accounts && !self.accounts.form_open => {
-                if let Some(id) = self.accounts.selected_id.clone() {
-                    self.accounts.pending_refresh = Some(id.clone());
-                    self.status = Some("Refreshing account…".into());
+                self.ensure_accounts_selected();
+                let ids: Vec<String> = match &self.accounts.selected {
+                    AccountSel::Account(id) => vec![id.clone()],
+                    AccountSel::Provider(surface) => self
+                        .world
+                        .accounts
+                        .accounts
+                        .iter()
+                        .filter(|account| account.surface == *surface && account.enabled)
+                        .map(|account| account.id.clone())
+                        .collect(),
+                    _ => self
+                        .world
+                        .accounts
+                        .accounts
+                        .iter()
+                        .filter(|account| account.enabled)
+                        .map(|account| account.id.clone())
+                        .collect(),
+                };
+                if ids.is_empty() {
+                    self.status = Some("Nothing to refresh".into());
+                    return Some(Response::changed());
+                }
+                let mut started = 0;
+                for (i, id) in ids.iter().enumerate() {
+                    let Some(account) = self.world.accounts.get_mut(id) else {
+                        continue;
+                    };
+                    if account.usage.freshness.phase == Freshness::Refreshing {
+                        continue;
+                    }
+                    account.usage.freshness.phase = Freshness::Refreshing;
+                    let duration = provider::refresh_duration_ms(account) + i as i64 * 160;
                     self.world.schedule(
-                        1_000,
-                        crate::sim::world::Msg::AccountRefreshed { account: id },
+                        duration,
+                        crate::sim::world::Msg::AccountRefreshed {
+                            account: id.clone(),
+                        },
                     );
+                    started += 1;
+                }
+                if started == 0 {
+                    self.status = Some("Refresh already running".into());
+                } else {
+                    let scope = match &self.accounts.selected {
+                        AccountSel::Account(id) => self
+                            .world
+                            .accounts
+                            .get(id)
+                            .map(|account| account.title())
+                            .unwrap_or_default(),
+                        AccountSel::Provider(surface) => surface.label().to_owned(),
+                        _ => "all".into(),
+                    };
+                    let noun = if started == 1 { "account" } else { "accounts" };
+                    self.status = Some(format!("Refreshing {scope} · {started} {noun}"));
                 }
                 Some(Response::changed())
             }
@@ -4710,6 +5001,8 @@ impl App {
                 self.settings_tab = 1;
                 self.settings_save_preview = false;
                 self.settings.clear_error();
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_CAPSULE_NEW_TAB if self.route == Route::Capsule => {
@@ -4795,7 +5088,10 @@ impl App {
                 self.status = Some("Close tab? · Enter confirm · Esc cancel".into());
                 Some(Response::changed())
             }
-            CMD_COCKPIT_LOG if matches!(self.route, Route::Launch | Route::Cockpit) => {
+            CMD_COCKPIT_LOG
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && !self.cockpit_failure_open =>
+            {
                 self.cockpit.log_open = true;
                 self.cockpit.log_scroll = 0;
                 self.status = Some("Docker build · scroll to inspect output".into());
@@ -4844,9 +5140,11 @@ impl App {
                     self.editor = EditorState::default();
                 }
                 self.editor.select_alias(1);
+                self.editor.focus_tabs();
                 self.editor_accounts = ListState::default();
                 self.editor_role_picker = false;
                 self.editor_env_role = None;
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
@@ -4858,7 +5156,17 @@ impl App {
             CMD_CAPSULE_DETACH if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
                 self.pending_capsule_action = None;
-                self.status = Some("Detached from Capsule".into());
+                let name = self
+                    .active_instance
+                    .as_ref()
+                    .and_then(|id| self.world.daemons.get(id))
+                    .map(|d| d.workspace.clone())
+                    .unwrap_or_default();
+                let n = self.world.running_count();
+                self.status = Some(format!(
+                    "Detached · {name} keeps running · {} in the Construct",
+                    crate::screens::manager::plural(n, "instance", "instances")
+                ));
                 self.route = Route::Manager;
                 self.reset_manager_cursor();
                 cx.focus(MANAGER_LIST);
@@ -4996,7 +5304,10 @@ impl App {
                 self.manager.set_detail_open(!current);
                 Some(Response::changed())
             }
-            CMD_COCKPIT_INFO if matches!(self.route, Route::Cockpit | Route::Launch) => {
+            CMD_COCKPIT_INFO
+                if matches!(self.route, Route::Cockpit | Route::Launch)
+                    && !self.cockpit_failure_open =>
+            {
                 self.cockpit_info_open = !self.cockpit_info_open;
                 if self.cockpit_info_open {
                     self.status = Some("Debug info".into());
@@ -5005,12 +5316,18 @@ impl App {
                 }
                 Some(Response::changed())
             }
-            CMD_COCKPIT_CANCEL if matches!(self.route, Route::Cockpit | Route::Launch) => {
+            CMD_COCKPIT_CANCEL
+                if matches!(self.route, Route::Cockpit | Route::Launch)
+                    && !self.cockpit_failure_open =>
+            {
                 self.cockpit_cancel_confirm = true;
                 self.status = Some("Cancel the launch?".into());
                 Some(Response::changed())
             }
-            CMD_COCKPIT_DEBUG if matches!(self.route, Route::Cockpit | Route::Launch) => {
+            CMD_COCKPIT_DEBUG
+                if matches!(self.route, Route::Cockpit | Route::Launch)
+                    && !self.cockpit_failure_open =>
+            {
                 self.cockpit_debug_open = !self.cockpit_debug_open;
                 if self.cockpit_debug_open {
                     self.status = Some("run-2026".into());
@@ -5083,15 +5400,63 @@ impl App {
                     }
                     return Some(Response::changed());
                 }
-                if self.accounts_down_count >= 4 {
-                    self.accounts_drawer_open = true;
-                    return Some(Response::changed());
+                self.ensure_accounts_selected();
+                match self.accounts.selected.clone() {
+                    AccountSel::Add => {
+                        self.accounts_form_stage = 1;
+                        self.accounts_form_enters = 0;
+                        self.accounts.open_new();
+                        self.op_item_key.clear();
+                    }
+                    AccountSel::Provider(surface) => {
+                        if !self.accounts.folded.remove(&surface) {
+                            self.accounts.folded.insert(surface);
+                        }
+                    }
+                    _ => {
+                        self.accounts_drawer_open = true;
+                        self.accounts.drawer_open = true;
+                    }
                 }
-                None
+                Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.route == Route::Usage => {
                 self.usage_detail = true;
                 Some(Response::changed())
+            }
+            CMD_EXIT_CONFIRM if self.route == Route::Editor => {
+                if self.editor.preview_open
+                    || self.editor.exit_open
+                    || self.editor.env_form_open
+                    || self.editor.focus != crate::screens::editor::EditorFocus::Tabs
+                {
+                    None
+                } else {
+                    self.editor.focus_body();
+                    match self.editor.tab {
+                        EditorTab::General => cx.focus(crate::screens::editor::NAME),
+                        EditorTab::Mounts => cx.focus(crate::screens::editor::MOUNTS_LIST),
+                        EditorTab::Roles => cx.focus(crate::screens::editor::ROLES_LIST),
+                        EditorTab::Environments => cx.focus(crate::screens::editor::ENV_LIST),
+                        EditorTab::Accounts => cx.focus(crate::screens::editor::ACCOUNTS_LIST),
+                    }
+                    Some(Response::changed())
+                }
+            }
+            CMD_EXIT_CONFIRM if self.route == Route::Settings => {
+                if self.settings_save_preview || self.settings.focus != SettingsFocus::Tabs {
+                    None
+                } else {
+                    self.settings.focus = SettingsFocus::Body;
+                    match self.settings_tab {
+                        2 => cx.focus(crate::screens::settings::MOUNTS_BODY),
+                        3 => cx.focus(crate::screens::settings::ENV_BODY),
+                        4 => cx.focus(crate::screens::settings::AGENTS_BODY),
+                        5 => cx.focus(SETTINGS_TRUST),
+                        _ => cx.focus(crate::screens::settings::GENERAL_BODY),
+                    }
+                    Some(Response::changed())
+                }
             }
             CMD_EXIT_CONFIRM if self.route == Route::Manager => {
                 if let Some(instance_id) = self.selected_instance_id()
@@ -5161,6 +5526,14 @@ impl App {
                 }
                 Some(Response::changed())
             }
+            CMD_NAV_UP if self.route == Route::Editor => {
+                cx.focus_prev();
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Editor => {
+                cx.focus_next();
+                Some(Response::changed())
+            }
             CMD_PRELUDE_SPACE if self.route == Route::Manager => {
                 if let ManagerRowKey::Workspace(workspace) = *self.manager.selected_row() {
                     self.manager.toggle(workspace);
@@ -5200,6 +5573,29 @@ impl App {
                 }
                 Some(Response::changed())
             }
+            CMD_PRELUDE_SPACE
+                if self.route == Route::Editor && self.editor.tab == EditorTab::General =>
+            {
+                // Space arrives through the app capture binding (as on the
+                // prelude), so the focused General checkbox flips here; the
+                // component update below never sees the chord.
+                if cx.update_cause() == UpdateCause::Event {
+                    if cx
+                        .state(crate::screens::editor::KEEP_AWAKE)
+                        .contains(StateFlags::FOCUSED)
+                    {
+                        self.editor.pending.keep_awake = !self.editor.pending.keep_awake;
+                        self.editor.mark_dirty();
+                    } else if cx
+                        .state(crate::screens::editor::GIT_PULL)
+                        .contains(StateFlags::FOCUSED)
+                    {
+                        self.editor.pending.git_pull = !self.editor.pending.git_pull;
+                        self.editor.mark_dirty();
+                    }
+                }
+                Some(Response::changed())
+            }
             CMD_NEW_WORKSPACE if self.route == Route::Manager => {
                 self.route = Route::Prelude;
                 self.prelude = PreludeState::default();
@@ -5226,19 +5622,16 @@ impl App {
                     self.editor.next_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
-                match self.editor.tab {
-                    EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
-                    EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
-                    EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
-                    EditorTab::Environments | EditorTab::General => {}
-                }
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_MOUNTS if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(2);
                 }
-                cx.focus(EDITOR_MOUNT_EDIT);
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_MOUNT_TOGGLE_RO
@@ -5246,6 +5639,15 @@ impl App {
             {
                 if let Some(mount) = self.editor.pending.mounts.first_mut() {
                     mount.readonly = !mount.readonly;
+                    self.status = Some(format!(
+                        "{} · {}",
+                        mount.destination,
+                        if mount.readonly {
+                            "read-only"
+                        } else {
+                            "read-write"
+                        }
+                    ));
                 }
                 self.editor.mark_dirty();
                 Some(Response::changed())
@@ -5254,7 +5656,19 @@ impl App {
                 if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts =>
             {
                 if let Some(mount) = self.editor.pending.mounts.first_mut() {
-                    mount.isolation = mount.isolation.next();
+                    if mount.running_isolated {
+                        self.status = Some(format!(
+                            "Cannot change isolation: a running instance holds isolated state for {}",
+                            mount.destination
+                        ));
+                    } else {
+                        mount.isolation = mount.isolation.next();
+                        self.status = Some(format!(
+                            "{} · isolation {}",
+                            mount.destination,
+                            mount.isolation.label().to_lowercase()
+                        ));
+                    }
                 }
                 self.editor.mark_dirty();
                 Some(Response::changed())
@@ -5263,7 +5677,8 @@ impl App {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(4);
                 }
-                cx.focus(crate::screens::editor::ENV_KEY);
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_PREVIOUS if self.route == Route::Editor => {
@@ -5271,41 +5686,64 @@ impl App {
                     self.editor.previous_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
-                match self.editor.tab {
-                    EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
-                    EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
-                    EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
-                    EditorTab::Environments | EditorTab::General => {}
-                }
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_ROLES if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(3);
                 }
-                cx.focus(EDITOR_ROLE_EDIT);
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_MOUNTS if self.route == Route::Settings => {
                 self.settings_tab = 2;
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_ROLES if self.route == Route::Settings => {
                 self.settings_tab = 3;
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_ENV if self.route == Route::Settings => {
                 self.settings_tab = 4;
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
                 self.settings_tab = 5;
-                cx.focus(SETTINGS_TRUST);
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_NAV_TAB_FIVE if self.route == Route::Settings => {
                 self.settings_tab = 5;
-                cx.focus(SETTINGS_TRUST);
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_NEXT if self.route == Route::Settings => {
+                if cx.update_cause() == UpdateCause::Event {
+                    let active = self.settings_tab.saturating_sub(1);
+                    self.settings_tab = (active + 1) % 5 + 1;
+                    self.settings.focus = SettingsFocus::Tabs;
+                }
+                cx.focus(crate::screens::settings::TABS);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_PREVIOUS if self.route == Route::Settings => {
+                if cx.update_cause() == UpdateCause::Event {
+                    let active = self.settings_tab.saturating_sub(1);
+                    self.settings_tab = (active + 4) % 5 + 1;
+                    self.settings.focus = SettingsFocus::Tabs;
+                }
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_NAV_TAB_FIVE if self.route == Route::Editor => {
@@ -5313,7 +5751,8 @@ impl App {
                     self.editor.select_alias(5);
                     self.editor_accounts_transition = true;
                 }
-                cx.focus(EDITOR_ACCOUNTS_LIST);
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_PREFER
@@ -5344,31 +5783,58 @@ impl App {
             CMD_SAVE if self.route == Route::Editor => {
                 self.editor.mark_dirty();
                 self.editor.open_preview();
-                cx.focus(crate::screens::editor::SAVE);
+                cx.focus(crate::screens::editor::PREVIEW_CANCEL);
                 self.status = Some("Save workspace · preview changes before commit".into());
                 Some(Response::changed())
             }
             CMD_SAVE if self.route == Route::Settings => {
-                self.settings_save_preview = true;
-                if !self.settings.dirty {
-                    self.settings.begin_draft();
-                }
-                cx.focus(SETTINGS_SAVE_CONFIRM);
-                self.status = Some("Save settings · choose a confirmation action".into());
+                self.request_settings_save(cx);
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE if self.route == Route::Settings => {
-                if cx.update_cause() == UpdateCause::Event {
-                    self.trusted = !self.trusted;
-                    if self.settings.dirty {
-                        self.settings.mark_dirty();
-                    } else {
-                        self.settings.begin_draft();
-                    }
+                if cx.update_cause() == UpdateCause::Event
+                    && self.settings_tab == 5
+                    && self.settings.focus == SettingsFocus::Body
+                    && !self.settings_save_preview
+                    && let Some((source, trusted)) =
+                        self.settings.toggle_trust(&self.world.global.trust)
+                {
+                    self.status = Some(format!(
+                        "{} · {} · save to apply",
+                        source,
+                        if trusted { "trusted" } else { "untrusted" }
+                    ));
                 }
                 Some(Response::changed())
             }
-            CMD_NAV_DOWN if self.route == Route::Accounts => {
+            CMD_NAV_UP if self.route == Route::Settings => {
+                if cx.update_cause() == UpdateCause::Event
+                    && self.settings_tab == 5
+                    && self.settings.focus == SettingsFocus::Body
+                    && !self.settings_save_preview
+                {
+                    let len = self.world.global.trust.len();
+                    self.settings.move_trust_cursor(-1, len);
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Settings => {
+                if cx.update_cause() == UpdateCause::Event
+                    && self.settings_tab == 5
+                    && self.settings.focus == SettingsFocus::Body
+                    && !self.settings_save_preview
+                {
+                    let len = self.world.global.trust.len();
+                    self.settings.move_trust_cursor(1, len);
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_UP if self.route == Route::Accounts && !self.accounts.form_open => {
+                self.move_accounts_cursor(-1);
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Accounts && !self.accounts.form_open => {
+                self.move_accounts_cursor(1);
                 self.accounts_down_count += 1;
                 Some(Response::changed())
             }
@@ -5543,7 +6009,9 @@ fn render_header_segments(
             .filter(|(_, k)| **k)
             .map(|(s, _)| seg_w(s) + sep)
             .sum();
-        l + r + 1
+        // Tag `segments::render` keeps two spare cells past the segments;
+        // `+ 1` wrongly keeps the breadcrumb at 72-wide host headers.
+        l + r + 2
     };
 
     while total(&keep_l, &keep_r) > area.width {
@@ -5603,6 +6071,35 @@ fn render_header_segments(
 }
 
 impl App {
+    /// Tag `row_status` for the cursor mount: what changed, or the hidden
+    /// source column at narrow widths.
+    fn editor_mount_row_status(&self, full_width: u16) -> Option<String> {
+        let m = self.editor.pending.mounts.first()?;
+        let o = self.editor.original_mount(&m.destination);
+        match o {
+            Some(o) if o != m => {
+                let mut s = format!(
+                    "was {} · {}",
+                    o.mode_label(),
+                    o.isolation.label().to_lowercase()
+                );
+                if o.source != m.source {
+                    s.push_str(&format!(" · {}", self.world.tilde(m.source_label())));
+                }
+                Some(s)
+            }
+            None => Some("new mount".into()),
+            _ => {
+                let avail = full_width.saturating_sub(9);
+                if avail < 90 {
+                    Some(format!("source {}", self.world.tilde(m.source_label())))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
     fn draw_host_menu(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
         if self.route == Route::Prelude {
@@ -5657,7 +6154,10 @@ impl App {
         let menu_area = Rect::new(area.x.saturating_add(11), area.y, 20, 1);
         Self::manager_menu_bar().draw(ui, menu_area, &self.manager_menu_state);
 
-        let rest_x = area.x.saturating_add(31);
+        // Tag `draw_host_menu`: the breadcrumb strip starts at `used + 2`
+        // past the menu labels; this bar's box already ends one cell past
+        // the last label, so one more cell lands on the same origin.
+        let rest_x = menu_area.right().saturating_add(1);
         let rest_w = area.right().saturating_sub(rest_x);
         if rest_w > 0 {
             let manager_crumb: String;
@@ -5688,9 +6188,16 @@ impl App {
                     };
                     manager_crumb.as_str()
                 }
-                Route::Accounts => "Accounts",
+                Route::Accounts => {
+                    manager_crumb =
+                        crate::screens::accounts::crumb(&self.world, &self.accounts.selected);
+                    manager_crumb.as_str()
+                }
                 Route::Usage => "Usage",
-                Route::Settings => "Settings",
+                Route::Settings => {
+                    manager_crumb = SettingsScreen::crumb(self.settings_tab);
+                    manager_crumb.as_str()
+                }
                 Route::Editor => {
                     let ws_name = self
                         .editor
@@ -5708,12 +6215,29 @@ impl App {
             } else {
                 "outside the Construct"
             };
-            let n = self.world.running_count();
-            let running_text = if n == 0 {
-                "no instances".to_owned()
-            } else {
-                format!("{n} running")
-            };
+            // Tag header: the arbiter's discovery replaces the count when
+            // it fails (`! {label}`, error tone), and a stale daemon adds
+            // its warning badge after the count segment.
+            let running_text: String;
+            let running_style;
+            let running_priority;
+            match self.world.arbiter.running() {
+                Ok(0) => {
+                    running_text = "no instances".to_owned();
+                    running_style = palette.muted_on_canvas;
+                    running_priority = 5;
+                }
+                Ok(n) => {
+                    running_text = format!("{n} running");
+                    running_style = palette.muted_on_canvas;
+                    running_priority = 5;
+                }
+                Err(err) => {
+                    running_text = format!("! {}", err.label());
+                    running_style = palette.danger_on_canvas;
+                    running_priority = 8;
+                }
+            }
 
             let mut segs = Vec::new();
             if !crumb.is_empty() {
@@ -5724,7 +6248,35 @@ impl App {
                     padded: false,
                 });
             }
+            let refreshing_text;
+            if self.route == Route::Accounts {
+                let n = crate::screens::accounts::refreshing_count(&self.world);
+                if n > 0 {
+                    refreshing_text = format!(
+                        "{} refreshing {n}",
+                        crate::screens::accounts::spinner_frame(self.world.now_ms() as u64 / 80)
+                    );
+                    segs.push(HeaderSegment {
+                        text: &refreshing_text,
+                        style: palette.secondary_on_canvas,
+                        priority: 6,
+                        padded: false,
+                    });
+                }
+            }
             let change_text;
+            let settings_change_text;
+            if self.route == Route::Settings && self.settings_change_count() > 0 {
+                let n = self.settings_change_count();
+                let noun = if n == 1 { "change" } else { "changes" };
+                settings_change_text = format!("• {n} {noun}");
+                segs.push(HeaderSegment {
+                    text: &settings_change_text,
+                    style: palette.warning_on_canvas,
+                    priority: 8,
+                    padded: false,
+                });
+            }
             if self.route == Route::Editor && self.editor.change_count() > 0 {
                 let n = self.editor.change_count();
                 let noun = if n == 1 { "change" } else { "changes" };
@@ -5732,7 +6284,20 @@ impl App {
                 segs.push(HeaderSegment {
                     text: &change_text,
                     style: palette.warning_on_canvas,
-                    priority: 6,
+                    priority: 8,
+                    padded: false,
+                });
+            }
+            let row_status_text;
+            if self.route == Route::Editor
+                && self.editor.tab == EditorTab::Mounts
+                && let Some(status) = self.editor_mount_row_status(area.width)
+            {
+                row_status_text = status;
+                segs.push(HeaderSegment {
+                    text: &row_status_text,
+                    style: palette.muted_on_canvas,
+                    priority: 3,
                     padded: false,
                 });
             }
@@ -5744,10 +6309,18 @@ impl App {
             });
             segs.push(HeaderSegment {
                 text: &running_text,
-                style: palette.muted_on_canvas,
-                priority: 5,
+                style: running_style,
+                priority: running_priority,
                 padded: false,
             });
+            if self.world.daemon_health == DaemonHealth::Stale {
+                segs.push(HeaderSegment {
+                    text: "▲ daemon stale",
+                    style: palette.warning_on_canvas,
+                    priority: 8,
+                    padded: false,
+                });
+            }
 
             render_header_segments(ui, Rect::new(rest_x, area.y, rest_w, 1), &[], &segs);
         }
@@ -5865,6 +6438,13 @@ impl App {
         );
     }
 
+    /// Tag `draw_frame` fills the whole frame with the base pair first
+    /// and screens overpaint their regions; without this, unpainted
+    /// cells carry `Default` instead of the explicit base style.
+    fn paint_base_frame(&self, ui: &mut Ui<'_>, area: Rect) {
+        ui.fill(area, HistoricalPalette::new(ui).primary_on_canvas);
+    }
+
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
         let focused = !self.help_open && !self.editor.preview_open;
         crate::screens::editor::EditorScreen::draw(ui, area, &self.editor, &self.world, focused);
@@ -5875,6 +6455,9 @@ impl App {
                 &self.editor,
                 &self.world,
             );
+        }
+        if self.editor.exit_open {
+            crate::screens::editor::EditorScreen::draw_exit_dialog(ui, area, &self.editor);
         }
     }
 
@@ -5912,11 +6495,13 @@ impl App {
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
+        // The manager keeps focus while its menu is open: the frozen
+        // menu-open frame shows the focused workspace (strong border,
+        // bright title, selected-row tint) with the dropdown above it,
+        // and the menu's own rows inherit the focused underpaint.
         let focused = !self.manager_quit_confirm
             && !self.help_open
             && !self.manager_inspect_open
-            && !self.manager_menu_open
-            && !self.manager_menu_state.is_open()
             && !self.manager_launch_picker_open();
         crate::screens::manager::ManagerScreen::draw(ui, area, &self.manager, &self.world, focused);
     }
@@ -6039,20 +6624,13 @@ impl App {
             );
             return;
         }
-        let rows = self.account_rows();
-        let list_area = Rect {
-            height: area.height.saturating_sub(3),
-            ..area
-        };
-        List::new(ACCOUNTS_LIST).draw(ui, list_area, &self.accounts.list, &rows);
-        Self::account_add_button().draw(
+        let focused = !self.help_open;
+        crate::screens::accounts::AccountsScreen::draw(
             ui,
-            Rect {
-                y: area.bottom().saturating_sub(1),
-                width: area.width.min(34),
-                height: 1,
-                ..area
-            },
+            area,
+            &self.accounts,
+            &self.world,
+            focused,
         );
     }
 
@@ -6084,45 +6662,11 @@ impl App {
         paint_lines(ui, area, &lines);
     }
 
-    fn draw_settings(&self, ui: &mut Ui<'_>, area: Rect) {
-        let lines = [
-            if self.settings.dirty {
-                "• 1 change · Runtime mode · Sync host credentials"
-            } else {
-                "Runtime mode · Sync host credentials"
-            },
-            "Workspace · payments-platform",
-            "DCO signoff · enabled",
-            "Secret policy · references only; resolved bytes are transient",
-        ];
-        paint_lines(ui, area, &lines);
-        Self::settings_trust_button(self.trusted).draw(
-            ui,
-            Rect {
-                y: area.bottom().saturating_sub(3),
-                width: area.width.min(30),
-                height: 1,
-                ..area
-            },
-        );
-        Self::settings_save_button().draw(
-            ui,
-            Rect::new(area.x, area.bottom().saturating_sub(2), 18, 1),
-        );
-        if self
-            .status
-            .as_deref()
-            .is_some_and(|status| status.starts_with("Save settings"))
-        {
-            Self::settings_save_confirm_button().draw(
-                ui,
-                Rect::new(
-                    area.x.saturating_add(20),
-                    area.bottom().saturating_sub(2),
-                    18,
-                    1,
-                ),
-            );
+    fn draw_settings(&self, ui: &mut Ui<'_>, _area: Rect) {
+        // Only the Trust tab is live; tabs 1-4 render from stored frames at
+        // 120x40 and stay blank elsewhere until they go live.
+        if self.settings_tab == 5 {
+            SettingsScreen::draw_trust(ui, &self.settings, &self.world);
         }
     }
 
@@ -6134,6 +6678,7 @@ impl App {
             &self.world,
             self.selected_role(),
             self.cockpit_debug_open,
+            self.launch.as_ref(),
         );
         if self.cockpit_info_open {
             crate::screens::cockpit::CockpitScreen::draw_info(
@@ -6146,6 +6691,26 @@ impl App {
         }
         if self.cockpit_cancel_confirm {
             crate::screens::cockpit::CockpitScreen::draw_cancel_confirm(ui, area);
+        }
+        if self.cockpit_failure_open
+            && let Some(run) = self.launch.as_ref()
+            && let Some(failure) = run.failure.as_ref()
+        {
+            let run_id = self.failure_run_label(run);
+            let ws_name = self
+                .world
+                .workspaces
+                .first()
+                .map_or("payments-platform", |workspace| workspace.name.as_str());
+            crate::screens::cockpit::CockpitScreen::draw_failure(
+                ui,
+                area,
+                failure,
+                &run_id,
+                self.selected_role(),
+                ws_name,
+                &run.container,
+            );
         }
     }
 
@@ -7381,6 +7946,30 @@ impl App {
 
         if self.route == Route::Manager {
             let hints = self.manager_hints();
+            let bar = HintBar::new(APP.sub("hint"), &hints);
+            // The degraded world keeps the ritual warning tone on the
+            // tree footer (tag `set_status` Warning); the stock bar then
+            // leads with ▲ and truncates hints behind the status.
+            let bar = if self.world.arbiter.discovery.is_err() {
+                bar.status(Status::Warning)
+            } else {
+                bar
+            };
+            bar.status_text(self.status.as_deref()).draw(ui, area);
+            return;
+        }
+
+        if self.route == Route::Accounts && !self.accounts.form_open {
+            let hints =
+                crate::screens::accounts::AccountsScreen::hints(&self.accounts, &self.world);
+            HintBar::new(APP.sub("hint"), &hints)
+                .status_text(self.status.as_deref())
+                .draw(ui, area);
+            return;
+        }
+
+        if self.route == Route::Settings {
+            let hints = SettingsScreen::hints(self.settings_tab, self.settings.focus);
             HintBar::new(APP.sub("hint"), &hints)
                 .status_text(self.status.as_deref())
                 .draw(ui, area);
@@ -7403,6 +7992,7 @@ impl App {
             let hints = crate::screens::cockpit::CockpitScreen::hints(
                 self.cockpit.log_open,
                 self.cockpit_cancel_confirm,
+                self.cockpit_failure_open || self.cockpit_info_open,
             );
             HintBar::new(APP.sub("hint"), &hints)
                 .status_text(self.status.as_deref())
@@ -7961,6 +8551,7 @@ impl TuiApp for App {
             );
             return;
         }
+        self.paint_base_frame(ui, full);
         if self.route == Route::Intro {
             self.draw_intro(ui, full);
             return;
@@ -8009,27 +8600,22 @@ impl TuiApp for App {
                 self.draw_historical_settings_save_preview_120_40(ui, full);
                 return;
             }
-            match self.settings_tab {
-                2 => {
-                    self.draw_historical_settings_mounts_120_40(ui, full);
-                    return;
+            // Tabs 1-4 render from stored frames; the Trust tab (5) falls
+            // through to the live path below. A focused tab strip paints
+            // the live jump footer over the stored body footer (tag focus
+            // model).
+            if self.settings_tab != 5 {
+                match self.settings_tab {
+                    2 => self.draw_historical_settings_mounts_120_40(ui, full),
+                    3 => self.draw_historical_settings_env_120_40(ui, full),
+                    4 => self.draw_historical_settings_agents_120_40(ui, full),
+                    _ => self.draw_historical_settings_route_120_40(ui, full),
                 }
-                3 => {
-                    self.draw_historical_settings_env_120_40(ui, full);
-                    return;
+                if self.settings.focus == SettingsFocus::Tabs {
+                    let footer = Rect::new(full.x, full.bottom().saturating_sub(1), full.width, 1);
+                    self.draw_footer(ui, footer);
                 }
-                4 => {
-                    self.draw_historical_settings_agents_120_40(ui, full);
-                    return;
-                }
-                5 => {
-                    self.draw_historical_settings_trust_120_40(ui, full);
-                    return;
-                }
-                _ => {
-                    self.draw_historical_settings_route_120_40(ui, full);
-                    return;
-                }
+                return;
             }
         }
         if self.route == Route::Usage
@@ -8102,6 +8688,10 @@ impl TuiApp for App {
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.route == Route::Outro {
             self.quit = true;
+            return self.route_changed();
+        }
+        if matches!(self.route, Route::Launch | Route::Cockpit) && self.cockpit_failure_open {
+            self.acknowledge_launch_failure();
             return self.route_changed();
         }
         if self.cockpit_info_open {
@@ -8213,13 +8803,27 @@ impl TuiApp for App {
                 self.status = None;
                 return self.route_changed();
             }
+            if self.accounts_drawer_open || self.accounts.drawer_open {
+                self.accounts_drawer_open = false;
+                self.accounts.drawer_open = false;
+                self.status = None;
+                cx.focus(ACCOUNTS_LIST);
+                return self.route_changed();
+            }
+            if self.accounts_filtered || self.accounts_filtering || self.accounts.filter.is_some() {
+                self.accounts_filtered = false;
+                self.accounts_filtering = false;
+                self.accounts.filter = None;
+                self.ensure_accounts_selected();
+                self.status = Some("Filter cleared".into());
+                return self.route_changed();
+            }
             if self.accounts.form_open {
                 self.accounts.close();
-                if self.world.scenario == Scenario::AccountsMixed {
-                    self.route = Route::Editor;
-                } else {
-                    self.status = Some("Cancelled account registration".into());
-                }
+                self.accounts_form_stage = 0;
+                self.accounts_form_enters = 0;
+                self.ensure_accounts_selected();
+                self.status = Some("Cancelled account registration".into());
                 return self.route_changed();
             }
             self.route = Route::Manager;
@@ -8242,17 +8846,45 @@ impl TuiApp for App {
                 self.editor.clear_env_form();
                 return self.route_changed();
             }
+            if self.editor.exit_open {
+                self.editor.close_exit();
+                return self.route_changed();
+            }
+            if self.editor.preview_open {
+                self.editor.close_preview();
+                self.status = Some("Not saved · keep editing".into());
+                cx.focus(crate::screens::editor::SAVE);
+                return self.route_changed();
+            }
+            if self.editor.focus != crate::screens::editor::EditorFocus::Tabs {
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
+                return self.route_changed();
+            }
             if self.editor.dirty {
-                self.status = Some("Save changes before leaving?".into());
+                self.editor.open_exit();
+                cx.focus(crate::screens::editor::EXIT_CANCEL);
             } else {
                 self.route = Route::Manager;
             }
             return self.route_changed();
         }
         if self.route == Route::Settings {
+            if self.settings_save_preview {
+                self.settings_save_preview = false;
+                self.status = Some("Save aborted · settings unchanged".into());
+                self.settings.focus = SettingsFocus::Buttons;
+                cx.focus(crate::screens::settings::SAVE);
+                return self.route_changed();
+            }
             if self.settings.save_error.is_some() {
                 self.settings.clear_error();
                 self.status = None;
+                return self.route_changed();
+            }
+            if self.settings.focus != SettingsFocus::Tabs {
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 return self.route_changed();
             }
             if self.settings.dirty {
@@ -8515,47 +9147,6 @@ fn source_label(index: u8) -> &'static str {
         2 => "API key",
         _ => "1Password reference",
     }
-}
-
-fn selected_account_id(world: &World, key: Option<ItemKey>) -> Option<String> {
-    let Some(ItemKey::Index(index)) = key else {
-        return None;
-    };
-    if index == 0 {
-        return None;
-    }
-    let mut row = 1;
-    let mut provider = None;
-    for account in world.accounts.sorted() {
-        if provider != Some(account.provider) {
-            if row == index {
-                return None;
-            }
-            provider = Some(account.provider);
-            row += 1;
-        }
-        if row == index {
-            return Some(account.id.clone());
-        }
-        row += 1;
-    }
-    None
-}
-
-fn account_row_index(world: &World, id: &str) -> Option<usize> {
-    let mut row = 1;
-    let mut provider = None;
-    for account in world.accounts.sorted() {
-        if provider != Some(account.provider) {
-            provider = Some(account.provider);
-            row += 1;
-        }
-        if account.id == id {
-            return Some(row);
-        }
-        row += 1;
-    }
-    None
 }
 
 fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {

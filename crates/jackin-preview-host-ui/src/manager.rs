@@ -19,6 +19,7 @@ use jackin_preview_domain::account::AccountId;
 use jackin_preview_domain::agent::Agent;
 use jackin_preview_domain::clock::format_duration;
 use jackin_preview_domain::instance::{DaemonSnapshot, InstanceStatus};
+use jackin_preview_domain::usage::OverallSummary;
 use jackin_preview_domain::workspace::{AllowedRoles, EnvValue, WorkspaceId};
 use jackin_preview_sim::world::{DaemonHealth, World};
 
@@ -1742,7 +1743,7 @@ impl ManagerScreen {
                             "◌ {}  {ws} · {} · {}",
                             i.id.trim_start_matches("jk-"),
                             role_label(world, &i.role),
-                            i.agent.label()
+                            i.status.label()
                         );
                         ui.paint_str(
                             Rect::new(inner.x, y, inner.width, 1),
@@ -1751,6 +1752,52 @@ impl ManagerScreen {
                         );
                         y += 1;
                     }
+                }
+                // Daemon / refresh / usage health below the preserved list
+                // (tag `screens/manager.rs` roster tail).
+                if y + 3 < inner.bottom() {
+                    y += 1;
+                    ui.paint_str(
+                        Rect::new(inner.x, y, 6, 1),
+                        "Daemon",
+                        palette.card_secondary_bold,
+                    );
+                    let (health_text, health_style) = match world.daemon_health {
+                        DaemonHealth::Healthy => (
+                            format!("healthy · {}", world.clock.ago(world.last_refresh_secs)),
+                            palette.card_secondary,
+                        ),
+                        DaemonHealth::Stale => (
+                            format!("▲ stale · {}", world.clock.ago(world.last_refresh_secs)),
+                            palette.card_warning,
+                        ),
+                    };
+                    let health_w = width(&health_text);
+                    if health_w <= inner.width {
+                        ui.paint_str(
+                            Rect::new(inner.right().saturating_sub(health_w), y, health_w, 1),
+                            &health_text,
+                            health_style,
+                        );
+                    }
+                    y += 1;
+                    ui.paint_str(
+                        Rect::new(inner.x, y, inner.width, 1),
+                        "Refresh      throttled · every 5 s",
+                        palette.card_muted,
+                    );
+                    y += 1;
+                    let summary = OverallSummary::compute(&world.accounts.accounts);
+                    let usage = format!(
+                        "Usage        {} · {}",
+                        summary.health.label(),
+                        summary.issues_line()
+                    );
+                    ui.paint_str(
+                        Rect::new(inner.x, y, inner.width, 1),
+                        &truncate(&usage, inner.width),
+                        palette.card_muted,
+                    );
                 }
             });
     }

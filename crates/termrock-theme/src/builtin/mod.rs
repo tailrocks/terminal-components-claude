@@ -6,7 +6,7 @@ pub(crate) mod paper;
 use ratatui_core::style::Modifier;
 
 use super::glyph::GlyphRole;
-use super::patch::StylePatch;
+use super::patch::{Slot, StylePatch};
 use super::recipe::{Family, PartMap, PartRecipe, Recipe, Recipes, Variant};
 use super::role::{FgStep, Role, Surface};
 use crate::id::Part;
@@ -186,12 +186,31 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
     } else {
         Role::Focus
     };
-    part(m, Part::GUTTER, p()).when(
-        StateFlags::FOCUSED,
-        p().set_glyph(GlyphRole::FocusBar).set_fg(gutter_fg),
-    );
+    part(m, Part::GUTTER, p())
+        .when(
+            StateFlags::FOCUSED,
+            p().set_glyph(GlyphRole::FocusBar).set_fg(gutter_fg),
+        )
+        // W02-01: disabled suppresses the focus gutter (reference
+        // `Theme::gutter_symbol`: `▎` only when focused && !disabled).
+        // Higher specificity, so it clears the FOCUSED glyph above.
+        .when(
+            StateFlags::FOCUSED | StateFlags::DISABLED,
+            StylePatch {
+                glyph: Slot::Clear,
+                ..p()
+            },
+        );
     part(m, Part::LABEL, p());
-    part(m, Part::ICON, p());
+    // Q67-F5: the busy/loading spinner is the accent marker. The reference
+    // overwrites the marker cell with `style.fg(t.accent)` whenever the
+    // button is busy (`visual-baseline:src/widgets/button.rs:153-160`),
+    // regardless of toggle state. Without a BUSY/LOADING rule the ICON
+    // resolve names no fg and the spinner inherits the container's Primary
+    // (white) instead of the accent tone.
+    part(m, Part::ICON, p())
+        .when(StateFlags::BUSY, p().set_fg(Role::Accent))
+        .when(StateFlags::LOADING, p().set_fg(Role::Accent));
 }
 
 fn field_like(m: &mut PartMap<PartRecipe>) {
@@ -303,6 +322,11 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
     row_like(m);
     part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Secondary)))
         .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)))
+        // W17-01: bold marks the keyboard cursor (reference tabs).
+        .when(
+            StateFlags::FOCUSED,
+            p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+        )
         .when(
             StateFlags::DISABLED,
             p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),
@@ -316,6 +340,13 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
             StateFlags::HOVERED,
             p().set_fg(Role::Fg(FgStep::Primary))
                 .set_bg(Role::HoverSurface),
+        )
+        // W17-01: the cursor tab lifts and bolds like the active one.
+        .when(
+            StateFlags::FOCUSED,
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::HoverSurface)
+                .add(Modifier::BOLD),
         )
         .when(
             StateFlags::ACTIVE,
@@ -598,7 +629,12 @@ fn brand(m: &mut PartMap<PartRecipe>) {
             .set_bg(Role::Accent)
             .add(Modifier::BOLD),
     )
-    .when(StateFlags::HOVERED, p().set_bg(Role::AccentHover));
+    .when(StateFlags::HOVERED, p().set_bg(Role::AccentHover))
+    // W01-02: a held press paints below the hover lift, the same pressed
+    // surface Button wears (brand.md: interactive mode shares Button's
+    // hover lift and pressed surface). Declared after HOVERED at equal
+    // specificity so it wins when both are live.
+    .when(StateFlags::PRESSED, p().set_bg(Role::AccentPressed));
     part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
 }
 
@@ -621,6 +657,13 @@ fn too_small(m: &mut PartMap<PartRecipe>) {
 
 fn choice(m: &mut PartMap<PartRecipe>) {
     row_like(m);
+    // W03-01: hover lifts over the selection tint (reference `Theme::row`
+    // applies the hover lift after the tint), so focus+hover always reads
+    // past focus on a checked row. Outranks SELECTED|FOCUSED by specificity.
+    part(m, Part::CONTAINER, p()).when(
+        StateFlags::SELECTED | StateFlags::FOCUSED | StateFlags::HOVERED,
+        p().set_bg(Role::HoverSurface),
+    );
     part(m, Part::MARKER, p())
         .when(
             StateFlags::CHECKED,
@@ -652,6 +695,49 @@ fn chip(m: &mut PartMap<PartRecipe>) {
             .set_glyph(GlyphRole::Close),
     )
     .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)));
+    // The leading affordance: muted on the surface, lifting on hover. No
+    // `FOCUSED` rule — the lead is click-only, never a cursor stop.
+    part(
+        m,
+        Part::LEAD,
+        p().set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::CurrentSurface),
+    )
+    .when(
+        StateFlags::HOVERED,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::HoverSurface),
+    );
+    // The trailing add affordance: the oracle `Subtle` button. Pressed is a
+    // fresh canvas-on-primary with no modifiers, exactly as the oracle
+    // builds it — the `BOLD` strip cancels the focused rule it merges over.
+    part(
+        m,
+        Part::NEW,
+        p().set_fg(Role::Fg(FgStep::Secondary))
+            .set_bg(Role::CurrentSurface),
+    )
+    .when(
+        StateFlags::HOVERED,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::HoverSurface),
+    )
+    .when(
+        StateFlags::FOCUSED,
+        p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+    )
+    .when(
+        StateFlags::PRESSED,
+        p().set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .remove(Modifier::BOLD),
+    );
+    part(
+        m,
+        Part::OVERFLOW,
+        p().set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::CurrentSurface),
+    );
 }
 
 fn grid(m: &mut PartMap<PartRecipe>) {
@@ -2106,6 +2192,76 @@ mod tests {
         );
     }
 
+    /// Q67-S13 (L-R1/L-R2 + N-L1): the LIST marker is secondary unless
+    /// the row is live (`tag:list.rs:296-302`): the focus/hover
+    /// compounds and the NavList SELECTED|ACTIVE current row resolve
+    /// accent, while disabled rows keep DisabledFg in every combination.
+    #[test]
+    fn q67s13_list_marker_secondary_unless_live() {
+        let theme = Theme::junie();
+        let resolve = |flags| {
+            theme.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::MARKER,
+                flags,
+                Surface::Canvas,
+            )
+        };
+        let secondary =
+            crate::theme::resolve::bind_role(&theme, Role::Fg(FgStep::Secondary), Surface::Canvas);
+        let accent = crate::theme::resolve::bind_role(&theme, Role::Accent, Surface::Canvas);
+        let disabled = crate::theme::resolve::bind_role(&theme, Role::DisabledFg, Surface::Canvas);
+        let selected = resolve(StateFlags::SELECTED);
+        assert_eq!(selected.glyph.get(), Some(GlyphRole::Chosen));
+        assert_eq!(selected.style.fg, secondary);
+        let checked = resolve(StateFlags::CHECKED);
+        assert_eq!(checked.glyph.get(), Some(GlyphRole::Checked));
+        assert_eq!(checked.style.fg, secondary);
+        for flags in [
+            StateFlags::SELECTED | StateFlags::FOCUSED,
+            StateFlags::SELECTED | StateFlags::HOVERED,
+            StateFlags::SELECTED | StateFlags::ACTIVE,
+            StateFlags::CHECKED | StateFlags::FOCUSED,
+            StateFlags::CHECKED | StateFlags::HOVERED,
+        ] {
+            assert_eq!(resolve(flags).style.fg, accent, "live {flags:?}");
+        }
+        // Glyphs ride the base rule through the fg-only compounds.
+        assert_eq!(
+            resolve(StateFlags::SELECTED | StateFlags::ACTIVE)
+                .glyph
+                .get(),
+            Some(GlyphRole::Chosen)
+        );
+        assert_eq!(
+            resolve(StateFlags::CHECKED | StateFlags::FOCUSED)
+                .glyph
+                .get(),
+            Some(GlyphRole::Checked)
+        );
+        // Disabled wins every combination except the NavList current
+        // row, which the tag paints accent unconditionally.
+        for flags in [
+            StateFlags::DISABLED,
+            StateFlags::SELECTED | StateFlags::DISABLED,
+            StateFlags::CHECKED | StateFlags::DISABLED,
+            StateFlags::SELECTED | StateFlags::FOCUSED | StateFlags::DISABLED,
+            StateFlags::SELECTED | StateFlags::HOVERED | StateFlags::DISABLED,
+            StateFlags::CHECKED | StateFlags::FOCUSED | StateFlags::DISABLED,
+            StateFlags::CHECKED | StateFlags::HOVERED | StateFlags::DISABLED,
+        ] {
+            assert_eq!(resolve(flags).style.fg, disabled, "disabled {flags:?}");
+        }
+        assert_eq!(
+            resolve(StateFlags::SELECTED | StateFlags::ACTIVE | StateFlags::DISABLED)
+                .style
+                .fg,
+            accent,
+            "disabled NavList current keeps the tag's accent"
+        );
+    }
+
     // Q66-S5 (F1-L6): Junie TREE targeted mono set is
     // (CONTAINER+GUTTER+META, DISABLED)+DIM — the LIST mirror (Q66-S3).
     // Principle-only (Q65 GHOST precedent): tag tree never sets disabled
@@ -2534,5 +2690,83 @@ mod tests {
                 theme.capability.color
             );
         }
+    }
+
+    /// Q67-S14 (N3): the LIST icon is muted whenever enabled
+    /// (`tag:sidebars.rs:242-246`); the List readiness cell keeps
+    /// Secondary under its status flags, DISABLED keeps DisabledFg and
+    /// wins spec-1 ties, and every other `row_like` family keeps
+    /// Secondary.
+    #[test]
+    fn q67s14_list_icon_muted_with_readiness_preserved() {
+        let theme = Theme::junie();
+        let resolve = |family, flags| {
+            theme.resolve(family, Variant::DEFAULT, Part::ICON, flags, Surface::Canvas)
+        };
+        let muted =
+            crate::theme::resolve::bind_role(&theme, Role::Fg(FgStep::Muted), Surface::Canvas);
+        let secondary =
+            crate::theme::resolve::bind_role(&theme, Role::Fg(FgStep::Secondary), Surface::Canvas);
+        let disabled = crate::theme::resolve::bind_role(&theme, Role::DisabledFg, Surface::Canvas);
+        assert_eq!(resolve(Family::LIST, StateFlags::empty()).style.fg, muted);
+        for flags in [
+            StateFlags::BUSY,
+            StateFlags::LOADING,
+            StateFlags::ERROR,
+            StateFlags::WARNING,
+        ] {
+            assert_eq!(
+                resolve(Family::LIST, flags).style.fg,
+                secondary,
+                "readiness {flags:?}"
+            );
+        }
+        assert_eq!(
+            resolve(Family::LIST, StateFlags::DISABLED).style.fg,
+            disabled
+        );
+        assert_eq!(
+            resolve(Family::LIST, StateFlags::DISABLED | StateFlags::BUSY)
+                .style
+                .fg,
+            disabled,
+            "DISABLED wins the spec-1 tie"
+        );
+        for family in [Family::TREE, Family::MENU, Family::CHIP, Family::PICKER] {
+            assert_eq!(
+                resolve(family, StateFlags::empty()).style.fg,
+                secondary,
+                "{family:?} keeps row_like Secondary"
+            );
+        }
+    }
+
+    /// Q67-S14 (N5): the LIST badge is accent whenever enabled
+    /// (`tag:sidebars.rs:249-252`); DISABLED carries no fg of its own
+    /// (inherits the container fill — the tag's disabled `st`); the
+    /// PANEL badge keeps its pill.
+    #[test]
+    fn q67s14_list_badge_accent_with_inherit_disabled() {
+        let theme = Theme::junie();
+        let resolve = |family, flags| {
+            theme.resolve(
+                family,
+                Variant::DEFAULT,
+                Part::BADGE,
+                flags,
+                Surface::Canvas,
+            )
+        };
+        let accent = crate::theme::resolve::bind_role(&theme, Role::Accent, Surface::Canvas);
+        assert_eq!(resolve(Family::LIST, StateFlags::empty()).style.fg, accent);
+        assert_eq!(
+            resolve(Family::LIST, StateFlags::DISABLED).style.fg,
+            None,
+            "BADGE carries no fg of its own — it inherits the container fill"
+        );
+        let panel = resolve(Family::PANEL, StateFlags::empty());
+        let on_accent = crate::theme::resolve::bind_role(&theme, Role::OnAccent, Surface::Canvas);
+        assert_eq!(panel.style.fg, on_accent);
+        assert_eq!(panel.style.bg, accent);
     }
 }

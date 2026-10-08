@@ -2,7 +2,7 @@
 
 use termrock::{
     Action, ActionKey, Chord, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, FormData, Id,
-    RadioGroup, Secret, SecretPolicy, Select, TextArea, TextInput, Toggle,
+    RadioGroup, Secret, SecretPolicy, Select, TextArea, TextInput, TextInputState, Toggle,
 };
 
 use tablepro_demo as db;
@@ -43,6 +43,8 @@ pub mod field {
     pub const SSH: Id = Id::root("tablepro.connections.form.ssh");
     /// SSH host field.
     pub const SSH_HOST: Id = Id::root("tablepro.connections.form.ssh-host");
+    /// Local-only toggle field (draw-only; no draft field, no form spec).
+    pub const LOCAL_ONLY: Id = Id::root("tablepro.connections.form.local-only");
     /// Startup command field.
     pub const STARTUP: Id = Id::root("tablepro.connections.form.startup");
     /// Form tabs selector.
@@ -411,7 +413,7 @@ pub struct ConnectionsScreen {
     pub connections: Vec<Connection>,
     pub selected: usize,
     pub filter: String,
-    pub filter_active: bool,
+    pub filter_state: TextInputState,
     pub error: Option<String>,
 }
 
@@ -421,7 +423,7 @@ impl ConnectionsScreen {
             connections,
             selected: 0,
             filter: String::new(),
-            filter_active: false,
+            filter_state: TextInputState::default(),
             error: None,
         }
     }

@@ -1,9 +1,9 @@
 //! Read-only keyed data grid with model-owned sorting.
 
 use termrock::{
-    Align, CellRef, Column, ColumnKey, Cx, EmptyState, Family, FgStep, Grid, GridAction, GridModel,
+    Align, CellRef, Column, ColumnKey, Cx, EmptyState, FgStep, Grid, GridAction, GridModel,
     GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Role, RowDecor, RowTotal,
-    SortDir, StateFlags, StylePatch, Track, Ui, Variant, id, layout,
+    SortDir, StylePatch, Track, Ui, id, layout,
 };
 
 use showcase_data::{TASKS, TaskRow, TaskStatus};
@@ -12,8 +12,6 @@ use super::{Page, PageUpdate, frame};
 
 const TABLE: Id = id!("tables.tasks");
 const CHECKS: Id = id!("tables.checks");
-const LABEL_PATCH: StylePatch = StylePatch::new().set_fg(Role::Info);
-const PART_PATCH: &[(Part, StylePatch)] = &[(Part::HEADER, LABEL_PATCH)];
 const PANEL_PARTS: &[(Part, StylePatch)] = &[(
     Part::TITLE,
     StylePatch::new()
@@ -26,9 +24,10 @@ const COLUMNS: [Column<'static>; 7] = [
         key: ColumnKey::num(0),
         title: "ID",
         subtitle: None,
-        align: Align::Right,
+        align: Align::Left,
         min_width: 5,
         max_width: 5,
+        flex: 0,
         sortable: true,
         editable: false,
         sticky: true,
@@ -43,6 +42,7 @@ const COLUMNS: [Column<'static>; 7] = [
         align: Align::Left,
         min_width: 24,
         max_width: 24,
+        flex: 1,
         sortable: false,
         editable: false,
         sticky: false,
@@ -57,6 +57,7 @@ const COLUMNS: [Column<'static>; 7] = [
         align: Align::Left,
         min_width: 7,
         max_width: 7,
+        flex: 0,
         sortable: true,
         editable: false,
         sticky: false,
@@ -71,6 +72,7 @@ const COLUMNS: [Column<'static>; 7] = [
         align: Align::Left,
         min_width: 9,
         max_width: 9,
+        flex: 0,
         sortable: false,
         editable: false,
         sticky: false,
@@ -85,6 +87,7 @@ const COLUMNS: [Column<'static>; 7] = [
         align: Align::Left,
         min_width: 20,
         max_width: 20,
+        flex: 0,
         sortable: false,
         editable: false,
         sticky: false,
@@ -99,6 +102,7 @@ const COLUMNS: [Column<'static>; 7] = [
         align: Align::Right,
         min_width: 9,
         max_width: 9,
+        flex: 0,
         sortable: true,
         editable: false,
         sticky: false,
@@ -113,6 +117,7 @@ const COLUMNS: [Column<'static>; 7] = [
         align: Align::Right,
         min_width: 9,
         max_width: 9,
+        flex: 0,
         sortable: true,
         editable: false,
         sticky: false,
@@ -172,204 +177,6 @@ impl TableModel {
             }
         });
     }
-}
-
-fn padded(value: &str, width: usize) -> String {
-    let value = termrock::truncate(value, width as u16);
-    format!("{value:<width$}")
-}
-
-fn status_text(status: TaskStatus) -> &'static str {
-    match status {
-        TaskStatus::Running => "▸ Running",
-        TaskStatus::Failed => "Failed",
-        TaskStatus::Paused => "Paused",
-        TaskStatus::Queued => "Queued",
-        TaskStatus::Done => "Done",
-    }
-}
-
-fn legacy_header(width: u16, sort: Option<(ColumnKey, SortDir)>) -> String {
-    let mark =
-        |key: u16| {
-            sort.filter(|(column, _)| column.raw() == key)
-                .map_or("", |(_, direction)| match direction {
-                    SortDir::Asc => " ▴",
-                    SortDir::Desc => " ▾",
-                })
-        };
-    if width >= 130 {
-        format!(
-            "{} {} {} {} {} {} {}",
-            padded(&format!("ID{}", mark(0)), 6),
-            padded("Task", 55),
-            padded(&format!("Owner{}", mark(2)), 8),
-            padded("Status", 10),
-            padded("Branch", 23),
-            padded("Changes", 9),
-            "Duration"
-        )
-    } else if width >= 90 {
-        format!(
-            "{} {} {} {} {} {}",
-            padded(&format!("ID{}", mark(0)), 6),
-            padded("Task", 25),
-            padded(&format!("Owner{}", mark(2)), 8),
-            padded("Status", 10),
-            padded("Branch", 23),
-            "Changes …"
-        )
-    } else if width >= 70 {
-        format!(
-            "{} {} {} {} …",
-            padded(&format!("ID{}", mark(0)), 6),
-            padded("Task", 43),
-            padded(&format!("Owner{}", mark(2)), 8),
-            padded("Status", 10),
-        )
-    } else {
-        format!(
-            "{} {} {}…",
-            padded(&format!("ID{}", mark(0)), 6),
-            padded("Task", 34),
-            padded(&format!("Owner{}", mark(2)), 8),
-        )
-    }
-}
-
-fn legacy_row(row: &TableRow, width: u16, track: &str) -> String {
-    let status = status_text(row.task.status);
-    if width >= 130 {
-        format!(
-            "▎  {} {} {} {} {} {} {}",
-            padded(&row.id, 6),
-            padded(row.task.name, 55),
-            padded(row.task.owner, 8),
-            padded(status, 10),
-            padded(row.task.branch, 23),
-            padded(&row.changes, 9),
-            row.duration
-        )
-    } else if width >= 90 {
-        format!(
-            "▎  {} {}  {} {} {}{:>3}  {track}",
-            padded(&row.id, 6),
-            padded(row.task.name, 24),
-            padded(row.task.owner, 8),
-            padded(status, 10),
-            padded(row.task.branch, 28),
-            row.changes
-        )
-    } else if width >= 70 {
-        format!(
-            "▎  {} {} {} {} {track}",
-            padded(&row.id, 6),
-            padded(row.task.name, 43),
-            padded(row.task.owner, 8),
-            padded(status, 10),
-        )
-    } else {
-        format!(
-            "▎  {} {}  {} {track}",
-            padded(&row.id, 6),
-            padded(row.task.name, 33),
-            padded(row.task.owner, 8),
-        )
-    }
-}
-
-fn row_key(row: &TableRow) -> ItemKey {
-    ItemKey::num(u64::from(row.task.id))
-}
-
-fn legacy_table(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    width: u16,
-    model: &TableModel,
-    state: &GridState,
-    sort: Option<(ColumnKey, SortDir)>,
-    styles: (termrock::author::PaintStyle, termrock::author::PaintStyle),
-) {
-    let (header_style, row_style) = styles;
-    if area.is_empty() {
-        return;
-    }
-    let header = Rect {
-        x: area.x.saturating_add(3),
-        width: area.width.saturating_sub(3),
-        height: 1,
-        ..area
-    };
-    ui.fill(header, header_style);
-    let _ = ui.paint_str(header, &legacy_header(width, sort), header_style);
-
-    let visible = usize::from(area.height.saturating_sub(1));
-    let cursor = state
-        .cursor()
-        .and_then(|(key, _)| model.rows.iter().position(|row| row_key(row) == key))
-        .unwrap_or_default();
-    let start = cursor.saturating_sub(visible.saturating_sub(1));
-    let thumb = visible
-        .saturating_mul(visible)
-        .checked_div(model.rows.len().max(1))
-        .unwrap_or(1)
-        .max(1);
-    for offset in 0..visible {
-        let Some(row) = model.rows.get(start.saturating_add(offset)) else {
-            break;
-        };
-        let track = if width >= 130 {
-            ""
-        } else if offset < thumb {
-            "┃"
-        } else {
-            "│"
-        };
-        let row_area = Rect {
-            y: area.y.saturating_add(1).saturating_add(offset as u16),
-            height: 1,
-            ..area
-        };
-        ui.fill(row_area, row_style);
-        let _ = ui.paint_str(row_area, &legacy_row(row, width, track), row_style);
-    }
-}
-
-fn paint_card_meta(ui: &mut Ui<'_>, area: Rect, text: &str) {
-    if text.is_empty() || area.is_empty() {
-        return;
-    }
-    let style = ui
-        .style(
-            Family::PANEL,
-            Variant::DEFAULT,
-            Part::DETAIL,
-            StateFlags::empty(),
-        )
-        .style;
-    let text_width = termrock::width(text);
-    let x = area.right().saturating_sub(text_width.saturating_add(2));
-    let width = area.right().saturating_sub(x);
-    ui.fill(
-        Rect {
-            x,
-            y: area.y,
-            width,
-            height: 1,
-        },
-        style,
-    );
-    let _ = ui.paint_str(
-        Rect {
-            x,
-            y: area.y,
-            width: text_width,
-            height: 1,
-        },
-        text,
-        style,
-    );
 }
 
 impl GridModel for TableModel {
@@ -433,7 +240,11 @@ impl GridModel for TableModel {
 fn table() -> Grid<'static> {
     Grid::new(TABLE, &COLUMNS)
         .nav(NavUnit::Row)
-        .patch_part(PART_PATCH)
+        .column_gap(2)
+        .left_reserve(1)
+        .right_reserve(2)
+        .sort_indicator(termrock::GridSortIndicator::ActiveOnly)
+        .overflow_indicator(termrock::GridOverflowIndicator::Ellipsis)
 }
 
 /// `1–21 of 24`, or empty when every row fits (tag:scrollbar.rs
@@ -550,9 +361,8 @@ impl Page for TablesPage {
                 format!("{} · {pos}", self.last)
             };
             tasks_panel(&task_meta).draw(ui, tasks, |ui, inner| {
-                self.draw_tasks(ui, inner, body.width);
+                self.draw_tasks(ui, inner);
             });
-            paint_card_meta(ui, tasks, &task_meta);
             if let Some(checks) = regions.get(2).copied() {
                 checks_panel().draw(ui, checks, |ui, inner| {
                     let _ = ui.paint_str(
@@ -612,33 +422,12 @@ impl Page for TablesPage {
 }
 
 impl TablesPage {
-    fn draw_tasks(&self, ui: &mut Ui<'_>, inner: Rect, body_width: u16) {
+    fn draw_tasks(&self, ui: &mut Ui<'_>, inner: Rect) {
         let grid_area = Rect {
             x: inner.x,
             width: inner.width,
             ..inner
         };
         table().draw(ui, grid_area, &self.state, &self.model);
-        let header = ui.style(
-            Family::GRID,
-            Variant::DEFAULT,
-            Part::HEADER,
-            StateFlags::empty(),
-        );
-        let row_style = ui.style(
-            Family::GRID,
-            Variant::DEFAULT,
-            Part::ROW,
-            StateFlags::empty(),
-        );
-        legacy_table(
-            ui,
-            grid_area,
-            body_width,
-            &self.model,
-            &self.state,
-            self.sort,
-            (header.style, row_style.style),
-        );
     }
 }

@@ -671,6 +671,8 @@ impl<'a> TextArea<'a> {
             Some(scroll.prepare(cx, &mut st.scroll, lines))
         };
         let page = st.scroll.viewport_len().max(1);
+        let was_editing = st.is_editing();
+        let caret_before = st.draft.cursor_pos();
         for it in cx.intents(self.id) {
             if let Some(track_len) = track_len {
                 let bar = scroll.handle_intent(cx, &mut st.scroll, track_len, it);
@@ -681,10 +683,18 @@ impl<'a> TextArea<'a> {
                 Intent::FocusOut { .. } => {
                     if st.is_editing() {
                         let policy = self.blur;
+                        // W11-04: pristine blur ends silently (input-arm
+                        // twin: transit past an untouched field reports
+                        // nothing).
+                        let dirty = st.draft.text() != value.expose();
                         let _ = st.blur_target(value, &self.validator(), policy);
                         match policy {
                             BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
-                                acc.action(TextAction::Committed);
+                                if dirty {
+                                    acc.action(TextAction::Committed);
+                                } else {
+                                    acc.consumed();
+                                }
                             }
                             BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
                             BlurPolicy::Keep => {}
@@ -693,18 +703,14 @@ impl<'a> TextArea<'a> {
                 }
                 Intent::Binding(action) if editable => {
                     if let Some(cmd) = Binding::command(edit_bindings(true), action) {
-                        if !st.is_editing() && cmd != TextCmd::Commit {
-                            st.begin(value.expose());
-                        }
                         if st.is_editing() {
                             self.edit_command(st, value, cmd, page, &mut acc);
+                        } else {
+                            Self::nav_command(st, value, cmd, &mut acc);
                         }
                     }
                 }
-                Intent::Key(k) if editable => {
-                    if !st.is_editing() {
-                        st.begin(value.expose());
-                    }
+                Intent::Key(k) if editable && st.is_editing() => {
                     if let Some(c) = k.bare_char()
                         && st.apply(EditAction::Insert(c)).changed()
                     {
@@ -755,7 +761,13 @@ impl<'a> TextArea<'a> {
             let cur = st.draft.cursor_pos();
             if !self.disabled {
                 st.scroll.set_content(st.draft.line_count());
-                st.scroll.ensure_visible(cur.line);
+                // W09-05: follow only when the caret moved (or the edit
+                // began this update) — a wheel offset holds past the
+                // caret until caret motion resumes the follow (the
+                // reference render gate: follow, moved cursor, resized).
+                if !was_editing || cur != caret_before {
+                    st.scroll.ensure_visible(cur.line);
+                }
             }
             if let Some(a) = cx.area(self.id) {
                 st.draft.scroll_into_view(Self::inner_width(a.width));
@@ -767,6 +779,51 @@ impl<'a> TextArea<'a> {
     fn live_validate(&self, st: &mut TextAreaState) {
         if st.error.is_some() {
             let _ = st.finish_validation(self.validator().check(st.draft.text()));
+        }
+    }
+
+    /// Navigation-mode keys (reference `TextArea::on_key` while `!editing`):
+    /// Enter begins the edit without inserting; motion scrolls the view;
+    /// everything else — including typing — is ignored.
+    fn nav_command<T: TextTarget + ?Sized>(
+        st: &mut TextAreaState,
+        value: &mut T,
+        cmd: TextCmd,
+        acc: &mut Acc<TextAction>,
+    ) {
+        match cmd {
+            // W09-01: nav Enter begins only — the newline belongs to
+            // *edit* Enter.
+            TextCmd::Newline => {
+                st.begin(value.expose());
+                acc.changed();
+            }
+            // W09-03: nav motion scrolls the view without editing.
+            TextCmd::PageUp => {
+                st.scroll.page_up();
+                acc.changed();
+            }
+            TextCmd::PageDown => {
+                st.scroll.page_down();
+                acc.changed();
+            }
+            TextCmd::Move(Motion::Up, Extend::No) => {
+                st.scroll.scroll_by(-1);
+                acc.changed();
+            }
+            TextCmd::Move(Motion::Down, Extend::No) => {
+                st.scroll.scroll_by(1);
+                acc.changed();
+            }
+            TextCmd::Move(Motion::Home | Motion::DocStart, Extend::No) => {
+                st.scroll.jump_start();
+                acc.changed();
+            }
+            TextCmd::Move(Motion::End | Motion::DocEnd, Extend::No) => {
+                st.scroll.jump_end();
+                acc.changed();
+            }
+            _ => {}
         }
     }
 

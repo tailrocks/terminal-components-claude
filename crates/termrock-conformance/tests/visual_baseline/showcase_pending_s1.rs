@@ -925,10 +925,10 @@ fn s1_table_hover_lift() {
         assert_cell_same(&moved, &idle, col, hover_row, "A2 #1042 rested");
     }
     let lifted = (0..idle.cols)
-        .filter_map(|col| {
-            let a = idle.get(col, row3).map(cell_sig);
-            let b = moved.get(col, row3).map(cell_sig);
-            (a != b).then_some(col)
+        .filter(|col| {
+            let a = idle.get(*col, row3).map(cell_sig);
+            let b = moved.get(*col, row3).map(cell_sig);
+            a != b
         })
         .count();
     assert!(lifted > 0, "A2: #1043 row lifts under the pointer");
@@ -1081,12 +1081,11 @@ fn s1_grid_wheel_fade() {
     let (header_row, _) = find_pos(&mut s, "customer", case_timeout(&case));
     assert_row_same(&boot, &frame, header_row, "V2/N1 header never fades");
     let track_col = (0..frame.cols)
-        .filter(|col| {
+        .rfind(|col| {
             frame
                 .get(*col, r7)
                 .is_some_and(|c| c.symbol == "│" || c.symbol == "┃")
         })
-        .last()
         .expect("V2: scrollbar column on the first body row");
     assert_eq!(
         frame.get(track_col, r7).map(|c| c.symbol.as_str()),

@@ -1,0 +1,5 @@
+error: the argument '--no-fail-fast' cannot be used with '--max-fail <N[:MODE]>'
+
+Usage: cargo nextest run --locked --package <PACKAGES> --test <TEST> --run-ignored <WHICH> --ignore-default-filter --color <WHEN> --show-progress <SHOW_PROGRESS> --filterset <EXPR> --cargo-quiet... --no-tests <ACTION> --no-fail-fast --retries <N> --test-threads <N> --flaky-result <RESULT> --failure-output <WHEN> --final-status-level <LEVEL> --no-output-indent --message-format <FORMAT> --message-format-version <VERSION> [FILTERS]... [-- <FILTERS_AND_ARGS>...]
+
+For more information, try '--help'.

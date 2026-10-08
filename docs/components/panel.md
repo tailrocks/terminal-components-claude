@@ -71,7 +71,7 @@ Shared dependencies: [`identity`](../foundations/identity.md), [`runtime`](../fo
 
 Advertised parts are `container`, `border`, `title`, `meta`, `badge`, and `body`.
 
-Ordinary customization patches declared title, meta, or badge tones. Card is a filled surface with the baseline title row and padding. Framed is the rounded border recipe with its exact inset and title gap. Focus-within changes the frame/title treatment only; the child remains the focus owner and keeps its focus gutter. No color or motion reinterpretation is introduced. Capability/motion resolution uses the shared theme foundation.
+Ordinary customization patches declared title, meta, or badge tones. An unpatched meta paints faint (the historical panel paints `t.faint()` unconditionally); the default lives inside the component under any instance patch, never in the shared recipe. Card is a filled surface with the baseline title row and padding. Framed is the rounded border recipe with its exact inset and title gap. Focus-within changes the frame/title treatment only; the child remains the focus owner and keeps its focus gutter. No color or motion reinterpretation is introduced. Capability/motion resolution uses the shared theme foundation.
 
 Advanced customization keeps the title/metadata width budget: the title yields first to preserve metadata, then metadata truncates while the title keeps its minimum naming cells. Badge claims space only when it fits. Body paint inherits the selected surface and clip. Nested panels and nonzero origins retain exact border, padding, clipping, and background behavior.
 

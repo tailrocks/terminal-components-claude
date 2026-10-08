@@ -22,6 +22,7 @@ use core::fmt;
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 
+use super::controls::Button;
 use super::input::{BlurPolicy, TextAction, TextInput, TextInputState};
 use super::progress::Spinner;
 use super::scroll_region::ScrollRegion;
@@ -36,9 +37,9 @@ use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef, custom_hash16};
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
-use crate::measure::{Constraints, Size};
+use crate::measure::{Constraints, RowAlign, Size, action_row};
 use crate::response::{Response, StateFlags};
-use crate::text::width;
+use crate::text::{truncate, width};
 use crate::theme::{
     Align, Family, FgStep, GlyphRole, Modifier, Role, StyleDefaults, StylePatch, Variant,
 };
@@ -266,6 +267,11 @@ pub struct Column<'a> {
     pub min_width: u16,
     /// Widest painted width.
     pub max_width: u16,
+    /// Flex-fill weight: zero pins the column to its sampled width, nonzero
+    /// absorbs leftover row space after the window is placed (tag
+    /// `table.rs:593` `Constraint::Min`: the base is `min_width`, growth is
+    /// not capped by `max_width`).
+    pub flex: u16,
     /// Whether activating the header requests a sort.
     pub sortable: bool,
     /// Whether cells in this column can be edited at all. A per-column
@@ -292,6 +298,7 @@ impl<'a> Column<'a> {
             align: Align::Left,
             min_width: 3,
             max_width: 40,
+            flex: 0,
             sortable: false,
             editable: false,
             sticky: false,
@@ -365,6 +372,26 @@ pub trait GridModel {
     fn actions(&self, _row: usize, _col: usize) -> &[CellAction] {
         &[]
     }
+
+    /// Rows with uncommitted changes. Non-zero summons the pending bar:
+    /// the grid shrinks its body by two rows and paints `• {n} pending`
+    /// with Preview SQL / Discard / Save over `draw`'s own area, so the
+    /// queue chrome can never drift from the rows it describes.
+    fn pending_count(&self) -> usize {
+        0
+    }
+
+    /// The pending breakdown after the count (`2 updates`, `1 update ·
+    /// 1 insert`); empty without a queue.
+    fn pending_breakdown(&self) -> String {
+        String::new()
+    }
+
+    /// The commit rejection hanging off one display row, if any. The bar
+    /// shows it while the cursor sits on the row, error-toned.
+    fn row_error(&self, _row: usize) -> Option<&str> {
+        None
+    }
 }
 
 /// The editing half, reachable **only** from [`Grid::update_editable`]
@@ -416,6 +443,12 @@ pub enum GridAction {
     LeaveForward,
     /// `Shift+Tab` before the first cell.
     LeaveBackward,
+    /// The pending bar's Save fired; the adapter owns the commit.
+    CommitRequested,
+    /// The pending bar's Discard fired; the adapter owns the rollback.
+    DiscardRequested,
+    /// The pending bar's Preview SQL fired; the adapter opens the facts.
+    PreviewRequested,
 }
 
 /// The const-constructible commands of the grid keymap.
@@ -804,6 +837,16 @@ pub enum GridSortIndicator {
     Always,
     /// Only the currently sorted column shows a glyph.
     ActiveOnly,
+}
+
+/// How the header marks horizontally hidden columns.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum GridOverflowIndicator {
+    /// Existing behavior: `‹N` / `N›` with the hidden count.
+    #[default]
+    Count,
+    /// A single `…` at the window edge (legacy table parity).
+    Ellipsis,
 }
 
 /// Durable state of a [`Grid`].
@@ -1277,11 +1320,13 @@ pub struct Grid<'a> {
     column_gap: u16,
     gutter: GridGutter,
     right_reserve: u16,
+    left_reserve: u16,
     part_defaults: &'a [(Part, StylePatch)],
     header_prefixes: &'a [(ColumnKey, GlyphRole, Role)],
     column_fit: GridColumnFit,
     header_sizing: GridHeaderSizing,
     sort_indicator: GridSortIndicator,
+    overflow_indicator: GridOverflowIndicator,
     disabled: bool,
     fetch_on_activate: bool,
     fetch_label: &'a str,
@@ -1336,11 +1381,13 @@ impl<'a> Grid<'a> {
             column_gap: 1,
             gutter: GridGutter::Compact,
             right_reserve: 0,
+            left_reserve: 0,
             part_defaults: &[],
             header_prefixes: &[],
             column_fit: GridColumnFit::Whole,
             header_sizing: GridHeaderSizing::Content,
             sort_indicator: GridSortIndicator::Always,
+            overflow_indicator: GridOverflowIndicator::Count,
             disabled: false,
             fetch_on_activate: false,
             fetch_label: "more",
@@ -1412,6 +1459,22 @@ impl<'a> Grid<'a> {
     /// The id of the inline editor this grid owns.
     pub const fn editor_id(&self) -> Id {
         self.id.part(Part::TEXT)
+    }
+
+    /// The pending bar's Preview SQL button, a focus stop while the queue
+    /// is non-empty.
+    pub const fn preview_id(&self) -> Id {
+        self.id.sub("preview")
+    }
+
+    /// The pending bar's Discard button.
+    pub const fn discard_id(&self) -> Id {
+        self.id.sub("discard")
+    }
+
+    /// The pending bar's Save button.
+    pub const fn save_id(&self) -> Id {
+        self.id.sub("save")
     }
 
     /// What the cursor moves over.
@@ -1500,6 +1563,13 @@ impl<'a> Grid<'a> {
         self
     }
 
+    /// Reserve leading cells between the gutter and the first column.
+    #[must_use]
+    pub const fn left_reserve(mut self, cells: u16) -> Self {
+        self.left_reserve = cells;
+        self
+    }
+
     /// Horizontal cells between columns; defaults to one.
     #[must_use]
     pub const fn column_gap(mut self, gap: u16) -> Self {
@@ -1525,6 +1595,13 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn sort_indicator(mut self, policy: GridSortIndicator) -> Self {
         self.sort_indicator = policy;
+        self
+    }
+
+    /// Choose how the header marks horizontally hidden columns.
+    #[must_use]
+    pub const fn overflow_indicator(mut self, policy: GridOverflowIndicator) -> Self {
+        self.overflow_indicator = policy;
         self
     }
 
@@ -1711,6 +1788,15 @@ impl<'a> Grid<'a> {
     ) -> [u16; GRID_MAX_COLUMNS] {
         let mut widths = [0; GRID_MAX_COLUMNS];
         for (i, c) in self.columns.iter().enumerate().take(self.column_count()) {
+            // Flex columns lay out at their minimum, like tag
+            // `Constraint::Min`: content never widens the base, leftover
+            // absorption happens in `distribute_flex` after the window.
+            if c.flex > 0 {
+                if let Some(slot) = widths.get_mut(i) {
+                    *slot = c.min_width.max(1);
+                }
+                continue;
+            }
             let mut w = width(c.title).saturating_add(
                 if c.prefix_glyph == Some(GlyphRole::PrimaryKey)
                     || self.header_prefix(c.key).is_some()
@@ -1933,12 +2019,16 @@ impl<'a> Grid<'a> {
         g.n = self.column_count();
         g.gutter_width = gutter_width.min(body.width);
         g.number_width = number_width;
-        g.content_x = body.x.saturating_add(g.gutter_width);
+        g.content_x = body
+            .x
+            .saturating_add(g.gutter_width)
+            .saturating_add(self.left_reserve);
         g.columns_area = Rect {
             x: g.content_x,
             width: body
                 .width
                 .saturating_sub(gutter_width)
+                .saturating_sub(self.left_reserve)
                 .saturating_sub(self.right_reserve),
             ..body
         };
@@ -2014,7 +2104,85 @@ impl<'a> Grid<'a> {
             x = x.saturating_add(w).saturating_add(gap);
             used = used.saturating_add(w).saturating_add(gap);
         }
+        self.distribute_flex(&mut g, avail, gap);
         g
+    }
+
+    /// Absorb leftover row space into the shown flex columns (tag
+    /// `table.rs:593` `Constraint::Min` fill: the window was placed on base
+    /// widths, the remainder splits by weight with the residue going to the
+    /// earliest flex columns, and every column painted after a grown column
+    /// shifts right by its growth). No flex weight or no leftover is a
+    /// no-op; the preview column keeps its in-loop decision and clips.
+    fn distribute_flex(&self, g: &mut Geometry, avail: u16, gap: u16) {
+        let mut total = 0u32;
+        let mut shown = 0usize;
+        let mut used = 0u16;
+        for i in 0..g.n {
+            if !g.complete.get(i).copied().unwrap_or(false) {
+                continue;
+            }
+            shown = shown.saturating_add(1);
+            used = used.saturating_add(g.width.get(i).copied().unwrap_or(0));
+            if let Some(c) = self.columns.get(i) {
+                total = total.saturating_add(u32::from(c.flex));
+            }
+        }
+        if total == 0 {
+            return;
+        }
+        let gaps = gap.saturating_mul((shown as u16).saturating_sub(1));
+        let leftover = avail.saturating_sub(used.saturating_add(gaps));
+        if leftover == 0 {
+            return;
+        }
+        let mut shares = [0u16; GRID_MAX_COLUMNS];
+        let mut assigned = 0u16;
+        for i in 0..g.n {
+            let weight = self.columns.get(i).map(|c| u32::from(c.flex)).unwrap_or(0);
+            if weight == 0 || !g.complete.get(i).copied().unwrap_or(false) {
+                continue;
+            }
+            let share = (u32::from(leftover).saturating_mul(weight) / total) as u16;
+            if let Some(slot) = shares.get_mut(i) {
+                *slot = share;
+            }
+            assigned = assigned.saturating_add(share);
+        }
+        let mut residue = leftover.saturating_sub(assigned);
+        for i in 0..g.n {
+            if residue == 0 {
+                break;
+            }
+            let flexed = self.columns.get(i).is_some_and(|c| c.flex > 0)
+                && g.complete.get(i).copied().unwrap_or(false);
+            if !flexed {
+                continue;
+            }
+            if let Some(slot) = shares.get_mut(i) {
+                *slot = slot.saturating_add(1);
+            }
+            residue = residue.saturating_sub(1);
+        }
+        let orig_x = g.x;
+        for i in 0..g.n {
+            let delta = shares.get(i).copied().unwrap_or(0);
+            if delta == 0 {
+                continue;
+            }
+            if let Some(w) = g.width.get_mut(i) {
+                *w = w.saturating_add(delta);
+            }
+            let before = orig_x.get(i).copied().unwrap_or(0);
+            for j in 0..g.n {
+                let after = j != i
+                    && g.shown.get(j).copied().unwrap_or(false)
+                    && orig_x.get(j).copied().unwrap_or(0) > before;
+                if after && let Some(px) = g.x.get_mut(j) {
+                    *px = px.saturating_add(delta);
+                }
+            }
+        }
     }
 }
 
@@ -2213,20 +2381,48 @@ impl Grid<'_> {
         st: &GridState,
         model: &M,
     ) -> String {
-        let len = model.row_count();
         let rows = f
             .layout(self.id)
             .map_or_else(|| st.core.scroll().viewport_len(), |l| l.viewport_len);
+        Self::rows_label_for_viewport(st, model, rows.min(usize::from(u16::MAX)) as u16)
+    }
+
+    /// [`Self::rows_label`] from draw-time geometry instead of last frame's
+    /// layout facts: `grid_area` is the rect `draw` will paint into, so the
+    /// label is already exact on frame 1, when `FrameRead` answers `None`.
+    pub fn rows_label_for<M: GridModel + ?Sized>(
+        &self,
+        st: &GridState,
+        model: &M,
+        grid_area: Rect,
+    ) -> String {
+        let (_, _, body, _) = self.chrome(
+            Self::bar_adjusted(grid_area, model),
+            model.read_only_reason(),
+        );
+        Self::rows_label_for_viewport(st, model, body.height)
+    }
+
+    fn rows_label_for_viewport<M: GridModel + ?Sized>(
+        st: &GridState,
+        model: &M,
+        viewport: u16,
+    ) -> String {
+        let len = model.row_count();
+        // The fetch-more row consumes a viewport slot at the bottom, so the
+        // window runs over the scroll content (rows + fetch) while the end
+        // reads out in loaded rows (tag `rows_label`).
+        let total = len.saturating_add(usize::from(model.has_more()));
         let content = Rect {
-            height: rows.min(usize::from(u16::MAX)) as u16,
+            height: viewport,
             ..Rect::ZERO
         };
-        let w = Self::window(st, content, len);
+        let w = Self::window(st, content, total);
         let mut s = String::new();
         s.push_str("rows ");
         push_grouped(&mut s, w.start.saturating_add(1).min(len));
         s.push('\u{2013}');
-        push_grouped(&mut s, w.end);
+        push_grouped(&mut s, w.end.min(len));
         s.push_str(" of ");
         push_grouped(&mut s, len);
         match model.total() {
@@ -2253,8 +2449,23 @@ impl Grid<'_> {
         model: &M,
     ) -> Option<String> {
         let area = f.area(self.id)?;
+        self.cols_label_for(st, model, area)
+    }
+
+    /// [`Self::cols_label`] from draw-time geometry instead of last frame's
+    /// area: `grid_area` is the rect `draw` will paint into, so the label
+    /// is already exact on frame 1, when `FrameRead` answers `None`.
+    pub fn cols_label_for<M: GridModel + ?Sized>(
+        &self,
+        st: &GridState,
+        model: &M,
+        grid_area: Rect,
+    ) -> Option<String> {
         let len = model.row_count();
-        let (_, _, body, _) = self.chrome(area, model.read_only_reason());
+        let (_, _, body, _) = self.chrome(
+            Self::bar_adjusted(grid_area, model),
+            model.read_only_reason(),
+        );
         let rows = Self::window(st, body, len);
         let g = self.geometry(body, st, model, rows);
         if g.hidden_left == 0 && g.hidden_right == 0 {
@@ -2940,6 +3151,7 @@ impl Grid<'_> {
         if self.disabled {
             for _ in cx.intents(self.id) {}
             for _ in cx.intents(self.editor_id()) {}
+            self.drain_pending_bar(cx);
             return Response::ignored();
         }
         let mut acc = Acc::<GridAction>::new();
@@ -2954,6 +3166,7 @@ impl Grid<'_> {
         {
             acc.action(GridAction::Activated(model.row_key(row)));
         }
+        self.drive_pending_bar(cx, model, &mut acc);
         acc.finish(self.id)
     }
 
@@ -2990,7 +3203,51 @@ impl Grid<'_> {
         {
             self.begin_edit(cx, st, model, request, &mut acc);
         }
+        self.drive_pending_bar(cx, model, &mut acc);
         acc.finish(self.id)
+    }
+
+    /// Drain the pending bar's buckets without driving it.
+    fn drain_pending_bar(&self, cx: &Cx<'_>) {
+        for _ in cx.intents(self.preview_id()) {}
+        for _ in cx.intents(self.discard_id()) {}
+        for _ in cx.intents(self.save_id()) {}
+    }
+
+    /// Drive the pending bar's three buttons while the queue is
+    /// non-empty. The bar is grid chrome: it lives and dies with
+    /// [`GridModel::pending_count`], so adapters never wire it by hand.
+    fn drive_pending_bar<M: GridModel + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        model: &M,
+        acc: &mut Acc<GridAction>,
+    ) {
+        if model.pending_count() == 0 {
+            self.drain_pending_bar(cx);
+            return;
+        }
+        if Button::new(self.preview_id(), "Preview SQL")
+            .variant(Variant::QUIET)
+            .update(cx)
+            .activated()
+        {
+            acc.action(GridAction::PreviewRequested);
+        }
+        if Button::new(self.discard_id(), "Discard")
+            .variant(Variant::QUIET)
+            .update(cx)
+            .activated()
+        {
+            acc.action(GridAction::DiscardRequested);
+        }
+        if Button::new(self.save_id(), "Save")
+            .variant(Variant::PRIMARY)
+            .update(cx)
+            .activated()
+        {
+            acc.action(GridAction::CommitRequested);
+        }
     }
 
     /// Open, or refuse to open, an inline edit on `(row, col)`.
@@ -3107,9 +3364,14 @@ impl Grid<'_> {
 }
 
 impl Grid<'_> {
-    fn right_overflow_rect(head: Rect, geometry: &Geometry) -> Rect {
-        let count = Num::new(geometry.hidden_right);
-        let indicator_width = width(count.as_str()).saturating_add(1).min(head.width);
+    fn right_overflow_rect(&self, head: Rect, geometry: &Geometry) -> Rect {
+        let indicator_width = match self.overflow_indicator {
+            GridOverflowIndicator::Count => {
+                let count = Num::new(geometry.hidden_right);
+                width(count.as_str()).saturating_add(1).min(head.width)
+            }
+            GridOverflowIndicator::Ellipsis => 1u16.min(head.width),
+        };
         let x = if geometry
             .columns_area
             .right()
@@ -3159,6 +3421,9 @@ impl Grid<'_> {
         if geometry.hidden_left == 0 && geometry.hidden_right == 0 {
             return;
         }
+        // The label answers only its own hover (tag: `hovered(right_id)`);
+        // grid-level hover must not brighten it. Direct label hover/click
+        // arrives with registered label parts (hscroll interaction).
         let style = self
             .ov
             .style(
@@ -3167,41 +3432,56 @@ impl Grid<'_> {
                 Family::GRID,
                 Variant::DEFAULT,
                 Part::OVERFLOW,
-                live,
+                live.difference(StateFlags::HOVERED),
             )
             .style;
         if geometry.hidden_left > 0 {
-            let count = Num::new(geometry.hidden_left);
-            let indicator_width = width(count.as_str()).saturating_add(1);
             let at = Rect {
                 x: head.x.saturating_add(1),
-                width: indicator_width.min(head.width.saturating_sub(1)),
+                width: match self.overflow_indicator {
+                    GridOverflowIndicator::Count => {
+                        let count = Num::new(geometry.hidden_left);
+                        width(count.as_str())
+                            .saturating_add(1)
+                            .min(head.width.saturating_sub(1))
+                    }
+                    GridOverflowIndicator::Ellipsis => 1u16.min(head.width.saturating_sub(1)),
+                },
                 ..head
             };
-            let used = ui.glyph(at, GlyphRole::OverflowLeft, style);
-            ui.paint_str(
-                Rect {
-                    x: at.x.saturating_add(used),
-                    width: at.width.saturating_sub(used),
-                    ..at
-                },
-                count.as_str(),
-                style,
-            );
+            if self.overflow_indicator == GridOverflowIndicator::Ellipsis {
+                ui.glyph(at, GlyphRole::Ellipsis, style);
+            } else {
+                let count = Num::new(geometry.hidden_left);
+                let used = ui.glyph(at, GlyphRole::OverflowLeft, style);
+                ui.paint_str(
+                    Rect {
+                        x: at.x.saturating_add(used),
+                        width: at.width.saturating_sub(used),
+                        ..at
+                    },
+                    count.as_str(),
+                    style,
+                );
+            }
         }
         if geometry.hidden_right > 0 {
-            let count = Num::new(geometry.hidden_right);
-            let at = Self::right_overflow_rect(head, geometry);
-            let used = ui.paint_str(at, count.as_str(), style);
-            ui.glyph(
-                Rect {
-                    x: at.x.saturating_add(used),
-                    width: at.width.saturating_sub(used),
-                    ..at
-                },
-                GlyphRole::OverflowRight,
-                style,
-            );
+            let at = self.right_overflow_rect(head, geometry);
+            if self.overflow_indicator == GridOverflowIndicator::Ellipsis {
+                ui.glyph(at, GlyphRole::Ellipsis, style);
+            } else {
+                let count = Num::new(geometry.hidden_right);
+                let used = ui.paint_str(at, count.as_str(), style);
+                ui.glyph(
+                    Rect {
+                        x: at.x.saturating_add(used),
+                        width: at.width.saturating_sub(used),
+                        ..at
+                    },
+                    GlyphRole::OverflowRight,
+                    style,
+                );
+            }
         }
     }
 
@@ -3296,7 +3576,7 @@ impl Grid<'_> {
             live,
         );
         ui.fill(head, hs.style);
-        let right_overflow = (g.hidden_right > 0).then(|| Self::right_overflow_rect(head, g));
+        let right_overflow = (g.hidden_right > 0).then(|| self.right_overflow_rect(head, g));
         for i in 0..g.n {
             let raw_rect = g.cell(i, head.y);
             let Some(col) = self.columns.get(i) else {
@@ -3330,7 +3610,10 @@ impl Grid<'_> {
                     .saturating_sub(filter_width),
                 ..rect
             };
-            let is_selected = (st.col == Some(col.key) || (st.col.is_none() && i == 0))
+            // Row navigation highlights no header column (legacy table
+            // parity); cell navigation keeps the cursor-column highlight.
+            let is_selected = self.nav == NavUnit::Cell
+                && st.col == Some(col.key)
                 && live.contains(StateFlags::FOCUSED);
             let is_sorted = st.sort.is_some_and(|(key, _)| key == col.key);
             let title_tone = if is_selected || is_sorted || col.filtered {
@@ -3481,6 +3764,10 @@ impl Grid<'_> {
             change = change
                 .set_glyph(glyph)
                 .set_fg(decor.tone.unwrap_or(Role::Fg(FgStep::Secondary)));
+            if glyph == GlyphRole::Error {
+                // The rejection marker reads bold (tag `change_glyph`).
+                change = change.add(Modifier::BOLD);
+            }
         }
         let number_defaults = StylePatch::new()
             .set_fg(Role::Fg(if focused {
@@ -3622,7 +3909,17 @@ impl Grid<'_> {
             // resolution. Dedicated gutter parts are opt-in; Compact preserves
             // the historical ROW-based slot and style behavior.
             if is_cursor && live.contains(StateFlags::FOCUSED) {
-                ui.glyph(super::cell_at(band, band.x), GlyphRole::FocusBar, row_style);
+                let focus_gutter =
+                    row_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Focus)));
+                ui.glyph(
+                    super::cell_at(band, band.x),
+                    GlyphRole::FocusBar,
+                    focus_gutter,
+                );
+            } else {
+                let hidden_gutter = row_style
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::CurrentSurface)));
+                ui.paint_str(super::cell_at(band, band.x), " ", hidden_gutter);
             }
             let marker_cell = super::cell_at(band, band.x.saturating_add(1));
             if checked {
@@ -3661,7 +3958,10 @@ impl Grid<'_> {
                 .then(|| state.edit_error())
                 .flatten();
             let mut cflags = rflags.difference(StateFlags::PRESSED);
-            if is_cursor && i == cursor.1 && live.contains(StateFlags::FOCUSED) {
+            // Row navigation has no cell cursor: the whole cursor row carries
+            // focus (legacy table parity); only cell navigation inverts one cell.
+            let is_cursor_cell = self.nav == NavUnit::Cell && is_cursor && i == cursor.1;
+            if is_cursor_cell && live.contains(StateFlags::FOCUSED) {
                 cflags |= StateFlags::ACTIVE;
             }
             if range
@@ -3711,14 +4011,17 @@ impl Grid<'_> {
                 cflags,
             );
             let mut cell_delta = StylePatch::new();
-            if !(is_cursor && i == cursor.1 && live.contains(StateFlags::FOCUSED)) {
+            if !(is_cursor_cell && live.contains(StateFlags::FOCUSED)) {
                 if let Some(role) = cdecor.tone.or(cell.tone) {
                     cell_delta = cell_delta.set_fg(role);
                 } else if self
                     .columns
                     .get(i)
                     .is_some_and(|c| c.prefix_glyph == Some(GlyphRole::PrimaryKey))
+                    && !rflags.contains(StateFlags::FOCUSED)
                 {
+                    // A primary key reads secondary only off the cursor row;
+                    // the focused row keeps the primary row tone (tag grid).
                     cell_delta = cell_delta.set_fg(Role::Fg(FgStep::Secondary));
                 }
                 if cdecor.italic {
@@ -3853,10 +4156,15 @@ impl Grid<'_> {
         let len = model.row_count();
         let total = len.saturating_add(usize::from(model.has_more()));
         let inert = ui.is_inert();
+        // A non-empty queue steals the bottom two rows for the pending bar
+        // (tag `render`: `bar_h`), so the control region and every chrome
+        // split below already exclude it; the bar paints last, over the
+        // container fill, and owns its own button regions.
+        let grid_area = Self::bar_adjusted(area, model);
         if !inert {
             ui.register_control(
                 self.id,
-                area,
+                grid_area,
                 if self.disabled {
                     Focusability::Disabled
                 } else {
@@ -3886,16 +4194,24 @@ impl Grid<'_> {
         if !inert {
             ui.publish_bindings(self.id, live, &BINDINGS);
         }
+        // The container never answers focus, press, selection or hover: it
+        // is the neutral surface behind the rows, and hover brightens only
+        // the exact thumb target (tag: the fade frame carries no hover).
         let container = self.ov.style(
             ui,
             self.id,
             Family::GRID,
             Variant::DEFAULT,
             Part::CONTAINER,
-            live.difference(StateFlags::FOCUSED | StateFlags::PRESSED | StateFlags::SELECTED),
+            live.difference(
+                StateFlags::FOCUSED
+                    | StateFlags::PRESSED
+                    | StateFlags::SELECTED
+                    | StateFlags::HOVERED,
+            ),
         );
         ui.fill(area, container.style);
-        let (header, note, body, bar) = self.chrome(area, reason);
+        let (header, note, body, bar) = self.chrome(grid_area, reason);
         let scroll = Self::scroll_for_view(st, usize::from(body.height));
         let content = self
             .bar()
@@ -3969,6 +4285,7 @@ impl Grid<'_> {
                 empty.draw_inherited(ui, mid, 0, inherited);
             }
             self.draw_actions(ui, bar, live);
+            self.draw_pending_bar(ui, area, None, model, container.style);
             return area;
         }
         let cursor = (
@@ -4084,7 +4401,94 @@ impl Grid<'_> {
         };
         ui.scroll_edges_except(content, &view, &keep_y);
         self.draw_actions(ui, bar, live);
+        self.draw_pending_bar(ui, area, Some(cursor.0), model, container.style);
         area
+    }
+
+    /// `area` minus the pending bar's two rows while the queue is
+    /// non-empty (tag `render`: `bar_h`); every chrome split — draw,
+    /// pointer geometry and the position labels — enters through here so
+    /// the body can never disagree with the bar about the viewport.
+    fn bar_adjusted<M: GridModel + ?Sized>(area: Rect, model: &M) -> Rect {
+        let stolen = if model.pending_count() > 0 { 2 } else { 0 };
+        Rect {
+            height: area.height.saturating_sub(stolen),
+            ..area
+        }
+    }
+
+    /// Paint the pending bar over the container fill: `• {n} pending`,
+    /// the breakdown (or the cursor row's rejection, error-toned) and the
+    /// Preview SQL / Discard / Save buttons, right-aligned with one right
+    /// margin cell (tag `render`, pending-bar arm).
+    fn draw_pending_bar<M: GridModel + ?Sized>(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        cursor_row: Option<usize>,
+        model: &M,
+        base: PaintStyle,
+    ) {
+        let n = model.pending_count();
+        if n == 0 || area.height == 0 {
+            return;
+        }
+        let count = Num::new(n);
+        let mut text = String::new();
+        text.push('•');
+        text.push(' ');
+        text.push_str(count.as_str());
+        text.push_str(" pending");
+        let by = area.bottom().saturating_sub(1);
+        let tw = width(&text);
+        let warn = base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)));
+        ui.paint_str(Rect::new(area.x.saturating_add(1), by, tw, 1), &text, warn);
+        let mut detail = String::new();
+        detail.push('·');
+        detail.push(' ');
+        let role = match cursor_row.and_then(|row| model.row_error(row)) {
+            Some(msg) => {
+                detail.push_str(msg);
+                Role::Danger
+            }
+            None => {
+                detail.push_str(&model.pending_breakdown());
+                Role::Fg(FgStep::Muted)
+            }
+        };
+        let widths = [
+            width("Preview SQL").saturating_add(2),
+            width("Discard").saturating_add(2),
+            width("Save").saturating_add(2),
+        ];
+        let buttons: u16 = widths.iter().map(|w| w.saturating_add(1)).sum();
+        let room = area
+            .width
+            .saturating_sub(tw)
+            .saturating_sub(4)
+            .saturating_sub(buttons);
+        let shown = truncate(&detail, room);
+        let ds = base.patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
+        ui.paint_str(
+            Rect::new(
+                area.x.saturating_add(2).saturating_add(tw),
+                by,
+                width(&shown),
+                1,
+            ),
+            &shown,
+            ds,
+        );
+        let btn_area = Rect::new(area.x, by, area.width.saturating_sub(1), 1);
+        let rects = action_row(btn_area, &widths, 1, RowAlign::End);
+        let bar = [
+            Button::new(self.preview_id(), "Preview SQL").variant(Variant::QUIET),
+            Button::new(self.discard_id(), "Discard").variant(Variant::QUIET),
+            Button::new(self.save_id(), "Save").variant(Variant::PRIMARY),
+        ];
+        for (button, rect) in bar.iter().zip(rects.iter().copied()) {
+            button.draw(ui, rect);
+        }
     }
 
     /// Paint the action surface (§12.3's action-surface slot).
@@ -4163,6 +4567,7 @@ mod tests {
                 align: Align::Left,
                 min_width: 8,
                 max_width: 8,
+                flex: 0,
                 sortable: true,
                 editable: true,
                 sticky: false,
@@ -4177,6 +4582,7 @@ mod tests {
                 align: Align::Left,
                 min_width: 8,
                 max_width: 8,
+                flex: 0,
                 sortable: false,
                 editable: true,
                 sticky: false,
@@ -4552,6 +4958,7 @@ mod tests {
                 align: Align::Left,
                 min_width: 18,
                 max_width: 18,
+                flex: 0,
                 sortable: false,
                 editable: false,
                 sticky: false,
@@ -4566,6 +4973,7 @@ mod tests {
                 align: Align::Left,
                 min_width: 8,
                 max_width: 8,
+                flex: 0,
                 sortable: false,
                 editable: false,
                 sticky: false,
@@ -4601,6 +5009,99 @@ mod tests {
                 .cell(Position::new(19, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
             Some("›")
+        );
+    }
+
+    /// Q67-owed (S11-review pin): the Ellipsis overflow indicator paints a
+    /// single faint `…` instead of the `N›` count, and the Compact gutter
+    /// hides unfocused (a space in the surface fg, so fg == bg) while the
+    /// focused cursor row shows the focus bar in the Focus fg.
+    #[test]
+    fn q67owed_ellipsis_overflow_and_compact_gutter_cells() {
+        use crate::theme::Surface;
+        use crate::theme::resolve::bind_role;
+
+        let columns = [
+            Column {
+                key: ColumnKey::num(1),
+                title: "total_amount_and_more",
+                subtitle: None,
+                align: Align::Left,
+                min_width: 18,
+                max_width: 18,
+                flex: 0,
+                sortable: false,
+                editable: false,
+                sticky: false,
+                prefix_glyph: None,
+                badge: None,
+                filtered: false,
+            },
+            Column {
+                key: ColumnKey::num(2),
+                title: "second",
+                subtitle: None,
+                align: Align::Left,
+                min_width: 8,
+                max_width: 8,
+                flex: 0,
+                sortable: false,
+                editable: false,
+                sticky: false,
+                prefix_glyph: None,
+                badge: None,
+                filtered: false,
+            },
+        ];
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 20, 5);
+        let model = Model::two();
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                Grid::new(ID, &columns)
+                    .overflow_indicator(GridOverflowIndicator::Ellipsis)
+                    .draw(ui, area, &GridState::default(), &model);
+            })
+            .commit_presented();
+
+        let ellipsis = buffer.cell(Position::new(19, 0));
+        assert_eq!(ellipsis.map(ratatui_core::buffer::Cell::symbol), Some("…"));
+        assert_eq!(
+            ellipsis.map(|c| c.fg),
+            bind_role(&theme, Role::Fg(FgStep::Faint), Surface::Canvas)
+        );
+
+        // The cursor row's gutter cell (Compact keeps the two-cell gutter at
+        // the row start): unfocused it is an invisible space.
+        let gutter = buffer.cell(Position::new(0, 1));
+        assert_eq!(gutter.map(ratatui_core::buffer::Cell::symbol), Some(" "));
+        assert_eq!(
+            gutter.map(|c| c.fg),
+            gutter.map(|c| c.bg),
+            "unfocused gutter fg must equal bg (invisible)"
+        );
+
+        let mut focused = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut focused, |ui, _| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        ID,
+                        crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| {
+                        Grid::new(ID, &columns).draw(ui, area, &GridState::default(), &model);
+                    },
+                );
+            })
+            .commit_presented();
+        let bar = focused.cell(Position::new(0, 1));
+        assert_eq!(bar.map(ratatui_core::buffer::Cell::symbol), Some("▎"));
+        assert_eq!(
+            bar.map(|c| c.fg),
+            bind_role(&theme, Role::Focus, Surface::Canvas)
         );
     }
 
@@ -5091,6 +5592,7 @@ mod tests {
                 align: column_align,
                 min_width: 8,
                 max_width: 8,
+                flex: 0,
                 ..Column::new(ColumnKey::num(1), "value")
             }];
             let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
@@ -5253,6 +5755,132 @@ mod tests {
             0..1,
         );
         assert!(geometry.shown.iter().all(|shown| !shown));
+    }
+
+    #[test]
+    fn flex_column_bases_on_min_and_absorbs_leftover() {
+        // Tag `table.rs:593` `Constraint::Min`: the window is placed on
+        // minimums (content "alpha" is wider than min 3 yet the third
+        // column still fits), then the single flex column takes all 1
+        // leftover cell and the followers shift right, ending flush.
+        let columns = [
+            Column {
+                min_width: 3,
+                max_width: 10,
+                flex: 1,
+                ..Column::new(ColumnKey::num(1), "task")
+            },
+            Column {
+                min_width: 6,
+                max_width: 6,
+                ..Column::new(ColumnKey::num(2), "owner")
+            },
+            Column {
+                min_width: 6,
+                max_width: 6,
+                ..Column::new(ColumnKey::num(3), "status")
+            },
+        ];
+        let model = Model::two();
+        let grid = Grid::new(ID, &columns).column_gap(2);
+        let body = Rect::new(0, 0, 22, 4);
+        let g = grid.geometry(body, &GridState::default(), &model, 0..2);
+        assert_eq!(g.hidden_left, 0);
+        assert_eq!(g.hidden_right, 0);
+        assert_eq!(g.cell(0, 0), Rect::new(2, 0, 4, 1));
+        assert_eq!(g.cell(1, 0), Rect::new(8, 0, 6, 1));
+        assert_eq!(g.cell(2, 0), Rect::new(16, 0, 6, 1));
+    }
+
+    #[test]
+    fn flex_shares_split_evenly_with_residue_to_earliest() {
+        // Leftover 11 across two weight-1 flex columns: 6 and 5.
+        let columns = [
+            Column {
+                min_width: 4,
+                max_width: 4,
+                flex: 1,
+                ..Column::new(ColumnKey::num(1), "a")
+            },
+            Column {
+                min_width: 4,
+                max_width: 4,
+                flex: 1,
+                ..Column::new(ColumnKey::num(2), "b")
+            },
+            Column {
+                min_width: 6,
+                max_width: 6,
+                ..Column::new(ColumnKey::num(3), "c")
+            },
+        ];
+        let model = Model::two();
+        let grid = Grid::new(ID, &columns).column_gap(2);
+        let g = grid.geometry(Rect::new(0, 0, 31, 4), &GridState::default(), &model, 0..2);
+        assert_eq!(g.hidden_right, 0);
+        assert_eq!(g.cell(0, 0), Rect::new(2, 0, 10, 1));
+        assert_eq!(g.cell(1, 0), Rect::new(14, 0, 9, 1));
+        assert_eq!(g.cell(2, 0), Rect::new(25, 0, 6, 1));
+    }
+
+    #[test]
+    fn flex_shares_split_by_weight() {
+        // Leftover 11 across weights 2:1: floors 7 and 3, residue 1 to the
+        // earliest flex column, growth past `max_width` uncapped.
+        let columns = [
+            Column {
+                min_width: 4,
+                max_width: 4,
+                flex: 2,
+                ..Column::new(ColumnKey::num(1), "a")
+            },
+            Column {
+                min_width: 4,
+                max_width: 4,
+                flex: 1,
+                ..Column::new(ColumnKey::num(2), "b")
+            },
+            Column {
+                min_width: 6,
+                max_width: 6,
+                ..Column::new(ColumnKey::num(3), "c")
+            },
+        ];
+        let model = Model::two();
+        let grid = Grid::new(ID, &columns).column_gap(2);
+        let g = grid.geometry(Rect::new(0, 0, 31, 4), &GridState::default(), &model, 0..2);
+        assert_eq!(g.hidden_right, 0);
+        assert_eq!(g.cell(0, 0), Rect::new(2, 0, 12, 1));
+        assert_eq!(g.cell(1, 0), Rect::new(16, 0, 7, 1));
+        assert_eq!(g.cell(2, 0), Rect::new(25, 0, 6, 1));
+    }
+
+    #[test]
+    fn flex_column_outside_the_window_gets_no_share() {
+        // The flex column scrolled out left: leftover exists but no shown
+        // flex weight, so the fixed column keeps its base width.
+        let columns = [
+            Column {
+                min_width: 4,
+                max_width: 4,
+                flex: 1,
+                ..Column::new(ColumnKey::num(1), "a")
+            },
+            Column {
+                min_width: 6,
+                max_width: 6,
+                ..Column::new(ColumnKey::num(2), "b")
+            },
+        ];
+        let model = Model::two();
+        let grid = Grid::new(ID, &columns).column_gap(2);
+        let mut state = GridState::default();
+        state.col_scroll.set_content(2);
+        state.col_scroll.scroll_to(1);
+        let g = grid.geometry(Rect::new(0, 0, 22, 4), &state, &model, 0..2);
+        assert_eq!(g.hidden_left, 1);
+        assert!(g.cell(0, 0).is_empty());
+        assert_eq!(g.cell(1, 0), Rect::new(2, 0, 6, 1));
     }
 
     #[test]
