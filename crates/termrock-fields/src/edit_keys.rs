@@ -45,6 +45,7 @@ const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Bi
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
+const CTRL_SHIFT: KeyModifiers = CTRL.union(SHIFT);
 
 // Shared base: identical chord, command, label and visibility in both flavours.
 const LEFT: Binding<TextCmd> = b(
@@ -279,6 +280,32 @@ const DOC_END_MULTI: Binding<TextCmd> = b(
     "End",
     false,
 );
+// Baseline `edit_key`: `Home if ctrl` ignores Shift — Shift+Ctrl+Home/End
+// move to the document edge and never extend.
+const DOC_START_SHIFT_SINGLE: Binding<TextCmd> = b(
+    Chord::with(KeyCode::Home, CTRL_SHIFT),
+    TextCmd::Move(Motion::DocStart, Extend::No),
+    "Document start (Shift)",
+    false,
+);
+const DOC_START_SHIFT_MULTI: Binding<TextCmd> = b(
+    Chord::with(KeyCode::Home, CTRL_SHIFT),
+    TextCmd::Move(Motion::DocStart, Extend::No),
+    "Start (Shift)",
+    false,
+);
+const DOC_END_SHIFT_SINGLE: Binding<TextCmd> = b(
+    Chord::with(KeyCode::End, CTRL_SHIFT),
+    TextCmd::Move(Motion::DocEnd, Extend::No),
+    "Document end (Shift)",
+    false,
+);
+const DOC_END_SHIFT_MULTI: Binding<TextCmd> = b(
+    Chord::with(KeyCode::End, CTRL_SHIFT),
+    TextCmd::Move(Motion::DocEnd, Extend::No),
+    "End (Shift)",
+    false,
+);
 const HOME_CTRL_A_SINGLE: Binding<TextCmd> = b(
     Chord::with(KeyCode::Char('a'), CTRL),
     TextCmd::Move(Motion::Home, Extend::No),
@@ -324,6 +351,8 @@ const SINGLE: &[Binding<TextCmd>] = &[
     SELECT_END_SINGLE,
     DOC_START_SINGLE,
     DOC_END_SINGLE,
+    DOC_START_SHIFT_SINGLE,
+    DOC_END_SHIFT_SINGLE,
     BACKSPACE,
     DELETE_WORD,
     DELETE_WORD_ALT,
@@ -365,6 +394,8 @@ const MULTI: &[Binding<TextCmd>] = &[
     SELECT_END_MULTI,
     DOC_START_MULTI,
     DOC_END_MULTI,
+    DOC_START_SHIFT_MULTI,
+    DOC_END_SHIFT_MULTI,
     BACKSPACE,
     DELETE_WORD,
     DELETE_WORD_ALT,
