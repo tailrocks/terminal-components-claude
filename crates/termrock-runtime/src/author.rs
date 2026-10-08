@@ -315,7 +315,9 @@ pub fn overlay_chrome<R>(
             return ui.with_area(area, |ui| body(ui, area));
         }
         let container = ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live);
-        ui.fill(area, container.style);
+        // Tag fills every layer surface bg-only (`Style::new().bg(bg)`); the
+        // dimmed plane's foreground ladder shows through the composite.
+        ui.fill(area, PaintStyle::new().with_bg_from(container.style));
         ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
 
         let border = ov.style(ui, id, family, Variant::DEFAULT, Part::BORDER, border_live);

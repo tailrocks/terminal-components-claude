@@ -68,5 +68,9 @@ pub fn run_scenario_with_theme(
     frame: u64,
     theme: termrock::Theme,
 ) -> std::io::Result<()> {
-    termrock::run(App::for_scenario_at(scenario, motion, frame), theme)
+    let app = App::for_scenario_at(scenario, motion, frame);
+    // Tag `App::interaction`: activation flashes age on the already-seeked
+    // world clock, frozen under paused motion. `App::update` re-syncs it.
+    let initial = termrock::SimulationMoment::from_millis(app.world.now_ms().max(0) as u64);
+    termrock::run_with_feedback_clock(app, theme, termrock::FeedbackClock::Simulation { initial })
 }

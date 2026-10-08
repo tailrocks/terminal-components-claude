@@ -1476,6 +1476,7 @@ impl<A: App> Runtime<A> {
                     scoped.or_else(|| self.core.keymap.lookup(KeyPhase::Capture, k, swallows))
                 {
                     let r = self.run_update(Some(cmd), UpdateCause::Event, activation_key);
+                    self.note_activation_flash(activation_key, &r);
                     drop(input);
                     return Ok(self.finish(r));
                 }
@@ -1544,8 +1545,28 @@ impl<A: App> Runtime<A> {
                 }
             }
         }
+        self.note_activation_flash(activation_key, &r);
         drop(input);
         Ok(self.finish(r))
+    }
+
+    /// Tag `App::on_key`: a consumed plain Enter/Space flashes the focused
+    /// control for 140 ms even without a pointer press.
+    fn note_activation_flash(&mut self, activation_key: Option<ActivationKey>, r: &Response<()>) {
+        if activation_key.is_some()
+            && r.is_consumed()
+            && self.last.typing.owner.is_none()
+            && let Some(focused) = self.focus.current()
+        {
+            let flash = self.theme.design.motion.press_flash_ms;
+            self.services.feedback.activate(
+                focused,
+                PartRef::of(Part::CONTAINER),
+                self.now(),
+                core::time::Duration::from_millis(flash),
+            );
+            self.last.snapshot.pressed = self.services.feedback.pressed();
+        }
     }
 
     /// Step 9.

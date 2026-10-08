@@ -20,11 +20,11 @@ use termrock::{
     Insets, Intent, Item, ItemKey, ItemRowLayout, KeyCode, KeyMap, KeyModifiers, KeyPhase,
     LayerSize, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState,
     MeterTone, Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase, Picker, PickerAction,
-    PickerState, Position, ProjectedText, PropsAction, PropsList, PropsState, Reconcile, Rect,
-    Response, Role, RowUi, SecretPolicy, Side, SplitAxis, SplitPane, SplitPaneState, StateFlags,
-    Status, StatusBar, StatusItem, StylePatch, Surface, Tabs, TabsAction, TabsState, TextAction,
-    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
-    ViewportLine, ViewportState,
+    PickerState, Position, ProjectedText, Props, PropsAction, PropsList, PropsRow, PropsState,
+    Reconcile, Rect, Response, Role, RowUi, SecretPolicy, Side, SimulationMoment, SplitAxis,
+    SplitPane, SplitPaneState, StateFlags, Status, StatusBar, StatusItem, StylePatch, Surface,
+    Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
+    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -777,6 +777,7 @@ pub struct App {
     tabs_state: TabsState,
     quit_dialog: DialogState,
     launch_dialog: DialogState,
+    preview_dialog: DialogState,
     role_state: PickerState,
     agent_state: PickerState,
     account_state: PickerState,
@@ -977,6 +978,7 @@ impl App {
             tabs_state: TabsState::default(),
             quit_dialog: DialogState::default(),
             launch_dialog: DialogState::default(),
+            preview_dialog: DialogState::default(),
             role_state: PickerState::default(),
             agent_state: PickerState::default(),
             account_state: PickerState::default(),
@@ -1835,6 +1837,26 @@ impl App {
         Action::quiet(ActionKey::CANCEL, "Cancel"),
         Action::new(ActionKey::CONFIRM, "Quit"),
     ];
+
+    const PREVIEW_ACTIONS: [Action<'static>; 2] = [
+        Action::secondary(ActionKey::CANCEL, "Cancel"),
+        Action::primary(ActionKey::CONFIRM, "Save"),
+    ];
+
+    /// The save-preview facts dialog over caller-owned slices. No primary
+    /// key: tag facts dialogs focus Cancel while Save stays primary
+    /// (`Action::primary` styles without moving initial focus).
+    fn preview_dialog<'a>(
+        title: &'a str,
+        pairs: &'a [(&'a str, &'a str)],
+        codes: &'a [&'a str],
+    ) -> Dialog<'a> {
+        Dialog::facts(crate::screens::editor::PREVIEW, title, pairs)
+            .code(codes)
+            .width(66)
+            .actions(&Self::PREVIEW_ACTIONS)
+            .cancel(ActionKey::CANCEL)
+    }
 
     fn manager_quit_dialog(&self) -> Dialog<'static> {
         let n = self.world.running_count();
@@ -3365,6 +3387,46 @@ impl App {
             result |= Response::changed();
         }
 
+        {
+            let (title, facts, code) =
+                crate::screens::editor::EditorScreen::preview_parts(&self.editor, &self.world);
+            let pairs: Vec<(&str, &str)> = facts
+                .iter()
+                .map(|(label, value, _)| (label.as_str(), value.as_str()))
+                .collect();
+            let codes: Vec<&str> = code.iter().map(String::as_str).collect();
+            let dialog = Self::preview_dialog(&title, &pairs, &codes);
+            let response = dialog.update(cx, &mut self.preview_dialog);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            if let Some(action) = action {
+                match action {
+                    DialogAction::Action(ActionKey::CONFIRM)
+                        if cx.is_open(crate::screens::editor::PREVIEW) =>
+                    {
+                        cx.close_layer(crate::screens::editor::PREVIEW, Some(ActionKey::CONFIRM));
+                        self.commit_editor_save();
+                    }
+                    DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_) => {
+                        if cx.is_open(crate::screens::editor::PREVIEW) {
+                            cx.close_layer(
+                                crate::screens::editor::PREVIEW,
+                                Some(ActionKey::CANCEL),
+                            );
+                        }
+                        self.editor.close_preview();
+                        // Tag `editor.preview` modal result: any non-save
+                        // dismissal keeps the draft and reports it; focus
+                        // returns to the Save button.
+                        self.status = Some("Not saved · keep editing".into());
+                        cx.focus(crate::screens::editor::SAVE);
+                    }
+                    DialogAction::Action(_) => {}
+                }
+                result |= Response::changed();
+            }
+        }
+
         let picker = Self::role_picker(if self.editor_role_picker {
             "Add role override"
         } else {
@@ -4217,8 +4279,19 @@ impl App {
             result |= save.erase();
             if save_chosen {
                 self.editor.close_exit();
-                if self.editor.open_preview() {
-                    cx.focus(crate::screens::editor::PREVIEW_CANCEL);
+                if self.editor.open_preview() && !cx.is_open(crate::screens::editor::PREVIEW) {
+                    self.snapshot_preview_base(cx);
+                    let (title, facts, code) = crate::screens::editor::EditorScreen::preview_parts(
+                        &self.editor,
+                        &self.world,
+                    );
+                    let pairs: Vec<(&str, &str)> = facts
+                        .iter()
+                        .map(|(label, value, _)| (label.as_str(), value.as_str()))
+                        .collect();
+                    let codes: Vec<&str> = code.iter().map(String::as_str).collect();
+                    let dialog = Self::preview_dialog(&title, &pairs, &codes);
+                    cx.open_layer(crate::screens::editor::PREVIEW, dialog.layer(cx));
                     self.status = Some("Save workspace · preview changes before commit".into());
                 }
                 result |= Response::changed();
@@ -4310,8 +4383,17 @@ impl App {
             if self.editor.preview_open {
                 self.commit_editor_save();
                 result |= Response::changed();
-            } else if self.editor.open_preview() {
-                cx.focus(crate::screens::editor::PREVIEW_CANCEL);
+            } else if self.editor.open_preview() && !cx.is_open(crate::screens::editor::PREVIEW) {
+                self.snapshot_preview_base(cx);
+                let (title, facts, code) =
+                    crate::screens::editor::EditorScreen::preview_parts(&self.editor, &self.world);
+                let pairs: Vec<(&str, &str)> = facts
+                    .iter()
+                    .map(|(label, value, _)| (label.as_str(), value.as_str()))
+                    .collect();
+                let codes: Vec<&str> = code.iter().map(String::as_str).collect();
+                let dialog = Self::preview_dialog(&title, &pairs, &codes);
+                cx.open_layer(crate::screens::editor::PREVIEW, dialog.layer(cx));
                 self.status = Some("Save workspace · preview changes before commit".into());
                 result |= Response::changed();
             }
@@ -5898,8 +5980,20 @@ impl App {
             }
             CMD_SAVE if self.route == Route::Editor => {
                 self.editor.mark_dirty();
-                self.editor.open_preview();
-                cx.focus(crate::screens::editor::PREVIEW_CANCEL);
+                if self.editor.open_preview() && !cx.is_open(crate::screens::editor::PREVIEW) {
+                    self.snapshot_preview_base(cx);
+                    let (title, facts, code) = crate::screens::editor::EditorScreen::preview_parts(
+                        &self.editor,
+                        &self.world,
+                    );
+                    let pairs: Vec<(&str, &str)> = facts
+                        .iter()
+                        .map(|(label, value, _)| (label.as_str(), value.as_str()))
+                        .collect();
+                    let codes: Vec<&str> = code.iter().map(String::as_str).collect();
+                    let dialog = Self::preview_dialog(&title, &pairs, &codes);
+                    cx.open_layer(crate::screens::editor::PREVIEW, dialog.layer(cx));
+                }
                 self.status = Some("Save workspace · preview changes before commit".into());
                 Some(Response::changed())
             }
@@ -6564,14 +6658,6 @@ impl App {
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
         let focused = !self.help_open && !self.editor.preview_open;
         crate::screens::editor::EditorScreen::draw(ui, area, &self.editor, &self.world, focused);
-        if self.editor.preview_open {
-            crate::screens::editor::EditorScreen::draw_save_preview(
-                ui,
-                area,
-                &self.editor,
-                &self.world,
-            );
-        }
         if self.editor.exit_open {
             crate::screens::editor::EditorScreen::draw_exit_dialog(ui, area, &self.editor);
         }
@@ -7651,6 +7737,23 @@ impl App {
             .draw(ui, area);
     }
 
+    /// Snapshot runtime focus for the preview underlayer footer. Tag paints
+    /// the screen footer first and the modal footer over it in the same
+    /// frame; our focus trap already moved focus on by draw time.
+    fn snapshot_preview_base(&mut self, cx: &Cx<'_>) {
+        use crate::screens::editor::{FooterFocus, NAME, TABS, WORKDIR_CHOOSE};
+        use termrock::StateFlags;
+        self.editor.preview_base_focus = Some(if cx.state(TABS).contains(StateFlags::FOCUSED) {
+            FooterFocus::Tabs
+        } else if cx.state(NAME).contains(StateFlags::FOCUSED) {
+            FooterFocus::Name
+        } else if cx.state(WORKDIR_CHOOSE).contains(StateFlags::FOCUSED) {
+            FooterFocus::Workdir
+        } else {
+            FooterFocus::Other
+        });
+    }
+
     fn draw_footer(&self, ui: &mut Ui<'_>, area: Rect) {
         if self.route == Route::Prelude {
             let normal_canvas = self.historical_span_style((255, 255, 255), (0, 0, 0), false);
@@ -8095,7 +8198,28 @@ impl App {
         }
 
         if self.route == Route::Editor {
-            let hints = crate::screens::editor::EditorScreen::hints(&self.editor);
+            use crate::screens::editor::{FooterFocus, NAME, TABS, WORKDIR_CHOOSE};
+            use termrock::StateFlags;
+            let focus = if ui.state(TABS).contains(StateFlags::FOCUSED) {
+                FooterFocus::Tabs
+            } else if ui.state(NAME).contains(StateFlags::FOCUSED) {
+                FooterFocus::Name
+            } else if ui.state(WORKDIR_CHOOSE).contains(StateFlags::FOCUSED) {
+                FooterFocus::Workdir
+            } else {
+                FooterFocus::Other
+            };
+            let hints = crate::screens::editor::EditorScreen::hints(&self.editor, focus);
+            // Tag modal frame: the screen footer paints first, then the
+            // modal hints over it in the same frame (patch fills keep the
+            // screen key-chip weight underneath). No status text beside it.
+            if self.editor.preview_open {
+                let base = self.editor.preview_base_focus.unwrap_or(focus);
+                let under = crate::screens::editor::EditorScreen::base_hints(&self.editor, base);
+                HintBar::new(APP.sub("hint"), &under).draw(ui, area);
+                HintBar::new(APP.sub("hint"), &hints).draw(ui, area);
+                return;
+            }
             let mut bar = HintBar::new(APP.sub("hint"), &hints);
             if self.editor.tab == crate::screens::editor::Tab::Mounts && self.editor.dirty {
                 bar = bar.status_text(Some("/workspace/payments-platform · isolation clone"));
@@ -8414,6 +8538,7 @@ impl App {
             && !self.manager_menu_state.is_open()
             && !self.manager_menu_open
             && !self.manager_inspect_open
+            && !self.editor.preview_open
         {
             return;
         }
@@ -8426,6 +8551,34 @@ impl App {
         let cancel_dialog = Self::cockpit_cancel_dialog();
         let _ = ui.layer(CANCEL_DIALOG, |ui, area| {
             cancel_dialog.draw(ui, area, &self.cancel_dialog, |_, _| {})
+        });
+        let _ = ui.layer(crate::screens::editor::PREVIEW, |ui, area| {
+            let (title, facts, code) =
+                crate::screens::editor::EditorScreen::preview_parts(&self.editor, &self.world);
+            let pairs: Vec<(&str, &str)> = facts
+                .iter()
+                .map(|(label, value, _)| (label.as_str(), value.as_str()))
+                .collect();
+            let codes: Vec<&str> = code.iter().map(String::as_str).collect();
+            let dialog = Self::preview_dialog(&title, &pairs, &codes);
+            let rows: Vec<PropsRow> = facts
+                .iter()
+                .enumerate()
+                .map(|(i, (label, value, blocker))| {
+                    // Tag tones every fact explicitly; the theme `LABEL`
+                    // default is not the dialog-fact value color.
+                    let mut row = PropsRow::new(ItemKey::index(i), label.as_str(), value.as_str());
+                    row.tone = Some(if *blocker {
+                        Role::Danger
+                    } else {
+                        Role::Fg(FgStep::Primary)
+                    });
+                    row
+                })
+                .collect();
+            dialog.draw(ui, area, &self.preview_dialog, |ui, page| {
+                Props::rich(&rows).draw(ui, page);
+            })
         });
         let _ = ui.layer(MANAGER_INSPECT, |ui, area| {
             let instance = self
@@ -8625,6 +8778,12 @@ impl App {
 
 impl TuiApp for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        // Tag `App::interaction`: activation flashes age on the world clock,
+        // frozen under paused motion, so a Space/Enter flash on a checkbox
+        // persists into the captured frame. Elapsed-clock harnesses reject
+        // the sync; the live binary selects the simulation clock at boot.
+        let sim_now = SimulationMoment::from_millis(self.world.now_ms().max(0) as u64);
+        let _ = cx.sync_feedback_time(sim_now);
         if self.last_tick.is_none() && self.route == Route::Manager {
             cx.focus(MANAGER_LIST);
         }

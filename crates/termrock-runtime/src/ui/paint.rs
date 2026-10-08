@@ -393,6 +393,31 @@ impl Ui<'_> {
         self.mark_area(area, Some(s));
     }
 
+    /// Fill `area` with spaces in `s`, preserving existing modifiers (tag
+    /// `ui::ctx::fill`: ratatui `set_style` inserts/removes modifiers but
+    /// never clears them). The plain [`fill`](Self::fill) resets modifiers,
+    /// which load-bearing paint orders (RowUi/Tabs over-fill, tablepro
+    /// matrices) rely on; use this only where the tag fills over
+    /// already-weighted cells, such as the hint bar painting modal hints
+    /// over the screen footer.
+    pub fn fill_keep_modifiers(&mut self, area: Rect, s: impl Into<PaintStyle>) {
+        let s = s.into();
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return;
+        }
+        let style = s.into_style();
+        {
+            let buf = self.buffer();
+            for pos in area.positions() {
+                if let Some(c) = buf.cell_mut(pos) {
+                    c.set_symbol(" ").set_style(style);
+                }
+            }
+        }
+        self.mark_area(area, Some(s));
+    }
+
     /// A quiet rule across `area`'s first row (`GlyphRole::RuleQuiet`).
     pub fn rule(&mut self, area: Rect) {
         let g = self.theme_ref().design.glyphs.get(GlyphRole::RuleQuiet);

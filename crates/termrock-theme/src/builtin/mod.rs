@@ -678,6 +678,17 @@ fn choice(m: &mut PartMap<PartRecipe>) {
         .when(
             StateFlags::ACTIVE,
             p().set_glyph(GlyphRole::Chosen).set_fg(Role::Accent),
+        )
+        // Tag `Checkbox::render` keeps the mark tone (muted when off,
+        // accent when on) over the pressed inverse fill.
+        .when(StateFlags::PRESSED, p().set_fg(Role::Fg(FgStep::Muted)))
+        .when(
+            StateFlags::CHECKED | StateFlags::PRESSED,
+            p().set_fg(Role::Accent),
+        )
+        .when(
+            StateFlags::ACTIVE | StateFlags::PRESSED,
+            p().set_fg(Role::Accent),
         );
     part(
         m,
