@@ -13,6 +13,11 @@ const OPEN_QUICK: Id = id!("pickers.open.quick");
 const OPEN_TABS: Id = id!("pickers.open.tabs");
 const OPEN_LEVEL: Id = id!("pickers.open.level");
 const PICKER: Id = id!("pickers.layer");
+/// Shell-owned navigation control (`showcase-ui` `NAV`). Ids are content
+/// hashes, so this names the same control without a dependency cycle.
+/// Historical post-modal focus target: choosing or cancelling a picker
+/// returns focus to NAV (S4 PICKER-QUERY-001 / PICKER-TABS-002 live).
+const SHELL_NAV: Id = id!("navigation");
 const FILTER: Id = id!("pickers.filter");
 const CHAIN: Id = id!("pickers.chain");
 const MENU: Id = id!("pickers.menu");
@@ -372,6 +377,7 @@ pub struct PickersPage {
     open_kind: Option<PickerKind>,
     quick_scope: QuickScope,
     items: Vec<Item<'static>>,
+    tabs: Vec<Item<'static>>,
     result: String,
     detail: String,
     level: usize,
@@ -389,6 +395,7 @@ impl PickersPage {
             open_kind: None,
             quick_scope: QuickScope::All,
             items: QUICK_ITEMS.to_vec(),
+            tabs: TABS_ITEMS.to_vec(),
             result: String::from("none"),
             detail: String::new(),
             level: 3,
@@ -411,7 +418,7 @@ impl PickersPage {
     fn items(&self, kind: PickerKind) -> &[Item<'static>] {
         match kind {
             PickerKind::Quick => &self.items,
-            PickerKind::Tabs => TABS_ITEMS,
+            PickerKind::Tabs => &self.tabs,
             PickerKind::Level => LEVEL_ITEMS,
         }
     }
@@ -420,7 +427,8 @@ impl PickersPage {
         self.state = PickerState::default();
         self.open_kind = Some(kind);
         if kind == PickerKind::Quick {
-            self.quick_scope = QuickScope::All;
+            // The scope persists across opens (S4 PICKER-QUERY-001 N1
+            // live): only the query/cursor state resets per open.
             self.rebuild_quick_items();
         }
         if kind == PickerKind::Level
@@ -431,7 +439,7 @@ impl PickersPage {
         self.opened = self.opened.saturating_add(1);
         let items = match kind {
             PickerKind::Quick => self.items.as_slice(),
-            PickerKind::Tabs => TABS_ITEMS,
+            PickerKind::Tabs => self.tabs.as_slice(),
             PickerKind::Level => LEVEL_ITEMS,
         };
         let spec = picker(kind, items.len(), self.quick_scope).layer(cx, items);
@@ -473,18 +481,17 @@ impl Page for PickersPage {
         let kind = self.open_kind.unwrap_or(PickerKind::Quick);
         let items = match kind {
             PickerKind::Quick => self.items.as_slice(),
-            PickerKind::Tabs => TABS_ITEMS,
+            PickerKind::Tabs => self.tabs.as_slice(),
             PickerKind::Level => LEVEL_ITEMS,
         };
+        let was_open = cx.is_open(PICKER);
         let action = picker(kind, items.len(), self.quick_scope).update(cx, &mut self.state, items);
         let action_value = action.action_ref().copied();
         result |= action.erase();
         let mut status = None;
         if let Some(action) = action_value {
             match action {
-                PickerAction::Chosen(key)
-                | PickerAction::ChosenAlt(key)
-                | PickerAction::Secondary(key) => {
+                PickerAction::Chosen(key) | PickerAction::ChosenAlt(key) => {
                     let selected = self
                         .items(kind)
                         .iter()
@@ -493,16 +500,12 @@ impl Page for PickersPage {
                     if let Some((label, detail)) = selected {
                         self.result = label.to_owned();
                         self.detail = detail.to_owned();
-                        if matches!(action, PickerAction::Secondary(_)) {
-                            status = Some(PageStatus(format!("Closed {label}")));
+                        let prefix = if matches!(action, PickerAction::ChosenAlt(_)) {
+                            "Opened in a new tab:"
                         } else {
-                            let prefix = if matches!(action, PickerAction::ChosenAlt(_)) {
-                                "Opened in a new tab:"
-                            } else {
-                                "Chose"
-                            };
-                            status = Some(PageStatus(format!("{prefix} {label}")));
-                        }
+                            "Chose"
+                        };
+                        status = Some(PageStatus(format!("{prefix} {label}")));
                     }
                     if kind == PickerKind::Level
                         && let Some(index) = LEVEL_ITEMS.iter().position(|item| item.key == key)
@@ -510,6 +513,19 @@ impl Page for PickersPage {
                         self.level = index;
                     }
                     cx.close_layer(PICKER, None);
+                }
+                PickerAction::Secondary(key) if kind == PickerKind::Tabs => {
+                    // Tabs: Delete closes the row and the modal stays open;
+                    // the last remaining tab is refused (S4 PICKER-TABS-002
+                    // S1/A1 live).
+                    let pos = (self.tabs.len() > 1)
+                        .then(|| self.tabs.iter().position(|item| item.key == key))
+                        .flatten();
+                    if let Some(pos) = pos {
+                        let label = self.tabs[pos].label.to_owned();
+                        self.tabs.remove(pos);
+                        status = Some(PageStatus(format!("Closed {label}")));
+                    }
                 }
                 PickerAction::Scope(scope) if kind == PickerKind::Quick => {
                     self.quick_scope = match scope.get() {
@@ -519,8 +535,17 @@ impl Page for PickersPage {
                     };
                     self.rebuild_quick_items();
                 }
-                PickerAction::QueryChanged | PickerAction::Back | PickerAction::Scope(_) => {}
+                PickerAction::QueryChanged
+                | PickerAction::Back
+                | PickerAction::Scope(_)
+                | PickerAction::Secondary(_) => {}
             }
+        }
+        if was_open && !cx.is_open(PICKER) {
+            // Historical post-modal focus: choosing or cancelling a picker
+            // returns focus to the shell navigation, so one Tab reaches
+            // Quick again (S4 PICKER-QUERY-001 / PICKER-TABS-002 live).
+            cx.focus(SHELL_NAV);
         }
         PageUpdate {
             response: result,
