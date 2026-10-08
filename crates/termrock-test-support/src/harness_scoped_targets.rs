@@ -1,4 +1,4 @@
-//! Scoped unique text targets for [`Harness`](crate::harness::Harness).
+//! Scoped unique text targets for [`Harness`].
 //!
 //! Mirror of the reference `scoped_targets` helper, adapted to the
 //! candidate harness API (audit G2/P2). Bare first-occurrence search over
@@ -15,7 +15,7 @@ use core::ops::Range;
 
 use termrock::App;
 
-use crate::harness::{row_text, Harness};
+use crate::harness::{Harness, row_text};
 
 /// A resolved cell: the unique hit of a needle inside its widget's band.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

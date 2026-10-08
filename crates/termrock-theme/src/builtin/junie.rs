@@ -136,6 +136,10 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         "", "", "", "", //
         // Canonical pause mark; Paper/from_tokens inherit this design too.
         "✓", "‖", "+", "[", "]", "•", "▾", "▴",
+        // Index 41 (`PrimaryKey`) is dead: `GlyphSet::get`/`set` route that
+        // role to its own field and never index the array. Index 42 is the
+        // off half of the switch-knob pair (Q67-F5).
+        "", "○",
     ],
     scrollbar::Set {
         track: "│",

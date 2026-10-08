@@ -1,0 +1,18 @@
+{
+  "schema": "termrock-e2e/profile-v1",
+  "id": "tuiscotti-default-parity-v1",
+  "tool": "tuiscotti",
+  "tool_revision": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+  "render_profile": "default",
+  "geometry_policy": "case-declared",
+  "terminal": {
+    "term": "xterm-256color",
+    "colorterm": "truecolor",
+    "locale": "C.UTF-8"
+  },
+  "readiness_timeout_ms": 8000,
+  "input_pacing_ms": 120,
+  "exports": ["ansi", "html", "png", "ascii", "txt", "frame_json"],
+  "companions": ["ascii_loss_json", "png_fidelity_json", "observations_json", "manifest_json"],
+  "visual_acceptance": "exact-cells-cursor-and-decoded-pixels"
+}

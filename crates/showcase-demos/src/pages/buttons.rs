@@ -365,6 +365,14 @@ impl Page for ButtonsPage {
             && let Some(deadline) = self.busy_until
         {
             cx.request_repaint_at(deadline);
+            // Q67-F5: the click pass transitions into busy after the buttons
+            // update, so `Button::update` cannot arm the first animation
+            // frame itself. The page owns `busy_until` and its deadlines, so
+            // it keeps the theme's tick cadence flowing while the long job
+            // runs (the grid commit-ticks precedent); each elapsed deadline
+            // settles into one tick and one redraw with the next spinner
+            // frame, and the last Tick clears `busy_until` with no re-arm.
+            cx.request_repaint_after(Duration::from_millis(cx.design().motion.tick_ms));
         }
         // Both phases build the same two cards (§13).
         let _ = playground_panel();

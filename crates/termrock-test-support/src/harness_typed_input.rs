@@ -1,9 +1,9 @@
-//! Typed, bounds-checked input delivery for [`Harness`](crate::harness::Harness).
+//! Typed, bounds-checked input delivery for [`Harness`].
 //!
 //! Mirror of the reference `typed_input` helper, adapted to the candidate
 //! harness API. The reference guards the raw SGR-1006 hover escape with a
 //! grid-bounds check (audit G1/P1); the candidate harness already speaks
-//! typed [`MouseKind`](termrock::MouseKind), so this module supplies the
+//! typed [`MouseKind`], so this module supplies the
 //! fail-closed half: every cell coordinate is validated against the live
 //! frame before delivery, and hand-rolled `+1` arithmetic has no reason to
 //! exist. Off-grid input panics with the offending cell and the frame size
@@ -40,7 +40,7 @@ pub fn click_cell<A: App>(h: &mut Harness<A>, x: u16, y: u16) -> Response<()> {
 }
 
 /// Press at `from`, drag to `to`, release at `to`. Both endpoints are
-/// validated; use [`crate::harness_scoped_targets::span_end`] to derive
+/// validated; use [`crate::harness_scoped_targets::shift_col`] to derive
 /// `to` from a resolved target instead of hand-rolling offsets.
 pub fn drag_cells<A: App>(h: &mut Harness<A>, from: (u16, u16), to: (u16, u16)) -> Response<()> {
     assert_on_grid(h, "drag-from", from.0, from.1);

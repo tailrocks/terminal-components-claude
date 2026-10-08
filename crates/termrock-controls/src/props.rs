@@ -960,6 +960,15 @@ fn paint_value(ui: &mut Ui<'_>, area: Rect, row: &PropsRow<'_>, style: PaintStyl
             });
         }
         PropsValue::Text(value) => {
+            // Non-wrapping values truncate with an ellipsis (tag
+            // `widgets/props.rs`), never a hard clip.
+            let owned;
+            let value = if termrock_text::width(value) > area.width {
+                owned = termrock_text::truncate(value, area.width);
+                owned.as_str()
+            } else {
+                value
+            };
             let mut x = area.x;
             paint_piece(ui, area, &mut x, area.y, value, style, row.tone);
         }

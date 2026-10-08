@@ -25,6 +25,10 @@ pub(crate) mod input {
     pub use termrock_fields::{BlurPolicy, TextAction, TextInput, TextInputState};
 }
 
+pub(crate) mod controls {
+    pub use termrock_controls::Button;
+}
+
 pub(crate) mod progress {
     pub use termrock_feedback::Spinner;
 }
