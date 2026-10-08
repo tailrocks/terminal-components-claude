@@ -2214,10 +2214,7 @@ fn paint_aligned(ui: &mut Ui<'_>, area: Rect, text: &str, align: Align, style: P
         Align::Right => pad,
     };
     if off > 0 {
-        let lead = Rect {
-            width: off,
-            ..area
-        };
+        let lead = Rect { width: off, ..area };
         ui.fill(lead, style);
     }
     let at = Rect {
@@ -2482,7 +2479,9 @@ impl Grid<'_> {
                 let mut shown = (0..g.n).filter(|&i| g.shown.get(i).copied().unwrap_or(false));
                 (
                     shown.next()?,
-                    shown.next_back().unwrap_or_else(|| shown.clone().next().unwrap_or(0)),
+                    shown
+                        .next_back()
+                        .unwrap_or_else(|| shown.clone().next().unwrap_or(0)),
                 )
             }
         };
@@ -3595,7 +3594,11 @@ impl Grid<'_> {
             let show_sort = col.sortable
                 && (self.sort_indicator == GridSortIndicator::Always
                     || st.sort.is_some_and(|(key, _)| key == col.key));
-            let sort_width = if show_sort { 2u16.min(rect.width.saturating_sub(filter_width)) } else { 0 };
+            let sort_width = if show_sort {
+                2u16.min(rect.width.saturating_sub(filter_width))
+            } else {
+                0
+            };
             let title = Rect {
                 width: rect
                     .width
@@ -3626,7 +3629,11 @@ impl Grid<'_> {
             if let Some(badge) = col.badge {
                 let bw = width(badge).min(rect.width);
                 let at = Rect {
-                    x: rect.right().saturating_sub(sort_width).saturating_sub(filter_width).saturating_sub(bw),
+                    x: rect
+                        .right()
+                        .saturating_sub(sort_width)
+                        .saturating_sub(filter_width)
+                        .saturating_sub(bw),
                     width: bw,
                     ..rect
                 };
@@ -3746,13 +3753,11 @@ impl Grid<'_> {
         }
         let mut check = StylePatch::new().remove(Modifier::CROSSED_OUT);
         if checked {
-            check = check
-                .set_glyph(GlyphRole::Checked)
-                .set_fg(if focused {
-                    Role::Accent
-                } else {
-                    Role::Fg(FgStep::Secondary)
-                });
+            check = check.set_glyph(GlyphRole::Checked).set_fg(if focused {
+                Role::Accent
+            } else {
+                Role::Fg(FgStep::Secondary)
+            });
         }
         let mut change = StylePatch::new().remove(Modifier::CROSSED_OUT);
         if let Some(glyph) = decor.marker {

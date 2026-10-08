@@ -208,6 +208,9 @@ struct CellVal {
     ghost: bool,
 }
 
+/// Sorted pending-cell view: ((row, col), key, value).
+type PendingCell<'a> = ((usize, usize), &'a (u64, usize), &'a CellVal);
+
 impl CellVal {
     fn plain(text: impl Into<String>) -> Self {
         Self {
@@ -560,7 +563,7 @@ impl CustomerModel {
 
     fn statements(&self) -> Vec<String> {
         let mut out = Vec::new();
-        let mut cells: Vec<((usize, usize), &(u64, usize), &CellVal)> = self
+        let mut cells: Vec<PendingCell<'_>> = self
             .cells
             .iter()
             .filter_map(|(key @ (id, col), value)| {
@@ -583,9 +586,9 @@ impl CustomerModel {
         for id in &self.inserted {
             let mut cols = Vec::new();
             let mut vals = Vec::new();
-            for col in 0..COLUMN_NAMES.len() {
+            for (col, name) in COLUMN_NAMES.iter().enumerate() {
                 if let Some(value) = self.cells.get(&(*id, col)) {
-                    cols.push(COLUMN_NAMES[col]);
+                    cols.push(*name);
                     vals.push(literal(col, value));
                 }
             }
@@ -633,10 +636,10 @@ fn cmp_cells(a: &CellVal, b: &CellVal, col: usize) -> std::cmp::Ordering {
         (false, true) => return Ordering::Less,
         (false, false) => {}
     }
-    if matches!(col, 0 | 3 | 4) {
-        if let (Some(x), Some(y)) = (numeric(&a.text), numeric(&b.text)) {
-            return x.total_cmp(&y);
-        }
+    if matches!(col, 0 | 3 | 4)
+        && let (Some(x), Some(y)) = (numeric(&a.text), numeric(&b.text))
+    {
+        return x.total_cmp(&y);
     }
     a.text.to_lowercase().cmp(&b.text.to_lowercase())
 }

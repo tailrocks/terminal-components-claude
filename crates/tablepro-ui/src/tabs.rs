@@ -6,8 +6,8 @@ use tablepro_domain::{Catalog, ColType, ObjectKind, ResultSet, Table, Value};
 use tablepro_domain::{History, HistoryEntry};
 use tablepro_sql as sql;
 use termrock::{
-    Align, Column, ColumnKey, GlyphRole, Grid, GridModel, GridState, Id, ItemKey, SortDir,
-    TextInputState, WidthSample, GRID_MAX_COLUMNS,
+    Align, Column, ColumnKey, GRID_MAX_COLUMNS, GlyphRole, Grid, GridModel, GridState, Id, ItemKey,
+    SortDir, TextInputState, WidthSample,
 };
 
 use crate::domain::ResultGrid;
@@ -29,7 +29,10 @@ pub fn column_specs<'a>(
         col.sortable = true;
         col.editable = editable;
         col.sticky = false;
-        if filters.iter().any(|f| f.enabled && f.column == name.as_str()) {
+        if filters
+            .iter()
+            .any(|f| f.enabled && f.column == name.as_str())
+        {
             col.filtered = true;
         }
         match ty {
@@ -260,9 +263,15 @@ impl TableTab {
         next_sort: Option<(ColumnKey, SortDir)>,
     ) -> String {
         self.result.state.set_sort(next_sort);
-        let col_name = self.result.columns.get(col_idx).map(|(name, _)| name.clone());
+        let col_name = self
+            .result
+            .columns
+            .get(col_idx)
+            .map(|(name, _)| name.clone());
         let order = match next_sort {
-            Some((_, dir)) => col_name.as_ref().map(|name| (name.clone(), dir == SortDir::Asc)),
+            Some((_, dir)) => col_name
+                .as_ref()
+                .map(|name| (name.clone(), dir == SortDir::Asc)),
             None => None,
         };
         let mut predicates = Vec::new();
@@ -448,12 +457,8 @@ impl QueryTab {
         let result = run_select(catalog, &select).map_err(|error| error.message)?;
         let rows = result.rows.len();
         let mut grid_view = GridView::from_result(&result);
-        let (columns, count) = column_specs(
-            &grid_view.columns,
-            grid_view.model.is_editable(),
-            None,
-            &[],
-        );
+        let (columns, count) =
+            column_specs(&grid_view.columns, grid_view.model.is_editable(), None, &[]);
         let grid = Grid::new(
             Id::root("tablepro").sub("grid"),
             columns.get(..count).unwrap_or(&[]),

@@ -101,6 +101,7 @@ impl QuickSwitcher {
         if self.state.query().is_empty() && scope == 0 {
             self.items.truncate(24);
         }
-        self.component(120, 40).reconcile(&mut self.state, &self.items);
+        self.component(120, 40)
+            .reconcile(&mut self.state, &self.items);
     }
 }

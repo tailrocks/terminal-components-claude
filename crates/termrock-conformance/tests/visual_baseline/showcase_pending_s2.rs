@@ -4109,7 +4109,7 @@ fn s2_field_focusloss() {
     log.borrow_mut().clear();
     assert!(app.tab_to(S2_FLDLOSS_OTHER), "A1: Tab moves focus");
     assert!(
-        log.borrow().iter().any(|a| *a == TextAction::Committed),
+        log.borrow().contains(&TextAction::Committed),
         "A1: Tab commits"
     );
     // S1/N1/N2: defocus commits (never cancels): text kept, editing
@@ -4293,7 +4293,7 @@ fn s2_input_commit() {
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "commit applies");
     assert!(
-        log.borrow().iter().any(|a| *a == TextAction::Committed),
+        log.borrow().contains(&TextAction::Committed),
         "Committed event"
     );
     assert!(
@@ -4308,7 +4308,7 @@ fn s2_input_commit() {
     let _ = app.key(KeyCode::Enter);
     assert!(app.tab_to(S2_TICOMMIT_SENT), "A2: Tab forward");
     assert!(
-        log.borrow().iter().any(|a| *a == TextAction::Committed),
+        log.borrow().contains(&TextAction::Committed),
         "A2: Tab commits"
     );
     let r = app.key(KeyCode::BackTab);
@@ -4432,7 +4432,7 @@ fn s2_input_cancel() {
     let r = app.key(KeyCode::Esc);
     assert_eq!(r.flow(), Flow::Consumed, "A1: Esc applies");
     assert!(
-        log.borrow().iter().any(|a| *a == TextAction::Cancelled),
+        log.borrow().contains(&TextAction::Cancelled),
         "A1: Cancelled event"
     );
     // A2: editing cleared, whole buffer restored, error revalidated away.

@@ -17,14 +17,14 @@ pub use accounts::AccountsState;
 pub use cockpit::{AccountLine, CockpitScreen, CockpitState, HandoffState};
 pub use editor::{EditorScreen, EditorState, PendingWorkspace, Tab as EditorTab};
 pub use manager::{
-    InspectDialog, LaunchCandidate, ManagerRowKey, ManagerScreen, ManagerState, INSPECT,
-    INSPECT_CLOSE,
+    INSPECT, INSPECT_CLOSE, InspectDialog, LaunchCandidate, ManagerRowKey, ManagerScreen,
+    ManagerState,
 };
 pub use manager_actions::{
-    inspect_facts, Action as ManagerAction, Effect as ManagerEffect, Fact as ManagerFact,
+    Action as ManagerAction, Effect as ManagerEffect, Fact as ManagerFact,
     FactTone as ManagerFactTone, InstanceTarget, LaunchTarget, ManagerActions, RepositoryError,
     RepositoryTarget, Review as ManagerReview, SessionChoice, SessionReview,
-    Target as ManagerTarget,
+    Target as ManagerTarget, inspect_facts,
 };
 pub use settings::SettingsState;
 pub use usage::{Tab as UsageTab, UsageState};

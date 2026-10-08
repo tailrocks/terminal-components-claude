@@ -668,11 +668,7 @@ impl Default for HintLayerSet {
             ]),
             help: Self::layer_centered(vec![
                 Self::hint(HintKey::Label("↑↓"), "Scroll", 100),
-                Self::hint(
-                    HintKey::Chord(Chord::key(KeyCode::Esc)),
-                    "Close",
-                    90,
-                ),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 90),
             ]),
             default: Self::layer(vec![Self::hint(
                 HintKey::Chord(Chord::key(KeyCode::Enter)),
@@ -1172,20 +1168,28 @@ impl App {
                 && !self.editor.env_form_open)
         {
             self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
-            self.keymap.add(KeyPhase::Capture, n_chord, CMD_NEW_WORKSPACE);
-            self.keymap.add(KeyPhase::Bubble, n_chord, CMD_NEW_WORKSPACE);
+            self.keymap
+                .add(KeyPhase::Capture, n_chord, CMD_NEW_WORKSPACE);
+            self.keymap
+                .add(KeyPhase::Bubble, n_chord, CMD_NEW_WORKSPACE);
         }
         if self.route == Route::Manager {
-            self.keymap.add(KeyPhase::Capture, tab_chord, CMD_MANAGER_DETAIL);
+            self.keymap
+                .add(KeyPhase::Capture, tab_chord, CMD_MANAGER_DETAIL);
         }
         if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts {
-            self.keymap.add(KeyPhase::Capture, r_chord, CMD_MOUNT_TOGGLE_RO);
-            self.keymap.add(KeyPhase::Capture, i_chord, CMD_MOUNT_CYCLE_ISOLATION);
+            self.keymap
+                .add(KeyPhase::Capture, r_chord, CMD_MOUNT_TOGGLE_RO);
+            self.keymap
+                .add(KeyPhase::Capture, i_chord, CMD_MOUNT_CYCLE_ISOLATION);
         }
         if matches!(self.route, Route::Cockpit | Route::Launch) {
-            self.keymap.add(KeyPhase::Capture, i_chord, CMD_COCKPIT_INFO);
-            self.keymap.add(KeyPhase::Capture, c_chord, CMD_COCKPIT_CANCEL);
-            self.keymap.add(KeyPhase::Capture, d_chord, CMD_COCKPIT_DEBUG);
+            self.keymap
+                .add(KeyPhase::Capture, i_chord, CMD_COCKPIT_INFO);
+            self.keymap
+                .add(KeyPhase::Capture, c_chord, CMD_COCKPIT_CANCEL);
+            self.keymap
+                .add(KeyPhase::Capture, d_chord, CMD_COCKPIT_DEBUG);
         }
     }
 
@@ -1368,7 +1372,6 @@ impl App {
         .variant(Variant::PRIMARY)
     }
 
-
     fn settings_save_button() -> Button<'static> {
         Button::new(crate::screens::settings::SAVE, "Save settings").variant(Variant::PRIMARY)
     }
@@ -1523,7 +1526,10 @@ impl App {
             .item_layout(ItemRowLayout::Columns)
     }
 
-    fn capsule_agent_picker(title: &'static str, screen_width: u16) -> Picker<'static, Item<'static>> {
+    fn capsule_agent_picker(
+        title: &'static str,
+        screen_width: u16,
+    ) -> Picker<'static, Item<'static>> {
         let width = 72.min(screen_width.saturating_sub(4));
         Picker::new(crate::screens::manager::AGENT_PICKER)
             .title(title)
@@ -2333,11 +2339,14 @@ impl App {
         f(&sections)
     }
 
-    const HELP_PARTS: [(Part, StylePatch); 1] = [
-        (Part::BORDER, StylePatch::new().remove(Modifier::BOLD)),
-    ];
+    const HELP_PARTS: [(Part, StylePatch); 1] =
+        [(Part::BORDER, StylePatch::new().remove(Modifier::BOLD))];
 
-    fn manager_help_overlay<'a>(sections: &'a [HelpSection<'a>], w: u16, h: u16) -> HelpOverlay<'a> {
+    fn manager_help_overlay<'a>(
+        sections: &'a [HelpSection<'a>],
+        w: u16,
+        h: u16,
+    ) -> HelpOverlay<'a> {
         HelpOverlay::new(MANAGER_HELP, "Workspaces", sections)
             .size(w, h)
             .patch_part(&Self::HELP_PARTS)
@@ -4312,7 +4321,10 @@ impl App {
                 self.capsule_tab_menu_open = true;
                 self.capsule_tab_menu_state = MenuState::default();
                 let title = self.active_capsule_tab_title();
-                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(title, pos).layer(cx));
+                cx.open_layer(
+                    CAPSULE_TAB_MENU,
+                    Self::capsule_tab_context(title, pos).layer(cx),
+                );
                 result |= Response::changed();
             } else if let Some((pos, index)) = tab_context {
                 self.capsule_tab_title_index = index;
@@ -4320,7 +4332,10 @@ impl App {
                 self.capsule_tab_menu_open = true;
                 self.capsule_tab_menu_state = MenuState::default();
                 let title = self.active_capsule_tab_title();
-                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(title, pos).layer(cx));
+                cx.open_layer(
+                    CAPSULE_TAB_MENU,
+                    Self::capsule_tab_context(title, pos).layer(cx),
+                );
                 result |= Response::changed();
             }
         }
@@ -4962,7 +4977,8 @@ impl App {
             CMD_MENU_OPEN if self.route == Route::Manager => {
                 self.manager_menu_state = MenuState::default();
                 self.manager_menu_open = true;
-                let response = Self::manager_menu_bar().open_menu(cx, &mut self.manager_menu_state, 0);
+                let response =
+                    Self::manager_menu_bar().open_menu(cx, &mut self.manager_menu_state, 0);
                 self.status = Some("New workspace…".into());
                 Some(response.erase())
             }
@@ -5137,7 +5153,8 @@ impl App {
                     .iter()
                     .position(|r| Some(r.key) == self.manager.list.cursor())
                     .unwrap_or(0);
-                let next_index = (current_index + 1).min(self.manager_rows_cache.len().saturating_sub(1));
+                let next_index =
+                    (current_index + 1).min(self.manager_rows_cache.len().saturating_sub(1));
                 if let Some(row) = self.manager_rows_cache.get(next_index) {
                     self.manager.list.set_cursor(next_index, row.key);
                     self.manager.select_row(row.domain.clone());
@@ -5224,14 +5241,18 @@ impl App {
                 cx.focus(EDITOR_MOUNT_EDIT);
                 Some(Response::changed())
             }
-            CMD_MOUNT_TOGGLE_RO if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts => {
+            CMD_MOUNT_TOGGLE_RO
+                if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts =>
+            {
                 if let Some(mount) = self.editor.pending.mounts.first_mut() {
                     mount.readonly = !mount.readonly;
                 }
                 self.editor.mark_dirty();
                 Some(Response::changed())
             }
-            CMD_MOUNT_CYCLE_ISOLATION if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts => {
+            CMD_MOUNT_CYCLE_ISOLATION
+                if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts =>
+            {
                 if let Some(mount) = self.editor.pending.mounts.first_mut() {
                     mount.isolation = mount.isolation.next();
                 }
@@ -5566,11 +5587,7 @@ fn render_header_segments(
         }
         let sw = s.text.chars().count() as u16;
         rx = rx.saturating_sub(sw);
-        let start = if s.padded {
-            rx.saturating_sub(1)
-        } else {
-            rx
-        };
+        let start = if s.padded { rx.saturating_sub(1) } else { rx };
         if s.padded {
             let padded_text = format!(" {} ", s.text);
             ui.paint_str(
@@ -5579,11 +5596,7 @@ fn render_header_segments(
                 s.style,
             );
         } else {
-            ui.paint_str(
-                Rect::new(start, area.y, sw, 1),
-                s.text,
-                s.style,
-            );
+            ui.paint_str(Rect::new(start, area.y, sw, 1), s.text, s.style);
         }
         rx = rx.saturating_sub(sep);
     }
@@ -5818,7 +5831,12 @@ impl App {
         jackin_preview_presentation::rain::render_intro(buf, area, &self.intro, theme);
     }
 
-    pub(super) fn historical_span_style(&self, fg: (u8, u8, u8), bg: (u8, u8, u8), bold: bool) -> PaintStyle {
+    pub(super) fn historical_span_style(
+        &self,
+        fg: (u8, u8, u8),
+        bg: (u8, u8, u8),
+        bold: bool,
+    ) -> PaintStyle {
         use termrock::author::{Color, Modifier, Style};
         let mut s = Style::default()
             .fg(Color::Rgb(fg.0, fg.1, fg.2))
@@ -5832,7 +5850,12 @@ impl App {
     fn draw_prelude(&self, ui: &mut Ui<'_>, _area: Rect) {
         let full = ui.full();
         let bg = self.historical_span_style((128, 128, 128), (0, 0, 0), false);
-        let stage = Rect::new(full.x, full.y.saturating_add(1), full.width, full.height.saturating_sub(2));
+        let stage = Rect::new(
+            full.x,
+            full.y.saturating_add(1),
+            full.width,
+            full.height.saturating_sub(2),
+        );
         ui.fill(stage, bg);
         crate::screens::prelude::PreludeScreen::draw(
             ui,
@@ -5844,13 +5867,7 @@ impl App {
 
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
         let focused = !self.help_open && !self.editor.preview_open;
-        crate::screens::editor::EditorScreen::draw(
-            ui,
-            area,
-            &self.editor,
-            &self.world,
-            focused,
-        );
+        crate::screens::editor::EditorScreen::draw(ui, area, &self.editor, &self.world, focused);
         if self.editor.preview_open {
             crate::screens::editor::EditorScreen::draw_save_preview(
                 ui,
@@ -6142,7 +6159,6 @@ impl App {
         }
     }
 
-
     /// Border patch for the focused pane frame (bright, never bold).
     const CAPSULE_BORDER_FOCUSED: [(Part, StylePatch); 2] = [
         (
@@ -6403,7 +6419,8 @@ impl App {
         if ctx.tab.zoomed == Some(pane_id) {
             panel = panel.meta("zoomed");
         }
-        panel.slot(Part::TITLE, &|ui: &mut Ui<'_>, rect: Rect| {
+        panel
+            .slot(Part::TITLE, &|ui: &mut Ui<'_>, rect: Rect| {
                 // The stock framed title pads both sides; the frozen run has
                 // no trailing blank after the glyph, so the TITLE part slot
                 // paints the exact two-style run, clipped to the head span.
@@ -6637,7 +6654,10 @@ impl App {
 
         self.draw_capsule_status(ui, Rect::new(area.x, footer_y, area.width, 1));
 
-        self.draw_capsule_hints(ui, Rect::new(area.x, footer_y.saturating_add(1), area.width, 1));
+        self.draw_capsule_hints(
+            ui,
+            Rect::new(area.x, footer_y.saturating_add(1), area.width, 1),
+        );
     }
 
     fn draw_capsule_hints(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6673,7 +6693,12 @@ impl App {
         } else if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
             &[("↑↓", "Move"), ("Enter", "Choose"), ("Esc", "Close")]
         } else if is_modal {
-            &[("Type", "Filter"), ("↑↓", "Move"), ("Enter", "Choose"), ("Esc", "Cancel")]
+            &[
+                ("Type", "Filter"),
+                ("↑↓", "Move"),
+                ("Enter", "Choose"),
+                ("Esc", "Cancel"),
+            ]
         } else if self.capsule_prefix {
             &[
                 ("c", "New tab"),
@@ -6732,7 +6757,9 @@ impl App {
             }
             let free = area.width.saturating_sub(used);
             let mid = area.x + free / 2;
-            let mut x = mid.max(area.x + 1).min(limit.saturating_sub(used).max(area.x + 1));
+            let mut x = mid
+                .max(area.x + 1)
+                .min(limit.saturating_sub(used).max(area.x + 1));
 
             let mut drawn = 0usize;
             for (i, (key, action)) in run_hints.iter().enumerate() {
@@ -7242,22 +7269,20 @@ impl App {
                 }
             };
 
-            let action_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                match cell.width {
-                    4 => {
-                        ui.paint_str(Rect::new(cell.x, cell.y, 3, 1), "Mov", muted_normal);
-                        ui.paint_str(
-                            Rect::new(cell.x.saturating_add(3), cell.y, 1, 1),
-                            "e",
-                            muted_bold,
-                        );
-                    }
-                    5 => {
-                        ui.paint_str(cell, "Close", muted_normal);
-                    }
-                    _ => {
-                        ui.paint_str(cell, "Copy", muted_normal);
-                    }
+            let action_slot = |ui: &mut Ui<'_>, cell: Rect| match cell.width {
+                4 => {
+                    ui.paint_str(Rect::new(cell.x, cell.y, 3, 1), "Mov", muted_normal);
+                    ui.paint_str(
+                        Rect::new(cell.x.saturating_add(3), cell.y, 1, 1),
+                        "e",
+                        muted_bold,
+                    );
+                }
+                5 => {
+                    ui.paint_str(cell, "Close", muted_normal);
+                }
+                _ => {
+                    ui.paint_str(cell, "Copy", muted_normal);
                 }
             };
 
@@ -7672,7 +7697,9 @@ impl App {
     fn draw_layers(&self, ui: &mut Ui<'_>) {
         if (ui.full().width, ui.full().height) == (120, 40)
             && self.motion == Motion::Paused
-            && (self.world.scenario == Scenario::Returning || self.world.scenario == Scenario::FirstUse || self.world.scenario == Scenario::HardCases)
+            && (self.world.scenario == Scenario::Returning
+                || self.world.scenario == Scenario::FirstUse
+                || self.world.scenario == Scenario::HardCases)
             && matches!(self.route, Route::Editor | Route::Cockpit | Route::Launch)
             && !self.manager_quit_confirm
             && !self.help_open
@@ -7696,7 +7723,8 @@ impl App {
                 .or_else(|| self.world.instance("jk-7f3a"));
             if let Some(instance) = instance {
                 let (title, facts) = crate::screens::manager::inspect_facts(instance, &self.world);
-                let dialog = crate::screens::manager::InspectDialog::new(MANAGER_INSPECT, &title, &facts);
+                let dialog =
+                    crate::screens::manager::InspectDialog::new(MANAGER_INSPECT, &title, &facts);
                 dialog.draw(ui, area);
             }
         });
@@ -8015,7 +8043,6 @@ impl TuiApp for App {
                 self.draw_historical_usage_overview_120_40(ui, full);
             }
         }
-
 
         let header = Rect::new(full.x, full.y, full.width, 1);
         let footer = Rect::new(full.x, full.bottom().saturating_sub(1), full.width, 1);

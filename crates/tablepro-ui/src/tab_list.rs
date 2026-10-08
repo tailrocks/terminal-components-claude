@@ -1,8 +1,6 @@
 //! Application-owned tab list projection over shared Picker.
 
-use termrock::{
-    AsItem, Id, Item, ItemKey, ItemRowLayout, LayerSize, Picker, PickerState,
-};
+use termrock::{AsItem, Id, Item, ItemKey, ItemRowLayout, LayerSize, Picker, PickerState};
 
 use crate::tabs::{Tab, TabKey};
 use crate::workbench::Workbench;
@@ -47,23 +45,19 @@ impl TabListItem {
             }
             let (glyph, label, detail) = match record.payload() {
                 Tab::Table(tab) => {
-                    let kind = if tab.is_structure() { "structure" } else { "data" };
+                    let kind = if tab.is_structure() {
+                        "structure"
+                    } else {
+                        "data"
+                    };
                     (
                         "T",
                         tab.table.name.clone(),
                         format!("{}.{} · {kind}", tab.table.schema, tab.table.name),
                     )
                 }
-                Tab::Query(tab) => (
-                    "≡",
-                    tab.name.clone(),
-                    "query".to_string(),
-                ),
-                Tab::History(_) => (
-                    "H",
-                    "History".to_string(),
-                    "history".to_string(),
-                ),
+                Tab::Query(tab) => ("≡", tab.name.clone(), "query".to_string()),
+                Tab::History(_) => ("H", "History".to_string(), "history".to_string()),
             };
             items.push(TabListItem {
                 key: format!("{glyph}:{label}:{idx}"),
@@ -90,9 +84,11 @@ impl TabList {
         let (items, active_idx) = TabListItem::from_workbench(workbench);
         self.items = items;
         if let Some(active_item) = self.items.get(active_idx) {
-            self.state.set_cursor(active_idx, ItemKey::text(&active_item.key));
+            self.state
+                .set_cursor(active_idx, ItemKey::text(&active_item.key));
         }
-        self.component(120, 40).reconcile(&mut self.state, &self.items);
+        self.component(120, 40)
+            .reconcile(&mut self.state, &self.items);
     }
 
     pub fn component(&self, cols: u16, screen_rows: u16) -> Picker<'static, TabListItem> {

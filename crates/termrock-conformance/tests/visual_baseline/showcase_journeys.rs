@@ -89,8 +89,8 @@ fn journey_dir(test: &str) -> PathBuf {
 /// sha256 digest, byte size, mtime, and argv. Written to
 /// `provenance.txt`, echoed too.
 fn write_provenance(dir: &Path, case: &Case) {
-    let subject = support::try_resolve_bin(case.bin)
-        .unwrap_or_else(|e| panic!("resolve {}: {e}", case.bin));
+    let subject =
+        support::try_resolve_bin(case.bin).unwrap_or_else(|e| panic!("resolve {}: {e}", case.bin));
     let modified = subject
         .mtime_unix
         .map_or_else(|| "unknown".to_string(), |m| m.to_string());
@@ -193,8 +193,7 @@ fn journey_showcase_dialog_action_and_menu() {
         "dialog action ran and dialog closed",
         |screen| {
             let text = support::screen_text(screen);
-            text.contains("Branch feat/rate-limit deleted")
-                && !text.contains("Delete branch?")
+            text.contains("Branch feat/rate-limit deleted") && !text.contains("Delete branch?")
         },
     );
     checkpoint(&mut s, &dir, "02-dialog-action-done");

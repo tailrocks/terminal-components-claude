@@ -6,15 +6,15 @@
 
 use ratatui::layout::Rect;
 use termrock::author::{
-    Family, FgStep, Focusability, Id, ItemKey, Modifier, PaintStyle, Part, Role, StateFlags, StyleDefaults,
-    StylePatch, Surface, Ui, Variant,
+    Family, FgStep, Focusability, Id, ItemKey, Modifier, PaintStyle, Part, Role, StateFlags,
+    StyleDefaults, StylePatch, Surface, Ui, Variant,
 };
 use termrock::{
     Button, Empty, EmptyState, Insets, LayerSize, LayerSpec, ListState, Panel, PanelKind, Props,
     PropsRow, ScrollState, SplitAxis, SplitPane, SplitPaneState, truncate, truncate_middle, width,
 };
 
-use crate::manager_actions::{role_label, Fact};
+use crate::manager_actions::{Fact, role_label};
 use jackin_preview_domain::account::AccountId;
 use jackin_preview_domain::agent::Agent;
 use jackin_preview_domain::clock::format_duration;
@@ -22,9 +22,10 @@ use jackin_preview_domain::instance::{DaemonSnapshot, InstanceStatus};
 use jackin_preview_domain::workspace::{AllowedRoles, EnvValue, WorkspaceId};
 use jackin_preview_sim::world::{DaemonHealth, World};
 
-const FAINT_DETAIL_PATCH: [(Part, StylePatch); 1] = [
-    (Part::DETAIL, StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
-];
+const FAINT_DETAIL_PATCH: [(Part, StylePatch); 1] = [(
+    Part::DETAIL,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+)];
 
 /// Manager tree control.
 pub const TREE: Id = Id::root("jackin.manager.tree");
@@ -264,10 +265,25 @@ impl ManagerPalette {
             accent_on_canvas: resolve_style(ui, Role::Accent, canvas, false),
             danger_on_canvas: resolve_style(ui, Role::Danger, canvas, false),
             warning_on_canvas: resolve_style(ui, Role::Warning, canvas, false),
-            primary_on_accent_tint_bold: resolve_style(ui, Role::Fg(FgStep::Primary), Role::AccentTint, true),
+            primary_on_accent_tint_bold: resolve_style(
+                ui,
+                Role::Fg(FgStep::Primary),
+                Role::AccentTint,
+                true,
+            ),
             accent_on_accent_tint_bold: resolve_style(ui, Role::Accent, Role::AccentTint, true),
-            secondary_on_accent_tint: resolve_style(ui, Role::Fg(FgStep::Secondary), Role::AccentTint, false),
-            muted_on_accent_tint: resolve_style(ui, Role::Fg(FgStep::Muted), Role::AccentTint, false),
+            secondary_on_accent_tint: resolve_style(
+                ui,
+                Role::Fg(FgStep::Secondary),
+                Role::AccentTint,
+                false,
+            ),
+            muted_on_accent_tint: resolve_style(
+                ui,
+                Role::Fg(FgStep::Muted),
+                Role::AccentTint,
+                false,
+            ),
             card_bg: resolve_style(ui, Role::Fg(FgStep::Primary), surface, false),
             card_border: resolve_style(ui, Role::BorderSubtle, surface, false),
             card_primary: resolve_style(ui, Role::Fg(FgStep::Primary), surface, false),
@@ -355,7 +371,10 @@ pub fn build_rows(world: &World, state: &ManagerState) -> Vec<ManagerRow> {
         } else if kids.is_empty() {
             ("idle".into(), Role::Fg(FgStep::Faint))
         } else {
-            (plural(kids.len(), "record", "records"), Role::Fg(FgStep::Muted))
+            (
+                plural(kids.len(), "record", "records"),
+                Role::Fg(FgStep::Muted),
+            )
         };
         let expanded = state.is_expanded(ws.id);
         rows.push(ManagerRow {
@@ -505,9 +524,10 @@ pub fn build_detail(world: &World, instance_id: &str) -> Vec<DetailRow> {
         }
         rows.push(DetailRow::Blank);
         match &i.sessions {
-            Ok(s) if s.is_empty() => {
-                rows.push(DetailRow::Text("No sessions recorded".into(), Role::Fg(FgStep::Muted)))
-            }
+            Ok(s) if s.is_empty() => rows.push(DetailRow::Text(
+                "No sessions recorded".into(),
+                Role::Fg(FgStep::Muted),
+            )),
             Ok(s) => {
                 for r in s {
                     rows.push(DetailRow::Session(format!(
@@ -650,8 +670,10 @@ impl<'a> InspectDialog<'a> {
             let dialog_w = 66u16.min(area.width);
             let dialog_h = 14u16.min(area.height);
             let dialog_area = Rect::new(
-                area.x.saturating_add((area.width.saturating_sub(dialog_w)) / 2),
-                area.y.saturating_add((area.height.saturating_sub(dialog_h)) / 2),
+                area.x
+                    .saturating_add((area.width.saturating_sub(dialog_w)) / 2),
+                area.y
+                    .saturating_add((area.height.saturating_sub(dialog_h)) / 2),
                 dialog_w,
                 dialog_h,
             );
@@ -663,7 +685,8 @@ impl<'a> InspectDialog<'a> {
                 .patch_part(&INSPECT_PANEL_PATCH)
                 .inner_inset(Insets::all(1))
                 .draw(ui, dialog_area, |ui, body| {
-                    let focus_bar_style = resolve_style(ui, Role::Focus, Role::Surface(Surface::Surface), true);
+                    let focus_bar_style =
+                        resolve_style(ui, Role::Focus, Role::Surface(Surface::Surface), true);
                     let label_style = palette.card_secondary;
                     let text_style = palette.card_primary;
                     let bold_style = palette.card_primary_bold;
@@ -677,39 +700,110 @@ impl<'a> InspectDialog<'a> {
                         let is_focused = i == self.focused_index;
                         ui.paint_str(Rect::new(body.x, y, 1, 1), " ", label_style);
                         if is_focused {
-                            ui.paint_str(Rect::new(body.x.saturating_add(1), y, 1, 1), "▎", focus_bar_style);
-                            ui.paint_str(Rect::new(body.x.saturating_add(2), y, 1, 1), " ", bold_style);
-                            ui.paint_str(Rect::new(body.x.saturating_add(3), y, fact.label.len() as u16, 1), fact.label, label_style);
+                            ui.paint_str(
+                                Rect::new(body.x.saturating_add(1), y, 1, 1),
+                                "▎",
+                                focus_bar_style,
+                            );
+                            ui.paint_str(
+                                Rect::new(body.x.saturating_add(2), y, 1, 1),
+                                " ",
+                                bold_style,
+                            );
+                            ui.paint_str(
+                                Rect::new(body.x.saturating_add(3), y, fact.label.len() as u16, 1),
+                                fact.label,
+                                label_style,
+                            );
 
-                            let val_start = body.x.saturating_add(3).saturating_add(fact.label.len() as u16);
+                            let val_start = body
+                                .x
+                                .saturating_add(3)
+                                .saturating_add(fact.label.len() as u16);
                             let hint_start = body.right().saturating_sub(9);
                             let val_col = body.x.saturating_add(14);
                             let lead_spaces = val_col.saturating_sub(val_start);
-                            let trail_spaces = hint_start.saturating_sub(val_col.saturating_add(fact.value.len() as u16));
-                            let val_str = format!("{}{}{}", " ".repeat(lead_spaces as usize), fact.value, " ".repeat(trail_spaces as usize));
-                            ui.paint_str(Rect::new(val_start, y, val_str.len() as u16, 1), &val_str, bold_style);
+                            let trail_spaces = hint_start
+                                .saturating_sub(val_col.saturating_add(fact.value.len() as u16));
+                            let val_str = format!(
+                                "{}{}{}",
+                                " ".repeat(lead_spaces as usize),
+                                fact.value,
+                                " ".repeat(trail_spaces as usize)
+                            );
+                            ui.paint_str(
+                                Rect::new(val_start, y, val_str.len() as u16, 1),
+                                &val_str,
+                                bold_style,
+                            );
 
                             if fact.copyable {
-                                ui.paint_str(Rect::new(hint_start, y, 6, 1), "y copy", shortcut_style);
+                                ui.paint_str(
+                                    Rect::new(hint_start, y, 6, 1),
+                                    "y copy",
+                                    shortcut_style,
+                                );
                             } else {
                                 ui.paint_str(Rect::new(hint_start, y, 6, 1), "      ", bold_style);
                             }
-                            ui.paint_str(Rect::new(hint_start.saturating_add(6), y, 1, 1), " ", bold_style);
-                            ui.paint_str(Rect::new(body.right().saturating_sub(2), y, 2, 1), "  ", label_style);
+                            ui.paint_str(
+                                Rect::new(hint_start.saturating_add(6), y, 1, 1),
+                                " ",
+                                bold_style,
+                            );
+                            ui.paint_str(
+                                Rect::new(body.right().saturating_sub(2), y, 2, 1),
+                                "  ",
+                                label_style,
+                            );
                         } else {
-                            ui.paint_str(Rect::new(body.x.saturating_add(1), y, 1, 1), " ", resolve_style(ui, Role::Surface(Surface::Surface), Role::Surface(Surface::Surface), false));
-                            ui.paint_str(Rect::new(body.x.saturating_add(2), y, 1, 1), " ", text_style);
-                            ui.paint_str(Rect::new(body.x.saturating_add(3), y, fact.label.len() as u16, 1), fact.label, label_style);
+                            ui.paint_str(
+                                Rect::new(body.x.saturating_add(1), y, 1, 1),
+                                " ",
+                                resolve_style(
+                                    ui,
+                                    Role::Surface(Surface::Surface),
+                                    Role::Surface(Surface::Surface),
+                                    false,
+                                ),
+                            );
+                            ui.paint_str(
+                                Rect::new(body.x.saturating_add(2), y, 1, 1),
+                                " ",
+                                text_style,
+                            );
+                            ui.paint_str(
+                                Rect::new(body.x.saturating_add(3), y, fact.label.len() as u16, 1),
+                                fact.label,
+                                label_style,
+                            );
 
-                            let val_start = body.x.saturating_add(3).saturating_add(fact.label.len() as u16);
+                            let val_start = body
+                                .x
+                                .saturating_add(3)
+                                .saturating_add(fact.label.len() as u16);
                             let val_end = body.right().saturating_sub(2);
                             let val_col = body.x.saturating_add(14);
                             let lead_spaces = val_col.saturating_sub(val_start);
-                            let trail_spaces = val_end.saturating_sub(val_col.saturating_add(fact.value.len() as u16));
-                            let val_str = format!("{}{}{}", " ".repeat(lead_spaces as usize), fact.value, " ".repeat(trail_spaces as usize));
-                            ui.paint_str(Rect::new(val_start, y, val_str.len() as u16, 1), &val_str, text_style);
+                            let trail_spaces = val_end
+                                .saturating_sub(val_col.saturating_add(fact.value.len() as u16));
+                            let val_str = format!(
+                                "{}{}{}",
+                                " ".repeat(lead_spaces as usize),
+                                fact.value,
+                                " ".repeat(trail_spaces as usize)
+                            );
+                            ui.paint_str(
+                                Rect::new(val_start, y, val_str.len() as u16, 1),
+                                &val_str,
+                                text_style,
+                            );
 
-                            ui.paint_str(Rect::new(body.right().saturating_sub(2), y, 2, 1), "  ", label_style);
+                            ui.paint_str(
+                                Rect::new(body.right().saturating_sub(2), y, 2, 1),
+                                "  ",
+                                label_style,
+                            );
                         }
                     }
 
@@ -718,7 +812,11 @@ impl<'a> InspectDialog<'a> {
                     Button::new(INSPECT_CLOSE, "Close")
                         .variant(Variant::SECONDARY)
                         .draw(ui, Rect::new(btn_x, btn_y, 7, 1));
-                    ui.paint_str(Rect::new(body.right().saturating_sub(2), btn_y, 2, 1), "  ", label_style);
+                    ui.paint_str(
+                        Rect::new(body.right().saturating_sub(2), btn_y, 2, 1),
+                        "  ",
+                        label_style,
+                    );
                 });
         });
     }
@@ -727,13 +825,7 @@ impl<'a> InspectDialog<'a> {
 pub struct ManagerScreen;
 
 impl ManagerScreen {
-    pub fn draw(
-        ui: &mut Ui<'_>,
-        area: Rect,
-        state: &ManagerState,
-        world: &World,
-        focused: bool,
-    ) {
+    pub fn draw(ui: &mut Ui<'_>, area: Rect, state: &ManagerState, world: &World, focused: bool) {
         let palette = ManagerPalette::new(ui);
         let full = ui.full();
         let stage = Rect::new(
@@ -906,7 +998,8 @@ impl ManagerScreen {
                     };
                     let trailing_w: u16 = if row.trailing.is_some() { 2 } else { 0 };
                     let avail = rect.right().saturating_sub(x + 1);
-                    let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 0 } + trailing_w);
+                    let lw =
+                        avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 0 } + trailing_w);
                     let label_style = if row.key == ManagerRowKey::NewWorkspace {
                         if is_focused {
                             palette.primary_on_accent_tint_bold
@@ -935,7 +1028,12 @@ impl ManagerScreen {
                             }
                         };
                         ui.paint_str(
-                            Rect::new(rect.right().saturating_sub(meta_w + 1 + trailing_w), y, meta_w, 1),
+                            Rect::new(
+                                rect.right().saturating_sub(meta_w + 1 + trailing_w),
+                                y,
+                                meta_w,
+                                1,
+                            ),
                             &row.meta,
                             ms,
                         );
@@ -950,10 +1048,16 @@ impl ManagerScreen {
                 }
                 if has_sb {
                     ui.scroll_edges(
-                        Rect::new(inner.x, inner.y, (inner.right() - 1).saturating_sub(inner.x), inner.height),
+                        Rect::new(
+                            inner.x,
+                            inner.y,
+                            (inner.right() - 1).saturating_sub(inner.x),
+                            inner.height,
+                        ),
                         &scroll,
                     );
-                    let sb_rect = Rect::new(inner.right().saturating_sub(1), inner.y, 1, inner.height);
+                    let sb_rect =
+                        Rect::new(inner.right().saturating_sub(1), inner.y, 1, inner.height);
                     let track_len = usize::from(sb_rect.height);
                     let (thumb_start, thumb_len) = scroll.thumb(track_len);
                     for row in 0..track_len {
@@ -978,7 +1082,10 @@ impl ManagerScreen {
     ) {
         let title = match state.selected_row() {
             ManagerRowKey::CurrentDirectory => "Current directory".to_owned(),
-            ManagerRowKey::Workspace(id) => world.workspace(*id).map(|x| x.name.clone()).unwrap_or_default(),
+            ManagerRowKey::Workspace(id) => world
+                .workspace(*id)
+                .map(|x| x.name.clone())
+                .unwrap_or_default(),
             ManagerRowKey::Instance(id) => format!("Instance {}", id.trim_start_matches("jk-")),
             ManagerRowKey::NewWorkspace => "New workspace".into(),
         };
@@ -1019,7 +1126,12 @@ impl ManagerScreen {
                                                     format!(" · {} allowed", list.len()),
                                             },
                                             world
-                                                .account_for(Agent::ClaudeCode.provider(), Some(ws), None, None)
+                                                .account_for(
+                                                    Agent::ClaudeCode.provider(),
+                                                    Some(ws),
+                                                    None,
+                                                    None
+                                                )
                                                 .label(&world.accounts)
                                         ),
                                         palette.card_muted,
@@ -1539,7 +1651,8 @@ impl ManagerScreen {
                         Some(&i.role),
                         None,
                     );
-                    let is_selected = state.selected_row() == &ManagerRowKey::Instance(i.id.clone());
+                    let is_selected =
+                        state.selected_row() == &ManagerRowKey::Instance(i.id.clone());
                     let row_rect = Rect::new(inner.x.saturating_sub(1), y, inner.width + 1, 3);
                     if is_selected {
                         ui.fill(row_rect, palette.primary_on_accent_tint_bold);
@@ -1642,7 +1755,6 @@ impl ManagerScreen {
             });
     }
 }
-
 
 #[cfg(test)]
 mod tests {
