@@ -4910,6 +4910,97 @@ mod tests {
         );
     }
 
+    /// Q67-owed (S11-review pin): the Ellipsis overflow indicator paints a
+    /// single faint `…` instead of the `N›` count, and the Compact gutter
+    /// hides unfocused (a space in the surface fg, so fg == bg) while the
+    /// focused cursor row shows the focus bar in the Focus fg.
+    #[test]
+    fn q67owed_ellipsis_overflow_and_compact_gutter_cells() {
+        use crate::theme::Surface;
+        use crate::theme::resolve::bind_role;
+
+        let columns = [
+            Column {
+                key: ColumnKey::num(1),
+                title: "total_amount_and_more",
+                subtitle: None,
+                align: Align::Left,
+                min_width: 18,
+                max_width: 18,
+                sortable: false,
+                editable: false,
+                sticky: false,
+                prefix_glyph: None,
+                badge: None,
+                filtered: false,
+            },
+            Column {
+                key: ColumnKey::num(2),
+                title: "second",
+                subtitle: None,
+                align: Align::Left,
+                min_width: 8,
+                max_width: 8,
+                sortable: false,
+                editable: false,
+                sticky: false,
+                prefix_glyph: None,
+                badge: None,
+                filtered: false,
+            },
+        ];
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 20, 5);
+        let model = Model::two();
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                Grid::new(ID, &columns)
+                    .overflow_indicator(GridOverflowIndicator::Ellipsis)
+                    .draw(ui, area, &GridState::default(), &model);
+            })
+            .commit_presented();
+
+        let ellipsis = buffer.cell(Position::new(19, 0));
+        assert_eq!(ellipsis.map(ratatui_core::buffer::Cell::symbol), Some("…"));
+        assert_eq!(
+            ellipsis.map(|c| c.fg),
+            bind_role(&theme, Role::Fg(FgStep::Faint), Surface::Canvas)
+        );
+
+        // The cursor row's gutter cell (Compact keeps the two-cell gutter at
+        // the row start): unfocused it is an invisible space.
+        let gutter = buffer.cell(Position::new(0, 1));
+        assert_eq!(gutter.map(ratatui_core::buffer::Cell::symbol), Some(" "));
+        assert_eq!(
+            gutter.map(|c| c.fg),
+            gutter.map(|c| c.bg),
+            "unfocused gutter fg must equal bg (invisible)"
+        );
+
+        let mut focused = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut focused, |ui, _| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        ID,
+                        crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| {
+                        Grid::new(ID, &columns).draw(ui, area, &GridState::default(), &model);
+                    },
+                );
+            })
+            .commit_presented();
+        let bar = focused.cell(Position::new(0, 1));
+        assert_eq!(bar.map(ratatui_core::buffer::Cell::symbol), Some("▎"));
+        assert_eq!(
+            bar.map(|c| c.fg),
+            bind_role(&theme, Role::Focus, Surface::Canvas)
+        );
+    }
+
     /// The check is wired to the entry points, not merely available.
     #[cfg(debug_assertions)]
     #[test]
