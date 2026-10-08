@@ -22,6 +22,7 @@ use core::fmt;
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 
+use super::controls::Button;
 use super::input::{BlurPolicy, TextAction, TextInput, TextInputState};
 use super::progress::Spinner;
 use super::scroll_region::ScrollRegion;
@@ -36,9 +37,9 @@ use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef, custom_hash16};
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
-use crate::measure::{Constraints, Size};
+use crate::measure::{Constraints, RowAlign, Size, action_row};
 use crate::response::{Response, StateFlags};
-use crate::text::width;
+use crate::text::{truncate, width};
 use crate::theme::{
     Align, Family, FgStep, GlyphRole, Modifier, Role, StyleDefaults, StylePatch, Variant,
 };
@@ -365,6 +366,26 @@ pub trait GridModel {
     fn actions(&self, _row: usize, _col: usize) -> &[CellAction] {
         &[]
     }
+
+    /// Rows with uncommitted changes. Non-zero summons the pending bar:
+    /// the grid shrinks its body by two rows and paints `• {n} pending`
+    /// with Preview SQL / Discard / Save over `draw`'s own area, so the
+    /// queue chrome can never drift from the rows it describes.
+    fn pending_count(&self) -> usize {
+        0
+    }
+
+    /// The pending breakdown after the count (`2 updates`, `1 update ·
+    /// 1 insert`); empty without a queue.
+    fn pending_breakdown(&self) -> String {
+        String::new()
+    }
+
+    /// The commit rejection hanging off one display row, if any. The bar
+    /// shows it while the cursor sits on the row, error-toned.
+    fn row_error(&self, _row: usize) -> Option<&str> {
+        None
+    }
 }
 
 /// The editing half, reachable **only** from [`Grid::update_editable`]
@@ -416,6 +437,12 @@ pub enum GridAction {
     LeaveForward,
     /// `Shift+Tab` before the first cell.
     LeaveBackward,
+    /// The pending bar's Save fired; the adapter owns the commit.
+    CommitRequested,
+    /// The pending bar's Discard fired; the adapter owns the rollback.
+    DiscardRequested,
+    /// The pending bar's Preview SQL fired; the adapter opens the facts.
+    PreviewRequested,
 }
 
 /// The const-constructible commands of the grid keymap.
@@ -1428,6 +1455,22 @@ impl<'a> Grid<'a> {
         self.id.part(Part::TEXT)
     }
 
+    /// The pending bar's Preview SQL button, a focus stop while the queue
+    /// is non-empty.
+    pub const fn preview_id(&self) -> Id {
+        self.id.sub("preview")
+    }
+
+    /// The pending bar's Discard button.
+    pub const fn discard_id(&self) -> Id {
+        self.id.sub("discard")
+    }
+
+    /// The pending bar's Save button.
+    pub const fn save_id(&self) -> Id {
+        self.id.sub("save")
+    }
+
     /// What the cursor moves over.
     #[must_use]
     pub const fn nav(mut self, u: NavUnit) -> Self {
@@ -2263,7 +2306,10 @@ impl Grid<'_> {
         model: &M,
         grid_area: Rect,
     ) -> String {
-        let (_, _, body, _) = self.chrome(grid_area, model.read_only_reason());
+        let (_, _, body, _) = self.chrome(
+            Self::bar_adjusted(grid_area, model),
+            model.read_only_reason(),
+        );
         Self::rows_label_for_viewport(st, model, body.height)
     }
 
@@ -2326,7 +2372,10 @@ impl Grid<'_> {
         grid_area: Rect,
     ) -> Option<String> {
         let len = model.row_count();
-        let (_, _, body, _) = self.chrome(grid_area, model.read_only_reason());
+        let (_, _, body, _) = self.chrome(
+            Self::bar_adjusted(grid_area, model),
+            model.read_only_reason(),
+        );
         let rows = Self::window(st, body, len);
         let g = self.geometry(body, st, model, rows);
         if g.hidden_left == 0 && g.hidden_right == 0 {
@@ -3010,6 +3059,7 @@ impl Grid<'_> {
         if self.disabled {
             for _ in cx.intents(self.id) {}
             for _ in cx.intents(self.editor_id()) {}
+            self.drain_pending_bar(cx);
             return Response::ignored();
         }
         let mut acc = Acc::<GridAction>::new();
@@ -3024,6 +3074,7 @@ impl Grid<'_> {
         {
             acc.action(GridAction::Activated(model.row_key(row)));
         }
+        self.drive_pending_bar(cx, model, &mut acc);
         acc.finish(self.id)
     }
 
@@ -3060,7 +3111,51 @@ impl Grid<'_> {
         {
             self.begin_edit(cx, st, model, request, &mut acc);
         }
+        self.drive_pending_bar(cx, model, &mut acc);
         acc.finish(self.id)
+    }
+
+    /// Drain the pending bar's buckets without driving it.
+    fn drain_pending_bar(&self, cx: &Cx<'_>) {
+        for _ in cx.intents(self.preview_id()) {}
+        for _ in cx.intents(self.discard_id()) {}
+        for _ in cx.intents(self.save_id()) {}
+    }
+
+    /// Drive the pending bar's three buttons while the queue is
+    /// non-empty. The bar is grid chrome: it lives and dies with
+    /// [`GridModel::pending_count`], so adapters never wire it by hand.
+    fn drive_pending_bar<M: GridModel + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        model: &M,
+        acc: &mut Acc<GridAction>,
+    ) {
+        if model.pending_count() == 0 {
+            self.drain_pending_bar(cx);
+            return;
+        }
+        if Button::new(self.preview_id(), "Preview SQL")
+            .variant(Variant::QUIET)
+            .update(cx)
+            .activated()
+        {
+            acc.action(GridAction::PreviewRequested);
+        }
+        if Button::new(self.discard_id(), "Discard")
+            .variant(Variant::QUIET)
+            .update(cx)
+            .activated()
+        {
+            acc.action(GridAction::DiscardRequested);
+        }
+        if Button::new(self.save_id(), "Save")
+            .variant(Variant::PRIMARY)
+            .update(cx)
+            .activated()
+        {
+            acc.action(GridAction::CommitRequested);
+        }
     }
 
     /// Open, or refuse to open, an inline edit on `(row, col)`.
@@ -3571,6 +3666,10 @@ impl Grid<'_> {
             change = change
                 .set_glyph(glyph)
                 .set_fg(decor.tone.unwrap_or(Role::Fg(FgStep::Secondary)));
+            if glyph == GlyphRole::Error {
+                // The rejection marker reads bold (tag `change_glyph`).
+                change = change.add(Modifier::BOLD);
+            }
         }
         let number_defaults = StylePatch::new()
             .set_fg(Role::Fg(if focused {
@@ -3959,10 +4058,15 @@ impl Grid<'_> {
         let len = model.row_count();
         let total = len.saturating_add(usize::from(model.has_more()));
         let inert = ui.is_inert();
+        // A non-empty queue steals the bottom two rows for the pending bar
+        // (tag `render`: `bar_h`), so the control region and every chrome
+        // split below already exclude it; the bar paints last, over the
+        // container fill, and owns its own button regions.
+        let grid_area = Self::bar_adjusted(area, model);
         if !inert {
             ui.register_control(
                 self.id,
-                area,
+                grid_area,
                 if self.disabled {
                     Focusability::Disabled
                 } else {
@@ -4009,7 +4113,7 @@ impl Grid<'_> {
             ),
         );
         ui.fill(area, container.style);
-        let (header, note, body, bar) = self.chrome(area, reason);
+        let (header, note, body, bar) = self.chrome(grid_area, reason);
         let scroll = Self::scroll_for_view(st, usize::from(body.height));
         let content = self
             .bar()
@@ -4083,6 +4187,7 @@ impl Grid<'_> {
                 empty.draw_inherited(ui, mid, 0, inherited);
             }
             self.draw_actions(ui, bar, live);
+            self.draw_pending_bar(ui, area, None, model, container.style);
             return area;
         }
         let cursor = (
@@ -4198,7 +4303,94 @@ impl Grid<'_> {
         };
         ui.scroll_edges_except(content, &view, &keep_y);
         self.draw_actions(ui, bar, live);
+        self.draw_pending_bar(ui, area, Some(cursor.0), model, container.style);
         area
+    }
+
+    /// `area` minus the pending bar's two rows while the queue is
+    /// non-empty (tag `render`: `bar_h`); every chrome split — draw,
+    /// pointer geometry and the position labels — enters through here so
+    /// the body can never disagree with the bar about the viewport.
+    fn bar_adjusted<M: GridModel + ?Sized>(area: Rect, model: &M) -> Rect {
+        let stolen = if model.pending_count() > 0 { 2 } else { 0 };
+        Rect {
+            height: area.height.saturating_sub(stolen),
+            ..area
+        }
+    }
+
+    /// Paint the pending bar over the container fill: `• {n} pending`,
+    /// the breakdown (or the cursor row's rejection, error-toned) and the
+    /// Preview SQL / Discard / Save buttons, right-aligned with one right
+    /// margin cell (tag `render`, pending-bar arm).
+    fn draw_pending_bar<M: GridModel + ?Sized>(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        cursor_row: Option<usize>,
+        model: &M,
+        base: PaintStyle,
+    ) {
+        let n = model.pending_count();
+        if n == 0 || area.height == 0 {
+            return;
+        }
+        let count = Num::new(n);
+        let mut text = String::new();
+        text.push('•');
+        text.push(' ');
+        text.push_str(count.as_str());
+        text.push_str(" pending");
+        let by = area.bottom().saturating_sub(1);
+        let tw = width(&text);
+        let warn = base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)));
+        ui.paint_str(Rect::new(area.x.saturating_add(1), by, tw, 1), &text, warn);
+        let mut detail = String::new();
+        detail.push('·');
+        detail.push(' ');
+        let role = match cursor_row.and_then(|row| model.row_error(row)) {
+            Some(msg) => {
+                detail.push_str(msg);
+                Role::Danger
+            }
+            None => {
+                detail.push_str(&model.pending_breakdown());
+                Role::Fg(FgStep::Muted)
+            }
+        };
+        let widths = [
+            width("Preview SQL").saturating_add(2),
+            width("Discard").saturating_add(2),
+            width("Save").saturating_add(2),
+        ];
+        let buttons: u16 = widths.iter().map(|w| w.saturating_add(1)).sum();
+        let room = area
+            .width
+            .saturating_sub(tw)
+            .saturating_sub(4)
+            .saturating_sub(buttons);
+        let shown = truncate(&detail, room);
+        let ds = base.patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
+        ui.paint_str(
+            Rect::new(
+                area.x.saturating_add(2).saturating_add(tw),
+                by,
+                width(&shown),
+                1,
+            ),
+            &shown,
+            ds,
+        );
+        let btn_area = Rect::new(area.x, by, area.width.saturating_sub(1), 1);
+        let rects = action_row(btn_area, &widths, 1, RowAlign::End);
+        let bar = [
+            Button::new(self.preview_id(), "Preview SQL").variant(Variant::QUIET),
+            Button::new(self.discard_id(), "Discard").variant(Variant::QUIET),
+            Button::new(self.save_id(), "Save").variant(Variant::PRIMARY),
+        ];
+        for (button, rect) in bar.iter().zip(rects.iter().copied()) {
+            button.draw(ui, rect);
+        }
     }
 
     /// Paint the action surface (§12.3's action-surface slot).

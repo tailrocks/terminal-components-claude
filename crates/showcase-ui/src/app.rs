@@ -11,6 +11,11 @@ use termrock::{
 
 use showcase_demos::pages::dialogs::DELETE_COMMAND;
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
+use showcase_demos::pages::grid::{
+    DELETE_ROW as GRID_DELETE, DISCARD as GRID_DISCARD, INSERT_ROW as GRID_INSERT,
+    PREVIEW_SQL as GRID_PREVIEW, SORT as GRID_SORT, SORT_CLEAR as GRID_SORT_CLEAR,
+    UNDO as GRID_UNDO,
+};
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
     ModalFooter, Page, PageStatus, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage,
@@ -490,6 +495,38 @@ fn keymap() -> KeyMap {
             Chord::with(KeyCode::Char('s'), termrock::KeyModifiers::CONTROL),
             FORM_SUBMIT,
         )
+        // Datagrid queue keys (tag `grid.rs`): Bubble fires only when no
+        // component consumed the chord, so typing never sorts; the grid
+        // page additionally guards on grid focus, idle editor and closed
+        // preview. `ctrl-s` reuses the submit chord: routing is by active
+        // page, and the grid treats it as its commit request.
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('s')), GRID_SORT)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('S')),
+            GRID_SORT_CLEAR,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('p')),
+            GRID_PREVIEW,
+        )
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), GRID_UNDO)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('U')),
+            GRID_DISCARD,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('+')),
+            GRID_INSERT,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('-')),
+            GRID_DELETE,
+        )
 }
 
 /// The complete showcase app state.
@@ -880,22 +917,19 @@ fn paint_header_actions(
         // The old shell leaves one cell between the capability cluster and
         // the inspector action.
         let cap_x = right.saturating_sub(capability_width.saturating_add(1));
-        ui.paint_str(
-            Rect::new(cap_x, area.y, width(capability), 1),
-            capability,
+        // One spans call paints the whole cluster (capability, separator,
+        // dimensions share one style at adjacent cells).
+        let _ = ui.paint_spans(
+            Rect::new(cap_x, area.y, capability_width, 1),
+            &[
+                termrock::Span::new(capability),
+                termrock::Span::new(" · "),
+                termrock::Span::new(width_text.as_str()),
+                termrock::Span::new("×"),
+                termrock::Span::new(height_text.as_str()),
+            ],
             faint,
         );
-        ui.paint_str(
-            Rect::new(cap_x.saturating_add(width(capability)), area.y, 3, 1),
-            " · ",
-            faint,
-        );
-        let mut dimension_x = cap_x.saturating_add(width(capability)).saturating_add(3);
-        for fragment in [width_text.as_str(), "×", height_text.as_str()] {
-            let columns = width(fragment);
-            ui.paint_str(Rect::new(dimension_x, area.y, columns, 1), fragment, faint);
-            dimension_x = dimension_x.saturating_add(columns);
-        }
     }
 }
 
@@ -1031,7 +1065,9 @@ fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     });
 }
 
-/// Paint one footer hint at the cursor column if it fits before `reserved`.
+/// Paint one footer hint at the cursor column if it fits before
+/// `reserved`, keeping `reserve` cells for the cut marker when more hints
+/// follow (tag `keyhint.rs`). Answers whether the hint was painted.
 #[expect(
     clippy::too_many_arguments,
     reason = "the footer paints pre-resolved part styles without re-resolving per hint"
@@ -1041,21 +1077,27 @@ fn paint_hint(
     area: Rect,
     x: &mut u16,
     reserved: u16,
+    reserve: u16,
     key_style: PaintStyle,
     action_style: PaintStyle,
     key: &str,
     action: &str,
-) {
+) -> bool {
     let key_width = width(key);
     let action_width = width(action);
     let hint_width = key_width.saturating_add(action_width).saturating_add(3);
-    if x.saturating_add(hint_width).saturating_add(reserved) > area.right() {
-        return;
+    if x.saturating_add(hint_width)
+        .saturating_add(reserve)
+        .saturating_add(reserved)
+        > area.right()
+    {
+        return false;
     }
     ui.paint_str(Rect::new(*x, area.y, key_width, 1), key, key_style);
     *x = x.saturating_add(key_width.saturating_add(1));
     ui.paint_str(Rect::new(*x, area.y, action_width, 1), action, action_style);
     *x = x.saturating_add(action_width.saturating_add(2));
+    true
 }
 
 fn paint_footer(
@@ -1142,33 +1184,44 @@ fn paint_footer(
     } else {
         page_hints
     };
-    for &(key, action) in nav_hints
+    // Hints that do not fit are dropped from the right and a faint `…`
+    // marks the cut (tag `keyhint.rs`): the loop breaks at the first
+    // overflow instead of skipping to shorter hints.
+    let tabs: &[(&str, &str)] = if tab_next { &[TAB_NEXT] } else { &[] };
+    let total = nav_hints
+        .len()
+        .saturating_add(modal_hints.len())
+        .saturating_add(page_hints.len())
+        .saturating_add(tabs.len());
+    let mut drawn = 0usize;
+    for (index, &(key, action)) in nav_hints
         .iter()
         .chain(modal_hints.iter())
         .chain(page_hints.iter())
+        .chain(tabs.iter())
+        .enumerate()
     {
-        paint_hint(
+        let reserve = if index + 1 < total { 2 } else { 0 };
+        if !paint_hint(
             ui,
             area,
             &mut x,
             reserved,
+            reserve,
             key_style,
             action_style,
             key,
             action,
-        );
+        ) {
+            break;
+        }
+        drawn += 1;
     }
-    if tab_next {
-        paint_hint(
-            ui,
-            area,
-            &mut x,
-            reserved,
-            key_style,
-            action_style,
-            TAB_NEXT.0,
-            TAB_NEXT.1,
-        );
+    if drawn < total && x < area.right().saturating_sub(reserved) {
+        let style = canvas.patch(ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+        ));
+        ui.paint_str(Rect::new(x, area.y, 1, 1), "…", style);
     }
     if let Some(message) = status {
         let message_width = width(message);
@@ -1579,6 +1632,13 @@ mod app_tests {
             FORM_SUBMIT,
             RUN_COMMAND,
             DELETE_COMMAND,
+            GRID_SORT,
+            GRID_SORT_CLEAR,
+            GRID_PREVIEW,
+            GRID_UNDO,
+            GRID_DISCARD,
+            GRID_INSERT,
+            GRID_DELETE,
         ]
         .into_iter()
         .chain(showcase_demos::pages::pickers::action_keys())
@@ -1593,6 +1653,13 @@ mod app_tests {
             "showcase.form.submit",
             "showcase.taskrunner.run",
             "showcase.dialogs.delete",
+            "showcase.grid.sort",
+            "showcase.grid.sort_clear",
+            "showcase.grid.preview",
+            "showcase.grid.undo",
+            "showcase.grid.discard",
+            "showcase.grid.insert",
+            "showcase.grid.delete",
             "showcase.menu.open",
             "showcase.menu.close",
             "showcase.context.inspect",
