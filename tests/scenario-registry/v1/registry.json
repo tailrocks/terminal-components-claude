@@ -46233,6 +46233,1165 @@
           }
         ]
       }
+    },
+    {
+      "id": "CTXMENU-ALTERNATIVES-001",
+      "app": "holla",
+      "component": "ContextMenu",
+      "part": "alternatives context menu with close roundtrip",
+      "ref_symbols": [
+        {
+          "glyph": "Inspect 12 GB of generated artifacts",
+          "meaning": "menu title"
+        },
+        {
+          "glyph": "Why is this here?",
+          "meaning": "diagnostic row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Inspect 12 GB of generated artifacts",
+          "meaning": "menu title"
+        },
+        {
+          "glyph": "Why is this here?",
+          "meaning": "diagnostic row"
+        }
+      ],
+      "data": {
+        "world": "rust-dirty",
+        "behind": 3,
+        "changed": 5
+      },
+      "state": {
+        "menu": "open",
+        "scope": "here"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario rust-dirty (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "press Alt+Enter (the alternatives menu opens)",
+          "key": "Alt+Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the menu closes)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Alt+Enter (the menu opens again)",
+          "key": "Alt+Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "menu",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the cursor sits on the disk suggestion"
+          },
+          {
+            "id": "V2",
+            "text": "the menu titles the focused suggestion"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the holla folder"
+          },
+          {
+            "id": "S2",
+            "text": "the menu footer names the choose gesture"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Alt+Enter opens the alternatives menu"
+          },
+          {
+            "id": "A2",
+            "text": "Esc closes the menu and Alt+Enter re-opens it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the finder footer may not stay with the menu open"
+          },
+          {
+            "id": "N2",
+            "text": "the why row may not stay after the close"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2671",
+            "note": "alternatives menu construction"
+          },
+          {
+            "path": "src/bin/holla/domain/fixtures.rs",
+            "lines": "1348",
+            "note": "world_for scenario worlds"
+          },
+          {
+            "path": "src/widgets/menu.rs",
+            "lines": "72",
+            "note": "ContextMenu widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/alternatives/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T02:17:35Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8t H6 h6_alternatives live-PTY PASS @eebe9ef (nextest visual_baseline --run-ignored all h6_ --test-threads 2, 7 pass/0 fail/550 skip; bin tests/harness/target/debug/holla 16643656B sha256:7c3ad76cd069 built 2026-10-08T02:05:32Z; log /tmp/phase8t-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "HELP-HOLLA-004",
+      "app": "holla",
+      "component": "HelpOverlay",
+      "part": "key reference overlay with close roundtrip",
+      "ref_symbols": [
+        {
+          "glyph": "Key reference",
+          "meaning": "overlay title"
+        },
+        {
+          "glyph": "quit with confirmation",
+          "meaning": "quit gestures row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Key reference",
+          "meaning": "overlay title"
+        },
+        {
+          "glyph": "quit with confirmation",
+          "meaning": "quit gestures row"
+        }
+      ],
+      "data": {
+        "world": "rust-dirty",
+        "behind": 3,
+        "changed": 5
+      },
+      "state": {
+        "overlay": "open",
+        "scope": "here"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario rust-dirty (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "press F1 (the key reference opens)",
+          "key": "F1",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the overlay closes)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press F1 (the reference opens again)",
+          "key": "F1",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "help",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the cursor sits on the disk suggestion"
+          },
+          {
+            "id": "V2",
+            "text": "the overlay titles itself against the Here scope"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the holla folder"
+          },
+          {
+            "id": "S2",
+            "text": "the overlay footer offers scroll and close"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "F1 opens the key reference"
+          },
+          {
+            "id": "A2",
+            "text": "Esc closes the overlay and F1 re-opens it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the finder footer may not stay with the overlay open"
+          },
+          {
+            "id": "N2",
+            "text": "the quit row may not stay after the close"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "768",
+            "note": "open_help builds the key reference"
+          },
+          {
+            "path": "src/bin/holla/screens/modals.rs",
+            "lines": "56",
+            "note": "TextModal widget"
+          },
+          {
+            "path": "src/bin/holla/domain/fixtures.rs",
+            "lines": "1348",
+            "note": "world_for scenario worlds"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/help/overlay/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T02:17:35Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8t H6 h6_help_overlay live-PTY PASS @eebe9ef (nextest visual_baseline --run-ignored all h6_ --test-threads 2, 7 pass/0 fail/550 skip; bin tests/harness/target/debug/holla 16643656B sha256:7c3ad76cd069 built 2026-10-08T02:05:32Z; log /tmp/phase8t-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "MENUBAR-FILE-003",
+      "app": "holla",
+      "component": "MenuBar",
+      "part": "File menu with close roundtrip",
+      "ref_symbols": [
+        {
+          "glyph": "Run",
+          "meaning": "first menu row"
+        },
+        {
+          "glyph": "Quit",
+          "meaning": "last menu row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Run",
+          "meaning": "first menu row"
+        },
+        {
+          "glyph": "Quit",
+          "meaning": "last menu row"
+        }
+      ],
+      "data": {
+        "world": "rust-dirty",
+        "behind": 3,
+        "changed": 5
+      },
+      "state": {
+        "menu": "open",
+        "scope": "here"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario rust-dirty (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "press F10 (the File menu opens)",
+          "key": "F10",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the menu closes)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press F10 (the menu opens again)",
+          "key": "F10",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "menu",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the cursor sits on the disk suggestion"
+          },
+          {
+            "id": "V2",
+            "text": "the menu rows pair actions with their gestures"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the holla folder"
+          },
+          {
+            "id": "S2",
+            "text": "the menu footer names the lateral gesture"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "F10 opens the File menu"
+          },
+          {
+            "id": "A2",
+            "text": "Esc closes the menu and F10 re-opens it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the finder footer may not stay with the menu open"
+          },
+          {
+            "id": "N2",
+            "text": "the alternatives row may not stay after the close"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "659",
+            "note": "build_menu constructs the bar"
+          },
+          {
+            "path": "src/bin/holla/domain/fixtures.rs",
+            "lines": "1348",
+            "note": "world_for scenario worlds"
+          },
+          {
+            "path": "src/widgets/menu.rs",
+            "lines": "369",
+            "note": "MenuBar widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/menu/file/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T02:17:35Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8t H6 h6_menu_file live-PTY PASS @eebe9ef (nextest visual_baseline --run-ignored all h6_ --test-threads 2, 7 pass/0 fail/550 skip; bin tests/harness/target/debug/holla 16643656B sha256:7c3ad76cd069 built 2026-10-08T02:05:32Z; log /tmp/phase8t-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "MENUBAR-GO-004",
+      "app": "holla",
+      "component": "MenuBar",
+      "part": "Go menu with close roundtrip",
+      "ref_symbols": [
+        {
+          "glyph": "Parent scope",
+          "meaning": "scope row"
+        },
+        {
+          "glyph": "System scope",
+          "meaning": "explore row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Parent scope",
+          "meaning": "scope row"
+        },
+        {
+          "glyph": "System scope",
+          "meaning": "explore row"
+        }
+      ],
+      "data": {
+        "world": "rust-dirty",
+        "behind": 3,
+        "changed": 5
+      },
+      "state": {
+        "menu": "open",
+        "scope": "here"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario rust-dirty (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "press F10 (the File menu opens)",
+          "key": "F10",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right (the Go menu opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the menu closes)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press F10 then Right (the Go menu opens again)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "menu",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the cursor sits on the disk suggestion"
+          },
+          {
+            "id": "V2",
+            "text": "the scope rows pair entries with their gestures"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the holla folder"
+          },
+          {
+            "id": "S2",
+            "text": "the menu footer names the lateral gesture"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "F10 then Right opens the Go menu"
+          },
+          {
+            "id": "A2",
+            "text": "Esc closes the menu and F10 then Right re-opens it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the finder footer may not stay with the menu open"
+          },
+          {
+            "id": "N2",
+            "text": "the children row may not stay after the close"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "659",
+            "note": "build_menu constructs the bar"
+          },
+          {
+            "path": "src/bin/holla/domain/fixtures.rs",
+            "lines": "1348",
+            "note": "world_for scenario worlds"
+          },
+          {
+            "path": "src/widgets/menu.rs",
+            "lines": "369",
+            "note": "MenuBar widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/menu/go/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T02:17:35Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8t H6 h6_menu_go live-PTY PASS @eebe9ef (nextest visual_baseline --run-ignored all h6_ --test-threads 2, 7 pass/0 fail/550 skip; bin tests/harness/target/debug/holla 16643656B sha256:7c3ad76cd069 built 2026-10-08T02:05:32Z; log /tmp/phase8t-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "DIALOG-QUIT-009",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "quit confirm dialog with cancel roundtrip",
+      "ref_symbols": [
+        {
+          "glyph": "Quit holla❯?",
+          "meaning": "dialog title"
+        },
+        {
+          "glyph": "Stop and quit",
+          "meaning": "destructive button"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Quit holla❯?",
+          "meaning": "dialog title"
+        },
+        {
+          "glyph": "Stop and quit",
+          "meaning": "destructive button"
+        }
+      ],
+      "data": {
+        "world": "activities-multi",
+        "running": 4
+      },
+      "state": {
+        "dialog": "open",
+        "running": 4
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario activities-multi (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "press Ctrl+Q (the quit dialog opens)",
+          "key": "Ctrl+Q",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the dialog cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Ctrl+Q (the dialog opens again)",
+          "key": "Ctrl+Q",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "dialog",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the tab strip carries all five activities"
+          },
+          {
+            "id": "V2",
+            "text": "the body counts the running activities"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the status line counts the live activities"
+          },
+          {
+            "id": "S2",
+            "text": "the dialog footer names the quick answer"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Ctrl+Q opens the quit dialog"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the dialog and Ctrl+Q re-opens it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the finder footer may not stay with the dialog open"
+          },
+          {
+            "id": "N2",
+            "text": "the dialog title may not stay after the cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "900",
+            "note": "open_quit_confirm counts runners"
+          },
+          {
+            "path": "src/bin/holla/domain/fixtures.rs",
+            "lines": "1348",
+            "note": "world_for scenario worlds"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "75",
+            "note": "destructive ctor"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/quit/confirm/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T02:17:35Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8t H6 h6_quit_confirm live-PTY PASS @eebe9ef (nextest visual_baseline --run-ignored all h6_ --test-threads 2, 7 pass/0 fail/550 skip; bin tests/harness/target/debug/holla 16643656B sha256:7c3ad76cd069 built 2026-10-08T02:05:32Z; log /tmp/phase8t-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PANEL-RESIZE-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "finder reflow on PTY grow from 80x24 to 120x40",
+      "ref_symbols": [
+        {
+          "glyph": "truecolor · 120×40",
+          "meaning": "grown size readout"
+        },
+        {
+          "glyph": "Who is blocking the data…",
+          "meaning": "full postgres row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "truecolor · 120×40",
+          "meaning": "grown size readout"
+        },
+        {
+          "glyph": "Who is blocking the data…",
+          "meaning": "full postgres row"
+        }
+      ],
+      "data": {
+        "world": "rust-dirty",
+        "cols": 120,
+        "rows": 40
+      },
+      "state": {
+        "page": "finder",
+        "scope": "here"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario rust-dirty at 80x24 (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "resize the PTY to 120x40 (the wide shape repaints)"
+        },
+        {
+          "step": 3,
+          "action": "resize the PTY back to 80x24 (the narrow shape returns)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "grown",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the narrow boot truncates the postgres row"
+          },
+          {
+            "id": "V2",
+            "text": "the grown frame shows the full postgres row"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the narrow readout pins the boot geometry"
+          },
+          {
+            "id": "S2",
+            "text": "the grown footer names the activities gesture"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "growing the PTY reflows to the wide shape"
+          },
+          {
+            "id": "A2",
+            "text": "shrinking back restores the narrow shape"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the truncated row shape may not stay after the grow"
+          },
+          {
+            "id": "N2",
+            "text": "the narrow readout may not stay after the grow"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "298",
+            "note": "Input::Resize stores the new size"
+          },
+          {
+            "path": "src/bin/holla/domain/fixtures.rs",
+            "lines": "1348",
+            "note": "world_for scenario worlds"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "pty-spawn",
+          "needle-wait"
+        ]
+      },
+      "adapters": [
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/resize/rust-dirty_grown/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T02:17:35Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8t H6 h6_resize_grown live-PTY PASS @eebe9ef (nextest visual_baseline --run-ignored all h6_ --test-threads 2, 7 pass/0 fail/550 skip; bin tests/harness/target/debug/holla 16643656B sha256:7c3ad76cd069 built 2026-10-08T02:05:32Z; log /tmp/phase8t-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PANEL-RESIZE-002",
+      "app": "holla",
+      "component": "Panel",
+      "part": "finder reflow on PTY shrink from 120x40 to 80x24",
+      "ref_symbols": [
+        {
+          "glyph": "truecolor · 80×24",
+          "meaning": "shrunk size readout"
+        },
+        {
+          "glyph": "Who is blocking the datab…",
+          "meaning": "truncated postgres row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "truecolor · 80×24",
+          "meaning": "shrunk size readout"
+        },
+        {
+          "glyph": "Who is blocking the datab…",
+          "meaning": "truncated postgres row"
+        }
+      ],
+      "data": {
+        "world": "rust-dirty",
+        "cols": 80,
+        "rows": 24
+      },
+      "state": {
+        "page": "finder",
+        "scope": "here"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 80,
+        "height": 24
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario rust-dirty at 120x40 (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "resize the PTY to 80x24 (the narrow shape repaints)"
+        },
+        {
+          "step": 3,
+          "action": "resize the PTY back to 120x40 (the wide shape returns)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "shrunk",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the wide boot shows the full postgres row"
+          },
+          {
+            "id": "V2",
+            "text": "the shrunk frame truncates the postgres row"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the wide readout pins the boot geometry"
+          },
+          {
+            "id": "S2",
+            "text": "the narrow shape keeps the compact action line"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "shrinking the PTY reflows to the narrow shape"
+          },
+          {
+            "id": "A2",
+            "text": "growing back restores the wide shape"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the wide footer gesture may not stay after the shrink"
+          },
+          {
+            "id": "N2",
+            "text": "the wide readout may not stay after the shrink"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "298",
+            "note": "Input::Resize stores the new size"
+          },
+          {
+            "path": "src/bin/holla/domain/fixtures.rs",
+            "lines": "1348",
+            "note": "world_for scenario worlds"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "pty-spawn",
+          "needle-wait"
+        ]
+      },
+      "adapters": [
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/resize/rust-dirty_shrunk/80x24/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T02:17:35Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8t H6 h6_resize_shrunk live-PTY PASS @eebe9ef (nextest visual_baseline --run-ignored all h6_ --test-threads 2, 7 pass/0 fail/550 skip; bin tests/harness/target/debug/holla 16643656B sha256:7c3ad76cd069 built 2026-10-08T02:05:32Z; log /tmp/phase8t-focused.log)"
+          }
+        ]
+      }
     }
   ],
   "legacy_roots": [
