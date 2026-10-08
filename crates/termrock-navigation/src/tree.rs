@@ -74,6 +74,9 @@ enum Engagement {
     Activate,
     Choose,
     Click,
+    /// First click under `activate_selected_on_click`: chooses, arming a
+    /// second click to activate. A default click activates at once.
+    ArmClick,
     SelectedClick,
 }
 
@@ -193,7 +196,7 @@ pub enum TreeCmd {
     Activate,
     /// Choose the cursor leaf.
     Choose,
-    /// Open every node.
+    /// Open every branch (leaves stay unmarked, baseline `*`).
     ExpandAll,
     /// Close every node.
     CollapseAll,
@@ -471,6 +474,19 @@ impl TreeState {
     pub fn expand_all(&mut self) {
         Self::prepare_lineage(&mut self.expansion_lineage);
         self.expanded.all();
+        self.bump_expand_generation();
+        self.last_expansion = None;
+    }
+
+    /// Open every branch key in `keys`, keeping pre-existing entries.
+    /// This is the baseline `*` behavior: branches open while leaves are
+    /// never added, so the expanded set keeps naming open branches only.
+    /// One expansion generation covers the whole batch.
+    pub fn expand_branches(&mut self, keys: impl IntoIterator<Item = ItemKey>) {
+        Self::prepare_lineage(&mut self.expansion_lineage);
+        for key in keys {
+            self.expanded.insert(key);
+        }
         self.bump_expand_generation();
         self.last_expansion = None;
     }
@@ -1278,6 +1294,13 @@ impl TreeIndex {
         }
     }
 
+    /// Stable keys of every branch row (parents and lazy nodes), for `*`.
+    fn branch_keys(&self) -> impl Iterator<Item = ItemKey> + '_ {
+        self.rows.iter().filter_map(|row| {
+            matches!(row.kind, NodeKind::Parent | NodeKind::Lazy).then_some(row.key)
+        })
+    }
+
     fn row(&self, display: usize) -> Option<FlatRef> {
         self.visible
             .get(display)
@@ -1293,6 +1316,24 @@ impl TreeIndex {
         }
         let source = *self.by_key.get(&key)?;
         self.visible.binary_search(&source).ok()
+    }
+
+    /// Display row of the nearest visible ancestor of `source`
+    /// (baseline `relocate`: a cursor hidden by a collapse climbs to its
+    /// nearest visible ancestor, never to an index-nearest stranger).
+    fn visible_ancestor_of(&self, source: usize) -> Option<usize> {
+        let mut want = self.rows.get(source)?.depth;
+        let mut s = source.checked_sub(1)?;
+        loop {
+            let row = self.rows.get(s)?;
+            if row.depth < want {
+                if let Ok(display) = self.visible.binary_search(&s) {
+                    return Some(display);
+                }
+                want = row.depth;
+            }
+            s = s.checked_sub(1)?;
+        }
     }
 
     fn has_visible_descendant(&self, display: usize) -> bool {
@@ -1427,7 +1468,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         let toggles_branch = match engagement {
             Engagement::Activate => self.branch_activation == TreeBranchActivation::Toggle,
             Engagement::Choose => true,
-            Engagement::Click => self.branch_click == TreeBranchClick::Toggle,
+            Engagement::Click | Engagement::ArmClick => {
+                self.branch_click == TreeBranchClick::Toggle
+            }
             Engagement::SelectedClick => false,
         };
         if self.node_of(it).has_children() && toggles_branch {
@@ -1436,8 +1479,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let key = row.key;
         st.chosen = Some(key);
+        // A default click activates a leaf at once (baseline
+        // `on_click_row`); branches under the Choose policy still choose.
+        let leaf_click =
+            matches!(engagement, Engagement::Click) && !self.node_of(it).has_children();
         acc.action(
-            if matches!(engagement, Engagement::Activate | Engagement::SelectedClick) {
+            if leaf_click || matches!(engagement, Engagement::Activate | Engagement::SelectedClick)
+            {
                 TreeAction::Activated(key)
             } else {
                 TreeAction::Chose(key)
@@ -1583,7 +1631,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 if index.query_active {
                     acc.consumed();
                 } else {
-                    st.expand_all();
+                    st.expand_branches(index.branch_keys());
                     index.sync(self, st, items);
                     acc.action(TreeAction::Moved);
                 }
@@ -1594,6 +1642,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 } else {
                     st.collapse_all();
                     index.sync(self, st, items);
+                    // Same-frame relocate: an event-driven host may not
+                    // run another update before draw (baseline flatten).
+                    Self::settle_cursor(st, index);
                     acc.action(TreeAction::Moved);
                 }
             }
@@ -1666,8 +1717,23 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
 
     /// Reconcile the cursor and the chosen leaf against the visible rows and
     /// seed the cursor when there is none. Returns the visible row count.
+    /// A cursor hidden by a collapse climbs to its nearest visible
+    /// ancestor (baseline `relocate`); vanished keys keep the generic
+    /// index-nearest fallback in reconcile.
+    fn settle_cursor(st: &mut TreeState, index: &TreeIndex) {
+        if let Some(cur) = st.core.cursor()
+            && index.display_of(cur, None).is_none()
+            && let Some(source) = index.by_key.get(&cur).copied()
+            && let Some(d) = index.visible_ancestor_of(source)
+            && let Some(row) = index.row(d)
+        {
+            st.core.set_cursor(d, row.key);
+        }
+    }
+
     fn reconcile(&self, st: &mut TreeState, items: &[T], index: &TreeIndex) -> usize {
         let len = index.visible.len();
+        Self::settle_cursor(st, index);
         {
             let (core, _) = st.parts_mut();
             let _ = core.reconcile_with(
@@ -1769,7 +1835,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 let engagement = if st.click_cursor.take() == Some(key) {
                     Engagement::SelectedClick
                 } else {
-                    Engagement::Click
+                    Engagement::ArmClick
                 };
                 self.engage(st, index, items, d, engagement, acc);
             }
@@ -1829,46 +1895,56 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let view = ScrollRegion::view(st.core.scroll(), content, len);
         let indent = ui.design().space.tree_indent;
+        // Metadata is a column: when any visible row drops its meta text,
+        // no row shows meta (baseline `show_meta`), via a veto repaint.
+        let mut paint = |suppress_meta: bool, keep: &mut Vec<u16>| -> bool {
+            let mut vetoed = false;
+            for (offset, d) in view.visible_range().enumerate() {
+                let Some(flat) = ui.cache::<TreeIndex>(self.id).row(d) else {
+                    break;
+                };
+                let Some(item) = items.get(flat.source) else {
+                    break;
+                };
+                let rect = Rect {
+                    x: content.x,
+                    y: content
+                        .y
+                        .saturating_add(offset.min(usize::from(u16::MAX)) as u16),
+                    width: content.width,
+                    height: 1,
+                };
+                let (query_active, has_visible_descendant) = {
+                    let index = ui.cache::<TreeIndex>(self.id);
+                    (index.query_active, index.has_visible_descendant(d))
+                };
+                let mut row = Self::row_of(
+                    st,
+                    RowContext {
+                        node: flat,
+                        live,
+                        rect,
+                        disabled: self.is_disabled(item),
+                        query_active,
+                        has_visible_descendant,
+                    },
+                );
+                if self.cursor_selected {
+                    row.flags
+                        .set(StateFlags::SELECTED, st.core.cursor() == Some(row.key));
+                }
+                if st.core.cursor() == Some(row.key) || row.flags.contains(StateFlags::SELECTED) {
+                    keep.push(rect.y);
+                }
+                self.project_pointer_flags(ui, st, live, &mut row);
+                vetoed |= self.paint_row(ui, row, indent, item, suppress_meta);
+            }
+            vetoed
+        };
         let mut keep = Vec::new();
-        for (offset, d) in view.visible_range().enumerate() {
-            let Some(flat) = ui.cache::<TreeIndex>(self.id).row(d) else {
-                break;
-            };
-            let Some(item) = items.get(flat.source) else {
-                break;
-            };
-            let rect = Rect {
-                x: content.x,
-                y: content
-                    .y
-                    .saturating_add(offset.min(usize::from(u16::MAX)) as u16),
-                width: content.width,
-                height: 1,
-            };
-            let (query_active, has_visible_descendant) = {
-                let index = ui.cache::<TreeIndex>(self.id);
-                (index.query_active, index.has_visible_descendant(d))
-            };
-            let mut row = Self::row_of(
-                st,
-                RowContext {
-                    node: flat,
-                    live,
-                    rect,
-                    disabled: self.is_disabled(item),
-                    query_active,
-                    has_visible_descendant,
-                },
-            );
-            if self.cursor_selected {
-                row.flags
-                    .set(StateFlags::SELECTED, st.core.cursor() == Some(row.key));
-            }
-            if st.core.cursor() == Some(row.key) || row.flags.contains(StateFlags::SELECTED) {
-                keep.push(rect.y);
-            }
-            self.project_pointer_flags(ui, st, live, &mut row);
-            self.paint_row(ui, row, indent, item);
+        if paint(false, &mut keep) {
+            let mut discard = Vec::new();
+            paint(true, &mut discard);
         }
         ui.scroll_edges_except(content, &view, &keep);
         area
@@ -1972,7 +2048,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         );
     }
 
-    fn paint_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, item: &T) {
+    /// Paint one row; reports whether the row vetoes the meta column (it
+    /// carries meta text that did not fit, so no row may show meta).
+    fn paint_row(
+        &self,
+        ui: &mut Ui<'_>,
+        row: Row,
+        indent: u16,
+        item: &T,
+        suppress_meta: bool,
+    ) -> bool {
         if let Some(renderer) = self.render_row {
             if !row.rect.intersection(ui.full()).is_empty() {
                 ui.with_area(row.rect, |ui| {
@@ -1980,12 +2065,19 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 });
             }
             self.register_row(ui, row, indent);
-            return;
+            return false;
         }
-        self.paint_default_row(ui, row, indent, item);
+        self.paint_default_row(ui, row, indent, item, suppress_meta)
     }
 
-    fn paint_default_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, item: &T) {
+    fn paint_default_row(
+        &self,
+        ui: &mut Ui<'_>,
+        row: Row,
+        indent: u16,
+        item: &T,
+        suppress_meta: bool,
+    ) -> bool {
         let rs = self.ov.style(
             ui,
             self.id,
@@ -2062,6 +2154,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 .min(row.rect.width),
             ..row.rect
         };
+        let mut vetoed = false;
         if rest.width > 0 && rest.x < row.rect.right() {
             let mut r = RowUi::new_with_patches(
                 ui,
@@ -2074,12 +2167,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 self.ov.part_patch(Part::CONTAINER),
                 self.ov.part_patch(Part::LABEL),
             );
+            r.set_suppress_meta(suppress_meta);
             self.row.row(item, &mut r);
+            vetoed = !suppress_meta && r.meta_paint().is_some_and(|m| m.need > 0 && m.painted == 0);
         }
         if ui.is_inert() {
-            return;
+            return vetoed;
         }
         self.register_row(ui, row, indent);
+        vetoed
     }
 
     fn fold_x(&self, row: Row, indent: u16) -> u16 {

@@ -94,7 +94,7 @@ fn project_panel(meta: &str, focused: bool) -> Panel<'_> {
 
 fn position_label(state: &TreeState, viewport_h: usize) -> String {
     let scroll = state.scroll();
-    let content_len = scroll.content_len().max(16);
+    let content_len = scroll.content_len();
     let viewport = if scroll.viewport_len() > 0 {
         scroll.viewport_len()
     } else {
@@ -338,8 +338,7 @@ impl Page for TreesPage {
                         );
                     }
                     y = y.saturating_add(1);
-                    let visible_count =
-                        format!("{} rows", self.state.scroll().content_len().max(16));
+                    let visible_count = format!("{} rows", self.state.scroll().content_len());
                     let _ = ui.paint_str(
                         Rect {
                             x: inner_x,
