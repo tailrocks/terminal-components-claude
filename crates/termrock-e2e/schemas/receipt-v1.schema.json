@@ -71,7 +71,7 @@
       "type": "object",
       "required": ["kind", "role", "path"],
       "properties": {
-        "kind": {"enum": ["subject_source", "subject_artifact", "oracle", "suite_checkout", "expected_generation", "trust_record", "trust_record_parent", "test_binary_parent", "subject_executable_parent"]},
+        "kind": {"enum": ["subject_source", "subject_artifact", "oracle", "suite_checkout", "expected_generation", "trust_record", "trust_record_parent", "test_binary_parent", "subject_executable_parent", "generation_admission_evidence", "generation_admission_evidence_parent", "oracle_capture_artifacts", "tag_source_snapshot", "tag_build_artifacts", "tag_validator_helper", "tag_validator_helper_parent"]},
         "role": {"oneOf": [{"enum": ["reference", "candidate"]}, {"type": "null"}]},
         "path": {"type": "string", "minLength": 1}
       },
