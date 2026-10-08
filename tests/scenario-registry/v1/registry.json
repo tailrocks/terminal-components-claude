@@ -6182,8 +6182,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_select_open isolated FAIL @b07540df4 (N1: re-choosing the selected option emits Chose again (no re-select suppression); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -6530,8 +6537,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_picker_query isolated FAIL @b07540df4 (V1: no Files/Tasks group headers (Picker has no group support); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -6715,8 +6729,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_picker_tabs isolated FAIL @b07540df4 (A2: j Ignored, want Consumed (level-picker nav keys bubble instead of swallowing); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -7606,8 +7627,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_complete_editor isolated FAIL @b07540df4 (V2: row-1 match byte not bold (no fuzzy-match bold; row 0 passes on cursor-row base style); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -7782,8 +7810,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_dialog_confirm isolated FAIL @b07540df4 (N1: Char('y') Ignored, want Consumed (confirm-dialog keys bubble); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -7959,8 +7994,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_dialog_prompt isolated FAIL @b07540df4 (N1: y Ignored, want Consumed (prompt input keys bubble); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -8484,8 +8526,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_menu_open isolated FAIL @b07540df4 (A1: Space Ignored, want Consumed (menu keys bubble); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -8659,8 +8708,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_ctxmenu_anchor isolated FAIL @b07540df4 (N1: Enter on the disabled edge emits Chose (disabled rows activatable by key); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -9003,8 +9059,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_menubar_shell isolated FAIL @b07540df4 (A2: hover leaves open menu at Some(0), want Some(2) (open dropdown swallows bar hover); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -9343,8 +9406,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_help_showcase live FAIL @b07540df4 (S1 live: 0 Cancel lines, want 1 (no Esc Cancel footer hint); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -9829,8 +9899,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "pass",
+          "note": "phase-8ad S4 s4_form_submit live PASS @b07540df4 (all live asserts pass (valid submit/countdown/reset); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -9992,8 +10069,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_form_invalid live FAIL @b07540df4 (invalid submit never reported (wait timed out after 8.0s); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -10980,8 +11064,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_pb_states isolated FAIL @b07540df4 (V2: running fill Rgb(38,38,38), want white-70 (no THUMB recipe; fill paints track color); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -11140,8 +11231,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "pass",
+          "note": "phase-8ad S4 s4_pb_live live PASS @b07540df4 (all live asserts pass (count-up/sweep/meter); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -11292,8 +11390,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "pass",
+          "note": "phase-8ad S4 s4_spin_frame both PASS @b07540df4 (isolated cycle/tones plus two live frames and count line pass; cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -11435,8 +11540,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_spin_sweep isolated FAIL @b07540df4 (V2: label secondary Rgb(179,179,179), want primary (PROGRESS LABEL recipe is Secondary); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -11579,8 +11691,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "pass",
+          "note": "phase-8ad S4 s4_meter_tones both PASS @b07540df4 (isolated thresholds plus three live rows pass; cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -11734,8 +11853,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_meter_domain isolated FAIL @b07540df4 (V1: Warning row lacks trailing marker (Medium tone paints no marker); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -11879,8 +12005,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ad S4 s4_sb_groups live FAIL @b07540df4 (A1 live: hover leaves chip bg unchanged (chip Overlay delta wins over hover recipe; isolated A1 unreached); cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
@@ -12006,8 +12139,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T07:56:56Z",
+          "branch": "termrock-implementation",
+          "status": "pass",
+          "note": "phase-8ad S4 s4_sb_collapse both PASS @b07540df4 (isolated eviction plus live narrow/resize pass; cargo nextest run -p termrock-conformance --run-ignored all s4_, 5 pass/15 fail/725 skip; bin target/debug/showcase 11961848B sha256:2e746860120c built 2026-10-08T07:51:00Z; log /tmp/s4-run3.log)"
+        }
+      ]
     }
   },
   {
