@@ -1,6 +1,6 @@
 use termrock::{
-    Button, FgStep, Focusability, Id, KeyCode, Modifier, Rect, Role, StylePatch, Surface, Ui,
-    Variant, truncate, wrap,
+    BlurPolicy, Button, FgStep, Field, Id, KeyCode, Modifier, Rect, Role, StylePatch, Surface,
+    TextInput, TextInputState, Ui, Variant, truncate, wrap,
 };
 
 pub const SAFETY_DIALOG: Id = Id::root("tablepro.safety-dialog");
@@ -73,7 +73,7 @@ pub struct SafetyDialog {
     pub code: Vec<String>,
     pub token: Option<String>,
     pub input_text: String,
-    pub input_editing: bool,
+    pub input_state: TextInputState,
     pub confirm_label: String,
     pub confirm_danger: bool,
     pub width: u16,
@@ -108,7 +108,7 @@ impl SafetyDialog {
             code,
             token: tok,
             input_text: String::new(),
-            input_editing: false,
+            input_state: TextInputState::default(),
             confirm_label: confirm_label.into(),
             confirm_danger,
             width,
@@ -119,13 +119,19 @@ impl SafetyDialog {
 
     pub fn armed(&self) -> bool {
         match &self.token {
-            Some(tok) => self.input_text.trim() == tok.trim(),
+            Some(tok) => {
+                let effective = self
+                    .input_state
+                    .draft_text()
+                    .unwrap_or(self.input_text.as_str());
+                effective.trim() == tok.trim()
+            }
             None => true,
         }
     }
 
     pub fn is_editing(&self) -> bool {
-        self.input_editing
+        self.input_state.is_editing()
     }
 
     pub fn label_width(&self) -> usize {
@@ -168,40 +174,12 @@ impl SafetyDialog {
     pub fn on_key(&mut self, key: termrock::Key) -> Option<SafetyDialogAction> {
         match self.focus {
             SafetyFocus::Input => {
-                if !self.input_editing {
-                    match key.code {
-                        KeyCode::Enter => {
-                            self.input_editing = true;
-                        }
-                        KeyCode::Tab | KeyCode::Right | KeyCode::Down => {
-                            self.focus = SafetyFocus::Cancel;
-                        }
-                        KeyCode::Esc => {
-                            return Some(SafetyDialogAction::Cancel);
-                        }
-                        KeyCode::Char(c) => {
-                            self.input_editing = true;
-                            self.input_text.push(c);
-                        }
-                        _ => {}
-                    }
-                } else {
-                    match key.code {
-                        KeyCode::Enter => {
-                            self.input_editing = false;
-                            self.focus = SafetyFocus::Cancel;
-                        }
-                        KeyCode::Esc => {
-                            self.input_editing = false;
-                        }
-                        KeyCode::Backspace => {
-                            self.input_text.pop();
-                        }
-                        KeyCode::Char(c) => {
-                            self.input_text.push(c);
-                        }
-                        _ => {}
-                    }
+                // Idle-nav only: the update bridge owns Enter/char (TextInput
+                // pre-begin + update) and Esc/Right (Binding match); the
+                // editing arms died with `input_editing`. Tab never arrives
+                // here — traversal consumes it (dead on base too).
+                if key.code == KeyCode::Down {
+                    self.focus = SafetyFocus::Cancel;
                 }
             }
             SafetyFocus::Cancel => match key.code {
@@ -214,7 +192,8 @@ impl SafetyDialog {
                 KeyCode::Left | KeyCode::BackTab if self.token.is_some() => {
                     self.focus = SafetyFocus::Input;
                 }
-                KeyCode::Right | KeyCode::Tab if self.armed() => {
+                // Tab is dead here (traversal consumes it before `on_key`).
+                KeyCode::Right if self.armed() => {
                     self.focus = SafetyFocus::Confirm;
                 }
                 _ => {}
@@ -411,54 +390,23 @@ impl SafetyDialog {
             }
         }
 
-        // Token Input
+        // Token Input: stock `Field` chrome around `TextInput`. The Field area
+        // reproduces the legacy rects exactly: label text at x+2/w-2, the
+        // control row at (x, y+1, w).
         if let Some(tok) = &self.token {
             y += 1;
-            let is_focused = self.focus == SafetyFocus::Input;
-            let label_style = if is_focused {
-                title_style
-            } else {
-                secondary_style
-            };
-            let label_raw = format!("Type {tok} to confirm");
-            let label_w = (inner.width.saturating_sub(1) as usize).max(label_raw.len());
-            let label_text = format!("{label_raw:<label_w$}");
-            ui.paint_str(
-                Rect::new(inner.x + 1, y, inner.width.saturating_sub(1), 1),
-                &label_text,
-                label_style,
-            );
-
-            // Field row
-            let field_rect = Rect::new(area.x + 2, y + 1, area.width.saturating_sub(5), 1);
-            ui.register_control(SAFETY_INPUT, field_rect, Focusability::Focusable);
-            let field_style = ui
-                .surface_style()
-                .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Field))));
-            ui.fill(field_rect, field_style);
-
-            let gutter_cell = Rect::new(field_rect.x, y + 1, 1, 1);
-            if is_focused {
-                let accent_gutter =
-                    field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
-                ui.paint_str(gutter_cell, "▎", accent_gutter);
-            } else {
-                ui.fill(gutter_cell, field_style.with_fg_from_bg(field_style));
-            }
-            if !self.input_text.is_empty() {
-                let text_style = field_style
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-                ui.paint_str(
-                    Rect::new(
-                        field_rect.x + 2,
-                        y + 1,
-                        field_rect.width.saturating_sub(2),
-                        1,
-                    ),
-                    &self.input_text,
-                    text_style,
-                );
-            }
+            let label = format!("Type {tok} to confirm");
+            let field_area = Rect::new(area.x + 2, y, area.width.saturating_sub(5), 2);
+            ui.with_surface(Surface::Elevated, |ui| {
+                Field::new(
+                    &label,
+                    TextInput::new(SAFETY_INPUT)
+                        .value(&self.input_text)
+                        .blur(BlurPolicy::Commit),
+                )
+                .plain(true)
+                .draw(ui, field_area, &self.input_state);
+            });
         }
 
         // Actions row
