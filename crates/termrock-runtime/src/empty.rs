@@ -183,11 +183,15 @@ impl EmptyState<'_> {
             EmptyState::Empty { .. } => None,
         };
         let icon_width = glyph.map_or(0, width);
+        // The tag truncates the empty text to the area width
+        // (`tag:list.rs:251`) instead of clipping it, so a narrow
+        // region keeps its trailing ellipsis.
+        let title_text = crate::text::truncate(self.title(), area.width);
         draw_centered(
             ui,
             area,
             CenteredText {
-                title: self.title(),
+                title: &title_text,
                 detail: self.detail(),
                 icon_width,
             },
@@ -197,7 +201,7 @@ impl EmptyState<'_> {
                 }
             },
             |ui, title_area| {
-                ui.paint_str(title_area, self.title(), title);
+                ui.paint_str(title_area, &title_text, title);
             },
             |ui, detail_area| {
                 if let Some(detail) = self.detail() {

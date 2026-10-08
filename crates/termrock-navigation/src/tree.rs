@@ -2144,13 +2144,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let marker = cell_at(row.rect, fold_x.saturating_add(1));
         self.paint_marker(ui, row, marker);
+        // The row area ends at the content edge: `RowUi::meta` paints
+        // the trailing word one cell before it (`tag:tree.rs:637`), so no
+        // extra pad is reserved here.
         let rest = Rect {
             x: fold_x.saturating_add(2),
             width: row
                 .rect
                 .right()
                 .saturating_sub(fold_x.saturating_add(2))
-                .saturating_sub(1)
                 .min(row.rect.width),
             ..row.rect
         };

@@ -342,7 +342,10 @@ impl<'u> RowUi<'u> {
     }
 
     /// Right-aligned meta text, dropped all-or-none when it does not fit
-    /// after a two-cell gap (`DESIGN.md:478`).
+    /// after a two-cell gap (`DESIGN.md:478`). The meta ends one cell
+    /// before the row edge and reserves the gap plus that pad cell, so the
+    /// label keeps the tag width (`tag:list.rs:318-324`: `lw =
+    /// label_w − meta_w − 2`, `mx = row.right() − meta_w − 1`).
     pub fn meta(&mut self, s: &str) {
         let need = width(s);
         let area = self.remaining();
@@ -352,13 +355,13 @@ impl<'u> RowUi<'u> {
         }
         let st = self.style_of(Part::META);
         let cell = Rect {
-            x: area.right().saturating_sub(need),
+            x: area.right().saturating_sub(need).saturating_sub(1),
             y: area.y,
             width: need,
             height: 1,
         };
         self.ui.paint_str(cell, s, st);
-        self.right = self.right.saturating_add(need).saturating_add(1);
+        self.right = self.right.saturating_add(need).saturating_add(2);
         self.last_meta = Some(MetaPaint {
             need,
             painted: need,
@@ -1093,7 +1096,9 @@ mod tests {
     }
 
     /// `DESIGN.md:478`: meta is right-aligned and dropped **all or none**
-    /// when it does not fit after a two-cell gap.
+    /// when it does not fit after a two-cell gap. The word ends one cell
+    /// before the row edge (`tag:list.rs:318-324`, `tag:tree.rs:637`,
+    /// `tag:steps.rs:314`).
     #[test]
     fn row_ui_meta_is_dropped_all_or_none() {
         // room for the label, the gap and the meta
@@ -1101,7 +1106,7 @@ mod tests {
             r.meta("42");
             r.label("name");
         });
-        assert_eq!(row_text(&page, 0, 0, 12), "name      42");
+        assert_eq!(row_text(&page, 0, 0, 12), "name     42 ");
         // one column short: nothing of the meta is painted, not a truncation
         let page = paint(Rect::new(0, 0, 3, 1), |r| {
             r.meta("42");
@@ -1110,7 +1115,7 @@ mod tests {
         assert_eq!(row_text(&page, 0, 0, 3), "na…");
         // exactly at the boundary (need + 2 == width) it still fits
         let page = paint(Rect::new(0, 0, 4, 1), |r| r.meta("42"));
-        assert_eq!(row_text(&page, 0, 0, 4), "  42");
+        assert_eq!(row_text(&page, 0, 0, 4), " 42 ");
     }
 
     #[test]

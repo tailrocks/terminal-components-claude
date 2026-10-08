@@ -6237,12 +6237,10 @@ impl TableProApp {
                     };
                     let is_selected = entry_idx == history.selected;
                     let row_y = content_rect.y.saturating_add(row_idx as u16);
-                    let row_rect = termrock::Rect::new(
-                        content_rect.x,
-                        row_y,
-                        content_rect.width.saturating_sub(1),
-                        1,
-                    );
+                    // The row area ends at the content edge: `RowUi::meta`
+                    // keeps the trailing pad cell itself.
+                    let row_rect =
+                        termrock::Rect::new(content_rect.x, row_y, content_rect.width, 1);
 
                     let mut flags = termrock::StateFlags::empty();
                     if is_selected {
@@ -6278,7 +6276,7 @@ impl TableProApp {
 
                     let meta_str = format!("{} · {}", entry.when(), entry.duration());
                     let meta_w = termrock::width(&meta_str);
-                    let label_w = row_rect.width.saturating_sub(4);
+                    let label_w = row_rect.width.saturating_sub(5);
                     if label_w.saturating_sub(meta_w + 2) >= 12 {
                         r.meta(&meta_str);
                     }
