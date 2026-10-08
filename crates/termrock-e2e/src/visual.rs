@@ -32,15 +32,15 @@ struct ExpectedGenerationManifest {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct OracleLineage {
-    tag_ref: String,
-    tag_object: String,
-    tag_commit: String,
-    capture_run_sha256: String,
-    source_inputs_sha256: String,
-    build_environment_sha256: String,
-    builder_receipt_sha256: String,
-    oracle_executable_sha256: String,
+pub(crate) struct OracleLineage {
+    pub(crate) tag_ref: String,
+    pub(crate) tag_object: String,
+    pub(crate) tag_commit: String,
+    pub(crate) capture_run_sha256: String,
+    pub(crate) source_inputs_sha256: String,
+    pub(crate) build_environment_sha256: String,
+    pub(crate) builder_receipt_sha256: String,
+    pub(crate) oracle_executable_sha256: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -81,6 +81,11 @@ pub(crate) struct ExpectedGeneration {
     pub(crate) manifest_sha256: String,
     pub(crate) root: PathBuf,
     pub(crate) renderer_sha256: String,
+    pub(crate) case_id: String,
+    pub(crate) case_set_digest: String,
+    pub(crate) profile_digest: String,
+    pub(crate) dependency_lock_sha256: String,
+    pub(crate) oracle: OracleLineage,
     checkpoints: BTreeMap<String, LoadedExpectedCheckpoint>,
 }
 
@@ -350,6 +355,11 @@ pub(crate) fn load_expected_generation(
         manifest_sha256: crate::sha256_bytes(manifest_bytes),
         root,
         renderer_sha256: renderer.hash.clone(),
+        case_id: manifest.case_id,
+        case_set_digest: manifest.case_set_digest,
+        profile_digest: manifest.profile_digest,
+        dependency_lock_sha256: manifest.dependency_lock_sha256,
+        oracle: manifest.oracle,
         checkpoints,
     })
 }

@@ -162,6 +162,71 @@ when the external trust record binds an admission receipt. With
 provided. Exact visual comparison remains blocked in this pilot, and the runner
 never writes expected data.
 
+## Immutable-tag capture and explicit admission
+
+`run_tag_capture("HELP-HOLLA-004")` is exposed only through the ignored
+`captures_holla_from_pinned_immutable_tag` Rust test. It launches the Holla
+executable supplied by the immutable-tag builder evidence and uses the same
+case driver as the paired run. A complete capture retains all ten formats at
+each of four checkpoints, the twelve assertion results, raw tag/build evidence,
+and the renderer identity. Its status remains `execution_anchor_status: unverified`,
+`qualification: blocked`, and `admission_status: NOT_RUN`; it does
+not create an expected tree, admission receipt, or paired trust record.
+
+The tag validator requires `TERMROCK_VIS06_VALIDATOR_TOOLCHAIN` and the
+independently caller-pinned `TERMROCK_VIS06_VALIDATOR_TOOLCHAIN_SHA256`. The
+strict toolchain record names absolute Python and Git executables with their
+raw SHA-256 values and exact `--version` output. Rust hashes the Python helper
+source bytes, then sends a deterministic transport copy to the pinned Python
+runtime over stdin. The transport rewrite dispatches the helper's single Git
+query site to the absolute pinned Git path; no caller `PATH` is inherited.
+The capture records the toolchain reference, executable identities, transport
+ID, transformed-helper hash, and canonical Git metadata and common-directory
+paths. Admission write-root checks protect those Git metadata paths, the
+worktree's `.git` entry, and the validator/toolchain/runtime files and parent
+directories. They do not reserve the whole validator checkout, so approved
+expected-generation data can live elsewhere in that checkout. Admission
+reviews bind the raw toolchain record, and both admission and verifier reload
+rerun the source validator to check the materialized tree and its Git path/blob
+map against the captured identity. Python and Git executable hashes and
+versions are checked before and after each validator process; this detects
+persistent replacement but does not eliminate a same-user transient binary
+replacement race around process creation.
+
+The expected-generation tree is a separate, prebuilt input. The admission
+command never copies candidate actuals or writes generation files. It validates
+the exact nine-file generation tree, then checks that its four canonical frame
+and PNG files match the immutable-tag capture. The capture receipt keeps all 40
+artifact entries; the generation tree uses the eight visual inputs plus its
+manifest.
+
+`admit_expected_generation` writes only a new admission receipt. It requires a
+raw-hash-pinned `visual-oracle-qualification-review-v1` document with
+`decision: approve`, `execution_anchor_status: qualified`, and at least one
+hash-pinned execution-anchor evidence file. The review binds the exact tag,
+builder, capture, generation ID/tree/manifest, suite, profile, lock, case,
+checkpoint sequence, and renderer. The admission writer refuses missing,
+stale, mismatched, or rejected review input and never updates trust records.
+The expected-generation manifest's `capture_run_sha256` must equal the raw
+SHA-256 of the complete capture receipt. Qualification reviews and admission
+receipts use canonical compact JSON with duplicate keys rejected.
+The `admit_expected_generation` binary takes `--generation-id`,
+`--generation-root`, `--generation-sha256`, `--capture-receipt`,
+`--capture-sha256`, `--qualification-review`,
+`--qualification-review-sha256`, `--write-root`, and `--output`. The write
+root must already exist and the output must be a new file strictly beneath it;
+the command prints the admission path and raw SHA-256 for the separate trust
+record author.
+
+For an ordinary paired run, `TERMROCK_E2E_GENERATION_ADMISSION` and
+`TERMROCK_E2E_GENERATION_ADMISSION_SHA256` must point to and hash the admission
+receipt already named by the external trust record. The verifier reloads the
+admission, qualification review, tag capture, all 40 artifact bytes, source and
+build evidence, and current expected tree; every binding must still match the
+current case and renderer. Those inputs and roots are protected by the resolved
+write policy. A trust-record hash without a readable matching admission file
+does not enable visual comparison.
+
 ## Current stop condition
 
 An earlier v1 package check used Cargo 1.98.1 and cargo-nextest 0.9.146 with
