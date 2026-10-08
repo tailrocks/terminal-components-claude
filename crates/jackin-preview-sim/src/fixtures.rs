@@ -16,7 +16,7 @@ use jackin_preview_domain::account::{
     DetectedKind, IdentitySubject, IssueCode, Lifecycle, Provenance, Recoverability,
     RecoverableIssue, ValidationLevel, ValidationState,
 };
-use jackin_preview_domain::agent::{Agent, Provider};
+use jackin_preview_domain::agent::{Agent, AuthMode, Provider};
 use jackin_preview_domain::instance::{
     AgentState, DaemonSnapshot, Instance, InstanceId, InstanceStatus, PaneSnapshot, RunId,
     SessionRecord, SessionStatus, TabSnapshot,
@@ -555,6 +555,92 @@ fn handle(subject: &str) -> AccountIdentity {
     AccountIdentity {
         subject: Some(IdentitySubject::Handle(subject.into())),
         plan: None,
+    }
+}
+
+/// Host-level configuration shared by workspace drafts. Only populated
+/// scenarios carry mounts, env, role overrides and agent modes; the trust
+/// rows exist everywhere.
+pub fn global_config(rich: bool) -> crate::world::GlobalConfig {
+    use crate::world::{GlobalConfig, TrustRow};
+    use std::collections::BTreeMap;
+    let mut role_env: BTreeMap<String, Vec<EnvVar>> = BTreeMap::new();
+    if rich {
+        role_env.insert(
+            "sre".to_owned(),
+            vec![EnvVar::plain("KUBECONFIG", "/home/agent/.kube/config")],
+        );
+    }
+    GlobalConfig {
+        coauthor_trailer: true,
+        dco_signoff: true,
+        mounts: if rich {
+            vec![
+                Mount::host("~/.gitconfig", "/home/agent/.gitconfig")
+                    .readonly(true)
+                    .scope(MountScope::Global),
+                Mount::host("~/.cache/cargo-registry", "/home/agent/.cargo/registry")
+                    .scope(MountScope::Global),
+                Mount::host("~/roles/sre-kube", "/home/agent/.kube")
+                    .readonly(true)
+                    .scope(MountScope::Role("sre".into())),
+            ]
+        } else {
+            vec![]
+        },
+        env: if rich {
+            vec![
+                EnvVar::op(
+                    "GH_TOKEN",
+                    op_reference("v_eng01", "Engineering", "it_gh01", "GitHub · CLI token"),
+                ),
+                EnvVar::plain("EDITOR", "nvim"),
+                EnvVar::plain("CARGO_NET_GIT_FETCH_WITH_CLI", "true"),
+            ]
+        } else {
+            vec![]
+        },
+        role_env,
+        agent_modes: if rich {
+            [
+                (Agent::ClaudeCode, AuthMode::Sync),
+                (Agent::Codex, AuthMode::ApiKey),
+                (Agent::GrokBuild, AuthMode::ApiKey),
+                (Agent::OpenCode, AuthMode::Sync),
+                (Agent::Amp, AuthMode::Sync),
+                (Agent::KimiCode, AuthMode::Ignore),
+            ]
+            .into_iter()
+            .collect()
+        } else {
+            BTreeMap::new()
+        },
+        trust: vec![
+            TrustRow {
+                source: "github.com/chainargos/roles".into(),
+                kind: "git",
+                trusted: true,
+                roles: 4,
+            },
+            TrustRow {
+                source: "github.com/acme-labs/roles-experimental".into(),
+                kind: "git",
+                trusted: false,
+                roles: 1,
+            },
+            TrustRow {
+                source: "~/roles".into(),
+                kind: "path",
+                trusted: true,
+                roles: 1,
+            },
+            TrustRow {
+                source: "git@corp:infra/roles".into(),
+                kind: "git",
+                trusted: true,
+                roles: 2,
+            },
+        ],
     }
 }
 

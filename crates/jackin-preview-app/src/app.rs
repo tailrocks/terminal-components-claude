@@ -44,7 +44,7 @@ use crate::screens::{
     inspect::InspectState,
     manager::{LaunchCandidate, ManagerRowKey, ManagerState},
     prelude::{PreludeState, PreludeUiState},
-    settings::SettingsState,
+    settings::{SettingsFocus, SettingsScreen, SettingsState},
     usage::{Tab as UsageTab, UsageState},
 };
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun};
@@ -786,7 +786,6 @@ pub struct App {
     selected_role: usize,
     launch: Option<LaunchRun>,
     status: Option<String>,
-    trusted: bool,
     intro: IntroState,
     outro: Option<OutroState>,
     handoff_frame: Option<u64>,
@@ -984,7 +983,6 @@ impl App {
             selected_role,
             launch,
             status: None,
-            trusted: false,
             intro: IntroState::new(motion, frame),
             outro: (scenario == Scenario::OutroLast && frame > 0)
                 .then(|| OutroState::new(motion, Some(8_040), frame)),
@@ -1326,10 +1324,6 @@ impl App {
             .disabled(disabled)
     }
 
-    fn settings_trust_button(checked: bool) -> Button<'static> {
-        Button::new(SETTINGS_TRUST, "Trust local incident role").checked(checked)
-    }
-
     fn launch_retry_button() -> Button<'static> {
         Button::new(LAUNCH_RETRY, "Retry").variant(Variant::PRIMARY)
     }
@@ -1369,10 +1363,6 @@ impl App {
             },
         )
         .variant(Variant::PRIMARY)
-    }
-
-    fn settings_save_button() -> Button<'static> {
-        Button::new(crate::screens::settings::SAVE, "Save settings").variant(Variant::PRIMARY)
     }
 
     fn settings_save_confirm_button() -> Button<'static> {
@@ -3936,42 +3926,63 @@ impl App {
         });
     }
 
-    fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let button = Self::settings_trust_button(self.trusted).update(cx);
-        let chosen = button.activated();
-        let mut result = button.erase();
-        if chosen {
-            self.trusted = !self.trusted;
-            if self.settings.dirty {
-                self.settings.mark_dirty();
-            } else {
-                self.settings.begin_draft();
+    /// Pending settings edits (tag `change_count`): only the Trust tab is
+    /// editable while the other tabs render from stored frames.
+    fn settings_change_count(&self) -> usize {
+        self.settings.trust_change_count(&self.world.global.trust)
+    }
+
+    /// Apply the pending trust edits to the world (on a confirmed save).
+    fn apply_settings_trust(&mut self) {
+        for (index, pending) in self.settings.trust_overrides.clone() {
+            if let Some(row) = self.world.global.trust.get_mut(index) {
+                row.trusted = pending;
             }
-            result |= Response::changed();
         }
-        let save = Self::settings_save_button().update(cx);
+    }
+
+    /// Open the save preview when the draft holds edits (tag
+    /// `open_preview`); otherwise report that there is nothing to save.
+    fn request_settings_save(&mut self, cx: &mut Cx<'_>) {
+        if self.settings_change_count() == 0 {
+            self.status = Some("Nothing to save".into());
+            return;
+        }
+        self.settings_save_preview = true;
+        cx.focus(SETTINGS_SAVE_CONFIRM);
+        self.status = Some("Save settings · choose a confirmation action".into());
+    }
+
+    fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let cancel = Button::new(crate::screens::settings::CANCEL, "Cancel").update(cx);
+        let cancel_chosen = cancel.activated();
+        let mut result = cancel.erase();
+        let save = Button::new(crate::screens::settings::SAVE, "Save…").update(cx);
         let save_chosen = save.activated();
         result |= save.erase();
         let confirm = Self::settings_save_confirm_button().update(cx);
         let confirm_chosen = confirm.activated();
         result |= confirm.erase();
-        if save_chosen {
+        if cancel_chosen {
             if self.settings.dirty {
-                cx.focus(SETTINGS_SAVE_CONFIRM);
-                self.status = Some("Save settings · choose a confirmation action".into());
-                result |= Response::changed();
+                self.status = Some("Save settings before leaving?".into());
             } else {
-                self.status = Some("No settings changes".into());
+                self.route = Route::Manager;
             }
+            result |= Response::changed();
+        }
+        if save_chosen {
+            self.request_settings_save(cx);
+            result |= Response::changed();
         }
         if confirm_chosen && self.settings.dirty {
             let keep = self.settings.attempt_save(self.world.refresh_fails);
             if keep {
                 self.status = self.settings.save_error.clone();
             } else {
-                if let Some(trust) = self.world.global.trust.first_mut() {
-                    trust.trusted = self.trusted;
-                }
+                self.apply_settings_trust();
+                self.settings.clear_trust();
+                self.settings_save_preview = false;
                 self.status = Some("Settings saved".into());
                 self.route = Route::Manager;
             }
@@ -4939,6 +4950,8 @@ impl App {
                 self.settings_tab = 1;
                 self.settings_save_preview = false;
                 self.settings.clear_error();
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_CAPSULE_NEW_TAB if self.route == Route::Capsule => {
@@ -5369,6 +5382,21 @@ impl App {
                     Some(Response::changed())
                 }
             }
+            CMD_EXIT_CONFIRM if self.route == Route::Settings => {
+                if self.settings_save_preview || self.settings.focus != SettingsFocus::Tabs {
+                    None
+                } else {
+                    self.settings.focus = SettingsFocus::Body;
+                    match self.settings_tab {
+                        2 => cx.focus(crate::screens::settings::MOUNTS_BODY),
+                        3 => cx.focus(crate::screens::settings::ENV_BODY),
+                        4 => cx.focus(crate::screens::settings::AGENTS_BODY),
+                        5 => cx.focus(SETTINGS_TRUST),
+                        _ => cx.focus(crate::screens::settings::GENERAL_BODY),
+                    }
+                    Some(Response::changed())
+                }
+            }
             CMD_EXIT_CONFIRM if self.route == Route::Manager => {
                 if let Some(instance_id) = self.selected_instance_id()
                     && self
@@ -5590,24 +5618,50 @@ impl App {
             }
             CMD_EDITOR_MOUNTS if self.route == Route::Settings => {
                 self.settings_tab = 2;
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_ROLES if self.route == Route::Settings => {
                 self.settings_tab = 3;
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_ENV if self.route == Route::Settings => {
                 self.settings_tab = 4;
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
                 self.settings_tab = 5;
-                cx.focus(SETTINGS_TRUST);
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_NAV_TAB_FIVE if self.route == Route::Settings => {
                 self.settings_tab = 5;
-                cx.focus(SETTINGS_TRUST);
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_NEXT if self.route == Route::Settings => {
+                if cx.update_cause() == UpdateCause::Event {
+                    let active = self.settings_tab.saturating_sub(1);
+                    self.settings_tab = (active + 1) % 5 + 1;
+                    self.settings.focus = SettingsFocus::Tabs;
+                }
+                cx.focus(crate::screens::settings::TABS);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_PREVIOUS if self.route == Route::Settings => {
+                if cx.update_cause() == UpdateCause::Event {
+                    let active = self.settings_tab.saturating_sub(1);
+                    self.settings_tab = (active + 4) % 5 + 1;
+                    self.settings.focus = SettingsFocus::Tabs;
+                }
+                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_NAV_TAB_FIVE if self.route == Route::Editor => {
@@ -5652,22 +5706,44 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SAVE if self.route == Route::Settings => {
-                self.settings_save_preview = true;
-                if !self.settings.dirty {
-                    self.settings.begin_draft();
-                }
-                cx.focus(SETTINGS_SAVE_CONFIRM);
-                self.status = Some("Save settings · choose a confirmation action".into());
+                self.request_settings_save(cx);
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE if self.route == Route::Settings => {
-                if cx.update_cause() == UpdateCause::Event {
-                    self.trusted = !self.trusted;
-                    if self.settings.dirty {
-                        self.settings.mark_dirty();
-                    } else {
-                        self.settings.begin_draft();
-                    }
+                if cx.update_cause() == UpdateCause::Event
+                    && self.settings_tab == 5
+                    && self.settings.focus == SettingsFocus::Body
+                    && !self.settings_save_preview
+                    && let Some((source, trusted)) =
+                        self.settings.toggle_trust(&self.world.global.trust)
+                {
+                    self.status = Some(format!(
+                        "{} · {} · save to apply",
+                        source,
+                        if trusted { "trusted" } else { "untrusted" }
+                    ));
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_UP if self.route == Route::Settings => {
+                if cx.update_cause() == UpdateCause::Event
+                    && self.settings_tab == 5
+                    && self.settings.focus == SettingsFocus::Body
+                    && !self.settings_save_preview
+                {
+                    let len = self.world.global.trust.len();
+                    self.settings.move_trust_cursor(-1, len);
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Settings => {
+                if cx.update_cause() == UpdateCause::Event
+                    && self.settings_tab == 5
+                    && self.settings.focus == SettingsFocus::Body
+                    && !self.settings_save_preview
+                {
+                    let len = self.world.global.trust.len();
+                    self.settings.move_trust_cursor(1, len);
                 }
                 Some(Response::changed())
             }
@@ -6002,7 +6078,10 @@ impl App {
                     manager_crumb.as_str()
                 }
                 Route::Usage => "Usage",
-                Route::Settings => "Settings",
+                Route::Settings => {
+                    manager_crumb = SettingsScreen::crumb(self.settings_tab);
+                    manager_crumb.as_str()
+                }
                 Route::Editor => {
                     let ws_name = self
                         .editor
@@ -6053,6 +6132,18 @@ impl App {
                 }
             }
             let change_text;
+            let settings_change_text;
+            if self.route == Route::Settings && self.settings_change_count() > 0 {
+                let n = self.settings_change_count();
+                let noun = if n == 1 { "change" } else { "changes" };
+                settings_change_text = format!("• {n} {noun}");
+                segs.push(HeaderSegment {
+                    text: &settings_change_text,
+                    style: palette.warning_on_canvas,
+                    priority: 6,
+                    padded: false,
+                });
+            }
             if self.route == Route::Editor && self.editor.change_count() > 0 {
                 let n = self.editor.change_count();
                 let noun = if n == 1 { "change" } else { "changes" };
@@ -6410,45 +6501,11 @@ impl App {
         paint_lines(ui, area, &lines);
     }
 
-    fn draw_settings(&self, ui: &mut Ui<'_>, area: Rect) {
-        let lines = [
-            if self.settings.dirty {
-                "• 1 change · Runtime mode · Sync host credentials"
-            } else {
-                "Runtime mode · Sync host credentials"
-            },
-            "Workspace · payments-platform",
-            "DCO signoff · enabled",
-            "Secret policy · references only; resolved bytes are transient",
-        ];
-        paint_lines(ui, area, &lines);
-        Self::settings_trust_button(self.trusted).draw(
-            ui,
-            Rect {
-                y: area.bottom().saturating_sub(3),
-                width: area.width.min(30),
-                height: 1,
-                ..area
-            },
-        );
-        Self::settings_save_button().draw(
-            ui,
-            Rect::new(area.x, area.bottom().saturating_sub(2), 18, 1),
-        );
-        if self
-            .status
-            .as_deref()
-            .is_some_and(|status| status.starts_with("Save settings"))
-        {
-            Self::settings_save_confirm_button().draw(
-                ui,
-                Rect::new(
-                    area.x.saturating_add(20),
-                    area.bottom().saturating_sub(2),
-                    18,
-                    1,
-                ),
-            );
+    fn draw_settings(&self, ui: &mut Ui<'_>, _area: Rect) {
+        // Only the Trust tab is live; tabs 1-4 render from stored frames at
+        // 120x40 and stay blank elsewhere until they go live.
+        if self.settings_tab == 5 {
+            SettingsScreen::draw_trust(ui, &self.settings, &self.world);
         }
     }
 
@@ -7742,6 +7799,14 @@ impl App {
             return;
         }
 
+        if self.route == Route::Settings {
+            let hints = SettingsScreen::hints(self.settings_tab, self.settings.focus);
+            HintBar::new(APP.sub("hint"), &hints)
+                .status_text(self.status.as_deref())
+                .draw(ui, area);
+            return;
+        }
+
         if self.route == Route::Editor {
             let hints = crate::screens::editor::EditorScreen::hints(&self.editor);
             let mut bar = HintBar::new(APP.sub("hint"), &hints);
@@ -8364,27 +8429,22 @@ impl TuiApp for App {
                 self.draw_historical_settings_save_preview_120_40(ui, full);
                 return;
             }
-            match self.settings_tab {
-                2 => {
-                    self.draw_historical_settings_mounts_120_40(ui, full);
-                    return;
+            // Tabs 1-4 render from stored frames; the Trust tab (5) falls
+            // through to the live path below. A focused tab strip paints
+            // the live jump footer over the stored body footer (tag focus
+            // model).
+            if self.settings_tab != 5 {
+                match self.settings_tab {
+                    2 => self.draw_historical_settings_mounts_120_40(ui, full),
+                    3 => self.draw_historical_settings_env_120_40(ui, full),
+                    4 => self.draw_historical_settings_agents_120_40(ui, full),
+                    _ => self.draw_historical_settings_route_120_40(ui, full),
                 }
-                3 => {
-                    self.draw_historical_settings_env_120_40(ui, full);
-                    return;
+                if self.settings.focus == SettingsFocus::Tabs {
+                    let footer = Rect::new(full.x, full.bottom().saturating_sub(1), full.width, 1);
+                    self.draw_footer(ui, footer);
                 }
-                4 => {
-                    self.draw_historical_settings_agents_120_40(ui, full);
-                    return;
-                }
-                5 => {
-                    self.draw_historical_settings_trust_120_40(ui, full);
-                    return;
-                }
-                _ => {
-                    self.draw_historical_settings_route_120_40(ui, full);
-                    return;
-                }
+                return;
             }
         }
         if self.route == Route::Usage
@@ -8639,9 +8699,21 @@ impl TuiApp for App {
             return self.route_changed();
         }
         if self.route == Route::Settings {
+            if self.settings_save_preview {
+                self.settings_save_preview = false;
+                self.status = Some("Save aborted · settings unchanged".into());
+                self.settings.focus = SettingsFocus::Buttons;
+                cx.focus(crate::screens::settings::SAVE);
+                return self.route_changed();
+            }
             if self.settings.save_error.is_some() {
                 self.settings.clear_error();
                 self.status = None;
+                return self.route_changed();
+            }
+            if self.settings.focus != SettingsFocus::Tabs {
+                self.settings.focus = SettingsFocus::Tabs;
+                cx.focus(crate::screens::settings::TABS);
                 return self.route_changed();
             }
             if self.settings.dirty {
