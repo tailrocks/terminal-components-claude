@@ -181,8 +181,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T05:56:36Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ab S4 s4_form_submit live-PTY-only PASS @b712422 (nextest visual_baseline --run-ignored only s4_ --test-threads 2, 20 pass/0 fail/596 skip; Busy(23) countdown to Done; bin tests/harness/target/debug/showcase 10977640B sha256:3a1574eb1d69c5a1 built 2026-10-08T12:45:15Z; log /tmp/phase8ab-s4.log)"
+     }
+    ]
    }
   },
   {
@@ -356,8 +363,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T05:56:36Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ab S4 s4_form_invalid live-PTY-only PASS @b712422 (nextest visual_baseline --run-ignored only s4_ --test-threads 2, 20 pass/0 fail/596 skip; both errors, focus-first-invalid, Reset rebuilds; bin tests/harness/target/debug/showcase 10977640B sha256:3a1574eb1d69c5a1 built 2026-10-08T12:45:15Z; log /tmp/phase8ab-s4.log)"
+     }
+    ]
    }
   },
   {
