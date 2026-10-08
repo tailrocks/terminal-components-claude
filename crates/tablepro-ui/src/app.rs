@@ -2450,6 +2450,7 @@ impl TableProApp {
         let mut action = None;
         let mut key_received = false;
         let mut focus_changed = false;
+        let mut response = Response::ignored();
         for (id, focus) in [
             (SAFETY_INPUT, SafetyFocus::Input),
             (SAFETY_CANCEL, SafetyFocus::Cancel),
@@ -2459,6 +2460,58 @@ impl TableProApp {
                 if let Intent::FocusIn { .. } = intent {
                     dialog.focus = focus;
                     focus_changed = true;
+                }
+            }
+        }
+        // Token field is owned by stock TextInput. The dialog opens gated
+        // (idle, Enter-to-arm), so there is no FocusIn pre-begin: beginning
+        // on focus would turn the opening Enter into a commit of the empty
+        // draft. A bare-char pre-begin is still needed — stock `update`
+        // drops typing while idle — while idle Enter natively begins.
+        let mut input_action = None;
+        if dialog.token.is_some() {
+            if dialog.focus == SafetyFocus::Input
+                && !dialog.input_state.is_editing()
+                && cx
+                    .intents(SAFETY_INPUT)
+                    .any(|intent| matches!(intent, Intent::Key(key) if key.bare_char().is_some()))
+            {
+                dialog.input_state.begin(&dialog.input_text);
+            }
+            let input_response = termrock::TextInput::new(SAFETY_INPUT)
+                .blur(termrock::BlurPolicy::Commit)
+                .update(cx, &mut dialog.input_state, &mut dialog.input_text);
+            input_action = input_response.action_ref().copied();
+            response |= input_response.erase();
+        }
+        match input_action {
+            // Changed: live `armed()` re-gate; the gate row repaints.
+            Some(TextAction::Changed) => {
+                response |= Response::changed();
+            }
+            Some(TextAction::Committed) => {
+                dialog.focus = SafetyFocus::Cancel;
+                response |= Response::changed();
+            }
+            // Cancelled: the draft is dropped, focus stays on Input and the
+            // value is untouched (accepted delta vs keep-text).
+            _ => {}
+        }
+        // Esc/Right on an idle field arrive as Bindings (TextInput published
+        // SINGLE) rather than Keys. When the field already acted this frame,
+        // the same binding must not also move focus or close the dialog.
+        if input_action.is_none() && !dialog.input_state.is_editing() {
+            for intent in cx.intents(SAFETY_INPUT) {
+                if let Intent::Binding(key) = intent {
+                    if key == ActionKey::CANCEL || key == ActionKey::custom("Cancel") {
+                        action = Some(SafetyDialogAction::Cancel);
+                        break;
+                    }
+                    if key == ActionKey::custom("Right") {
+                        dialog.focus = SafetyFocus::Cancel;
+                        focus_changed = true;
+                        break;
+                    }
                 }
             }
         }
@@ -2472,9 +2525,11 @@ impl TableProApp {
             action = Some(SafetyDialogAction::Confirm);
         }
         if action.is_none() {
+            // SAFETY_INPUT is owned by TextInput now (feeding its keys here
+            // too would double-insert). Down still drains while idle — it is
+            // unbound in SINGLE — but never while editing (a no-op, as base).
             for intent in cx
-                .intents(SAFETY_INPUT)
-                .chain(cx.intents(SAFETY_CANCEL))
+                .intents(SAFETY_CANCEL)
                 .chain(cx.intents(SAFETY_CONFIRM))
                 .chain(cx.intents(SAFETY_DIALOG))
             {
@@ -2483,6 +2538,22 @@ impl TableProApp {
                     if let Some(act) = dialog.on_key(key) {
                         action = Some(act);
                         break;
+                    }
+                }
+            }
+            if action.is_none()
+                && dialog.focus == SafetyFocus::Input
+                && !dialog.input_state.is_editing()
+            {
+                for intent in cx.intents(SAFETY_INPUT) {
+                    if let Intent::Key(key) = intent
+                        && key.code == KeyCode::Down
+                    {
+                        key_received = true;
+                        if let Some(act) = dialog.on_key(key) {
+                            action = Some(act);
+                            break;
+                        }
                     }
                 }
             }
@@ -2542,10 +2613,9 @@ impl TableProApp {
             SafetyFocus::Confirm => cx.focus(SAFETY_CONFIRM),
         }
         if key_received || focus_changed {
-            Response::changed()
-        } else {
-            Response::ignored()
+            response |= Response::changed();
         }
+        response
     }
 
     fn finish_commit(&mut self, cx: &mut Cx<'_>) {
@@ -6806,7 +6876,7 @@ fn footer_hints(app: &TableProApp, explorer_focused: bool) -> &'static [KeyHint]
         ];
     }
     if let Some(dlg) = app.safety_dialog.as_ref() {
-        if dlg.input_editing {
+        if dlg.is_editing() {
             return &[
                 KeyHint {
                     key: "Enter",
