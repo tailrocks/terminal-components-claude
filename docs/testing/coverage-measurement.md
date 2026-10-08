@@ -75,7 +75,9 @@ Each sentence holds one fact.
 - Registry: 293 of 293 rows are complete.
   Complete means inputs plus Checkpoints plus all 4 check classes.
 - Reference Rust suite: `tests/harness/tests/visual_baseline/`.
-  It holds matrix tests plus `negative_controls` (18 tests), `control_states` (14 tests),
+  It holds matrix tests plus `negative_controls` (18 tests),
+  `negative_controls_phase6a` (6 tests), `negative_controls_phase8ap` (8 tests),
+  `control_states` (14 tests),
   `button_busy_frames` (3 tests), `button_busy_live` (2 tests), and support unit tests.
 - Candidate Rust suite: `crates/termrock-conformance/tests/`.
   It holds matrix tests plus `control_states` (109 tests), `button_busy_live` (2 tests),
@@ -157,7 +159,7 @@ Each sentence holds one fact.
 ## Reference passes
 
 - All 347 executed reference tests passed.
-- This includes the 18 negative-control tests.
+- This includes the 32 negative-control tests (18 base, 6 phase6a, 8 phase8ap).
 - This includes the 2 live Button tests.
 - Zero harness failures occurred.
 
@@ -238,7 +240,7 @@ Each sentence holds one fact.
 
 ## Negative-control status
 
-- Reference: 18 negative-control tests, all pass.
+- Reference: 32 negative-control tests, all pass (18 base, 6 phase6a, 8 phase8ap).
 - Reference: argv0 mask holds fail-closed with negative controls.
 - Candidate: html mask tests 6 of 6 pass, including negative controls.
 - Candidate: mask forgiveness fired 0 times in the full run.
