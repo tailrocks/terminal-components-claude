@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "queue_revision": 6,
+  "accepted_by": "/root",
+  "acceptance_mode": "single-integrator bootstrap",
+  "accepted_at": "2026-10-08T02:55:05.893785+00:00",
+  "tasks": [
+    {
+      "work_id": "VIS-01",
+      "requirement_ids": [
+        "VIS-A01",
+        "VIS-S01",
+        "VIS-S02",
+        "VIS-S03",
+        "VIS-S04",
+        "VIS-S05",
+        "VIS-S06",
+        "VIS-P02"
+      ],
+      "priority": "P0",
+      "priority_reason": "Publish source facts and show missing paired execution and the current CI failure.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+      "allowed_paths": [
+        "tools/visibility/status.py",
+        "tools/visibility/tests/test_status.py",
+        "tools/visibility/source-facts.json",
+        "tools/visibility/README.md",
+        "STATUS.md",
+        "README.md"
+      ],
+      "owner": "/root/status_luna",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-bootstrap-20261008-01",
+      "expiry": "2026-10-09T00:00:00Z",
+      "state": "review",
+      "evidence": [
+        "Independent plan approval from /root/technical_review; exact staged review pending."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 1
+    },
+    {
+      "work_id": "VIS-02",
+      "requirement_ids": [
+        "VIS-T01",
+        "VIS-T02",
+        "VIS-T03",
+        "VIS-T05",
+        "VIS-T06",
+        "VIS-T07",
+        "VIS-T08",
+        "VIS-T10",
+        "VIS-V01"
+      ],
+      "priority": "P0",
+      "priority_reason": "A shared driver for real binaries is needed before visibility can be measured.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+      "allowed_paths": [
+        "crates/termrock-e2e/**"
+      ],
+      "owner": "/root/suite_luna",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-suite-20261008-02",
+      "expiry": "2026-10-09T00:00:00Z",
+      "state": "in_progress",
+      "evidence": [
+        "Independent narrow pilot plan approved by /root/technical_review; exact staged review pending."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 2
+    },
+    {
+      "work_id": "VIS-03",
+      "requirement_ids": [
+        "VIS-A03",
+        "VIS-P05"
+      ],
+      "priority": "P0",
+      "priority_reason": "Direct agents to the visibility tasks and accepted work paths before further product refactoring.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+      "allowed_paths": [
+        "AGENTS.md",
+        "GOAL.md"
+      ],
+      "owner": "/root/showcase_owner",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-instructions-20261008-03",
+      "expiry": "2026-10-09T00:00:00Z",
+      "state": "review",
+      "evidence": [
+        "Narrow instruction plan approved by /root/technical_review; runtime discovery remains NOT_RUN."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 3
+    },
+    {
+      "work_id": "VIS-04",
+      "requirement_ids": [
+        "VIS-B01",
+        "VIS-B02",
+        "VIS-B05",
+        "VIS-I06"
+      ],
+      "priority": "P0",
+      "priority_reason": "Run the deferred assertions and preserve their failure results.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+      "allowed_paths": [
+        "tools/visibility/deferred.py",
+        "tools/visibility/tests/test_deferred.py",
+        "docs/implementation/visibility/evidence/deferred/**"
+      ],
+      "owner": "/root/deferred_execution",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-deferred-20261008-04",
+      "expiry": "2026-10-09T00:00:00Z",
+      "state": "in_progress",
+      "evidence": [
+        "Independent plan approved by /root/technical_review; build slot not granted yet."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 4
+    },
+    {
+      "work_id": "VIS-05",
+      "requirement_ids": [
+        "VIS-P02",
+        "VIS-P03",
+        "VIS-P04",
+        "VIS-P05",
+        "VIS-V01"
+      ],
+      "priority": "P0",
+      "priority_reason": "Queue safety is needed for independent work. Its code does not depend on status publication.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+      "allowed_paths": [
+        "tools/visibility/queue.py",
+        "tools/visibility/tests/test_queue.py"
+      ],
+      "owner": "/root/coordination_luna",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-queue-20261008-05",
+      "expiry": "2026-10-09T00:00:00Z",
+      "state": "in_progress",
+      "evidence": [
+        "Independent plan approved by /root/technical_review; atomic controls not yet implemented.",
+        "Integrator promoted the independent P0 queue-code prerequisite before initial publication; no file overlap or status-publication dependency."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 5
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "repository": "tailrocks/terminal-components-claude",
+  "observed_at": "2026-10-08T03:27:36Z",
+  "candidate": {
+    "branch": "termrock-implementation",
+    "head_sha": "5572f09f57053adb74c886cdab748650452531b6",
+    "local_head_sha": "5572f09f57053adb74c886cdab748650452531b6",
+    "remote_head_sha": "5572f09f57053adb74c886cdab748650452531b6"
+  },
+  "reference": {
+    "branch": "visual-baseline",
+    "head_sha": "91aba5102f5b4dabaff506894f8b19166afb27a6"
+  },
+  "visual_authority": {
+    "tag": "visual-baseline",
+    "tag_object_sha": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+    "commit_sha": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+  },
+  "ci_observation": {
+    "run_id": "37721476033",
+    "workflow": "CI",
+    "created_at": "2026-10-08T03:10:42Z",
+    "head_sha": "5572f09f57053adb74c886cdab748650452531b6",
+    "status": "completed",
+    "conclusion": "failure",
+    "job_count": 0,
+    "artifact_count": 0,
+    "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37721476033",
+    "failure_reason": {
+      "reason": "Workflow file exceeds the maximum allowed size of 500 KB.",
+      "source_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37721476033"
+    }
+  },
+  "dco_observation": {
+    "check_run_id": "113129904697",
+    "name": "DCO",
+    "head_sha": "5572f09f57053adb74c886cdab748650452531b6",
+    "status": "completed",
+    "conclusion": "action_required",
+    "affected_commit_count": 2,
+    "details_url": "https://github.com/cncf/dco2"
+  },
+  "ambient_tools": {
+    "python": "3.9.6",
+    "mise_rust": "1.98.1",
+    "cargo_nextest": "0.9.146",
+    "nextest_command": "mise exec -- cargo nextest --version",
+    "host": "aarch64-apple-darwin"
+  }
+}
