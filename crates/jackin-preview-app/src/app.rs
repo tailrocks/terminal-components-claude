@@ -18,13 +18,14 @@ use termrock::{
     CrossAlign, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState, FgStep, FrameRead,
     HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintKey, HintLayer, Id,
     Insets, Intent, Item, ItemKey, ItemRowLayout, KeyCode, KeyMap, KeyModifiers, KeyPhase,
-    LayerSize, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState,
-    MeterTone, Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase, Picker, PickerAction,
-    PickerState, Position, ProjectedText, Props, PropsAction, PropsList, PropsRow, PropsState,
-    Reconcile, Rect, Response, Role, RowUi, SecretPolicy, Side, SimulationMoment, SplitAxis,
-    SplitPane, SplitPaneState, StateFlags, Status, StatusBar, StatusItem, StylePatch, Surface,
-    Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
-    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    LayerEvent, LayerSize, LayerSpec, List, ListAction, ListState, Menu, MenuAction, MenuBar,
+    MenuItem, MenuState, MeterTone, Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase,
+    Picker, PickerAction, PickerState, Position, ProjectedText, Props, PropsAction, PropsList,
+    PropsRow, PropsState, Reconcile, Rect, Response, Role, RowUi, SecretPolicy, Side,
+    SimulationMoment, SplitAxis, SplitPane, SplitPaneState, StateFlags, Status, StatusBar,
+    StatusItem, StylePatch, Surface, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
+    ViewportState,
 };
 
 use crate::domain::account::{
@@ -116,6 +117,12 @@ pub const QUIT_DIALOG: Id = APP.sub("quit-dialog");
 pub const LAUNCH_DIALOG: Id = APP.sub("launch-dialog");
 /// Launch-cancel confirmation dialog id.
 pub const CANCEL_DIALOG: Id = APP.sub("cancel-dialog");
+/// About dialog layer id.
+pub const ABOUT_DIALOG: Id = APP.sub("about-dialog");
+/// About dialog props list id.
+pub const ABOUT_PROPS: Id = ABOUT_DIALOG.sub("props");
+/// About dialog close action id.
+pub const ABOUT_CLOSE: Id = ABOUT_DIALOG.sub("close");
 /// Role control inside the launch dialog.
 pub const ROLE_CHOOSE: Id = LAUNCH_DIALOG.sub("role");
 /// Role picker overlay id.
@@ -193,6 +200,17 @@ const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-ren
 const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
 const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
 const CMD_COPY_SELECTION: ActionKey = ActionKey::application("jackin.capsule.copy-selection");
+const CMD_CAPSULE_PASTE: ActionKey = ActionKey::application("jackin.capsule.paste");
+const CMD_CAPSULE_CLEAR_SELECTION: ActionKey =
+    ActionKey::application("jackin.capsule.clear-selection");
+const CMD_CAPSULE_CLOSE_PANE: ActionKey = ActionKey::application("jackin.capsule.close-pane");
+const CMD_CAPSULE_EXPORT_FILE: ActionKey = ActionKey::application("jackin.capsule.export-file");
+const CMD_CAPSULE_EXPORT_REVEAL: ActionKey = ActionKey::application("jackin.capsule.export-reveal");
+const CMD_CAPSULE_CLEAR_PANE: ActionKey = ActionKey::application("jackin.capsule.clear-pane");
+const CMD_CAPSULE_REDRAW: ActionKey = ActionKey::application("jackin.capsule.redraw");
+const CMD_CAPSULE_GITHUB: ActionKey = ActionKey::application("jackin.capsule.github");
+const CMD_CAPSULE_NEW_TAB_ACCOUNT: ActionKey =
+    ActionKey::application("jackin.capsule.new-tab-account");
 const CMD_KEYBOARD_SHORTCUTS: ActionKey = ActionKey::application("jackin.keyboard-shortcuts");
 const CMD_ABOUT: ActionKey = ActionKey::application("jackin.about");
 const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
@@ -240,33 +258,110 @@ const MANAGER_MENUS: &[Menu<'static>] = &[
     Menu::new("Help", MANAGER_HELP_ITEMS),
 ];
 
+const CMD_ACCOUNT_EDIT: ActionKey = ActionKey::application("jackin.account-edit");
+const CMD_ACCOUNT_REFRESH_ALL: ActionKey = ActionKey::application("jackin.account-refresh-all");
+const CMD_HOST_SAVE: ActionKey = ActionKey::application("jackin.host-save");
+const CMD_HOST_CANCEL: ActionKey = ActionKey::application("jackin.host-cancel");
+
+const ACCOUNTS_FILE_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_ACCOUNTS, "Add account…").chord(Chord::key(KeyCode::Char('a'))),
+    MenuItem::new(CMD_ACCOUNT_EDIT, "Edit account…").chord(Chord::key(KeyCode::Char('e'))),
+    MenuItem::new(CMD_ACCOUNT_VALIDATE, "Validate")
+        .chord(Chord::key(KeyCode::Char('v')))
+        .separator(),
+    MenuItem::new(CMD_ACCOUNT_REFRESH, "Refresh selection").chord(Chord::key(KeyCode::Char('r'))),
+    MenuItem::new(CMD_ACCOUNT_REFRESH_ALL, "Refresh all").chord(Chord::key(KeyCode::F(5))),
+    MenuItem::new(CMD_ACCOUNTS_FILTER, "Filter…").chord(Chord::key(KeyCode::Char('/'))),
+];
+
+const EDITOR_FILE_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_HOST_SAVE, "Save…")
+        .chord(Chord::with(KeyCode::Char('S'), KeyModifiers::CONTROL))
+        .separator(),
+    MenuItem::new(CMD_HOST_CANCEL, "Cancel").chord(Chord::key(KeyCode::Esc)),
+];
+
+const USAGE_FILE_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_REFRESH, "Refresh").chord(Chord::key(KeyCode::Char('r'))),
+    MenuItem::new(CMD_ACCOUNTS, "Manage in Accounts").chord(Chord::key(KeyCode::Char('m'))),
+];
+
+const FALLBACK_FILE_ITEMS: &[MenuItem<'static>] =
+    &[MenuItem::new(CMD_HOST_CANCEL, "Cancel").chord(Chord::key(KeyCode::Esc))];
+
+const ACCOUNTS_MENUS: &[Menu<'static>] = &[
+    Menu::new("File", ACCOUNTS_FILE_ITEMS),
+    Menu::new("Go", MANAGER_GO_ITEMS),
+    Menu::new("Help", MANAGER_HELP_ITEMS),
+];
+
+const EDITOR_MENUS: &[Menu<'static>] = &[
+    Menu::new("File", EDITOR_FILE_ITEMS),
+    Menu::new("Go", MANAGER_GO_ITEMS),
+    Menu::new("Help", MANAGER_HELP_ITEMS),
+];
+
+const USAGE_MENUS: &[Menu<'static>] = &[
+    Menu::new("File", USAGE_FILE_ITEMS),
+    Menu::new("Go", MANAGER_GO_ITEMS),
+    Menu::new("Help", MANAGER_HELP_ITEMS),
+];
+
+const FALLBACK_MENUS: &[Menu<'static>] = &[
+    Menu::new("File", FALLBACK_FILE_ITEMS),
+    Menu::new("Go", MANAGER_GO_ITEMS),
+    Menu::new("Help", MANAGER_HELP_ITEMS),
+];
+
 const CAPSULE_FILE_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
-    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right"),
-    MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below"),
-    MenuItem::new(CMD_COPY_SELECTION, "Copy selection"),
-    MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
+    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab").shortcut_text("Ctrl+B c"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right").shortcut_text("Ctrl+B %"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below")
+        .shortcut_text("Ctrl+B \"")
+        .separator(),
+    MenuItem::new(CMD_CAPSULE_EXPORT_FILE, "Export selected file…"),
+    MenuItem::new(
+        CMD_CAPSULE_EXPORT_REVEAL,
+        "Export selected file and reveal…",
+    )
+    .separator(),
+    MenuItem::new(CMD_CAPSULE_CLOSE_PANE, "Close pane").shortcut_text("Ctrl+B x"),
 ];
 const CAPSULE_EDIT_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
-    MenuItem::new(CMD_COPY_SELECTION, "Copy selection"),
-    MenuItem::new(CMD_TAB_RENAME, "Change title…"),
+    MenuItem::new(CMD_COPY_SELECTION, "Copy selection").shortcut_text("y"),
+    MenuItem::new(CMD_CAPSULE_PASTE, "Paste clipboard"),
+    MenuItem::new(CMD_CAPSULE_CLEAR_SELECTION, "Clear selection")
+        .shortcut_text("Esc")
+        .separator(),
+    MenuItem::new(CMD_CAPSULE_CLEAR_PANE, "Clear pane").shortcut_text("Ctrl+B Ctrl+L"),
 ];
 const CAPSULE_VIEW_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_CAPSULE_ZOOM, "Zoom pane"),
-    MenuItem::new(CMD_CAPSULE_FOCUS_LEFT, "Focus left"),
-    MenuItem::new(CMD_USAGE, "Usage"),
-    MenuItem::new(CMD_CONTAINER_INFO, "Container info"),
-    MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
+    MenuItem::new(CMD_CAPSULE_ZOOM, "Zoom pane").shortcut_text("Ctrl+B z"),
+    MenuItem::new(CMD_CAPSULE_REDRAW, "Redraw")
+        .shortcut_text("Ctrl+B r")
+        .separator(),
+    MenuItem::new(CMD_USAGE, "Usage").shortcut_text("Ctrl+B u"),
+    MenuItem::new(CMD_CONTAINER_INFO, "Container info").shortcut_text("Ctrl+B i"),
+    MenuItem::new(CMD_CAPSULE_GITHUB, "GitHub context"),
+    MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes"),
 ];
 const CAPSULE_SESSION_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
-    MenuItem::new(CMD_TAB_CLOSE, "Close tab"),
-    MenuItem::new(CMD_CAPSULE_DETACH, "Detach"),
+    MenuItem::new(CMD_CAPSULE_NEW_TAB_ACCOUNT, "New tab with account…"),
+    MenuItem::new(CMD_TAB_RENAME, "Change tab title…")
+        .shortcut_text("Ctrl+B ,")
+        .separator(),
+    MenuItem::new(CMD_CAPSULE_DETACH, "Detach").shortcut_text("Ctrl+B d"),
+    MenuItem::new(CMD_TAB_CLOSE, "Close tab")
+        .shortcut_text("Ctrl+B &")
+        .danger()
+        .separator(),
+    MenuItem::new(CMD_EXIT_DIALOG, "Exit")
+        .shortcut_text("Ctrl+Q")
+        .danger(),
 ];
 const CAPSULE_HELP_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_KEYBOARD_SHORTCUTS, "Keyboard shortcuts"),
-    MenuItem::new(CMD_ABOUT, "About Capsule"),
+    MenuItem::new(CMD_KEYBOARD_SHORTCUTS, "Key reference").shortcut_text("?"),
+    MenuItem::new(CMD_CAPSULE_PALETTE, "Command palette").shortcut_text("Ctrl+\\"),
 ];
 const CAPSULE_MENUS: &[Menu<'static>] = &[
     Menu::new("File", CAPSULE_FILE_ITEMS),
@@ -283,6 +378,26 @@ const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
     MenuItem::new(CMD_TAB_CLOSE, "Close tab")
         .shortcut_text("Ctrl+B &")
         .danger(),
+];
+const CAPSULE_PANE_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_COPY_SELECTION, "Copy selection").shortcut_text("y"),
+    MenuItem::new(CMD_CAPSULE_PASTE, "Paste clipboard"),
+    MenuItem::new(CMD_CAPSULE_CLEAR_SELECTION, "Clear selection").separator(),
+    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right").shortcut_text("Ctrl+B %"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below").shortcut_text("Ctrl+B \""),
+    MenuItem::new(CMD_CAPSULE_ZOOM, "Zoom pane")
+        .shortcut_text("Ctrl+B z")
+        .separator(),
+    MenuItem::new(CMD_CAPSULE_CLOSE_PANE, "Close pane")
+        .shortcut_text("Ctrl+B x")
+        .danger(),
+];
+const CAPSULE_BRAND_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_ABOUT, "About jackin-preview"),
+    MenuItem::new(CMD_USAGE, "Usage")
+        .shortcut_text("Ctrl+B u")
+        .separator(),
+    MenuItem::new(CMD_CAPSULE_DETACH, "Workspace manager").shortcut_text("Ctrl+B d"),
 ];
 const CAPSULE_COMMANDS: &[Item<'static>] = &[
     Item::new(ItemKey::num(1), "New tab")
@@ -468,6 +583,17 @@ struct AccountOption {
 enum PickerMode {
     OnePassword,
     Capsule,
+}
+
+/// Which context the shared capsule context-menu layer currently voices:
+/// the titled tab menu, the untitled pane Edit menu, or the untitled
+/// brand menu (tag `capsule.rs:2073,288,303`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+enum CapsuleCtxKind {
+    #[default]
+    Tab,
+    Pane,
+    Brand,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -769,6 +895,7 @@ pub struct App {
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
+    capsule_tab_menu_kind: CapsuleCtxKind,
     capsule_new_tab_open: bool,
     capsule_split_vertical_open: bool,
     capsule_palette_open: bool,
@@ -830,6 +957,8 @@ pub struct App {
     cockpit_info_open: bool,
     cockpit_info_props: PropsState,
     cockpit_info_focus_pending: bool,
+    about_open: bool,
+    about_props: PropsState,
     cockpit_cancel_confirm: bool,
     cancel_dialog: DialogState,
     cockpit_debug_open: bool,
@@ -970,6 +1099,7 @@ impl App {
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
+            capsule_tab_menu_kind: CapsuleCtxKind::Tab,
             capsule_new_tab_open: false,
             capsule_split_vertical_open: false,
             capsule_palette_open: false,
@@ -1032,6 +1162,8 @@ impl App {
             cockpit_info_open: false,
             cockpit_info_props: PropsState::default(),
             cockpit_info_focus_pending: false,
+            about_open: false,
+            about_props: PropsState::default(),
             cockpit_cancel_confirm: false,
             cancel_dialog: DialogState::default(),
             cockpit_debug_open: false,
@@ -1499,8 +1631,24 @@ impl App {
             .remove(Modifier::BOLD),
     )];
 
-    fn manager_menu_bar() -> MenuBar<'static> {
-        MenuBar::new(MANAGER_MENU_BAR, MANAGER_MENUS)
+    /// The host menu bar with its per-route File menu (tag `app.rs:699`):
+    /// File is rebuilt per route while Go and Help stay fixed.
+    fn host_menu_bar(&self) -> MenuBar<'static> {
+        let menus = match self.route {
+            Route::Accounts => ACCOUNTS_MENUS,
+            Route::Editor | Route::Settings => EDITOR_MENUS,
+            Route::Usage => USAGE_MENUS,
+            Route::Manager => MANAGER_MENUS,
+            _ => FALLBACK_MENUS,
+        };
+        MenuBar::new(MANAGER_MENU_BAR, menus)
+    }
+
+    /// Whether F10 must refuse the host menu: a host form field holds
+    /// an in-flight draft (tag `app.rs:592`). Editor and settings routes
+    /// voice no editing state yet, so only accounts refuses today.
+    fn host_menu_editing(&self) -> bool {
+        self.route == Route::Accounts && self.accounts.form_editing()
     }
 
     fn capsule_menu_bar() -> MenuBar<'static> {
@@ -1524,7 +1672,23 @@ impl App {
         title: impl Into<Cow<'static, str>>,
         position: Position,
     ) -> ContextMenu<'static> {
-        ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position).title(title)
+        Self::capsule_ctx_menu(CapsuleCtxKind::Tab, title, position)
+    }
+
+    fn capsule_ctx_menu(
+        kind: CapsuleCtxKind,
+        title: impl Into<Cow<'static, str>>,
+        position: Position,
+    ) -> ContextMenu<'static> {
+        match kind {
+            CapsuleCtxKind::Tab => {
+                ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position).title(title)
+            }
+            CapsuleCtxKind::Pane => ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_PANE_ITEMS, position),
+            CapsuleCtxKind::Brand => {
+                ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_BRAND_ITEMS, position)
+            }
+        }
     }
 
     fn capsule_command_palette(screen_height: u16) -> Picker<'static, Item<'static>> {
@@ -1893,6 +2057,81 @@ impl App {
             "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
         )
         .actions(&Self::CANCEL_ACTIONS)
+    }
+
+    /// About dialog rows (tag `app.rs:815`).
+    fn about_rows(scenario: &str) -> Vec<PropsRow<'_>> {
+        vec![
+            PropsRow::new(
+                ItemKey::num(0),
+                "Product",
+                "jackin-preview · deterministic redesign preview",
+            ),
+            PropsRow::new(ItemKey::num(1), "Scenario", scenario),
+            PropsRow::new(
+                ItemKey::num(2),
+                "Construct",
+                "simulated · nothing here touches a real container",
+            ),
+            PropsRow::new(
+                ItemKey::num(3),
+                "Design system",
+                "Junie-inspired Ratatui components (junie_tui)",
+            ),
+        ]
+    }
+
+    fn update_about(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if !self.about_open {
+            return Response::ignored();
+        }
+        for intent in cx.intents(ABOUT_DIALOG) {
+            if matches!(intent, Intent::Layer(LayerEvent::Dismissed(_))) {
+                self.about_open = false;
+                self.status = None;
+                return Response::changed();
+            }
+        }
+        if !cx.is_open(ABOUT_DIALOG) {
+            self.about_open = false;
+            self.status = None;
+            return Response::changed();
+        }
+        let rows = Self::about_rows(self.world.scenario.name());
+        let response = PropsList::new(ABOUT_PROPS).update(cx, &mut self.about_props, &rows);
+        let mut result = response.erase();
+        let close = Button::new(ABOUT_CLOSE, "Close").update(cx);
+        let closed = close.activated();
+        result |= close.erase();
+        if closed {
+            cx.close_layer(ABOUT_DIALOG, Some(ActionKey::CLOSE));
+            self.about_open = false;
+            self.status = None;
+            result |= Response::changed();
+        }
+        result
+    }
+
+    fn draw_about_dialog(&self, ui: &mut Ui<'_>, area: Rect) {
+        Panel::new(ABOUT_DIALOG.sub("frame"))
+            .kind(PanelKind::Framed)
+            .title("About")
+            .draw(ui, area, |ui, body| {
+                let rows = Self::about_rows(self.world.scenario.name());
+                PropsList::new(ABOUT_PROPS).draw(
+                    ui,
+                    Rect::new(body.x, body.y, body.width, body.height.saturating_sub(1)),
+                    &self.about_props,
+                    &rows,
+                );
+                let close_area = Rect::new(
+                    body.right().saturating_sub(9),
+                    body.bottom().saturating_sub(1),
+                    7,
+                    1,
+                );
+                Button::new(ABOUT_CLOSE, "Close").draw(ui, close_area);
+            });
     }
 
     fn open_agent_picker(&mut self, cx: &mut Cx<'_>) {
@@ -2731,6 +2970,7 @@ impl App {
             self.capsule_prefix = false;
             self.capsule_tab_title_index = self.active_capsule_tab_index();
             self.capsule_tab_menu_open = true;
+            self.capsule_tab_menu_kind = CapsuleCtxKind::Tab;
             self.capsule_tab_menu_state = MenuState::default();
             self.capsule_tab_menu_pos = Position::new(1, 2);
             let title = self.active_capsule_tab_title();
@@ -3277,6 +3517,7 @@ impl App {
 
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
+        result |= self.update_about(cx);
 
         if self.manager_inspect_open {
             let close = Button::new(crate::screens::manager::INSPECT_CLOSE, "Close")
@@ -3644,12 +3885,89 @@ impl App {
         }
     }
 
+    fn update_host_menu_bar(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut result = Response::ignored();
+        // Host brand opens About directly (tag `app.rs:586`); the capsule
+        // route owns its own brand click.
+        if Self::is_host(self.route) && !cx.is_open(ABOUT_DIALOG) {
+            let brand = Brand::new(APP.sub("brand"), "jackin❯")
+                .clickable(true)
+                .update(cx);
+            let brand_chosen = brand.activated();
+            result |= brand.erase();
+            if brand_chosen && let Some(response) = self.update_command(cx, CMD_ABOUT) {
+                result |= response;
+            }
+        }
+        let manager_menu = self.host_menu_bar();
+        let manager_menu_intents = cx.intents(MANAGER_MENU_BAR).collect::<Vec<_>>();
+        // A closed host menu is pointer-only: F10 opens it (tag
+        // `app.rs:593`) while arrows belong to the screen behind it. The
+        // bar can hold ring focus at boot (no screen control is
+        // registered on historical viewports), so feeding it keyboard
+        // would swallow the screen's own arrows. Drained intents keep the
+        // bubble pass running for the screen.
+        let menu_live =
+            self.manager_menu_state.open_menu().is_some() || cx.is_open(MANAGER_MENU_BAR);
+        let pointer_pending = manager_menu_intents
+            .iter()
+            .any(|intent| matches!(intent, Intent::Pointer { .. }));
+        if !menu_live && !pointer_pending {
+            return result;
+        }
+        let manager_menu_state_before = self.manager_menu_state.clone();
+        let manager_menu_response = manager_menu.update(cx, &mut self.manager_menu_state);
+        if let Some(open) = manager_menu_state_before.open_menu()
+            && self.manager_menu_state.open_menu() == Some(open)
+        {
+            let count = MANAGER_MENUS.len();
+            let next = manager_menu_intents.iter().find_map(|intent| match intent {
+                Intent::Binding(action) if *action == CAPSULE_MENU_PREVIOUS => Some(if open == 0 {
+                    count.saturating_sub(1)
+                } else {
+                    open - 1
+                }),
+                Intent::Binding(action) if *action == CAPSULE_MENU_NEXT => {
+                    Some(open.saturating_add(1) % count)
+                }
+                _ => None,
+            });
+            if let Some(index) = next {
+                result |= manager_menu
+                    .open_menu(cx, &mut self.manager_menu_state, index)
+                    .erase();
+            }
+        }
+        if let Some(action) = manager_menu_response.action_ref().copied() {
+            match action {
+                MenuAction::Chosen(action) => {
+                    if let Some(response) = self.update_command(cx, action) {
+                        result |= response;
+                    }
+                    self.manager_menu_state = MenuState::default();
+                    self.manager_menu_open = false;
+                    cx.close_layer(MANAGER_MENU_BAR, None);
+                }
+                MenuAction::Closed(_) => {
+                    self.manager_menu_state = MenuState::default();
+                    self.manager_menu_open = false;
+                    self.status = None;
+                    cx.close_layer(MANAGER_MENU_BAR, None);
+                }
+                _ => {}
+            }
+        }
+        result |= manager_menu_response.erase();
+        result
+    }
+
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut result = self.update_host_menu_bar(cx);
         self.ensure_manager_rows();
         let list =
             Self::manager_list().update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
-        let mut result = list.erase();
+        result |= list.erase();
         let selected_key = match list_action {
             Some(ListAction::Activated(key) | ListAction::Chose(key)) => Some(key),
             _ => self.manager.list.cursor(),
@@ -3735,6 +4053,11 @@ impl App {
                 if chosen {
                     self.accounts_form_enters = self.accounts_form_enters.saturating_add(1);
                     self.accounts.started = true;
+                    // The opener hands the name field an in-flight draft, so
+                    // the form voices EDIT (tag `modals.rs:1053`) and Esc
+                    // reverts before any Cancel can fire.
+                    let draft = self.accounts.draft_name.clone();
+                    self.accounts.name_input.begin(&draft);
                     cx.focus(crate::screens::accounts::NAME);
                     result |= Response::changed();
                 }
@@ -4572,6 +4895,27 @@ impl App {
 
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
+        // The brand lockup opens the application menu (tag `capsule.rs:288`).
+        if !cx.is_open(CAPSULE_TAB_MENU) {
+            let brand = Brand::new(APP.sub("brand"), "jackin❯")
+                .clickable(true)
+                .update(cx);
+            let brand_chosen = brand.activated();
+            result |= brand.erase();
+            if brand_chosen {
+                self.capsule_tab_menu_pos = Position::new(1, 1);
+                self.capsule_tab_menu_open = true;
+                self.capsule_tab_menu_kind = CapsuleCtxKind::Brand;
+                self.capsule_tab_menu_state = MenuState::default();
+                let title = self.active_capsule_tab_title();
+                cx.open_layer(
+                    CAPSULE_TAB_MENU,
+                    Self::capsule_ctx_menu(CapsuleCtxKind::Brand, title, Position::new(1, 1))
+                        .layer(cx),
+                );
+                result |= Response::changed();
+            }
+        }
         // Prefix input may retain focus on a child control after a modal
         // closes. Consume its next raw key at the route boundary before any
         // child (menu, tabs, panes, or input) can claim it.
@@ -4595,18 +4939,15 @@ impl App {
                 return self.capsule_prefix_key(cx, key);
             }
         }
-        if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
-            let title = self.active_capsule_tab_title();
-            cx.open_layer(
-                CAPSULE_TAB_MENU,
-                Self::capsule_tab_context(title, self.capsule_tab_menu_pos).layer(cx),
-            );
-        }
         let menu = Self::capsule_menu_bar();
         let menu_intents = cx.intents(CAPSULE_MENU_BAR).collect::<Vec<_>>();
         let menu_state_before = self.capsule_menu_state.clone();
         let menu_response = menu.update(cx, &mut self.capsule_menu_state);
-        if let Some(open) = menu_state_before.open_menu() {
+        // Fallback swap only: the menu drains Left/Right internally first,
+        // and reopening over its swap FocusOut-dismisses the layer.
+        if let Some(open) = menu_state_before.open_menu()
+            && self.capsule_menu_state.open_menu() == Some(open)
+        {
             let count = CAPSULE_MENUS.len();
             let next = menu_intents.iter().find_map(|intent| match intent {
                 Intent::Binding(action) if *action == CAPSULE_MENU_PREVIOUS => Some(if open == 0 {
@@ -4640,51 +4981,11 @@ impl App {
         }
         result |= menu_response.erase();
 
-        let manager_menu = Self::manager_menu_bar();
-        let manager_menu_intents = cx.intents(MANAGER_MENU_BAR).collect::<Vec<_>>();
-        let manager_menu_state_before = self.manager_menu_state.clone();
-        let manager_menu_response = manager_menu.update(cx, &mut self.manager_menu_state);
-        if let Some(open) = manager_menu_state_before.open_menu() {
-            let count = MANAGER_MENUS.len();
-            let next = manager_menu_intents.iter().find_map(|intent| match intent {
-                Intent::Binding(action) if *action == CAPSULE_MENU_PREVIOUS => Some(if open == 0 {
-                    count.saturating_sub(1)
-                } else {
-                    open - 1
-                }),
-                Intent::Binding(action) if *action == CAPSULE_MENU_NEXT => {
-                    Some(open.saturating_add(1) % count)
-                }
-                _ => None,
-            });
-            if let Some(index) = next {
-                result |= manager_menu
-                    .open_menu(cx, &mut self.manager_menu_state, index)
-                    .erase();
-            }
-        }
-        if let Some(action) = manager_menu_response.action_ref().copied() {
-            match action {
-                MenuAction::Chosen(action) => {
-                    if let Some(response) = self.update_command(cx, action) {
-                        result |= response;
-                    }
-                    self.manager_menu_state = MenuState::default();
-                    self.manager_menu_open = false;
-                    cx.close_layer(MANAGER_MENU_BAR, None);
-                }
-                MenuAction::Closed(_) => {
-                    self.manager_menu_state = MenuState::default();
-                    self.manager_menu_open = false;
-                    cx.close_layer(MANAGER_MENU_BAR, None);
-                }
-                _ => {}
-            }
-        }
-        result |= manager_menu_response.erase();
+        result |= self.update_host_menu_bar(cx);
 
         let title = self.active_capsule_tab_title();
-        let context = Self::capsule_tab_context(title, self.capsule_tab_menu_pos);
+        let context =
+            Self::capsule_ctx_menu(self.capsule_tab_menu_kind, title, self.capsule_tab_menu_pos);
         let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
         match context_response.action_ref().copied() {
             Some(MenuAction::Chosen(action)) => {
@@ -4702,6 +5003,21 @@ impl App {
             _ => {}
         }
         result |= context_response.erase();
+        // Repair path runs after dismissal processing: an outside click
+        // closes the layer during event routing, and reopening before the
+        // menu drains its Dismissed intent would resurrect a dead menu.
+        if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
+            let title = self.active_capsule_tab_title();
+            cx.open_layer(
+                CAPSULE_TAB_MENU,
+                Self::capsule_ctx_menu(
+                    self.capsule_tab_menu_kind,
+                    title,
+                    self.capsule_tab_menu_pos,
+                )
+                .layer(cx),
+            );
+        }
 
         if !cx.is_open(CAPSULE_TAB_MENU) {
             let pane_context = self
@@ -4735,17 +5051,22 @@ impl App {
                 self.capsule_tab_title_index = self.active_capsule_tab_index();
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
+                self.capsule_tab_menu_kind = CapsuleCtxKind::Pane;
                 self.capsule_tab_menu_state = MenuState::default();
                 let title = self.active_capsule_tab_title();
                 cx.open_layer(
                     CAPSULE_TAB_MENU,
-                    Self::capsule_tab_context(title, pos).layer(cx),
+                    Self::capsule_ctx_menu(CapsuleCtxKind::Pane, title, pos).layer(cx),
                 );
                 result |= Response::changed();
             } else if let Some((pos, index)) = tab_context {
+                // A tab right-click activates the tab first, like the
+                // reference secondary-click path (tag `capsule.rs:2066`).
+                self.activate_capsule_tab(index);
                 self.capsule_tab_title_index = index;
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
+                self.capsule_tab_menu_kind = CapsuleCtxKind::Tab;
                 self.capsule_tab_menu_state = MenuState::default();
                 let title = self.active_capsule_tab_title();
                 cx.open_layer(
@@ -4854,6 +5175,10 @@ impl App {
             && !self.capsule_viewport_focused
             && !self.capsule_tab_menu_open
             && !cx.is_open(CAPSULE_TAB_MENU)
+            && !cx.is_open(CAPSULE_MENU_BAR)
+            && !cx.is_open(MANAGER_MENU_BAR)
+            && !cx.is_open(CAPSULE_COMMAND_PALETTE)
+            && !cx.is_open(ABOUT_DIALOG)
         {
             let has_daemon = self
                 .active_instance
@@ -4943,10 +5268,10 @@ impl App {
             Route::Intro => Response::ignored(),
             Route::Manager => self.update_manager(cx),
             Route::Prelude => self.update_prelude(cx),
-            Route::Editor => self.update_editor(cx),
-            Route::Accounts => self.update_accounts(cx),
-            Route::Usage => Response::ignored(),
-            Route::Settings => self.update_settings(cx),
+            Route::Editor => self.update_host_menu_bar(cx) | self.update_editor(cx),
+            Route::Accounts => self.update_host_menu_bar(cx) | self.update_accounts(cx),
+            Route::Usage => self.update_host_menu_bar(cx),
+            Route::Settings => self.update_host_menu_bar(cx) | self.update_settings(cx),
             Route::Launch | Route::Cockpit => self.update_launch(cx, product_tick),
             Route::Handoff | Route::Outro => Response::ignored(),
             Route::Capsule => self.update_capsule(cx),
@@ -5034,6 +5359,7 @@ impl App {
                     self.accounts_form_stage = 1;
                     self.accounts_form_enters = 0;
                     self.accounts.open_new();
+                    cx.focus(crate::screens::accounts::START);
                     self.op_item_key.clear();
                 } else {
                     self.route = Route::Accounts;
@@ -5249,6 +5575,10 @@ impl App {
                 }
                 Some(Response::changed())
             }
+            CMD_CAPSULE_REDRAW if self.route == Route::Capsule => {
+                self.status = Some("Redrawn".into());
+                Some(Response::changed())
+            }
             CMD_INSPECT_CHANGES if self.route == Route::Capsule => {
                 self.inspect.instance = self
                     .active_instance
@@ -5264,8 +5594,13 @@ impl App {
                 self.status = None;
                 Some(Response::changed())
             }
-            CMD_ABOUT if self.route == Route::Capsule => {
-                self.status = Some("Capsule · terminal workspace control plane".into());
+            CMD_ABOUT => {
+                self.about_open = true;
+                self.about_props = PropsState::default();
+                let mut spec = LayerSpec::modal(ABOUT_DIALOG).size(LayerSize::Fixed(66, 10));
+                spec.initial_focus = Some(ABOUT_PROPS);
+                cx.open_layer(ABOUT_DIALOG, spec);
+                self.status = Some("About".into());
                 Some(Response::changed())
             }
             CMD_TAB_RENAME if self.route == Route::Capsule => {
@@ -5472,12 +5807,23 @@ impl App {
                 cx.open_layer(QUIT_DIALOG, spec);
                 Some(Response::changed())
             }
-            CMD_MENU_OPEN if self.route == Route::Manager => {
+            CMD_MENU_OPEN
+                if Self::is_host(self.route)
+                    && self.route != Route::Prelude
+                    && !self.host_menu_editing() =>
+            {
                 self.manager_menu_state = MenuState::default();
                 self.manager_menu_open = true;
-                let response =
-                    Self::manager_menu_bar().open_menu(cx, &mut self.manager_menu_state, 0);
-                self.status = Some("New workspace…".into());
+                let first = match self.route {
+                    Route::Accounts => "Add account…",
+                    Route::Editor | Route::Settings => "Save…",
+                    Route::Usage => "Refresh",
+                    _ => "New workspace…",
+                };
+                let response = self
+                    .host_menu_bar()
+                    .open_menu(cx, &mut self.manager_menu_state, 0);
+                self.status = Some(first.into());
                 Some(response.erase())
             }
             CMD_CONTAINER_INFO if self.route == Route::Manager => {
@@ -5604,6 +5950,7 @@ impl App {
                         self.accounts_form_stage = 1;
                         self.accounts_form_enters = 0;
                         self.accounts.open_new();
+                        cx.focus(crate::screens::accounts::START);
                         self.op_item_key.clear();
                     }
                     AccountSel::Provider(surface) => {
@@ -6320,7 +6667,7 @@ impl App {
             Brand::new(APP.sub("brand"), "jackin❯")
                 .patch_part(&Self::PRELUDE_BRAND_DIM)
                 .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-            Self::manager_menu_bar()
+            self.host_menu_bar()
                 .patch_part(&Self::PRELUDE_MENU_DIM)
                 .draw(
                     ui,
@@ -6360,9 +6707,11 @@ impl App {
         ui.fill(area, palette.primary_on_canvas);
 
         let _ = Brand::new(APP.sub("brand"), "jackin❯")
+            .clickable(true)
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
         let menu_area = Rect::new(area.x.saturating_add(11), area.y, 20, 1);
-        Self::manager_menu_bar().draw(ui, menu_area, &self.manager_menu_state);
+        self.host_menu_bar()
+            .draw(ui, menu_area, &self.manager_menu_state);
 
         // Tag `draw_host_menu`: the breadcrumb strip starts at `used + 2`
         // past the menu labels; this bar's box already ends one cell past
@@ -6403,7 +6752,10 @@ impl App {
                         crate::screens::accounts::crumb(&self.world, &self.accounts.selected);
                     manager_crumb.as_str()
                 }
-                Route::Usage => "Usage",
+                Route::Usage => {
+                    manager_crumb = crate::screens::usage::crumb(&self.world, &self.usage);
+                    manager_crumb.as_str()
+                }
                 Route::Settings => {
                     manager_crumb = SettingsScreen::crumb(self.settings_tab);
                     manager_crumb.as_str()
@@ -7330,6 +7682,7 @@ impl App {
         ui.fill(area, palette.primary_on_canvas);
 
         let _ = Brand::new(APP.sub("brand"), "jackin❯")
+            .clickable(true)
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
         let menu_area = Rect::new(area.x.saturating_add(11), area.y, 39, 1);
         Self::capsule_menu_bar().draw(ui, menu_area, &self.capsule_menu_state);
@@ -8189,6 +8542,15 @@ impl App {
             return;
         }
 
+        if self.route == Route::Accounts && self.accounts.form_open {
+            let hints =
+                crate::screens::accounts::AccountsScreen::form_hints(self.accounts.form_editing());
+            HintBar::new(APP.sub("hint"), &hints)
+                .status_text(self.status.as_deref())
+                .draw(ui, area);
+            return;
+        }
+
         if self.route == Route::Settings {
             let hints = SettingsScreen::hints(self.settings_tab, self.settings.focus);
             HintBar::new(APP.sub("hint"), &hints)
@@ -8580,6 +8942,9 @@ impl App {
                 Props::rich(&rows).draw(ui, page);
             })
         });
+        let _ = ui.layer(ABOUT_DIALOG, |ui, area| {
+            self.draw_about_dialog(ui, area);
+        });
         let _ = ui.layer(MANAGER_INSPECT, |ui, area| {
             let instance = self
                 .selected_instance_id()
@@ -8611,11 +8976,12 @@ impl App {
         });
         let tab_title = self.active_capsule_tab_title();
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
-            Self::capsule_tab_context(tab_title, self.capsule_tab_menu_pos).draw(
-                ui,
-                area,
-                &self.capsule_tab_menu_state,
+            Self::capsule_ctx_menu(
+                self.capsule_tab_menu_kind,
+                tab_title.clone(),
+                self.capsule_tab_menu_pos,
             )
+            .draw(ui, area, &self.capsule_tab_menu_state)
         });
         let _ = ui.layer(CAPSULE_COMMAND_PALETTE, |ui, area| {
             let screen = ui.full();
@@ -8786,6 +9152,12 @@ impl TuiApp for App {
         let _ = cx.sync_feedback_time(sim_now);
         if self.last_tick.is_none() && self.route == Route::Manager {
             cx.focus(MANAGER_LIST);
+        }
+        // Boot focus belongs to the route's primary control, never the
+        // menu bar: a focused-but-closed bar would swallow the screen's
+        // arrows (tag `app.rs:593` opens the host menu by F10 only).
+        if self.last_tick.is_none() && self.route == Route::Accounts {
+            cx.focus(ACCOUNTS_LIST);
         }
         let now = cx.now();
         let interval = Duration::from_millis(self.wake_ms(cx));
@@ -8971,6 +9343,12 @@ impl TuiApp for App {
             self.quit = true;
             return self.route_changed();
         }
+        if self.about_open {
+            cx.close_layer(ABOUT_DIALOG, Some(ActionKey::CANCEL));
+            self.about_open = false;
+            self.status = None;
+            return self.route_changed();
+        }
         if matches!(self.route, Route::Launch | Route::Cockpit) && self.cockpit_failure_open {
             self.acknowledge_launch_failure();
             return self.route_changed();
@@ -8999,6 +9377,8 @@ impl TuiApp for App {
         }
         if self.manager_menu_open {
             self.manager_menu_open = false;
+            self.manager_menu_state = MenuState::default();
+            cx.close_layer(MANAGER_MENU_BAR, None);
             self.status = None;
             return self.route_changed();
         }

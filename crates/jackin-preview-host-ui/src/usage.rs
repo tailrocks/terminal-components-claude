@@ -1,5 +1,6 @@
 //! Read-only usage route state.
 
+use jackin_preview_sim::world::World;
 use termrock::Id;
 
 /// Usage root.
@@ -111,6 +112,25 @@ impl UsageState {
     /// Restore the overview list and close any detail projection.
     pub fn reset(&mut self) {
         *self = Self::default();
+    }
+}
+
+/// Menubar breadcrumb for the usage route (`Usage › {tab}`,
+/// or `Usage › {provider} › {account}` while the detail is open).
+pub fn crumb(world: &World, state: &UsageState) -> String {
+    if state.detail_open()
+        && let Some(account) = state.selected().and_then(|id| world.accounts.get(id))
+    {
+        return format!(
+            "Usage › {} › {}",
+            account.surface.surface_name(),
+            account.display_name
+        );
+    }
+    match state.tab {
+        Tab::Overview => "Usage › Overview".into(),
+        Tab::Registration => "Usage › Registration".into(),
+        Tab::Quota => "Usage › Quota".into(),
     }
 }
 

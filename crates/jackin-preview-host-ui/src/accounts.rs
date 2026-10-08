@@ -1425,6 +1425,58 @@ impl AccountsScreen {
         }
     }
 
+    /// Footer hints for the open account form (tag `app.rs:2570`
+    /// `Modal::Form` hints): the editing row voices commit/revert with the
+    /// EDIT badge, the navigating row voices field motion and save.
+    pub fn form_hints(editing: bool) -> HintLayer {
+        let enter = HintKey::Chord(Chord::key(KeyCode::Enter));
+        let tab = HintKey::Chord(Chord::key(KeyCode::Tab));
+        let esc = HintKey::Chord(Chord::key(KeyCode::Esc));
+        let hints = if editing {
+            vec![
+                Hint {
+                    key: enter,
+                    label: "Commit",
+                    priority: 100,
+                },
+                Hint {
+                    key: tab,
+                    label: "Next field",
+                    priority: 90,
+                },
+                Hint {
+                    key: esc,
+                    label: "Revert",
+                    priority: 80,
+                },
+            ]
+        } else {
+            vec![
+                Hint {
+                    key: tab,
+                    label: "Next field",
+                    priority: 100,
+                },
+                Hint {
+                    key: enter,
+                    label: "Edit / Save",
+                    priority: 90,
+                },
+                Hint {
+                    key: esc,
+                    label: "Cancel",
+                    priority: 80,
+                },
+            ]
+        };
+        HintLayer {
+            hints,
+            badge: editing.then_some("EDIT"),
+            status: None,
+            centered: true,
+        }
+    }
+
     fn draw_tree(
         ui: &mut Ui<'_>,
         area: Rect,
@@ -2035,6 +2087,15 @@ impl AccountsState {
     /// Close the form without writing a credential.
     pub const fn close(&mut self) {
         self.form_open = false;
+    }
+
+    /// Whether any form field holds an in-flight draft (tag
+    /// `modals.rs:1053` `FormDialog::is_editing`). The footer voices this
+    /// as the EDIT badge and F10 refuses the host menu while it holds.
+    pub fn form_editing(&self) -> bool {
+        self.name_input.is_editing()
+            || self.folder_input.is_editing()
+            || self.secret_input.is_editing()
     }
 
     /// Synchronize the stable account id with the tree selection.
