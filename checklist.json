@@ -2898,6 +2898,166 @@
       ],
       "evidence": [],
       "review": null
+    },
+    {
+      "id": "Q67-01",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Land Q67 Wave A parity slices 1-7",
+      "requirement": "Slices S1-S7 landed on termrock-implementation with per-commit review; transcribe external /tmp evidence into in-repo review receipts before verified.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [],
+      "evidence": [
+        "Outcome: 7/7 landed (F2-1 audit re-fade delete, TR1 trees re-fade delete, D1 dialog gutter repaint delete, D3 title Accent patch delete, T3 Tasks meta gate, W12b List forward, W12a List marker guard); S5 deviation adjudicated.",
+        "Code fingerprints: 8107ad5240d9b5011b6f65cfdea68a352d9a74c6 (S1), 1df3c4a954c145148f42b6240a55e4400a72b33d (S2), fef1395ff675c6b183fde7547cc73144868c1397 (S3), ff6c326e16e86b88c1866e5f8a6fa6e1a5b92a88 (S4), edf21308c582b964bc4321b94a03ab2bb61f9e80 (S5), 2de97292b288b27cf7d6168b895f8c891c58c26c (S6), 25c3e088efc4ef3cdcb14a6ddc4d805a0423fad5 (S7); exact DCO sign-off verified on all 7.",
+        "Tests: per-slice RED/GREEN blast/drift probes recorded in /tmp/q67-sN-notes.md (N=1..7); S6 closes W12b, S7 closes W12a control-state gaps.",
+        "Reviews (external /tmp, NOT in-repo): q67-s2-review.md, q67-s3-review.md, q67-s4-review.md, q67-s5-review.md + q67-s5-rereview.md, q67-s6-review.md + q67-s6-rereview.md, q67-s7-review.md. S1 has NO review file (flows only: q67-s1-base-flows.txt, q67-s1-fixed-flows.txt).",
+        "No in-repo receipt exists; status stays pending until evidence is transcribed to docs/implementation/review-receipts/ and re-verified."
+      ],
+      "review": null
+    },
+    {
+      "id": "Q67-02",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Land Q67 Wave B parity slices 8-13",
+      "requirement": "Slices S8-S13 landed on termrock-implementation with per-commit review; transcribe external /tmp evidence into in-repo review receipts before verified.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [],
+      "evidence": [
+        "Outcome: 6/6 landed (L-R3 file_row meta-first + shim delete, D2 dialogs narrow painter delete, T5 tables paint_card_meta delete, T1+T2+T6 tables Grid unmask + header parity, E1+E3-E6 editable Grid unmask, L-R1/R2+L-R4 marker parity + N-L1 + panel metas). T4-as-chartered STOPPED (survey assumption refuted by probe); re-chartered as O1, landed in owed-A (Q67-05).",
+        "Code fingerprints: 9f71d7379bcb4428fc479c1751bb7d5cfc7acdea (S8), aff7cc9ddd6d35321686c417786740943d73fe0a (S9), d198c48c0cc4b4802ac67ef01f6fc1c791d2b800 (S10), d4cd3d03227276f771f4454b62bcf5cf252102f3 (S11), e758a7a77724689fc84420cc8a907dac84198b7c (S12), 9446e1938f4e8fa223f643249c90f389337d9d2f (S13); exact DCO sign-off verified on all 6.",
+        "Tests: per-slice RED/GREEN blast runs in /tmp/q67-sN-notes.md (N=8..13); S11 re-landed on peer base (4 blobs MATCH, v1.json union); S13 re-landed identical digest e4c27bf6 (6 blobs MATCH).",
+        "Reviews (external /tmp, NOT in-repo): q67-s8-review.md, q67-s9-review.md, q67-s10-review.md, q67-s11-review.md + q67-s11-reland.md, q67-s12-review.md, q67-s13-review.md + q67-s13-reland.md.",
+        "No in-repo receipt exists; status stays pending until evidence is transcribed to docs/implementation/review-receipts/ and re-verified."
+      ],
+      "review": null
+    },
+    {
+      "id": "Q67-03",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Land Q67 Wave C parity slices 14-17",
+      "requirement": "Slices S14-S17 landed on termrock-implementation with per-commit review; transcribe external /tmp evidence into in-repo review receipts before verified.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [],
+      "evidence": [
+        "Outcome: 4/4 landed (N1+N2 NavList geometry + sidebars unmask + part parity, D4+D5 task-line Secondary + confirm spec + focus rule, D6+D7 prompt spec + destructive dialog + d-key, D8+D9+D12 choice dialog + modal footer + y/n keys). WAVE C COMPLETE.",
+        "Code fingerprints: 411920a2957b7918aa716b37d265824052041020 (S14), 06259dc757f3a7b2188aac2d941a0f343023a7dd (S15), 25458620d11c3d4b5f296911d163c9505ab0b1ca (S16), 9d1cb43cb2ada05573650679c4c5410ecaa7ab89 (S17); exact DCO sign-off verified on all 4.",
+        "Tests: S14 worker 3237 fixed/0 added; S15 cell-level D4/D5/D11 frozen-exact, N=0/M=0 combos; S16 prompt/destructive glyph-exact, M=0, journey pin passes; S17 3745 fixed/0 added, footer-row-only frozen-exact.",
+        "Reviews (external /tmp, NOT in-repo): q67-s14-review.md + q67-s14-reland.md, q67-s15-review.md + q67-s15-reland.md, q67-s16-review.md + q67-s16-reland.md, q67-s17-review.md; big-review A1 re-verified S15-S17 parent/tree bindings MATCH.",
+        "No in-repo receipt exists; status stays pending until evidence is transcribed to docs/implementation/review-receipts/ and re-verified."
+      ],
+      "review": null
+    },
+    {
+      "id": "Q67-04",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Land Q67 Wave D grid batches GB1-GB2",
+      "requirement": "Grid batches GB1-GB2 landed on termrock-implementation with per-commit review; transcribe external /tmp evidence into in-repo review receipts before verified.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [],
+      "evidence": [
+        "Outcome: 2/2 landed (GB1 8-col typed CustomerModel + engine paging labels + overpaint delete-last with Panel meta_late ghost fix; GB2 pending/save + facts preview + sort + editing + C1 rider). WAVE D GRID COMPLETE.",
+        "Code fingerprints: 847b75fc1360b6af590235ed0e8694ced4bb1fee (GB1), 5572f09f57053adb74c886cdab748650452531b6 (GB2); exact DCO sign-off verified on both.",
+        "Tests: GB1 default 25/25, fade 20/25 + 72-probe pixel-perfect, inputs 25/25, M=0; GB2 grid matrix 95/125 (30 misses share one pre-existing 4-cell cause).",
+        "Reviews (external /tmp, NOT in-repo): q67-gb1-review.md + q67-gb1-reland.md + q67-gb1-reland2.md, q67-gb2-review.md + q67-gb2-reland.md; big-review A1 re-verified both parent/tree bindings MATCH.",
+        "No in-repo receipt exists; status stays pending until evidence is transcribed to docs/implementation/review-receipts/ and re-verified."
+      ],
+      "review": null
+    },
+    {
+      "id": "Q67-05",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Land Q67 owed-A plus Part B1-B2 slices",
+      "requirement": "Owed-A, B1, B2 landed on termrock-implementation with per-commit review; transcribe external /tmp evidence into in-repo review receipts before verified.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [],
+      "evidence": [
+        "Outcome: 3/3 landed (owed-A Panel faint default + legend + Cell-saved + BOLD + pins incl. T4-O1 re-charter; B1 Column.flex + distribute_flex; B2 PageFrame ProseLine + lines_prose narrow wrap path). ALL SLICES COMPLETE.",
+        "Code fingerprints: effccf68d68a8ecc702bc7935b820e9c7b38b408 (owed-A), 543359da94cdf16be33c87923f4787319b8ce8b1 (B1), 90c6a5a0cec2db6ee339b26aa37b238901c843c6 (B2); exact DCO sign-off verified on all 3.",
+        "Tests: owed-A 6760 fixed/0 added; B1 geometry exact 125/125; B2 4381 fixed/0 added, narrow 72x20 807->2, 80x24 922->2.",
+        "Reviews (external /tmp, NOT in-repo): q67-owed-review.md + q67-owed-reland.md, q67-b1-review.md (notes q67-b1-notes.md) + q67-b1-reland.md, q67-b2-review.md (notes q67-b2-notes.md); big-review A1 re-verified all three bindings MATCH.",
+        "No in-repo receipt exists; status stays pending until evidence is transcribed to docs/implementation/review-receipts/ and re-verified."
+      ],
+      "review": null
+    },
+    {
+      "id": "Q67-06",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Land Q67 end-gate fix-list F1-F7",
+      "requirement": "Fix-list F1-F7 landed on termrock-implementation with per-commit review; transcribe external /tmp evidence into in-repo review receipts before verified.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [],
+      "evidence": [
+        "Outcome: 7/7 landed in 4 commits (F1-F4 hygiene: rustfmt 26 files + clippy + rustdoc; F5 button busy marker accent + live spinner; F6 jackin manager chrome N1/N2/N4; F7 showcase form-save busy transient N7). FIX-LIST COMPLETE.",
+        "Code fingerprints: f12c3e09657b4dcb1dd5fbafbf112a8b7db46be4 (hygiene F1-F4), b618efee0be34b6f19984996ddb48bccf4993685 (F5), 931bbba00bad43de79731912f48e29fe88751cb8 (F6), 8f7fff9156bfb127248d342351e120f8c717da77 (F7); exact DCO sign-off verified on all 4.",
+        "Tests: F5 button_busy PASS, live spinner PASS, workspace 1554/1554; F6 3/3 named tests PASS, 470/470 suites, zero pass->fail; F7 4/4 journeys PASS; hygiene fmt/clippy/doc CI-equivalent clean.",
+        "Reviews (external /tmp, NOT in-repo): q67-fh-review.md, q67-f5-review.md, q67-f6-review.md + q67-f6-reapprove.md, q67-f7-review.md; big-review A1 re-verified all four reland digests EXACT.",
+        "No in-repo receipt exists; status stays pending until evidence is transcribed to docs/implementation/review-receipts/ and re-verified."
+      ],
+      "review": null
+    },
+    {
+      "id": "Q67-07",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Record Q67 end-gate, CI-green and big-review gates",
+      "requirement": "End-gate, CI-green and big-review outcomes recorded; transcribe external /tmp evidence into in-repo review receipts before verified.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [
+        "Q67-01",
+        "Q67-02",
+        "Q67-03",
+        "Q67-04",
+        "Q67-05",
+        "Q67-06"
+      ],
+      "evidence": [
+        "Outcome: END-GATE @90c6a5a0c RED (build clean; nextest 1553/1554 with one pre-existing F1 failure; ownership PASS; 173 tracked + 4 new visual failures; clippy/fmt/doc FAIL; no coverage gate exists). CI-GREEN @931bbba00 PASS (fmt/clippy-strict/nextest-1554/doc-strict/ownership + 6/6 targeted ignored). BIG-REVIEW @931bbba00: Q67-lane 12/12 CLEAN, ownership PASS, API/DRY spot clean; peer-lane findings not Q67.",
+        "Gate evidence (external /tmp, NOT in-repo): q67-endgate-notes.md, q67-cigreen-notes.md, q67-bigreview-notes.md; lane history in /tmp/termrock-slice-queue.md (Q67 Wave A through fix-list sections).",
+        "Residuals at big-review tip: 229 failing ignored tests (172 visual + 34 S3/S4 ports + 23 control_states), 2368 visual combos; disposition table in q67-bigreview-notes.md Part B (J1, journeys, W-remainder, quiet holla unowned).",
+        "No in-repo receipt exists; status stays pending until evidence is transcribed to docs/implementation/review-receipts/ and re-verified."
+      ],
+      "review": null
+    },
+    {
+      "id": "Q67-08",
+      "gate": "G05",
+      "category": "Real parity and coverage closure",
+      "title": "Land Q67 mop-up wave 1 (journeys plus W-matrix)",
+      "requirement": "Mop-up commits MJ1, MJ2, W landed on termrock-implementation with per-commit review; transcribe external /tmp evidence into in-repo review receipts before verified.",
+      "mandatory": true,
+      "status": "pending",
+      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "depends_on": [
+        "Q67-07"
+      ],
+      "evidence": [
+        "Outcome: 3/3 landed (MJ1 jackin editor wiring + boot-failure dialog, MJ2 tablepro live-draft echo + Completion lifecycle, W 22 control-state fixes W01-W17). WAVE 1 COMPLETE (4 journeys + 22 states). BLOCKED with proof: H5 holla test bug (needs test-owner one-liner) and W13-05.",
+        "Code fingerprints: 16b6e13e84e5486bebc10f9bf65a9fc70ed4d4a2 (MJ1), bebb60a7948f9ee190483c48545d6bc35c5437df (MJ2), e22d54708fe58670d92c2dac7c1ace6c97fac164 (W); exact DCO sign-off verified on all 3.",
+        "Tests: MJ1 both journeys PASS; MJ2 both journeys PASS; W control_states 108/1, burndown 3/3, workspace 1612/0.",
+        "Reviews (external /tmp, NOT in-repo): q67-mj1-review.md (notes q67-mj1-notes.md), q67-mj2-review.md (notes q67-mj2-notes.md + q67-mj2merge-notes.md), q67-mw1-review.md (notes q67-mw1-notes.md) + q67-mw-reapprove.md (merge q67-mwmerge-notes.md); H5 block proven in q67-mj3-notes.md.",
+        "No in-repo receipt exists; status stays pending until evidence is transcribed to docs/implementation/review-receipts/ and re-verified."
+      ],
+      "review": null
     }
   ]
 }
