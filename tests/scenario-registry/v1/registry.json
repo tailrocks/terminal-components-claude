@@ -2877,7 +2877,17 @@
       "snapshots": {"ref": ["snapshots/jackin/accounts/add_form/80x24/truecolor.txt", "snapshots/jackin/accounts/add_form_required/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T12:46:58Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8ak J2 j2_input_required_error live-PTY FAIL @46c0594 (`wait:Required` timed out (validation error never appeared); cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-FORM-010",
@@ -5296,8 +5306,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T12:46:58Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8ak J2 j2_cockpit_rail live-PTY FAIL @46c0594 (no line holds both `✓ 01 Identity` and `1.4 s` (done row); cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+          }
+        ]
       }
     },
     {
@@ -5851,8 +5868,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T12:46:58Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8ak J2 j2_cockpit_info_copy live-PTY FAIL @46c0594 (gutter never reached `Run id`; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+          }
+        ]
       }
     },
     {
@@ -6014,8 +6038,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T12:46:58Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8ak J2 j2_capsule_about_scroll live-PTY FAIL @46c0594 (`About jackin-preview` never appeared (brand menu); cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+          }
+        ]
       }
     },
   {
@@ -7142,8 +7173,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_capsule_palette live-PTY FAIL @46c0594 (`wait:1 of 20` timed out (palette filter); cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -7327,8 +7365,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_settings_op_chain live-PTY FAIL @46c0594 (`wait:Settings › global` timed out; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -8402,8 +8447,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_dialog_cancel_quit live-PTY FAIL @46c0594 (no line holds both `▎Cancel` and `Cancel launch` (action row); cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -8945,8 +8997,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_capsule_tab_menu live-PTY FAIL @46c0594 (`Change title…` never cleared (outside click); cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -9311,8 +9370,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_menubar_capsule_host live-PTY FAIL @46c0594 (`wait:Copy selection` timed out; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -9643,8 +9709,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_manager_help live-PTY FAIL @46c0594 (V1 mouse section missing; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -10305,8 +10378,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_accounts_add_form live-PTY FAIL @46c0594 (V1 visible field `Display name` missing; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -10652,8 +10732,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_prelude_chain live-PTY FAIL @46c0594 (V2 stepper line missing; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -10808,8 +10895,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_prelude_validate live-PTY FAIL @46c0594 (`wait:step 3 of 5 · Edit destination` timed out; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -10972,8 +11066,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_prelude_branch_create live-PTY FAIL @46c0594 (destination stepper missing; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -12683,8 +12784,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_footer_layers live-PTY FAIL @46c0594 (`wait:step 3 of 5 · Edit destination` timed out; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -15154,8 +15262,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_capsule_inspect_diff live-PTY FAIL @46c0594 (`wait:Zoom pane` timed out; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {
@@ -15327,8 +15442,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T12:46:58Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ak J2 j2_capsule_panes live-PTY FAIL @46c0594 (V1 caret not visible; cargo nextest run -p termrock-conformance --run-ignored all j2_, 0 pass/17 fail/774 skip; bin target/debug/jackin-preview 14441984B sha256:84c9dad7bee5 built 2026-10-08T12:46:36Z; log /tmp/phase8ak-j2.log)"
+        }
+      ]
     }
   },
   {

@@ -102,13 +102,14 @@ Each sentence holds one fact.
 - The candidate tip adds 9 commits after the run.
   Six change product code: Q53, FIX-002, Q54, Q55, FIX-002E, Q56.
   The candidate numbers are stale for those 6 deltas.
-- Registry-driven execution is zero on both branches except slices 8A-S1, 8A-T1, 8A-J1, 8A-S2, 8A-S3, 8A-S4, 8A-S5, and 8A-T2.
+- Registry-driven execution is zero on both branches except slices 8A-S1, 8A-T1, 8A-J1, 8A-S2, 8A-S3, 8A-S4, 8A-S5, 8A-T2, and 8A-J2.
   On the reference branch, phase-8c executed slice 8A-S1 with 21 passes,
   phase-8e executed slice 8A-T1 with 14 passes, phase-8g executed
   slice 8A-J1 with 30 passes, phase-8v executed slice 8A-S2 with
   20 passes, slice 8A-S3 added 19 checks (b712422f), slice 8A-S4
   added 20 checks (5f6e52f31), slice 8A-S5 added 14 checks
-  (68d98ac99), and slice 8A-T2 added 14 checks (0ae8cbe8c).
+  (68d98ac99), slice 8A-T2 added 14 checks (0ae8cbe8c), and slice
+  8A-J2 added 17 checks (9ae8b8712).
   On the candidate branch, phase-8d executed the ported S1 slice: 3 rows
   report `results.status = pass`, 18 report `fail`.
   Phase-8f executed the ported T1 slice: 5 rows report `pass`, 9 report
@@ -124,7 +125,9 @@ Each sentence holds one fact.
   Phase-8ag executed the ported S5 slice: 4 rows report `pass`, 10 report
   `fail`.
   Phase-8ai executed the ported T2 slice: 0 rows report `pass`, 14 report
-  `fail`, and 19 rows remain `unrun`.
+  `fail`.
+  Phase-8ak executed the ported J2 slice: 0 rows report `pass`, 17 report
+  `fail`, and 2 rows remain `unrun`.
   Evidence: `/tmp/phase8d-focused.log` (3 pass / 18 fail / 379 skip),
   `/tmp/phase8f-focused.log` (5 pass / 9 fail / 527 skip),
   `/tmp/phase8h3-focused.log` (5 pass / 25 fail / 534 skip),
@@ -132,7 +135,8 @@ Each sentence holds one fact.
   `/tmp/s3-run3.log` (0 pass / 19 fail / 706 skip),
   `/tmp/s4-run3.log` (5 pass / 15 fail / 725 skip),
   `/tmp/s5-run2.log` (4 pass / 10 fail / 745 skip),
-  `/tmp/phase8ai-t2.log` (0 pass / 14 fail / 759 skip).
+  `/tmp/phase8ai-t2.log` (0 pass / 14 fail / 759 skip),
+  `/tmp/phase8ak-j2.log` (0 pass / 17 fail / 774 skip).
 
 ## Reference passes
 
