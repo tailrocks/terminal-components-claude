@@ -50,7 +50,7 @@ use crate::screens::{
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun};
 use crate::sim::provider;
 use crate::sim::pty::{Daemon, Maximized, Pane, PaneId, PaneNode, SplitDir, Tab};
-use crate::sim::world::{World, world_for};
+use crate::sim::world::{DaemonHealth, World, world_for};
 
 /// One cached projection binds domain identity, collection identity, and presentation.
 #[derive(Debug, Clone)]
@@ -1107,16 +1107,20 @@ impl App {
         }
     }
 
-    /// The current selected role label.
+    /// The current launch-picker scope label: the selected workspace, the
+    /// current directory's workspace, or the directory itself, plus the
+    /// short current-role name (tag `open_launch_picker` scope).
     fn manager_picker_meta(&self) -> String {
         let ws_name = self
             .manager
             .selected()
-            .and_then(|id| self.world.workspaces.iter().find(|ws| ws.id == id))
-            .map(|ws| ws.name.as_str())
-            .unwrap_or("default");
+            .and_then(|id| self.world.workspace(id))
+            .map(|ws| ws.name.clone())
+            .or_else(|| self.world.cwd_workspace().map(|ws| ws.name.clone()))
+            .unwrap_or_else(|| self.world.tilde(&self.world.cwd));
         let role = self.selected_role();
-        let role_label = match role {
+        let short = role.rsplit('/').next().unwrap_or(role);
+        let role_label = match short {
             "developer" => "Developer",
             "reviewer" => "Reviewer",
             "qa" => "QA",
@@ -1848,6 +1852,12 @@ impl App {
         let picker = Self::launch_agent_picker();
         let spec = picker.layer(cx, &self.agent_options);
         cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
+        // The layer spec's initial focus already stages AGENT_PICKER; an
+        // explicit focus call here would only cancel the provisional
+        // focus-layer mechanism. Reconcile the replaced projection before
+        // the first draw so the cursor row paints focused (`Picker::
+        // reconcile` contract; no update runs between open and draw).
+        picker.reconcile(&mut self.agent_state, &self.agent_options);
         self.status = Some("Launch · choose Agent".into());
     }
 
@@ -3390,6 +3400,20 @@ impl App {
                     self.status = Some(format!("{} unavailable · {}", option.label, option.detail));
                 } else {
                     self.begin_launch_with(option.agent, option.account);
+                }
+                result |= Response::changed();
+            }
+            // A closed launch layer with pending options means the picker
+            // was dismissed (Esc) or resolved to a status-only choice:
+            // consume the pending options so the tree footer comes back
+            // (tag clears pending_launch on cancel, take()s it on choice).
+            if self.route == Route::Manager
+                && !cx.is_open(crate::screens::manager::AGENT_PICKER)
+                && !self.agent_options.is_empty()
+            {
+                self.agent_options.clear();
+                if self.status.as_deref() == Some("Launch · choose Agent") {
+                    self.status = None;
                 }
                 result |= Response::changed();
             }
@@ -5105,7 +5129,17 @@ impl App {
             CMD_CAPSULE_DETACH if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
                 self.pending_capsule_action = None;
-                self.status = Some("Detached from Capsule".into());
+                let name = self
+                    .active_instance
+                    .as_ref()
+                    .and_then(|id| self.world.daemons.get(id))
+                    .map(|d| d.workspace.clone())
+                    .unwrap_or_default();
+                let n = self.world.running_count();
+                self.status = Some(format!(
+                    "Detached · {name} keeps running · {} in the Construct",
+                    crate::screens::manager::plural(n, "instance", "instances")
+                ));
                 self.route = Route::Manager;
                 self.reset_manager_cursor();
                 cx.focus(MANAGER_LIST);
@@ -6099,12 +6133,29 @@ impl App {
             } else {
                 "outside the Construct"
             };
-            let n = self.world.running_count();
-            let running_text = if n == 0 {
-                "no instances".to_owned()
-            } else {
-                format!("{n} running")
-            };
+            // Tag header: the arbiter's discovery replaces the count when
+            // it fails (`! {label}`, error tone), and a stale daemon adds
+            // its warning badge after the count segment.
+            let running_text: String;
+            let running_style;
+            let running_priority;
+            match self.world.arbiter.running() {
+                Ok(0) => {
+                    running_text = "no instances".to_owned();
+                    running_style = palette.muted_on_canvas;
+                    running_priority = 5;
+                }
+                Ok(n) => {
+                    running_text = format!("{n} running");
+                    running_style = palette.muted_on_canvas;
+                    running_priority = 5;
+                }
+                Err(err) => {
+                    running_text = format!("! {}", err.label());
+                    running_style = palette.danger_on_canvas;
+                    running_priority = 8;
+                }
+            }
 
             let mut segs = Vec::new();
             if !crumb.is_empty() {
@@ -6163,10 +6214,18 @@ impl App {
             });
             segs.push(HeaderSegment {
                 text: &running_text,
-                style: palette.muted_on_canvas,
-                priority: 5,
+                style: running_style,
+                priority: running_priority,
                 padded: false,
             });
+            if self.world.daemon_health == DaemonHealth::Stale {
+                segs.push(HeaderSegment {
+                    text: "▲ daemon stale",
+                    style: palette.warning_on_canvas,
+                    priority: 8,
+                    padded: false,
+                });
+            }
 
             render_header_segments(ui, Rect::new(rest_x, area.y, rest_w, 1), &[], &segs);
         }

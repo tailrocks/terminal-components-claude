@@ -602,6 +602,7 @@ pub fn world_for(scenario: Scenario) -> World {
     }
     if scenario == Scenario::HardCases {
         world.op.session = crate::onepassword::OpSession::Locked;
+        world.daemon_health = DaemonHealth::Stale;
         world.arbiter.discovery = Err(crate::arbiter::DiscoveryError::IndexUnreadable);
         world.arbiter.entered_at_ms = None;
     }
