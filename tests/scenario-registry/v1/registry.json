@@ -2904,7 +2904,17 @@
       "snapshots": {"ref": ["snapshots/tablepro/connections/form_new/80x24/truecolor.txt", "snapshots/tablepro/connections/form_new-filled/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T10:41:31Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8ai T2 t2_input_form_field live-PTY FAIL @cee7e2e3 (Name error never became true (validation); cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TA-LIFECYCLE-001",
@@ -3398,8 +3408,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T10:41:31Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8ai T2 t2_chip_filter_bar live-PTY FAIL @cee7e2e3 (footer never showed `Enter Edit filter`; cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+          }
+        ]
       }
     },
     {
@@ -4922,8 +4939,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T10:41:31Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8ai T2 t2_tree_connection_filter live-PTY FAIL @cee7e2e3 (expanding analytics never showed spinner; cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+          }
+        ]
       }
     },
     {
@@ -5652,8 +5676,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T10:41:31Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8ai T2 t2_tabs_workbench_states live-PTY FAIL @cee7e2e3 (dirty dot `Query 1 •` missing after typing; solo rerun reproduces; cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+          }
+        ]
       }
     },
     {
@@ -6359,8 +6390,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T10:41:31Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ai T2 t2_select_filter_builder live-PTY FAIL @cee7e2e3 (reseeded select row missing (shipping_address + is NULL); cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+        }
+      ]
     }
   },
   {
@@ -6929,8 +6967,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T10:41:31Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ai T2 t2_picker_switcher_scopes live-PTY FAIL @cee7e2e3 (table dispatch never showed `public › orders`; cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+        }
+      ]
     }
   },
   {
@@ -7460,8 +7505,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T10:41:31Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ai T2 t2_complete_sql_popup live-PTY FAIL @cee7e2e3 (popup lacks `V order_totals_by_day` kind row; solo rerun reproduces; cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+        }
+      ]
     }
   },
   {
@@ -8175,8 +8227,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T10:41:31Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ai T2 t2_dialog_ack_full live-PTY FAIL @cee7e2e3 (seven editor lines never stood (multiline entry); cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+        }
+      ]
     }
   },
   {
@@ -9737,8 +9796,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T10:41:31Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ai T2 t2_help_viewer_full live-PTY FAIL @cee7e2e3 (y changed the footer (cols readout flickered; N1 no-op violated); cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+        }
+      ]
     }
   },
   {
@@ -10409,8 +10475,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T10:41:31Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ai T2 t2_form_connection_full live-PTY FAIL @cee7e2e3 (cursor never reached `5432` (focus routing); cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+        }
+      ]
     }
   },
   {
@@ -13631,8 +13704,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T10:41:31Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ai T2 t2_grid_local_sort live-PTY FAIL @cee7e2e3 (`wait:Sort cleared` timed out (3rd s never clears); cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+        }
+      ]
     }
   },
   {
@@ -13821,8 +13901,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T10:41:31Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ai T2 t2_grid_cell_lifecycle live-PTY FAIL @cee7e2e3 (`wait:Copied 5 chars` timed out after y on dirty cell; cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+        }
+      ]
     }
   },
   {
@@ -13980,8 +14067,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T10:41:31Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ai T2 t2_grid_results_view live-PTY FAIL @cee7e2e3 (footer never showed `↑↓←→ Cell` (focus ring); cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+        }
+      ]
     }
   },
   {
@@ -14520,8 +14614,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T10:41:31Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ai T2 t2_code_sql_editor live-PTY FAIL @cee7e2e3 (two statements landed on one editor line (newline entry); cargo nextest run -p termrock-conformance --run-ignored all t2_, 0 pass/14 fail/759 skip; bin target/debug/tablepro 10633960B sha256:e5b7cfc42f90 built 2026-10-08T10:41:01Z; log /tmp/phase8ai-t2.log)"
+        }
+      ]
     }
   },
   {

@@ -4,7 +4,7 @@ use core::{fmt, mem};
 use std::collections::BTreeMap;
 
 use ratatui::layout::Rect;
-use termrock::author::{FgStep, GlyphRole, Modifier, Role, StylePatch, Ui};
+use termrock::author::{FgStep, Modifier, Role, StylePatch, Ui};
 use termrock::controls::{Button, Checkbox, Panel, PanelKind};
 use termrock::fields::{Field, TextInput, TextInputState};
 use termrock::layout::Track;
@@ -51,6 +51,26 @@ pub const ENV_KEY: Id = FORM.sub("env-key");
 pub const ENV_SOURCE: Id = FORM.sub("env-source");
 /// New environment-variable value input.
 pub const ENV_VALUE: Id = FORM.sub("env-value");
+/// Workspace name field on the General tab.
+pub const NAME: Id = FORM.sub("name");
+/// Mounts body list.
+pub const MOUNTS_LIST: Id = FORM.sub("mounts-list");
+/// Roles body list.
+pub const ROLES_LIST: Id = FORM.sub("roles-list");
+/// Environments body list.
+pub const ENV_LIST: Id = FORM.sub("env-list");
+/// Accounts body list.
+pub const ACCOUNTS_LIST: Id = FORM.sub("accounts-list");
+/// Save-preview dialog Cancel action (holds initial dialog focus).
+pub const PREVIEW_CANCEL: Id = CFG_FORM.sub("cancel");
+/// Dirty-exit dialog root.
+pub const EXIT: Id = ROOT.sub("exit");
+/// Dirty-exit dialog Cancel action (holds initial dialog focus).
+pub const EXIT_CANCEL: Id = EXIT.sub("cancel");
+/// Dirty-exit dialog Discard action.
+pub const EXIT_DISCARD: Id = EXIT.sub("discard");
+/// Dirty-exit dialog Save action.
+pub const EXIT_SAVE: Id = EXIT.sub("save");
 
 /// Editor tab projection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -142,15 +162,29 @@ struct SaveReview {
     pending: PendingWorkspace,
 }
 
+/// Whether keyboard focus sits on the tab strip or inside the tab body.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EditorFocus {
+    /// The tab strip holds focus (digits jump, Enter moves into the body).
+    #[default]
+    Tabs,
+    /// A body control holds focus (Esc refocuses the tab strip).
+    Body,
+}
+
 /// Durable editor state.
 #[derive(PartialEq, Eq, Default)]
 pub struct EditorState {
     /// Active editor tab.
     pub tab: Tab,
+    /// Tab-strip versus body focus.
+    pub focus: EditorFocus,
     /// Whether the draft has unsaved changes.
     pub dirty: bool,
     /// Whether the read-only preview is open.
     pub preview_open: bool,
+    /// Whether the dirty-exit dialog is open.
+    pub exit_open: bool,
     /// Whether the environment-variable form is open.
     pub env_form_open: bool,
     /// Draft environment-variable key.
@@ -172,8 +206,10 @@ impl Clone for EditorState {
     fn clone(&self) -> Self {
         Self {
             tab: self.tab,
+            focus: self.focus,
             dirty: self.dirty,
             preview_open: self.preview_open,
+            exit_open: self.exit_open,
             env_form_open: self.env_form_open,
             env_key: self.env_key.clone(),
             // A cloned editor is a safe snapshot, not a continuation that
@@ -194,8 +230,10 @@ impl fmt::Debug for EditorState {
         formatter
             .debug_struct("EditorState")
             .field("tab", &self.tab)
+            .field("focus", &self.focus)
             .field("dirty", &self.dirty)
             .field("preview_open", &self.preview_open)
+            .field("exit_open", &self.exit_open)
             .field("env_form_open", &self.env_form_open)
             .field("env_key", &self.env_key)
             .field("env_value", &"[redacted]")
@@ -246,8 +284,10 @@ impl EditorState {
     /// Start a fresh editor draft from a persisted workspace.
     pub fn load_workspace(&mut self, workspace: &Workspace) {
         self.tab = Tab::General;
+        self.focus = EditorFocus::Tabs;
         self.dirty = false;
         self.preview_open = false;
+        self.exit_open = false;
         self.pending = PendingWorkspace::from_workspace(workspace);
         self.original = Some(Box::new(workspace.clone()));
         self.reviewed = None;
@@ -292,15 +332,40 @@ impl EditorState {
         self.reviewed = None;
     }
 
+    /// Open the dirty-exit dialog only when there are pending changes.
+    pub fn open_exit(&mut self) -> bool {
+        if self.dirty && self.saving.is_none() {
+            self.exit_open = true;
+        }
+        self.exit_open
+    }
+
+    /// Close the dirty-exit dialog without discarding the draft.
+    pub fn close_exit(&mut self) {
+        self.exit_open = false;
+    }
+
+    /// Move keyboard focus to the tab strip, staying on the current tab.
+    pub fn focus_tabs(&mut self) {
+        self.focus = EditorFocus::Tabs;
+    }
+
+    /// Move keyboard focus into the current tab body.
+    pub fn focus_body(&mut self) {
+        self.focus = EditorFocus::Body;
+    }
+
     /// Bind a new configuration explicitly, clearing any previous editor ticket.
     pub fn load_new(&mut self, pending: PendingWorkspace) {
         self.tab = Tab::General;
+        self.focus = EditorFocus::Tabs;
         self.pending = pending;
         self.original = None;
         self.reviewed = None;
         self.saving = None;
         self.dirty = true;
         self.preview_open = false;
+        self.exit_open = false;
         self.clear_env_form();
     }
 
@@ -718,7 +783,7 @@ impl EditorScreen {
         // Name field
         let mut name_state = TextInputState::default();
         name_state.begin(&editor.pending.name);
-        Field::new("Name", TextInput::new(FORM.sub("name")))
+        Field::new("Name", TextInput::new(NAME))
             .required(true)
             .help("Directory basename by default")
             .draw(ui, Rect::new(4, 6, 70, 3), &name_state);
@@ -827,8 +892,10 @@ impl EditorScreen {
             MountRow::Add,
         ];
 
-        let state = ListState::default();
-        List::new(FORM.sub("mounts-list"))
+        let mut state = ListState::default();
+        state.set_cursor(1, ItemKey::index(1));
+        state.choose(Some(ItemKey::index(1)));
+        List::new(MOUNTS_LIST)
             .row(|item, row| match item {
                 MountRow::Header => {
                     let mut cols = row.columns_with_gap(
@@ -858,7 +925,6 @@ impl EditorScreen {
                     dirty,
                 } => {
                     if *selected {
-                        row.marker(GlyphRole::Chosen);
                         if *dirty {
                             let mut cols = row.columns_with_gap(
                                 &[
@@ -1028,11 +1094,12 @@ impl EditorScreen {
             });
         }
 
-        let state = ListState::default();
-        List::new(FORM.sub("roles-list"))
+        let mut state = ListState::default();
+        state.set_cursor(0, ItemKey::index(0));
+        state.choose(Some(ItemKey::index(0)));
+        List::new(ROLES_LIST)
             .row(|item: &RoleItem, row| {
                 if item.selected {
-                    row.marker(GlyphRole::Chosen);
                     let mut cols = row.columns_with_gap(&[Track::Fixed(22), Track::Flex(1)], 2);
                     let mark = if item.allowed { "[✓]" } else { "[ ]" };
                     let star = if item.is_default { " ★" } else { "" };
@@ -1117,8 +1184,10 @@ impl EditorScreen {
             EnvItem::AddRoleOverride,
         ];
 
-        let state = ListState::default();
-        List::new(FORM.sub("env-list"))
+        let mut state = ListState::default();
+        state.set_cursor(0, ItemKey::index(0));
+        state.choose(Some(ItemKey::index(0)));
+        List::new(ENV_LIST)
             .row(|item, row| match item {
                 EnvItem::WorkspaceHeader => {
                     let p_bold = StylePatch::new()
@@ -1134,7 +1203,6 @@ impl EditorScreen {
                     selected,
                 } => {
                     if *selected {
-                        row.marker(GlyphRole::Chosen);
                         let mut cols = row.columns_with_gap(
                             &[Track::Fixed(22), Track::Fixed(24), Track::Flex(1)],
                             2,
@@ -1351,8 +1419,10 @@ impl EditorScreen {
             },
         ];
 
-        let state = ListState::default();
-        List::new(FORM.sub("accounts-list"))
+        let mut state = ListState::default();
+        state.set_cursor(2, ItemKey::index(2));
+        state.choose(Some(ItemKey::index(2)));
+        List::new(ACCOUNTS_LIST)
             .row(|item, row| match item {
                 AccRow::Header => {
                     let p_bold = StylePatch::new()
@@ -1382,7 +1452,6 @@ impl EditorScreen {
                     let mark = if *checked { "[✓]" } else { "[ ]" };
                     let star = if *is_default { "★" } else { " " };
                     if *selected {
-                        row.marker(GlyphRole::Chosen);
                         let mut cols = row.columns_with_gap(
                             &[Track::Fixed(37), Track::Fixed(22), Track::Flex(1)],
                             2,
@@ -1456,7 +1525,7 @@ impl EditorScreen {
                         &rows,
                     );
 
-                Button::new(CFG_FORM.sub("cancel"), "Cancel").draw(
+                Button::new(PREVIEW_CANCEL, "Cancel").draw(
                     ui,
                     Rect::new(
                         body.right().saturating_sub(18),
@@ -1477,9 +1546,76 @@ impl EditorScreen {
             });
     }
 
+    /// Render the dirty-exit dialog: Cancel/Discard/Save over the stay-or-leave question.
+    pub fn draw_exit_dialog(ui: &mut Ui<'_>, _area: Rect, editor: &EditorState) {
+        let changes = editor.change_count().max(1);
+        let lost = if changes == 1 {
+            "1 change would be lost.".to_owned()
+        } else {
+            format!("{changes} changes would be lost.")
+        };
+        let modal_area = Rect::new(33, 16, 54, 9);
+        Panel::new(EXIT)
+            .kind(PanelKind::Framed)
+            .draw(ui, modal_area, |ui, body| {
+                let list_state = ListState::default();
+                let question = format!("Save changes before leaving? {lost}");
+                let rows = ["Unsaved changes", "", question.as_str()];
+                List::new(EXIT.sub("rows"))
+                    .row(|label: &&str, row| {
+                        if label.is_empty() {
+                            return;
+                        }
+                        if *label == "Unsaved changes" {
+                            let p_bold = StylePatch::new()
+                                .set_fg(Role::Fg(FgStep::Primary))
+                                .add(Modifier::BOLD);
+                            row.label_patched(&format!("  {label}"), &p_bold);
+                        } else {
+                            let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                            row.label_patched(&format!("  {label}"), &p_sec);
+                        }
+                    })
+                    .draw(
+                        ui,
+                        Rect::new(body.x, body.y, body.width, 3),
+                        &list_state,
+                        &rows,
+                    );
+
+                Button::new(EXIT_CANCEL, "Cancel").draw(
+                    ui,
+                    Rect::new(
+                        body.right().saturating_sub(26),
+                        body.bottom().saturating_sub(2),
+                        8,
+                        1,
+                    ),
+                );
+                Button::new(EXIT_DISCARD, "Discard").draw(
+                    ui,
+                    Rect::new(
+                        body.right().saturating_sub(17),
+                        body.bottom().saturating_sub(2),
+                        9,
+                        1,
+                    ),
+                );
+                Button::new(EXIT_SAVE, "Save").draw(
+                    ui,
+                    Rect::new(
+                        body.right().saturating_sub(7),
+                        body.bottom().saturating_sub(2),
+                        6,
+                        1,
+                    ),
+                );
+            });
+    }
+
     /// Editor hints for the bottom hint bar.
     pub fn hints(editor: &EditorState) -> HintLayer {
-        if editor.preview_open {
+        if editor.preview_open || editor.exit_open {
             HintLayer {
                 hints: vec![
                     Hint {
@@ -1507,23 +1643,61 @@ impl EditorScreen {
                 status: None,
                 centered: true,
             }
+        } else if editor.focus == EditorFocus::Tabs {
+            HintLayer {
+                hints: vec![
+                    Hint {
+                        key: HintKey::Label("← →"),
+                        label: "Tab",
+                        priority: 100,
+                    },
+                    Hint {
+                        key: HintKey::Label("1–5"),
+                        label: "Jump",
+                        priority: 90,
+                    },
+                    Hint {
+                        key: HintKey::Label("Enter"),
+                        label: "Body",
+                        priority: 80,
+                    },
+                    Hint {
+                        key: HintKey::Label("[ ]"),
+                        label: "Switch tab",
+                        priority: 70,
+                    },
+                    Hint {
+                        key: HintKey::Label("Ctrl+S"),
+                        label: "Save",
+                        priority: 60,
+                    },
+                    Hint {
+                        key: HintKey::Label("Esc"),
+                        label: "Back",
+                        priority: 50,
+                    },
+                ],
+                badge: None,
+                status: None,
+                centered: true,
+            }
         } else {
             match editor.tab {
                 Tab::General => HintLayer {
                     hints: vec![
                         Hint {
-                            key: HintKey::Label("← →"),
-                            label: "Tab",
+                            key: HintKey::Label("Enter"),
+                            label: "Edit",
                             priority: 100,
                         },
                         Hint {
-                            key: HintKey::Label("1–5"),
-                            label: "Jump",
+                            key: HintKey::Label("Space"),
+                            label: "Toggle",
                             priority: 90,
                         },
                         Hint {
-                            key: HintKey::Label("Enter"),
-                            label: "Body",
+                            key: HintKey::Label("Tab"),
+                            label: "Next",
                             priority: 80,
                         },
                         Hint {
