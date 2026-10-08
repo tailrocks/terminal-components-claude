@@ -2,14 +2,14 @@
 
 use termrock::author::PaintStyle;
 use termrock::{
-    Action, ActionKey, App, Button, Checkbox, Chord, ColumnKey, Cx, Dialog, DialogAction,
-    DialogState, Empty, EmptyState, Family, FgStep, Field, Focusability, Form, FormAction,
-    FormState, FrameRead, Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode,
-    KeyMap, KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind,
-    Part, Phase, PickerAction, Props, PropsRow, Response, Role, RowUi, Select, SelectAction, Size,
-    SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState,
-    TextAction, TextInput, TextInputState, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState,
-    Ui, UpdateCause, Variant, truncate, wrap,
+    Action, ActionKey, App, Button, Checkbox, ChipBar, ChipBarAction, Chord, ColumnKey, Cx, Dialog,
+    DialogAction, DialogState, Empty, EmptyState, Family, FgStep, Field, Focusability, Form,
+    FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey,
+    KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel,
+    PanelKind, Part, Phase, PickerAction, Props, PropsRow, Response, Role, RowUi, Select,
+    SelectAction, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, TooSmall, Tree,
+    TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -249,6 +249,21 @@ const FILTER_FIELD_PATCH: [(Part, StylePatch); 1] = [(
     Part::CONTAINER,
     StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
 )];
+const FILTER_CHIPS_PATCH: [(Part, StylePatch); 3] = [
+    (
+        Part::CONTAINER,
+        StylePatch::new().set_bg(Role::Surface(termrock::Surface::Overlay)),
+    ),
+    (
+        Part::CLOSE,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
+    ),
+    (Part::MARKER, StylePatch::new().set_fg(Role::Focus)),
+];
+const FILTER_CHIPS_LEAD_ALL: &str = "match all ▾";
+const FILTER_CHIPS_LEAD_ANY: &str = "match any ▾";
+const FILTER_CHIPS_ADD_LABEL: &str = "+ Add filter";
+const FILTER_CHIP_DISABLED_PATCH: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Faint));
 // The inert explorer row is `disabled(true)` for reachability (registered,
 // never focusable) but must keep the legacy look at every capability. The
 // disabled treatment is fg-only at TrueColor/256/16, while the Mono fallback
@@ -2845,6 +2860,7 @@ impl TableProApp {
 
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
+        let mut pending_filter_edit: Option<Option<usize>> = None;
         for (key, tab) in self.workbench.payloads_mut() {
             let ctrl = match tab {
                 Tab::Table(t) if t.is_structure() => key.control("structure"),
@@ -2921,6 +2937,53 @@ impl TableProApp {
                         Self::handle_grid(&mut self.status, action);
                     }
                     response |= grid_response.erase();
+                    let chips_response = filter_chips(key.control("filters"), table.match_all)
+                        .update(cx, &mut table.chips_state, &table.filters);
+                    if let Some(action) = chips_response.action_ref() {
+                        match action {
+                            ChipBarAction::Closed(k) => {
+                                if let Some(i) =
+                                    table.filters.iter().position(|f| filter_chip_key(f) == *k)
+                                {
+                                    table.filters.remove(i);
+                                    table.reload(&self.catalog);
+                                    self.status = "Filter removed".to_string();
+                                }
+                            }
+                            ChipBarAction::Toggled(k) => {
+                                let mut hit = false;
+                                if let Some(filter) =
+                                    table.filters.iter_mut().find(|f| filter_chip_key(f) == *k)
+                                {
+                                    filter.enabled = !filter.enabled;
+                                    hit = true;
+                                }
+                                if hit {
+                                    table.chips_state.checked_mut().remove(*k);
+                                    table.reload(&self.catalog);
+                                }
+                            }
+                            ChipBarAction::Activated(k) => {
+                                if let Some(i) =
+                                    table.filters.iter().position(|f| filter_chip_key(f) == *k)
+                                {
+                                    pending_filter_edit = Some(Some(i));
+                                }
+                            }
+                            ChipBarAction::AddRequested => {
+                                pending_filter_edit = Some(None);
+                            }
+                            ChipBarAction::Lead => {
+                                table.match_all = !table.match_all;
+                                table.reload(&self.catalog);
+                            }
+                            ChipBarAction::Cleared => {
+                                table.clear_filters();
+                                table.reload(&self.catalog);
+                            }
+                        }
+                    }
+                    response |= chips_response.erase();
                 }
                 Tab::Query(query) => {
                     if let Some(grid) = &mut query.result {
@@ -2934,6 +2997,10 @@ impl TableProApp {
                 }
                 Tab::History(_) => {}
             }
+        }
+        if let Some(index) = pending_filter_edit {
+            self.open_filter_editor(cx, index, None);
+            response |= Response::changed();
         }
         response
     }
@@ -5633,7 +5700,14 @@ impl TableProApp {
                             width: inner.width,
                             height: 1,
                         };
-                        draw_filter_chips(ui, chips_rect, table);
+                        if let Some(key) = self.workbench.active_key() {
+                            filter_chips(key.control("filters"), table.match_all).draw(
+                                ui,
+                                chips_rect,
+                                &table.chips_state,
+                                &table.filters,
+                            );
+                        }
                     }
 
                     let grid_height = inner.height.saturating_sub(grid_height_sub);
@@ -6321,87 +6395,37 @@ fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
         })
 }
 
-fn draw_filter_chips(ui: &mut Ui<'_>, area: termrock::Rect, table: &TableTab) {
-    let mut x = area.x;
-    let y = area.y;
-    let muted_style = ui.surface_style().patch(
-        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-    );
-    let secondary_style = ui.surface_style().patch(
-        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-    );
-    let chip_bg_style = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_bg(Role::Surface(termrock::Surface::Overlay))
-                .set_fg(Role::Fg(FgStep::Primary)),
-        ),
-    );
-    let chip_gutter_style = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Surface(termrock::Surface::Overlay))
-                .set_bg(Role::Surface(termrock::Surface::Overlay)),
-        ),
-    );
-    let button_gutter_style = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Surface(termrock::Surface::Canvas))
-                .set_bg(Role::Surface(termrock::Surface::Canvas)),
-        ),
-    );
+fn filter_chip_key(filter: &Filter) -> ItemKey {
+    ItemKey::text(&filter.chip_label())
+}
 
-    // 1. " match all ▾ "
-    let lead_text = if table.match_all {
-        " match all ▾ "
+fn filter_chip_row(filter: &Filter, row: &mut RowUi<'_>) {
+    let text = format!("{} ", filter.chip_label());
+    if filter.enabled {
+        row.label(&text);
     } else {
-        " match any ▾ "
-    };
-    let lead_w = lead_text.chars().count() as u16;
-    ui.paint_str(termrock::Rect::new(x, y, lead_w, 1), lead_text, muted_style);
-    x = x.saturating_add(lead_w).saturating_add(1);
-
-    // 2. Chips
-    for f in &table.filters {
-        let label = f.chip_label();
-        let label_w = (label.chars().count() + 1) as u16;
-        let w = 1 + label_w + 1 + 2;
-        if x.saturating_add(w) > area.right() {
-            ui.paint_str(termrock::Rect::new(x, y, 1, 1), "…", muted_style);
-            return;
-        }
-        let chip_rect = termrock::Rect::new(x, y, w, 1);
-        ui.fill(chip_rect, chip_bg_style);
-        ui.paint_str(termrock::Rect::new(x, y, 1, 1), " ", chip_gutter_style);
-        let text_with_space = format!("{label} ");
-        ui.paint_str(
-            termrock::Rect::new(x.saturating_add(1), y, label_w, 1),
-            &text_with_space,
-            chip_bg_style,
-        );
-        let x_style = chip_bg_style.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-        );
-        ui.paint_str(
-            termrock::Rect::new(x.saturating_add(1).saturating_add(label_w), y, 1, 1),
-            "×",
-            x_style,
-        );
-        x = x.saturating_add(w).saturating_add(1);
+        row.label_patched(&text, &FILTER_CHIP_DISABLED_PATCH);
     }
+}
 
-    // 3. "+ Add filter"
-    let add_text = "+ Add filter ";
-    let add_w = add_text.chars().count() as u16;
-    if x.saturating_add(add_w).saturating_add(1) <= area.right() {
-        ui.paint_str(termrock::Rect::new(x, y, 1, 1), " ", button_gutter_style);
-        ui.paint_str(
-            termrock::Rect::new(x.saturating_add(1), y, add_w, 1),
-            add_text,
-            secondary_style,
-        );
-    }
+fn filter_chips(
+    id: Id,
+    match_all: bool,
+) -> ChipBar<'static, Filter, impl Fn(&Filter) -> ItemKey, impl Fn(&Filter, &mut RowUi<'_>)> {
+    ChipBar::new(id)
+        .key(filter_chip_key)
+        .row(filter_chip_row)
+        .select_mode(termrock::SelectMode::Single)
+        .closable(true)
+        .lead(if match_all {
+            FILTER_CHIPS_LEAD_ALL
+        } else {
+            FILTER_CHIPS_LEAD_ANY
+        })
+        .add(FILTER_CHIPS_ADD_LABEL)
+        .plus_add(true)
+        .clear_all(true)
+        .patch_part(&FILTER_CHIPS_PATCH)
 }
 
 fn shell_parts(area: termrock::Rect) -> [termrock::Rect; 3] {

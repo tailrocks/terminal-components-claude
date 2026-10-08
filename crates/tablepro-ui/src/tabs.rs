@@ -6,8 +6,8 @@ use tablepro_domain::{Catalog, ColType, ObjectKind, ResultSet, Table, Value};
 use tablepro_domain::{History, HistoryEntry};
 use tablepro_sql as sql;
 use termrock::{
-    Align, Column, ColumnKey, GlyphRole, Grid, GridModel, GridState, Id, ItemKey, SortDir,
-    TextInputState, WidthSample, GRID_MAX_COLUMNS,
+    Align, ChipBarState, Column, ColumnKey, GRID_MAX_COLUMNS, GlyphRole, Grid, GridModel,
+    GridState, Id, ItemKey, SortDir, TextInputState, WidthSample,
 };
 
 use crate::domain::ResultGrid;
@@ -176,6 +176,7 @@ pub struct TableTab {
     pub structure: Box<GridView>,
     pub filters: Vec<Filter>,
     pub match_all: bool,
+    pub chips_state: ChipBarState,
 }
 
 impl TableTab {
@@ -195,6 +196,7 @@ impl TableTab {
             structure: Box::new(GridView::empty()),
             filters: Vec::new(),
             match_all: true,
+            chips_state: ChipBarState::default(),
         };
         tab.structure = Box::new(GridView::from_result(&ResultSet {
             columns: tab.structure_columns(),

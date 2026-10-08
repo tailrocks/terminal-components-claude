@@ -1185,17 +1185,17 @@
       "rule": "OWN-11"
     },
     {
-      "max": 133,
+      "max": 125,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FILTER-ROW: filter rows through stock Field+TextInput (was 140)",
+      "review": "WI-TABLEPRO-FILTER-CHIPS: filter chips through stock ChipBar (was 133)",
       "rule": "OWN-02"
     },
     {
-      "max": 19,
+      "max": 18,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FILTER-ROW: filter rows through stock Field+TextInput (was 21)",
+      "review": "WI-TABLEPRO-FILTER-CHIPS: filter chips through stock ChipBar (was 19)",
       "rule": "OWN-04"
     },
     {
