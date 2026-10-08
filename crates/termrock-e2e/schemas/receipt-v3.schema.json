@@ -427,7 +427,14 @@
             "trust_record_parent",
             "test_binary_parent",
             "subject_executable_parent",
-            "subject_build_evidence"
+            "subject_build_evidence",
+            "generation_admission_evidence",
+            "generation_admission_evidence_parent",
+            "oracle_capture_artifacts",
+            "tag_source_snapshot",
+            "tag_build_artifacts",
+            "tag_validator_helper",
+            "tag_validator_helper_parent"
           ]
         },
         "role": {
