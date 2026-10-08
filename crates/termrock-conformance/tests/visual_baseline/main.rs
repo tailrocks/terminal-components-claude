@@ -55,6 +55,7 @@ mod showcase_journeys;
 mod showcase_pending_s1;
 mod showcase_pending_s2;
 mod showcase_pending_s3;
+mod showcase_pending_s4;
 mod support;
 mod tablepro;
 mod tablepro_journeys;
