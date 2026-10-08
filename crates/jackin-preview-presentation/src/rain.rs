@@ -57,8 +57,6 @@ pub enum Tone {
     Accent,
 }
 
-
-
 pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
     match tone {
         Tone::Ladder(level) => {
@@ -76,11 +74,23 @@ pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
             if dim >= 3 {
                 None
             } else if dim == 2 {
-                Some(Style::new().fg(theme.color.fg[2]).bg(theme.bg(Surface::Canvas)))
+                Some(
+                    Style::new()
+                        .fg(theme.color.fg[2])
+                        .bg(theme.bg(Surface::Canvas)),
+                )
             } else if dim == 1 {
-                Some(Style::new().fg(theme.color.fg[3]).bg(theme.bg(Surface::Canvas)))
+                Some(
+                    Style::new()
+                        .fg(theme.color.fg[3])
+                        .bg(theme.bg(Surface::Canvas)),
+                )
             } else {
-                Some(Style::new().fg(theme.color.accent).bg(theme.bg(Surface::Canvas)))
+                Some(
+                    Style::new()
+                        .fg(theme.color.accent)
+                        .bg(theme.bg(Surface::Canvas)),
+                )
             }
         }
     }
@@ -626,9 +636,7 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, t: &Theme) {
     }
     let x = area.right().saturating_sub(n + 2);
     let y = area.bottom().saturating_sub(1);
-    let empty_st = Style::new()
-        .bg(t.bg(Surface::Canvas))
-        .fg(t.color.fg[0]);
+    let empty_st = Style::new().bg(t.bg(Surface::Canvas)).fg(t.color.fg[0]);
     for xx in x.saturating_sub(1)..area.right() {
         if let Some(cell) = buf.cell_mut((xx, y)) {
             cell.set_symbol(" ");
@@ -639,9 +647,7 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, t: &Theme) {
         .fg(t.color.fg[2])
         .bg(t.bg(Surface::Canvas))
         .add_modifier(termrock::Modifier::BOLD);
-    let as_ = Style::new()
-        .fg(t.color.fg[3])
-        .bg(t.bg(Surface::Canvas));
+    let as_ = Style::new().fg(t.color.fg[3]).bg(t.bg(Surface::Canvas));
     buf.set_string(x, y, key, ks);
     buf.set_string(x + key.chars().count() as u16 + 1, y, action, as_);
 }

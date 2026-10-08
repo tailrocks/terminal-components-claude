@@ -420,8 +420,8 @@ mod tests {
 
     use super::*;
     use crate::diagnostics::Diagnostic;
-    use crate::runtime::stub::{Stub, SCREEN};
     use crate::runtime::Runtime;
+    use crate::runtime::stub::{SCREEN, Stub};
     use crate::theme::Theme;
 
     const AREA: Rect = Rect {

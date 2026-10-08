@@ -6,8 +6,8 @@ use tablepro_domain::{Catalog, ColType, ObjectKind, ResultSet, Table, Value};
 use tablepro_domain::{History, HistoryEntry};
 use tablepro_sql as sql;
 use termrock::{
-    Align, Column, ColumnKey, GlyphRole, Grid, GridModel, GridState, Id, ItemKey, SortDir,
-    TextInputState, WidthSample, GRID_MAX_COLUMNS,
+    Align, CodeEditorState, Column, ColumnKey, GRID_MAX_COLUMNS, GlyphRole, Grid, GridModel,
+    GridState, Id, ItemKey, ScrollState, SortDir, TextInputState, WidthSample,
 };
 
 use crate::domain::ResultGrid;
@@ -29,7 +29,10 @@ pub fn column_specs<'a>(
         col.sortable = true;
         col.editable = editable;
         col.sticky = false;
-        if filters.iter().any(|f| f.enabled && f.column == name.as_str()) {
+        if filters
+            .iter()
+            .any(|f| f.enabled && f.column == name.as_str())
+        {
             col.filtered = true;
         }
         match ty {
@@ -260,9 +263,15 @@ impl TableTab {
         next_sort: Option<(ColumnKey, SortDir)>,
     ) -> String {
         self.result.state.set_sort(next_sort);
-        let col_name = self.result.columns.get(col_idx).map(|(name, _)| name.clone());
+        let col_name = self
+            .result
+            .columns
+            .get(col_idx)
+            .map(|(name, _)| name.clone());
         let order = match next_sort {
-            Some((_, dir)) => col_name.as_ref().map(|name| (name.clone(), dir == SortDir::Asc)),
+            Some((_, dir)) => col_name
+                .as_ref()
+                .map(|name| (name.clone(), dir == SortDir::Asc)),
             None => None,
         };
         let mut predicates = Vec::new();
@@ -448,12 +457,8 @@ impl QueryTab {
         let result = run_select(catalog, &select).map_err(|error| error.message)?;
         let rows = result.rows.len();
         let mut grid_view = GridView::from_result(&result);
-        let (columns, count) = column_specs(
-            &grid_view.columns,
-            grid_view.model.is_editable(),
-            None,
-            &[],
-        );
+        let (columns, count) =
+            column_specs(&grid_view.columns, grid_view.model.is_editable(), None, &[]);
         let grid = Grid::new(
             Id::root("tablepro").sub("grid"),
             columns.get(..count).unwrap_or(&[]),
@@ -490,26 +495,60 @@ impl QueryTab {
 #[derive(Debug, Clone)]
 pub struct HistoryTab {
     pub search: String,
+    pub search_state: TextInputState,
     pub selected: usize,
+    pub scope_all: bool,
+    pub failed_only: bool,
     pub entries: Vec<HistoryEntry>,
+    pub code_state: CodeEditorState,
+    pub scroll_state: ScrollState,
 }
 
 impl HistoryTab {
     pub fn new(history: &History) -> Self {
-        Self {
+        let mut tab = Self {
             search: String::new(),
+            search_state: TextInputState::default(),
             selected: 0,
-            entries: history.entries.clone(),
-        }
+            scope_all: false,
+            failed_only: false,
+            entries: Vec::new(),
+            code_state: CodeEditorState::default(),
+            scroll_state: ScrollState::default(),
+        };
+        tab.refresh(history, "Production");
+        tab
     }
 
-    pub fn filter(&mut self, history: &History) {
+    pub fn refresh(&mut self, history: &History, connection: &str) {
+        let conn_opt = if self.scope_all {
+            None
+        } else {
+            Some(connection)
+        };
         self.entries = history
-            .search(&self.search, None, false)
+            .search(&self.search, conn_opt, self.failed_only)
             .into_iter()
             .cloned()
             .collect();
         self.selected = self.selected.min(self.entries.len().saturating_sub(1));
+        self.scroll_state.ensure_visible(self.selected);
+        self.sync_detail();
+    }
+
+    pub fn sync_detail(&mut self) {
+        let text = self.current_entry().map(|e| e.sql.as_str()).unwrap_or("");
+        if self.code_state.text() != text {
+            self.code_state = CodeEditorState::new(text);
+        }
+    }
+
+    pub fn current_entry(&self) -> Option<&HistoryEntry> {
+        self.entries.get(self.selected)
+    }
+
+    pub fn filter(&mut self, history: &History) {
+        self.refresh(history, "Production");
     }
 
     pub fn selected_query(&self) -> Option<String> {

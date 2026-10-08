@@ -1835,7 +1835,8 @@ mod tests {
     #[test]
     fn context_menu_renders_custom_shortcut_text_and_owned_title() {
         let items = [
-            MenuItem::new(ActionKey::application("item1"), "Change title…").shortcut_text("2×click"),
+            MenuItem::new(ActionKey::application("item1"), "Change title…")
+                .shortcut_text("2×click"),
             MenuItem::new(ActionKey::application("item2"), "Split right")
                 .shortcut_text("Ctrl+B %")
                 .separator(),

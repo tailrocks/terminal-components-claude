@@ -551,8 +551,12 @@ impl Ui<'_> {
             } else {
                 let cell_fg = self.page().cell(pos).and_then(|c| c.style().fg);
                 let was_blended = match roles.fg {
-                    Some(Role::Fg(FgStep::Primary)) => cell_fg.is_some_and(|c| c != theme.color.fg[0]),
-                    Some(Role::Fg(FgStep::Secondary)) => cell_fg.is_some_and(|c| c != theme.color.fg[1]),
+                    Some(Role::Fg(FgStep::Primary)) => {
+                        cell_fg.is_some_and(|c| c != theme.color.fg[0])
+                    }
+                    Some(Role::Fg(FgStep::Secondary)) => {
+                        cell_fg.is_some_and(|c| c != theme.color.fg[1])
+                    }
                     Some(Role::Success) => cell_fg.is_some_and(|c| c != theme.color.success),
                     Some(Role::Accent) => cell_fg.is_some_and(|c| c != theme.color.accent),
                     Some(Role::Focus) => cell_fg.is_some_and(|c| c != theme.color.focus),

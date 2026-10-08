@@ -731,7 +731,10 @@ impl<'a> Dialog<'a> {
         if self.has_input() {
             Some(self.input_id())
         } else if let Some(cancel) = self.cancel
-            && let Some(idx) = self.effective_actions().iter().position(|a| a.key() == cancel)
+            && let Some(idx) = self
+                .effective_actions()
+                .iter()
+                .position(|a| a.key() == cancel)
         {
             Some(self.action_id(idx))
         } else if !self.effective_actions().is_empty() {
