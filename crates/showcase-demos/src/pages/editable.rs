@@ -2,16 +2,23 @@
 
 use termrock::{
     Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, FrameRead,
-    Grid, GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Role,
-    RowDecor, RowTotal, StateFlags, Ui, id,
+    Grid, GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Rect, Role, RowDecor,
+    RowTotal, StateFlags, StylePatch, Surface, Ui, id,
 };
 
 use showcase_data::{TASKS, TaskRow, TaskStatus};
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate, frame};
 
 const TABLE: Id = id!("editable.table");
 const TASKS_PANEL: Id = id!("editable.tasks.panel");
+
+const LEGEND_CHIP: StylePatch = StylePatch::new()
+    .set_fg(Role::Surface(Surface::Canvas))
+    .set_bg(Role::Fg(FgStep::Primary));
+const LEGEND_CURSOR: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
+const LEGEND_ERROR: StylePatch = StylePatch::new().set_fg(Role::Danger);
+const LEGEND_TEXT: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
 
 const COLUMNS: [Column<'static>; 6] = [
     // GridState starts at column zero. Keep the historical ID-first paint
@@ -23,6 +30,7 @@ const COLUMNS: [Column<'static>; 6] = [
         align: Align::Left,
         min_width: 24,
         max_width: 48,
+        flex: 1,
         sortable: false,
         editable: true,
         sticky: false,
@@ -37,6 +45,7 @@ const COLUMNS: [Column<'static>; 6] = [
         align: Align::Left,
         min_width: 5,
         max_width: 5,
+        flex: 0,
         sortable: false,
         editable: false,
         sticky: true,
@@ -51,6 +60,7 @@ const COLUMNS: [Column<'static>; 6] = [
         align: Align::Left,
         min_width: 8,
         max_width: 8,
+        flex: 0,
         sortable: false,
         editable: true,
         sticky: false,
@@ -65,6 +75,7 @@ const COLUMNS: [Column<'static>; 6] = [
         align: Align::Left,
         min_width: 9,
         max_width: 9,
+        flex: 0,
         sortable: false,
         editable: false,
         sticky: false,
@@ -79,6 +90,7 @@ const COLUMNS: [Column<'static>; 6] = [
         align: Align::Left,
         min_width: 22,
         max_width: 22,
+        flex: 0,
         sortable: false,
         editable: true,
         sticky: false,
@@ -93,6 +105,7 @@ const COLUMNS: [Column<'static>; 6] = [
         align: Align::Right,
         min_width: 8,
         max_width: 8,
+        flex: 0,
         sortable: false,
         editable: true,
         sticky: false,
@@ -142,6 +155,7 @@ impl From<TaskRow> for EditableRow {
 #[derive(Debug)]
 struct EditableModel {
     rows: Vec<EditableRow>,
+    commits: u64,
 }
 
 impl EditableModel {
@@ -153,6 +167,7 @@ impl EditableModel {
                 .take(14)
                 .map(EditableRow::from)
                 .collect(),
+            commits: 0,
         }
     }
 }
@@ -218,42 +233,6 @@ impl GridModel for EditableModel {
     }
 }
 
-fn paint_card_meta(ui: &mut Ui<'_>, area: Rect, text: &str) {
-    if text.is_empty() || area.is_empty() {
-        return;
-    }
-    let style = ui
-        .style(
-            termrock::Family::PANEL,
-            termrock::Variant::DEFAULT,
-            Part::DETAIL,
-            termrock::StateFlags::empty(),
-        )
-        .style;
-    let text_width = termrock::width(text);
-    let x = area.right().saturating_sub(text_width.saturating_add(2));
-    let width = area.right().saturating_sub(x);
-    ui.fill(
-        Rect {
-            x,
-            y: area.y,
-            width,
-            height: 1,
-        },
-        style,
-    );
-    let _ = ui.paint_str(
-        Rect {
-            x,
-            y: area.y,
-            width: text_width,
-            height: 1,
-        },
-        text,
-        style,
-    );
-}
-
 impl GridEditor for EditableModel {
     fn edit_intent(&self, row: usize, col: usize) -> EditIntent<'_> {
         let Some(item) = self.rows.get(row) else {
@@ -304,6 +283,7 @@ impl GridEditor for EditableModel {
             5 => text.clone_into(&mut item.changes),
             _ => return Err(FieldError::new("Cell is read-only")),
         }
+        self.commits = self.commits.saturating_add(1);
         Ok(())
     }
 
@@ -393,6 +373,7 @@ impl Page for EditablePage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let was_editing = self.state.is_editing();
+        let commits_before = self.model.commits;
         let action = table().update_editable(cx, &mut self.state, &mut self.model);
         if was_editing && !self.state.is_editing() {
             self.edits = self.edits.saturating_add(1);
@@ -401,7 +382,21 @@ impl Page for EditablePage {
             &tasks_status(self.state.edit_error(), self.edits, ""),
             false,
         );
-        action.erase().into()
+        // (`tag:editable.rs:124-128`): a commit reports "Cell saved", a
+        // cancel "Edit cancelled". The model counts successful commits, so
+        // an edit that ends without one is a cancel.
+        let mut update = PageUpdate::from(action.erase());
+        if was_editing && !self.state.is_editing() {
+            update.status = Some(PageStatus(
+                if self.model.commits != commits_before {
+                    "Cell saved"
+                } else {
+                    "Edit cancelled"
+                }
+                .to_owned(),
+            ));
+        }
+        update
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -430,14 +425,16 @@ impl Page for EditablePage {
             tasks_panel(&task_meta, focused).draw(ui, card, |ui, inner| {
                 table().draw(ui, inner, &self.state, &self.model);
             });
-            paint_card_meta(ui, card, &task_meta);
             let legend_y = body.y.saturating_add(card_height).saturating_add(1);
+            // (`tag:editable.rs:98-113`; frozen y23-25): the chip is a true
+            // fg/bg swap, not `REVERSED` (which would set mods); the prose
+            // is muted.
             let legend = [
-                ("reversed", "cell cursor (navigation)"),
-                ("▁", "editing cursor + accent underline"),
-                ("!", "validation error"),
+                ("reversed", "cell cursor (navigation)", &LEGEND_CHIP),
+                ("▁", "editing cursor + accent underline", &LEGEND_CURSOR),
+                ("!", "validation error", &LEGEND_ERROR),
             ];
-            for (offset, (glyph, text)) in legend.iter().enumerate() {
+            for (offset, (glyph, text, chip)) in legend.iter().enumerate() {
                 let Ok(offset) = u16::try_from(offset) else {
                     break;
                 };
@@ -457,7 +454,7 @@ impl Page for EditablePage {
                         ..row
                     },
                     glyph,
-                    ui.surface_style(),
+                    ui.paint_patch(chip),
                 );
                 let _ = ui.paint_str(
                     Rect {
@@ -466,7 +463,7 @@ impl Page for EditablePage {
                         ..row
                     },
                     text,
-                    ui.surface_style(),
+                    ui.paint_patch(&LEGEND_TEXT),
                 );
             }
         });

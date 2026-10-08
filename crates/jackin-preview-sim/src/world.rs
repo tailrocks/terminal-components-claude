@@ -352,7 +352,6 @@ impl World {
         }
     }
 
-
     /// Find an instance by stable identifier.
     pub fn instance(&self, id: &str) -> Option<&Instance> {
         self.instances.iter().find(|instance| instance.id == id)

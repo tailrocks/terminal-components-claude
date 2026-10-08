@@ -524,11 +524,15 @@ impl<'a> HintBar<'a> {
         let (drawn, used) = self.fitting(budget);
         if self.centered_override.unwrap_or(self.layer.centered) {
             // the block sits mid-row, never past the badge and never under
-            // the status
-            let span = used.saturating_add(Self::HINT_GAP);
+            // the status; the cut marker keeps its two cells when hints
+            // overflow (tag `keyhint.rs:125-127`)
+            let mut span = used.saturating_add(Self::HINT_GAP);
+            if drawn < self.layer.hints.len() {
+                span = span.saturating_add(Self::HINT_GAP);
+            }
             let free = area.width.saturating_sub(span);
             let mid = area.x.saturating_add(free / 2);
-            x = mid.max(x).min(right_limit.saturating_sub(used).max(x));
+            x = mid.max(x).min(right_limit.saturating_sub(span).max(x));
         }
         for i in 0..drawn {
             let Some(h) = self.hint(i) else { break };

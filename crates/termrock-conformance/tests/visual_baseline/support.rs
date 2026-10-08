@@ -839,8 +839,7 @@ fn press_chord(
 /// commit `e9428745`): same chord grammar via [`press_chord`], same loud
 /// failure — no text fallback.
 pub fn press_step(session: &Session, step: &str) {
-    press_chord(&session.inner, step)
-        .unwrap_or_else(|e| panic!("key `{step}` failed: {e:#}"));
+    press_chord(&session.inner, step).unwrap_or_else(|e| panic!("key `{step}` failed: {e:#}"));
 }
 
 #[allow(dead_code)]
@@ -2403,11 +2402,11 @@ pub fn run_canonical(representative: &Case) {
         for color in CANONICAL_COLORS {
             let case = representative.variant(cols, rows, color);
             let name = case.name.to_string();
-            if let Ok(filter) = std::env::var("COMBO_FILTER") {
-                if !name.contains(&filter) {
-                    skipped += 1;
-                    continue;
-                }
+            if let Ok(filter) = std::env::var("COMBO_FILTER")
+                && !name.contains(&filter)
+            {
+                skipped += 1;
+                continue;
             }
             executed += 1;
             if !collect_matrix(&name, || run_and_assert(&case)) {
@@ -2475,11 +2474,11 @@ pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
                 .unwrap_or(representative)
                 .variant(cols, rows, color);
             let name = case.name.to_string();
-            if let Ok(filter) = std::env::var("COMBO_FILTER") {
-                if !name.contains(&filter) {
-                    skipped += 1;
-                    continue;
-                }
+            if let Ok(filter) = std::env::var("COMBO_FILTER")
+                && !name.contains(&filter)
+            {
+                skipped += 1;
+                continue;
             }
             executed += 1;
             if !collect_matrix(&name, || run_and_assert(&case)) {
@@ -2501,11 +2500,11 @@ pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut S
         for color in CANONICAL_COLORS {
             let case = representative.variant(cols, rows, color);
             let name = case.name.to_string();
-            if let Ok(filter) = std::env::var("COMBO_FILTER") {
-                if !name.contains(&filter) {
-                    skipped += 1;
-                    continue;
-                }
+            if let Ok(filter) = std::env::var("COMBO_FILTER")
+                && !name.contains(&filter)
+            {
+                skipped += 1;
+                continue;
             }
             executed += 1;
             if !collect_matrix(&name, || {

@@ -455,7 +455,9 @@ impl<'a> HelpOverlay<'a> {
             let scroll_area = Rect::new(
                 content_area.x,
                 content_area.y,
-                area.right().saturating_sub(1).saturating_sub(content_area.x),
+                area.right()
+                    .saturating_sub(1)
+                    .saturating_sub(content_area.x),
                 body_h,
             );
             let content = scrollbar.draw(ui, scroll_area, &st.scroll, content_len);
@@ -498,19 +500,9 @@ impl<'a> HelpOverlay<'a> {
                 if let Some(meta) = meta_text {
                     let mw = termrock_text::width(&meta) as u16;
                     if area.width > tw.saturating_add(mw).saturating_add(4) {
-                        let meta_rect = Rect::new(
-                            area.right().saturating_sub(2 + mw),
-                            area.y,
-                            mw,
-                            1,
-                        );
-                        self.paint_text(
-                            ui,
-                            Part::DETAIL,
-                            meta_rect,
-                            &meta,
-                            StateFlags::empty(),
-                        );
+                        let meta_rect =
+                            Rect::new(area.right().saturating_sub(2 + mw), area.y, mw, 1);
+                        self.paint_text(ui, Part::DETAIL, meta_rect, &meta, StateFlags::empty());
                         ui.register_decor(self.id, PartRef::of(Part::DETAIL), meta_rect);
                     }
                 }

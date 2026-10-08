@@ -252,42 +252,123 @@ impl CockpitScreen {
         List::new(ROOT.sub("ident-stage"))
             .row(|_, row| {
                 let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                row.label_patched(
-                    "stage 3 of 11 · Credentials · 2 done · 0 skipped",
-                    &p,
-                );
+                row.label_patched("stage 3 of 11 · Credentials · 2 done · 0 skipped", &p);
             })
             .draw(ui, Rect::new(36, 6, 48, 1), &ident3_state, &[()]);
 
         // 5. 11-stage launch rail
         let stages = [
-            StageItem { glyph: "✓", is_accent: true, num: "01", name: "Identity", status: "1.4 s", is_current: false },
-            StageItem { glyph: "✓", is_accent: true, num: "02", name: "Role", status: "1.8 s", is_current: false },
-            StageItem { glyph: "⠋", is_accent: true, num: "03", name: "Credentials", status: "", is_current: true },
-            StageItem { glyph: "", is_accent: false, num: "04", name: "Construct", status: "queued", is_current: false },
-            StageItem { glyph: "", is_accent: false, num: "05", name: "Agent Binaries", status: "queued", is_current: false },
-            StageItem { glyph: "", is_accent: false, num: "06", name: "Derived Image", status: "queued", is_current: false },
-            StageItem { glyph: "", is_accent: false, num: "07", name: "Workspace", status: "queued", is_current: false },
-            StageItem { glyph: "", is_accent: false, num: "08", name: "Network", status: "queued", is_current: false },
-            StageItem { glyph: "", is_accent: false, num: "09", name: "Sidecar", status: "queued", is_current: false },
-            StageItem { glyph: "", is_accent: false, num: "10", name: "Capsule", status: "queued", is_current: false },
-            StageItem { glyph: "", is_accent: false, num: "11", name: "Hardline", status: "queued", is_current: false },
+            StageItem {
+                glyph: "✓",
+                is_accent: true,
+                num: "01",
+                name: "Identity",
+                status: "1.4 s",
+                is_current: false,
+            },
+            StageItem {
+                glyph: "✓",
+                is_accent: true,
+                num: "02",
+                name: "Role",
+                status: "1.8 s",
+                is_current: false,
+            },
+            StageItem {
+                glyph: "⠋",
+                is_accent: true,
+                num: "03",
+                name: "Credentials",
+                status: "",
+                is_current: true,
+            },
+            StageItem {
+                glyph: "",
+                is_accent: false,
+                num: "04",
+                name: "Construct",
+                status: "queued",
+                is_current: false,
+            },
+            StageItem {
+                glyph: "",
+                is_accent: false,
+                num: "05",
+                name: "Agent Binaries",
+                status: "queued",
+                is_current: false,
+            },
+            StageItem {
+                glyph: "",
+                is_accent: false,
+                num: "06",
+                name: "Derived Image",
+                status: "queued",
+                is_current: false,
+            },
+            StageItem {
+                glyph: "",
+                is_accent: false,
+                num: "07",
+                name: "Workspace",
+                status: "queued",
+                is_current: false,
+            },
+            StageItem {
+                glyph: "",
+                is_accent: false,
+                num: "08",
+                name: "Network",
+                status: "queued",
+                is_current: false,
+            },
+            StageItem {
+                glyph: "",
+                is_accent: false,
+                num: "09",
+                name: "Sidecar",
+                status: "queued",
+                is_current: false,
+            },
+            StageItem {
+                glyph: "",
+                is_accent: false,
+                num: "10",
+                name: "Capsule",
+                status: "queued",
+                is_current: false,
+            },
+            StageItem {
+                glyph: "",
+                is_accent: false,
+                num: "11",
+                name: "Hardline",
+                status: "queued",
+                is_current: false,
+            },
         ];
 
         let rail_state = ListState::default();
         List::new(STAGES)
             .row(|item: &StageItem, row| {
-                let mut cols = row.columns_with_gap(&[
-                    Track::Fixed(3),
-                    Track::Fixed(3),
-                    Track::Fixed(32),
-                    Track::Fixed(6),
-                ], 0);
+                let mut cols = row.columns_with_gap(
+                    &[
+                        Track::Fixed(3),
+                        Track::Fixed(3),
+                        Track::Fixed(32),
+                        Track::Fixed(6),
+                    ],
+                    0,
+                );
 
                 if item.is_accent {
                     let p_accent = StylePatch::new().set_fg(Role::Accent);
                     let glyph_str = format!(" {} ", item.glyph);
-                    let text = if item.glyph.is_empty() { "   " } else { glyph_str.as_str() };
+                    let text = if item.glyph.is_empty() {
+                        "   "
+                    } else {
+                        glyph_str.as_str()
+                    };
                     cols.cell(0).patch(&p_accent).text(text);
                 } else {
                     cols.cell(0).text("   ");
@@ -296,7 +377,9 @@ impl CockpitScreen {
                 if item.is_current {
                     let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
                     cols.cell(1).patch(&p_sec).text(&format!("{} ", item.num));
-                    let p_bold = StylePatch::new().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD);
+                    let p_bold = StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD);
                     cols.cell(2).patch(&p_bold).text(item.name);
                 } else if item.is_accent {
                     let p_faint = StylePatch::new().set_fg(Role::BorderStrong);
@@ -355,13 +438,7 @@ impl CockpitScreen {
     }
 
     /// Render the container debug info modal.
-    pub fn draw_info(
-        ui: &mut Ui<'_>,
-        _area: Rect,
-        world: &World,
-        role: &str,
-        _debug: bool,
-    ) {
+    pub fn draw_info(ui: &mut Ui<'_>, _area: Rect, world: &World, role: &str, _debug: bool) {
         let modal_area = Rect::new(27, 14, 66, 11);
         let ws_name = world
             .workspaces
@@ -378,40 +455,58 @@ impl CockpitScreen {
                 let props: [(&str, String, bool, bool); 5] = [
                     ("Target", target_val, true, true),
                     ("Role", role.to_owned(), false, false),
-                    ("Agent", "Claude Code · account Claude · Work".to_owned(), false, false),
+                    (
+                        "Agent",
+                        "Claude Code · account Claude · Work".to_owned(),
+                        false,
+                        false,
+                    ),
                     ("Run id", "run-202609030914-b5df".to_owned(), false, false),
                     ("jackin", "0.6.4 · preview".to_owned(), false, false),
                 ];
 
                 List::new(ROOT.sub("info-props"))
-                    .row(|(label, val, has_focus, is_bold): &(&str, String, bool, bool), row| {
-                        let mut cols = row.columns_with_gap(&[
-                            Track::Fixed(2),
-                            Track::Fixed(6),
-                            Track::Flex(1),
-                        ], 2);
+                    .row(
+                        |(label, val, has_focus, is_bold): &(&str, String, bool, bool), row| {
+                            let mut cols = row.columns_with_gap(
+                                &[Track::Fixed(2), Track::Fixed(6), Track::Flex(1)],
+                                2,
+                            );
 
-                        if *has_focus {
-                            let p_focus = StylePatch::new().set_fg(Role::Accent);
-                            cols.cell(0).patch(&p_focus).text("▎");
-                        } else {
-                            cols.cell(0).text("  ");
-                        }
+                            if *has_focus {
+                                let p_focus = StylePatch::new().set_fg(Role::Accent);
+                                cols.cell(0).patch(&p_focus).text("▎");
+                            } else {
+                                cols.cell(0).text("  ");
+                            }
 
-                        let p_label = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                        cols.cell(1).patch(&p_label).text(label);
+                            let p_label = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                            cols.cell(1).patch(&p_label).text(label);
 
-                        if *is_bold {
-                            let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD);
-                            cols.cell(2).patch(&p_val).text(val);
-                        } else {
-                            let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
-                            cols.cell(2).patch(&p_val).text(val);
-                        }
-                    })
-                    .draw(ui, Rect::new(body.x, body.y, body.width, 5), &list_state, &props);
+                            if *is_bold {
+                                let p_val = StylePatch::new()
+                                    .set_fg(Role::Fg(FgStep::Primary))
+                                    .add(Modifier::BOLD);
+                                cols.cell(2).patch(&p_val).text(val);
+                            } else {
+                                let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
+                                cols.cell(2).patch(&p_val).text(val);
+                            }
+                        },
+                    )
+                    .draw(
+                        ui,
+                        Rect::new(body.x, body.y, body.width, 5),
+                        &list_state,
+                        &props,
+                    );
 
-                let close_area = Rect::new(body.right().saturating_sub(9), body.bottom().saturating_sub(1), 7, 1);
+                let close_area = Rect::new(
+                    body.right().saturating_sub(9),
+                    body.bottom().saturating_sub(1),
+                    7,
+                    1,
+                );
                 Button::new(ROOT.sub("info-close"), "Close").draw(ui, close_area);
             });
     }
@@ -426,10 +521,17 @@ impl CockpitScreen {
                 let title_state = ListState::default();
                 List::new(ROOT.sub("cancel-title"))
                     .row(|_, row| {
-                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD);
+                        let p = StylePatch::new()
+                            .set_fg(Role::Fg(FgStep::Primary))
+                            .add(Modifier::BOLD);
                         row.label_patched("  Cancel the launch?", &p);
                     })
-                    .draw(ui, Rect::new(body.x, body.y.saturating_add(1), body.width, 1), &title_state, &[()]);
+                    .draw(
+                        ui,
+                        Rect::new(body.x, body.y.saturating_add(1), body.width, 1),
+                        &title_state,
+                        &[()],
+                    );
 
                 let desc_state = ListState::default();
                 let desc_lines = [
@@ -442,7 +544,12 @@ impl CockpitScreen {
                         let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
                         row.label_patched(line, &p);
                     })
-                    .draw(ui, Rect::new(body.x, body.y.saturating_add(3), body.width, 3), &desc_state, &desc_lines);
+                    .draw(
+                        ui,
+                        Rect::new(body.x, body.y.saturating_add(3), body.width, 3),
+                        &desc_state,
+                        &desc_lines,
+                    );
 
                 let cancel_btn_area = Rect::new(60, 23, 8, 1);
                 let cancel_launch_area = Rect::new(69, 23, 15, 1);
@@ -458,10 +565,26 @@ impl CockpitScreen {
         if cancel_confirm_open {
             HintLayer {
                 hints: vec![
-                    Hint { key: HintKey::Label("← →"), label: "Choose", priority: 100 },
-                    Hint { key: HintKey::Label("Enter"), label: "Confirm", priority: 90 },
-                    Hint { key: HintKey::Label("Esc"), label: "Cancel", priority: 80 },
-                    Hint { key: HintKey::Label("y / n"), label: "Quick answer", priority: 70 },
+                    Hint {
+                        key: HintKey::Label("← →"),
+                        label: "Choose",
+                        priority: 100,
+                    },
+                    Hint {
+                        key: HintKey::Label("Enter"),
+                        label: "Confirm",
+                        priority: 90,
+                    },
+                    Hint {
+                        key: HintKey::Label("Esc"),
+                        label: "Cancel",
+                        priority: 80,
+                    },
+                    Hint {
+                        key: HintKey::Label("y / n"),
+                        label: "Quick answer",
+                        priority: 70,
+                    },
                 ],
                 badge: None,
                 status: None,
@@ -470,9 +593,21 @@ impl CockpitScreen {
         } else if log_open {
             HintLayer {
                 hints: vec![
-                    Hint { key: HintKey::Label("↑↓"), label: "Scroll", priority: 100 },
-                    Hint { key: HintKey::Label("End"), label: "Follow", priority: 90 },
-                    Hint { key: HintKey::Label("Esc"), label: "Close log", priority: 80 },
+                    Hint {
+                        key: HintKey::Label("↑↓"),
+                        label: "Scroll",
+                        priority: 100,
+                    },
+                    Hint {
+                        key: HintKey::Label("End"),
+                        label: "Follow",
+                        priority: 90,
+                    },
+                    Hint {
+                        key: HintKey::Label("Esc"),
+                        label: "Close log",
+                        priority: 80,
+                    },
                 ],
                 badge: None,
                 status: None,
@@ -481,10 +616,26 @@ impl CockpitScreen {
         } else {
             HintLayer {
                 hints: vec![
-                    Hint { key: HintKey::Label("i"), label: "Container info", priority: 100 },
-                    Hint { key: HintKey::Label("c"), label: "Cancel", priority: 90 },
-                    Hint { key: HintKey::Label("Ctrl+Q"), label: "Quit", priority: 80 },
-                    Hint { key: HintKey::Label("Ctrl+C"), label: "Abort", priority: 70 },
+                    Hint {
+                        key: HintKey::Label("i"),
+                        label: "Container info",
+                        priority: 100,
+                    },
+                    Hint {
+                        key: HintKey::Label("c"),
+                        label: "Cancel",
+                        priority: 90,
+                    },
+                    Hint {
+                        key: HintKey::Label("Ctrl+Q"),
+                        label: "Quit",
+                        priority: 80,
+                    },
+                    Hint {
+                        key: HintKey::Label("Ctrl+C"),
+                        label: "Abort",
+                        priority: 70,
+                    },
                 ],
                 badge: None,
                 status: None,

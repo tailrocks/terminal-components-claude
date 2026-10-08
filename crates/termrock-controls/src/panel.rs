@@ -10,7 +10,7 @@ use crate::id::{Id, Part, PartRef};
 use crate::layout::{Insets, inset};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
+use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, Surface, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// How a panel marks its edge.
@@ -27,6 +27,14 @@ pub enum PanelKind {
     /// A bordered pane on the parent's own surface.
     Framed,
 }
+
+/// Component-default meta tone: the historical panel paints its meta
+/// `t.faint()` unconditionally (`tag:panel.rs:200`; frozen tables y4,
+/// editable y4, lists y4, datagrid y5). It rides under any instance
+/// `Part::DETAIL` patch, so explicit patches keep winning and the shared
+/// `(PANEL, DETAIL)` recipe slot — which also voices shell chrome and
+/// page headings — stays untouched.
+const META_FAINT: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Faint));
 
 /// A titled container that fills a rectangle, marks its edge and hands its
 /// content the inner rect on its own surface.
@@ -186,6 +194,9 @@ impl<'a> Panel<'a> {
     }
 
     /// Right-aligned secondary text in the head row.
+    ///
+    /// The meta paints faint unless the instance patches `Part::DETAIL`
+    /// (the historical panel paints `t.faint()` unconditionally).
     #[must_use]
     pub const fn meta(mut self, m: &'a str) -> Self {
         self.meta = Some(m);
@@ -569,7 +580,15 @@ impl<'a> Panel<'a> {
             if let Some(f) = ov.slot_for(Part::DETAIL) {
                 f(ui, rect);
             } else {
-                let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
+                let s = ov.style_with_default(
+                    ui,
+                    id,
+                    Family::PANEL,
+                    Variant::DEFAULT,
+                    Part::DETAIL,
+                    live,
+                    &META_FAINT,
+                );
                 paint_label(ui, rect, m, pad, s.style);
             }
         }
@@ -666,7 +685,15 @@ impl<'a> Panel<'a> {
                 if let Some(f) = ov.slot_for(Part::DETAIL) {
                     f(ui, rect);
                 } else {
-                    let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
+                    let s = ov.style_with_default(
+                        ui,
+                        id,
+                        Family::PANEL,
+                        Variant::DEFAULT,
+                        Part::DETAIL,
+                        live,
+                        &META_FAINT,
+                    );
                     if pad == 1 {
                         ui.fill(cell_at(head, right), s.style);
                     }
@@ -1033,5 +1060,83 @@ mod tests {
             plain,
             "a slot on Part::CONTAINER changes cells, and `## Overrides` says it does not"
         );
+    }
+
+    /// Q67-owed (T4-O1): an unpatched meta paints faint. The historical
+    /// panel paints `t.faint()` unconditionally (`tag:panel.rs:200`), and
+    /// the shared `(PANEL, DETAIL)` recipe slot cannot carry it (shell
+    /// chrome and page headings resolve Secondary from the same slot) —
+    /// so the default lives inside the component.
+    #[test]
+    fn q67owed_unpatched_meta_is_faint() {
+        use crate::theme::Surface;
+        use crate::theme::resolve::bind_role;
+
+        let theme = Theme::junie();
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 30,
+            height: 5,
+        };
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            Panel::new(ID)
+                .title("T")
+                .meta("mm")
+                .draw(ui, area, |_, inner| inner);
+        })
+        .commit_presented();
+        let faint = bind_role(&theme, Role::Fg(FgStep::Faint), Surface::Canvas);
+        let mut hits = 0;
+        for x in 0..30 {
+            let pos = Position::new(x, 0);
+            if buf.cell(pos).is_some_and(|c| c.symbol() == "m") {
+                assert_eq!(buf.cell(pos).map(|c| c.fg), faint, "meta fg at x={x}");
+                hits += 1;
+            }
+        }
+        assert_eq!(hits, 2, "the meta must paint exactly its own cells");
+    }
+
+    /// Q67-owed (T4-O1): an explicit `Part::DETAIL` patch wins over the
+    /// faint component default on every slot it speaks on.
+    #[test]
+    fn q67owed_detail_patch_wins_over_faint_default() {
+        use crate::theme::Surface;
+        use crate::theme::resolve::bind_role;
+
+        const PATCH: [(Part, StylePatch); 1] = [(
+            Part::DETAIL,
+            StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        )];
+        let theme = Theme::junie();
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 30,
+            height: 5,
+        };
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            Panel::new(ID)
+                .title("T")
+                .meta("mm")
+                .patch_part(&PATCH)
+                .draw(ui, area, |_, inner| inner);
+        })
+        .commit_presented();
+        let secondary = bind_role(&theme, Role::Fg(FgStep::Secondary), Surface::Canvas);
+        let mut hits = 0;
+        for x in 0..30 {
+            let pos = Position::new(x, 0);
+            if buf.cell(pos).is_some_and(|c| c.symbol() == "m") {
+                assert_eq!(buf.cell(pos).map(|c| c.fg), secondary, "meta fg at x={x}");
+                hits += 1;
+            }
+        }
+        assert_eq!(hits, 2, "the meta must paint exactly its own cells");
     }
 }

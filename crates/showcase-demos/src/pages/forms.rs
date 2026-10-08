@@ -1,10 +1,12 @@
 //! Form-like composition with required-field validation.
 
+use std::time::Duration;
+
 use termrock::{
     ActionKey, Button, Checkbox, Cx, Family, FgStep, Field, FrameRead, Id, ItemKey, Modifier,
-    Panel, PanelKind, Part, RadioGroup, RadioGroupAction, RadioGroupState, Rect, Response, Role,
-    RowAlign, StateFlags, StylePatch, TextArea, TextAreaState, TextInput, TextInputState, Toggle,
-    Ui, Variant, id, layout, truncate,
+    Moment, Panel, PanelKind, Part, RadioGroup, RadioGroupAction, RadioGroupState, Rect, Response,
+    Role, RowAlign, StateFlags, Status, StylePatch, TextArea, TextAreaState, TextInput,
+    TextInputState, Toggle, Ui, Variant, id, layout, truncate,
 };
 
 use super::{Page, PageStatus, PageUpdate, frame};
@@ -24,6 +26,10 @@ const SAVE: Id = id!("forms.save");
 const RESET: Id = id!("forms.reset");
 
 const MODES: &[&str] = &["Fast", "Balanced", "Thorough"];
+
+/// Pre-success busy window: the tag holds `Submit::Busy` for 23 ticks at
+/// the 80 ms live-tick interval before publishing `Task created ✓`.
+const SUBMIT_BUSY: Duration = Duration::from_millis(23 * 80);
 
 fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlags) {
     if area.is_empty() {
@@ -69,6 +75,7 @@ pub struct FormsPage {
     submitted: bool,
     attempted: bool,
     pending_status: Option<String>,
+    busy_until: Option<Moment>,
 }
 
 impl FormsPage {
@@ -92,7 +99,12 @@ impl FormsPage {
             submitted: false,
             attempted: false,
             pending_status: None,
+            busy_until: None,
         }
+    }
+
+    fn busy(&self) -> bool {
+        self.busy_until.is_some()
     }
 
     fn do_reset(&mut self, cx: &mut Cx<'_>) {
@@ -114,10 +126,14 @@ impl FormsPage {
         self.submitted = false;
         self.attempted = false;
         self.pending_status = Some("Form reset".to_string());
+        self.busy_until = None;
         cx.focus(SUMMARY);
     }
 
     fn validate(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.busy() {
+            return Response::ignored();
+        }
         self.attempted = true;
         if self.summary.trim().is_empty() {
             self.error = Some("Required");
@@ -126,8 +142,8 @@ impl FormsPage {
             return Response::changed();
         }
         self.error = None;
-        self.submitted = true;
-        self.pending_status = Some("Task created ✓".to_string());
+        self.busy_until = Some(cx.now().saturating_add(SUBMIT_BUSY));
+        self.pending_status = Some("Creating task…".to_string());
         Response::changed()
     }
 }
@@ -153,6 +169,14 @@ impl Page for FormsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
+        if cx.update_cause() == termrock::UpdateCause::Tick
+            && self.busy_until.is_some_and(|deadline| cx.now() >= deadline)
+        {
+            self.busy_until = None;
+            self.submitted = true;
+            self.pending_status = Some("Task created ✓".to_string());
+            response = Response::changed();
+        }
         response |= TextInput::new(SUMMARY)
             .placeholder("Short imperative summary")
             .update(cx, &mut self.summary_state, &mut self.summary)
@@ -186,9 +210,11 @@ impl Page for FormsPage {
             .disabled(true)
             .update(cx, &mut self.notify)
             .erase();
-        let save = Button::new(SAVE, "Create task")
-            .variant(Variant::PRIMARY)
-            .update(cx);
+        let mut save_button = Button::new(SAVE, "Create task").variant(Variant::PRIMARY);
+        if self.busy() {
+            save_button = save_button.status(Status::Busy);
+        }
+        let save = save_button.update(cx);
         if save.activated() {
             response |= self.validate(cx);
         }
@@ -201,6 +227,11 @@ impl Page for FormsPage {
             response |= Response::changed();
         }
         response |= reset.erase();
+        if cx.top_layer() == termrock::LayerId::PAGE
+            && let Some(deadline) = self.busy_until
+        {
+            cx.request_repaint_at(deadline);
+        }
 
         let status = self.pending_status.take().map(PageStatus);
         PageUpdate { response, status }
@@ -692,7 +723,10 @@ impl FormsPage {
             height: 1,
             ..inner
         };
-        let create = Button::new(SAVE, "Create task").variant(Variant::PRIMARY);
+        let mut create = Button::new(SAVE, "Create task").variant(Variant::PRIMARY);
+        if self.busy() {
+            create = create.status(Status::Busy);
+        }
         let reset = Button::new(RESET, "Reset").variant(Variant::SUBTLE);
         let widths = [13, 7];
         let rects = layout::action_row(action_area, &widths, 2, RowAlign::Start);
@@ -703,7 +737,9 @@ impl FormsPage {
         reset.draw(ui, reset_area);
         legacy_gutter(ui, reset_area, Variant::SUBTLE, ui.state(RESET));
 
-        let status = if self.submitted {
+        let status = if self.busy() {
+            Some(("Creating task…", Role::Fg(FgStep::Secondary)))
+        } else if self.submitted {
             Some(("Task created ✓", Role::Accent))
         } else if self.error.is_some() {
             Some(("Fix the highlighted fields", Role::Danger))

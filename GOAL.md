@@ -1,11 +1,17 @@
 /goal
 # Finish Termrock through reusable components and exact visual-baseline parity
 
+## Active visibility prerequisite
+
+At the start of every task, read [WORK_QUEUE.md](WORK_QUEUE.md) and the accepted task record in [tasks.json](docs/implementation/visibility/tasks.json). The VIS-01 owner publishes the first [STATUS.md](STATUS.md). Until that file exists, use the queue and accepted record for the initial visibility work. After its publication, read the status report at the start of every task. Compare each observed source commit with the current candidate sources, and review changes to measured sources since then. The commit that publishes a status report may differ from the observed source commit; keep those identities separate. Ask the integrator to reconcile stale source facts before relying on the report. Confirm that the claim token and allowed paths match the accepted task record. Confirm that the task remains open at its assigned priority. Ask the integrator to reconcile any mismatch before implementation. P0 visibility work takes priority; broad product refactoring waits until this prerequisite is closed.
+
+These instructions and records are not enforced automatically. `STATUS.md` reports current state. The accepted task records define scope. `WORK_QUEUE.md` lists task priorities. The public API, component ownership, checklist, review, and verification requirements below remain in force. Never move, delete, recreate, or retarget the frozen `visual-baseline` tag or release. Do not reset or rebase `termrock-implementation`, merge `main` into it, force-push it, or rewrite its history. Product-source changes belong only on `termrock-implementation`. The only branch exception is test, report, and CI updates on `origin/visual-baseline`; do not change product source or the frozen tag or release there. Use `origin/visual-baseline` as a test and scenario reference only. Do not use captures from that branch as expected visual output. `main` is structural evidence only, never expected visual output. Run Rust tests with `cargo nextest`; do not use `cargo test`.
+
 ## 1. Active task
 
 Finish the real Rust refactor across all 44 workspace crates, all four preview applications
 (`showcase`, `jackin-preview`, `holla`, and `tablepro`), the required test coverage, and reproducible CI.
-Execute exclusively on `termrock-implementation`.
+Make all product-source changes exclusively on `termrock-implementation`. The only branch exception is test, report, and CI updates on `origin/visual-baseline`.
 
 Acceptance requires satisfying every condition conjunctively:
 
@@ -26,14 +32,14 @@ databases, Docker, or services.
 
 ## 2. Authorities
 
-Work only on the existing `termrock-implementation` branch.
-Do not reset/rebase the branch, merge `main`, force-push, or rewrite history.
+Make product-source changes only on the existing `termrock-implementation` branch. The only branch exception is test, report, and CI updates on `origin/visual-baseline`.
+Do not reset or rebase `termrock-implementation`, merge `main` into it, force-push it, or rewrite its history.
 Do not move, delete, recreate, or retarget the frozen `visual-baseline` tag or release.
 
 | Reference | Purpose |
 | --- | --- |
 | Frozen `visual-baseline` tag (`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, object `1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5`) | Immutable visual and observable interaction authority. |
-| `origin/visual-baseline` branch | Test/scenario reference only after proving tag relation; never expected output. |
+| `origin/visual-baseline` branch | Test, report, and CI updates only; test/scenario reference after proving tag relation, never expected visual output. |
 | `termrock-refactor` | Planning and preparation history. |
 | `termrock-implementation` | Active candidate implementation branch. |
 | `main` | Structural and API comparison only. Never visual authority. |

@@ -1,5 +1,11 @@
 # Execution Model and Engineering Rules
 
+## Active Visibility Prerequisite
+
+At the start of every task, read the [work queue](WORK_QUEUE.md) and the accepted task record in [tasks.json](docs/implementation/visibility/tasks.json). The VIS-01 owner publishes the first [status report](STATUS.md). Until that file exists, use the queue and accepted record for the initial visibility work. After its publication, read the status report at the start of every task. Compare each observed source commit with the current candidate sources, and review changes to measured sources since then. The commit that publishes a status report may differ from the observed source commit; keep those identities separate. Ask the integrator to reconcile stale source facts before relying on the report. Confirm that the claim token and allowed paths match the accepted task record. Confirm that the task remains open at its assigned priority. Ask the integrator to reconcile any mismatch before implementation. P0 visibility work takes priority; broad product refactoring waits until this prerequisite is closed.
+
+These instructions and records are not enforced automatically. `STATUS.md` reports current state. The accepted task records define scope. `WORK_QUEUE.md` lists task priorities. The public API, component ownership, checklist, review, and verification requirements remain in force. Never move, delete, recreate, or retarget the frozen `visual-baseline` tag or release. Do not reset or rebase `termrock-implementation`, merge `main` into it, force-push it, or rewrite its history. Product-source changes belong only on `termrock-implementation`. The only branch exception is test, report, and CI updates on `origin/visual-baseline`; do not change product source or the frozen tag or release there. Use `origin/visual-baseline` as a test and scenario reference only. Do not use captures from that branch as expected visual output. `main` is structural evidence only, never expected visual output. Run Rust tests with `cargo nextest`; do not use `cargo test`.
+
 ## Canonical Two-Stage Execution Model
 
 1. **Stage A: Preparation on `termrock-refactor`**
@@ -23,8 +29,8 @@ Follow the [document map](docs/process/document-map.md) when two documents overl
 
 ## Project Boundary and Authorities
 
-Work only on `termrock-implementation` for the current task.
-Do not reset the branch or create another implementation branch.
+Keep product changes on `termrock-implementation` for the current task. The only reference-branch exception is test, report, and CI updates on `origin/visual-baseline`.
+Do not reset the implementation branch or create another implementation branch.
 Do not create another Termrock repository.
 Do not merge `main` or rebase onto it.
 
@@ -37,7 +43,7 @@ The frozen visual authority is the `visual-baseline` tag at
 `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`.
 Never move, delete, recreate, or retarget that tag or its release.
 Use `termrock-refactor` as planning history.
-Use `origin/visual-baseline` only as test and scenario reference, never as expected output.
+Use `origin/visual-baseline` only for test, report, and CI updates and as a test and scenario reference. Do not use captures from it as expected visual output.
 Use `main` only as structural evidence, never as expected visual output.
 
 ## Component Ownership

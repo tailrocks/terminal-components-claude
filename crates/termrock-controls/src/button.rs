@@ -1,6 +1,7 @@
 //! `Button` (`COMPONENT_ARCHITECTURE.md` §17.0 A7, Appendix A 4A).
 
 use core::fmt;
+use std::time::Duration;
 
 use ratatui_core::layout::Rect;
 
@@ -14,7 +15,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Activated, Response, StateFlags};
-use crate::text::width;
+use crate::text::{truncate, width};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
@@ -226,7 +227,7 @@ impl<'a> Button<'a> {
         self
     }
 
-    /// A toggle marker: `true` paints the on knob, `false` a blank slot.
+    /// A toggle marker: `true` paints the on knob, `false` the off knob.
     #[must_use]
     pub const fn checked(mut self, on: bool) -> Self {
         self.checked = Some(on);
@@ -279,6 +280,14 @@ impl<'a> Button<'a> {
     /// The update phase.
     pub fn update(&self, cx: &mut Cx<'_>) -> Response<Activated> {
         self.autofocus_once(cx);
+        if self.busy() {
+            // Q67-F5: the spinner frame reads the runtime tick, and the
+            // runtime delivers no Tick without a repaint request — so a busy
+            // button keeps the animation cadence flowing itself, at the
+            // theme's tick period. Each elapsed deadline settles into one
+            // tick and one redraw with the next frame.
+            cx.request_repaint_after(Duration::from_millis(cx.design().motion.tick_ms));
+        }
         let mut r: Response<Activated> = Response::ignored();
         let can = self.can_activate();
         for it in cx.intents(self.id) {
@@ -498,7 +507,12 @@ impl<'a> Button<'a> {
                 let glyph = match ms.glyph {
                     Slot::Set(g) => Some(g),
                     Slot::Inherit if on => Some(GlyphRole::SwitchKnob),
-                    Slot::Inherit | Slot::Clear => None,
+                    // Q67-F5: the off half is a glyph, not a blank slot —
+                    // the reference paints `○` (`visual-baseline` button
+                    // toggle marker), matching the on/off-glyph invariant
+                    // the Checkbox/RadioGroup siblings keep.
+                    Slot::Inherit => Some(GlyphRole::SwitchKnobOff),
+                    Slot::Clear => None,
                 };
                 match glyph {
                     Some(g) => {
@@ -513,8 +527,14 @@ impl<'a> Button<'a> {
             f(ui, text);
         } else {
             let ls = style(ui, Part::LABEL);
+            // Q67-F5: the reference fits marker+label into the row with `…`
+            // (`visual-baseline:src/ui/text.rs:146` via button render), so a
+            // clipped label truncates with an ellipsis instead of a hard
+            // clip. `truncate` is a no-op when the label fits; the marker
+            // cell keeps its own paint and still wins at narrow widths.
+            let label = truncate(self.label, text.width);
             if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
-                ui.paint_str(text, self.label, ls.style);
+                ui.paint_str(text, &label, ls.style);
                 if area.width >= 2 {
                     paint_pressed_bracket(
                         ui,
@@ -524,7 +544,7 @@ impl<'a> Button<'a> {
                     );
                 }
             } else {
-                ui.paint_str(text, self.label, ls.style);
+                ui.paint_str(text, &label, ls.style);
                 // Q65-S8 (G9): the trailing pad wears the LABEL style, not the
                 // container fill. The tag paints it with the same `style` as
                 // the text (`visual-baseline:src/widgets/button.rs:161`),
@@ -535,6 +555,19 @@ impl<'a> Button<'a> {
                 if area.width >= 2 {
                     ui.paint_str(cell_at(area, area.right().saturating_sub(1)), " ", ls.style);
                 }
+            }
+            // Q67-F5: the reference fits marker lanes plus label jointly, so
+            // when the lanes consume the whole run (`text` is empty) yet the
+            // label overflows, the ellipsis lands on the last run cell — the
+            // lane gap — rather than vanishing with the label. Below width 4
+            // there is no run cell past the marker: at width 3 the marker
+            // stomps the ellipsis, and narrower rows show no label at all.
+            if text.width == 0 && area.width > 3 && width(self.label) > 0 {
+                ui.paint_str(
+                    cell_at(area, area.x.saturating_add(area.width).saturating_sub(2)),
+                    "…",
+                    ls.style,
+                );
             }
         }
         area

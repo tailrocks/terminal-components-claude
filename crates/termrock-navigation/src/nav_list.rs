@@ -15,6 +15,7 @@ use core::fmt;
 use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
+use ratatui_core::style::Modifier;
 
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
@@ -1204,10 +1205,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             // component-default patch under any page patch; disabled and
             // emphasized rows forward the page patch untouched (the
             // DISABLED rule still voices `Billing`).
+            // Q67-owed (focused-label BOLD): the tag bolds the focused
+            // row's label (`tag:theme.rs:360-362` adds BOLD iff focused;
+            // the nav label paints `st`). A shared (LIST,LABEL,FOCUSED)
+            // rule would touch List and the shell, so the BOLD rides the
+            // same component-default vehicle, focused rows only —
+            // hovered/current rows stay unbolded like the tag.
             let emphasized = flags.contains(StateFlags::SELECTED)
                 || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
             let page_label = self.ov.part_patch(Part::LABEL);
-            let label_patch = if emphasized || flags.contains(StateFlags::DISABLED) {
+            let label_patch = if flags.contains(StateFlags::DISABLED) {
+                page_label
+            } else if flags.contains(StateFlags::FOCUSED) {
+                const FOCUSED_BOLD: StylePatch = StylePatch::new().add(Modifier::BOLD);
+                Some(page_label.map_or(FOCUSED_BOLD, |forwarded| FOCUSED_BOLD.merge(forwarded)))
+            } else if emphasized {
                 page_label
             } else {
                 const IDLE: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
@@ -1768,6 +1780,47 @@ mod tests {
         assert_eq!(page.cell((5, 1)).map(|c| c.fg), secondary);
         assert_eq!(page.cell((5, 3)).map(|c| c.fg), primary);
         assert_eq!(page.cell((5, 2)).map(|c| c.fg), disabled);
+    }
+
+    /// Q67-owed (focused-label BOLD): the cursor row's label is BOLD iff
+    /// the list is focused (`tag:theme.rs:360-362`; the nav label paints
+    /// `st`). Non-cursor rows stay unbolded; the BOLD is NavList-scoped
+    /// so List and the shell never see it.
+    #[test]
+    fn q67owed_focused_cursor_label_is_bold_others_are_not() {
+        fn bold_at(focused: bool, x: u16, y: u16) -> Option<bool> {
+            let area = Rect::new(0, 0, 24, 12);
+            let theme = Theme::junie();
+            let mut fs = FrameState::default();
+            fs.reset(1, area);
+            let mut page = Buffer::empty(area);
+            let mut core = UiCore::default();
+            let previous = LastFrame::default();
+            let mut st = NavListState::new();
+            st.set_cursor(0, keyed(&ITEMS[0]));
+            {
+                let mut ui = Ui::new(&mut fs, &mut page, &mut core, &theme, &previous);
+                if focused {
+                    ui.reference(
+                        Some(crate::ReferenceTarget::new(
+                            NAV,
+                            crate::ReferenceState::FOCUSED,
+                        )),
+                        |ui| list().draw(ui, area, &st, &ITEMS),
+                    );
+                } else {
+                    list().draw(&mut ui, area, &st, &ITEMS);
+                }
+            }
+            page.cell((x, y))
+                .map(|c| c.modifier.contains(Modifier::BOLD))
+        }
+
+        // y1 Tasks is the cursor row; y3 Branches is enabled but not the
+        // cursor; labels start at x+5 (N1).
+        assert_eq!(bold_at(true, 5, 1), Some(true));
+        assert_eq!(bold_at(true, 5, 3), Some(false));
+        assert_eq!(bold_at(false, 5, 1), Some(false));
     }
 
     #[test]

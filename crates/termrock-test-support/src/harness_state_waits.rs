@@ -1,4 +1,4 @@
-//! State waits with explicit deadlines for [`Harness`](crate::harness::Harness).
+//! State waits with explicit deadlines for [`Harness`].
 //!
 //! Mirror of the reference `state_waits` helper, adapted to the candidate
 //! harness API (audit G3/P3). The reference replaces terminal `sleep:N`

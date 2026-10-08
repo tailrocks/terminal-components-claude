@@ -1,8 +1,6 @@
 //! Application-owned Safe Mode picker projection over shared Picker.
 
-use termrock::{
-    AsItem, Id, Item, ItemKey, ItemRowLayout, LayerSize, Picker, PickerState,
-};
+use termrock::{AsItem, Id, Item, ItemKey, ItemRowLayout, LayerSize, Picker, PickerState};
 
 use crate::SafeMode;
 
@@ -47,8 +45,10 @@ impl SafeModePicker {
             items.push(SafeModeItem { mode, is_current });
         }
         self.items = items;
-        self.state.set_cursor(active_index, ItemKey::index(active_index));
-        self.component(120, 40).reconcile(&mut self.state, &self.items);
+        self.state
+            .set_cursor(active_index, ItemKey::index(active_index));
+        self.component(120, 40)
+            .reconcile(&mut self.state, &self.items);
     }
 
     pub fn component(&self, cols: u16, screen_rows: u16) -> Picker<'static, SafeModeItem> {
