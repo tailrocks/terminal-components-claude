@@ -80,22 +80,6 @@ const BURNDOWN: &[Burndown] = &[
         reason: "RadioGroup has no horizontal orientation (vertical only)",
     },
     Burndown {
-        id: "BD-08",
-        cases: &["W06-02", "W06-05"],
-        test: "w06_chipbar_closable_keyboard_dead",
-        component: "W06",
-        owner: "termrock-navigation",
-        reason: "closable ChipBar ignores all keys; triplicate Remove rejects binding table",
-    },
-    Burndown {
-        id: "BD-09",
-        cases: &["W06-02"],
-        test: "w06_chipbar_close_press_then_reorder_or_delete",
-        component: "W06",
-        owner: "termrock-navigation",
-        reason: "pressing × toggles; LABEL part covers CLOSE in hit-test",
-    },
-    Burndown {
         id: "BD-10",
         cases: &["W08-02"],
         test: "w08_input_masked_clicks_follow_display",
@@ -277,7 +261,7 @@ fn burndown_matches_ignored_tests() {
         BURNDOWN.len()
     );
     let deferred_refs: usize = BURNDOWN.iter().map(|row| row.cases.len()).sum();
-    assert_eq!(deferred_refs, 25, "deferred case references must total 25");
+    assert_eq!(deferred_refs, 22, "deferred case references must total 22");
     for row in BURNDOWN {
         assert!(
             !row.reason.is_empty(),

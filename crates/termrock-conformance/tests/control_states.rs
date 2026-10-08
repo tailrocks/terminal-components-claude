@@ -2102,7 +2102,6 @@ fn keyed_chip_rig() -> (
 /// repeats, so no binding of a closable bar is ever published. Only pointer
 /// input reaches it.
 #[test]
-#[ignore = "PARITY W06-02/W06-05: closable ChipBar ignores all keys (triplicate Remove action rejects the whole binding table)"]
 fn w06_chipbar_closable_keyboard_dead() {
     let (mut app, items, actions) = keyed_chip_rig();
     assert!(app.tab_to(CHIP));
@@ -2132,7 +2131,6 @@ fn w06_chipbar_closable_keyboard_dead() {
 /// `draw`), so a press on `×` hit-tests as the chip body and toggles the
 /// chip instead of closing it.
 #[test]
-#[ignore = "PARITY W06-02: pressing × toggles the chip instead of closing (LABEL part covers CLOSE in hit-test)"]
 fn w06_chipbar_close_press_then_reorder_or_delete() {
     // Reorder under a held close press: the close keeps the pressed chip.
     let (mut app, items, actions) = keyed_chip_rig();

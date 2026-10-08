@@ -652,6 +652,49 @@ fn chip(m: &mut PartMap<PartRecipe>) {
             .set_glyph(GlyphRole::Close),
     )
     .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)));
+    // The leading affordance: muted on the surface, lifting on hover. No
+    // `FOCUSED` rule — the lead is click-only, never a cursor stop.
+    part(
+        m,
+        Part::LEAD,
+        p().set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::CurrentSurface),
+    )
+    .when(
+        StateFlags::HOVERED,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::HoverSurface),
+    );
+    // The trailing add affordance: the oracle `Subtle` button. Pressed is a
+    // fresh canvas-on-primary with no modifiers, exactly as the oracle
+    // builds it — the `BOLD` strip cancels the focused rule it merges over.
+    part(
+        m,
+        Part::NEW,
+        p().set_fg(Role::Fg(FgStep::Secondary))
+            .set_bg(Role::CurrentSurface),
+    )
+    .when(
+        StateFlags::HOVERED,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::HoverSurface),
+    )
+    .when(
+        StateFlags::FOCUSED,
+        p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+    )
+    .when(
+        StateFlags::PRESSED,
+        p().set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .remove(Modifier::BOLD),
+    );
+    part(
+        m,
+        Part::OVERFLOW,
+        p().set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::CurrentSurface),
+    );
 }
 
 fn grid(m: &mut PartMap<PartRecipe>) {

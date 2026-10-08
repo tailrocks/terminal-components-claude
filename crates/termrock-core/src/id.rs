@@ -371,6 +371,8 @@ parts! {
     CHANGE = 34,
     /// A source row number.
     ROW_NUMBER = 35,
+    /// A chip bar's leading affordance.
+    LEAD = 36,
 }
 
 impl Part {
@@ -666,9 +668,10 @@ mod tests {
                 assert_eq!(a == b, i == j);
             }
         }
-        assert_eq!(all.len(), 36);
+        assert_eq!(all.len(), 37);
         assert_eq!(Part::CHANGE.raw(), 34);
         assert_eq!(Part::ROW_NUMBER.raw(), 35);
+        assert_eq!(Part::LEAD.raw(), 36);
     }
 
     #[cfg(debug_assertions)]

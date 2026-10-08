@@ -1,6 +1,6 @@
 # ChipBar
 
-Status: proposed target; implementation is future work on `termrock-implementation`.
+Status: implemented on `termrock-implementation`.
 Owner: termrock-navigation.
 Visual authority: visual-baseline 4a79c0a2 (commit `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`).
 Component ID: W06 · Group: Collections · Phase: P3.
@@ -17,33 +17,43 @@ Exclusions:
 
 ## Public API
 
-Proposed target. No part of this API is source-checked against current code.
+Source-checked against `crates/termrock-navigation/src/chip.rs`.
 
 ```rust
-ChipBar::new(id: Id, chips: &'a [ChipItem<'a>], revision: Revision) -> ChipBar<'a>
+ChipBar::new(id: Id) -> ChipBar<'_, T, ByIndex, DefaultRow>
 
-bar.update(&mut cx, &mut state) -> Response<ChipAction>
-bar.draw(&mut ui, area, &state) -> Rect
-bar.measure(&measure_cx, constraints) -> Size
+bar.key(K2: Fn(&T) -> ItemKey) -> ChipBar<'_, T, K2, R>
+bar.row(R2: Fn(&T, &mut RowUi)) -> ChipBar<'_, T, K, R2>
+bar.select_mode(SelectMode) -> Self   // default Multi
+bar.closable(bool) -> Self           // default false
+bar.lead(&str) -> Self               // default none
+bar.add(&str) -> Self                // default none
+bar.plus_add(bool) -> Self           // default false
+bar.clear_all(bool) -> Self          // default false
+bar.read_only(bool) -> Self
+bar.disabled(bool) -> Self
+bar.patch(&StylePatch) -> Self
+bar.patch_part(&[(Part, StylePatch)]) -> Self
+bar.slot(Part, SlotFn) -> Self       // CLOSE and OVERFLOW only
+
+bar.update(&self, cx: &mut Cx, st: &mut ChipBarState, items: &[T]) -> Response<ChipBarAction>
+bar.draw(&self, ui: &mut Ui, area: Rect, st: &ChipBarState, items: &[T]) -> Rect
+bar.measure(&self, ui: &Ui, c: Constraints) -> Size
 ```
 
-Builders: `add_action(Option<ActionMeta<'a>>)`, `disabled(bool)`, `patch(StylePatch)`, and `row(&ChipRowPainter)`.
-
-`ChipBarState` contains cursor key and horizontal `ScrollState`; checked state remains controlled in chip rows. Typed actions are `ChipAction::{ Activate { key, origin }, SetChecked { key, checked, origin }, Close { key, origin }, Add { origin } }`. Optional lead/clear affordances are caller action metadata routed through these stable action identities; they do not create another event engine or an untyped product callback.
+`ChipBarState` carries the cursor key, the checked set, the add-stop flag, and the keyed window head (`Clone + Default`). Typed actions are `ChipBarAction::{ Toggled(ItemKey), Closed(ItemKey), Activated(ItemKey), AddRequested, Lead, Cleared }`; the lead, add, and clear-all affordances name no item and report payloadless actions, so none can collide with an item key.
 
 Update, draw, and measure:
 
-- `update` navigates stable chip keys, routes each subpart to its distinct action, and reconciles cursor/scroll after source changes. Close never also activates the body.
+- `update` reconciles cursor/checked/window over stable keys, then moves the cursor, activates, toggles, closes, or fires the gated `+`/`X` chords. Close never also activates the body.
 - `draw` paints lead, chips, close affordances, overflow, and Add as actual subparts with clipped hitboxes. It never mutates chip data or starts scrolling.
-- `measure` computes display-cell widths for each chip, close glyph, gaps, lead/Add affordance, and overflow marker.
+- `measure` reports one row: minimum 8 columns, preferred strip width.
 
 ## Ordinary use
 
-No consumer recipe covers ChipBar yet.
-
 Showcase chips page is the primary baseline consumer.
 
-Ordinary use passes borrowed `chips`, `revision`, and optional `add_action`. The caller keeps `ChipBarState` (cursor key and horizontal scroll) across frames and handles the typed `ChipAction` for body activation, checked changes, close, and add. Checked state stays controlled in chip rows; the bar never mutates it.
+Ordinary use passes borrowed `items` to each phase (chips are never held) plus a caller-kept `ChipBarState` across frames, and handles the typed `ChipBarAction` for body activation, checked changes, close, add, lead, and clear-all. The component owns the checked set in its state; the caller owns the items. Update and draw must build the bar identically (same id, key, and row), or pointer actions misroute.
 
 ## Ownership
 
@@ -59,22 +69,24 @@ Shared dependencies:
 
 ## Customization
 
-Parts are `container`, `gutter`, `marker`, `label`, `close`, `add`, and `overflow`. Preserve baseline strip density, toggle/check marker, hover lifting, close glyph, Add affordance, lead label, gaps, overflow ellipsis, disabled/error tones, and clipping. [`ScrollRegion`](scroll-region.md) and [`theme`](../foundations/theme.md) own shared scroll/style policy. A row painter may style supported parts but cannot replace subpart hit ownership.
+Parts are `CONTAINER`, `MARKER`, `LABEL`, `CLOSE`, `OVERFLOW`, `NEW`, and `LEAD`. Preserve baseline strip density, toggle/check marker, hover lifting, close glyph, Add affordance, lead label, gaps, overflow ellipsis, disabled/error tones, and clipping. [`ScrollRegion`](scroll-region.md) and [`theme`](../foundations/theme.md) own shared scroll/style policy. A row painter may style supported parts but cannot replace subpart hit ownership.
 
 The baseline anatomy is an optional lead such as `match all ▾`, then chips
 rendered as `▎label ×`, a subtle `+ Add filter` stop, and one `…` overflow
 marker when the strip cannot show every chip. Disabled chips are faint and
-invalid chips use the error tone. The whole bar is one focus stop with a
-logical cursor among lead, chip body, chip close, and Add subparts.
+invalid chips use the error tone. The whole bar is one focus stop; the
+logical cursor moves among chips and the Add stop, while the lead is
+click-only and never a cursor stop (the oracle wins over the earlier
+cursor-among-lead clause).
 
-Ordinary example: `ChipBar::new(id, &chips, rev).add_action(Some(add_meta))`.
+Ordinary example: `ChipBar::new(id).closable(true).lead("match all ▾").add("+ Add filter")`.
 
 ## Behavior
 
 | Area | Required behavior |
 |---|---|
 | Keyboard | Left/Right or `h`/`l` move the logical cursor. Enter edits the chip or activates Add. Space toggles. `x`/Delete/Backspace removes the current closable chip; `+` adds and uppercase `X` clears all only when configured. Modified unassigned chords do nothing. |
-| Pointer | Body, close, lead, and Add have disjoint clipped targets. Close emits only Close; body emits only Activate; outside/removal cancels. |
+| Pointer | Body, close, lead, and Add have disjoint clipped targets. Close emits only Close (the label registers before the close cell; hit-testing is last-registration-wins, `crates/termrock-runtime/src/hit.rs:288`); body emits only Activate; outside/removal cancels. |
 | Focus/hover | One bar focus stop; runtime owns hover/capture. Focused cursor and hovered close are distinct visual states. Keyboard suppresses stale hover. |
 | Disabled/read-only | Disabled chip body and close eligibility follow the caller's flags; disabled targets cannot emit action or retain press. |
 | Editing | Not applicable; labels are borrowed text. |
@@ -132,10 +144,8 @@ ui.paint_str(row, 0, "▎rust × ▎tui ×");
 if clicked { tags.remove(i); }
 ```
 
-Rule: [ARC-012](../architecture/component-composition.md) prohibits direct `ui.paint_str` rendering of controls and padded strings that simulate selection. Use `ChipBar::new` with stable chip keys and handle the typed `ChipAction::Close`.
+Rule: [ARC-012](../architecture/component-composition.md) prohibits direct `ui.paint_str` rendering of controls and padded strings that simulate selection. Use `ChipBar::new` with stable chip keys and handle the typed `ChipBarAction::Closed`.
 
 ## Known gaps
 
 - Capture plan W06 is planned and uncaptured; no expected artifacts are bound.
-- Implementation is future work on `termrock-implementation`.
-- [FIX-007 signature drift](../implementation/code-remediation-backlog.md): the contract API is a proposed target and no signature is source-checked.
