@@ -421,7 +421,13 @@ impl<'a> HintBar<'a> {
             } else {
                 0
             };
-            let need = used.saturating_add(w).saturating_add(reserve);
+            // Tag `keyhint.rs` measures each hint with its trailing gap
+            // (`hint_w`) plus the cut-marker reserve; without the gap the
+            // bar admits one hint too many on tight rows.
+            let need = used
+                .saturating_add(w)
+                .saturating_add(Self::HINT_GAP)
+                .saturating_add(reserve);
             if need > budget {
                 break;
             }

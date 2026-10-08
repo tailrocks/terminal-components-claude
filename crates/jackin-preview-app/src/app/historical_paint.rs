@@ -419,16 +419,9 @@ const MONO_RULES: &[MonoRule] = &[
         StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
     ),
-    (
-        Part::custom("jackin.historical.warning_on_canvas"),
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
-    (
-        Part::custom("jackin.historical.warning_on_elevated"),
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
+    // No warning override: the tag mean-based ladder degrades warning to
+    // the dim rung, matching the direct-patch path. Forcing Primary here
+    // brightens mono `•` markers against the baseline.
 ];
 
 fn resolve_pairs(ui: &Ui<'_>) -> [PaintStyle; 33] {
