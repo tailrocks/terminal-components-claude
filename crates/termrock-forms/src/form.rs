@@ -534,6 +534,18 @@ impl FormState {
         self.dirty = false;
     }
 
+    /// Live non-secret draft text for a text field while it edits.
+    ///
+    /// Owners whose painters mirror component state read this to echo
+    /// keystrokes before commit; secret and idle fields report `None` so the
+    /// committed owner value stays authoritative.
+    pub fn text_draft(&self, id: Id) -> Option<&str> {
+        self.slots
+            .iter()
+            .find(|slot| slot.id == id)
+            .and_then(|slot| slot.input.draft_text())
+    }
+
     /// Local validation error for `id`.
     ///
     /// Errors are returned as the generic `"Invalid value"`.

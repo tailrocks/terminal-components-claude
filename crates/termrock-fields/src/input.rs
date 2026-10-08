@@ -224,6 +224,23 @@ impl EditorDraft {
         }
     }
 
+    pub(crate) fn cursor_offset(&self) -> usize {
+        match self {
+            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => {
+                let pos = editor.cursor_pos();
+                editor.offset_at(pos.line, pos.col)
+            }
+        }
+    }
+
+    pub(crate) fn select_range(&mut self, start: usize, end: usize) {
+        match self {
+            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => {
+                editor.select_range(start, end);
+            }
+        }
+    }
+
     pub(crate) fn hscroll(&self) -> u16 {
         match self {
             EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => editor.hscroll(),
@@ -470,6 +487,28 @@ impl TextInputState {
         } else {
             Some(self.draft.text())
         }
+    }
+
+    /// Byte offset of the draft cursor while editing; `None` when idle.
+    ///
+    /// Completion owners anchor trigger and accept ranges on this offset.
+    /// Secret drafts report their real offset: position is not content.
+    pub fn draft_cursor(&self) -> Option<usize> {
+        self.is_editing().then(|| self.draft.cursor_offset())
+    }
+
+    /// Replace `replace_len` bytes before the draft cursor with `insertion`.
+    ///
+    /// Completion accept targets the live draft only: idle states refuse so a
+    /// stale accept can never rewrite a committed value.
+    pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
+        if !self.is_editing() {
+            return false;
+        }
+        let end = self.draft.cursor_offset();
+        let start = end.saturating_sub(replace_len);
+        self.draft.select_range(start, end);
+        self.draft.apply(EditAction::Paste(insertion)).changed()
     }
 
     /// Compare the text the editor currently displays without exposing its draft.
