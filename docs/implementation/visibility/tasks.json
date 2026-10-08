@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 6,
+  "queue_revision": 17,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -28,15 +28,18 @@
         "tools/visibility/source-facts.json",
         "tools/visibility/README.md",
         "STATUS.md",
-        "README.md"
+        "README.md",
+        "crates/termrock-visibility-tests/tests/status.rs"
       ],
       "owner": "/root/status_luna",
       "reviewer": "/root/technical_review",
       "claim_token": "visibility-bootstrap-20261008-01",
       "expiry": "2026-10-09T00:00:00Z",
-      "state": "review",
+      "state": "in_progress",
       "evidence": [
-        "Independent plan approval from /root/technical_review; exact staged review pending."
+        "Independent plan approval from /root/technical_review; exact staged review pending.",
+        "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests.",
+        "User requires Rust-only tests. Preserve 12 existing status assertion groups in the accepted Rust module before removing Python tests; the receipt-reader contract remains pending."
       ],
       "handoff": null,
       "accepted_queue_revision": 1
@@ -115,7 +118,8 @@
       "allowed_paths": [
         "tools/visibility/deferred.py",
         "tools/visibility/tests/test_deferred.py",
-        "docs/implementation/visibility/evidence/deferred/**"
+        "docs/implementation/visibility/evidence/deferred/**",
+        "crates/termrock-visibility-tests/tests/deferred.rs"
       ],
       "owner": "/root/deferred_execution",
       "reviewer": "/root/technical_review",
@@ -123,7 +127,8 @@
       "expiry": "2026-10-09T00:00:00Z",
       "state": "in_progress",
       "evidence": [
-        "Independent plan approved by /root/technical_review; build slot not granted yet."
+        "Independent plan approved by /root/technical_review; build slot not granted yet.",
+        "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests."
       ],
       "handoff": null,
       "accepted_queue_revision": 4
@@ -147,16 +152,141 @@
         "tools/visibility/tests/test_queue.py"
       ],
       "owner": "/root/coordination_luna",
-      "reviewer": "/root/technical_review",
+      "reviewer": "/root/reference_luna",
       "claim_token": "visibility-queue-20261008-05",
+      "expiry": "2026-10-09T00:00:00Z",
+      "state": "verified",
+      "evidence": [
+        "Independent plan approved by /root/technical_review; atomic controls not yet implemented.",
+        "Integrator promoted the independent P0 queue-code prerequisite before initial publication; no file overlap or status-publication dependency.",
+        "Integrator assigned the independent focused review to /root/reference_luna; owner and scope unchanged. Commit e696c4e is pushed; 34 focused tests pass.",
+        "Scoped queue controls committed and independently reviewed; repository/worktree extension and runtime instruction checks remain open."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 5,
+      "review_subject_sha256": "76bcffac8c31c52abce94d9ddb5e228b9feb4be79ce12fc1771a9c5614387994",
+      "review_record": {
+        "reviewer": "/root/reference_luna",
+        "decision": "approved",
+        "subject_sha256": "76bcffac8c31c52abce94d9ddb5e228b9feb4be79ce12fc1771a9c5614387994",
+        "reviewed_at": "2026-10-08T04:02:17Z",
+        "evidence": "Independent VIS-05 review of the exact allowed paths tools/visibility/queue.py and tools/visibility/tests/test_queue.py. The staged commit e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2 has parent 994706c6fb4a8d15fa0d5e937839fb07d0e02585, tree b74a0a1956c627377aeb0620637953dff52b7384, and binary diff SHA-256 9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9. Current and committed file hashes match the independently approved hashes. The current allowed-path scope digest is 76bcffac8c31c52abce94d9ddb5e228b9feb4be79ce12fc1771a9c5614387994. Review JSON is external to the repository and does not authenticate reviewer identity cryptographically."
+      },
+      "review_record_sha256": "ff8357ebf38cf43229da79e0d9cc0209f63bc843decd46534625a5481ce9d617"
+    },
+    {
+      "work_id": "VIS-06",
+      "requirement_ids": [
+        "VIS-T02",
+        "VIS-T03",
+        "VIS-V01"
+      ],
+      "priority": "P0",
+      "priority_reason": "Resolve and build actual release binaries from pinned source before paired observations.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+      "allowed_paths": [
+        "tools/visibility/subjects.py",
+        "docs/implementation/visibility/evidence/subjects/**",
+        "crates/termrock-visibility-tests/tests/subjects.rs"
+      ],
+      "owner": "/root/tablepro_owner",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-subjects-20261008-06",
       "expiry": "2026-10-09T00:00:00Z",
       "state": "in_progress",
       "evidence": [
-        "Independent plan approved by /root/technical_review; atomic controls not yet implemented.",
-        "Integrator promoted the independent P0 queue-code prerequisite before initial publication; no file overlap or status-publication dependency."
+        "Independent subject-launcher plan approved by /root/technical_review; exact schema bound before implementation; actual builds not yet run.",
+        "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests."
       ],
       "handoff": null,
-      "accepted_queue_revision": 5
+      "accepted_queue_revision": 7
+    },
+    {
+      "work_id": "VIS-07",
+      "requirement_ids": [
+        "VIS-A01",
+        "VIS-V01"
+      ],
+      "priority": "P0",
+      "priority_reason": "Keep actual independent review and commit bindings in repository evidence.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2",
+      "allowed_paths": [
+        "docs/implementation/visibility/evidence/reviews/**"
+      ],
+      "owner": "/root/language_review",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-review-archive-20261008-07",
+      "expiry": "2026-10-09T00:00:00Z",
+      "state": "in_progress",
+      "evidence": [
+        "Independent archive-only plan approved by /root/technical_review; raw review audit records confer no trust or admission.",
+        "Archive exact existing external review bytes and manifest hashes; no new review decisions or qualification index."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 10
+    },
+    {
+      "work_id": "VIS-08",
+      "requirement_ids": [
+        "VIS-V01",
+        "VIS-P02"
+      ],
+      "priority": "P0",
+      "priority_reason": "Use Rust tests to preserve and verify the reporting, queue, deferred, and binary-build requirements.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "effccf68d68a8ecc702bc7935b820e9c7b38b408",
+      "allowed_paths": [
+        "crates/termrock-visibility-tests/Cargo.toml",
+        "crates/termrock-visibility-tests/Cargo.lock",
+        "crates/termrock-visibility-tests/src/**",
+        "crates/termrock-visibility-tests/README.md"
+      ],
+      "owner": "/root/rust_test_infrastructure",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-rust-test-infrastructure-20261008-08",
+      "expiry": "2026-10-09T00:00:00Z",
+      "state": "in_progress",
+      "evidence": [
+        "Independent Rust test infrastructure plan approved by /root/technical_review. Synthetic tool protocols do not prove product results.",
+        "Implement Rust-only shared test helpers and a compiled synthetic protocol fixture; no UI dependencies or Python test scripts."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 12
+    },
+    {
+      "work_id": "VIS-09",
+      "requirement_ids": [
+        "VIS-P02",
+        "VIS-P03",
+        "VIS-P04",
+        "VIS-P05",
+        "VIS-V01"
+      ],
+      "priority": "P0",
+      "priority_reason": "Preserve all queue assertions in Rust tests before further queue changes.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "effccf68d68a8ecc702bc7935b820e9c7b38b408",
+      "allowed_paths": [
+        "crates/termrock-visibility-tests/tests/queue.rs",
+        "tools/visibility/tests/test_queue.py"
+      ],
+      "owner": "/root/coordination_luna",
+      "reviewer": "/root/reference_luna",
+      "claim_token": "visibility-rust-queue-tests-20261008-09",
+      "expiry": "2026-10-09T00:00:00Z",
+      "state": "in_progress",
+      "evidence": [
+        "Independent Rust-only black-box test architecture approved by /root/technical_review. Preserve all 34 queue assertion groups before removing the Python test file.",
+        "Implement Rust assertions against the actual queue CLI, with disposable Git and filesystem fixtures; no production test backdoors."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 15
     }
   ]
 }
