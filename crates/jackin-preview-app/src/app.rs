@@ -1063,6 +1063,14 @@ impl App {
         }
         if app.route == Route::Manager {
             app.reset_manager_cursor();
+            // Tag boot: an unreadable instance index enters the manager
+            // with the ritual warning (arbiter `Unknown` entry decision).
+            if let Err(err) = app.world.arbiter.running() {
+                app.status = Some(format!(
+                    "Could not confirm running instances: {} · entered without the ritual",
+                    err.label()
+                ));
+            }
         }
         app.sync_workspace_keymap();
         app
@@ -2210,6 +2218,25 @@ impl App {
             self.route = Route::Outro;
             self.outro = Some(OutroState::new(self.motion, None, 0));
         }
+    }
+
+    /// Tag-format run label for the failure dialog: `run-{stamp12}-{suffix}`
+    /// from the world clock plus the failed instance's id suffix (tag
+    /// `CockpitScreen::new`). The typed `RunId` stays the run identity;
+    /// this is the display projection the dialog owns.
+    fn failure_run_label(&self, run: &LaunchRun) -> String {
+        let stamp = crate::domain::clock::Clock::stamp(self.world.now_secs())
+            .replace([' ', ':'], "-")
+            .replace('-', "");
+        let stamp12 = stamp.get(..12).unwrap_or(&stamp);
+        let suffix = self
+            .world
+            .instances
+            .iter()
+            .find(|instance| instance.run_id == run.run_id)
+            .map(|instance| instance.id.trim_start_matches("jk-"))
+            .unwrap_or("0000");
+        format!("run-{stamp12}-{suffix}")
     }
 
     fn capsule_input() -> TextInput<'static> {
@@ -6576,6 +6603,7 @@ impl App {
             &self.world,
             self.selected_role(),
             self.cockpit_debug_open,
+            self.launch.as_ref(),
         );
         if self.cockpit_info_open {
             crate::screens::cockpit::CockpitScreen::draw_info(
@@ -6593,7 +6621,7 @@ impl App {
             && let Some(run) = self.launch.as_ref()
             && let Some(failure) = run.failure.as_ref()
         {
-            let run_id = run.run_id.short();
+            let run_id = self.failure_run_label(run);
             let ws_name = self
                 .world
                 .workspaces
@@ -7843,9 +7871,16 @@ impl App {
 
         if self.route == Route::Manager {
             let hints = self.manager_hints();
-            HintBar::new(APP.sub("hint"), &hints)
-                .status_text(self.status.as_deref())
-                .draw(ui, area);
+            let bar = HintBar::new(APP.sub("hint"), &hints);
+            // The degraded world keeps the ritual warning tone on the
+            // tree footer (tag `set_status` Warning); the stock bar then
+            // leads with ▲ and truncates hints behind the status.
+            let bar = if self.world.arbiter.discovery.is_err() {
+                bar.status(Status::Warning)
+            } else {
+                bar
+            };
+            bar.status_text(self.status.as_deref()).draw(ui, area);
             return;
         }
 
@@ -7882,6 +7917,7 @@ impl App {
             let hints = crate::screens::cockpit::CockpitScreen::hints(
                 self.cockpit.log_open,
                 self.cockpit_cancel_confirm,
+                self.cockpit_failure_open || self.cockpit_info_open,
             );
             HintBar::new(APP.sub("hint"), &hints)
                 .status_text(self.status.as_deref())

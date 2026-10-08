@@ -412,8 +412,8 @@ impl World {
 
     /// Allocate the next deterministic instance identifier.
     pub fn new_instance_id(&self) -> String {
-        let next = self.instances.len().saturating_add(1);
-        format!("jk-{next:04x}")
+        let n = self.instances.len() as u32 + 0x7f3a + 0x1234 * 3;
+        format!("jk-{:04x}", n & 0xffff)
     }
 
     /// Resolve the account selected for a launch context.
