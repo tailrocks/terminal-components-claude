@@ -1,0 +1,123 @@
+{
+  "review": "independent_queue_commit_language_review",
+  "subject_binding": {
+    "snapshot_parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+    "snapshot_tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+    "subject_diff_sha256": "9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9",
+    "paths": [
+      "tools/visibility/queue.py",
+      "tools/visibility/tests/test_queue.py"
+    ],
+    "commit": {
+      "sha": "e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2",
+      "parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+      "tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+      "subject": "feat(visibility): enforce accepted work claims and priority"
+    },
+    "binding_check": "subject.diff SHA-256 matches subject.json; commit parent and tree match the supplied binding; the commit changes the two listed files."
+  },
+  "outcome": "nonblocking_language_findings",
+  "findings": [
+    {
+      "id": "LANG-Q-01",
+      "severity": "medium",
+      "path": "tools/visibility/queue.py",
+      "line": 4,
+      "text": "The accepted task JSON is the authority.",
+      "issue": "Issue 9 defines AUTHORITY (n) as an official organization that gives approval. This sentence uses the noun for a data file that controls the queue. The software meaning is understandable, but it differs from the dictionary meaning and may confuse a strict STE reader.",
+      "suggested_wording": "The accepted task JSON controls the queue. WORK_QUEUE.md is a deterministic view of that file.",
+      "standard_basis": "Issue 9 Part 2, AUTHORITY (n); Rules 1.1 and 1.3."
+    },
+    {
+      "id": "LANG-Q-02",
+      "severity": "low",
+      "path": "tools/visibility/queue.py",
+      "line": 95,
+      "text": "JSON object repeats key {!r}",
+      "issue": "The diagnostic omits an article and reads awkwardly.",
+      "suggested_wording": "JSON object repeats the key {!r}."
+    },
+    {
+      "id": "LANG-Q-03",
+      "severity": "low",
+      "path": "tools/visibility/queue.py",
+      "line": 1165,
+      "text": "cannot verify current Git subject",
+      "issue": "In Git terminology, “subject” usually means the first line of a commit message. This error is raised when the code cannot read the current branch or HEAD SHA.",
+      "suggested_wording": "cannot verify the current Git branch and HEAD"
+    },
+    {
+      "id": "LANG-Q-04",
+      "severity": "low",
+      "path": "tools/visibility/queue.py",
+      "line": 1267,
+      "text": "trusted caller's SHA-256 of the exact external review file bytes",
+      "issue": "The help text does not say how the caller is trusted. The tool compares the supplied digest with the file bytes; the module docstring says the receipt does not authenticate reviewer identity or provide a signature. “Exact” also has a narrower approved meaning in Issue 9 than byte-for-byte identity.",
+      "suggested_wording": "caller-supplied SHA-256 digest of the external review file bytes",
+      "standard_basis": "Issue 9 Part 2, EXACT (adj), with alternatives ACCURATE and CORRECT; technical-term approval was not verified."
+    },
+    {
+      "id": "LANG-Q-05",
+      "severity": "low",
+      "path": "tools/visibility/queue.py",
+      "line": 1287,
+      "text": "{} accepted task(s)",
+      "issue": "The output is awkward for both singular and plural counts, for example “1 accepted task(s)”.",
+      "suggested_wording": "accepted tasks: {}"
+    },
+    {
+      "id": "LANG-Q-06",
+      "severity": "low",
+      "path": "tools/visibility/queue.py",
+      "line": 674,
+      "text": "Task state is assignment state; it does not prove test results or requirement completion.",
+      "issue": "The first clause repeats “state” and does not explain what the task state represents.",
+      "suggested_wording": "Task state records assignment status; it does not prove test results or requirement completion."
+    },
+    {
+      "id": "LANG-Q-07",
+      "severity": "low",
+      "path": "commit subject",
+      "text": "feat(visibility): enforce accepted work claims and priority",
+      "issue": "The subject is grammatical, but “and priority” does not say which priority rule the change enforces.",
+      "suggested_wording": "feat(visibility): enforce task claim rules and priority order"
+    }
+  ],
+  "commit_subject_assessment": "Conventional Commit structure is clear. The wording finding is limited to the broad phrase “and priority.”",
+  "vocabulary_review": {
+    "official_source": {
+      "name": "ASD-STE100 Issue 9 official PDF",
+      "sha256": "d1f4ea9e7cd6e46b47aa9057209f99e78e0c9cfc4e27a5b07895b05c1a166431",
+      "url": "https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf"
+    },
+    "selected_entries_checked": [
+      "AUTHORITY (n): official organization that gives approval",
+      "EVIDENCE (n): alternatives include INDICATION and SIGN",
+      "PRIORITY (n): alternatives include IMPORTANT, BEFORE, and FIRST",
+      "EXACT (adj): alternatives include ACCURATE and CORRECT",
+      "REVIEW (n): alternative INSPECTION"
+    ],
+    "technical_term_note": "EVIDENCE, PRIORITY, REVIEW, and byte-exact language are used in software verification and queue control. Issue 9 permits technical nouns that are approved in the applicable company, industry, or subject field. This review did not verify a project glossary or formal technical-term approvals."
+  },
+  "coverage": {
+    "reviewed": [
+      "all module, class, and function docstrings in tools/visibility/queue.py",
+      "queue.py validation and mutation diagnostics, CLI help, success output, and generated WORK_QUEUE.md prose",
+      "the exact queue commit subject",
+      "whether tools/visibility/tests/test_queue.py adds prose docstrings; it does not"
+    ],
+    "not_reviewed_as_user_prose": [
+      "implementation logic and technical JSON keys as language material",
+      "test fixture strings, assertion expressions, and test method names"
+    ],
+    "not_completed": [
+      "all 53 Issue 9 writing rules",
+      "full Section 8 word-count audit",
+      "full 875-word dictionary audit",
+      "formal approval of project-specific technical terms"
+    ],
+    "conformity_claim": false
+  },
+  "repository_edits": false,
+  "builds_or_tests": false
+}
