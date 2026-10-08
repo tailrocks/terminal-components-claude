@@ -7,10 +7,10 @@ use termrock::{
     Empty, EmptyState, Family, FgStep, Field, FocusVia, Focusability, Form, FormAction, FormState,
     FrameRead, Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap,
     KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase,
-    PickerAction, Props, PropsRow, Response, Role, RowUi, Select, SelectAction, Size, SortDir,
-    Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState,
-    TextAction, TextInput, TextInputState, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState,
-    Ui, UpdateCause, Variant, truncate, wrap,
+    PickerAction, Props, PropsRow, Response, Role, RowUi, Select, SelectAction, SelectField,
+    SelectState, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, TooSmall, Tree,
+    TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -4305,90 +4305,6 @@ impl TableProApp {
         }
     }
 
-    fn draw_form_select(
-        ui: &mut Ui<'_>,
-        area: termrock::Rect,
-        label: &str,
-        value: &str,
-        card_bg: PaintStyle,
-        field_bg: PaintStyle,
-    ) {
-        if area.is_empty() {
-            return;
-        }
-        let label_style =
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
-        let label_x = area.x.saturating_add(2.min(area.width));
-        ui.paint_str(
-            termrock::Rect {
-                x: label_x,
-                y: area.y,
-                width: area.width.saturating_sub(2),
-                height: 1,
-            },
-            label,
-            label_style,
-        );
-
-        if area.height >= 2 {
-            let field_rect = termrock::Rect {
-                x: area.x,
-                y: area.y.saturating_add(1),
-                width: area.width,
-                height: 1,
-            };
-            let fs = field_bg
-                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-            ui.fill(field_rect, fs);
-
-            let gutter_style = field_bg.patch(
-                ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Field))),
-            );
-            ui.paint_str(
-                termrock::Rect {
-                    x: area.x,
-                    y: field_rect.y,
-                    width: 1,
-                    height: 1,
-                },
-                " ",
-                gutter_style,
-            );
-
-            let inner_x = area.x.saturating_add(2.min(area.width));
-            let inner_w = area.width.saturating_sub(5);
-            if inner_w > 0 {
-                let val_style = field_bg
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-                let val = truncate(value, inner_w);
-                ui.paint_str(
-                    termrock::Rect {
-                        x: inner_x,
-                        y: field_rect.y,
-                        width: termrock::width(&val) as u16,
-                        height: 1,
-                    },
-                    &val,
-                    val_style,
-                );
-            }
-            if area.width >= 2 {
-                let arrow_style = field_bg
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
-                ui.paint_str(
-                    termrock::Rect {
-                        x: area.right().saturating_sub(2),
-                        y: field_rect.y,
-                        width: 1,
-                        height: 1,
-                    },
-                    "▾",
-                    arrow_style,
-                );
-            }
-        }
-    }
-
     fn draw_form_radio(
         ui: &mut Ui<'_>,
         area: termrock::Rect,
@@ -4618,9 +4534,22 @@ impl TableProApp {
         y = y.saturating_add(fh);
 
         // 2. Engine
-        let engines = ["PostgreSQL", "MySQL", "SQLite"];
-        let engine_str = engines.get(draft.engine).copied().unwrap_or("PostgreSQL");
-        Self::draw_form_select(
+        let mut engine_state = SelectState::default();
+        engine_state.set_value(Some(ItemKey::index(draft.engine)));
+        Field::new(
+            "Engine",
+            SelectField::new(
+                Select::new(connections::field::ENGINE),
+                connections::ENGINES,
+            ),
+        )
+        .plain(true)
+        .optional_suffix(false)
+        .patch_part(&[(
+            Part::CONTAINER,
+            StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+        )])
+        .draw(
             ui,
             termrock::Rect {
                 x: lc.x,
@@ -4628,10 +4557,7 @@ impl TableProApp {
                 width: lc.width,
                 height: 3,
             },
-            "Engine",
-            engine_str,
-            card_bg,
-            field_bg,
+            &engine_state,
         );
         y = y.saturating_add(3);
 
@@ -4812,9 +4738,21 @@ impl TableProApp {
         ry = ry.saturating_add(5 + 1);
 
         // 2. Group
-        let groups = ["Personal", "Acme", "Clients"];
-        let group_str = groups.get(draft.group).copied().unwrap_or("Personal");
-        Self::draw_form_select(
+        let mut group_state = SelectState::default();
+        group_state.set_value(Some(ItemKey::index(
+            draft.group.min(connections::GROUPS.len() - 1),
+        )));
+        Field::new(
+            "Group",
+            SelectField::new(Select::new(connections::field::GROUP), connections::GROUPS),
+        )
+        .plain(true)
+        .optional_suffix(false)
+        .patch_part(&[(
+            Part::CONTAINER,
+            StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+        )])
+        .draw(
             ui,
             termrock::Rect {
                 x: rc.x,
@@ -4822,10 +4760,7 @@ impl TableProApp {
                 width: rc.width,
                 height: 3,
             },
-            "Group",
-            group_str,
-            card_bg,
-            field_bg,
+            &group_state,
         );
         ry = ry.saturating_add(3);
 
