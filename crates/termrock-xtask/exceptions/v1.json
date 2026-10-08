@@ -1192,24 +1192,24 @@
       "rule": "OWN-11"
     },
     {
-      "max": 125,
+      "max": 120,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FILTER-CHIPS: filter chips through stock ChipBar (was 133)",
+      "review": "WI-TABLEPRO-FORM-SELECT: form selects through stock Field+SelectField (was 125)",
       "rule": "OWN-02"
     },
     {
-      "max": 18,
+      "max": 16,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FILTER-CHIPS: filter chips through stock ChipBar (was 19)",
+      "review": "WI-TABLEPRO-FORM-SELECT: form selects through stock Field+SelectField (was 18)",
       "rule": "OWN-04"
     },
     {
-      "max": 26,
+      "max": 24,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FILTER-ROW: filter rows through stock Field+TextInput (was 30)",
+      "review": "WI-TABLEPRO-FORM-SELECT: form selects through stock Field+SelectField (was 26)",
       "rule": "OWN-11"
     },
     {
