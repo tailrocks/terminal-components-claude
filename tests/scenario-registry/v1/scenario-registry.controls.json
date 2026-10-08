@@ -13163,6 +13163,2671 @@
       ]
     }
   }
+,
+  {
+    "id": "PANEL-ARGS-001",
+    "app": "holla",
+    "component": "Panel",
+    "part": "port listeners snapshot after running with defaults",
+    "ref_symbols": [
+      {
+        "glyph": "Port 5173",
+        "meaning": "snapshot title"
+      },
+      {
+        "glyph": "*:5173 (LISTEN)",
+        "meaning": "bound listener row"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "Port 5173",
+        "meaning": "snapshot title"
+      },
+      {
+        "glyph": "*:5173 (LISTEN)",
+        "meaning": "bound listener row"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/screens/snapshot.rs",
+        "symbols": [
+          "SnapshotPage",
+          "build"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "port": 5173,
+      "pid": 7731
+    },
+    "state": {
+      "page": "snapshot",
+      "host": "mbp"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario rust-dirty (paused frame 40)"
+      },
+      {
+        "step": 2,
+        "action": "type `port`, Enter (the Arguments page opens)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press Ctrl+S (the listeners snapshot opens)",
+        "key": "Ctrl+S",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Esc (the finder returns)",
+        "key": "Esc",
+        "ticks": 0
+      },
+      {
+        "step": 5,
+        "action": "press Enter, Ctrl+S (the snapshot re-opens)",
+        "key": "Enter",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "snapshot",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the process line pairs node (vite) with the sleeping state"
+        },
+        {
+          "id": "V2",
+          "text": "the listeners row pairs pid 7731 with *:5173 (LISTEN)"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the snapshot meta pairs Port 5173 with the live host age"
+        },
+        {
+          "id": "S2",
+          "text": "the status marks the read-only snapshot"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Ctrl+S runs the defaults and opens the listeners snapshot"
+        },
+        {
+          "id": "A2",
+          "text": "Esc backs to the finder and Enter plus Ctrl+S re-run the snapshot"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the arguments class may not show on the snapshot"
+        },
+        {
+          "id": "N2",
+          "text": "the snapshot title may not stay after backing out"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/screens/snapshot.rs",
+          "lines": "32",
+          "note": "SnapshotPage struct"
+        },
+        {
+          "path": "src/bin/holla/domain/catalog.rs",
+          "lines": "2280",
+          "note": "port action item"
+        },
+        {
+          "path": "src/widgets/panel.rs",
+          "lines": "31",
+          "note": "Panel widget"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/args/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_args_snapshot live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-ARGS-002",
+    "app": "holla",
+    "component": "Panel",
+    "part": "clone-repository arguments page",
+    "ref_symbols": [
+      {
+        "glyph": "Clone a GitHub repository… · arguments",
+        "meaning": "page title"
+      },
+      {
+        "glyph": "gh repo clone 'alex-dev/<repository>' '~/work/holla' --protocol ssh",
+        "meaning": "rendered command"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "Clone a GitHub repository… · arguments",
+        "meaning": "page title"
+      },
+      {
+        "glyph": "gh repo clone 'alex-dev/<repository>' '~/work/holla' --protocol ssh",
+        "meaning": "rendered command"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/screens/review.rs",
+        "symbols": [
+          "ArgsPage"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "owner": "alex-dev",
+      "protocol": "ssh"
+    },
+    "state": {
+      "focus": "owner",
+      "page": "arguments"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario rust-dirty (reduced motion)"
+      },
+      {
+        "step": 2,
+        "action": "type `clone`, Enter (the clone page opens)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press Esc (the finder returns)",
+        "key": "Esc",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Esc, type `clone`, Enter (the page re-opens)",
+        "key": "Esc",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "clone",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the page titles the clone action with its arguments class"
+        },
+        {
+          "id": "V2",
+          "text": "the rendered command names the owner placeholder and the ssh protocol"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the owner field carries the focused alex-dev default"
+        },
+        {
+          "id": "S2",
+          "text": "the footer offers the Ctrl+S run gesture"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Enter opens the clone Arguments page"
+        },
+        {
+          "id": "A2",
+          "text": "Esc backs to the finder and the cleared query re-opens the page"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show on the page"
+        },
+        {
+          "id": "N2",
+          "text": "the arguments class may not stay after backing out"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/screens/review.rs",
+          "lines": "949",
+          "note": "ArgsPage struct"
+        },
+        {
+          "path": "src/bin/holla/domain/catalog.rs",
+          "lines": "1472",
+          "note": "clone action item"
+        },
+        {
+          "path": "src/widgets/panel.rs",
+          "lines": "31",
+          "note": "Panel widget"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/args/clone/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_args_clone live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-ARGS-003",
+    "app": "holla",
+    "component": "Panel",
+    "part": "find-the-process arguments page",
+    "ref_symbols": [
+      {
+        "glyph": "Find the process on a port… · arguments",
+        "meaning": "page title"
+      },
+      {
+        "glyph": "lsof -nP '-iTCP:5173' -sTCP:LISTEN",
+        "meaning": "rendered command"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "Find the process on a port… · arguments",
+        "meaning": "page title"
+      },
+      {
+        "glyph": "lsof -nP '-iTCP:5173' -sTCP:LISTEN",
+        "meaning": "rendered command"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/screens/review.rs",
+        "symbols": [
+          "ArgsPage"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "port": 5173
+    },
+    "state": {
+      "focus": "port",
+      "page": "arguments"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario rust-dirty (reduced motion)"
+      },
+      {
+        "step": 2,
+        "action": "type `port`, Enter (the port page opens)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press Esc (the finder returns)",
+        "key": "Esc",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Esc, type `port`, Enter (the page re-opens)",
+        "key": "Esc",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "page",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the page titles the port action with its arguments class"
+        },
+        {
+          "id": "V2",
+          "text": "the rendered command pins the lsof probe to port 5173"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the port field carries the focused 5173 default"
+        },
+        {
+          "id": "S2",
+          "text": "the footer offers the Ctrl+S run gesture"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Enter opens the port Arguments page"
+        },
+        {
+          "id": "A2",
+          "text": "Esc backs to the finder and the cleared query re-opens the page"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show on the page"
+        },
+        {
+          "id": "N2",
+          "text": "the arguments class may not stay after backing out"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/screens/review.rs",
+          "lines": "949",
+          "note": "ArgsPage struct"
+        },
+        {
+          "path": "src/bin/holla/domain/catalog.rs",
+          "lines": "2280",
+          "note": "port action item"
+        },
+        {
+          "path": "src/widgets/panel.rs",
+          "lines": "31",
+          "note": "Panel widget"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/args/page/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_args_page live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-BREW-001",
+    "app": "holla",
+    "component": "Panel",
+    "part": "homebrew services listing snapshot",
+    "ref_symbols": [
+      {
+        "glyph": "Homebrew services",
+        "meaning": "listing title"
+      },
+      {
+        "glyph": "fails on this host",
+        "meaning": "cache-write fact"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "Homebrew services",
+        "meaning": "listing title"
+      },
+      {
+        "glyph": "fails on this host",
+        "meaning": "cache-write fact"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/screens/snapshot.rs",
+        "symbols": [
+          "SnapshotPage"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "services": 11
+    },
+    "state": {
+      "page": "services",
+      "host": "mbp"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario parity-brew-services (paused frame 40)"
+      },
+      {
+        "step": 2,
+        "action": "type `Homebrew services`, Enter (the listing opens)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press Esc (the finder returns)",
+        "key": "Esc",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Esc, type `Homebrew services`, Enter (the listing re-opens)",
+        "key": "Esc",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "services",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the errored service row pairs svc02 with the error status"
+        },
+        {
+          "id": "V2",
+          "text": "the services fact counts 11 services"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the page meta pairs Homebrew services with the live host age"
+        },
+        {
+          "id": "S2",
+          "text": "the cache-write fact names the degraded host behavior"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Enter opens the services listing"
+        },
+        {
+          "id": "A2",
+          "text": "Esc backs to the finder and the cleared query re-opens the listing"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show on the listing"
+        },
+        {
+          "id": "N2",
+          "text": "the detail panel may not stay after backing out"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/screens/snapshot.rs",
+          "lines": "32",
+          "note": "SnapshotPage struct"
+        },
+        {
+          "path": "src/bin/holla/domain/parity.rs",
+          "lines": "562",
+          "note": "brew_services fixture world"
+        },
+        {
+          "path": "src/widgets/panel.rs",
+          "lines": "31",
+          "note": "Panel widget"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/brew/services/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_brew_services live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-BREW-002",
+    "app": "holla",
+    "component": "Panel",
+    "part": "failed service-stop executor output",
+    "ref_symbols": [
+      {
+        "glyph": "Bootstrap failed: 5: Input/output error",
+        "meaning": "failure line"
+      },
+      {
+        "glyph": "stop svc02 · failed · 0 s · exit 1",
+        "meaning": "output title"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "Bootstrap failed: 5: Input/output error",
+        "meaning": "failure line"
+      },
+      {
+        "glyph": "stop svc02 · failed · 0 s · exit 1",
+        "meaning": "output title"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/domain/parity.rs",
+        "symbols": [
+          "brew_services"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "service": "svc02",
+      "exit": 1
+    },
+    "state": {
+      "outcome": "failed",
+      "tab": "output"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario parity-brew-services (reduced motion)"
+      },
+      {
+        "step": 2,
+        "action": "type `Stop svc02`, Enter, Right, Enter (the stop runs to exit 1)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press r (the script restarts and fails again)",
+        "key": "r",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Alt+0 (back to Here)",
+        "key": "Alt+0",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "failed",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the output records the bootstrap failure with its I/O error"
+        },
+        {
+          "id": "V2",
+          "text": "the title pairs the stop with its failed exit 1"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the output names the started-by stop command"
+        },
+        {
+          "id": "S2",
+          "text": "the footer records the failed stop"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "running the stop lands on the launchctl failure"
+        },
+        {
+          "id": "A2",
+          "text": "r restarts the script and the stop fails again"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show on the output"
+        },
+        {
+          "id": "N2",
+          "text": "the failure line may not stay after leaving the executor"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/domain/parity.rs",
+          "lines": "610",
+          "note": "bootstrap error emission"
+        },
+        {
+          "path": "src/bin/holla/domain/parity.rs",
+          "lines": "562",
+          "note": "brew_services fixture world"
+        },
+        {
+          "path": "src/bin/holla/screens/activity.rs",
+          "lines": "34",
+          "note": "ActivityTab output"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/brew/services_stop_failed/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_brew_services_stop_failed live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-BREW-003",
+    "app": "holla",
+    "component": "Panel",
+    "part": "homebrew batch-upgrade executor output",
+    "ref_symbols": [
+      {
+        "glyph": "==> Outdated Formulae · 2",
+        "meaning": "report line"
+      },
+      {
+        "glyph": "brew update · succeeded · 0 s · exit 0",
+        "meaning": "output title"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "==> Outdated Formulae · 2",
+        "meaning": "report line"
+      },
+      {
+        "glyph": "brew update · succeeded · 0 s · exit 0",
+        "meaning": "output title"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/domain/parity.rs",
+        "symbols": [
+          "upgrade_managers"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "outdated": 2,
+      "batch": "upgrade.brew-packages"
+    },
+    "state": {
+      "outcome": "succeeded",
+      "exit": 0
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario parity-upgrade-managers (reduced motion)"
+      },
+      {
+        "step": 2,
+        "action": "type `Upgrade Homebrew packages`, Enter, Right, Enter (the batch runs)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press r (the script restarts and succeeds again)",
+        "key": "r",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Alt+0 (back to Here)",
+        "key": "Alt+0",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "batch",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the output reports the two outdated formulae"
+        },
+        {
+          "id": "V2",
+          "text": "the title pairs the update with its clean exit 0"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the output names the batch upgrade class"
+        },
+        {
+          "id": "S2",
+          "text": "the footer summarizes the batch outcome"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "running the upgrade lands on the outdated-formulae report"
+        },
+        {
+          "id": "A2",
+          "text": "r restarts the script and the report returns"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show on the output"
+        },
+        {
+          "id": "N2",
+          "text": "the report line may not stay after leaving the executor"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/domain/outcomes.rs",
+          "lines": "1496",
+          "note": "outdated-formulae report line"
+        },
+        {
+          "path": "src/bin/holla/domain/parity.rs",
+          "lines": "694",
+          "note": "upgrade_managers fixture world"
+        },
+        {
+          "path": "src/bin/holla/screens/activity.rs",
+          "lines": "34",
+          "note": "ActivityTab output"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/brew/upgrade_batch/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_brew_upgrade_batch live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-BREW-004",
+    "app": "holla",
+    "component": "Panel",
+    "part": "upgrade-everything plan review",
+    "ref_symbols": [
+      {
+        "glyph": "9 steps · 9 included · 0 excluded · ~9 s",
+        "meaning": "plan header"
+      },
+      {
+        "glyph": "7 required · 2 optional · 4 branches run in parallel where independent",
+        "meaning": "plan foot"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "9 steps · 9 included · 0 excluded · ~9 s",
+        "meaning": "plan header"
+      },
+      {
+        "glyph": "7 required · 2 optional · 4 branches run in parallel where independent",
+        "meaning": "plan foot"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/screens/plan.rs",
+        "symbols": [
+          "PlanReviewPage"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "steps": 9,
+      "included": 9
+    },
+    "state": {
+      "review": "plan",
+      "excluded": 0
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario parity-upgrade-managers (reduced motion)"
+      },
+      {
+        "step": 2,
+        "action": "type `Upgrade Homebrew packages`, Enter, Right, Enter (the batch runs)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press Alt+0, Ctrl+U, type `Upgrade everything`, Enter (the plan opens)",
+        "key": "Alt+0",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Down, Down, Space (step 03 is excluded)",
+        "key": "Down",
+        "ticks": 0
+      },
+      {
+        "step": 5,
+        "action": "press Space (the step is included back)",
+        "key": "Space",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "plan",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the plan title pairs the everything scope with the step count"
+        },
+        {
+          "id": "V2",
+          "text": "the plan foot counts required, optional, and parallel lanes"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "every step starts included"
+        },
+        {
+          "id": "S2",
+          "text": "the dialog offers the confirm-plan choice"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "the batch plus the everything query open the plan review"
+        },
+        {
+          "id": "A2",
+          "text": "Space excludes step 03 and Space includes it back"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the none-excluded count may not stay after the exclusion"
+        },
+        {
+          "id": "N2",
+          "text": "the excluded count may not stay after including the step back"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/screens/plan.rs",
+          "lines": "438",
+          "note": "PlanReviewPage struct"
+        },
+        {
+          "path": "src/bin/holla/screens/plan.rs",
+          "lines": "776",
+          "note": "steps header format"
+        },
+        {
+          "path": "src/bin/holla/domain/parity.rs",
+          "lines": "694",
+          "note": "upgrade_managers fixture world"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/brew/upgrade_plan/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_brew_upgrade_plan live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-GIT-001",
+    "app": "holla",
+    "component": "Panel",
+    "part": "sibling batch-pull executor output",
+    "ref_symbols": [
+      {
+        "glyph": "Fast-forward",
+        "meaning": "report line"
+      },
+      {
+        "glyph": "pull alpha · succeeded · 0 s · exit 0",
+        "meaning": "output title"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "Fast-forward",
+        "meaning": "report line"
+      },
+      {
+        "glyph": "pull alpha · succeeded · 0 s · exit 0",
+        "meaning": "output title"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/domain/parity.rs",
+        "symbols": [
+          "git_batch"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "repos": 4,
+      "batch": "git.pull-all"
+    },
+    "state": {
+      "outcome": "succeeded",
+      "exit": 0
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario parity-git-batch (reduced motion)"
+      },
+      {
+        "step": 2,
+        "action": "type `Pull 4 sibling`, Enter, Right, Enter (the batch runs)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press r (the script restarts and succeeds again)",
+        "key": "r",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Alt+0 (back to Here)",
+        "key": "Alt+0",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "batch",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the output reports the fast-forward"
+        },
+        {
+          "id": "V2",
+          "text": "the title pairs the alpha pull with its clean exit 0"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the output names the batch pull class"
+        },
+        {
+          "id": "S2",
+          "text": "the footer summarizes the batch outcome"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "running the batch lands on the fast-forward report"
+        },
+        {
+          "id": "A2",
+          "text": "r restarts the script and the report returns"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show on the output"
+        },
+        {
+          "id": "N2",
+          "text": "the report line may not stay after leaving the executor"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/domain/scripts.rs",
+          "lines": "257",
+          "note": "Fast-forward report line"
+        },
+        {
+          "path": "src/bin/holla/domain/parity.rs",
+          "lines": "407",
+          "note": "git_batch fixture world"
+        },
+        {
+          "path": "src/bin/holla/screens/activity.rs",
+          "lines": "34",
+          "note": "ActivityTab output"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/git/batch/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_git_batch live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-GIT-002",
+    "app": "holla",
+    "component": "Panel",
+    "part": "blocked merge-pull executor output",
+    "ref_symbols": [
+      {
+        "glyph": "error: Your local changes to the following files would be overwritten by merge:",
+        "meaning": "refusal line"
+      },
+      {
+        "glyph": "pull with merge · failed · 0 s · exit 1",
+        "meaning": "output title"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "error: Your local changes to the following files would be overwritten by merge:",
+        "meaning": "refusal line"
+      },
+      {
+        "glyph": "pull with merge · failed · 0 s · exit 1",
+        "meaning": "output title"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/domain/parity.rs",
+        "symbols": [
+          "git_current"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "exit": 1
+    },
+    "state": {
+      "outcome": "failed",
+      "tab": "output"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario parity-git-current (reduced motion)"
+      },
+      {
+        "step": 2,
+        "action": "type `Pull with merge`, Enter, Right, Enter (the merge fails)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press r (the script restarts and fails again)",
+        "key": "r",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Alt+0 (back to Here)",
+        "key": "Alt+0",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "merge",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the output records the overwrite refusal with its file list"
+        },
+        {
+          "id": "V2",
+          "text": "the title pairs the merge with its failed exit 1"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the output advises the commit-or-stash recovery"
+        },
+        {
+          "id": "S2",
+          "text": "the footer records the failed merge"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "running the merge lands on the local-changes error"
+        },
+        {
+          "id": "A2",
+          "text": "r restarts the script and the merge fails again"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show on the output"
+        },
+        {
+          "id": "N2",
+          "text": "the refusal line may not stay after leaving the executor"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/domain/outcomes.rs",
+          "lines": "226",
+          "note": "merge refusal emission"
+        },
+        {
+          "path": "src/bin/holla/domain/parity.rs",
+          "lines": "376",
+          "note": "git_current fixture world"
+        },
+        {
+          "path": "src/bin/holla/screens/activity.rs",
+          "lines": "34",
+          "note": "ActivityTab output"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/git/merge/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_git_merge live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-GIT-003",
+    "app": "holla",
+    "component": "Panel",
+    "part": "blocked pull finder results",
+    "ref_symbols": [
+      {
+        "glyph": "Results · 3",
+        "meaning": "result count"
+      },
+      {
+        "glyph": "blocked · 1 modified",
+        "meaning": "block reason"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "Results · 3",
+        "meaning": "result count"
+      },
+      {
+        "glyph": "blocked · 1 modified",
+        "meaning": "block reason"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/screens/finder.rs",
+        "symbols": [
+          "edit",
+          "rebuild"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "results": 3,
+      "query": "Pull"
+    },
+    "state": {
+      "scope": "here",
+      "focus": "finder"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario parity-git-current (paused frame 40)"
+      },
+      {
+        "step": 2,
+        "action": "type `Pull` (the results filter)"
+      },
+      {
+        "step": 3,
+        "action": "press Esc (the query clears)",
+        "key": "Esc",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "type `Pull` (the results filter again)"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "blocked",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the top row pairs the pull with its blocked reason"
+        },
+        {
+          "id": "V2",
+          "text": "the finder counts three results"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the preview explains the block"
+        },
+        {
+          "id": "S2",
+          "text": "the scope readout stays here"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "typing filters to the pull actions"
+        },
+        {
+          "id": "A2",
+          "text": "Esc clears the query and typing filters again"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show with the results"
+        },
+        {
+          "id": "N2",
+          "text": "the result count may not stay after the clear"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/screens/finder.rs",
+          "lines": "174",
+          "note": "Results count header"
+        },
+        {
+          "path": "src/bin/holla/screens/finder.rs",
+          "lines": "1293-1295",
+          "note": "Esc clears the query"
+        },
+        {
+          "path": "src/widgets/panel.rs",
+          "lines": "31",
+          "note": "Panel widget"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/git/pull_blocked/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_git_pull_blocked live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-GIT-004",
+    "app": "holla",
+    "component": "Panel",
+    "part": "rejected-push executor output over the merge tab",
+    "ref_symbols": [
+      {
+        "glyph": "[rejected]",
+        "meaning": "rejected ref marker"
+      },
+      {
+        "glyph": "push · failed · 0 s · exit 1",
+        "meaning": "output title"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "[rejected]",
+        "meaning": "rejected ref marker"
+      },
+      {
+        "glyph": "push · failed · 0 s · exit 1",
+        "meaning": "output title"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/domain/parity.rs",
+        "symbols": [
+          "git_current"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "exit": 1,
+      "tabs": 2
+    },
+    "state": {
+      "outcome": "failed",
+      "tab": "push"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario parity-git-current (reduced motion)"
+      },
+      {
+        "step": 2,
+        "action": "type `Pull with merge`, Enter, Right, Enter (the merge fails)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press Alt+0, Ctrl+U, type `Push`, Enter, Right, Enter (the push is rejected)",
+        "key": "Alt+0",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press r (the script restarts and is rejected again)",
+        "key": "r",
+        "ticks": 0
+      },
+      {
+        "step": 5,
+        "action": "press Alt+0 (back to Here)",
+        "key": "Alt+0",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "push",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the output records the rejected ref with its fetch-first reason"
+        },
+        {
+          "id": "V2",
+          "text": "the title pairs the push with its failed exit 1"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the output reports the failed ref update"
+        },
+        {
+          "id": "S2",
+          "text": "the footer records the failed push"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "the push lands on the fetch-first rejection"
+        },
+        {
+          "id": "A2",
+          "text": "r restarts the script and the push is rejected again"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show on the output"
+        },
+        {
+          "id": "N2",
+          "text": "the rejection may not stay after leaving the executor"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/domain/parity.rs",
+          "lines": "392",
+          "note": "push_rejected fixture reason"
+        },
+        {
+          "path": "src/bin/holla/domain/parity.rs",
+          "lines": "376",
+          "note": "git_current fixture world"
+        },
+        {
+          "path": "src/bin/holla/screens/activity.rs",
+          "lines": "34",
+          "note": "ActivityTab output"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/git/push_rejected/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_git_push_rejected live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-PLATFORMS-001",
+    "app": "holla",
+    "component": "Panel",
+    "part": "top-files page over the spotlight timeout",
+    "ref_symbols": [
+      {
+        "glyph": "Top files · Spotlight",
+        "meaning": "page title"
+      },
+      {
+        "glyph": "0 files · 0 selected",
+        "meaning": "empty status"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "Top files · Spotlight",
+        "meaning": "page title"
+      },
+      {
+        "glyph": "0 files · 0 selected",
+        "meaning": "empty status"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/screens/disk.rs",
+        "symbols": [
+          "TopFiles",
+          "top_state",
+          "TopRow"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "files": 0,
+      "timeout_s": 5
+    },
+    "state": {
+      "page": "top-files",
+      "backend": "spotlight-timeout"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario parity-platforms (paused frame 40)"
+      },
+      {
+        "step": 2,
+        "action": "type `Top files on this Mac`, Enter (the page opens)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press Esc (the finder returns)",
+        "key": "Esc",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Esc, type `Top files on this Mac`, Enter (the page re-opens)",
+        "key": "Esc",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "files",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the page titles the Spotlight view"
+        },
+        {
+          "id": "V2",
+          "text": "the page reports the query timeout with its tree-scan fallback"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the status counts the empty selection"
+        },
+        {
+          "id": "S2",
+          "text": "the footer offers the back gesture"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Enter opens the Top files page"
+        },
+        {
+          "id": "A2",
+          "text": "Esc backs to the finder and the cleared query re-opens the page"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show on the page"
+        },
+        {
+          "id": "N2",
+          "text": "the timeout report may not stay after backing out"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/screens/disk.rs",
+          "lines": "465",
+          "note": "spotlight timeout line"
+        },
+        {
+          "path": "src/bin/holla/screens/disk.rs",
+          "lines": "1372",
+          "note": "Top files Spotlight title"
+        },
+        {
+          "path": "src/bin/holla/screens/disk.rs",
+          "lines": "73",
+          "note": "DiskPage struct"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/platforms/files/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_platforms_files live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-REMOTE-001",
+    "app": "holla",
+    "component": "Panel",
+    "part": "remote restart finder query",
+    "ref_symbols": [
+      {
+        "glyph": "Results · 2",
+        "meaning": "result count"
+      },
+      {
+        "glyph": "› Restart payments",
+        "meaning": "top row"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "Results · 2",
+        "meaning": "result count"
+      },
+      {
+        "glyph": "› Restart payments",
+        "meaning": "top row"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/screens/finder.rs",
+        "symbols": [
+          "edit",
+          "rebuild"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "results": 2,
+      "query": "restart payments"
+    },
+    "state": {
+      "scope": "here",
+      "focus": "finder"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario remote-host (paused frame 40)"
+      },
+      {
+        "step": 2,
+        "action": "type `restart payments` (the results filter)"
+      },
+      {
+        "step": 3,
+        "action": "press Esc (the query clears)",
+        "key": "Esc",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "type `restart payments` (the results filter again)"
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "query",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the top row pairs the restart with its privilege"
+        },
+        {
+          "id": "V2",
+          "text": "the finder counts two results"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the preview names the two-gate contract"
+        },
+        {
+          "id": "S2",
+          "text": "the scope readout stays here"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "typing filters to the remote restart actions"
+        },
+        {
+          "id": "A2",
+          "text": "Esc clears the query and typing filters again"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show with the results"
+        },
+        {
+          "id": "N2",
+          "text": "the result count may not stay after the clear"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/screens/finder.rs",
+          "lines": "174",
+          "note": "Results count header"
+        },
+        {
+          "path": "src/bin/holla/screens/finder.rs",
+          "lines": "1293-1295",
+          "note": "Esc clears the query"
+        },
+        {
+          "path": "src/widgets/panel.rs",
+          "lines": "31",
+          "note": "Panel widget"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/remote/query/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_remote_query live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-TRUST-001",
+    "app": "holla",
+    "component": "Panel",
+    "part": "task arguments page after the trust accept",
+    "ref_symbols": [
+      {
+        "glyph": "Run tests · arguments",
+        "meaning": "page title"
+      },
+      {
+        "glyph": "Trusted ~/work/acme/apps/frontend/mise.toml",
+        "meaning": "trusted status"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "Run tests · arguments",
+        "meaning": "page title"
+      },
+      {
+        "glyph": "Trusted ~/work/acme/apps/frontend/mise.toml",
+        "meaning": "trusted status"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/screens/review.rs",
+        "symbols": [
+          "ArgsPage"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "profile": "default"
+    },
+    "state": {
+      "trust": "accepted",
+      "page": "arguments"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario monorepo-child (reduced motion)"
+      },
+      {
+        "step": 2,
+        "action": "type `test`, Enter (the trust prompt opens)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press Right, Enter (trusted; the Arguments page opens)",
+        "key": "Right",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Esc, Enter (finder back; the page re-opens unprompted)",
+        "key": "Esc",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "accepted",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the page titles the accepted task with its arguments class"
+        },
+        {
+          "id": "V2",
+          "text": "the rendered command pins the mise profile default"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the status records the trusted mise file"
+        },
+        {
+          "id": "S2",
+          "text": "the footer offers the Ctrl+S run gesture"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "Right+Enter trusts the file and opens the Arguments page"
+        },
+        {
+          "id": "A2",
+          "text": "Esc backs to the finder and Enter re-opens the page unprompted"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the trust prompt may not show on the arguments page"
+        },
+        {
+          "id": "N2",
+          "text": "no second trust review may follow the re-run"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/screens/review.rs",
+          "lines": "949",
+          "note": "ArgsPage struct"
+        },
+        {
+          "path": "src/bin/holla/app.rs",
+          "lines": "1723",
+          "note": "Trusted status emission"
+        },
+        {
+          "path": "src/widgets/panel.rs",
+          "lines": "31",
+          "note": "Panel widget"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/trust/accepted/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_trust_accepted live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
+,
+  {
+    "id": "PANEL-TRUST-002",
+    "app": "holla",
+    "component": "Panel",
+    "part": "trusted deploy executor output without an outcome",
+    "ref_symbols": [
+      {
+        "glyph": "holla: no simulated outcome for `tools/deploy-preview.sh --env 'preview stack' '$(whoami)'` in this preview",
+        "meaning": "outcome line"
+      },
+      {
+        "glyph": "deploy preview · failed · 0 s · exit 127",
+        "meaning": "output title"
+      }
+    ],
+    "cand_symbols": [
+      {
+        "glyph": "holla: no simulated outcome for `tools/deploy-preview.sh --env 'preview stack' '$(whoami)'` in this preview",
+        "meaning": "outcome line"
+      },
+      {
+        "glyph": "deploy preview · failed · 0 s · exit 127",
+        "meaning": "output title"
+      }
+    ],
+    "ref_source": [
+      {
+        "path": "src/bin/holla/domain/parity.rs",
+        "symbols": [
+          "custom_actions"
+        ]
+      }
+    ],
+    "cand_source": [],
+    "data": {
+      "exit": 127
+    },
+    "state": {
+      "outcome": "failed",
+      "trust": "accepted"
+    },
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "viewport": {
+      "width": 120,
+      "height": 40
+    },
+    "color": "truecolor",
+    "motion": "paused",
+    "inputs": [
+      {
+        "step": 1,
+        "action": "boot holla with --scenario parity-custom-actions (reduced motion)"
+      },
+      {
+        "step": 2,
+        "action": "type `Deploy preview`, Enter, Right, Enter (the deploy fails)",
+        "key": "Enter",
+        "ticks": 0
+      },
+      {
+        "step": 3,
+        "action": "press r (the script restarts and fails again)",
+        "key": "r",
+        "ticks": 0
+      },
+      {
+        "step": 4,
+        "action": "press Alt+0 (back to Here)",
+        "key": "Alt+0",
+        "ticks": 0
+      }
+    ],
+    "checkpoints": [
+      {
+        "name": "failed",
+        "tick": 0,
+        "capture": true
+      }
+    ],
+    "assertions": {
+      "visual": [
+        {
+          "id": "V1",
+          "text": "the output records the missing simulated outcome"
+        },
+        {
+          "id": "V2",
+          "text": "the title pairs the deploy with its failed exit 127"
+        }
+      ],
+      "state": [
+        {
+          "id": "S1",
+          "text": "the output names the started-by deploy action"
+        },
+        {
+          "id": "S2",
+          "text": "the footer records the failed deploy"
+        }
+      ],
+      "action": [
+        {
+          "id": "A1",
+          "text": "trusting the deploy runs it to the missing-outcome failure"
+        },
+        {
+          "id": "A2",
+          "text": "r restarts the script and the deploy fails again"
+        }
+      ],
+      "negative": [
+        {
+          "id": "N1",
+          "text": "the empty-query placeholder may not show on the output"
+        },
+        {
+          "id": "N2",
+          "text": "the output body may not stay after leaving the executor"
+        }
+      ]
+    },
+    "provenance": {
+      "sources": [
+        {
+          "path": "src/bin/holla/domain/activity.rs",
+          "lines": "172",
+          "note": "no-outcome failure emission"
+        },
+        {
+          "path": "src/bin/holla/domain/parity.rs",
+          "lines": "898",
+          "note": "custom_actions fixture world"
+        },
+        {
+          "path": "src/bin/holla/screens/activity.rs",
+          "lines": "34",
+          "note": "ActivityTab output"
+        }
+      ],
+      "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "applicability": {
+      "branches": [
+        "termrock-refactor",
+        "termrock-implementation"
+      ],
+      "requires": [
+        "glyph-capture",
+        "key-injection"
+      ]
+    },
+    "adapters": [
+      "headless-tick",
+      "pty-capture"
+    ],
+    "snapshots": {
+      "ref": [
+        "snapshots/holla/flows/trust/deploy_failed/120x40/truecolor.txt"
+      ],
+      "cand": []
+    },
+    "results": {
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T00:04:48Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8n H3 h3_trust_deploy_failed live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+        }
+      ]
+    }
+  }
  ],
  "coverage": [
   {
@@ -13358,7 +16023,22 @@
     "PANEL-TASK-001",
     "PANEL-TASK-002",
     "PANEL-TASK-003",
-    "PANEL-TASK-004"
+    "PANEL-TASK-004",
+    "PANEL-ARGS-001",
+    "PANEL-ARGS-002",
+    "PANEL-ARGS-003",
+    "PANEL-BREW-001",
+    "PANEL-BREW-002",
+    "PANEL-BREW-003",
+    "PANEL-BREW-004",
+    "PANEL-GIT-001",
+    "PANEL-GIT-002",
+    "PANEL-GIT-003",
+    "PANEL-GIT-004",
+    "PANEL-PLATFORMS-001",
+    "PANEL-REMOTE-001",
+    "PANEL-TRUST-001",
+    "PANEL-TRUST-002"
    ],
    "handlers": [
     "Panel chrome: none (display-only)",
@@ -14741,6 +17421,246 @@
    "status": "mapped",
    "also": [],
    "note": "phase-8k slice 8A-H2: h2_task_sources_diagnostic live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/args",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-ARGS-001",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_args_snapshot live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/args/clone",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-ARGS-002",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_args_clone live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/args/page",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-ARGS-003",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_args_page live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/brew/services",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-BREW-001",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_brew_services live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/brew/services_stop_failed",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-BREW-002",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_brew_services_stop_failed live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/brew/upgrade_batch",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-BREW-003",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_brew_upgrade_batch live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/brew/upgrade_plan",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-BREW-004",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_brew_upgrade_plan live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/git/batch",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-GIT-001",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_git_batch live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/git/merge",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-GIT-002",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_git_merge live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/git/pull_blocked",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-GIT-003",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_git_pull_blocked live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/git/push_rejected",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-GIT-004",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_git_push_rejected live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/platforms/files",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-PLATFORMS-001",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_platforms_files live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/remote/query",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-REMOTE-001",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_remote_query live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/trust/accepted",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-TRUST-001",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_trust_accepted live-PTY check"
+  }
+,
+  {
+   "old": "holla/flows/trust/deploy_failed",
+   "app": "holla",
+   "sizes": [
+     "72x20",
+     "80x24",
+     "100x30",
+     "120x40",
+     "160x50"
+   ],
+   "new": "PANEL-TRUST-002",
+   "status": "mapped",
+   "also": [],
+   "note": "phase-8n slice 8A-H3: h3_trust_deploy_failed live-PTY check"
   }
  ]
 }

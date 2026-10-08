@@ -8233,6 +8233,1275 @@
         ]
       }
     }
+,
+    {
+      "id": "PICKER-GIT-001",
+      "app": "holla",
+      "component": "Picker",
+      "part": "activities picker over the finished batch",
+      "ref_symbols": [
+        {
+          "glyph": "Activities",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "0 live",
+          "meaning": "settled count"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Activities",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "0 live",
+          "meaning": "settled count"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/app.rs",
+          "symbols": [
+            "activities",
+            "Picker"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "live": 0,
+        "rows": 4
+      },
+      "state": {
+        "picker": "open",
+        "outcome": "settled"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-git-batch (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Pull 4 sibling`, Enter, Right, Enter (the batch settles)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Ctrl+G (the picker opens)",
+          "key": "Ctrl+G",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc, Ctrl+G (cancelled, then open again)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "picker",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the picker titles the settled activities with the zero-live count"
+          },
+          {
+            "id": "V2",
+            "text": "the top row pairs the alpha pull with its child outcome"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the picker footer offers the switch gesture"
+          },
+          {
+            "id": "S2",
+            "text": "the failed delta sibling stays listed with its outcome"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Ctrl+G opens the Activities picker over the batch"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the picker and Ctrl+G re-opens it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the output footer may not show under the picker footer"
+          },
+          {
+            "id": "N2",
+            "text": "the picker footer may not stay after the cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "1010",
+            "note": "activities picker construction"
+          },
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "407",
+            "note": "git_batch fixture world"
+          },
+          {
+            "path": "src/widgets/picker.rs",
+            "lines": "82",
+            "note": "Picker widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/git/batch_picker/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T00:04:48Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8n H3 h3_git_batch_picker live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-PLATFORMS-001",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "linux trash gate-1 review without a trash backend",
+      "ref_symbols": [
+        {
+          "glyph": "Review · trash 1 item · gate 1 of 2",
+          "meaning": "review title"
+        },
+        {
+          "glyph": "no Trash backend",
+          "meaning": "mode fact"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Review · trash 1 item · gate 1 of 2",
+          "meaning": "review title"
+        },
+        {
+          "glyph": "no Trash backend",
+          "meaning": "mode fact"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/review.rs",
+          "symbols": [
+            "GatePage",
+            "GATE_CONTINUE"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "items": 1,
+        "bytes": "124.0 KiB"
+      },
+      "state": {
+        "gate": "1-of-2",
+        "backend": "no-trash"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-platforms-linux (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Review cleanup candidates`, Enter, Right, Down, Space, d (gate 1 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right, Enter, Esc (gate 2 opens, then cancels)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Right, Enter, Esc (the roundtrip repeats)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate1",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the gate-1 title names the trash target and the phase"
+          },
+          {
+            "id": "V2",
+            "text": "the mode fact names the missing Trash backend"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the recovery fact promises Trash recovery until emptying"
+          },
+          {
+            "id": "S2",
+            "text": "the selection size survives into the review"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Right+Enter opens gate 2 and Esc cancels it"
+          },
+          {
+            "id": "A2",
+            "text": "the open/cancel roundtrip repeats"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the gate-2 dialog may not sit open at the gate-1 state"
+          },
+          {
+            "id": "N2",
+            "text": "the gate-2 chrome may not stay after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "36",
+            "note": "GatePage struct"
+          },
+          {
+            "path": "src/bin/holla/screens/cleanup.rs",
+            "lines": "1275",
+            "note": "no-trash mode fact"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "435",
+            "note": "gate-1 review subtitle"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/platforms/linux_gate1/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T00:04:48Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8n H3 h3_platforms_linux_gate1 live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-PLATFORMS-002",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "linux trash gate-2 typed-phrase dialog",
+      "ref_symbols": [
+        {
+          "glyph": "Trash 1 items · gate 2 of 2",
+          "meaning": "dialog title"
+        },
+        {
+          "glyph": "Type TRASH 1 UNDER /home/alex ON devbox to confirm",
+          "meaning": "phrase prompt"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Trash 1 items · gate 2 of 2",
+          "meaning": "dialog title"
+        },
+        {
+          "glyph": "Type TRASH 1 UNDER /home/alex ON devbox to confirm",
+          "meaning": "phrase prompt"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/review.rs",
+          "symbols": [
+            "GATE_CONTINUE",
+            "GATE_CANCEL"
+          ]
+        },
+        {
+          "path": "src/bin/holla/app.rs",
+          "symbols": [
+            "pending_gate",
+            "push_modal"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "items": 1
+      },
+      "state": {
+        "gate": "2-of-2",
+        "armed": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-platforms-linux (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Review cleanup candidates`, Enter, Right, Down, Space, d, Right, Enter (gate 2 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the dialog cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Right, Enter, Esc (re-opened, then cancelled again)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate2",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the dialog titles the trash with the gate-2 phase"
+          },
+          {
+            "id": "V2",
+            "text": "the prompt binds the typed phrase to the devbox target"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer offers the confirm gesture"
+          },
+          {
+            "id": "S2",
+            "text": "the execute choice stays present but untouched"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc cancels the dialog back to gate 1"
+          },
+          {
+            "id": "A2",
+            "text": "Right+Enter re-opens gate 2 and Esc cancels it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the gate-2 chrome may not stay after the cancel"
+          },
+          {
+            "id": "N2",
+            "text": "nothing may stay open after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2284-2297",
+            "note": "gate-2 typed-phrase dialog construction"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "366",
+            "note": "Right moves focus to Continue"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "110-121",
+            "note": "facts dialog with the ack prompt"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/platforms/linux_gate2/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T00:04:48Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8n H3 h3_platforms_linux_gate2 live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-REMOTE-001",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "remote restart gate-1 review",
+      "ref_symbols": [
+        {
+          "glyph": "Review · Restart payments · gate 1 of 2",
+          "meaning": "review title"
+        },
+        {
+          "glyph": "systemctl restart payments on prod-eu-1",
+          "meaning": "action fact"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Review · Restart payments · gate 1 of 2",
+          "meaning": "review title"
+        },
+        {
+          "glyph": "systemctl restart payments on prod-eu-1",
+          "meaning": "action fact"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/review.rs",
+          "symbols": [
+            "GatePage",
+            "GATE_CONTINUE"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "host": "prod-eu-1"
+      },
+      "state": {
+        "gate": "1-of-2",
+        "action": "restart"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario remote-host (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `restart payments`, Enter (gate 1 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right, Enter, Esc (gate 2 opens, then cancels)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Right, Enter, Esc (the roundtrip repeats)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate1",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the gate-1 title names the restart and the phase"
+          },
+          {
+            "id": "V2",
+            "text": "the action fact names the remote systemctl restart"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the gate fact names the second-gate contract"
+          },
+          {
+            "id": "S2",
+            "text": "the status holds the gate-1 phase"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Right+Enter opens gate 2 and Esc cancels it"
+          },
+          {
+            "id": "A2",
+            "text": "the open/cancel roundtrip repeats"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the gate-2 dialog may not sit open at the gate-1 state"
+          },
+          {
+            "id": "N2",
+            "text": "the gate-2 chrome may not stay after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "36",
+            "note": "GatePage struct"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "166",
+            "note": "second-gate contract hint"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "435",
+            "note": "gate-1 review subtitle"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/remote/gate-1/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T00:04:48Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8n H3 h3_remote_gate1 live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-REMOTE-002",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "remote restart gate-2 typed-phrase dialog",
+      "ref_symbols": [
+        {
+          "glyph": "Restart payments · gate 2 of 2",
+          "meaning": "dialog title"
+        },
+        {
+          "glyph": "Type RESTART PAYMENTS ON prod-eu-1 to confirm",
+          "meaning": "phrase prompt"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Restart payments · gate 2 of 2",
+          "meaning": "dialog title"
+        },
+        {
+          "glyph": "Type RESTART PAYMENTS ON prod-eu-1 to confirm",
+          "meaning": "phrase prompt"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/review.rs",
+          "symbols": [
+            "GATE_CONTINUE",
+            "GATE_CANCEL"
+          ]
+        },
+        {
+          "path": "src/bin/holla/app.rs",
+          "symbols": [
+            "pending_gate",
+            "push_modal"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "host": "prod-eu-1"
+      },
+      "state": {
+        "gate": "2-of-2",
+        "armed": false
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario remote-host (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `restart payments`, Enter, Right, Enter (gate 2 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the dialog cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Right, Enter, Esc (re-opened, then cancelled again)",
+          "key": "Right",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate2",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the dialog titles the restart with the gate-2 phase"
+          },
+          {
+            "id": "V2",
+            "text": "the prompt binds the typed phrase to the prod target"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer offers the confirm gesture"
+          },
+          {
+            "id": "S2",
+            "text": "the execute choice stays present but untouched"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Esc cancels the dialog back to gate 1"
+          },
+          {
+            "id": "A2",
+            "text": "Right+Enter re-opens gate 2 and Esc cancels it again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the gate-2 chrome may not stay after the cancel"
+          },
+          {
+            "id": "N2",
+            "text": "nothing may stay open after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2284-2297",
+            "note": "gate-2 typed-phrase dialog construction"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "366",
+            "note": "Right moves focus to Continue"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "110-121",
+            "note": "facts dialog with the ack prompt"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/remote/gate2/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T00:04:48Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8n H3 h3_remote_gate2 live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-REMOTE-003",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "remote restart gate-2 dialog with the phrase typed",
+      "ref_symbols": [
+        {
+          "glyph": "▎ RESTART PAYMENTS ON prod-eu-1",
+          "meaning": "typed ack line"
+        },
+        {
+          "glyph": "Restart payments · gate 2 of 2",
+          "meaning": "dialog title"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎ RESTART PAYMENTS ON prod-eu-1",
+          "meaning": "typed ack line"
+        },
+        {
+          "glyph": "Restart payments · gate 2 of 2",
+          "meaning": "dialog title"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/review.rs",
+          "symbols": [
+            "GATE_CONTINUE",
+            "GATE_CANCEL"
+          ]
+        },
+        {
+          "path": "src/bin/holla/app.rs",
+          "symbols": [
+            "pending_gate",
+            "push_modal"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "phrase": "RESTART PAYMENTS ON prod-eu-1"
+      },
+      "state": {
+        "gate": "2-of-2",
+        "armed": true
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario remote-host (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `restart payments`, Enter, Right, Enter (gate 2 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Enter then type the target-bound phrase (the ack arms)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the typed text clears; the dialog stays open)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (the dialog cancels back to gate 1)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "typed",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the armed ack field shows the typed phrase"
+          },
+          {
+            "id": "V2",
+            "text": "the dialog titles the restart with the gate-2 phase"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer names the phrase-typing edit mode"
+          },
+          {
+            "id": "S2",
+            "text": "the gate-1 page survives below the dialog"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "the first Esc clears the typed text and the dialog stays open"
+          },
+          {
+            "id": "A2",
+            "text": "the second Esc cancels the dialog back to gate 1"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the typed phrase may not stay after the clear"
+          },
+          {
+            "id": "N2",
+            "text": "the gate-2 chrome may not stay after the cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "2284-2297",
+            "note": "gate-2 typed-phrase dialog construction"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "366",
+            "note": "Right moves focus to Continue"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "110-121",
+            "note": "facts dialog with the ack prompt"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/remote/gate2_typed/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T00:04:48Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8n H3 h3_remote_gate2_typed live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "DIALOG-TRUST-001",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "trust review prompt for the frontend mise file",
+      "ref_symbols": [
+        {
+          "glyph": "Trust ~/work/acme/apps/frontend/mise.toml?",
+          "meaning": "prompt title"
+        },
+        {
+          "glyph": "4 tasks · 2 tools",
+          "meaning": "defines fact"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Trust ~/work/acme/apps/frontend/mise.toml?",
+          "meaning": "prompt title"
+        },
+        {
+          "glyph": "4 tasks · 2 tools",
+          "meaning": "defines fact"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/review.rs",
+          "symbols": [
+            "TrustPage",
+            "TRUST_BODY"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "tasks": 4,
+        "tools": 2
+      },
+      "state": {
+        "trust": "untrusted",
+        "page": "review"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario monorepo-child (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `test`, Enter (the trust prompt opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the finder returns)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc, type `test`, Enter (the prompt re-opens)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "prompt",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the page titles the exact untrusted file"
+          },
+          {
+            "id": "V2",
+            "text": "the defines fact counts the reviewed tasks and tools"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the page states the untrusted precondition"
+          },
+          {
+            "id": "S2",
+            "text": "the dialog offers the trust-this-file choice"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the trust review"
+          },
+          {
+            "id": "A2",
+            "text": "Esc backs to the finder and the cleared query re-opens the review"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the empty-query placeholder may not show on the review"
+          },
+          {
+            "id": "N2",
+            "text": "the trust choice may not stay after backing out"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "568",
+            "note": "TrustPage struct"
+          },
+          {
+            "path": "src/bin/holla/screens/review.rs",
+            "lines": "839",
+            "note": "untrusted subtitle"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "110-121",
+            "note": "facts dialog with the ack prompt"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/trust/prompt/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T00:04:48Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8n H3 h3_trust_prompt live-PTY PASS @d23472b (nextest visual_baseline --run-ignored only --test-threads 2, 22 pass/0 fail/486 skip; bin tests/harness/target/debug/holla 16648904B sha256:4b5ffad1af0d built 2026-10-07T23:52:43Z; log /tmp/phase8n-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "coverage": [
     {
@@ -8280,7 +9549,8 @@
         "PICKER-HARDLAUNCH-005",
         "PICKER-LAUNCH-004",
         "PICKER-FILES-001",
-        "PICKER-FILES-002"
+        "PICKER-FILES-002",
+        "PICKER-GIT-001"
       ],
       "handlers": [
         "on_key: Esc clears then cancels; Enter chooses/alt-chooses/submits; Tab scopes; Delete secondaries; Backspace rewinds; j/k only when not searchable",
@@ -8429,7 +9699,13 @@
         "DIALOG-DOCKER-003",
         "DIALOG-DOCKER-004",
         "DIALOG-GRADLE-001",
-        "DIALOG-IDEA-001"
+        "DIALOG-IDEA-001",
+        "DIALOG-PLATFORMS-001",
+        "DIALOG-PLATFORMS-002",
+        "DIALOG-REMOTE-001",
+        "DIALOG-REMOTE-002",
+        "DIALOG-REMOTE-003",
+        "DIALOG-TRUST-001"
       ],
       "handlers": [
         "confirm/destructive/prompt/facts: action shapes with cancel_index and initial focus (dialog.rs)",
@@ -9469,6 +10745,118 @@
       "status": "mapped",
       "also": [],
       "note": "phase-8k slice 8A-H2: h2_files_jump_error live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/git/batch_picker",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "PICKER-GIT-001",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8n slice 8A-H3: h3_git_batch_picker live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/platforms/linux_gate1",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "DIALOG-PLATFORMS-001",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8n slice 8A-H3: h3_platforms_linux_gate1 live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/platforms/linux_gate2",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "DIALOG-PLATFORMS-002",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8n slice 8A-H3: h3_platforms_linux_gate2 live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/remote/gate-1",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "DIALOG-REMOTE-001",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8n slice 8A-H3: h3_remote_gate1 live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/remote/gate2",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "DIALOG-REMOTE-002",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8n slice 8A-H3: h3_remote_gate2 live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/remote/gate2_typed",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "DIALOG-REMOTE-003",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8n slice 8A-H3: h3_remote_gate2_typed live-PTY check"
+    }
+,
+    {
+      "old": "holla/flows/trust/prompt",
+      "app": "holla",
+      "sizes": [
+        "72x20",
+        "80x24",
+        "100x30",
+        "120x40",
+        "160x50"
+      ],
+      "new": "DIALOG-TRUST-001",
+      "status": "mapped",
+      "also": [],
+      "note": "phase-8n slice 8A-H3: h3_trust_prompt live-PTY check"
     }
   ]
 }
