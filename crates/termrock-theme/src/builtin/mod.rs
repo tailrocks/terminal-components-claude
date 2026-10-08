@@ -34,11 +34,14 @@ fn row_like(m: &mut PartMap<PartRecipe>) {
     .when(StateFlags::HOVERED, p().set_bg(Role::HoverSurface))
     .when(StateFlags::BUSY, p().set_fg(Role::Fg(FgStep::Secondary)))
     .when(StateFlags::ERROR, p().set_fg(Role::Danger))
+    .when(StateFlags::FOCUSED, p().add(Modifier::BOLD))
+    // DISABLED sorts after FOCUSED (same specificity, insertion order):
+    // a disabled row is never bold, even as the cursor row (baseline
+    // `row()` returns the flat disabled style before any focus rule).
     .when(
         StateFlags::DISABLED,
         p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),
     )
-    .when(StateFlags::FOCUSED, p().add(Modifier::BOLD))
     .when(
         StateFlags::SELECTED | StateFlags::FOCUSED,
         p().set_bg(Role::AccentTint),
@@ -82,6 +85,40 @@ fn row_like(m: &mut PartMap<PartRecipe>) {
     .when(StateFlags::FOCUSED, p().set_fg(Role::Fg(FgStep::Primary)));
     part(m, Part::EMPTY, p().set_fg(Role::Fg(FgStep::Muted)));
     part(m, Part::ICON, p().set_fg(Role::Fg(FgStep::Secondary)));
+}
+
+/// Tree rows: `row_like`, except the chosen leaf keeps its tint past
+/// cursor moves (the S3 S2 paint correlate). CONTAINER is restated —
+/// not extended — so SELECTED sorts ahead of HOVERED and hover still
+/// wins the background, as in the baseline `row()`.
+fn tree(m: &mut PartMap<PartRecipe>) {
+    row_like(m);
+    m.insert(Part::CONTAINER, PartRecipe::default());
+    part(
+        m,
+        Part::CONTAINER,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::CurrentSurface),
+    )
+    .when(StateFlags::SELECTED, p().set_bg(Role::AccentTint))
+    .when(StateFlags::HOVERED, p().set_bg(Role::HoverSurface))
+    .when(StateFlags::BUSY, p().set_fg(Role::Fg(FgStep::Secondary)))
+    .when(StateFlags::ERROR, p().set_fg(Role::Danger))
+    .when(StateFlags::FOCUSED, p().add(Modifier::BOLD))
+    .when(
+        StateFlags::DISABLED,
+        p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),
+    )
+    .when(
+        StateFlags::SELECTED | StateFlags::FOCUSED,
+        p().set_bg(Role::AccentTint),
+    )
+    .when(
+        StateFlags::PRESSED,
+        p().set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD),
+    );
 }
 
 fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
@@ -849,8 +886,15 @@ pub(crate) fn default_recipes() -> Recipes {
         match f {
             Family::BUTTON => button(r),
             Family::MENU => menu(r),
-            Family::FIELD | Family::INPUT | Family::TEXTAREA => {
+            Family::FIELD | Family::INPUT => {
                 field_like(&mut r.parts);
+            }
+            Family::TEXTAREA => {
+                field_like(&mut r.parts);
+                // Oracle textarea (`tag:textarea.rs`): the editing
+                // underline takes border_strong (input takes accent).
+                part(&mut r.parts, Part::TEXT, p())
+                    .when(StateFlags::EDITING, p().set_underline(Role::BorderStrong));
             }
             Family::CODE => {
                 field_like(&mut r.parts);
@@ -946,6 +990,7 @@ pub(crate) fn default_recipes() -> Recipes {
             Family::CHIP => chip(&mut r.parts),
             Family::GRID => grid(&mut r.parts),
             Family::PICKER => picker(&mut r.parts),
+            Family::TREE => tree(&mut r.parts),
             _ => row_like(&mut r.parts),
         }
     }

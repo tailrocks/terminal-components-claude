@@ -221,6 +221,6 @@ impl<T: AsItem> RowFn<T> for ItemRow {
         if !item.glyph.is_empty() {
             row.part(Part::ICON, 1).text(item.glyph);
         }
-        row.label(item.label);
+        row.label_matched(item.label, item.matched);
     }
 }
