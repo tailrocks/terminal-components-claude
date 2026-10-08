@@ -160,8 +160,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_busy_frames isolated FAIL @5572f09f (V2: busy label fg white, want text_secondary #b3b3b3; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -291,8 +298,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_busy_checked_geom isolated FAIL @5572f09f (V1: spinner fg white, want accent #48e054; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -437,8 +451,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_brand_hover isolated FAIL @5572f09f (V2: press fill #3ab343 (hover bg), want accent_pressed #2b8632; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -623,8 +644,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_button_focus isolated FAIL @5572f09f (V1: hidden focus (FOCUSED without FOCUS_VISIBLE) paints the bar, want idle; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -777,8 +805,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_button_disabled isolated FAIL @5572f09f (V1/N1: forced FOCUSED leaks the bar on a disabled button (hover/press stripped, focus not); cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -953,8 +988,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_checkbox_matrix isolated FAIL @5572f09f (V1: unchecked mark fg white, want muted #808080; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -1121,8 +1163,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_toggle_matrix isolated FAIL @5572f09f (V1: off knob paints ●──, want ○──; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -1288,8 +1337,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_radio_matrix isolated FAIL @5572f09f (V1: no label row; RadioGroup has no label (Field does not accept it); cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -1447,8 +1503,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_panel_focus live-PTY FAIL @5572f09f (V1 live: 4 tabs never land the bar on a card row (boot needles Titled card/Framed/of 60 all render); cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -1633,8 +1696,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_split_drag isolated FAIL @5572f09f (N1: focused seam paints ▎ by design (split.rs), want │; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -1794,8 +1864,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_props_cursor isolated FAIL @5572f09f (V1: cursor row paints no ▎ bar (label starts at the gutter); cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -1937,8 +2014,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_empty_narrow isolated FAIL @5572f09f (V1: error ! marker not bold; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -2090,8 +2174,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8y S2 s2_toosmall_notice live-PTY PASS @5572f09f (4-app notice + size line + q-quit + 72x20 boundary all pass (bins showcase 11942568B:6968acacb6af tablepro 10096200B:07efc413fa21 jackin-preview 14188816B:594ac504d96a holla 19317048B:629d9165cf7f); cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -2221,8 +2312,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_narrow_clip isolated FAIL @5572f09f (V2: width-6 button clips the label with no … (paint_str clip, no ellipsis); cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -2348,8 +2446,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8y S2 s2_hover_coverage isolated+PTY PASS @5572f09f (7 isolated hover deltas + insensitive/disabled/suppressed no-lift + live lift/no-lift all pass; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -2377,7 +2482,17 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/inputs/80x24/truecolor.txt", "snapshots/showcase/audit/textareas/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_field_chrome isolated FAIL @5572f09f (V1: required star fg #b3b3b3 (inherit), want accent #48e054; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
+      }
     },
     {
       "id": "FLD-DISABLED-002",
@@ -2404,7 +2519,17 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/inputs/80x24/truecolor.txt", "snapshots/showcase/audit/textareas/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_field_disabled isolated FAIL @5572f09f (V1: disabled label fg secondary #b3b3b3 (Field never sees DISABLED), want disabled_fg #4d4d4d; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
+      }
     },
     {
       "id": "FLD-FOCUSLOSS-003",
@@ -2431,7 +2556,17 @@
       "snapshots": {"ref": ["snapshots/showcase/flows/inputs/editing/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_field_focusloss live-PTY FAIL @5572f09f (isolated defocus-commit passes; V1 live: 4 tabs never focus Search files on the inputs page; cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-COMMIT-001",
@@ -2458,7 +2593,17 @@
       "snapshots": {"ref": ["snapshots/showcase/flows/inputs/editing/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection", "cursor-capture"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_input_commit isolated FAIL @5572f09f (A2: BackTab ignored, no focus-prev binding (Enter/Type/Ctrl+Enter/Tab-commit all pass); cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-CANCEL-002",
@@ -2485,7 +2630,17 @@
       "snapshots": {"ref": ["snapshots/showcase/audit/inputs/80x24/truecolor.txt"], "cand": []},
       "adapters": ["headless-tick", "pty-capture"],
       "applicability": {"branches": ["termrock-refactor", "termrock-implementation"], "requires": ["glyph-capture", "key-injection"]},
-      "results": {"status": "unrun", "runs": []}
+      "results": {
+        "status": "fail",
+        "runs": [
+          {
+            "at": "2026-10-08T04:18:15Z",
+            "branch": "termrock-implementation",
+            "status": "fail",
+            "note": "phase-8y S2 s2_input_cancel isolated FAIL @5572f09f (S2: cancel keeps a plain error, no revalidate on cancel (Esc/Cancelled/restore all pass); cargo nextest run -p termrock-conformance --run-ignored all s2_, 2 pass/18 fail/686 skip; bin target/debug/showcase 11942568B sha256:6968acacb6af built 2026-10-08T04:14:05Z; log /tmp/s2-run2.log)"
+          }
+        ]
+      }
     },
     {
       "id": "TI-KEYS-003",
