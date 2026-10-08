@@ -125,7 +125,11 @@ Each sentence holds one fact.
   20 more rows report `pass`; phase-8ac executed slice 8A-S5
   (showcase feedback-plus-data-views: 3 feedback roots plus
   11 data-views roots):
-  14 more rows report `pass`, so 260 pass and 33 remain `unrun`.
+  14 more rows report `pass`; phase-8af executed slice 8A-T2
+  (tablepro fields-plus-forms-plus-navigation-plus-overlays-plus-data-views:
+  1 fields root plus 1 forms root plus 3 navigation roots plus
+  5 overlays roots plus 4 data-views roots):
+  14 more rows report `pass`, so 274 pass and 19 remain `unrun`.
   Evidence: `/tmp/phase8c2-focused.log` (21 pass / 0 fail / 370 skip),
   `/tmp/phase8e-focused.log` (14 pass / 0 fail / 391 skip),
   `/tmp/phase8g-focused.log` (30 pass / 0 fail / 405 skip),
@@ -138,7 +142,8 @@ Each sentence holds one fact.
   `/tmp/phase8v-focused.log` (20 pass / 0 fail / 557 skip),
   `/tmp/phase8z-run2.log` (19 pass / 0 fail / 577 skip),
   `/tmp/phase8ab-s4.log` (20 pass / 0 fail / 596 skip),
-  `/tmp/phase8ac-s5.log` (14 pass / 0 fail / 616 skip).
+  `/tmp/phase8ac-s5.log` (14 pass / 0 fail / 616 skip),
+  `/tmp/phase8af-t2.log` (14 pass / 0 fail / 630 skip).
 
 ## Reference passes
 
@@ -261,7 +266,8 @@ Each sentence holds one fact.
   (17 dual-path plus 3 live-PTY-only: help, form-submit, form-invalid)
   (`showcase_pending_s4.rs`, phase-8ab) plus the 14 S5 rows
   (13 dual-path plus 1 live-PTY-only: term-run)
-  (`showcase_pending_s5.rs`, phase-8ac), so 33 rows
+  (`showcase_pending_s5.rs`, phase-8ac) plus the 14 T2 rows as
+  live-PTY tests (`tablepro_pending_t2.rs`, phase-8af), so 19 rows
   remain unrun as cases.
 
 ## Evidence paths
