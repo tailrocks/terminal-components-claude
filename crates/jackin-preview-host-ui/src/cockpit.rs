@@ -5,7 +5,7 @@ use termrock::author::{FgStep, Modifier, Role, StylePatch, Ui};
 use termrock::controls::{Brand, Button, Panel, PanelKind};
 use termrock::layout::Track;
 use termrock::navigation::{List, ListState};
-use termrock::{Hint, HintKey, HintLayer, Id, Variant, width};
+use termrock::{Hint, HintKey, HintLayer, Id, ItemKey, PropsList, PropsRow, PropsState, width};
 
 use jackin_preview_presentation::rain::{HANDOFF_LEN, HandoffStage, handoff_stage};
 use jackin_preview_sim::launch::{LaunchFailure, LaunchRun, Stage};
@@ -25,6 +25,10 @@ pub const CANCEL: Id = ROOT.sub("cancel");
 pub const RETRY: Id = ROOT.sub("retry");
 /// Cockpit-to-Capsule transition surface.
 pub const HANDOFF: Id = ROOT.sub("handoff");
+/// Debug info props list.
+pub const INFO_PROPS: Id = ROOT.sub("info-props");
+/// Debug info close action.
+pub const INFO_CLOSE: Id = ROOT.sub("info-close");
 
 /// Safe account labels projected below a launch rail.
 ///
@@ -210,7 +214,7 @@ impl CockpitScreen {
     /// Render the main Cockpit surface.
     pub fn draw(
         ui: &mut Ui<'_>,
-        _area: Rect,
+        area: Rect,
         _cockpit: &CockpitState,
         world: &World,
         role: &str,
@@ -222,8 +226,13 @@ impl CockpitScreen {
             .first()
             .map_or("payments-platform", |w| w.name.as_str());
 
+        // Narrow viewports recenter the frozen 120-wide geometry: at 120+
+        // columns the shift is zero and every rect below matches byte-for-byte.
+        let dx = (area.width as i16 - 120).min(0) / 2;
+        let sx = |x: u16| x.saturating_add_signed(dx).max(area.x);
+
         // 1. Centered jackin❯ brand
-        let _ = Brand::new(ROOT.sub("brand"), "jackin❯").draw(ui, Rect::new(55, 3, 9, 1));
+        let _ = Brand::new(ROOT.sub("brand"), "jackin❯").draw(ui, Rect::new(sx(55), 3, 9, 1));
 
         // 2. Identity line 4: title
         let head = format!("Loading {role} into workspace {ws_name}");
@@ -235,7 +244,7 @@ impl CockpitScreen {
                     .add(Modifier::BOLD);
                 row.label_patched(&head, &p);
             })
-            .draw(ui, Rect::new(33, 4, 54, 1), &ident1_state, &[()]);
+            .draw(ui, Rect::new(sx(33), 4, 54, 1), &ident1_state, &[()]);
 
         // 3. Identity line 5: agent / account
         let ident2_state = ListState::default();
@@ -247,7 +256,7 @@ impl CockpitScreen {
                     &p,
                 );
             })
-            .draw(ui, Rect::new(20, 5, 80, 1), &ident2_state, &[()]);
+            .draw(ui, Rect::new(sx(20), 5, 80, 1), &ident2_state, &[()]);
 
         // 4. Identity line 6: stage progress summary
         let ident3_state = ListState::default();
@@ -256,7 +265,7 @@ impl CockpitScreen {
                 let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
                 row.label_patched("stage 3 of 11 · Credentials · 2 done · 0 skipped", &p);
             })
-            .draw(ui, Rect::new(33, 6, 52, 1), &ident3_state, &[()]);
+            .draw(ui, Rect::new(sx(33), 6, 52, 1), &ident3_state, &[()]);
 
         // 5. 11-stage launch rail
         let stages = [
@@ -397,27 +406,36 @@ impl CockpitScreen {
                     cols.cell(3).patch(&p_faint).text(item.status);
                 }
             })
-            .draw(ui, Rect::new(38, 8, 44, 11), &rail_state, &stages);
+            // The 44-cell rail plus the List's 3-cell gutter and 1-cell
+            // margin; content starts at the reference rail column.
+            .draw(ui, Rect::new(sx(35), 8, 48, 11), &rail_state, &stages);
 
-        // 6. Credentials projection line under stage rail
-        let cred_state = ListState::default();
-        List::new(ACCOUNT_LINE)
-            .row(|_, row| {
-                let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                row.label_patched(
-                    "credentials  5 accounts · Claude · Work (1Password) · Claude · Personal · Codex · P…",
-                    &p,
-                );
-            })
-            .draw(ui, Rect::new(34, 20, 84, 1), &cred_state, &[()]);
+        // Bottom chrome row: two rows above the body bottom (tag `ay`).
+        let chrome_y = area.bottom().saturating_sub(2);
 
-        let quota_state = ListState::default();
-        List::new(ACCOUNT_LINE.sub("quota"))
-            .row(|_, row| {
-                let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                row.label_patched("quota readable · session choice", &p);
-            })
-            .draw(ui, Rect::new(47, 21, 31, 1), &quota_state, &[()]);
+        // 6. Credentials projection line under stage rail. Short viewports
+        // drop it (with the quota line) rather than collide with the
+        // bottom chrome (tag `cockpit.rs:890`: `y + 1 < bottom - 3`).
+        if 21 < chrome_y {
+            let cred_state = ListState::default();
+            List::new(ACCOUNT_LINE)
+                .row(|_, row| {
+                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                    row.label_patched(
+                        "credentials  5 accounts · Claude · Work (1Password) · Claude · Personal · Codex · P…",
+                        &p,
+                    );
+                })
+                .draw(ui, Rect::new(sx(34), 20, 84, 1), &cred_state, &[()]);
+
+            let quota_state = ListState::default();
+            List::new(ACCOUNT_LINE.sub("quota"))
+                .row(|_, row| {
+                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    row.label_patched("quota readable · session choice", &p);
+                })
+                .draw(ui, Rect::new(sx(47), 21, 31, 1), &quota_state, &[()]);
+        }
 
         // 7. Bottom status line. A terminal failure replaces the live
         // activity row with the frozen failure chrome: the `! {stage}
@@ -436,7 +454,12 @@ impl CockpitScreen {
                 })
                 .draw(
                     ui,
-                    Rect::new(1, 36, width(&activity) as u16 + 6, 1),
+                    Rect::new(
+                        area.x.saturating_add(1),
+                        chrome_y,
+                        width(&activity) as u16 + 6,
+                        1,
+                    ),
                     &activity_state,
                     &[()],
                 );
@@ -450,7 +473,12 @@ impl CockpitScreen {
                 })
                 .draw(
                     ui,
-                    Rect::new(119u16.saturating_sub(chip_w + 4), 36, chip_w + 4, 1),
+                    Rect::new(
+                        area.right().saturating_sub(chip_w + 5),
+                        chrome_y,
+                        chip_w + 4,
+                        1,
+                    ),
                     &chip_state,
                     &[()],
                 );
@@ -464,7 +492,12 @@ impl CockpitScreen {
                     })
                     .draw(
                         ui,
-                        Rect::new(1, 37, width(&lines) as u16 + 6, 1),
+                        Rect::new(
+                            area.x.saturating_add(1),
+                            chrome_y.saturating_add(1),
+                            width(&lines) as u16 + 6,
+                            1,
+                        ),
                         &log_state,
                         &[()],
                     );
@@ -476,7 +509,12 @@ impl CockpitScreen {
                     let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
                     row.label_patched("⠋ Resolving credentials…", &p);
                 })
-                .draw(ui, Rect::new(1, 36, 24, 1), &status_state, &[()]);
+                .draw(
+                    ui,
+                    Rect::new(area.x.saturating_add(1), chrome_y, 24, 1),
+                    &status_state,
+                    &[()],
+                );
         }
 
         if debug {
@@ -486,73 +524,97 @@ impl CockpitScreen {
                     let p = StylePatch::new().set_fg(Role::Warning);
                     row.label_patched(" run-202609030914-b5df ", &p);
                 })
-                .draw(ui, Rect::new(96, 36, 23, 1), &debug_state, &[()]);
+                .draw(
+                    ui,
+                    Rect::new(area.right().saturating_sub(24), chrome_y, 23, 1),
+                    &debug_state,
+                    &[()],
+                );
         }
     }
 
-    /// Render the container debug info modal.
-    pub fn draw_info(ui: &mut Ui<'_>, _area: Rect, world: &World, role: &str, _debug: bool) {
-        let modal_area = Rect::new(27, 14, 66, 11);
+    /// Row data for the debug info props, shared by update and draw so
+    /// keys, order, and copyability agree (tag `cockpit.rs:395`).
+    pub fn info_rows<'a>(
+        role: &'a str,
+        target: &'a str,
+        container: Option<&'a str>,
+        debug: bool,
+        telemetry: &'a str,
+    ) -> Vec<PropsRow<'a>> {
+        let mut rows: Vec<PropsRow<'a>> = Vec::new();
+        let mut key = 0u64;
+        let mut next = || {
+            let current = key;
+            key += 1;
+            ItemKey::num(current)
+        };
+        if let Some(container) = container {
+            rows.push(PropsRow::new(next(), "Container", container).copyable());
+        }
+        rows.push(PropsRow::new(next(), "Target", target));
+        rows.push(PropsRow::new(next(), "Role", role));
+        rows.push(PropsRow::new(
+            next(),
+            "Agent",
+            "Claude Code · account Claude · Work",
+        ));
+        rows.push(PropsRow::new(next(), "Run id", Self::RUN_ID).copyable());
+        rows.push(PropsRow::new(next(), "jackin", "0.6.4 · preview"));
+        if debug {
+            rows.push(PropsRow::new(next(), "Telemetry", telemetry));
+        }
+        rows
+    }
+
+    /// The fixture run id voiced by the debug chrome.
+    const RUN_ID: &'static str = "run-202609030914-b5df";
+
+    /// Render the container debug info modal: the stock [`PropsList`]
+    /// owns the cursor, gutter, copy hint, and scrolling; the caller owns
+    /// the row data and the [`PropsState`].
+    pub fn draw_info(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        world: &World,
+        role: &str,
+        debug: bool,
+        props: &PropsState,
+        container: Option<&str>,
+    ) {
+        let w = 66.min(area.width.saturating_sub(4));
+        let h = 11.min(area.height.saturating_sub(2));
+        let modal_area = Rect::new(
+            area.x + area.width.saturating_sub(w) / 2,
+            area.y + area.height.saturating_sub(h) / 2,
+            w,
+            h,
+        );
         let ws_name = world
             .workspaces
             .first()
             .map_or("payments-platform", |w| w.name.as_str());
         let target_val = format!("{role} into workspace {ws_name}");
+        let telemetry_val = format!("run {} -> otlp://collector.internal:4317", Self::RUN_ID);
+        let rows = Self::info_rows(
+            role,
+            target_val.as_str(),
+            container,
+            debug,
+            telemetry_val.as_str(),
+        );
 
         Panel::new(ROOT.sub("debug-info"))
             .kind(PanelKind::Framed)
             .title("Debug info")
             .meta("read-only")
             .draw(ui, modal_area, |ui, body| {
-                let list_state = ListState::default();
-                let props: [(&str, String, bool, bool); 5] = [
-                    ("Target", target_val, true, true),
-                    ("Role", role.to_owned(), false, false),
-                    (
-                        "Agent",
-                        "Claude Code · account Claude · Work".to_owned(),
-                        false,
-                        false,
-                    ),
-                    ("Run id", "run-202609030914-b5df".to_owned(), false, false),
-                    ("jackin", "0.6.4 · preview".to_owned(), false, false),
-                ];
-
-                List::new(ROOT.sub("info-props"))
-                    .row(
-                        |(label, val, has_focus, is_bold): &(&str, String, bool, bool), row| {
-                            let mut cols = row.columns_with_gap(
-                                &[Track::Fixed(2), Track::Fixed(6), Track::Flex(1)],
-                                2,
-                            );
-
-                            if *has_focus {
-                                let p_focus = StylePatch::new().set_fg(Role::Accent);
-                                cols.cell(0).patch(&p_focus).text("▎");
-                            } else {
-                                cols.cell(0).text("  ");
-                            }
-
-                            let p_label = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                            cols.cell(1).patch(&p_label).text(label);
-
-                            if *is_bold {
-                                let p_val = StylePatch::new()
-                                    .set_fg(Role::Fg(FgStep::Primary))
-                                    .add(Modifier::BOLD);
-                                cols.cell(2).patch(&p_val).text(val);
-                            } else {
-                                let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
-                                cols.cell(2).patch(&p_val).text(val);
-                            }
-                        },
-                    )
-                    .draw(
-                        ui,
-                        Rect::new(body.x, body.y, body.width, 5),
-                        &list_state,
-                        &props,
-                    );
+                PropsList::new(INFO_PROPS).draw(
+                    ui,
+                    Rect::new(body.x, body.y, body.width, rows.len().min(9) as u16),
+                    props,
+                    &rows,
+                );
 
                 let close_area = Rect::new(
                     body.right().saturating_sub(9),
@@ -560,56 +622,7 @@ impl CockpitScreen {
                     7,
                     1,
                 );
-                Button::new(ROOT.sub("info-close"), "Close").draw(ui, close_area);
-            });
-    }
-
-    /// Render the cancel confirmation modal.
-    pub fn draw_cancel_confirm(ui: &mut Ui<'_>, _area: Rect) {
-        let modal_area = Rect::new(33, 15, 54, 11);
-
-        Panel::new(ROOT.sub("cancel-confirm"))
-            .kind(PanelKind::Framed)
-            .draw(ui, modal_area, |ui, body| {
-                let title_state = ListState::default();
-                List::new(ROOT.sub("cancel-title"))
-                    .row(|_, row| {
-                        let p = StylePatch::new()
-                            .set_fg(Role::Fg(FgStep::Primary))
-                            .add(Modifier::BOLD);
-                        row.label_patched("  Cancel the launch?", &p);
-                    })
-                    .draw(
-                        ui,
-                        Rect::new(body.x, body.y.saturating_add(1), body.width, 1),
-                        &title_state,
-                        &[()],
-                    );
-
-                let desc_state = ListState::default();
-                let desc_lines = [
-                    "  The pipeline stops at its current stage and the",
-                    "  partially prepared instance is marked failed",
-                    "  setup. Nothing is attached.",
-                ];
-                List::new(ROOT.sub("cancel-desc"))
-                    .row(|line: &&str, row| {
-                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                        row.label_patched(line, &p);
-                    })
-                    .draw(
-                        ui,
-                        Rect::new(body.x, body.y.saturating_add(3), body.width, 3),
-                        &desc_state,
-                        &desc_lines,
-                    );
-
-                let cancel_btn_area = Rect::new(60, 23, 8, 1);
-                let cancel_launch_area = Rect::new(69, 23, 15, 1);
-                Button::new(CANCEL, "Cancel").draw(ui, cancel_btn_area);
-                Button::new(ROOT.sub("cancel-launch"), "Cancel launch")
-                    .variant(Variant::DANGER)
-                    .draw(ui, cancel_launch_area);
+                Button::new(INFO_CLOSE, "Close").draw(ui, close_area);
             });
     }
 
