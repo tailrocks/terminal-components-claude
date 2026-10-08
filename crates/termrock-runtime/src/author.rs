@@ -179,6 +179,38 @@ impl<'a> PartStyle<'a> {
         resolved
     }
 
+    /// Resolve one part with a component default under this instance's patches.
+    ///
+    /// The default voices only what the instance leaves unsaid: an explicit
+    /// `.patch()`/`.patch_part()` wins every slot it speaks on, exactly as
+    /// with [`PartStyle::style`]. Components use this when the historical
+    /// widget paints a fixed tone the shared recipe cannot carry without
+    /// breaking the recipe's other consumers (a slot edit would leak; a
+    /// component default stays inside the component).
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "mirrors PartStyle::style's explicit resolve channels plus the default"
+    )]
+    pub fn style_with_default(
+        &self,
+        ui: &mut Ui<'_>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        default: &StylePatch,
+    ) -> Resolved {
+        let patch = match self.part_patch(part) {
+            Some(instance) => default.merge(instance),
+            None => *default,
+        };
+        let resolved = ui.style_patched(family, variant, part, flags, &patch);
+        self.note(ui, owner, family, variant, part, resolved);
+        self.note_rejected(ui, owner);
+        resolved
+    }
+
     /// Record a resolved part in testing builds; this is a no-op otherwise.
     pub fn note(
         &self,
