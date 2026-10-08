@@ -121,6 +121,7 @@ fn framed_pane(meta: &str) -> Panel<'_> {
         .kind(PanelKind::Framed)
         .title("Framed · split pane")
         .meta(meta)
+        .meta_late(true)
         .patch_part(PANEL_PARTS)
 }
 
@@ -128,6 +129,7 @@ fn log_card(meta: &str) -> Panel<'_> {
     Panel::new(LOG_CARD)
         .title("Card · scrollable")
         .meta(meta)
+        .meta_late(true)
         .patch_part(PANEL_PARTS)
 }
 

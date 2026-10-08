@@ -2248,20 +2248,45 @@ impl Grid<'_> {
         st: &GridState,
         model: &M,
     ) -> String {
-        let len = model.row_count();
         let rows = f
             .layout(self.id)
             .map_or_else(|| st.core.scroll().viewport_len(), |l| l.viewport_len);
+        Self::rows_label_for_viewport(st, model, rows.min(usize::from(u16::MAX)) as u16)
+    }
+
+    /// [`Self::rows_label`] from draw-time geometry instead of last frame's
+    /// layout facts: `grid_area` is the rect `draw` will paint into, so the
+    /// label is already exact on frame 1, when `FrameRead` answers `None`.
+    pub fn rows_label_for<M: GridModel + ?Sized>(
+        &self,
+        st: &GridState,
+        model: &M,
+        grid_area: Rect,
+    ) -> String {
+        let (_, _, body, _) = self.chrome(grid_area, model.read_only_reason());
+        Self::rows_label_for_viewport(st, model, body.height)
+    }
+
+    fn rows_label_for_viewport<M: GridModel + ?Sized>(
+        st: &GridState,
+        model: &M,
+        viewport: u16,
+    ) -> String {
+        let len = model.row_count();
+        // The fetch-more row consumes a viewport slot at the bottom, so the
+        // window runs over the scroll content (rows + fetch) while the end
+        // reads out in loaded rows (tag `rows_label`).
+        let total = len.saturating_add(usize::from(model.has_more()));
         let content = Rect {
-            height: rows.min(usize::from(u16::MAX)) as u16,
+            height: viewport,
             ..Rect::ZERO
         };
-        let w = Self::window(st, content, len);
+        let w = Self::window(st, content, total);
         let mut s = String::new();
         s.push_str("rows ");
         push_grouped(&mut s, w.start.saturating_add(1).min(len));
         s.push('\u{2013}');
-        push_grouped(&mut s, w.end);
+        push_grouped(&mut s, w.end.min(len));
         s.push_str(" of ");
         push_grouped(&mut s, len);
         match model.total() {
@@ -2288,8 +2313,20 @@ impl Grid<'_> {
         model: &M,
     ) -> Option<String> {
         let area = f.area(self.id)?;
+        self.cols_label_for(st, model, area)
+    }
+
+    /// [`Self::cols_label`] from draw-time geometry instead of last frame's
+    /// area: `grid_area` is the rect `draw` will paint into, so the label
+    /// is already exact on frame 1, when `FrameRead` answers `None`.
+    pub fn cols_label_for<M: GridModel + ?Sized>(
+        &self,
+        st: &GridState,
+        model: &M,
+        grid_area: Rect,
+    ) -> Option<String> {
         let len = model.row_count();
-        let (_, _, body, _) = self.chrome(area, model.read_only_reason());
+        let (_, _, body, _) = self.chrome(grid_area, model.read_only_reason());
         let rows = Self::window(st, body, len);
         let g = self.geometry(body, st, model, rows);
         if g.hidden_left == 0 && g.hidden_right == 0 {
@@ -3197,6 +3234,9 @@ impl Grid<'_> {
         if geometry.hidden_left == 0 && geometry.hidden_right == 0 {
             return;
         }
+        // The label answers only its own hover (tag: `hovered(right_id)`);
+        // grid-level hover must not brighten it. Direct label hover/click
+        // arrives with registered label parts (hscroll interaction).
         let style = self
             .ov
             .style(
@@ -3205,7 +3245,7 @@ impl Grid<'_> {
                 Family::GRID,
                 Variant::DEFAULT,
                 Part::OVERFLOW,
-                live,
+                live.difference(StateFlags::HOVERED),
             )
             .style;
         if geometry.hidden_left > 0 {
@@ -3781,7 +3821,10 @@ impl Grid<'_> {
                     .columns
                     .get(i)
                     .is_some_and(|c| c.prefix_glyph == Some(GlyphRole::PrimaryKey))
+                    && !rflags.contains(StateFlags::FOCUSED)
                 {
+                    // A primary key reads secondary only off the cursor row;
+                    // the focused row keeps the primary row tone (tag grid).
                     cell_delta = cell_delta.set_fg(Role::Fg(FgStep::Secondary));
                 }
                 if cdecor.italic {
@@ -3949,13 +3992,21 @@ impl Grid<'_> {
         if !inert {
             ui.publish_bindings(self.id, live, &BINDINGS);
         }
+        // The container never answers focus, press, selection or hover: it
+        // is the neutral surface behind the rows, and hover brightens only
+        // the exact thumb target (tag: the fade frame carries no hover).
         let container = self.ov.style(
             ui,
             self.id,
             Family::GRID,
             Variant::DEFAULT,
             Part::CONTAINER,
-            live.difference(StateFlags::FOCUSED | StateFlags::PRESSED | StateFlags::SELECTED),
+            live.difference(
+                StateFlags::FOCUSED
+                    | StateFlags::PRESSED
+                    | StateFlags::SELECTED
+                    | StateFlags::HOVERED,
+            ),
         );
         ui.fill(area, container.style);
         let (header, note, body, bar) = self.chrome(area, reason);
