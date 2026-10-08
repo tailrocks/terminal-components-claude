@@ -267,6 +267,11 @@ pub struct Column<'a> {
     pub min_width: u16,
     /// Widest painted width.
     pub max_width: u16,
+    /// Flex-fill weight: zero pins the column to its sampled width, nonzero
+    /// absorbs leftover row space after the window is placed (tag
+    /// `table.rs:593` `Constraint::Min`: the base is `min_width`, growth is
+    /// not capped by `max_width`).
+    pub flex: u16,
     /// Whether activating the header requests a sort.
     pub sortable: bool,
     /// Whether cells in this column can be edited at all. A per-column
@@ -293,6 +298,7 @@ impl<'a> Column<'a> {
             align: Align::Left,
             min_width: 3,
             max_width: 40,
+            flex: 0,
             sortable: false,
             editable: false,
             sticky: false,
@@ -1782,6 +1788,15 @@ impl<'a> Grid<'a> {
     ) -> [u16; GRID_MAX_COLUMNS] {
         let mut widths = [0; GRID_MAX_COLUMNS];
         for (i, c) in self.columns.iter().enumerate().take(self.column_count()) {
+            // Flex columns lay out at their minimum, like tag
+            // `Constraint::Min`: content never widens the base, leftover
+            // absorption happens in `distribute_flex` after the window.
+            if c.flex > 0 {
+                if let Some(slot) = widths.get_mut(i) {
+                    *slot = c.min_width.max(1);
+                }
+                continue;
+            }
             let mut w = width(c.title).saturating_add(
                 if c.prefix_glyph == Some(GlyphRole::PrimaryKey)
                     || self.header_prefix(c.key).is_some()
@@ -2089,7 +2104,85 @@ impl<'a> Grid<'a> {
             x = x.saturating_add(w).saturating_add(gap);
             used = used.saturating_add(w).saturating_add(gap);
         }
+        self.distribute_flex(&mut g, avail, gap);
         g
+    }
+
+    /// Absorb leftover row space into the shown flex columns (tag
+    /// `table.rs:593` `Constraint::Min` fill: the window was placed on base
+    /// widths, the remainder splits by weight with the residue going to the
+    /// earliest flex columns, and every column painted after a grown column
+    /// shifts right by its growth). No flex weight or no leftover is a
+    /// no-op; the preview column keeps its in-loop decision and clips.
+    fn distribute_flex(&self, g: &mut Geometry, avail: u16, gap: u16) {
+        let mut total = 0u32;
+        let mut shown = 0usize;
+        let mut used = 0u16;
+        for i in 0..g.n {
+            if !g.complete.get(i).copied().unwrap_or(false) {
+                continue;
+            }
+            shown = shown.saturating_add(1);
+            used = used.saturating_add(g.width.get(i).copied().unwrap_or(0));
+            if let Some(c) = self.columns.get(i) {
+                total = total.saturating_add(u32::from(c.flex));
+            }
+        }
+        if total == 0 {
+            return;
+        }
+        let gaps = gap.saturating_mul((shown as u16).saturating_sub(1));
+        let leftover = avail.saturating_sub(used.saturating_add(gaps));
+        if leftover == 0 {
+            return;
+        }
+        let mut shares = [0u16; GRID_MAX_COLUMNS];
+        let mut assigned = 0u16;
+        for i in 0..g.n {
+            let weight = self.columns.get(i).map(|c| u32::from(c.flex)).unwrap_or(0);
+            if weight == 0 || !g.complete.get(i).copied().unwrap_or(false) {
+                continue;
+            }
+            let share = (u32::from(leftover).saturating_mul(weight) / total) as u16;
+            if let Some(slot) = shares.get_mut(i) {
+                *slot = share;
+            }
+            assigned = assigned.saturating_add(share);
+        }
+        let mut residue = leftover.saturating_sub(assigned);
+        for i in 0..g.n {
+            if residue == 0 {
+                break;
+            }
+            let flexed = self.columns.get(i).is_some_and(|c| c.flex > 0)
+                && g.complete.get(i).copied().unwrap_or(false);
+            if !flexed {
+                continue;
+            }
+            if let Some(slot) = shares.get_mut(i) {
+                *slot = slot.saturating_add(1);
+            }
+            residue = residue.saturating_sub(1);
+        }
+        let orig_x = g.x;
+        for i in 0..g.n {
+            let delta = shares.get(i).copied().unwrap_or(0);
+            if delta == 0 {
+                continue;
+            }
+            if let Some(w) = g.width.get_mut(i) {
+                *w = w.saturating_add(delta);
+            }
+            let before = orig_x.get(i).copied().unwrap_or(0);
+            for j in 0..g.n {
+                let after = j != i
+                    && g.shown.get(j).copied().unwrap_or(false)
+                    && orig_x.get(j).copied().unwrap_or(0) > before;
+                if after && let Some(px) = g.x.get_mut(j) {
+                    *px = px.saturating_add(delta);
+                }
+            }
+        }
     }
 }
 
@@ -4469,6 +4562,7 @@ mod tests {
                 align: Align::Left,
                 min_width: 8,
                 max_width: 8,
+                flex: 0,
                 sortable: true,
                 editable: true,
                 sticky: false,
@@ -4483,6 +4577,7 @@ mod tests {
                 align: Align::Left,
                 min_width: 8,
                 max_width: 8,
+                flex: 0,
                 sortable: false,
                 editable: true,
                 sticky: false,
@@ -4858,6 +4953,7 @@ mod tests {
                 align: Align::Left,
                 min_width: 18,
                 max_width: 18,
+                flex: 0,
                 sortable: false,
                 editable: false,
                 sticky: false,
@@ -4872,6 +4968,7 @@ mod tests {
                 align: Align::Left,
                 min_width: 8,
                 max_width: 8,
+                flex: 0,
                 sortable: false,
                 editable: false,
                 sticky: false,
@@ -4927,6 +5024,7 @@ mod tests {
                 align: Align::Left,
                 min_width: 18,
                 max_width: 18,
+                flex: 0,
                 sortable: false,
                 editable: false,
                 sticky: false,
@@ -4941,6 +5039,7 @@ mod tests {
                 align: Align::Left,
                 min_width: 8,
                 max_width: 8,
+                flex: 0,
                 sortable: false,
                 editable: false,
                 sticky: false,
@@ -5488,6 +5587,7 @@ mod tests {
                 align: column_align,
                 min_width: 8,
                 max_width: 8,
+                flex: 0,
                 ..Column::new(ColumnKey::num(1), "value")
             }];
             let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
@@ -5650,6 +5750,132 @@ mod tests {
             0..1,
         );
         assert!(geometry.shown.iter().all(|shown| !shown));
+    }
+
+    #[test]
+    fn flex_column_bases_on_min_and_absorbs_leftover() {
+        // Tag `table.rs:593` `Constraint::Min`: the window is placed on
+        // minimums (content "alpha" is wider than min 3 yet the third
+        // column still fits), then the single flex column takes all 1
+        // leftover cell and the followers shift right, ending flush.
+        let columns = [
+            Column {
+                min_width: 3,
+                max_width: 10,
+                flex: 1,
+                ..Column::new(ColumnKey::num(1), "task")
+            },
+            Column {
+                min_width: 6,
+                max_width: 6,
+                ..Column::new(ColumnKey::num(2), "owner")
+            },
+            Column {
+                min_width: 6,
+                max_width: 6,
+                ..Column::new(ColumnKey::num(3), "status")
+            },
+        ];
+        let model = Model::two();
+        let grid = Grid::new(ID, &columns).column_gap(2);
+        let body = Rect::new(0, 0, 22, 4);
+        let g = grid.geometry(body, &GridState::default(), &model, 0..2);
+        assert_eq!(g.hidden_left, 0);
+        assert_eq!(g.hidden_right, 0);
+        assert_eq!(g.cell(0, 0), Rect::new(2, 0, 4, 1));
+        assert_eq!(g.cell(1, 0), Rect::new(8, 0, 6, 1));
+        assert_eq!(g.cell(2, 0), Rect::new(16, 0, 6, 1));
+    }
+
+    #[test]
+    fn flex_shares_split_evenly_with_residue_to_earliest() {
+        // Leftover 11 across two weight-1 flex columns: 6 and 5.
+        let columns = [
+            Column {
+                min_width: 4,
+                max_width: 4,
+                flex: 1,
+                ..Column::new(ColumnKey::num(1), "a")
+            },
+            Column {
+                min_width: 4,
+                max_width: 4,
+                flex: 1,
+                ..Column::new(ColumnKey::num(2), "b")
+            },
+            Column {
+                min_width: 6,
+                max_width: 6,
+                ..Column::new(ColumnKey::num(3), "c")
+            },
+        ];
+        let model = Model::two();
+        let grid = Grid::new(ID, &columns).column_gap(2);
+        let g = grid.geometry(Rect::new(0, 0, 31, 4), &GridState::default(), &model, 0..2);
+        assert_eq!(g.hidden_right, 0);
+        assert_eq!(g.cell(0, 0), Rect::new(2, 0, 10, 1));
+        assert_eq!(g.cell(1, 0), Rect::new(14, 0, 9, 1));
+        assert_eq!(g.cell(2, 0), Rect::new(25, 0, 6, 1));
+    }
+
+    #[test]
+    fn flex_shares_split_by_weight() {
+        // Leftover 11 across weights 2:1: floors 7 and 3, residue 1 to the
+        // earliest flex column, growth past `max_width` uncapped.
+        let columns = [
+            Column {
+                min_width: 4,
+                max_width: 4,
+                flex: 2,
+                ..Column::new(ColumnKey::num(1), "a")
+            },
+            Column {
+                min_width: 4,
+                max_width: 4,
+                flex: 1,
+                ..Column::new(ColumnKey::num(2), "b")
+            },
+            Column {
+                min_width: 6,
+                max_width: 6,
+                ..Column::new(ColumnKey::num(3), "c")
+            },
+        ];
+        let model = Model::two();
+        let grid = Grid::new(ID, &columns).column_gap(2);
+        let g = grid.geometry(Rect::new(0, 0, 31, 4), &GridState::default(), &model, 0..2);
+        assert_eq!(g.hidden_right, 0);
+        assert_eq!(g.cell(0, 0), Rect::new(2, 0, 12, 1));
+        assert_eq!(g.cell(1, 0), Rect::new(16, 0, 7, 1));
+        assert_eq!(g.cell(2, 0), Rect::new(25, 0, 6, 1));
+    }
+
+    #[test]
+    fn flex_column_outside_the_window_gets_no_share() {
+        // The flex column scrolled out left: leftover exists but no shown
+        // flex weight, so the fixed column keeps its base width.
+        let columns = [
+            Column {
+                min_width: 4,
+                max_width: 4,
+                flex: 1,
+                ..Column::new(ColumnKey::num(1), "a")
+            },
+            Column {
+                min_width: 6,
+                max_width: 6,
+                ..Column::new(ColumnKey::num(2), "b")
+            },
+        ];
+        let model = Model::two();
+        let grid = Grid::new(ID, &columns).column_gap(2);
+        let mut state = GridState::default();
+        state.col_scroll.set_content(2);
+        state.col_scroll.scroll_to(1);
+        let g = grid.geometry(Rect::new(0, 0, 22, 4), &state, &model, 0..2);
+        assert_eq!(g.hidden_left, 1);
+        assert!(g.cell(0, 0).is_empty());
+        assert_eq!(g.cell(1, 0), Rect::new(2, 0, 6, 1));
     }
 
     #[test]
