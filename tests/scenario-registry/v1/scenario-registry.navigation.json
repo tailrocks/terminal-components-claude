@@ -241,8 +241,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:49:26Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8z S3 s3_chip_bar isolated+live-PTY PASS @91aba51 (nextest visual_baseline --run-ignored only s3_ --test-threads 2, 19 pass/0 fail/577 skip; 140x40 singles/multi/wrap/select-all+drag-path; bin tests/harness/target/debug/showcase 10977512B sha256:1e9903248970 built 2026-10-08T04:15:09Z; log /tmp/phase8z-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -639,8 +646,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:49:26Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8z S3 s3_list_single isolated+live-PTY PASS @91aba51 (nextest visual_baseline --run-ignored only s3_ --test-threads 2, 19 pass/0 fail/577 skip; runs select+delete-confirm+filter focus; bin tests/harness/target/debug/showcase 10977512B sha256:1e9903248970 built 2026-10-08T04:15:09Z; log /tmp/phase8z-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -843,8 +857,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:49:26Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8z S3 s3_list_multi isolated+live-PTY PASS @91aba51 (nextest visual_baseline --run-ignored only s3_ --test-threads 2, 19 pass/0 fail/577 skip; level picker owns render+quick-tab focus; bin tests/harness/target/debug/showcase 10977512B sha256:1e9903248970 built 2026-10-08T04:15:09Z; log /tmp/phase8z-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -1268,8 +1289,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:49:26Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8z S3 s3_picker_query isolated+live-PTY PASS @91aba51 (nextest visual_baseline --run-ignored only s3_ --test-threads 2, 19 pass/0 fail/577 skip; query filters+empty-state+reopen; bin tests/harness/target/debug/showcase 10977512B sha256:1e9903248970 built 2026-10-08T04:15:09Z; log /tmp/phase8z-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -1490,8 +1518,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:49:26Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8z S3 s3_picker_choice isolated+live-PTY PASS @91aba51 (nextest visual_baseline --run-ignored only s3_ --test-threads 2, 19 pass/0 fail/577 skip; choice commits+esc-abort+tab-refocus; bin tests/harness/target/debug/showcase 10977512B sha256:1e9903248970 built 2026-10-08T04:15:09Z; log /tmp/phase8z-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -1671,8 +1706,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:49:26Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8z S3 s3_nav_shell live-PTY-only PASS @91aba51 (nextest visual_baseline --run-ignored only s3_ --test-threads 2, 19 pass/0 fail/577 skip; shell focus-return+toast site; bin tests/harness/target/debug/showcase 10977512B sha256:1e9903248970 built 2026-10-08T04:15:09Z; log /tmp/phase8z-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -1888,8 +1930,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:49:26Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8z S3 s3_nav_side live-PTY-only PASS @91aba51 (nextest visual_baseline --run-ignored only s3_ --test-threads 2, 19 pass/0 fail/577 skip; sidebars fixture+awaited steps; bin tests/harness/target/debug/showcase 10977512B sha256:1e9903248970 built 2026-10-08T04:15:09Z; log /tmp/phase8z-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -2319,8 +2368,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:49:26Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8z S3 s3_tree_fold isolated+live-PTY PASS @91aba51 (nextest visual_baseline --run-ignored only s3_ --test-threads 2, 19 pass/0 fail/577 skip; 10 expanded paths fold to 2 (zone-scoped); bin tests/harness/target/debug/showcase 10977512B sha256:1e9903248970 built 2026-10-08T04:15:09Z; log /tmp/phase8z-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -2957,8 +3013,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:49:26Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8z S3 s3_steps_life isolated+live-PTY PASS @91aba51 (nextest visual_baseline --run-ignored only s3_ --test-threads 2, 19 pass/0 fail/577 skip; 1 prompt, rail-scoped ticks, ~109 ticks/30s; bin tests/harness/target/debug/showcase 10977512B sha256:1e9903248970 built 2026-10-08T04:15:09Z; log /tmp/phase8z-run2.log)"
+          }
+        ]
       }
     },
     {
@@ -3342,8 +3405,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T04:49:26Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8z S3 s3_tabs_strip isolated+live-PTY PASS @91aba51 (nextest visual_baseline --run-ignored only s3_ --test-threads 2, 19 pass/0 fail/577 skip; strip select+overflow+close-guard; bin tests/harness/target/debug/showcase 10977512B sha256:1e9903248970 built 2026-10-08T04:15:09Z; log /tmp/phase8z-run2.log)"
+          }
+        ]
       }
     },
     {

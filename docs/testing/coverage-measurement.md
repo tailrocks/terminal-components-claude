@@ -117,7 +117,9 @@ Each sentence holds one fact.
   (final: the last 7 of the 25 chrome roots):
   7 more rows report `pass`; phase-8v executed slice 8A-S2
   (showcase controls-plus-fields: 15 controls roots plus 5 fields roots):
-  20 more rows report `pass`, so 207 pass and 86 remain `unrun`.
+  20 more rows report `pass`; phase-8z executed slice 8A-S3
+  (showcase fields-plus-navigation: 9 fields roots plus 10 navigation roots):
+  19 more rows report `pass`, so 226 pass and 67 remain `unrun`.
   Evidence: `/tmp/phase8c2-focused.log` (21 pass / 0 fail / 370 skip),
   `/tmp/phase8e-focused.log` (14 pass / 0 fail / 391 skip),
   `/tmp/phase8g-focused.log` (30 pass / 0 fail / 405 skip),
@@ -127,7 +129,8 @@ Each sentence holds one fact.
   `/tmp/phase8p-focused.log` (22 pass / 0 fail / 508 skip),
   `/tmp/phase8r-focused.log` (20 pass / 0 fail / 530 skip),
   `/tmp/phase8t-focused.log` (7 pass / 0 fail / 550 skip),
-  `/tmp/phase8v-focused.log` (20 pass / 0 fail / 557 skip).
+  `/tmp/phase8v-focused.log` (20 pass / 0 fail / 557 skip),
+  `/tmp/phase8z-run2.log` (19 pass / 0 fail / 577 skip).
 
 ## Reference passes
 
@@ -245,7 +248,8 @@ Each sentence holds one fact.
   phase-8i; `holla_pending_h2.rs`, phase-8k; `holla_pending_h3.rs`,
   phase-8n; `holla_pending_h4.rs`, phase-8p; `holla_pending_h5.rs`,
   phase-8r; `holla_pending_h6.rs`, phase-8t) plus the 20 S2 rows as
-  dual-path tests (`showcase_pending_s2.rs`, phase-8v), so 86 rows
+  dual-path tests (`showcase_pending_s2.rs`, phase-8v) plus the 19 S3 rows as
+  dual-path tests (`showcase_pending_s3.rs`, phase-8z), so 67 rows
   remain unrun as cases.
 
 ## Evidence paths
