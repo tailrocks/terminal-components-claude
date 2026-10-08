@@ -153,6 +153,10 @@ const CLOSABLE: [Binding<ChipBarCmd>; 13] = [
         "Remove",
         true,
     ),
+    // W06-02/W06-05: each chord needs its own action label —
+    // `PublishedBindings::publish` rejects a table with a repeated action,
+    // which used to silence every key of a closable bar. The hidden
+    // spellings follow the "Toggle (Enter)" precedent.
     b(
         Chord::key(KeyCode::Backspace),
         ChipBarCmd::Close,
@@ -1041,9 +1045,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                     );
                 }
             }
-            // The label registers before the close cell: hit-testing is
-            // last-registration-wins, so a press on `×` resolves to `CLOSE`
-            // rather than to the chip body it sits in.
+            // The label registers before the close cell (W06-02):
+            // hit-testing is last-registration-wins, so a press on `×`
+            // resolves to `CLOSE` rather than to the chip body it sits in.
             if !ui.is_inert() {
                 ui.register_part(self.id, PartRef::item(Part::LABEL, key), chip);
             }

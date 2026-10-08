@@ -6,7 +6,7 @@ pub(crate) mod paper;
 use ratatui_core::style::Modifier;
 
 use super::glyph::GlyphRole;
-use super::patch::StylePatch;
+use super::patch::{Slot, StylePatch};
 use super::recipe::{Family, PartMap, PartRecipe, Recipe, Recipes, Variant};
 use super::role::{FgStep, Role, Surface};
 use crate::id::Part;
@@ -186,10 +186,21 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
     } else {
         Role::Focus
     };
-    part(m, Part::GUTTER, p()).when(
-        StateFlags::FOCUSED,
-        p().set_glyph(GlyphRole::FocusBar).set_fg(gutter_fg),
-    );
+    part(m, Part::GUTTER, p())
+        .when(
+            StateFlags::FOCUSED,
+            p().set_glyph(GlyphRole::FocusBar).set_fg(gutter_fg),
+        )
+        // W02-01: disabled suppresses the focus gutter (reference
+        // `Theme::gutter_symbol`: `▎` only when focused && !disabled).
+        // Higher specificity, so it clears the FOCUSED glyph above.
+        .when(
+            StateFlags::FOCUSED | StateFlags::DISABLED,
+            StylePatch {
+                glyph: Slot::Clear,
+                ..p()
+            },
+        );
     part(m, Part::LABEL, p());
     // Q67-F5: the busy/loading spinner is the accent marker. The reference
     // overwrites the marker cell with `style.fg(t.accent)` whenever the
@@ -311,6 +322,11 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
     row_like(m);
     part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Secondary)))
         .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)))
+        // W17-01: bold marks the keyboard cursor (reference tabs).
+        .when(
+            StateFlags::FOCUSED,
+            p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+        )
         .when(
             StateFlags::DISABLED,
             p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),
@@ -324,6 +340,13 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
             StateFlags::HOVERED,
             p().set_fg(Role::Fg(FgStep::Primary))
                 .set_bg(Role::HoverSurface),
+        )
+        // W17-01: the cursor tab lifts and bolds like the active one.
+        .when(
+            StateFlags::FOCUSED,
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::HoverSurface)
+                .add(Modifier::BOLD),
         )
         .when(
             StateFlags::ACTIVE,
@@ -606,7 +629,12 @@ fn brand(m: &mut PartMap<PartRecipe>) {
             .set_bg(Role::Accent)
             .add(Modifier::BOLD),
     )
-    .when(StateFlags::HOVERED, p().set_bg(Role::AccentHover));
+    .when(StateFlags::HOVERED, p().set_bg(Role::AccentHover))
+    // W01-02: a held press paints below the hover lift, the same pressed
+    // surface Button wears (brand.md: interactive mode shares Button's
+    // hover lift and pressed surface). Declared after HOVERED at equal
+    // specificity so it wins when both are live.
+    .when(StateFlags::PRESSED, p().set_bg(Role::AccentPressed));
     part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
 }
 
@@ -629,6 +657,13 @@ fn too_small(m: &mut PartMap<PartRecipe>) {
 
 fn choice(m: &mut PartMap<PartRecipe>) {
     row_like(m);
+    // W03-01: hover lifts over the selection tint (reference `Theme::row`
+    // applies the hover lift after the tint), so focus+hover always reads
+    // past focus on a checked row. Outranks SELECTED|FOCUSED by specificity.
+    part(m, Part::CONTAINER, p()).when(
+        StateFlags::SELECTED | StateFlags::FOCUSED | StateFlags::HOVERED,
+        p().set_bg(Role::HoverSurface),
+    );
     part(m, Part::MARKER, p())
         .when(
             StateFlags::CHECKED,

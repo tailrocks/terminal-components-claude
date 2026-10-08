@@ -226,10 +226,7 @@ impl EditorDraft {
 
     pub(crate) fn cursor_offset(&self) -> usize {
         match self {
-            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => {
-                let pos = editor.cursor_pos();
-                editor.offset_at(pos.line, pos.col)
-            }
+            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => editor.cursor_offset(),
         }
     }
 
@@ -263,6 +260,14 @@ impl EditorDraft {
         match self {
             EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => {
                 editor.set_cursor_line_col(line, col);
+            }
+        }
+    }
+
+    pub(crate) fn set_cursor_offset(&mut self, at: usize) {
+        match self {
+            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => {
+                editor.set_cursor_offset(at);
             }
         }
     }
@@ -403,6 +408,15 @@ pub struct TextInputState {
     error: Option<ErrorState>,
     redacted_snapshot: bool,
     sensitivity: Option<bool>,
+    /// FNV-1a of the caller value at `begin` (W08-07): conflict detection
+    /// without retaining caller bytes. `None` while idle.
+    base: Option<u64>,
+}
+
+/// FNV-1a fingerprint of a begin value: change detection that retains no
+/// caller bytes (secret-safe by construction).
+fn hash_str(s: &str) -> u64 {
+    crate::id::fnv1a(0xcbf2_9ce4_8422_2325, s.as_bytes())
 }
 
 impl Clone for TextInputState {
@@ -413,6 +427,7 @@ impl Clone for TextInputState {
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
             redacted_snapshot: self.is_sensitive(),
             sensitivity: self.sensitivity,
+            base: self.base,
         }
     }
 }
@@ -548,6 +563,7 @@ impl TextInputState {
         self.draft.set_sensitive(sensitive);
         self.sensitivity = Some(sensitive);
         if changed {
+            self.base = None;
             self.phase = EditPhase::Idle;
             self.redacted_snapshot = false;
             if sensitive && pending_error {
@@ -594,6 +610,7 @@ impl TextInputState {
             return;
         }
         self.redacted_snapshot = false;
+        self.base = Some(hash_str(current));
         self.draft.begin_single(current);
         self.phase = EditPhase::Editing;
     }
@@ -615,10 +632,20 @@ impl TextInputState {
         self.finish_validation(v.check(value.expose()))
     }
 
+    /// Whether the caller-owned value moved under the active draft: the
+    /// begin fingerprint no longer matches. The widget layer — the only
+    /// place where the commit target is the same live binding the draft
+    /// was seeded from — rebases on this; direct `commit` into a fresh
+    /// target always writes.
+    pub(crate) fn external_changed(&self, current: &str) -> bool {
+        self.is_editing() && self.base.is_some_and(|base| base != hash_str(current))
+    }
+
     fn write_target<T: TextTarget + ?Sized>(&mut self, value: &mut T) {
         if self.is_editing() && !self.redacted_snapshot {
             value.set(self.draft.text(), self.is_sensitive());
         }
+        self.base = None;
         self.phase = EditPhase::Idle;
         self.redacted_snapshot = false;
         self.draft.zeroize();
@@ -626,6 +653,7 @@ impl TextInputState {
 
     /// Drop the draft.
     pub fn cancel(&mut self) {
+        self.base = None;
         self.phase = EditPhase::Idle;
         self.redacted_snapshot = false;
         self.draft.zeroize();
@@ -1054,16 +1082,34 @@ impl<'a> TextInput<'a> {
         st.set_sensitive(self.secret.is_some() || value.is_sensitive());
         let mut acc = super::Acc::<TextAction>::new();
         let editable = self.editable();
+        // W08-07: the caller owns the value and may rewrite it under an
+        // active draft (the widget writes on commit only, so a mismatch
+        // is always external). The newer write wins: drop the stale draft
+        // so no later commit silently overwrites it; the next begin
+        // reseeds from the current value.
+        if st.external_changed(value.expose()) {
+            st.cancel();
+            acc.changed();
+        }
         for it in cx.intents(self.id) {
             match it {
                 Intent::FocusIn { .. } => {}
                 Intent::FocusOut { .. } => {
                     if st.is_editing() {
                         let policy = self.blur;
+                        // W11-04: focus transit through a pristine field
+                        // ends the edit silently — the reference never
+                        // auto-begins, so tabbing past an untouched field
+                        // reports nothing there either.
+                        let dirty = st.draft.text() != value.expose();
                         let _ = st.blur_target(value, &self.validator(), policy);
                         match policy {
                             BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
-                                acc.action(TextAction::Committed);
+                                if dirty {
+                                    acc.action(TextAction::Committed);
+                                } else {
+                                    acc.consumed();
+                                }
                             }
                             BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
                             BlurPolicy::Keep => {}
@@ -1085,7 +1131,12 @@ impl<'a> TextInput<'a> {
                         self.insert(st, c, &mut acc);
                     }
                 }
-                Intent::Paste(s) if editable && st.is_editing() => {
+                Intent::Paste(s) if editable => {
+                    if !st.is_editing() {
+                        // W08-03: paste while navigating starts editing
+                        // (reference `on_paste` calls `begin_edit` first).
+                        st.begin(value.expose());
+                    }
                     if st.apply(EditAction::Paste(s)).changed() {
                         self.live_validate(st);
                         acc.action(TextAction::Changed);
@@ -1094,7 +1145,7 @@ impl<'a> TextInput<'a> {
                     }
                 }
                 Intent::Pointer {
-                    phase: Phase::Press | Phase::Click,
+                    phase: Phase::Click | Phase::DoubleClick,
                     local,
                     ..
                 } if editable && self.pointer_enabled => {
@@ -1103,7 +1154,21 @@ impl<'a> TextInput<'a> {
                     }
                     let col = usize::from(local.x.saturating_sub(2))
                         .saturating_add(usize::from(st.draft.hscroll()));
-                    st.draft.set_cursor_line_col(0, col);
+                    // W08-02: a press without release edits nothing (the
+                    // legacy widget has no press handler — `on_click`
+                    // only), so `Phase::Press` falls through to the
+                    // consume arm below.
+                    if self.secret.is_some() || st.is_sensitive() {
+                        // W08-02: masked paint shows one cell per grapheme,
+                        // so the click column counts graphemes, not
+                        // plaintext cells (reference `on_click` walks
+                        // `display_graphemes`).
+                        let text = st.draft.text();
+                        let at = graphemes(text).nth(col).map_or(text.len(), |(i, _)| i);
+                        st.draft.set_cursor_offset(at);
+                    } else {
+                        st.draft.set_cursor_line_col(0, col);
+                    }
                     acc.changed();
                 }
                 Intent::Pointer { .. } if self.pointer_enabled => acc.consumed(),
@@ -1293,8 +1358,20 @@ impl<'a> TextInput<'a> {
         if !shown.is_empty() || editing {
             if inner.width > 0 {
                 let ts = style(ui, Part::TEXT);
+                let secret_policy = self
+                    .secret
+                    .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
                 let cursor_col = if editing {
-                    st.draft.cursor_pos().col
+                    if secret_policy.is_some() {
+                        // W08-02: masked paint shows one cell per grapheme,
+                        // so the caret column counts graphemes before the
+                        // caret, not plaintext cells — clicks and cursor
+                        // share the display geometry.
+                        let at = st.draft.cursor_offset();
+                        graphemes(shown).take_while(|(i, _)| *i < at).count()
+                    } else {
+                        st.draft.cursor_pos().col
+                    }
                 } else {
                     0
                 };
@@ -1311,9 +1388,6 @@ impl<'a> TextInput<'a> {
                 } else {
                     0
                 };
-                let secret_policy = self
-                    .secret
-                    .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
                 let total = match secret_policy {
                     Some(_) => graphemes(shown).count(),
                     None => usize::from(width(shown)),
