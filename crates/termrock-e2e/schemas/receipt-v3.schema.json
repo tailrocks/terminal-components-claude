@@ -1,0 +1,1631 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "termrock-spec/parity-run-receipt-v3",
+  "title": "Termrock shared PTY run receipt v3",
+  "type": "object",
+  "required": [
+    "schema",
+    "run_id",
+    "source_pair",
+    "suite",
+    "expected_generation",
+    "trust",
+    "write_policy",
+    "checks",
+    "artifacts",
+    "build_evidence",
+    "environment",
+    "renderer"
+  ],
+  "properties": {
+    "schema": {
+      "const": "termrock-spec/parity-run-receipt-v3"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_pair": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/subject_identity"
+      },
+      "contains": {
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "const": "reference"
+          }
+        }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "suite": {
+      "type": "object",
+      "required": [
+        "revision",
+        "digest",
+        "compiled_digest",
+        "case_set_digest",
+        "profile_digest",
+        "test_binary_digest",
+        "dependency_lock_sha256",
+        "platform"
+      ],
+      "properties": {
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "compiled_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "case_set_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "profile_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "test_binary_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dependency_lock_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "expected_generation": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/expected_generation"
+        }
+      ]
+    },
+    "trust": {
+      "type": "object",
+      "required": [
+        "status",
+        "record_path",
+        "record_sha256",
+        "receipt_sha256",
+        "write_policy_sha256",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "accepted",
+            "unverified"
+          ]
+        },
+        "record_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Absolute canonical filesystem path supplied by the caller; it locates the record but does not authorize it."
+        },
+        "record_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "write_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "write_policy": {
+      "$ref": "#/$defs/write_policy"
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/check"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "build_evidence": {
+      "type": "object",
+      "required": [
+        "subject_manifest",
+        "source_inputs",
+        "build_environment",
+        "builder_run"
+      ],
+      "properties": {
+        "subject_manifest": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^/",
+              "minLength": 1
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "additionalProperties": false
+        },
+        "source_inputs": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^/",
+              "minLength": 1
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "additionalProperties": false
+        },
+        "build_environment": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^/",
+              "minLength": 1
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "additionalProperties": false
+        },
+        "builder_run": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^/",
+              "minLength": 1
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "required": [
+        "cleared",
+        "cwd",
+        "common",
+        "case_allowlist",
+        "case_values"
+      ],
+      "properties": {
+        "cleared": {
+          "const": true
+        },
+        "cwd": {
+          "type": "string",
+          "pattern": "^/",
+          "minLength": 1
+        },
+        "common": {
+          "type": "object",
+          "required": [
+            "TERM",
+            "COLORTERM",
+            "LC_ALL",
+            "SHELL"
+          ],
+          "properties": {
+            "TERM": {
+              "type": "string",
+              "minLength": 1
+            },
+            "COLORTERM": {
+              "type": "string",
+              "minLength": 1
+            },
+            "LC_ALL": {
+              "type": "string",
+              "minLength": 1
+            },
+            "SHELL": {
+              "const": "/bin/sh"
+            }
+          },
+          "additionalProperties": false
+        },
+        "case_allowlist": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "case_values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "renderer": {
+      "type": "object",
+      "required": [
+        "schema",
+        "hash",
+        "name",
+        "renderer_version",
+        "font_px",
+        "cell_w",
+        "cell_h",
+        "pad",
+        "scale",
+        "default_fg",
+        "default_bg",
+        "indexed_palette",
+        "face_hashes",
+        "fallback_order",
+        "cursor_policy",
+        "blink_phase",
+        "missing_glyph_policy"
+      ],
+      "properties": {
+        "schema": {
+          "const": "termrock-spec/tuiscotti-renderer-identity-v1"
+        },
+        "hash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "renderer_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "font_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cell_w": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cell_h": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pad": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "default_fg": {
+          "$ref": "#/$defs/rgb"
+        },
+        "default_bg": {
+          "$ref": "#/$defs/rgb"
+        },
+        "indexed_palette": {
+          "type": "string",
+          "minLength": 1
+        },
+        "face_hashes": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/sha256"
+          }
+        },
+        "fallback_order": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fallback_face"
+          }
+        },
+        "cursor_policy": {
+          "enum": [
+            "Show",
+            "Hide"
+          ]
+        },
+        "blink_phase": {
+          "enum": [
+            "On",
+            "Off"
+          ]
+        },
+        "missing_glyph_policy": {
+          "enum": [
+            "Strict",
+            "Placeholder"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{40}$"
+    },
+    "protected_root": {
+      "type": "object",
+      "required": [
+        "kind",
+        "role",
+        "path"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "subject_source",
+            "subject_artifact",
+            "oracle",
+            "suite_checkout",
+            "expected_generation",
+            "trust_record",
+            "trust_record_parent",
+            "test_binary_parent",
+            "subject_executable_parent",
+            "subject_build_evidence"
+          ]
+        },
+        "role": {
+          "oneOf": [
+            {
+              "enum": [
+                "reference",
+                "candidate"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "actual_output_root": {
+      "type": "object",
+      "required": [
+        "role",
+        "path"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "reference",
+            "candidate"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "write_policy": {
+      "type": "object",
+      "required": [
+        "schema",
+        "write_root",
+        "receipt_path",
+        "protected_roots",
+        "actual_output_roots",
+        "sha256",
+        "subject_cwd"
+      ],
+      "properties": {
+        "schema": {
+          "const": "termrock-spec/parity-write-policy-v2"
+        },
+        "write_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protected_roots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/protected_root"
+          }
+        },
+        "actual_output_roots": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/actual_output_root"
+          },
+          "contains": {
+            "properties": {
+              "role": {
+                "const": "reference"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "subject_cwd": {
+          "type": "string",
+          "pattern": "^/",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "mise_config": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "present",
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "present": {
+              "const": true
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "present",
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "present": {
+              "const": false
+            },
+            "path": {
+              "type": "null"
+            },
+            "sha256": {
+              "type": "null"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "build_facts": {
+      "type": "object",
+      "required": [
+        "package_id",
+        "target_name",
+        "features",
+        "default_features",
+        "target_triple",
+        "toolchain",
+        "profile"
+      ],
+      "properties": {
+        "package_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "default_features": {
+          "type": "boolean"
+        },
+        "target_triple": {
+          "type": "string",
+          "minLength": 1
+        },
+        "toolchain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "build_inputs": {
+      "type": "object",
+      "required": [
+        "manifest_sha256",
+        "lock_sha256",
+        "mise_config",
+        "cargo_version",
+        "rustc_version",
+        "host_triple",
+        "executed_argv"
+      ],
+      "properties": {
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "lock_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "mise_config": {
+          "$ref": "#/$defs/mise_config"
+        },
+        "cargo_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rustc_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "host_triple": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executed_argv": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "builder_receipt": {
+      "type": "object",
+      "required": [
+        "schema",
+        "source_commit",
+        "package_id",
+        "target_name",
+        "requested_features",
+        "default_features",
+        "target_triple",
+        "toolchain",
+        "profile",
+        "manifest_sha256",
+        "lock_sha256",
+        "mise_config",
+        "cargo_version",
+        "rustc_version",
+        "host_triple",
+        "executed_argv",
+        "executable_path",
+        "executable_sha256",
+        "sha256"
+      ],
+      "properties": {
+        "schema": {
+          "const": "termrock-spec/parity-subject-build-receipt-v1"
+        },
+        "source_commit": {
+          "$ref": "#/$defs/source_commit"
+        },
+        "package_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "default_features": {
+          "type": "boolean"
+        },
+        "target_triple": {
+          "type": "string",
+          "minLength": 1
+        },
+        "toolchain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "lock_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "mise_config": {
+          "$ref": "#/$defs/mise_config"
+        },
+        "cargo_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rustc_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "host_triple": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executed_argv": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "executable_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executable_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "additionalProperties": false
+    },
+    "executable_receipt": {
+      "type": "object",
+      "required": [
+        "path",
+        "expected_sha256",
+        "actual_sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "actual_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "subject_identity": {
+      "type": "object",
+      "required": [
+        "role",
+        "source_commit",
+        "build",
+        "build_inputs",
+        "builder_receipt",
+        "builder_receipt_sha256",
+        "executable",
+        "actual_output_root"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "reference",
+            "candidate"
+          ]
+        },
+        "source_commit": {
+          "$ref": "#/$defs/source_commit"
+        },
+        "build": {
+          "$ref": "#/$defs/build_facts"
+        },
+        "build_inputs": {
+          "$ref": "#/$defs/build_inputs"
+        },
+        "builder_receipt": {
+          "$ref": "#/$defs/builder_receipt"
+        },
+        "builder_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "executable": {
+          "$ref": "#/$defs/executable_receipt"
+        },
+        "actual_output_root": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "expected_generation": {
+      "type": "object",
+      "required": [
+        "id",
+        "expected_sha256",
+        "actual_sha256",
+        "state",
+        "admission_receipt_sha256",
+        "root"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "actual_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "HASH_MATCH",
+            "ADMITTED",
+            "BLOCKED_MISSING_OR_INVALID"
+          ]
+        },
+        "admission_receipt_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "root": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "check": {
+      "type": "object",
+      "required": [
+        "id",
+        "subject_role",
+        "case_id",
+        "checkpoint_id",
+        "dimension",
+        "status",
+        "reason",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_role": {
+          "enum": [
+            "reference",
+            "candidate"
+          ]
+        },
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dimension": {
+          "enum": [
+            "build",
+            "launch",
+            "first_frame",
+            "interaction",
+            "exit",
+            "restoration",
+            "visual"
+          ]
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "ERROR",
+            "BLOCKED",
+            "NOT_RUN",
+            "STALE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "visual_comparison": {
+          "$ref": "#/$defs/visual_comparison"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "dimension": {
+                "const": "visual"
+              },
+              "status": {
+                "enum": [
+                  "PASS",
+                  "FAIL"
+                ]
+              }
+            },
+            "required": [
+              "dimension",
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "visual_comparison"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "dimension": {
+                "not": {
+                  "const": "visual"
+                }
+              }
+            },
+            "required": [
+              "dimension"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "visual_comparison"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "dimension": {
+                "const": "visual"
+              },
+              "status": {
+                "enum": [
+                  "BLOCKED",
+                  "ERROR",
+                  "NOT_RUN",
+                  "STALE",
+                  "NOT_APPLICABLE"
+                ]
+              }
+            },
+            "required": [
+              "dimension",
+              "status"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "visual_comparison"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "dimension": {
+                "const": "visual"
+              },
+              "status": {
+                "const": "PASS"
+              }
+            },
+            "required": [
+              "dimension",
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "visual_comparison"
+            ],
+            "properties": {
+              "visual_comparison": {
+                "properties": {
+                  "admission": {
+                    "properties": {
+                      "verified": {
+                        "const": true
+                      }
+                    }
+                  },
+                  "renderer": {
+                    "properties": {
+                      "equal": {
+                        "const": true
+                      }
+                    }
+                  },
+                  "frame": {
+                    "properties": {
+                      "dimensions_equal": {
+                        "const": true
+                      },
+                      "cells_equal": {
+                        "const": true
+                      },
+                      "cursor_equal": {
+                        "const": true
+                      },
+                      "equal": {
+                        "const": true
+                      }
+                    }
+                  },
+                  "png": {
+                    "properties": {
+                      "dimensions_equal": {
+                        "const": true
+                      },
+                      "pixels_equal": {
+                        "const": true
+                      },
+                      "equal": {
+                        "const": true
+                      }
+                    }
+                  },
+                  "fidelity": {
+                    "properties": {
+                      "expected": {
+                        "properties": {
+                          "approximate": {
+                            "const": false
+                          },
+                          "rerender_matches_bound_png": {
+                            "const": true
+                          }
+                        }
+                      },
+                      "actual": {
+                        "properties": {
+                          "approximate": {
+                            "const": false
+                          },
+                          "rerender_matches_bound_png": {
+                            "const": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "dimension": {
+                "const": "visual"
+              },
+              "status": {
+                "const": "FAIL"
+              }
+            },
+            "required": [
+              "dimension",
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "visual_comparison"
+            ],
+            "properties": {
+              "visual_comparison": {
+                "properties": {
+                  "admission": {
+                    "properties": {
+                      "verified": {
+                        "const": true
+                      }
+                    }
+                  },
+                  "fidelity": {
+                    "properties": {
+                      "expected": {
+                        "properties": {
+                          "approximate": {
+                            "const": false
+                          },
+                          "rerender_matches_bound_png": {
+                            "const": true
+                          }
+                        }
+                      },
+                      "actual": {
+                        "properties": {
+                          "approximate": {
+                            "const": false
+                          },
+                          "rerender_matches_bound_png": {
+                            "const": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "anyOf": [
+                  {
+                    "properties": {
+                      "renderer": {
+                        "properties": {
+                          "equal": {
+                            "const": false
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "frame": {
+                        "properties": {
+                          "equal": {
+                            "const": false
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "png": {
+                        "properties": {
+                          "equal": {
+                            "const": false
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "required": [
+        "subject_role",
+        "case_id",
+        "checkpoint_id",
+        "format",
+        "path",
+        "sha256",
+        "bytes"
+      ],
+      "properties": {
+        "subject_role": {
+          "enum": [
+            "reference",
+            "candidate"
+          ]
+        },
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "enum": [
+            "frame_json",
+            "ansi",
+            "html",
+            "png",
+            "ascii",
+            "txt",
+            "ascii_loss_json",
+            "png_fidelity_json",
+            "observations_json",
+            "manifest_json"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "rgb": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      }
+    },
+    "fallback_face": {
+      "type": "object",
+      "required": [
+        "description",
+        "sha256"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "additionalProperties": false
+    },
+    "visual_artifact_ref": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256",
+        "bytes"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        }
+      },
+      "additionalProperties": false
+    },
+    "visual_fidelity_binding": {
+      "type": "object",
+      "required": [
+        "sha256",
+        "bytes",
+        "source_frame_sha256",
+        "renderer_sha256",
+        "rerender_png_sha256",
+        "approximate",
+        "rerender_matches_bound_png"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "source_frame_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "renderer_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "rerender_png_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "approximate": {
+          "type": "boolean"
+        },
+        "rerender_matches_bound_png": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "visual_geometry": {
+      "type": "object",
+      "required": [
+        "cols",
+        "rows"
+      ],
+      "properties": {
+        "cols": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512
+        }
+      },
+      "additionalProperties": false
+    },
+    "visual_position": {
+      "type": "object",
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 511
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 511
+        }
+      },
+      "additionalProperties": false
+    },
+    "visual_png_info": {
+      "type": "object",
+      "required": [
+        "width",
+        "height",
+        "color_type",
+        "bit_depth"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "color_type": {
+          "const": 2
+        },
+        "bit_depth": {
+          "const": 8
+        }
+      },
+      "additionalProperties": false
+    },
+    "visual_comparison": {
+      "type": "object",
+      "required": [
+        "schema",
+        "method",
+        "admission",
+        "renderer",
+        "frame",
+        "png",
+        "fidelity"
+      ],
+      "properties": {
+        "schema": {
+          "const": "termrock-spec/parity-visual-comparison-v1"
+        },
+        "method": {
+          "const": "frame-v3-diff-cells+opaque-rgb-decoded-exact-v1"
+        },
+        "admission": {
+          "type": "object",
+          "required": [
+            "verified",
+            "trust_record_sha256",
+            "expected_generation_id",
+            "expected_tree_sha256",
+            "expected_manifest_sha256",
+            "admission_receipt_sha256"
+          ],
+          "properties": {
+            "verified": {
+              "type": "boolean"
+            },
+            "trust_record_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "expected_generation_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expected_tree_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "expected_manifest_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "admission_receipt_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "renderer": {
+          "type": "object",
+          "required": [
+            "expected_sha256",
+            "actual_sha256",
+            "equal"
+          ],
+          "properties": {
+            "expected_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "actual_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "equal": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "frame": {
+          "type": "object",
+          "required": [
+            "expected",
+            "actual",
+            "version",
+            "expected_geometry",
+            "actual_geometry",
+            "dimensions_equal",
+            "cells_equal",
+            "cursor_equal",
+            "differing_positions",
+            "equal"
+          ],
+          "properties": {
+            "expected": {
+              "$ref": "#/$defs/visual_artifact_ref"
+            },
+            "actual": {
+              "$ref": "#/$defs/visual_artifact_ref"
+            },
+            "version": {
+              "const": 3
+            },
+            "expected_geometry": {
+              "$ref": "#/$defs/visual_geometry"
+            },
+            "actual_geometry": {
+              "$ref": "#/$defs/visual_geometry"
+            },
+            "dimensions_equal": {
+              "type": "boolean"
+            },
+            "cells_equal": {
+              "type": "boolean"
+            },
+            "cursor_equal": {
+              "type": "boolean"
+            },
+            "differing_positions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/visual_position"
+              }
+            },
+            "equal": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "png": {
+          "type": "object",
+          "required": [
+            "expected",
+            "actual",
+            "expected_info",
+            "actual_info",
+            "alpha_policy",
+            "dimensions_equal",
+            "pixels_equal",
+            "equal"
+          ],
+          "properties": {
+            "expected": {
+              "$ref": "#/$defs/visual_artifact_ref"
+            },
+            "actual": {
+              "$ref": "#/$defs/visual_artifact_ref"
+            },
+            "expected_info": {
+              "$ref": "#/$defs/visual_png_info"
+            },
+            "actual_info": {
+              "$ref": "#/$defs/visual_png_info"
+            },
+            "alpha_policy": {
+              "const": "opaque"
+            },
+            "dimensions_equal": {
+              "type": "boolean"
+            },
+            "pixels_equal": {
+              "type": "boolean"
+            },
+            "equal": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "fidelity": {
+          "type": "object",
+          "required": [
+            "expected",
+            "actual"
+          ],
+          "properties": {
+            "expected": {
+              "$ref": "#/$defs/visual_fidelity_binding"
+            },
+            "actual": {
+              "$ref": "#/$defs/visual_fidelity_binding"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

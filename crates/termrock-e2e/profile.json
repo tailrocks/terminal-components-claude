@@ -3,16 +3,28 @@
   "id": "tuiscotti-default-parity-v1",
   "tool": "tuiscotti",
   "tool_revision": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
-  "render_profile": "default",
+  "screen_profile": "default",
   "geometry_policy": "case-declared",
   "terminal": {
     "term": "xterm-256color",
     "colorterm": "truecolor",
-    "locale": "C.UTF-8"
+    "locale": "C.UTF-8",
+    "shell": "/bin/sh",
+    "cwd_policy": "suite-checkout"
+  },
+  "environment": {
+    "clear": true,
+    "case_allowlist": ["HOLLA_NO_HISTORY"]
+  },
+  "renderer": {
+    "id": "tuiscotti-default",
+    "implementation": "strict-vendored-profile",
+    "expected_hash": "e25cbd7fc819a7c73d69493755154f03bf8bc1afea3f87c9a426557e637c4db4",
+    "renderer_version": 1
   },
   "readiness_timeout_ms": 8000,
   "input_pacing_ms": 120,
   "exports": ["ansi", "html", "png", "ascii", "txt", "frame_json"],
   "companions": ["ascii_loss_json", "png_fidelity_json", "observations_json", "manifest_json"],
-  "visual_acceptance": "exact-cells-cursor-and-decoded-pixels"
+  "visual_acceptance": "BLOCKED-until-independent-oracle-admission-and-exact-cells-cursor-decoded-pixels-comparator"
 }
