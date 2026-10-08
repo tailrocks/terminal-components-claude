@@ -137,7 +137,6 @@ pub const MANAGER_INSPECT: Id = crate::screens::manager::INSPECT;
 const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
 const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
 const EDITOR_ROLE_LOAD: Id = crate::screens::editor::ROOT.sub("role-load");
-const EDITOR_ACCOUNTS_LIST: Id = crate::screens::editor::ROOT.sub("accounts-list");
 const EDITOR_SAVE_CONFIRM: Id = crate::screens::editor::ROOT.sub("save-confirm");
 const SETTINGS_SAVE_CONFIRM: Id = crate::screens::settings::ROOT.sub("save-confirm");
 
@@ -4093,6 +4092,41 @@ impl App {
             }
             return result;
         }
+        if self.editor.exit_open {
+            let mut result = Response::ignored();
+            let cancel = Button::new(crate::screens::editor::EXIT_CANCEL, "Cancel").update(cx);
+            let cancel_chosen = cancel.activated();
+            result |= cancel.erase();
+            if cancel_chosen {
+                self.editor.close_exit();
+                result |= Response::changed();
+            }
+            let discard = Button::new(crate::screens::editor::EXIT_DISCARD, "Discard").update(cx);
+            let discard_chosen = discard.activated();
+            result |= discard.erase();
+            if discard_chosen {
+                let lost = match self.editor.change_count() {
+                    1 => "1 change".to_owned(),
+                    n => format!("{n} changes"),
+                };
+                self.editor.close_exit();
+                self.status = Some(format!("Discarded {lost}"));
+                self.route = Route::Manager;
+                result |= Response::changed();
+            }
+            let save = Button::new(crate::screens::editor::EXIT_SAVE, "Save").update(cx);
+            let save_chosen = save.activated();
+            result |= save.erase();
+            if save_chosen {
+                self.editor.close_exit();
+                if self.editor.open_preview() {
+                    cx.focus(crate::screens::editor::PREVIEW_CANCEL);
+                    self.status = Some("Save workspace · preview changes before commit".into());
+                }
+                result |= Response::changed();
+            }
+            return result;
+        }
         let mut result = Response::ignored();
         match self.editor.tab {
             EditorTab::Mounts => {
@@ -4119,8 +4153,11 @@ impl App {
             }
             EditorTab::Accounts => {
                 let rows = self.editor_account_rows();
-                let list =
-                    List::new(EDITOR_ACCOUNTS_LIST).update(cx, &mut self.editor_accounts, &rows);
+                let list = List::new(crate::screens::editor::ACCOUNTS_LIST).update(
+                    cx,
+                    &mut self.editor_accounts,
+                    &rows,
+                );
                 let action = list.action_ref().copied();
                 result |= list.erase();
                 if matches!(action, Some(ListAction::Activated(_))) {
@@ -4176,7 +4213,7 @@ impl App {
                 self.commit_editor_save();
                 result |= Response::changed();
             } else if self.editor.open_preview() {
-                cx.focus(EDITOR_SAVE_CONFIRM);
+                cx.focus(crate::screens::editor::PREVIEW_CANCEL);
                 self.status = Some("Save workspace · preview changes before commit".into());
                 result |= Response::changed();
             }
@@ -4961,6 +4998,7 @@ impl App {
                     self.editor = EditorState::default();
                 }
                 self.editor.select_alias(1);
+                self.editor.focus_tabs();
                 self.editor_accounts = ListState::default();
                 self.editor_role_picker = false;
                 self.editor_env_role = None;
@@ -5220,6 +5258,25 @@ impl App {
                 self.usage_detail = true;
                 Some(Response::changed())
             }
+            CMD_EXIT_CONFIRM if self.route == Route::Editor => {
+                if self.editor.preview_open
+                    || self.editor.exit_open
+                    || self.editor.env_form_open
+                    || self.editor.focus != crate::screens::editor::EditorFocus::Tabs
+                {
+                    None
+                } else {
+                    self.editor.focus_body();
+                    match self.editor.tab {
+                        EditorTab::General => cx.focus(crate::screens::editor::NAME),
+                        EditorTab::Mounts => cx.focus(crate::screens::editor::MOUNTS_LIST),
+                        EditorTab::Roles => cx.focus(crate::screens::editor::ROLES_LIST),
+                        EditorTab::Environments => cx.focus(crate::screens::editor::ENV_LIST),
+                        EditorTab::Accounts => cx.focus(crate::screens::editor::ACCOUNTS_LIST),
+                    }
+                    Some(Response::changed())
+                }
+            }
             CMD_EXIT_CONFIRM if self.route == Route::Manager => {
                 if let Some(instance_id) = self.selected_instance_id()
                     && self
@@ -5384,19 +5441,16 @@ impl App {
                     self.editor.next_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
-                match self.editor.tab {
-                    EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
-                    EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
-                    EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
-                    EditorTab::Environments | EditorTab::General => {}
-                }
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_MOUNTS if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(2);
                 }
-                cx.focus(EDITOR_MOUNT_EDIT);
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_MOUNT_TOGGLE_RO
@@ -5421,7 +5475,8 @@ impl App {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(4);
                 }
-                cx.focus(crate::screens::editor::ENV_KEY);
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_PREVIOUS if self.route == Route::Editor => {
@@ -5429,19 +5484,16 @@ impl App {
                     self.editor.previous_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
-                match self.editor.tab {
-                    EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
-                    EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
-                    EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
-                    EditorTab::Environments | EditorTab::General => {}
-                }
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_ROLES if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(3);
                 }
-                cx.focus(EDITOR_ROLE_EDIT);
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_MOUNTS if self.route == Route::Settings => {
@@ -5471,7 +5523,8 @@ impl App {
                     self.editor.select_alias(5);
                     self.editor_accounts_transition = true;
                 }
-                cx.focus(EDITOR_ACCOUNTS_LIST);
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_PREFER
@@ -5502,7 +5555,7 @@ impl App {
             CMD_SAVE if self.route == Route::Editor => {
                 self.editor.mark_dirty();
                 self.editor.open_preview();
-                cx.focus(crate::screens::editor::SAVE);
+                cx.focus(crate::screens::editor::PREVIEW_CANCEL);
                 self.status = Some("Save workspace · preview changes before commit".into());
                 Some(Response::changed())
             }
@@ -6033,6 +6086,9 @@ impl App {
                 &self.editor,
                 &self.world,
             );
+        }
+        if self.editor.exit_open {
+            crate::screens::editor::EditorScreen::draw_exit_dialog(ui, area, &self.editor);
         }
     }
 
@@ -8426,14 +8482,24 @@ impl TuiApp for App {
                 self.editor.clear_env_form();
                 return self.route_changed();
             }
+            if self.editor.exit_open {
+                self.editor.close_exit();
+                return self.route_changed();
+            }
             if self.editor.preview_open {
                 self.editor.close_preview();
                 self.status = Some("Not saved · keep editing".into());
                 cx.focus(crate::screens::editor::SAVE);
                 return self.route_changed();
             }
+            if self.editor.focus != crate::screens::editor::EditorFocus::Tabs {
+                self.editor.focus_tabs();
+                cx.focus(crate::screens::editor::TABS);
+                return self.route_changed();
+            }
             if self.editor.dirty {
-                self.status = Some("Save changes before leaving?".into());
+                self.editor.open_exit();
+                cx.focus(crate::screens::editor::EXIT_CANCEL);
             } else {
                 self.route = Route::Manager;
             }
