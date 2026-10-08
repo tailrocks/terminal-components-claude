@@ -14,7 +14,9 @@ use jackin_preview_domain::agent::{Agent, AuthMode, Provider};
 use jackin_preview_domain::clock::{Clock, EPOCH_SECS};
 use jackin_preview_domain::instance::{Instance, InstanceStatus};
 use jackin_preview_domain::scenario::Scenario;
-use jackin_preview_domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
+use jackin_preview_domain::workspace::{
+    EnvVar, Mount, RoleEntry, RoleName, Usability, Workspace, WorkspaceId,
+};
 use jackin_preview_domain::workspace_save::{PendingWrite, SaveError, SaveResult, SaveTicket};
 
 /// Host trust setting projected by the Settings route.
@@ -22,13 +24,30 @@ use jackin_preview_domain::workspace_save::{PendingWrite, SaveError, SaveResult,
 pub struct TrustRow {
     /// Stable source label.
     pub source: String,
+    /// Source kind (`git` or `path`).
+    pub kind: &'static str,
     /// Whether the source is trusted.
     pub trusted: bool,
+    /// Number of registry roles served from this source.
+    pub roles: usize,
 }
 
 /// Host-level configuration shared by workspace drafts.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GlobalConfig {
+    /// Whether new workspaces add a Co-authored-by trailer.
+    pub coauthor_trailer: bool,
+    /// Whether new workspaces sign off commits (DCO).
+    pub dco_signoff: bool,
+    /// Global mounts shared by every workspace.
+    pub mounts: Vec<Mount>,
+    /// Global environment variables.
+    pub env: Vec<EnvVar>,
+    /// Role-scoped environment overrides by role name.
+    pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
+    /// How each agent runtime is given credentials inside the container.
+    /// Which account backs it is the registry's business, not this table's.
+    pub agent_modes: BTreeMap<Agent, AuthMode>,
     /// Trust rows edited by Settings.
     pub trust: Vec<TrustRow>,
 }
@@ -548,26 +567,7 @@ pub fn world_for(scenario: Scenario) -> World {
         arbiter: Arbiter::new(0),
         home: HOME.into(),
         cwd: fixtures::PAYMENTS_WORKDIR.into(),
-        global: GlobalConfig {
-            trust: vec![
-                TrustRow {
-                    source: "github.com/chainargos/roles".into(),
-                    trusted: true,
-                },
-                TrustRow {
-                    source: "github.com/acme-labs/roles-experimental".into(),
-                    trusted: false,
-                },
-                TrustRow {
-                    source: "~/roles".into(),
-                    trusted: true,
-                },
-                TrustRow {
-                    source: "git@corp:infra/roles".into(),
-                    trusted: true,
-                },
-            ],
-        },
+        global: fixtures::global_config(scenario != Scenario::FirstUse),
         workspaces: Vec::new(),
         roles: fixtures::fixture_roles_for(scenario),
         instances: Vec::new(),

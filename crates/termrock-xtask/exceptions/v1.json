@@ -743,6 +743,13 @@
       "rule": "OWN-11"
     },
     {
+      "max": 4,
+      "path": "crates/jackin-preview-host-ui/src/settings.rs",
+      "reason": "Settings trust-tab component composition (FIX-002): title/counts/notes text painted around the stock Tabs/List/Button composition, manager.rs pattern; ratcheted Q67-J1d.",
+      "review": "Q67-J1d settings live trust; independent review pending at land time",
+      "rule": "OWN-02"
+    },
+    {
       "max": 25,
       "path": "crates/jackin-preview-host-ui/src/prelude.rs",
       "reason": "Transitional prelude painters (FIX-001 follow-up); ratcheted G1 corpus.",
@@ -820,9 +827,9 @@
       "rule": "OWN-11"
     },
     {
-      "max": 6,
+      "max": 7,
       "path": "crates/jackin-preview-sim/src/world.rs",
-      "reason": "Scenario/size switches in deterministic sim fixtures; reviewed, ratcheted.",
+      "reason": "Scenario/size switches in deterministic sim fixtures; reviewed, ratcheted. Q67-J1d: +1 for the global-config richness switch (FirstUse ships no global mounts/env), same fixture class.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-10"
     },
