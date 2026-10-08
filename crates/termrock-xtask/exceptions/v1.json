@@ -1192,24 +1192,24 @@
       "rule": "OWN-11"
     },
     {
-      "max": 115,
+      "max": 107,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FORM-TOGGLE: form toggles through stock Toggle (was 120)",
+      "review": "WI-TABLEPRO-FOOTER: footer through stock HintBar (was 115)",
       "rule": "OWN-02"
     },
     {
-      "max": 13,
+      "max": 12,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FORM-TOGGLE: form toggles through stock Toggle (was 16)",
+      "review": "WI-TABLEPRO-FOOTER: footer through stock HintBar (was 13)",
       "rule": "OWN-04"
     },
     {
-      "max": 21,
+      "max": 20,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FORM-TOGGLE: form toggles through stock Toggle (was 24)",
+      "review": "WI-TABLEPRO-FOOTER: footer through stock HintBar (was 21)",
       "rule": "OWN-11"
     },
     {
