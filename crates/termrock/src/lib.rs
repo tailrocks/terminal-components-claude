@@ -165,6 +165,7 @@ pub use termrock_fields::{
     BlurPolicy, EditPhase, ErrorState, Field, NoValidate, TextAction, TextArea, TextAreaState,
     TextCmd, TextInput, TextInputState, Validate, discard_error, redacted_text,
 };
+pub use termrock_runtime::field_control::FieldControl;
 
 // components: feedback
 pub use termrock_feedback::{
@@ -197,7 +198,7 @@ pub use termrock_overlays::{
     HelpCmd, HelpOverlay, HelpOverlayState, HelpSection, LabelSelect, Menu, MenuAction, MenuBar,
     MenuCmd, MenuItem, MenuState, Picker, PickerAction, PickerChain, PickerChainAction,
     PickerChainCmd, PickerChainState, PickerStage, PickerState, ScopeKey, Select, SelectAction,
-    SelectCmd, SelectState,
+    SelectCmd, SelectField, SelectState,
 };
 
 // components: grid
