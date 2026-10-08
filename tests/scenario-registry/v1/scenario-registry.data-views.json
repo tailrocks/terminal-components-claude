@@ -210,8 +210,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_grid_edit isolated+live-PTY PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; cursor + inline editor + toggle + refusals; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -417,8 +424,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_grid_pending isolated+live-PTY PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; queue + preview dialog + undo + discard; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -614,8 +628,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_grid_commit isolated+live-PTY PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; saving window + row error + clean queue; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -1650,8 +1671,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_code_edit isolated+live-PTY PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; gutter + modes + jumps + refusals; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -1858,8 +1886,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_code_run isolated+live-PTY PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; running spinner + unwrap warning + edit clears; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -2460,8 +2495,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_diff_unified isolated+live-PTY PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; listing + scroll + empty; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -2666,8 +2708,15 @@
     "pty-capture"
    ],
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_diff_review isolated+live-PTY PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; columns + drag copy + toggles; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -3691,8 +3740,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_term_run live-PTY-only PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; launch transcript + rail + clean/fail restarts; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -3894,8 +3950,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_term_follow isolated+live-PTY PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; tail + scrollback + selection copy; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -4346,8 +4409,15 @@
     ]
    },
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_scroll_region isolated+live-PTY PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; columns + routing + growth + cap; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
@@ -4549,8 +4619,15 @@
     "pty-capture"
    ],
    "results": {
-    "status": "unrun",
-    "runs": []
+    "status": "pass",
+    "runs": [
+     {
+      "at": "2026-10-08T07:10:22Z",
+      "branch": "visual-baseline",
+      "status": "pass",
+      "note": "phase-8ac S5 s5_scroll_track isolated+live-PTY PASS @5f6e52f (nextest visual_baseline --run-ignored only s5_ --test-threads 2, 14 pass/0 fail/616 skip; thumb grab + drag + track jump; bin tests/harness/target/debug/showcase 10977656B sha256:bdb0768220fa built 2026-10-08T13:31:49Z; log /tmp/phase8ac-s5.log)"
+     }
+    ]
    },
    "cand_source": []
   },
