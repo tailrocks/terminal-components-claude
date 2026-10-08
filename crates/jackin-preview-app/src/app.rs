@@ -5639,6 +5639,15 @@ impl App {
             {
                 if let Some(mount) = self.editor.pending.mounts.first_mut() {
                     mount.readonly = !mount.readonly;
+                    self.status = Some(format!(
+                        "{} · {}",
+                        mount.destination,
+                        if mount.readonly {
+                            "read-only"
+                        } else {
+                            "read-write"
+                        }
+                    ));
                 }
                 self.editor.mark_dirty();
                 Some(Response::changed())
@@ -5647,7 +5656,19 @@ impl App {
                 if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts =>
             {
                 if let Some(mount) = self.editor.pending.mounts.first_mut() {
-                    mount.isolation = mount.isolation.next();
+                    if mount.running_isolated {
+                        self.status = Some(format!(
+                            "Cannot change isolation: a running instance holds isolated state for {}",
+                            mount.destination
+                        ));
+                    } else {
+                        mount.isolation = mount.isolation.next();
+                        self.status = Some(format!(
+                            "{} · isolation {}",
+                            mount.destination,
+                            mount.isolation.label().to_lowercase()
+                        ));
+                    }
                 }
                 self.editor.mark_dirty();
                 Some(Response::changed())
@@ -5988,7 +6009,9 @@ fn render_header_segments(
             .filter(|(_, k)| **k)
             .map(|(s, _)| seg_w(s) + sep)
             .sum();
-        l + r + 1
+        // Tag `segments::render` keeps two spare cells past the segments;
+        // `+ 1` wrongly keeps the breadcrumb at 72-wide host headers.
+        l + r + 2
     };
 
     while total(&keep_l, &keep_r) > area.width {
@@ -6048,6 +6071,35 @@ fn render_header_segments(
 }
 
 impl App {
+    /// Tag `row_status` for the cursor mount: what changed, or the hidden
+    /// source column at narrow widths.
+    fn editor_mount_row_status(&self, full_width: u16) -> Option<String> {
+        let m = self.editor.pending.mounts.first()?;
+        let o = self.editor.original_mount(&m.destination);
+        match o {
+            Some(o) if o != m => {
+                let mut s = format!(
+                    "was {} · {}",
+                    o.mode_label(),
+                    o.isolation.label().to_lowercase()
+                );
+                if o.source != m.source {
+                    s.push_str(&format!(" · {}", self.world.tilde(m.source_label())));
+                }
+                Some(s)
+            }
+            None => Some("new mount".into()),
+            _ => {
+                let avail = full_width.saturating_sub(9);
+                if avail < 90 {
+                    Some(format!("source {}", self.world.tilde(m.source_label())))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
     fn draw_host_menu(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
         if self.route == Route::Prelude {
@@ -6102,7 +6154,10 @@ impl App {
         let menu_area = Rect::new(area.x.saturating_add(11), area.y, 20, 1);
         Self::manager_menu_bar().draw(ui, menu_area, &self.manager_menu_state);
 
-        let rest_x = area.x.saturating_add(31);
+        // Tag `draw_host_menu`: the breadcrumb strip starts at `used + 2`
+        // past the menu labels; this bar's box already ends one cell past
+        // the last label, so one more cell lands on the same origin.
+        let rest_x = menu_area.right().saturating_add(1);
         let rest_w = area.right().saturating_sub(rest_x);
         if rest_w > 0 {
             let manager_crumb: String;
@@ -6218,7 +6273,7 @@ impl App {
                 segs.push(HeaderSegment {
                     text: &settings_change_text,
                     style: palette.warning_on_canvas,
-                    priority: 6,
+                    priority: 8,
                     padded: false,
                 });
             }
@@ -6229,7 +6284,20 @@ impl App {
                 segs.push(HeaderSegment {
                     text: &change_text,
                     style: palette.warning_on_canvas,
-                    priority: 6,
+                    priority: 8,
+                    padded: false,
+                });
+            }
+            let row_status_text;
+            if self.route == Route::Editor
+                && self.editor.tab == EditorTab::Mounts
+                && let Some(status) = self.editor_mount_row_status(area.width)
+            {
+                row_status_text = status;
+                segs.push(HeaderSegment {
+                    text: &row_status_text,
+                    style: palette.muted_on_canvas,
+                    priority: 3,
                     padded: false,
                 });
             }
@@ -6368,6 +6436,13 @@ impl App {
             &self.prelude,
             self.prelude_ui.read_only,
         );
+    }
+
+    /// Tag `draw_frame` fills the whole frame with the base pair first
+    /// and screens overpaint their regions; without this, unpainted
+    /// cells carry `Default` instead of the explicit base style.
+    fn paint_base_frame(&self, ui: &mut Ui<'_>, area: Rect) {
+        ui.fill(area, HistoricalPalette::new(ui).primary_on_canvas);
     }
 
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -8476,6 +8551,7 @@ impl TuiApp for App {
             );
             return;
         }
+        self.paint_base_frame(ui, full);
         if self.route == Route::Intro {
             self.draw_intro(ui, full);
             return;
