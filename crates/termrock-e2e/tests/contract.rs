@@ -1,15 +1,39 @@
+use std::fs;
 use termrock_e2e::{
-    BuildFacts, BuildInputs, BuilderReceipt, Executable, ExpectedGenerationInput, MiseConfigInput,
-    SUBJECT_SCHEMA, Subject, SubjectManifest, builder_receipt_digest, deferred_row_count, registry,
-    suite_digest, validate_subject_manifest,
+    BuildFacts, BuildInputs, BuilderReceipt, EvidenceReference, Executable, MiseConfigInput,
+    ProtectedRoot, SUBJECT_SCHEMA, Subject, SubjectBuildEvidence, SubjectManifest, TrustRecord,
+    builder_receipt_digest, deferred_row_count, registry, suite_digest, validate_subject_manifest,
 };
 
 #[test]
-fn registry_contains_one_holla_pilot_with_checkpointed_preconditions() {
+fn registry_contains_four_seed_cases_and_holla_checkpointed_preconditions() {
     let registry = registry().expect("registry parses");
     assert_eq!(registry.schema, "termrock-e2e/case-registry-v1");
-    assert_eq!(registry.cases.len(), 1);
-    let case = &registry.cases[0];
+    assert_eq!(registry.suite_revision, "termrock-e2e-2026-10-09.1");
+
+    let expected_ids = std::collections::BTreeSet::from([
+        "HELP-HOLLA-004",
+        "JACKIN-EDITOR-SAVE-CANCEL-120X40-TRUECOLOR",
+        "SHOWCASE-DIALOG-001",
+        "TABLEPRO-TABLE-001-120X40-TRUECOLOR",
+    ]);
+    let actual_ids = registry
+        .cases
+        .iter()
+        .map(|case| case.id.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(registry.cases.len(), expected_ids.len());
+    assert_eq!(actual_ids, expected_ids);
+    for case in &registry.cases {
+        termrock_e2e::validate_case_contract(case)
+            .unwrap_or_else(|error| panic!("case {} is invalid: {error}", case.id));
+    }
+
+    let case = registry
+        .cases
+        .iter()
+        .find(|case| case.id == "HELP-HOLLA-004")
+        .expect("Holla pilot remains registered");
     assert_eq!(case.id, "HELP-HOLLA-004");
     assert_eq!(case.app, "holla");
     assert_eq!(case.geometry.cols, 120);
@@ -89,14 +113,72 @@ fn subject_manifest_requires_one_pinned_pair() {
         run_id: "test-run".to_string(),
         suite_revision: case_revision,
         suite_sha256: "1".repeat(64),
-        expected_generation: ExpectedGenerationInput {
-            id: "shared-parity-v1".to_string(),
-            root: None,
-            sha256: "0".repeat(64),
-        },
+        expected_generation: None,
+        build_evidence: test_build_evidence(),
         subjects: vec![subject("reference", 'a'), subject("candidate", 'b')],
     };
+    #[cfg(unix)]
     assert!(validate_subject_manifest(&manifest).is_ok());
+    #[cfg(not(unix))]
+    assert!(
+        validate_subject_manifest(&manifest)
+            .unwrap_err()
+            .contains("physical directory identity is unsupported")
+    );
+    let schema: serde_json::Value =
+        serde_json::from_str(include_str!("../schemas/subject-manifest-v2.schema.json"))
+            .expect("subject manifest schema parses");
+    let validator = jsonschema::draft202012::new(&schema).expect("subject schema compiles");
+    let manifest_json = serde_json::to_value(&manifest).expect("serialize manifest fixture");
+    assert!(
+        validator.is_valid(&manifest_json),
+        "v2 manifest rejected: {manifest_json}"
+    );
+    assert!(serde_json::from_value::<SubjectManifest>(manifest_json.clone()).is_ok());
+    let mut manifest_without_generation = manifest_json.clone();
+    manifest_without_generation
+        .as_object_mut()
+        .expect("manifest object")
+        .remove("expected_generation");
+    assert!(!validator.is_valid(&manifest_without_generation));
+    assert!(serde_json::from_value::<SubjectManifest>(manifest_without_generation).is_err());
+    let evidence_keys = manifest_json["build_evidence"]
+        .as_object()
+        .expect("manifest build evidence object")
+        .keys()
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        evidence_keys,
+        std::collections::BTreeSet::from([
+            "build_environment".to_string(),
+            "source_inputs".to_string()
+        ])
+    );
+    assert!(manifest_json["build_evidence"].get("builder_run").is_none());
+
+    let mut legacy_manifest = manifest_json.clone();
+    legacy_manifest["schema"] = serde_json::json!("termrock-spec/parity-subject-manifest-v1");
+    legacy_manifest["expected_generation"] = serde_json::json!({
+        "id": "legacy-fixture",
+        "sha256": "2".repeat(64)
+    });
+    legacy_manifest
+        .as_object_mut()
+        .expect("legacy subject manifest object")
+        .remove("build_evidence");
+    let legacy_schema: serde_json::Value =
+        serde_json::from_str(include_str!("../schemas/subject-manifest-v1.schema.json"))
+            .expect("historical v1 subject schema parses");
+    let legacy_validator =
+        jsonschema::draft202012::new(&legacy_schema).expect("historical v1 schema compiles");
+    assert!(legacy_validator.is_valid(&legacy_manifest));
+    assert!(!validator.is_valid(&legacy_manifest));
+    assert!(serde_json::from_value::<SubjectManifest>(legacy_manifest).is_err());
+
+    let mut unsafe_sidecar = manifest.clone();
+    unsafe_sidecar.build_evidence.source_inputs.path = "../oracle/source-inputs.json".to_string();
+    assert!(validate_subject_manifest(&unsafe_sidecar).is_err());
 
     let mut duplicate = manifest.clone();
     duplicate.subjects[1].role = "reference".to_string();
@@ -119,11 +201,8 @@ fn subject_manifest_requires_one_pinned_pair() {
         run_id: "test-run".to_string(),
         suite_revision: registry().expect("registry parses").suite_revision,
         suite_sha256: "1".repeat(64),
-        expected_generation: ExpectedGenerationInput {
-            id: "shared-parity-v1".to_string(),
-            root: None,
-            sha256: "0".repeat(64),
-        },
+        expected_generation: None,
+        build_evidence: test_build_evidence(),
         subjects: vec![subject("reference", 'a'), subject("candidate", 'b')],
     };
     malformed_build_input.subjects[0]
@@ -136,11 +215,8 @@ fn subject_manifest_requires_one_pinned_pair() {
         run_id: "test-run".to_string(),
         suite_revision: registry().expect("registry parses").suite_revision,
         suite_sha256: "1".repeat(64),
-        expected_generation: ExpectedGenerationInput {
-            id: "shared-parity-v1".to_string(),
-            root: None,
-            sha256: "0".repeat(64),
-        },
+        expected_generation: None,
+        build_evidence: test_build_evidence(),
         subjects: vec![subject("reference", 'a'), subject("candidate", 'b')],
     };
     mismatched_builder_receipt.subjects[0].builder_receipt_sha256 = "0".repeat(64);
@@ -148,9 +224,95 @@ fn subject_manifest_requires_one_pinned_pair() {
 }
 
 #[test]
+fn schema_required_nullable_fields_reject_omission_but_accept_explicit_null() {
+    let trust_record = serde_json::json!({
+        "schema": "termrock-spec/parity-trust-record-v2",
+        "suite": {
+            "digest": "4".repeat(64),
+            "case_set_digest": "5".repeat(64),
+            "profile_digest": "6".repeat(64),
+            "dependency_lock_sha256": "7".repeat(64),
+            "review_receipt_sha256": "8".repeat(64),
+            "test_binary_sha256": ["c".repeat(64)]
+        },
+        "subjects": [
+            {
+                "role": "reference",
+                "source_commit": "d".repeat(40),
+                "builder_receipt_sha256": "e".repeat(64)
+            },
+            {
+                "role": "candidate",
+                "source_commit": "f".repeat(40),
+                "builder_receipt_sha256": "0".repeat(64)
+            }
+        ],
+        "expected_generation": null,
+        "build_evidence": {
+            "subject_manifest": {"path": "/run/subject-manifest.json", "sha256": "9".repeat(64)},
+            "builder_run": {"path": "/run/run.json", "sha256": "a".repeat(64)}
+        },
+        "write_policy_sha256": "b".repeat(64)
+    });
+    let trust_schema: serde_json::Value =
+        serde_json::from_str(include_str!("../schemas/trust-record-v2.schema.json"))
+            .expect("trust schema parses");
+    let trust_validator =
+        jsonschema::draft202012::new(&trust_schema).expect("trust schema compiles");
+    assert!(trust_validator.is_valid(&trust_record));
+    assert!(serde_json::from_value::<TrustRecord>(trust_record.clone()).is_ok());
+    let mut trust_without_generation = trust_record;
+    trust_without_generation
+        .as_object_mut()
+        .expect("trust record object")
+        .remove("expected_generation");
+    assert!(!trust_validator.is_valid(&trust_without_generation));
+    assert!(serde_json::from_value::<TrustRecord>(trust_without_generation).is_err());
+
+    let mise_nulls = serde_json::json!({"present": false, "path": null, "sha256": null});
+    let manifest_schema: serde_json::Value =
+        serde_json::from_str(include_str!("../schemas/subject-manifest-v2.schema.json"))
+            .expect("manifest schema parses");
+    let mise_schema = manifest_schema["$defs"]["mise_config"].clone();
+    let mise_validator =
+        jsonschema::draft202012::new(&mise_schema).expect("mise config schema compiles");
+    assert!(mise_validator.is_valid(&mise_nulls));
+    assert!(serde_json::from_value::<MiseConfigInput>(mise_nulls.clone()).is_ok());
+    for field in ["path", "sha256"] {
+        let mut missing = mise_nulls.clone();
+        missing
+            .as_object_mut()
+            .expect("mise config object")
+            .remove(field);
+        assert!(!mise_validator.is_valid(&missing));
+        assert!(
+            serde_json::from_value::<MiseConfigInput>(missing).is_err(),
+            "missing mise_config.{field} must be rejected"
+        );
+    }
+
+    let oracle_root = serde_json::json!({"kind": "oracle", "role": null, "path": "/oracle"});
+    let receipt_schema: serde_json::Value =
+        serde_json::from_str(include_str!("../schemas/receipt-v2.schema.json"))
+            .expect("receipt schema parses");
+    let protected_root_schema = receipt_schema["$defs"]["protected_root"].clone();
+    let protected_root_validator = jsonschema::draft202012::new(&protected_root_schema)
+        .expect("protected-root schema compiles");
+    assert!(protected_root_validator.is_valid(&oracle_root));
+    assert!(serde_json::from_value::<ProtectedRoot>(oracle_root.clone()).is_ok());
+    let mut oracle_without_role = oracle_root;
+    oracle_without_role
+        .as_object_mut()
+        .expect("oracle root object")
+        .remove("role");
+    assert!(!protected_root_validator.is_valid(&oracle_without_role));
+    assert!(serde_json::from_value::<ProtectedRoot>(oracle_without_role).is_err());
+}
+
+#[test]
 fn receipt_schema_validates_complete_record_and_rejects_malformed_nested_data() {
     let schema: serde_json::Value =
-        serde_json::from_str(include_str!("../schemas/receipt-v1.schema.json"))
+        serde_json::from_str(include_str!("../schemas/receipt-v2.schema.json"))
             .expect("receipt schema parses");
     assert!(jsonschema::draft202012::meta::is_valid(&schema));
     let validator = jsonschema::draft202012::new(&schema).expect("draft 2020-12 schema compiles");
@@ -228,9 +390,137 @@ fn receipt_schema_validates_complete_record_and_rejects_malformed_nested_data() 
 }
 
 #[test]
+fn receipt_v3_requires_admitted_exact_evidence_for_visual_verdicts() {
+    let schema: serde_json::Value =
+        serde_json::from_str(include_str!("../schemas/receipt-v3.schema.json"))
+            .expect("v3 receipt schema parses");
+    assert!(jsonschema::draft202012::meta::is_valid(&schema));
+    let validator = jsonschema::draft202012::new(&schema).expect("v3 schema compiles");
+
+    let mut blocked = valid_receipt();
+    blocked["schema"] = serde_json::json!("termrock-spec/parity-run-receipt-v3");
+    blocked["checks"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({
+            "id": "reference:HELP-HOLLA-004:00-boot:visual",
+            "subject_role": "reference",
+            "case_id": "HELP-HOLLA-004",
+            "checkpoint_id": "00-boot",
+            "dimension": "visual",
+            "status": "BLOCKED",
+            "reason": "expected content is unadmitted",
+            "evidence": []
+        }));
+    assert!(
+        validator.is_valid(&blocked),
+        "blocked v3 receipt rejected: {blocked}"
+    );
+
+    let mut blocked_with_evidence = blocked.clone();
+    blocked_with_evidence["checks"][1]["visual_comparison"] = visual_comparison_fixture(true);
+    assert!(!validator.is_valid(&blocked_with_evidence));
+
+    let mut pass = blocked.clone();
+    pass["checks"][1]["status"] = serde_json::json!("PASS");
+    pass["checks"][1]["visual_comparison"] = visual_comparison_fixture(true);
+    assert!(
+        validator.is_valid(&pass),
+        "valid exact visual verdict rejected: {pass}"
+    );
+
+    let mut pass_without_evidence = pass.clone();
+    pass_without_evidence["checks"][1]
+        .as_object_mut()
+        .unwrap()
+        .remove("visual_comparison");
+    assert!(!validator.is_valid(&pass_without_evidence));
+
+    let mut unverified_pass = pass.clone();
+    unverified_pass["checks"][1]["visual_comparison"]["admission"]["verified"] =
+        serde_json::json!(false);
+    assert!(!validator.is_valid(&unverified_pass));
+
+    let mut inexact_pass = pass.clone();
+    inexact_pass["checks"][1]["visual_comparison"]["png"]["pixels_equal"] =
+        serde_json::json!(false);
+    assert!(!validator.is_valid(&inexact_pass));
+
+    let mut differing_cells_pass = pass.clone();
+    differing_cells_pass["checks"][1]["visual_comparison"]["frame"]["cells_equal"] =
+        serde_json::json!(false);
+    assert!(!validator.is_valid(&differing_cells_pass));
+
+    let mut approximate_pass = pass.clone();
+    approximate_pass["checks"][1]["visual_comparison"]["fidelity"]["actual"]["approximate"] =
+        serde_json::json!(true);
+    assert!(!validator.is_valid(&approximate_pass));
+
+    let mut fail = blocked.clone();
+    fail["checks"][1]["status"] = serde_json::json!("FAIL");
+    fail["checks"][1]["visual_comparison"] = visual_comparison_fixture(false);
+    assert!(
+        validator.is_valid(&fail),
+        "exact mismatch receipt rejected: {fail}"
+    );
+
+    let mut false_fail = fail.clone();
+    false_fail["checks"][1]["visual_comparison"] = visual_comparison_fixture(true);
+    assert!(!validator.is_valid(&false_fail));
+
+    let mut approximate_fail = fail.clone();
+    approximate_fail["checks"][1]["visual_comparison"]["fidelity"]["actual"]["approximate"] =
+        serde_json::json!(true);
+    assert!(!validator.is_valid(&approximate_fail));
+
+    let v2_schema: serde_json::Value =
+        serde_json::from_str(include_str!("../schemas/receipt-v2.schema.json"))
+            .expect("historical v2 schema parses");
+    let v2_validator =
+        jsonschema::draft202012::new(&v2_schema).expect("historical v2 schema compiles");
+    assert!(
+        !v2_validator.is_valid(&pass),
+        "v2 must not accept v3 receipt data"
+    );
+}
+
+#[test]
+fn expected_generation_v1_schema_is_closed_and_pins_checkpoint_files() {
+    let schema: serde_json::Value = serde_json::from_str(include_str!(
+        "../schemas/expected-generation-v1.schema.json"
+    ))
+    .expect("expected-generation schema parses");
+    assert!(jsonschema::draft202012::meta::is_valid(&schema));
+    let validator =
+        jsonschema::draft202012::new(&schema).expect("expected-generation schema compiles");
+    let manifest = valid_expected_generation_manifest();
+    assert!(
+        validator.is_valid(&manifest),
+        "valid expected-generation fixture rejected: {manifest}"
+    );
+
+    let mut missing = manifest.clone();
+    missing.as_object_mut().unwrap().remove("oracle");
+    assert!(!validator.is_valid(&missing));
+
+    let mut unexpected = manifest.clone();
+    unexpected["unreviewed"] = serde_json::json!(true);
+    assert!(!validator.is_valid(&unexpected));
+
+    let mut duplicate_checkpoint = manifest.clone();
+    duplicate_checkpoint["checkpoints"][1]["id"] = serde_json::json!("00-boot");
+    assert!(!validator.is_valid(&duplicate_checkpoint));
+
+    let mut moved_checkpoint_file = manifest;
+    moved_checkpoint_file["checkpoints"][0]["png"]["path"] =
+        serde_json::json!("checkpoints/00-boot/other.png");
+    assert!(!validator.is_valid(&moved_checkpoint_file));
+}
+
+#[test]
 fn trust_record_schema_requires_the_bound_write_policy_digest() {
     let schema: serde_json::Value =
-        serde_json::from_str(include_str!("../schemas/trust-record-v1.schema.json"))
+        serde_json::from_str(include_str!("../schemas/trust-record-v2.schema.json"))
             .expect("trust-record schema parses");
     assert!(jsonschema::draft202012::meta::is_valid(&schema));
     let validator =
@@ -328,7 +618,7 @@ fn valid_receipt() -> serde_json::Value {
     };
 
     serde_json::json!({
-        "schema": "termrock-spec/parity-run-receipt-v1",
+        "schema": "termrock-spec/parity-run-receipt-v2",
         "run_id": "contract-test",
         "source_pair": [subject("reference", '1', 'a'), subject("candidate", '2', 'b')],
         "suite": {
@@ -341,13 +631,42 @@ fn valid_receipt() -> serde_json::Value {
             "dependency_lock_sha256": hash('6'),
             "platform": "macos"
         },
-        "expected_generation": {
-            "id": "shared-parity-v1",
-            "expected_sha256": hash('7'),
-            "actual_sha256": hash('7'),
-            "state": "HASH_MATCH",
-            "admission_receipt_sha256": null,
-            "root": null
+        "expected_generation": null,
+        "build_evidence": {
+            "subject_manifest": {"path": "/tmp/run/subject-manifest.json", "sha256": hash('d')},
+            "source_inputs": {"path": "/tmp/run/source-inputs.json", "sha256": hash('e')},
+            "build_environment": {"path": "/tmp/run/build-environment.json", "sha256": hash('f')},
+            "builder_run": {"path": "/tmp/run/run.json", "sha256": hash('a')}
+        },
+        "environment": {
+            "cleared": true,
+            "cwd": "/repo",
+            "common": {"TERM": "xterm-256color", "COLORTERM": "truecolor", "LC_ALL": "C.UTF-8", "SHELL": "/bin/sh"},
+            "case_allowlist": ["HOLLA_NO_HISTORY"],
+            "case_values": {"HOLLA_NO_HISTORY": "1"}
+        },
+        "renderer": {
+            "schema": "termrock-spec/tuiscotti-renderer-identity-v1",
+            "hash": hash('d'),
+            "name": "tuiscotti-default",
+            "renderer_version": 1,
+            "font_px": 16.0,
+            "cell_w": 10,
+            "cell_h": 21,
+            "pad": 12,
+            "scale": 2,
+            "default_fg": [208, 208, 208],
+            "default_bg": [0, 0, 0],
+            "indexed_palette": "Xterm",
+            "face_hashes": [hash('1'), hash('2'), hash('3'), hash('4')],
+            "fallback_order": [
+                {"description": "Symbols2", "sha256": hash('5')},
+                {"description": "Symbols", "sha256": hash('6')},
+                {"description": "CJK", "sha256": hash('7')}
+            ],
+            "cursor_policy": "Show",
+            "blink_phase": "On",
+            "missing_glyph_policy": "Strict"
         },
         "trust": {
             "status": "unverified",
@@ -358,9 +677,10 @@ fn valid_receipt() -> serde_json::Value {
             "reason": "fixture only"
         },
         "write_policy": {
-            "schema": "termrock-spec/parity-write-policy-v1",
+            "schema": "termrock-spec/parity-write-policy-v2",
             "write_root": "/tmp/parity-run",
             "receipt_path": "/tmp/parity-run/receipt.json",
+            "subject_cwd": "/repo",
             "protected_roots": [
                 {"kind": "oracle", "role": null, "path": "/tmp/oracle"}
             ],
@@ -392,11 +712,118 @@ fn valid_receipt() -> serde_json::Value {
     })
 }
 
+fn visual_comparison_fixture(equal: bool) -> serde_json::Value {
+    let hash = |nibble: char| nibble.to_string().repeat(64);
+    let artifact = |path: &str, nibble: char| serde_json::json!({"path": path, "sha256": hash(nibble), "bytes": 16});
+    let fidelity = |frame_nibble: char, approximate: bool| {
+        serde_json::json!({
+            "sha256": hash('7'),
+            "bytes": 20,
+            "source_frame_sha256": hash(frame_nibble),
+            "renderer_sha256": hash('8'),
+            "rerender_png_sha256": hash('9'),
+            "approximate": approximate,
+            "rerender_matches_bound_png": !approximate
+        })
+    };
+    serde_json::json!({
+        "schema": "termrock-spec/parity-visual-comparison-v1",
+        "method": "frame-v3-diff-cells+opaque-rgb-decoded-exact-v1",
+        "admission": {
+            "verified": true,
+            "trust_record_sha256": hash('a'),
+            "expected_generation_id": "expected-1",
+            "expected_tree_sha256": hash('b'),
+            "expected_manifest_sha256": hash('c'),
+            "admission_receipt_sha256": hash('d')
+        },
+        "renderer": {"expected_sha256": hash('8'), "actual_sha256": hash('8'), "equal": true},
+        "frame": {
+            "expected": artifact("expected/frame.json", 'e'),
+            "actual": artifact("actual/frame.json", 'f'),
+            "version": 3,
+            "expected_geometry": {"cols": 120, "rows": 40},
+            "actual_geometry": {"cols": 120, "rows": 40},
+            "dimensions_equal": true,
+            "cells_equal": equal,
+            "cursor_equal": true,
+            "differing_positions": if equal { vec![] } else { vec![serde_json::json!({"x": 1, "y": 2})] },
+            "equal": equal
+        },
+        "png": {
+            "expected": artifact("expected/screen.png", '1'),
+            "actual": artifact("actual/screen.png", '2'),
+            "expected_info": {"width": 1448, "height": 888, "color_type": 2, "bit_depth": 8},
+            "actual_info": {"width": 1448, "height": 888, "color_type": 2, "bit_depth": 8},
+            "alpha_policy": "opaque",
+            "dimensions_equal": true,
+            "pixels_equal": equal,
+            "equal": equal
+        },
+        "fidelity": {"expected": fidelity('e', false), "actual": fidelity('f', false)}
+    })
+}
+
+fn valid_expected_generation_manifest() -> serde_json::Value {
+    let hash = |nibble: char| nibble.to_string().repeat(64);
+    let checkpoint = |id: &str| {
+        serde_json::json!({
+            "id": id,
+            "observation_id": format!("observation-{id}"),
+            "geometry": {"cols": 120, "rows": 40},
+            "color_path": "truecolor",
+            "frame": {
+                "path": format!("checkpoints/{id}/frame.json"),
+                "sha256": hash('1'),
+                "bytes": 4096
+            },
+            "png": {
+                "path": format!("checkpoints/{id}/screen.png"),
+                "sha256": hash('2'),
+                "bytes": 512,
+                "width": 2448,
+                "height": 1728,
+                "color_type": 2,
+                "bit_depth": 8
+            }
+        })
+    };
+    let renderer = valid_receipt()["renderer"].clone();
+    serde_json::json!({
+        "schema": "termrock-spec/parity-expected-generation-v1",
+        "id": "expected-holla-help-1",
+        "case_id": "HELP-HOLLA-004",
+        "case_set_digest": hash('3'),
+        "profile_digest": hash('4'),
+        "dependency_lock_sha256": hash('5'),
+        "case_input_sha256": hash('6'),
+        "tuiscotti_revision": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+        "tree_hash_algorithm": "termrock-e2e/expected-tree-v1",
+        "oracle": {
+            "tag_ref": "refs/tags/visual-baseline",
+            "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+            "tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+            "capture_run_sha256": hash('7'),
+            "source_inputs_sha256": hash('8'),
+            "build_environment_sha256": hash('9'),
+            "builder_receipt_sha256": hash('a'),
+            "oracle_executable_sha256": hash('b')
+        },
+        "renderer": renderer,
+        "checkpoints": [
+            checkpoint("00-boot"),
+            checkpoint("01-help"),
+            checkpoint("02-finder"),
+            checkpoint("03-help-again")
+        ]
+    })
+}
+
 fn valid_trust_record() -> serde_json::Value {
     let hash = |nibble: char| nibble.to_string().repeat(64);
     let commit = |nibble: char| nibble.to_string().repeat(40);
     serde_json::json!({
-        "schema": "termrock-spec/parity-trust-record-v1",
+        "schema": "termrock-spec/parity-trust-record-v2",
         "suite": {
             "digest": hash('1'),
             "case_set_digest": hash('2'),
@@ -410,8 +837,25 @@ fn valid_trust_record() -> serde_json::Value {
             {"role": "candidate", "source_commit": commit('b'), "builder_receipt_sha256": hash('8')}
         ],
         "expected_generation": null,
+        "build_evidence": {
+            "subject_manifest": {"path": "/tmp/run/subject-manifest.json", "sha256": hash('a')},
+            "builder_run": {"path": "/tmp/run/run.json", "sha256": hash('b')}
+        },
         "write_policy_sha256": hash('9')
     })
+}
+
+fn test_build_evidence() -> SubjectBuildEvidence {
+    SubjectBuildEvidence {
+        source_inputs: EvidenceReference {
+            path: "source-inputs.json".to_string(),
+            sha256: "a".repeat(64),
+        },
+        build_environment: EvidenceReference {
+            path: "build-environment.json".to_string(),
+            sha256: "b".repeat(64),
+        },
+    }
 }
 
 fn subject(role: &str, source_nibble: char) -> Subject {
@@ -469,12 +913,22 @@ fn subject(role: &str, source_nibble: char) -> Subject {
     };
     builder_receipt.sha256 =
         builder_receipt_digest(&builder_receipt).expect("builder receipt hashes");
+    let output_base = fs::canonicalize(std::env::temp_dir())
+        .expect("canonicalize contract test temporary directory")
+        .join(format!(
+            "termrock-e2e-contract-outputs-{}",
+            std::process::id()
+        ));
+    let actual_output_root = output_base.join(role);
+    fs::create_dir_all(&actual_output_root).expect("create contract test actual output root");
+    let actual_output_root = fs::canonicalize(actual_output_root)
+        .expect("canonicalize contract test actual output root");
     Subject {
         role: role.to_string(),
         source_commit,
         build,
         executable,
-        actual_output_root: std::path::PathBuf::from(format!("/tmp/{role}")),
+        actual_output_root,
         build_inputs,
         builder_receipt_sha256: builder_receipt.sha256.clone(),
         builder_receipt,

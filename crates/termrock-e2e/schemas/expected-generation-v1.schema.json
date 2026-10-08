@@ -1,0 +1,669 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "termrock-spec/parity-expected-generation-v1",
+  "title": "Termrock shared expected generation v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "id",
+    "case_id",
+    "case_set_digest",
+    "profile_digest",
+    "dependency_lock_sha256",
+    "case_input_sha256",
+    "tuiscotti_revision",
+    "tree_hash_algorithm",
+    "oracle",
+    "renderer",
+    "checkpoints"
+  ],
+  "properties": {
+    "schema": {
+      "const": "termrock-spec/parity-expected-generation-v1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_id": {
+      "const": "HELP-HOLLA-004"
+    },
+    "case_set_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "profile_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "dependency_lock_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "case_input_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "tuiscotti_revision": {
+      "const": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274"
+    },
+    "tree_hash_algorithm": {
+      "const": "termrock-e2e/expected-tree-v1"
+    },
+    "oracle": {
+      "type": "object",
+      "required": [
+        "tag_ref",
+        "tag_object",
+        "tag_commit",
+        "capture_run_sha256",
+        "source_inputs_sha256",
+        "build_environment_sha256",
+        "builder_receipt_sha256",
+        "oracle_executable_sha256"
+      ],
+      "properties": {
+        "tag_ref": {
+          "const": "refs/tags/visual-baseline"
+        },
+        "tag_object": {
+          "const": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
+        },
+        "tag_commit": {
+          "const": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+        },
+        "capture_run_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_inputs_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "build_environment_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "builder_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "oracle_executable_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "renderer": {
+      "type": "object",
+      "required": [
+        "schema",
+        "hash",
+        "name",
+        "renderer_version",
+        "font_px",
+        "cell_w",
+        "cell_h",
+        "pad",
+        "scale",
+        "default_fg",
+        "default_bg",
+        "indexed_palette",
+        "face_hashes",
+        "fallback_order",
+        "cursor_policy",
+        "blink_phase",
+        "missing_glyph_policy"
+      ],
+      "properties": {
+        "schema": {
+          "const": "termrock-spec/tuiscotti-renderer-identity-v1"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "renderer_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "font_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cell_w": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cell_h": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pad": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "default_fg": {
+          "$ref": "#/$defs/rgb"
+        },
+        "default_bg": {
+          "$ref": "#/$defs/rgb"
+        },
+        "indexed_palette": {
+          "type": "string",
+          "minLength": 1
+        },
+        "face_hashes": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "fallback_order": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fallback_face"
+          }
+        },
+        "cursor_policy": {
+          "enum": [
+            "Show",
+            "Hide"
+          ]
+        },
+        "blink_phase": {
+          "enum": [
+            "On",
+            "Off"
+          ]
+        },
+        "missing_glyph_policy": {
+          "enum": [
+            "Strict",
+            "Placeholder"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "checkpoints": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "observation_id",
+            "geometry",
+            "color_path",
+            "frame",
+            "png"
+          ],
+          "properties": {
+            "id": {
+              "const": "00-boot"
+            },
+            "observation_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "geometry": {
+              "type": "object",
+              "required": [
+                "cols",
+                "rows"
+              ],
+              "properties": {
+                "cols": {
+                  "const": 120
+                },
+                "rows": {
+                  "const": 40
+                }
+              },
+              "additionalProperties": false
+            },
+            "color_path": {
+              "const": "truecolor"
+            },
+            "frame": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256",
+                "bytes"
+              ],
+              "properties": {
+                "path": {
+                  "const": "checkpoints/00-boot/frame.json"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                }
+              },
+              "additionalProperties": false
+            },
+            "png": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256",
+                "bytes",
+                "width",
+                "height",
+                "color_type",
+                "bit_depth"
+              ],
+              "properties": {
+                "path": {
+                  "const": "checkpoints/00-boot/screen.png"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                },
+                "color_type": {
+                  "const": 2
+                },
+                "bit_depth": {
+                  "const": 8
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "observation_id",
+            "geometry",
+            "color_path",
+            "frame",
+            "png"
+          ],
+          "properties": {
+            "id": {
+              "const": "01-help"
+            },
+            "observation_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "geometry": {
+              "type": "object",
+              "required": [
+                "cols",
+                "rows"
+              ],
+              "properties": {
+                "cols": {
+                  "const": 120
+                },
+                "rows": {
+                  "const": 40
+                }
+              },
+              "additionalProperties": false
+            },
+            "color_path": {
+              "const": "truecolor"
+            },
+            "frame": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256",
+                "bytes"
+              ],
+              "properties": {
+                "path": {
+                  "const": "checkpoints/01-help/frame.json"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                }
+              },
+              "additionalProperties": false
+            },
+            "png": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256",
+                "bytes",
+                "width",
+                "height",
+                "color_type",
+                "bit_depth"
+              ],
+              "properties": {
+                "path": {
+                  "const": "checkpoints/01-help/screen.png"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                },
+                "color_type": {
+                  "const": 2
+                },
+                "bit_depth": {
+                  "const": 8
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "observation_id",
+            "geometry",
+            "color_path",
+            "frame",
+            "png"
+          ],
+          "properties": {
+            "id": {
+              "const": "02-finder"
+            },
+            "observation_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "geometry": {
+              "type": "object",
+              "required": [
+                "cols",
+                "rows"
+              ],
+              "properties": {
+                "cols": {
+                  "const": 120
+                },
+                "rows": {
+                  "const": 40
+                }
+              },
+              "additionalProperties": false
+            },
+            "color_path": {
+              "const": "truecolor"
+            },
+            "frame": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256",
+                "bytes"
+              ],
+              "properties": {
+                "path": {
+                  "const": "checkpoints/02-finder/frame.json"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                }
+              },
+              "additionalProperties": false
+            },
+            "png": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256",
+                "bytes",
+                "width",
+                "height",
+                "color_type",
+                "bit_depth"
+              ],
+              "properties": {
+                "path": {
+                  "const": "checkpoints/02-finder/screen.png"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                },
+                "color_type": {
+                  "const": 2
+                },
+                "bit_depth": {
+                  "const": 8
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "observation_id",
+            "geometry",
+            "color_path",
+            "frame",
+            "png"
+          ],
+          "properties": {
+            "id": {
+              "const": "03-help-again"
+            },
+            "observation_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "geometry": {
+              "type": "object",
+              "required": [
+                "cols",
+                "rows"
+              ],
+              "properties": {
+                "cols": {
+                  "const": 120
+                },
+                "rows": {
+                  "const": 40
+                }
+              },
+              "additionalProperties": false
+            },
+            "color_path": {
+              "const": "truecolor"
+            },
+            "frame": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256",
+                "bytes"
+              ],
+              "properties": {
+                "path": {
+                  "const": "checkpoints/03-help-again/frame.json"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                }
+              },
+              "additionalProperties": false
+            },
+            "png": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256",
+                "bytes",
+                "width",
+                "height",
+                "color_type",
+                "bit_depth"
+              ],
+              "properties": {
+                "path": {
+                  "const": "checkpoints/03-help-again/screen.png"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                },
+                "color_type": {
+                  "const": 2
+                },
+                "bit_depth": {
+                  "const": 8
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "items": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "rgb": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      }
+    },
+    "fallback_face": {
+      "type": "object",
+      "required": [
+        "description",
+        "sha256"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
