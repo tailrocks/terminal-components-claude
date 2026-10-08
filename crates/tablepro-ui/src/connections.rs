@@ -2,7 +2,7 @@
 
 use termrock::{
     Action, ActionKey, Chord, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, FormData, Id,
-    RadioGroup, Secret, SecretPolicy, Select, TextArea, TextInput, Toggle,
+    RadioGroup, Secret, SecretPolicy, Select, TextArea, TextInput, TextInputState, Toggle,
 };
 
 use tablepro_demo as db;
@@ -411,7 +411,7 @@ pub struct ConnectionsScreen {
     pub connections: Vec<Connection>,
     pub selected: usize,
     pub filter: String,
-    pub filter_active: bool,
+    pub filter_state: TextInputState,
     pub error: Option<String>,
 }
 
@@ -421,7 +421,7 @@ impl ConnectionsScreen {
             connections,
             selected: 0,
             filter: String::new(),
-            filter_active: false,
+            filter_state: TextInputState::default(),
             error: None,
         }
     }

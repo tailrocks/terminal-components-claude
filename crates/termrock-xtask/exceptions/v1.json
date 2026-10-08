@@ -1206,24 +1206,24 @@
       "rule": "OWN-11"
     },
     {
-      "max": 140,
+      "max": 133,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "review": "WI-TABLEPRO-FILTER-ROW: filter rows through stock Field+TextInput (was 140)",
       "rule": "OWN-02"
     },
     {
-      "max": 21,
+      "max": 19,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "review": "WI-TABLEPRO-FILTER-ROW: filter rows through stock Field+TextInput (was 21)",
       "rule": "OWN-04"
     },
     {
-      "max": 30,
+      "max": 26,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "review": "WI-TABLEPRO-FILTER-ROW: filter rows through stock Field+TextInput (was 30)",
       "rule": "OWN-11"
     },
     {

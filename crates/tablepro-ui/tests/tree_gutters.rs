@@ -86,10 +86,14 @@ fn tree_gutters_filter_active_pair_120() {
     let _ = t.key(KeyCode::Char('/'));
     let _ = t.type_str("stag");
     assert!(
-        t.app().connections_screen.filter_active,
+        t.app().connections_screen.filter_state.is_editing(),
         "filter must be active after /+stag"
     );
-    assert_eq!(t.app().connections_screen.filter, "stag", "filter text");
+    assert_eq!(
+        t.app().connections_screen.filter_state.draft_text(),
+        Some("stag"),
+        "filter text"
+    );
     assert_cell(&t, GUTTER_X, 4, "▎", FOCUS, INPUT_BG, 0);
     assert_blank_gutter(&t, 5);
     assert_blank_gutter(&t, 6);
