@@ -191,7 +191,15 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         p().set_glyph(GlyphRole::FocusBar).set_fg(gutter_fg),
     );
     part(m, Part::LABEL, p());
-    part(m, Part::ICON, p());
+    // Q67-F5: the busy/loading spinner is the accent marker. The reference
+    // overwrites the marker cell with `style.fg(t.accent)` whenever the
+    // button is busy (`visual-baseline:src/widgets/button.rs:153-160`),
+    // regardless of toggle state. Without a BUSY/LOADING rule the ICON
+    // resolve names no fg and the spinner inherits the container's Primary
+    // (white) instead of the accent tone.
+    part(m, Part::ICON, p())
+        .when(StateFlags::BUSY, p().set_fg(Role::Accent))
+        .when(StateFlags::LOADING, p().set_fg(Role::Accent));
 }
 
 fn field_like(m: &mut PartMap<PartRecipe>) {
