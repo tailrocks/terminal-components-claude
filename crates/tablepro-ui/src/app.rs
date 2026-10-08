@@ -1460,7 +1460,12 @@ impl TableProApp {
             GridAction::FetchMore => {
                 "All deterministic demo rows are loaded".clone_into(status);
             }
-            GridAction::Moved | GridAction::LeaveForward | GridAction::LeaveBackward => {}
+            GridAction::Moved
+            | GridAction::LeaveForward
+            | GridAction::LeaveBackward
+            | GridAction::CommitRequested
+            | GridAction::DiscardRequested
+            | GridAction::PreviewRequested => {}
         }
     }
 

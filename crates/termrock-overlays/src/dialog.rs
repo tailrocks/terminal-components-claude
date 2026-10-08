@@ -20,7 +20,7 @@ use crate::layout::{RowAlign, action_row};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy};
-use crate::text::{width, wrap, wrapped_rows};
+use crate::text::{truncate, width, wrap, wrapped_rows};
 use crate::theme::{DesignTokens, Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
@@ -287,6 +287,7 @@ pub struct Dialog<'a> {
     primary: Option<ActionKey>,
     width: Option<u16>,
     body_rows: Option<u16>,
+    code: Option<&'a [&'a str]>,
     prompt: Option<&'a str>,
     input_label: Option<&'a str>,
     input_help: Option<&'a str>,
@@ -337,6 +338,7 @@ impl<'a> Dialog<'a> {
             primary: None,
             width: None,
             body_rows: None,
+            code: None,
             prompt: None,
             input_label: None,
             input_help: None,
@@ -420,6 +422,26 @@ impl<'a> Dialog<'a> {
         let mut d = Self::info(id, title);
         d.body_rows = Some(props.len().min(usize::from(u16::MAX)) as u16);
         d
+    }
+
+    /// A code preview under the facts: at most six lines and the blank row
+    /// above them (tag `code_rows`). The dialog paints it anchored above
+    /// the actions; the body slot keeps the rows above it, so facts clip
+    /// first on short screens.
+    pub fn code(mut self, lines: &'a [&'a str]) -> Self {
+        let facts = self.body_rows.unwrap_or(0);
+        self.body_rows = Some(facts.saturating_add(Self::code_block(lines)));
+        self.code = Some(lines);
+        self
+    }
+
+    /// Rows the code preview takes below the facts.
+    fn code_block(lines: &[&str]) -> u16 {
+        if lines.is_empty() {
+            0
+        } else {
+            lines.len().min(6) as u16 + 1
+        }
     }
 
     /// A choice body, sized for one row per option with Cancel / OK actions.
@@ -764,10 +786,19 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    /// Rows the body slot needs, plus the blank row that separates it.
+    /// Rows the body slot needs, plus the blank row that separates it
+    /// from a preceding description or input block. A body that follows
+    /// the title directly (tag `Facts`: no description, no input) starts
+    /// at `body_y` with no separator.
     fn body_block(&self, d: &DesignTokens) -> u16 {
         let rows = self.body_rows.unwrap_or(d.size.code_preview_lines);
-        if rows == 0 { 0 } else { rows.saturating_add(1) }
+        if rows == 0 {
+            0
+        } else if self.description.is_some() || self.has_input() {
+            rows.saturating_add(1)
+        } else {
+            rows
+        }
     }
 
     /// `.width(w)` when set, else `design.size.dialog_width` (§26 N1).
@@ -776,7 +807,9 @@ impl<'a> Dialog<'a> {
     }
 
     /// `border(2)` + `pad(2)` + `title(1 + gap 1)` + the wrapped description +
-    /// the prompt + `[blank + body]` + `[blank + actions]` (§26 N1).
+    /// the prompt + `[blank + body]` + `[blank + actions]` (§26 N1). The
+    /// body's blank applies only after a description or input block; a
+    /// title-direct body (tag `Facts`) omits it.
     ///
     /// A pure function of the props and the design tokens, and the number
     /// [`Dialog::draw`] lays out against — the two share
@@ -990,12 +1023,15 @@ impl<'a> Dialog<'a> {
                         y = y.saturating_add(1);
                     }
                 }
-                // one blank row separates the body from what precedes it, exactly
-                // as `measured_height`'s `[blank + body]` term says
+                // one blank row separates the body from a preceding
+                // description or input block, exactly as `measured_height`'s
+                // `[blank + body]` term says; a body following the title
+                // directly starts at `body_y` (tag `Facts`)
+                let sep = u16::from(self.description.is_some() || self.has_input());
                 let body_top = if self.body_block(ui.design()) == 0 {
                     y
                 } else {
-                    y.saturating_add(1)
+                    y.saturating_add(sep)
                 };
                 let body_bottom = actions_y.saturating_sub(u16::from(!self.actions.is_empty()));
                 let body_rect = Rect {
@@ -1005,7 +1041,36 @@ impl<'a> Dialog<'a> {
                     height: body_bottom.saturating_sub(body_top),
                 };
                 ui.register_decor(id, PartRef::of(Part::BODY), body_rect);
-                let out = ui.with_area(body_rect, |ui| body(ui, body_rect));
+                let code_h = self.code.map_or(0, Self::code_block).min(body_rect.height);
+                let page_rect = Rect {
+                    height: body_rect.height.saturating_sub(code_h),
+                    ..body_rect
+                };
+                let out = ui.with_area(page_rect, |ui| body(ui, page_rect));
+                if let Some(lines) = self.code
+                    && code_h > 0
+                {
+                    let max = lines.len().min(6);
+                    let cs = style(ui, Part::DETAIL, StateFlags::empty());
+                    let top = body_rect.bottom().saturating_sub(max as u16);
+                    for (i, line) in lines.iter().take(max).enumerate() {
+                        let shown = if i == max - 1 && lines.len() > max {
+                            format!(
+                                "{} … {} more",
+                                truncate(line, inner.width.saturating_sub(12)),
+                                lines.len() - max
+                            )
+                        } else {
+                            truncate(line, inner.width)
+                        };
+                        let row = Rect {
+                            y: top.saturating_add(i as u16),
+                            height: 1,
+                            ..body_rect
+                        };
+                        ui.paint_str(row, &shown, cs.style);
+                    }
+                }
                 if !self.actions.is_empty() {
                     let row = Rect {
                         x: inner.x,
@@ -1275,7 +1340,9 @@ mod tests {
     #[test]
     fn valid_dialog_preserves_chrome_and_clips_its_body() {
         let (mut rt, mut buf) = scene();
-        let area = Rect::new(4, 1, 20, 9);
+        // title(2) + body(2), no separator blank without a preceding
+        // description or input (tag `Facts` at `body_y`): 4 + 2 + 2
+        let area = Rect::new(4, 1, 20, 8);
         let mut inner = Rect::ZERO;
         let mut answer = 0;
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
@@ -1556,7 +1623,9 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         let after = rt.layer_area(DLG).expect("resized layer");
-        assert_eq!(after.height, before.height.saturating_add(6));
+        // no description or input precedes the body, so no separator
+        // blank joins the five new rows (tag `Facts` at `body_y`)
+        assert_eq!(after.height, before.height.saturating_add(5));
     }
 
     #[test]
