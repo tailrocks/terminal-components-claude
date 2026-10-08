@@ -431,8 +431,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+         {
+          "at": "2026-10-08T10:17:37Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8af T2 t2_select_filter_builder isolated+live-PTY PASS @68d98ac (nextest visual_baseline --run-ignored only t2_ --test-threads 2, 14 pass/0 fail/630 skip; column+operator selects + chevron hits; bin tests/harness/target/debug/tablepro 11066584B sha256:35586d463054 built 2026-10-08T16:00:23Z; log /tmp/phase8af-t2.log)"
+         }
+        ]
       }
     },
     {
@@ -1103,8 +1110,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+         {
+          "at": "2026-10-08T10:17:37Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8af T2 t2_picker_switcher_scopes isolated+live-PTY PASS @68d98ac (nextest visual_baseline --run-ignored only t2_ --test-threads 2, 14 pass/0 fail/630 skip; switcher scopes + typed forces + modal scope; bin tests/harness/target/debug/tablepro 11066584B sha256:35586d463054 built 2026-10-08T16:00:23Z; log /tmp/phase8af-t2.log)"
+         }
+        ]
       }
     },
     {
@@ -1738,8 +1752,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+         {
+          "at": "2026-10-08T10:17:37Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8af T2 t2_complete_sql_popup isolated+live-PTY PASS @68d98ac (nextest visual_baseline --run-ignored only t2_ --test-threads 2, 14 pass/0 fail/630 skip; popup + Down/Up + Esc + commit; click-outside no-dismiss noted; bin tests/harness/target/debug/tablepro 11066584B sha256:35586d463054 built 2026-10-08T16:00:23Z; log /tmp/phase8af-t2.log)"
+         }
+        ]
       }
     },
     {
@@ -2577,8 +2598,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+         {
+          "at": "2026-10-08T10:17:37Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8af T2 t2_dialog_ack_full isolated+live-PTY PASS @68d98ac (nextest visual_baseline --run-ignored only t2_ --test-threads 2, 14 pass/0 fail/630 skip; facts + code + typed ack gates; bin tests/harness/target/debug/tablepro 11066584B sha256:35586d463054 built 2026-10-08T16:00:23Z; log /tmp/phase8af-t2.log)"
+         }
+        ]
       }
     },
     {
@@ -4426,8 +4454,15 @@
         ]
       },
       "results": {
-        "status": "unrun",
-        "runs": []
+        "status": "pass",
+        "runs": [
+         {
+          "at": "2026-10-08T10:17:37Z",
+          "branch": "visual-baseline",
+          "status": "pass",
+          "note": "phase-8af T2 t2_help_viewer_full isolated+live-PTY PASS @68d98ac (nextest visual_baseline --run-ignored only t2_ --test-threads 2, 14 pass/0 fail/630 skip; keyboard reference + modal scope; bin tests/harness/target/debug/tablepro 11066584B sha256:35586d463054 built 2026-10-08T16:00:23Z; log /tmp/phase8af-t2.log)"
+         }
+        ]
       }
     }
 ,
