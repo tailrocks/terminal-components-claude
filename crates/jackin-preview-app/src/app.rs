@@ -20,10 +20,11 @@ use termrock::{
     Insets, Intent, Item, ItemKey, ItemRowLayout, KeyCode, KeyMap, KeyModifiers, KeyPhase,
     LayerSize, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState,
     MeterTone, Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase, Picker, PickerAction,
-    PickerState, Position, ProjectedText, Reconcile, Rect, Response, Role, RowUi, SecretPolicy,
-    Side, SplitAxis, SplitPane, SplitPaneState, StateFlags, Status, StatusBar, StatusItem,
-    StylePatch, Surface, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
-    TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    PickerState, Position, ProjectedText, PropsAction, PropsList, PropsState, Reconcile, Rect,
+    Response, Role, RowUi, SecretPolicy, Side, SplitAxis, SplitPane, SplitPaneState, StateFlags,
+    Status, StatusBar, StatusItem, StylePatch, Surface, Tabs, TabsAction, TabsState, TextAction,
+    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
+    ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -113,6 +114,8 @@ const CAPSULE_SPLIT: Id = CAPSULE_PANES.sub("split");
 pub const QUIT_DIALOG: Id = APP.sub("quit-dialog");
 /// Launch confirmation dialog id.
 pub const LAUNCH_DIALOG: Id = APP.sub("launch-dialog");
+/// Launch-cancel confirmation dialog id.
+pub const CANCEL_DIALOG: Id = APP.sub("cancel-dialog");
 /// Role control inside the launch dialog.
 pub const ROLE_CHOOSE: Id = LAUNCH_DIALOG.sub("role");
 /// Role picker overlay id.
@@ -824,7 +827,10 @@ pub struct App {
     manager_inspect_open: bool,
     manager_quit_confirm: bool,
     cockpit_info_open: bool,
+    cockpit_info_props: PropsState,
+    cockpit_info_focus_pending: bool,
     cockpit_cancel_confirm: bool,
+    cancel_dialog: DialogState,
     cockpit_debug_open: bool,
     cockpit_failure_open: bool,
     accounts_form_stage: u8,
@@ -1022,7 +1028,10 @@ impl App {
             manager_inspect_open: false,
             manager_quit_confirm: false,
             cockpit_info_open: false,
+            cockpit_info_props: PropsState::default(),
+            cockpit_info_focus_pending: false,
             cockpit_cancel_confirm: false,
+            cancel_dialog: DialogState::default(),
             cockpit_debug_open: false,
             cockpit_failure_open: false,
             accounts_form_stage: 0,
@@ -1848,6 +1857,20 @@ impl App {
             "Review the role and start a deterministic Construct run.",
         )
         .body_rows(1)
+    }
+
+    const CANCEL_ACTIONS: [Action<'static>; 2] = [
+        Action::quiet(ActionKey::CANCEL, "Cancel"),
+        Action::danger(ActionKey::CONFIRM, "Cancel launch"),
+    ];
+
+    fn cockpit_cancel_dialog() -> Dialog<'static> {
+        Dialog::confirm(
+            CANCEL_DIALOG,
+            "Cancel the launch?",
+            "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
+        )
+        .actions(&Self::CANCEL_ACTIONS)
     }
 
     fn open_agent_picker(&mut self, cx: &mut Cx<'_>) {
@@ -4304,6 +4327,12 @@ impl App {
         if self.cockpit_failure_open {
             return Response::ignored();
         }
+        if self.cockpit_info_open {
+            return self.update_cockpit_info(cx);
+        }
+        if self.cockpit_cancel_confirm {
+            return self.update_cancel_dialog(cx);
+        }
         let mut result = Response::ignored();
         let failed = self
             .launch
@@ -4332,6 +4361,85 @@ impl App {
                 self.handle_launch_events(events);
                 result |= Response::changed();
             }
+        }
+        result
+    }
+
+    fn update_cockpit_info(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.cockpit_info_focus_pending {
+            self.cockpit_info_focus_pending = false;
+            cx.focus(crate::screens::cockpit::INFO_PROPS);
+        }
+        let role = self.selected_role().to_owned();
+        let ws_name = self
+            .world
+            .workspaces
+            .first()
+            .map_or_else(|| "payments-platform".to_owned(), |ws| ws.name.clone());
+        let container = self
+            .launch
+            .as_ref()
+            .map(|run| run.container.clone())
+            .filter(|container| !container.is_empty());
+        let debug = self.cockpit_debug_open;
+        let target = format!("{role} into workspace {ws_name}");
+        let telemetry = "run run-202609030914-b5df -> otlp://collector.internal:4317".to_owned();
+        let rows = crate::screens::cockpit::CockpitScreen::info_rows(
+            &role,
+            &target,
+            container.as_deref(),
+            debug,
+            &telemetry,
+        );
+        let response = PropsList::new(crate::screens::cockpit::INFO_PROPS).update(
+            cx,
+            &mut self.cockpit_info_props,
+            &rows,
+        );
+        let action = response.action_ref().copied();
+        let mut result = response.erase();
+        if let Some(PropsAction::Copy(key)) = action
+            && let Some(row) = rows.iter().find(|row| row.key == key)
+            && let Some(text) = row.value.text()
+        {
+            self.world.clipboard = Some(text.to_owned());
+            self.status = Some("Copied to the preview clipboard".into());
+            result |= Response::changed();
+        }
+        let close = Button::new(crate::screens::cockpit::INFO_CLOSE, "Close").update(cx);
+        let closed = close.activated();
+        result |= close.erase();
+        if closed {
+            self.cockpit_info_open = false;
+            self.status = None;
+            result |= Response::changed();
+        }
+        result
+    }
+
+    fn update_cancel_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let dialog = Self::cockpit_cancel_dialog();
+        let response = dialog.update(cx, &mut self.cancel_dialog);
+        let action = response.action_ref().copied();
+        let mut result = response.erase();
+        match action {
+            Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                cx.close_layer(CANCEL_DIALOG, Some(ActionKey::CONFIRM));
+                self.cockpit_cancel_confirm = false;
+                self.launch = None;
+                self.route = Route::Manager;
+                cx.focus(MANAGER_LIST);
+                self.status = Some("Launch cancelled · nothing was attached".into());
+                return self.route_changed();
+            }
+            Some(DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_)) => {
+                cx.close_layer(CANCEL_DIALOG, Some(ActionKey::CANCEL));
+                self.cockpit_cancel_confirm = false;
+                self.status = None;
+                result |= Response::changed();
+            }
+            Some(DialogAction::Action(_)) => {}
+            None => {}
         }
         result
     }
@@ -5310,6 +5418,10 @@ impl App {
             {
                 self.cockpit_info_open = !self.cockpit_info_open;
                 if self.cockpit_info_open {
+                    self.cockpit_info_props = PropsState::default();
+                    // Deferred: focusing during command dispatch re-dispatches
+                    // the same command on the settle pass and toggles back.
+                    self.cockpit_info_focus_pending = true;
                     self.status = Some("Debug info".into());
                 } else {
                     self.status = None;
@@ -5320,6 +5432,10 @@ impl App {
                 if matches!(self.route, Route::Cockpit | Route::Launch)
                     && !self.cockpit_failure_open =>
             {
+                let dialog = Self::cockpit_cancel_dialog();
+                let mut spec = dialog.layer(cx);
+                spec.initial_focus = Some(dialog.action_id(0));
+                cx.open_layer(CANCEL_DIALOG, spec);
                 self.cockpit_cancel_confirm = true;
                 self.status = Some("Cancel the launch?".into());
                 Some(Response::changed())
@@ -6687,10 +6803,12 @@ impl App {
                 &self.world,
                 self.selected_role(),
                 self.cockpit_debug_open,
+                &self.cockpit_info_props,
+                self.launch
+                    .as_ref()
+                    .map(|run| run.container.as_str())
+                    .filter(|container| !container.is_empty()),
             );
-        }
-        if self.cockpit_cancel_confirm {
-            crate::screens::cockpit::CockpitScreen::draw_cancel_confirm(ui, area);
         }
         if self.cockpit_failure_open
             && let Some(run) = self.launch.as_ref()
@@ -8305,6 +8423,10 @@ impl App {
         let _ = ui.layer(QUIT_DIALOG, |ui, area| {
             quit_dialog.draw(ui, area, &self.quit_dialog, |_, _| {})
         });
+        let cancel_dialog = Self::cockpit_cancel_dialog();
+        let _ = ui.layer(CANCEL_DIALOG, |ui, area| {
+            cancel_dialog.draw(ui, area, &self.cancel_dialog, |_, _| {})
+        });
         let _ = ui.layer(MANAGER_INSPECT, |ui, area| {
             let instance = self
                 .selected_instance_id()
@@ -8700,6 +8822,7 @@ impl TuiApp for App {
             return self.route_changed();
         }
         if self.cockpit_cancel_confirm {
+            cx.close_layer(CANCEL_DIALOG, Some(ActionKey::CANCEL));
             self.cockpit_cancel_confirm = false;
             self.status = None;
             return self.route_changed();
