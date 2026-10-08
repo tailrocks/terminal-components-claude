@@ -7,11 +7,12 @@ use termrock::{
     DialogAction, DialogState, Empty, EmptyState, Family, FgStep, Field, FocusVia, Focusability,
     Form, FormAction, FormState, FrameRead, GlyphRole, Grid, GridAction, GridEditor, GridModel,
     Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers,
-    KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase, PickerAction,
-    Props, PropsRow, Response, Role, RowUi, ScrollRegion, Select, SelectAction, SelectField,
-    SelectState, Size, SortDir, Span, SplitAxis, SplitModel, SplitPane, SplitPaneState, StylePatch,
-    SyntaxRole, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Toggle,
-    TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
+    KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Note, Panel, PanelKind, Part, Phase,
+    PickerAction, Props, PropsRow, RadioField, RadioGroup, RadioGroupState, Response, Role, RowUi,
+    ScrollRegion, Select, SelectAction, SelectField, SelectState, Size, SortDir, Span, SplitAxis,
+    SplitModel, SplitPane, SplitPaneState, StylePatch, SyntaxRole, Tabs, TabsAction, TabsState,
+    TextAction, TextInput, TextInputState, Theme, Toggle, TooSmall, Tree, TreeAction, TreeNode,
+    TreeState, Ui, UpdateCause, Variant, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -4493,100 +4494,6 @@ impl TableProApp {
         }
     }
 
-    fn draw_form_radio(
-        ui: &mut Ui<'_>,
-        area: termrock::Rect,
-        label: &str,
-        options: &[&str],
-        selected: usize,
-        card_bg: PaintStyle,
-    ) {
-        if area.is_empty() {
-            return;
-        }
-        let label_style =
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
-        let label_x = area.x.saturating_add(2.min(area.width));
-        ui.paint_str(
-            termrock::Rect {
-                x: label_x,
-                y: area.y,
-                width: area.width.saturating_sub(2),
-                height: 1,
-            },
-            label,
-            label_style,
-        );
-
-        let gutter_style = card_bg.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
-        );
-        let accent_style = card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
-        let muted_style =
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-        let text_style =
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-
-        for (i, opt) in options
-            .iter()
-            .take(area.height.saturating_sub(1) as usize)
-            .enumerate()
-        {
-            let y = area.y.saturating_add(1).saturating_add(i as u16);
-            let row_rect = termrock::Rect {
-                x: area.x,
-                y,
-                width: area.width,
-                height: 1,
-            };
-            let row_style =
-                card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-            ui.fill(row_rect, row_style);
-            ui.paint_str(
-                termrock::Rect {
-                    x: area.x,
-                    y,
-                    width: 1,
-                    height: 1,
-                },
-                " ",
-                gutter_style,
-            );
-            let on = i == selected;
-            let mark = if area.width < 4 {
-                if on { "●" } else { "○" }
-            } else if on {
-                "(●)"
-            } else {
-                "( )"
-            };
-            let ms = if on { accent_style } else { muted_style };
-            ui.paint_str(
-                termrock::Rect {
-                    x: area.x.saturating_add(1),
-                    y,
-                    width: if area.width < 4 { 1 } else { 3 },
-                    height: 1,
-                },
-                mark,
-                ms,
-            );
-            if area.width > 5 {
-                let opt_text = truncate(opt, area.width.saturating_sub(5));
-                ui.paint_str(
-                    termrock::Rect {
-                        x: area.x.saturating_add(5),
-                        y,
-                        width: area.width.saturating_sub(5),
-                        height: 1,
-                    },
-                    &opt_text,
-                    text_style,
-                );
-            }
-        }
-    }
-
     fn draw_form_basic_tab(
         &self,
         ui: &mut Ui<'_>,
@@ -4815,7 +4722,62 @@ impl TableProApp {
 
         // 1. Environment
         let env_opts = ["local", "development", "staging", "production"];
-        Self::draw_form_radio(
+        let env_fallback = RadioGroupState::default();
+        let env_st = self
+            .form_state
+            .radio_state(connections::field::ENVIRONMENT)
+            .unwrap_or(&env_fallback);
+        Field::new(
+            "Environment",
+            RadioField::new(
+                RadioGroup::new(connections::field::ENVIRONMENT)
+                    .value(ItemKey::index(draft.environment.min(3)))
+                    .patch_part(&[
+                        (
+                            Part::CONTAINER,
+                            StylePatch::new()
+                                .set_bg(Role::Surface(termrock::Surface::Surface))
+                                .set_fg(Role::Fg(FgStep::Primary)),
+                        ),
+                        (
+                            Part::GUTTER,
+                            StylePatch::new()
+                                .set_bg(Role::Surface(termrock::Surface::Surface))
+                                .set_fg(Role::Surface(termrock::Surface::Surface)),
+                        ),
+                        (
+                            Part::MARKER,
+                            StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+                        ),
+                        (
+                            Part::LABEL,
+                            StylePatch::new()
+                                .set_bg(Role::Surface(termrock::Surface::Surface))
+                                .set_fg(Role::Fg(FgStep::Primary)),
+                        ),
+                    ]),
+                &env_opts,
+            ),
+        )
+        .plain(true)
+        .optional_suffix(false)
+        .patch_part(&[
+            // bg-only (the Engine/Group precedent): the caption row keeps
+            // the beneath fg the caller fill preserves; an fg voice would
+            // overpaint the connections tree meta showing through at small
+            // sizes.
+            (
+                Part::CONTAINER,
+                StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+            ),
+            (
+                Part::LABEL,
+                StylePatch::new()
+                    .set_bg(Role::Surface(termrock::Surface::Surface))
+                    .set_fg(Role::Fg(FgStep::Secondary)),
+            ),
+        ])
+        .draw(
             ui,
             termrock::Rect {
                 x: rc.x,
@@ -4823,10 +4785,7 @@ impl TableProApp {
                 width: rc.width,
                 height: 5,
             },
-            "Environment",
-            &env_opts,
-            draft.environment.min(3),
-            card_bg,
+            env_st,
         );
         ry = ry.saturating_add(5 + 1);
 
@@ -4858,15 +4817,60 @@ impl TableProApp {
         ry = ry.saturating_add(3);
 
         // 3. Safe Mode
-        let safe_modes = [
-            "Silent",
-            "Alert",
-            "Alert (Full)",
+        let safe_fallback = RadioGroupState::default();
+        let safe_st = self
+            .form_state
+            .radio_state(connections::field::SAFE_MODE)
+            .unwrap_or(&safe_fallback);
+        Field::new(
             "Safe Mode",
-            "Safe Mode (Full)",
-            "Read-Only",
-        ];
-        Self::draw_form_radio(
+            RadioField::new(
+                RadioGroup::new(connections::field::SAFE_MODE)
+                    .value(ItemKey::index(draft.safe_mode.min(5)))
+                    .patch_part(&[
+                        (
+                            Part::CONTAINER,
+                            StylePatch::new()
+                                .set_bg(Role::Surface(termrock::Surface::Surface))
+                                .set_fg(Role::Fg(FgStep::Primary)),
+                        ),
+                        (
+                            Part::GUTTER,
+                            StylePatch::new()
+                                .set_bg(Role::Surface(termrock::Surface::Surface))
+                                .set_fg(Role::Surface(termrock::Surface::Surface)),
+                        ),
+                        (
+                            Part::MARKER,
+                            StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+                        ),
+                        (
+                            Part::LABEL,
+                            StylePatch::new()
+                                .set_bg(Role::Surface(termrock::Surface::Surface))
+                                .set_fg(Role::Fg(FgStep::Primary)),
+                        ),
+                    ]),
+                connections::SAFE_MODES,
+            ),
+        )
+        .plain(true)
+        .optional_suffix(false)
+        .patch_part(&[
+            // bg-only (the Engine/Group precedent): the caption row keeps
+            // the beneath fg the caller fill preserves.
+            (
+                Part::CONTAINER,
+                StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+            ),
+            (
+                Part::LABEL,
+                StylePatch::new()
+                    .set_bg(Role::Surface(termrock::Surface::Surface))
+                    .set_fg(Role::Fg(FgStep::Secondary)),
+            ),
+        ])
+        .draw(
             ui,
             termrock::Rect {
                 x: rc.x,
@@ -4874,33 +4878,26 @@ impl TableProApp {
                 width: rc.width,
                 height: 7,
             },
-            "Safe Mode",
-            &safe_modes,
-            draft.safe_mode.min(5),
-            card_bg,
+            safe_st,
         );
         ry = ry.saturating_add(7);
 
         // Safe mode description (up to 2 wrapped lines)
         let desc = SafeMode::ALL[draft.safe_mode.min(5)].description();
-        let wrap_w = rc.width.saturating_sub(2);
-        let muted_style =
-            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-        for (i, line) in wrap(desc, wrap_w).iter().take(2).enumerate() {
-            let row_y = ry.saturating_add(i as u16);
-            if row_y < rc.bottom() {
-                ui.paint_str(
-                    termrock::Rect {
-                        x: rc.x.saturating_add(2),
-                        y: row_y,
-                        width: rc.width.saturating_sub(2),
-                        height: 1,
-                    },
-                    line,
-                    muted_style,
-                );
-            }
-        }
+        Note::new(connections::field::SAFE_MODE, desc)
+            .patch_part(&[(
+                Part::CONTAINER,
+                StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
+            )])
+            .draw(
+                ui,
+                termrock::Rect {
+                    x: rc.x.saturating_add(2),
+                    y: ry,
+                    width: rc.width.saturating_sub(2),
+                    height: rc.bottom().saturating_sub(ry).min(2),
+                },
+            );
     }
 
     fn draw_form_advanced_tab(
