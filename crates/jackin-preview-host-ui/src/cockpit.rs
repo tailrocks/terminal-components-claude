@@ -246,7 +246,7 @@ impl CockpitScreen {
                     &p,
                 );
             })
-            .draw(ui, Rect::new(23, 5, 73, 1), &ident2_state, &[()]);
+            .draw(ui, Rect::new(20, 5, 80, 1), &ident2_state, &[()]);
 
         // 4. Identity line 6: stage progress summary
         let ident3_state = ListState::default();
@@ -255,7 +255,7 @@ impl CockpitScreen {
                 let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
                 row.label_patched("stage 3 of 11 · Credentials · 2 done · 0 skipped", &p);
             })
-            .draw(ui, Rect::new(36, 6, 48, 1), &ident3_state, &[()]);
+            .draw(ui, Rect::new(33, 6, 52, 1), &ident3_state, &[()]);
 
         // 5. 11-stage launch rail
         let stages = [
