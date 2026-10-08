@@ -2,11 +2,11 @@
 
 use termrock::{
     BlurPolicy, Cx, Family, FgStep, Field, FieldError, FrameRead, Id, Modifier, Panel, PanelKind,
-    Part, Rect, Response, Role, StateFlags, StylePatch, TextAction, TextInput, TextInputState,
-    Track, Ui, Variant, id, layout,
+    Part, Rect, Response, Role, SecretPolicy, StateFlags, StylePatch, TextAction, TextInput,
+    TextInputState, Track, Ui, Variant, id, layout,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate, frame};
 
 const NAME: Id = id!("inputs.name");
 const BRANCH: Id = id!("inputs.branch");
@@ -43,6 +43,31 @@ fn name_input<'a>() -> TextInput<'a> {
 fn branch_input<'a>() -> TextInput<'a> {
     TextInput::new(BRANCH)
         .placeholder("feat/…")
+        .blur(BlurPolicy::Commit)
+}
+
+fn owner_input<'a>() -> TextInput<'a> {
+    TextInput::new(OWNER)
+        .validate(&email)
+        .blur(BlurPolicy::CommitAndValidate)
+}
+
+fn token_input<'a>() -> TextInput<'a> {
+    TextInput::new(TOKEN).disabled(true)
+}
+
+fn search_input<'a>() -> TextInput<'a> {
+    TextInput::new(SEARCH)
+        .placeholder("Type a path or symbol…")
+        .blur(BlurPolicy::Commit)
+}
+
+fn api_key_input<'a>() -> TextInput<'a> {
+    TextInput::new(API_KEY)
+        .secret(SecretPolicy {
+            synthetic_tail: 4,
+            ..Default::default()
+        })
         .blur(BlurPolicy::Commit)
 }
 
@@ -84,41 +109,27 @@ fn branch_field(value: &str) -> Field<'_, TextInput<'_>> {
         .help("Leave empty to work on a detached checkout")
 }
 
-fn owner_field() -> Field<'static, TextInput<'static>> {
-    Field::new(
-        "Owner email",
-        TextInput::new(OWNER).value("mira@example").validate(&email),
-    )
-    .required(true)
-    .patch_part(FIELD_PATCH)
-    .error(Some("Enter a valid email address"))
+fn owner_field<'a>(value: &'a str, error: Option<&'a str>) -> Field<'a, TextInput<'a>> {
+    Field::new("Owner email", owner_input().value(value))
+        .required(true)
+        .patch_part(FIELD_PATCH)
+        .error(error)
 }
 
-fn token_field() -> Field<'static, TextInput<'static>> {
-    Field::new(
-        "API token",
-        TextInput::new(TOKEN)
-            .value("jb_live_••••••••••••")
-            .disabled(true),
-    )
-    .patch_part(TOKEN_PATCH)
-    .help("Managed by the organization")
+fn token_field<'a>(value: &'a str) -> Field<'a, TextInput<'a>> {
+    Field::new("API token", token_input().value(value))
+        .patch_part(TOKEN_PATCH)
+        .help("Managed by the organization")
 }
 
-fn search_field() -> Field<'static, TextInput<'static>> {
-    Field::new(
-        "Search files",
-        TextInput::new(SEARCH).placeholder("Type a path or symbol…"),
-    )
-    .help("Selection: Shift+← →  ·  words: Ctrl+← →  ·  clear: Ctrl+U")
+fn search_field<'a>(value: &'a str) -> Field<'a, TextInput<'a>> {
+    Field::new("Search files", search_input().value(value))
+        .help("Selection: Shift+← →  ·  words: Ctrl+← →  ·  clear: Ctrl+U")
 }
 
-fn api_key_field() -> Field<'static, TextInput<'static>> {
-    Field::new(
-        "API key",
-        TextInput::new(API_KEY).value("••••••••••••••••••••••••c1f2"),
-    )
-    .help("Masked while typing; the last four characters show once committed")
+fn api_key_field(value: &str) -> Field<'_, TextInput<'_>> {
+    Field::new("API key", api_key_input().value(value))
+        .help("Masked while typing; the last four characters show once committed")
 }
 
 fn columns(area: Rect, left_w: u16, gap: u16) -> (Rect, Rect) {
@@ -221,23 +232,47 @@ fn static_field(
     }
 }
 
-/// A pair of independent controlled fields, matching the legacy input page.
+/// Six controlled fields, matching the legacy input page: project, branch,
+/// owner (invalid at boot), a disabled token, search, and the masked API
+/// key (oracle reveal rule: 24 bullets plus the real last four).
 #[derive(Debug)]
 pub struct InputsPage {
     name: String,
     branch: String,
+    owner: String,
+    token: String,
+    search: String,
+    api_key: String,
     name_state: TextInputState,
     branch_state: TextInputState,
+    owner_state: TextInputState,
+    token_state: TextInputState,
+    search_state: TextInputState,
+    api_key_state: TextInputState,
     last: &'static str,
 }
 
 impl InputsPage {
     pub fn new() -> Self {
+        let mut owner_state = TextInputState::default();
+        // The legacy page validates the owner at construction: the boot
+        // value is invalid, so the error shows before any edit.
+        owner_state.set_error(Some(FieldError::new("Enter a valid email address")));
         Self {
             name: String::from("payments-gateway"),
             branch: String::new(),
+            owner: String::from("mira@example"),
+            token: String::from("jb_live_••••••••••••"),
+            search: String::new(),
+            // 28 graphemes ending in the registry tail: committed paint
+            // shows 24 bullets plus `c1f2`, matching the approved frame.
+            api_key: String::from("sk_live_0123456789abcdefc1f2"),
             name_state: TextInputState::default(),
             branch_state: TextInputState::default(),
+            owner_state,
+            token_state: TextInputState::default(),
+            search_state: TextInputState::default(),
+            api_key_state: TextInputState::default(),
             last: "ready",
         }
     }
@@ -256,15 +291,11 @@ impl Page for InputsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
-        // Both phases build the same card and reference-field props (§13); the
-        // draw pass paints the reference fields inside a frozen state scope.
+        let mut status: Option<PageStatus> = None;
+        // Both phases build the same card props (§13).
         let _ = fields_panel();
         let _ = playground_panel();
         let _ = state_reference_panel();
-        let _ = owner_field();
-        let _ = token_field();
-        let _ = search_field();
-        let _ = api_key_field();
         let name = name_input().update(cx, &mut self.name_state, &mut self.name);
         if let Some(action) = name.action_ref() {
             self.last = match action {
@@ -273,6 +304,7 @@ impl Page for InputsPage {
                 TextAction::Changed => "name draft changed",
                 TextAction::MoveNext | TextAction::MovePrev => "name focus moved",
             };
+            Self::report(action, "Project name", &mut status);
         }
         response |= name.erase();
         let branch = branch_input().update(cx, &mut self.branch_state, &mut self.branch);
@@ -283,9 +315,56 @@ impl Page for InputsPage {
                 TextAction::Changed => "branch draft changed",
                 TextAction::MoveNext | TextAction::MovePrev => "branch focus moved",
             };
+            Self::report(action, "Branch", &mut status);
         }
         response |= branch.erase();
-        response.into()
+        let owner = owner_input().update(cx, &mut self.owner_state, &mut self.owner);
+        if let Some(action) = owner.action_ref() {
+            self.last = match action {
+                TextAction::Committed => "owner committed",
+                TextAction::Cancelled => "owner reverted",
+                TextAction::Changed => "owner draft changed",
+                TextAction::MoveNext | TextAction::MovePrev => "owner focus moved",
+            };
+            Self::report(action, "Owner email", &mut status);
+        }
+        response |= owner.erase();
+        let token = token_input().update(cx, &mut self.token_state, &mut self.token);
+        if let Some(action) = token.action_ref() {
+            self.last = match action {
+                TextAction::Committed => "token committed",
+                TextAction::Cancelled => "token reverted",
+                TextAction::Changed => "token draft changed",
+                TextAction::MoveNext | TextAction::MovePrev => "token focus moved",
+            };
+            Self::report(action, "API token", &mut status);
+        }
+        response |= token.erase();
+        let search = search_input().update(cx, &mut self.search_state, &mut self.search);
+        if let Some(action) = search.action_ref() {
+            self.last = match action {
+                TextAction::Committed => "search committed",
+                TextAction::Cancelled => "search reverted",
+                TextAction::Changed => "search draft changed",
+                TextAction::MoveNext | TextAction::MovePrev => "search focus moved",
+            };
+            Self::report(action, "Search files", &mut status);
+        }
+        response |= search.erase();
+        let api_key = api_key_input().update(cx, &mut self.api_key_state, &mut self.api_key);
+        if let Some(action) = api_key.action_ref() {
+            self.last = match action {
+                TextAction::Committed => "api_key committed",
+                TextAction::Cancelled => "api_key reverted",
+                TextAction::Changed => "api_key draft changed",
+                TextAction::MoveNext | TextAction::MovePrev => "api_key focus moved",
+            };
+            Self::report(action, "API key", &mut status);
+        }
+        response |= api_key.erase();
+        let mut update = PageUpdate::from(response);
+        update.status = status;
+        update
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -310,7 +389,22 @@ impl Page for InputsPage {
                 if slots[1].bottom() <= inner.bottom() {
                     branch_field(&self.branch).draw(ui, slots[1], &self.branch_state);
                 }
-                Self::draw_reference_fields(ui, inner, &slots);
+                if slots[2].bottom() <= inner.bottom() {
+                    owner_field(
+                        &self.owner,
+                        self.owner_state.error().map(|e| e.message.as_ref()),
+                    )
+                    .draw(ui, slots[2], &self.owner_state);
+                }
+                if slots[3].bottom() <= inner.bottom() {
+                    token_field(&self.token).draw(ui, slots[3], &self.token_state);
+                }
+                if slots[4].bottom() <= inner.bottom() {
+                    search_field(&self.search).draw(ui, slots[4], &self.search_state);
+                }
+                if slots[5].bottom() <= inner.bottom() {
+                    api_key_field(&self.api_key).draw(ui, slots[5], &self.api_key_state);
+                }
             });
             if let Some(reference_area) = regions.get(2).copied() {
                 state_reference_panel().draw(ui, reference_area, |ui, inner| {
@@ -325,6 +419,12 @@ impl Page for InputsPage {
             self.name_state.is_editing()
         } else if ui.state(BRANCH).contains(StateFlags::FOCUSED) {
             self.branch_state.is_editing()
+        } else if ui.state(OWNER).contains(StateFlags::FOCUSED) {
+            self.owner_state.is_editing()
+        } else if ui.state(SEARCH).contains(StateFlags::FOCUSED) {
+            self.search_state.is_editing()
+        } else if ui.state(API_KEY).contains(StateFlags::FOCUSED) {
+            self.api_key_state.is_editing()
         } else {
             false
         };
@@ -341,43 +441,27 @@ impl Page for InputsPage {
     }
 
     fn editing(&self, _ui: &Ui<'_>) -> bool {
-        self.name_state.is_editing() || self.branch_state.is_editing()
+        self.name_state.is_editing()
+            || self.branch_state.is_editing()
+            || self.owner_state.is_editing()
+            || self.search_state.is_editing()
+            || self.api_key_state.is_editing()
     }
 }
 
 impl InputsPage {
-    fn draw_reference_fields(ui: &mut Ui<'_>, inner: Rect, slots: &[Rect; 6]) {
-        ui.reference(None, |ui| {
-            if slots[2].bottom() <= inner.bottom() {
-                owner_field().draw(ui, slots[2], &TextInputState::default());
-                if slots[2].width >= 2 {
-                    let field_style = ui
-                        .style(
-                            Family::FIELD,
-                            Variant::DEFAULT,
-                            Part::FIELD,
-                            StateFlags::empty(),
-                        )
-                        .style;
-                    let _ = ui.paint_str(
-                        Rect::new(slots[2].right().saturating_sub(2), slots[2].y + 1, 1, 1),
-                        "!",
-                        field_style
-                            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Danger)))
-                            .add_modifier(Modifier::BOLD),
-                    );
-                }
+    /// Legacy commit feedback: `{label} saved` on commit, `Reverted` on
+    /// cancel. The shell owns the status display lifetime.
+    fn report(action: &TextAction, label: &str, status: &mut Option<PageStatus>) {
+        match action {
+            TextAction::Committed => {
+                *status = Some(PageStatus(format!("{label} saved")));
             }
-            if slots[3].bottom() <= inner.bottom() {
-                token_field().draw(ui, slots[3], &TextInputState::default());
+            TextAction::Cancelled => {
+                *status = Some(PageStatus("Reverted".to_owned()));
             }
-            if slots[4].bottom() <= inner.bottom() {
-                search_field().draw(ui, slots[4], &TextInputState::default());
-            }
-            if slots[5].bottom() <= inner.bottom() {
-                api_key_field().draw(ui, slots[5], &TextInputState::default());
-            }
-        });
+            _ => {}
+        }
     }
 
     fn draw_state_reference(ui: &mut Ui<'_>, inner: Rect) {

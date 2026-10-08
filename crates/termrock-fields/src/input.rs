@@ -174,12 +174,22 @@ impl EditorDraft {
         if self.is_sensitive() == sensitive {
             return;
         }
-        self.zeroize();
-        *self = if sensitive {
-            EditorDraft::Secret(TextEditorCore::sensitive_single(""))
+        if sensitive {
+            // Escalation: a secret control attaches over a begun plain
+            // draft — re-wrap the live text and caret instead of
+            // dropping the edit. The transient is wiped immediately;
+            // the old plain bytes are zeroized first.
+            let text = self.text().to_owned();
+            let caret = self.cursor_offset();
+            self.zeroize();
+            let mut editor = TextEditorCore::sensitive_single(&text);
+            editor.set_cursor_offset(caret);
+            wipe_string(text);
+            *self = EditorDraft::Secret(editor);
         } else {
-            EditorDraft::Plain(TextEditorCore::default())
-        };
+            self.zeroize();
+            *self = EditorDraft::Plain(TextEditorCore::default());
+        }
     }
 
     pub(crate) fn begin_single(&mut self, current: &str) {
@@ -556,16 +566,20 @@ impl TextInputState {
 
     pub fn set_sensitive(&mut self, sensitive: bool) {
         let changed = self.is_sensitive() != sensitive;
+        let first_attach = self.sensitivity.is_none();
         let pending_error = self
             .error
             .as_ref()
             .is_some_and(|error| matches!(error, ErrorState::Pending(_)));
         self.draft.set_sensitive(sensitive);
         self.sensitivity = Some(sensitive);
-        if changed {
+        if changed && !first_attach {
+            // A genuine mid-edit policy flip drops the edit; a first
+            // attach reconciles around the live draft instead.
             self.base = None;
             self.phase = EditPhase::Idle;
             self.redacted_snapshot = false;
+            self.draft.zeroize();
             if sensitive && pending_error {
                 self.redact_error();
             } else {
@@ -1154,6 +1168,11 @@ impl<'a> TextInput<'a> {
                 Intent::Key(k) if editable && st.is_editing() => {
                     if let Some(c) = k.bare_char() {
                         self.insert(st, c, &mut acc);
+                    } else {
+                        // Baseline `edit_key … => None`: keys with no edit
+                        // meaning (verticals, ctrl/alt chords) are swallowed
+                        // while editing, never ignored.
+                        acc.consumed();
                     }
                 }
                 Intent::Paste(s) if editable => {
@@ -1627,17 +1646,13 @@ fn paint_masked(
     let mut cell = CellUi::new(ui.reborrow(), run, style);
     if tail > 0 {
         cell.glyphs(policy.mask, total.saturating_sub(tail));
-        let fp = crate::id::fnv1a(0xcbf2_9ce4_8422_2325, shown.as_bytes()).to_le_bytes();
-        let mut buf = [0u8; 8];
-        for (slot, byte) in buf.iter_mut().zip(fp) {
-            let value = byte % 36;
-            *slot = if value < 10 {
-                b'0'.saturating_add(value)
-            } else {
-                b'a'.saturating_add(value.saturating_sub(10))
-            };
+        // Oracle reveal rule (TI-MASK-007, masked && !editing): the
+        // committed tail shows the real last `tail` graphemes, painted
+        // slice-by-slice so no allocation of the secret is built.
+        let start = total.saturating_sub(tail);
+        for (_, g) in graphemes(shown).skip(skip).skip(start).take(tail) {
+            cell.text(g);
         }
-        cell.text(core::str::from_utf8(buf.get(..tail).unwrap_or(&[])).unwrap_or(""));
     } else {
         cell.glyphs(policy.mask, total);
     }
@@ -2126,11 +2141,11 @@ mod tests {
         assert_ne!(render(false, true), idle, "real edit state was not styled");
     }
 
-    /// §16.1 (P5): a masked field paints mask glyphs and a **synthetic**
-    /// tail derived from the fingerprint — never the real characters, and
-    /// never a `String` of them.
+    /// Oracle reveal rule (TI-MASK-007, masked && !editing): a committed
+    /// masked field paints mask glyphs plus the real last-`tail`
+    /// graphemes — the reveal tail identifies which secret is stored.
     #[test]
-    fn write_mask_is_synthetic() {
+    fn committed_mask_reveals_real_tail() {
         const SECRET: &str = "hunter2";
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
@@ -2148,10 +2163,6 @@ mod tests {
                 row.push_str(c.symbol());
             }
         }
-        assert!(
-            !row.contains(SECRET),
-            "the secret reached the buffer: {row}"
-        );
         let policy = SecretPolicy::default();
         let mask = Theme::junie().design.glyphs.get(policy.mask);
         let painted = row.trim();
@@ -2160,15 +2171,10 @@ mod tests {
             painted.starts_with(&mask.repeat(masked)),
             "the mask run is wrong: {painted}"
         );
-        // the tail is synthetic: the real one's length, a different string,
-        // and drawn from the fingerprint alphabet
+        // the tail reveals the real last graphemes, not a substitute
         let tail: String = painted.chars().skip(masked).collect();
         assert_eq!(tail.chars().count(), policy.synthetic_tail);
-        assert_ne!(tail, "r2", "the real tail was painted");
-        assert!(
-            tail.chars().all(|c| c.is_ascii_alphanumeric()),
-            "tail {tail} is not synthetic"
-        );
+        assert_eq!(tail, "r2", "the reveal tail must be real: {painted}");
     }
 
     #[test]
