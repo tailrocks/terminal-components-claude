@@ -1,0 +1,220 @@
+{"type":"suite","event":"started","test_count":23,"nextest":{"crate":"termrock-conformance","test_binary":"control_states","kind":"test"}}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$ownership_gate_rejects_unknown_component_ids"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w01_brand_clickable_hover_press_release_and_typed_activation"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w01_brand_exact_width_and_one_column_narrow"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w01_brand_static_lockup_absent_from_tab_traversal"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w01_brand_two_lockups_keep_independent_targets"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w01_w45_resolve_through_owner_crate_modules"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w02_button_checked_focus_combos_and_busy_rejection"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w02_button_combining_cjk_and_empty_labels"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w01_brand_press_paints_distinct_from_hover"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$ownership_gate_rejects_unknown_component_ids"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w01_brand_clickable_hover_press_release_and_typed_activation"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w01_brand_exact_width_and_one_column_narrow"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w01_brand_static_lockup_absent_from_tab_traversal"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w01_brand_two_lockups_keep_independent_targets"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w01_w45_resolve_through_owner_crate_modules"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w02_button_checked_focus_combos_and_busy_rejection"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w02_button_combining_cjk_and_empty_labels"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w01_brand_press_paints_distinct_from_hover","exec_time":0.010299834,"stdout":"\nthread 'w01_brand_press_paints_distinct_from_hover' (74647118) panicked at crates/termrock-conformance/tests/control_states.rs:540:5:\nassertion `left != right` failed: W01-02: press must paint below the hover lift (accent_pressed)\n  left: Buffer {\n    area: Rect { x: 0, y: 0, width: 12, height: 1 },\n    content: [\n        \" Jackin     \",\n    ],\n    styles: [\n        x: 0, y: 0, fg: Rgb(25, 25, 28), bg: Rgb(58, 179, 67), underline: Reset, modifier: BOLD,\n        x: 8, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,\n    ]\n}\n right: Buffer {\n    area: Rect { x: 0, y: 0, width: 12, height: 1 },\n    content: [\n        \" Jackin     \",\n    ],\n    styles: [\n        x: 0, y: 0, fg: Rgb(25, 25, 28), bg: Rgb(58, 179, 67), underline: Reset, modifier: BOLD,\n        x: 8, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,\n    ]\n}\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w02_button_reactivation_at_feedback_boundaries"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w02_button_release_outside_removed_or_disabled_never_fires"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w02_button_variants_all_states_and_focus_gutter"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w02_button_disabled_suppresses_focus_gutter"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w02_button_reactivation_at_feedback_boundaries"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w02_button_release_outside_removed_or_disabled_never_fires"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w02_button_variants_all_states_and_focus_gutter"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w02_button_disabled_suppresses_focus_gutter","exec_time":0.009848416,"stdout":"\nthread 'w02_button_disabled_suppresses_focus_gutter' (74647173) panicked at crates/termrock-conformance/tests/control_states.rs:775:13:\nassertion `left == right` failed: W02-01 TrueColor Variant::PRIMARY: disabled must suppress the focus gutter\n  left: \"▎\"\n right: \" \"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w03_checkbox_checked_focus_hover_matrix"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w03_checkbox_checked_focus_hover_independent"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w03_checkbox_checked_focus_hover_matrix"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w03_checkbox_checked_focus_hover_independent","exec_time":0.009257291,"stdout":"\nthread 'w03_checkbox_checked_focus_hover_independent' (74647212) panicked at crates/termrock-conformance/tests/control_states.rs:1166:5:\nassertion `left != right` failed: W03-01: hover must add to a checked+focused checkbox\n  left: Buffer {\n    area: Rect { x: 0, y: 0, width: 11, height: 1 },\n    content: [\n        \"▎[✓] Choice\",\n    ],\n    styles: [\n        x: 0, y: 0, fg: Rgb(72, 224, 84), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,\n        x: 4, y: 0, fg: Rgb(255, 255, 255), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,\n    ]\n}\n right: Buffer {\n    area: Rect { x: 0, y: 0, width: 11, height: 1 },\n    content: [\n        \"▎[✓] Choice\",\n    ],\n    styles: [\n        x: 0, y: 0, fg: Rgb(72, 224, 84), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,\n        x: 4, y: 0, fg: Rgb(255, 255, 255), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,\n    ]\n}\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w03_checkbox_disabled_ignores_all_activation"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w03_checkbox_marker_label_edge_and_outside_clicks"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w03_checkbox_rejected_change_does_not_drift"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w04_toggle_adjacent_hit_regions_stay_separate"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w03_checkbox_compact_markers"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w03_checkbox_disabled_ignores_all_activation"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w03_checkbox_marker_label_edge_and_outside_clicks"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w03_checkbox_rejected_change_does_not_drift"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w04_toggle_adjacent_hit_regions_stay_separate"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w03_checkbox_compact_markers","exec_time":0.009471708,"stdout":"\nthread 'w03_checkbox_compact_markers' (74647266) panicked at crates/termrock-conformance/tests/control_states.rs:1139:13:\nassertion `left == right` failed: W03-01: width=2 checked=false marker\n  left: \"[\"\n right: \"□\"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w04_toggle_minimum_width_and_clipping"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w04_toggle_on_off_state_matrix"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w04_toggle_origins_agree_on_next_value"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w05_radio_chosen_cursor_and_hovered_differ"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w05_radio_disabled_group_ignores_keyboard_and_pointer"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w05_radio_empty_and_narrow_vertical"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w04_toggle_compact_markers"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w04_toggle_minimum_width_and_clipping"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w04_toggle_on_off_state_matrix"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w04_toggle_origins_agree_on_next_value"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w05_radio_chosen_cursor_and_hovered_differ"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w05_radio_disabled_group_ignores_keyboard_and_pointer"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w05_radio_empty_and_narrow_vertical"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w04_toggle_compact_markers","exec_time":0.009426959,"stdout":"\nthread 'w04_toggle_compact_markers' (74647299) panicked at crates/termrock-conformance/tests/control_states.rs:1396:13:\nassertion `left == right` failed: W04-01: width=2 on=false marker\n  left: \"●\"\n right: \"○\"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w05_radio_no_horizontal"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w05_radio_no_horizontal","exec_time":0.009077834,"stdout":"\nthread 'w05_radio_no_horizontal' (74647351) panicked at crates/termrock-conformance/tests/control_states.rs:1898:5:\nPARITY W05-04: cannot lay a radio group out horizontally; no orientation API\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w05_radio_reorder_or_delete_between_press_and_release"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w06_chipbar_checked_focus_matrix"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w05_radio_per_option_disabled"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w05_radio_reorder_or_delete_between_press_and_release"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w06_chipbar_checked_focus_matrix"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w05_radio_per_option_disabled","exec_time":0.009575333,"stdout":"\nthread 'w05_radio_per_option_disabled' (74647397) panicked at crates/termrock-conformance/tests/control_states.rs:1743:5:\nPARITY W05-02: cannot disable option 1 of 3; RadioGroup has no per-option disabled\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w06_chipbar_closable_keyboard_dead"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w06_chipbar_closable_keyboard_dead","exec_time":0.010357,"stdout":"\nthread 'w06_chipbar_closable_keyboard_dead' (74647414) panicked at crates/termrock-conformance/tests/control_states.rs:2110:5:\nassertion `left == right` failed: W06-02: Space must toggle the cursor chip\n  left: []\n right: [Toggled(Text(15554359229119007736))]\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w06_chipbar_disabled_body_and_close_inert"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w06_chipbar_empty_with_and_without_add"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w06_chipbar_overflow_exact_fit_and_unicode"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w07_field_editing_with_error_keeps_gutter_and_cursor"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w07_field_has_one_tab_stop"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w07_field_help_and_error_share_height"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w07_field_suffix_width_boundaries"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w08_input_click_positions_caret_by_grapheme"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w06_chipbar_close_press_then_reorder_or_delete"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w06_chipbar_disabled_body_and_close_inert"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w06_chipbar_empty_with_and_without_add"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w06_chipbar_overflow_exact_fit_and_unicode"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w07_field_editing_with_error_keeps_gutter_and_cursor"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w07_field_has_one_tab_stop"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w07_field_help_and_error_share_height"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w07_field_suffix_width_boundaries"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w08_input_click_positions_caret_by_grapheme"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w06_chipbar_close_press_then_reorder_or_delete","exec_time":0.010409209,"stdout":"\nthread 'w06_chipbar_close_press_then_reorder_or_delete' (74647440) panicked at crates/termrock-conformance/tests/control_states.rs:2145:5:\nassertion `left == right` failed: W06-02: a reorder under a held close must keep the stable key\n  left: [Toggled(Text(533632403138894934))]\n right: [Closed(Text(533632403138894934))]\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w08_input_enter_begins_escape_restores"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w08_input_down_only_does_not_edit"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w08_input_enter_begins_escape_restores"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w08_input_down_only_does_not_edit","exec_time":0.009624541,"stdout":"\nthread 'w08_input_down_only_does_not_edit' (74647466) panicked at crates/termrock-conformance/tests/control_states.rs:2725:5:\nW08-02: Down alone must not begin editing\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w08_input_external_change_is_not_silently_overwritten"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w08_input_external_change_is_not_silently_overwritten","exec_time":0.010012042,"stdout":"\nthread 'w08_input_external_change_is_not_silently_overwritten' (74647538) panicked at crates/termrock-conformance/tests/control_states.rs:2964:5:\nW08-07: commit must not silently discard the external change, got \"origxy\"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w08_input_masked_clicks_follow_display"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w08_input_masked_clicks_follow_display","exec_time":0.009546625,"stdout":"\nthread 'w08_input_masked_clicks_follow_display' (74647582) panicked at crates/termrock-conformance/tests/control_states.rs:2702:5:\nassertion `left == right` failed: W08-02: clicking the second mask cell must land there\n  left: Some(Position { x: 2, y: 0 })\n right: Some(Position { x: 3, y: 0 })\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w08_input_paste_inserts_and_disabled_ignores"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w08_input_required_and_custom_errors_clear_on_correction"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w08_input_secret_redacts_debug_paint_cancel_and_zeroize"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w08_input_tab_shift_tab_and_blur_commit_once"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w09_area_editing_page_home_end_move_caret"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w09_area_enter_newline_escape_commits"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w09_area_field_layout_rows_plus_two_and_tiny_heights"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w08_input_navigation_paste_begins_editing"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w08_input_paste_inserts_and_disabled_ignores"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w08_input_required_and_custom_errors_clear_on_correction"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w08_input_secret_redacts_debug_paint_cancel_and_zeroize"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w08_input_tab_shift_tab_and_blur_commit_once"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w09_area_editing_page_home_end_move_caret"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w09_area_enter_newline_escape_commits"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w09_area_field_layout_rows_plus_two_and_tiny_heights"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w08_input_navigation_paste_begins_editing","exec_time":0.009468209,"stdout":"\nthread 'w08_input_navigation_paste_begins_editing' (74647631) panicked at crates/termrock-conformance/tests/control_states.rs:2783:5:\nW08-03: navigation paste must begin editing\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w09_area_nav_enter_begins_without_newline"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w09_area_nav_enter_begins_without_newline","exec_time":0.009837375,"stdout":"\nthread 'w09_area_nav_enter_begins_without_newline' (74647680) panicked at crates/termrock-conformance/tests/control_states.rs:3107:5:\nassertion `left == right` failed: W09-01: the begin-Enter must not insert a newline, got \"ab\\n\"\n  left: \"ab\\n\"\n right: \"ab\"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w09_area_paste_ignored_navigating_kept_editing"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w09_area_selection_spans_newline_tab_grapheme"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w09_area_wheel_holds_and_caret_motion_follows"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w09_area_nav_page_home_end_scroll_without_editing"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w09_area_paste_ignored_navigating_kept_editing"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w09_area_selection_spans_newline_tab_grapheme"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w09_area_wheel_holds_and_caret_motion_follows"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w09_area_nav_page_home_end_scroll_without_editing","exec_time":0.009684625,"stdout":"\nthread 'w09_area_nav_page_home_end_scroll_without_editing' (74647739) panicked at crates/termrock-conformance/tests/control_states.rs:3210:5:\nW09-03: nav PageDown must not begin editing\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w10_select_closed_value_placeholder_focus_disabled"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w10_select_edge_flip_and_resize"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w10_select_empty_disabled_and_scrollbar"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w10_select_highlight_is_not_value_escape_preserves"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w09_area_wheel_holds_past_caret_until_it_moves"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w10_select_closed_value_placeholder_focus_disabled"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w10_select_edge_flip_and_resize"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w10_select_empty_disabled_and_scrollbar"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w10_select_highlight_is_not_value_escape_preserves"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w09_area_wheel_holds_past_caret_until_it_moves","exec_time":0.009612458,"stdout":"\nthread 'w09_area_wheel_holds_past_caret_until_it_moves' (74647777) panicked at crates/termrock-conformance/tests/control_states.rs:3353:5:\nW09-05: the wheel offset must hold past the caret, got \"▎ L0                                   ┃\"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w10_select_reorder_delete_click_by_stable_key"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w11_form_aux_validate_does_not_submit_or_save"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w10_select_popup_edge_fade"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w10_select_reorder_delete_click_by_stable_key"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w11_form_aux_validate_does_not_submit_or_save"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w10_select_popup_edge_fade","exec_time":0.010621709,"stdout":"\nthread 'w10_select_popup_edge_fade' (74647826) panicked at crates/termrock-conformance/tests/control_states.rs:3967:5:\nassertion `left != right` failed: W10-05: the bottom option row must fade toward hidden content\n  left: (\"Rgb(179, 179, 179)\", \"Rgb(63, 63, 70)\", \"NONE\")\n right: (\"Rgb(179, 179, 179)\", \"Rgb(63, 63, 70)\", \"NONE\")\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w11_form_busy_submit_blocked_cancel_eligible"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w11_form_hide_disable_reconcile_deterministically"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w11_form_invalid_submit_focuses_first_visible"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w11_form_nested_picker_preserves_sibling_draft"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w12_list_boundary_wheels_hold_focus_and_cursor"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w12_list_cursor_chosen_hovered_differ"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w12_list_duplicate_labels_resolve_by_key"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w12_list_hundred_k_rows_paint_visible_only"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w12_list_label_patch_reaches_labels"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w12_list_marker_patch_scopes_to_markers"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w12_list_mutation_between_down_and_up_keeps_key"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w12_list_readiness_renders_distinctly"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w11_form_busy_enter_submit_blocked"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w11_form_busy_submit_blocked_cancel_eligible"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w11_form_hide_disable_reconcile_deterministically"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w11_form_invalid_submit_focuses_first_visible"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w11_form_nested_picker_preserves_sibling_draft"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w12_list_boundary_wheels_hold_focus_and_cursor"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w12_list_cursor_chosen_hovered_differ"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w12_list_duplicate_labels_resolve_by_key"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w12_list_hundred_k_rows_paint_visible_only"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w12_list_label_patch_reaches_labels"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w12_list_marker_patch_scopes_to_markers"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w12_list_mutation_between_down_and_up_keeps_key"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w12_list_readiness_renders_distinctly"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w11_form_busy_enter_submit_blocked","exec_time":0.012115125,"stdout":"\nthread 'w11_form_busy_enter_submit_blocked' (74647864) panicked at crates/termrock-conformance/tests/control_states.rs:4519:5:\nassertion `left == right` failed: W11-04: Enter while busy must not submit\n  left: 1\n right: 0\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w13_filter_empty_source_and_zero_matches"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w13_filter_ineligible_cursor_cannot_activate_stale"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w13_filter_matched_spans_cover_graphemes"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w13_filter_backspace_removes_grapheme"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w13_filter_empty_source_and_zero_matches"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w13_filter_ineligible_cursor_cannot_activate_stale"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w13_filter_matched_spans_cover_graphemes"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w13_filter_backspace_removes_grapheme","exec_time":0.009999417,"stdout":"\nthread 'w13_filter_backspace_removes_grapheme' (74647888) panicked at crates/termrock-conformance/tests/control_states.rs:5375:5:\nassertion `left == right` failed: W13-02: backspace must remove the whole cluster, got \"a👩\\u{200d}\"\n  left: \"a👩\\u{200d}\"\n right: \"a\"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w13_filter_revision_keeps_selected_key"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w13_filter_unicode_paste_and_plain_backspace"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w13_filter_reseed_selects_first_eligible"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w13_filter_revision_keeps_selected_key"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w13_filter_unicode_paste_and_plain_backspace"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w13_filter_reseed_selects_first_eligible","exec_time":0.010271833,"stdout":"\nthread 'w13_filter_reseed_selects_first_eligible' (74647936) panicked at crates/termrock-conformance/tests/control_states.rs:5637:5:\nassertion `left == right` failed: W13-04: reseed must select the first eligible row, got Some(Text(6437849919634314103))\n  left: Some(Text(6437849919634314103))\n right: Some(Text(6437851019145942314))\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w14_nav_active_differs_from_cursor"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w14_nav_breakpoint_roundtrip_preserves_key_and_scroll"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w14_nav_empty_overflow_and_clipped_badges"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w14_nav_sections_and_disabled_skip"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w14_nav_shares_scroll_and_focus"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w15_tree_disclosure_body_and_policies"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w15_tree_filter_preserves_ancestors_and_selection"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w15_tree_fold_all_draws_bounded_window"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w15_tree_lazy_fetch_appends_children"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w15_tree_removal_during_press_and_pending_load"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w15_tree_states_and_status_rows"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w16_steps_all_lifecycle_states"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w16_steps_navigate_failed_without_lifecycle_change"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w16_steps_overflow_and_narrow_clip"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w13_filter_wide_trail_cells_clear"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w14_nav_active_differs_from_cursor"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w14_nav_breakpoint_roundtrip_preserves_key_and_scroll"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w14_nav_empty_overflow_and_clipped_badges"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w14_nav_sections_and_disabled_skip"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w14_nav_shares_scroll_and_focus"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w15_tree_disclosure_body_and_policies"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w15_tree_filter_preserves_ancestors_and_selection"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w15_tree_fold_all_draws_bounded_window"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w15_tree_lazy_fetch_appends_children"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w15_tree_removal_during_press_and_pending_load"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w15_tree_states_and_status_rows"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w16_steps_all_lifecycle_states"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w16_steps_navigate_failed_without_lifecycle_change"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w16_steps_overflow_and_narrow_clip"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w13_filter_wide_trail_cells_clear","exec_time":0.01103225,"stdout":"\nthread 'w13_filter_wide_trail_cells_clear' (74647981) panicked at crates/termrock-conformance/tests/control_states.rs:5601:5:\nW13-05: no earlier-paint glyph may leak into 旧日本, got [\" \", \" \", \" \", \"旧\", \"界\", \"日\", \"y\", \"本\", \" \", \" \"]\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w16_steps_source_replacement_preserves_key"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w17_tabs_close_targets_logical_tab_across_reorder"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w17_tabs_delete_active_restores_successor"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w16_steps_running_spinner_cycles_phases"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w16_steps_source_replacement_preserves_key"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w17_tabs_close_targets_logical_tab_across_reorder"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w17_tabs_delete_active_restores_successor"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w16_steps_running_spinner_cycles_phases","exec_time":0.011488,"stdout":"\nthread 'w16_steps_running_spinner_cycles_phases' (74648033) panicked at crates/termrock-conformance/tests/control_states.rs:7157:5:\nassertion `left == right` failed: W16-02: the running step must cycle 10 spinner phases, got {\"▪\"}\n  left: 1\n right: 10\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w17_tabs_overflow_scroll_and_rename"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w17_tabs_restore_child_focus_per_tab"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w17_tabs_state_variants"}
+{"type":"test","event":"started","name":"termrock-conformance::control_states$w17_tabs_focused_pressed_bold"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w17_tabs_overflow_scroll_and_rename"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w17_tabs_restore_child_focus_per_tab"}
+{"type":"test","event":"ignored","name":"termrock-conformance::control_states$w17_tabs_state_variants"}
+{"type":"test","event":"failed","name":"termrock-conformance::control_states$w17_tabs_focused_pressed_bold","exec_time":0.010126792,"stdout":"\nthread 'w17_tabs_focused_pressed_bold' (74648084) panicked at crates/termrock-conformance/tests/control_states.rs:7534:5:\nW17-01: the focused cursor tab must read bold\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"suite","event":"failed","passed":0,"failed":23,"ignored":23,"measured":0,"filtered_out":18446744073709551593,"exec_time":0.231164585,"nextest":{"crate":"termrock-conformance","test_binary":"control_states","kind":"test"}}
