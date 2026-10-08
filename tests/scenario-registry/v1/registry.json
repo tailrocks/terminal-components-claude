@@ -12454,8 +12454,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ag S5 s5_hint_layers isolated PASS, live FAIL (V2/S2: zoomed pane line lacks ZOOM+... badge cut; cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -12749,8 +12756,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ag S5 s5_keyhint_status isolated FAIL (V1: error mark not bold; cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -12882,8 +12896,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "pass",
+          "note": "phase-8ag S5 s5_keyhint_drop PASS isolated+live (cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -13064,8 +13085,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ag S5 s5_grid_edit isolated FAIL (A2: Tab stays (0,1), want plan cell (0,2); cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -13242,8 +13270,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "pass",
+          "note": "phase-8ag S5 s5_grid_pending PASS isolated+live (cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -13414,8 +13449,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ag S5 s5_grid_commit isolated FAIL (V1: loaded grid shows no fetching... while saving; cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -14123,8 +14165,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ag S5 s5_code_edit isolated FAIL (V1: no block marker, shows line number instead; cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -14302,8 +14351,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ag S5 s5_code_run isolated FAIL (V1: spinner fg Reset, want accent; cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -14637,8 +14693,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "pass",
+          "note": "phase-8ag S5 s5_diff_unified PASS isolated+live (cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -14815,8 +14878,15 @@
       "pty-capture"
     ],
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ag S5 s5_diff_review isolated FAIL (A2: Esc Ignored, want clear; wheel 3-rows-per-notch by design wheel_rows=3; cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -15498,8 +15568,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ag S5 s5_term_run live FAIL (V1: boot has no jackin launch transcript; terminal page redesigned; cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -15669,8 +15746,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ag S5 s5_term_follow isolated FAIL (A2: Esc Ignored, want SelectionChanged; live probe: boot lacks 2 of 7 rail, redesigned page; cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -15857,8 +15941,15 @@
       ]
     },
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "fail",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "fail",
+          "note": "phase-8ag S5 s5_scroll_region live FAIL (wide boot frame lacks position labels until second painted frame, 8s wait absent; probe: labels after input, narrow routing/pages/ends pass, no focus bar, following suffix ignores f-pause, playing 400->400 no tick growth; isolated prose f toggles follow, want never-follows; cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {
@@ -16027,8 +16118,15 @@
       "pty-capture"
     ],
     "results": {
-      "status": "unrun",
-      "runs": []
+      "status": "pass",
+      "runs": [
+        {
+          "at": "2026-10-08T09:01:52Z",
+          "branch": "termrock-implementation",
+          "status": "pass",
+          "note": "phase-8ag S5 s5_scroll_track PASS isolated+live (cargo nextest run -p termrock-conformance --run-ignored all showcase_pending_s5, 4 pass/10 fail/745 skip; bin target/debug/showcase 12389192B sha256:09af4cca3c05 built 2026-10-08T09:00:54Z)"
+        }
+      ]
     }
   },
   {

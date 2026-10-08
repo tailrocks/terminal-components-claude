@@ -2,14 +2,15 @@
 
 use termrock::author::PaintStyle;
 use termrock::{
-    Action, ActionKey, App, Button, Checkbox, ChipBar, ChipBarAction, Chord, ColumnKey, Cx, Dialog,
-    DialogAction, DialogState, Empty, EmptyState, Family, FgStep, Field, Focusability, Form,
-    FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey,
-    KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel,
-    PanelKind, Part, Phase, PickerAction, Props, PropsRow, Response, Role, RowUi, Select,
-    SelectAction, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs,
-    TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, TooSmall, Tree,
-    TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant, truncate, wrap,
+    Action, ActionKey, App, AsItem, Button, Checkbox, ChipBar, ChipBarAction, Chord, ColumnKey,
+    Completion, CompletionAction, CompletionController, Cx, Dialog, DialogAction, DialogState,
+    Empty, EmptyState, Family, FgStep, Field, Focusability, Form, FormAction, FormState, FrameRead,
+    Grid, GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers,
+    KeyPhase, LayerId, LayerSize, LayerSpec, Modifier, Panel, PanelKind, Part, Phase, PickerAction,
+    Props, PropsRow, Response, Role, RowUi, Select, SelectAction, Size, SortDir, Span, SplitAxis,
+    SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause,
+    Variant, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -19,7 +20,7 @@ use crate::filter_editor::{
     Filter, FilterEditor, FilterFocus, FilterOp, FilterOutcome,
 };
 use crate::filter_editor::{column_key, column_row, op_key, op_row};
-use crate::model::SwitchTarget;
+use crate::model::{SwitchTarget, auto_trigger, completion_batch};
 use crate::quick_switcher::{self, QuickSwitcher};
 use crate::safe_mode_picker::{self, SafeModePicker};
 use crate::safety_dialog::{
@@ -27,7 +28,10 @@ use crate::safety_dialog::{
     SafetyDialogAction, SafetyFocus, SafetyIntent, Tone,
 };
 use crate::tab_list::{self, TabList};
-use crate::tabs::{ExplorerItem, GridView, QueryPaneMaximized, Tab, TabKey, TabRecord, TableTab};
+use crate::tabs::{
+    ExplorerItem, GridView, QueryCompletion, QueryPaneMaximized, QueryTab, Tab, TabKey, TabRecord,
+    TableTab,
+};
 use crate::workbench::Workbench;
 use tablepro_demo as db;
 use tablepro_domain::{
@@ -48,6 +52,7 @@ const EXPLORER_FILTER: Id = Id::root("tablepro.workbench.explorer.filter");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
 const QUERY_EMPTY: Id = Id::root("tablepro.workbench.query.empty");
+const QUERY_COMPLETION: Id = Id::root("tablepro.workbench.query.completion");
 const TOO_SMALL: Id = Id::root("tablepro.too-small");
 const RUN: ActionKey = ActionKey::application("tablepro.run");
 const UNDO: ActionKey = ActionKey::application("tablepro.undo");
@@ -1295,6 +1300,51 @@ impl TableProApp {
         }
     }
 
+    /// Ask the SQL completion provider and open or refresh the popup.
+    ///
+    /// Automatic triggers need [`auto_trigger`]; manual (Ctrl+Space) opens
+    /// unconditionally. An empty batch closes. The anchor is the draft
+    /// cursor cell; the replace length is the batch's prefix range.
+    fn trigger_query_completion(
+        cx: &mut Cx<'_>,
+        editor: Id,
+        tab: &mut QueryTab,
+        catalog: &Catalog,
+        manual: bool,
+    ) {
+        let controller = CompletionController::new(editor, QUERY_COMPLETION);
+        let Some(text) = tab.editor_state.draft_text() else {
+            controller.dismiss(cx, &mut tab.completion);
+            return;
+        };
+        let cursor = tab.editor_state.draft_cursor().unwrap_or(text.len());
+        if !manual && !auto_trigger(text, cursor) {
+            controller.dismiss(cx, &mut tab.completion);
+            return;
+        }
+        let batch = completion_batch(text, cursor, catalog);
+        tab.completions = batch.items.into_iter().map(QueryCompletion).collect();
+        if tab.completions.is_empty() {
+            controller.dismiss(cx, &mut tab.completion);
+            return;
+        }
+        let anchor = cx.area(editor).map_or(termrock::Rect::ZERO, |area| {
+            let prefix = text.get(..cursor).unwrap_or("");
+            let x = area
+                .x
+                .saturating_add(2)
+                .saturating_add(termrock::width(prefix));
+            termrock::Rect::new(x, area.y, 1, 1)
+        });
+        controller.request(
+            cx,
+            &mut tab.completion,
+            anchor,
+            batch.replace.len(),
+            &tab.completions,
+        );
+    }
+
     fn sync_active_tab(&mut self) {
         self.surface = match self.workbench.active() {
             Some(Tab::Table(tab)) if tab.is_structure() => Surface::StructureView,
@@ -1457,6 +1507,13 @@ impl TableProApp {
         Form::new(connections::FORM, fields)
             .actions(actions)
             .submit(connections::SAVE_CONNECT)
+    }
+
+    /// Live value for a form text field: the stock component draft while it
+    /// edits, else the committed draft value. Keystrokes echo before commit;
+    /// cancel and blur restore the committed value through the component.
+    fn form_text<'s>(&'s self, id: Id, committed: &'s str) -> &'s str {
+        self.form_state.text_draft(id).unwrap_or(committed)
     }
     fn handle_grid(status: &mut String, action: &GridAction) {
         match action {
@@ -2976,6 +3033,34 @@ impl TableProApp {
             }
             if let Tab::Query(query) = tab {
                 let id = key.control("query");
+                // An open popup owns Enter/Tab/Esc/arrows; the editor never
+                // sees an accepted or dismissed key.
+                if query.completion.is_open() {
+                    let popup = Completion::new(QUERY_COMPLETION);
+                    let comp_response =
+                        popup.update_for(id, cx, &mut query.completion, &query.completions);
+                    let action = comp_response.action_ref().copied();
+                    response |= comp_response.erase();
+                    match action {
+                        Some(CompletionAction::Accepted(chosen)) => {
+                            let replace = query.completion.replace_len();
+                            let insert = query
+                                .completions
+                                .iter()
+                                .find(|candidate| candidate.as_item().key == chosen)
+                                .map(|candidate| candidate.0.text.clone());
+                            if let Some(insert) = insert {
+                                query.editor_state.splice_completion(replace, &insert);
+                            }
+                            CompletionController::new(id, QUERY_COMPLETION)
+                                .dismiss(cx, &mut query.completion);
+                            response |= Response::changed();
+                            continue;
+                        }
+                        Some(_) => continue,
+                        None => {}
+                    }
+                }
                 if !query.editor_state.is_editing() {
                     let enter_edit = cx.intents(id).any(|it| match it {
                         Intent::Key(termrock::Key {
@@ -3007,12 +3092,19 @@ impl TableProApp {
                     let _ = query
                         .editor_state
                         .commit(&mut query.query, &termrock::NoValidate);
+                    CompletionController::new(id, QUERY_COMPLETION)
+                        .dismiss(cx, &mut query.completion);
                     response |= Response::consumed();
                     continue;
                 } else {
-                    response |= query_input(id, None)
-                        .update(cx, &mut query.editor_state, &mut query.query)
-                        .erase();
+                    let editor_response =
+                        query_input(id, None).update(cx, &mut query.editor_state, &mut query.query);
+                    let changed = editor_response.action_ref() == Some(&TextAction::Changed);
+                    response |= editor_response.erase();
+                    if changed {
+                        Self::trigger_query_completion(cx, id, query, &self.catalog, false);
+                        response |= Response::changed();
+                    }
                 }
             }
             match tab {
@@ -4589,6 +4681,7 @@ impl TableProApp {
         let mut y = lc.y;
 
         // 1. Name
+        let name_val = self.form_text(connections::field::NAME, &draft.name);
         Self::draw_form_input(
             ui,
             termrock::Rect {
@@ -4598,7 +4691,7 @@ impl TableProApp {
                 height: fh,
             },
             "Name",
-            &draft.name,
+            name_val,
             "",
             "",
             true,
@@ -4647,10 +4740,11 @@ impl TableProApp {
             width: usable.saturating_sub(first),
             height: fh,
         };
-        let host_val = if draft.host.is_empty() {
+        let host_val = self.form_text(connections::field::HOST, &draft.host);
+        let host_val = if host_val.is_empty() {
             "localhost"
         } else {
-            &draft.host
+            host_val
         };
         Self::draw_form_input(
             ui,
@@ -4665,10 +4759,11 @@ impl TableProApp {
             card_bg,
             field_bg,
         );
-        let port_val = if draft.port.is_empty() {
+        let port_val = self.form_text(connections::field::PORT, &draft.port);
+        let port_val = if port_val.is_empty() {
             "5432"
         } else {
-            &draft.port
+            port_val
         };
         Self::draw_form_input(
             ui, hr, "Port", port_val, "", "", false, false, false, card_bg, field_bg,
@@ -4685,7 +4780,7 @@ impl TableProApp {
                 height: fh,
             },
             "Database",
-            &draft.database,
+            self.form_text(connections::field::DATABASE, &draft.database),
             "",
             "Required for PostgreSQL",
             false,
@@ -4706,7 +4801,7 @@ impl TableProApp {
                 height: fh,
             },
             "Username",
-            &draft.user,
+            self.form_text(connections::field::USER, &draft.user),
             "",
             "",
             false,
@@ -4916,11 +5011,7 @@ impl TableProApp {
 
         // 3. SSH host
         let disabled = !ssh_on;
-        let ssh_host_val = if draft.ssh_host.is_empty() {
-            ""
-        } else {
-            &draft.ssh_host
-        };
+        let ssh_host_val = self.form_text(connections::field::SSH_HOST, &draft.ssh_host);
         Self::draw_form_input(
             ui,
             termrock::Rect {
@@ -7557,6 +7648,20 @@ impl App for TableProApp {
                     self.request_query(cx);
                     response |= Response::changed();
                 }
+                c if c == COMPLETE => {
+                    let (workbench, catalog) = (&mut self.workbench, &self.catalog);
+                    if let Some(key) = workbench.active_key() {
+                        let id = key.control("query");
+                        if let Some(Tab::Query(tab)) = workbench.tab_mut(key) {
+                            if !tab.editor_state.is_editing() {
+                                let committed = tab.query.clone();
+                                tab.editor_state.begin(&committed);
+                            }
+                            Self::trigger_query_completion(cx, id, tab, catalog, true);
+                            response |= Response::changed();
+                        }
+                    }
+                }
                 c if c == SAVE => {
                     self.request_save(cx);
                     response |= Response::changed();
@@ -8204,6 +8309,13 @@ impl App for TableProApp {
         if let Some(editor) = self.filter_editor.as_ref() {
             ui.layer(FILTER_EDITOR, |ui, area| {
                 editor.draw(ui, area);
+            });
+        }
+        if let Some(Tab::Query(tab)) = self.workbench.active()
+            && tab.completion.is_open()
+        {
+            ui.layer(QUERY_COMPLETION, |ui, area| {
+                Completion::new(QUERY_COMPLETION).draw(ui, area, &tab.completion, &tab.completions);
             });
         }
         ui.suppress_cursor();
