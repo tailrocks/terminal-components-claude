@@ -4,9 +4,7 @@ use core::{fmt, mem};
 use std::collections::BTreeMap;
 
 use ratatui::layout::Rect;
-use termrock::author::{
-    FgStep, GlyphRole, Modifier, Role, StylePatch, Ui,
-};
+use termrock::author::{FgStep, GlyphRole, Modifier, Role, StylePatch, Ui};
 use termrock::controls::{Button, Checkbox, Panel, PanelKind};
 use termrock::fields::{Field, TextInput, TextInputState};
 use termrock::layout::Track;
@@ -16,8 +14,8 @@ use termrock::{Hint, HintKey, HintLayer, Id, ItemKey};
 
 use jackin_preview_domain::account::{AccountId, AccountRegistry};
 use jackin_preview_domain::workspace::{
-    env_key_error, AccountPolicy, EffectiveAccount, EnvValue, EnvVar, Mount, RoleName, RolePolicy,
-    Workspace,
+    AccountPolicy, EffectiveAccount, EnvValue, EnvVar, Mount, RoleName, RolePolicy, Workspace,
+    env_key_error,
 };
 use jackin_preview_sim::world::World;
 
@@ -262,11 +260,7 @@ impl EditorState {
 
     /// Return the count of unsaved changes.
     pub const fn change_count(&self) -> usize {
-        if self.dirty {
-            1
-        } else {
-            0
-        }
+        if self.dirty { 1 } else { 0 }
     }
 
     /// Mark a successful save and close the preview.
@@ -353,7 +347,10 @@ impl EditorState {
     }
 
     /// Settle only this editor's ticket. True means its unchanged draft is now clean.
-    pub fn settle_save(&mut self, result: &jackin_preview_domain::workspace_save::SaveResult) -> bool {
+    pub fn settle_save(
+        &mut self,
+        result: &jackin_preview_domain::workspace_save::SaveResult,
+    ) -> bool {
         use jackin_preview_domain::workspace_save::SaveResult;
         let Some(ticket) = result.ticket() else {
             return false;
@@ -441,14 +438,8 @@ impl Default for PendingWorkspace {
             name: "payments-platform".into(),
             workdir: "/workspace/payments-platform".into(),
             mounts: vec![
-                Mount::host(
-                    "/workspace/payments-platform",
-                    "~/src/payments-platform",
-                ),
-                Mount::host(
-                    "/workspace/libs",
-                    "~/src/shared-libs",
-                ),
+                Mount::host("/workspace/payments-platform", "~/src/payments-platform"),
+                Mount::host("/workspace/libs", "~/src/shared-libs"),
             ],
             roles: RolePolicy::default(),
             env: vec![],
@@ -656,13 +647,7 @@ pub struct EditorScreen;
 
 impl EditorScreen {
     /// Draw the Editor tab strip, active tab content, and actions footer.
-    pub fn draw(
-        ui: &mut Ui<'_>,
-        area: Rect,
-        editor: &EditorState,
-        world: &World,
-        focused: bool,
-    ) {
+    pub fn draw(ui: &mut Ui<'_>, area: Rect, editor: &EditorState, world: &World, focused: bool) {
         let full = ui.full();
 
         // 1. Draw tabs strip
@@ -735,7 +720,9 @@ impl EditorScreen {
                     let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
                     row.label_patched(text, &p);
                 } else if text.ends_with('*') {
-                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)).add(Modifier::BOLD);
+                    let p = StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Secondary))
+                        .add(Modifier::BOLD);
                     row.label_patched(text, &p);
                 } else {
                     let p = StylePatch::new().set_fg(Role::BorderStrong);
@@ -773,8 +760,12 @@ impl EditorScreen {
             .draw(ui, Rect::new(6, 17, 20, 1), &dirty_exit_label_state, &[()]);
 
         let select_state = SelectState::default();
-        Select::new(FORM.sub("on-dirty-exit"))
-            .draw(ui, Rect::new(4, 18, 48, 1), &select_state, &["ask · show the exit dialog"]);
+        Select::new(FORM.sub("on-dirty-exit")).draw(
+            ui,
+            Rect::new(4, 18, 48, 1),
+            &select_state,
+            &["ask · show the exit dialog"],
+        );
     }
 
     fn draw_mounts(ui: &mut Ui<'_>, _area: Rect, editor: &EditorState, _focused: bool) {
@@ -819,69 +810,69 @@ impl EditorScreen {
 
         let state = ListState::default();
         List::new(FORM.sub("mounts-list"))
-            .row(|item, row| {
-                match item {
-                    MountRow::Header => {
-                        let mut cols = row.columns_with_gap(&[
+            .row(|item, row| match item {
+                MountRow::Header => {
+                    let mut cols = row.columns_with_gap(
+                        &[
                             Track::Fixed(36),
                             Track::Fixed(4),
                             Track::Fixed(9),
                             Track::Fixed(6),
                             Track::Flex(1),
-                        ], 2);
-                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                        cols.cell(0).patch(&p).text("    Destination");
-                        cols.cell(1).patch(&p).text("Mode");
-                        cols.cell(2).patch(&p).text("Isolation");
-                        cols.cell(3).patch(&p).text("Kind");
-                        cols.cell(4).patch(&p).text("Source");
-                    }
-                    MountRow::Mount { dest, mode, isolation, kind, source, selected, dirty } => {
-                        if *selected {
-                            row.marker(GlyphRole::Chosen);
-                            if *dirty {
-                                let mut cols = row.columns_with_gap(&[
+                        ],
+                        2,
+                    );
+                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                    cols.cell(0).patch(&p).text("    Destination");
+                    cols.cell(1).patch(&p).text("Mode");
+                    cols.cell(2).patch(&p).text("Isolation");
+                    cols.cell(3).patch(&p).text("Kind");
+                    cols.cell(4).patch(&p).text("Source");
+                }
+                MountRow::Mount {
+                    dest,
+                    mode,
+                    isolation,
+                    kind,
+                    source,
+                    selected,
+                    dirty,
+                } => {
+                    if *selected {
+                        row.marker(GlyphRole::Chosen);
+                        if *dirty {
+                            let mut cols = row.columns_with_gap(
+                                &[
                                     Track::Fixed(2),
                                     Track::Fixed(34),
                                     Track::Fixed(4),
                                     Track::Fixed(9),
                                     Track::Fixed(6),
                                     Track::Flex(1),
-                                ], 2);
-                                let p_bullet = StylePatch::new().set_fg(Role::Warning);
-                                cols.cell(0).patch(&p_bullet).text("•");
-                                cols.cell(1).text(dest);
-                                let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                                cols.cell(2).patch(&p_sec).text(mode);
-                                cols.cell(3).patch(&p_sec).text(isolation);
-                                let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                                cols.cell(4).patch(&p_muted).text(kind);
-                                cols.cell(5).patch(&p_muted).text(source);
-                            } else {
-                                let mut cols = row.columns_with_gap(&[
+                                ],
+                                2,
+                            );
+                            let p_bullet = StylePatch::new().set_fg(Role::Warning);
+                            cols.cell(0).patch(&p_bullet).text("•");
+                            cols.cell(1).text(dest);
+                            let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                            cols.cell(2).patch(&p_sec).text(mode);
+                            cols.cell(3).patch(&p_sec).text(isolation);
+                            let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                            cols.cell(4).patch(&p_muted).text(kind);
+                            cols.cell(5).patch(&p_muted).text(source);
+                        } else {
+                            let mut cols = row.columns_with_gap(
+                                &[
                                     Track::Fixed(36),
                                     Track::Fixed(4),
                                     Track::Fixed(9),
                                     Track::Fixed(6),
                                     Track::Flex(1),
-                                ], 2);
-                                cols.cell(0).text(&format!("  {dest}"));
-                                let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                                cols.cell(1).patch(&p_sec).text(mode);
-                                cols.cell(2).patch(&p_sec).text(isolation);
-                                let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                                cols.cell(3).patch(&p_muted).text(kind);
-                                cols.cell(4).patch(&p_muted).text(source);
-                            }
-                        } else {
-                            let mut cols = row.columns_with_gap(&[
-                                Track::Fixed(36),
-                                Track::Fixed(4),
-                                Track::Fixed(9),
-                                Track::Fixed(6),
-                                Track::Flex(1),
-                            ], 2);
-                            cols.cell(0).text(&format!("    {dest}"));
+                                ],
+                                2,
+                            );
+                            cols.cell(0).text(&format!("  {dest}"));
                             let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
                             cols.cell(1).patch(&p_sec).text(mode);
                             cols.cell(2).patch(&p_sec).text(isolation);
@@ -889,22 +880,48 @@ impl EditorScreen {
                             cols.cell(3).patch(&p_muted).text(kind);
                             cols.cell(4).patch(&p_muted).text(source);
                         }
+                    } else {
+                        let mut cols = row.columns_with_gap(
+                            &[
+                                Track::Fixed(36),
+                                Track::Fixed(4),
+                                Track::Fixed(9),
+                                Track::Fixed(6),
+                                Track::Flex(1),
+                            ],
+                            2,
+                        );
+                        cols.cell(0).text(&format!("    {dest}"));
+                        let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                        cols.cell(1).patch(&p_sec).text(mode);
+                        cols.cell(2).patch(&p_sec).text(isolation);
+                        let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                        cols.cell(3).patch(&p_muted).text(kind);
+                        cols.cell(4).patch(&p_muted).text(source);
                     }
-                    MountRow::Add => {
-                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                        row.label_patched("    + Add mount", &p);
-                    }
+                }
+                MountRow::Add => {
+                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    row.label_patched("    + Add mount", &p);
                 }
             })
             .draw(ui, Rect::new(4, 6, 114, 5), &state, &rows);
     }
 
-    fn draw_roles(ui: &mut Ui<'_>, _area: Rect, _editor: &EditorState, _world: &World, _focused: bool) {
+    fn draw_roles(
+        ui: &mut Ui<'_>,
+        _area: Rect,
+        _editor: &EditorState,
+        _world: &World,
+        _focused: bool,
+    ) {
         // Roles header
         let header_state = ListState::default();
         List::new(FORM.sub("roles-header"))
             .row(|_, row| {
-                let p_bold = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)).add(Modifier::BOLD);
+                let p_bold = StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Secondary))
+                    .add(Modifier::BOLD);
                 row.label_patched("Allowed roles  3 of 46", &p_bold);
                 row.meta("default ★ the-architect");
             })
@@ -921,21 +938,67 @@ impl EditorScreen {
         }
 
         let mut items = vec![
-            RoleItem { name: "the-architect", desc: "registry · trusted · Full-stack design and refactoring; Claude Code default", allowed: true, is_default: true, selected: true },
-            RoleItem { name: "backend", desc: "registry · trusted · Rust and Postgres services", allowed: true, is_default: false, selected: false },
-            RoleItem { name: "reviewer", desc: "registry · trusted · Read-mostly code review with limited write scope", allowed: true, is_default: false, selected: false },
-            RoleItem { name: "sre", desc: "registry · trusted · Infrastructure, Terraform, Kubernetes", allowed: false, is_default: false, selected: false },
-            RoleItem { name: "data-eng", desc: "! load error · trust required", allowed: false, is_default: false, selected: false },
-            RoleItem { name: "writer", desc: "~/roles/writer · not in registry", allowed: false, is_default: false, selected: false },
+            RoleItem {
+                name: "the-architect",
+                desc: "registry · trusted · Full-stack design and refactoring; Claude Code default",
+                allowed: true,
+                is_default: true,
+                selected: true,
+            },
+            RoleItem {
+                name: "backend",
+                desc: "registry · trusted · Rust and Postgres services",
+                allowed: true,
+                is_default: false,
+                selected: false,
+            },
+            RoleItem {
+                name: "reviewer",
+                desc: "registry · trusted · Read-mostly code review with limited write scope",
+                allowed: true,
+                is_default: false,
+                selected: false,
+            },
+            RoleItem {
+                name: "sre",
+                desc: "registry · trusted · Infrastructure, Terraform, Kubernetes",
+                allowed: false,
+                is_default: false,
+                selected: false,
+            },
+            RoleItem {
+                name: "data-eng",
+                desc: "! load error · trust required",
+                allowed: false,
+                is_default: false,
+                selected: false,
+            },
+            RoleItem {
+                name: "writer",
+                desc: "~/roles/writer · not in registry",
+                allowed: false,
+                is_default: false,
+                selected: false,
+            },
         ];
 
         for i in 1..=40 {
             let desc: &'static str = match (i - 1) % 5 {
-                0 => Box::leak(format!("registry · trusted · ledger service agent #{i}").into_boxed_str()),
-                1 => Box::leak(format!("registry · trusted · search service agent #{i}").into_boxed_str()),
-                2 => Box::leak(format!("registry · trusted · notify service agent #{i}").into_boxed_str()),
-                3 => Box::leak(format!("registry · trusted · ingest service agent #{i}").into_boxed_str()),
-                _ => Box::leak(format!("registry · trusted · auth service agent #{i}").into_boxed_str()),
+                0 => Box::leak(
+                    format!("registry · trusted · ledger service agent #{i}").into_boxed_str(),
+                ),
+                1 => Box::leak(
+                    format!("registry · trusted · search service agent #{i}").into_boxed_str(),
+                ),
+                2 => Box::leak(
+                    format!("registry · trusted · notify service agent #{i}").into_boxed_str(),
+                ),
+                3 => Box::leak(
+                    format!("registry · trusted · ingest service agent #{i}").into_boxed_str(),
+                ),
+                _ => Box::leak(
+                    format!("registry · trusted · auth service agent #{i}").into_boxed_str(),
+                ),
             };
             items.push(RoleItem {
                 name: Box::leak(format!("svc-{i:03}").into_boxed_str()),
@@ -951,20 +1014,14 @@ impl EditorScreen {
             .row(|item: &RoleItem, row| {
                 if item.selected {
                     row.marker(GlyphRole::Chosen);
-                    let mut cols = row.columns_with_gap(&[
-                        Track::Fixed(22),
-                        Track::Flex(1),
-                    ], 2);
+                    let mut cols = row.columns_with_gap(&[Track::Fixed(22), Track::Flex(1)], 2);
                     let mark = if item.allowed { "[✓]" } else { "[ ]" };
                     let star = if item.is_default { " ★" } else { "" };
                     cols.cell(0).text(&format!(" {mark} {}{star}", item.name));
                     let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
                     cols.cell(1).patch(&p_muted).text(item.desc);
                 } else {
-                    let mut cols = row.columns_with_gap(&[
-                        Track::Fixed(24),
-                        Track::Flex(1),
-                    ], 2);
+                    let mut cols = row.columns_with_gap(&[Track::Fixed(24), Track::Flex(1)], 2);
                     let mark = if item.allowed { "[✓]" } else { "[ ]" };
                     let star = if item.is_default { " ★" } else { "" };
                     cols.cell(0).text(&format!("   {mark} {}{star}", item.name));
@@ -975,7 +1032,13 @@ impl EditorScreen {
             .draw(ui, Rect::new(2, 7, 116, 30), &state, &items);
     }
 
-    fn draw_environments(ui: &mut Ui<'_>, _area: Rect, _editor: &EditorState, _world: &World, _focused: bool) {
+    fn draw_environments(
+        ui: &mut Ui<'_>,
+        _area: Rect,
+        _editor: &EditorState,
+        _world: &World,
+        _focused: bool,
+    ) {
         #[derive(Clone)]
         enum EnvItem {
             WorkspaceHeader,
@@ -1037,79 +1100,89 @@ impl EditorScreen {
 
         let state = ListState::default();
         List::new(FORM.sub("env-list"))
-            .row(|item, row| {
-                match item {
-                    EnvItem::WorkspaceHeader => {
-                        let p_bold = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)).add(Modifier::BOLD);
-                        row.label_patched("    Workspace", &p_bold);
-                        row.meta("4 vars");
-                    }
-                    EnvItem::Var { key, val, src, selected } => {
-                        if *selected {
-                            row.marker(GlyphRole::Chosen);
-                            let mut cols = row.columns_with_gap(&[
-                                Track::Fixed(22),
-                                Track::Fixed(24),
-                                Track::Flex(1),
-                            ], 2);
-                            cols.cell(0).text(&format!("  {key}"));
-                            let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                            cols.cell(1).patch(&p_val).text(val);
-                            let p_src = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                            cols.cell(2).patch(&p_src).text(src);
-                        } else {
-                            let mut cols = row.columns_with_gap(&[
-                                Track::Fixed(24),
-                                Track::Fixed(24),
-                                Track::Flex(1),
-                            ], 2);
-                            cols.cell(0).text(&format!("    {key}"));
-                            let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                            cols.cell(1).patch(&p_val).text(val);
-                            let p_src = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                            cols.cell(2).patch(&p_src).text(src);
-                        }
-                    }
-                    EnvItem::AddVar => {
-                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                        row.label_patched("    + Add environment variable", &p);
-                    }
-                    EnvItem::RoleHeader => {
-                        let p_bold = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)).add(Modifier::BOLD);
-                        row.label_patched("    Role overrides", &p_bold);
-                        row.meta("1 configured · 46 in the registry");
-                    }
-                    EnvItem::RoleGroup(role) => {
-                        let p_bold = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)).add(Modifier::BOLD);
-                        row.label_patched(&format!("  ▾ Role: {role}"), &p_bold);
-                        row.meta("1 var");
-                    }
-                    EnvItem::RoleVar { key, val, src } => {
-                        let mut cols = row.columns_with_gap(&[
-                            Track::Fixed(24),
-                            Track::Fixed(24),
-                            Track::Flex(1),
-                        ], 2);
+            .row(|item, row| match item {
+                EnvItem::WorkspaceHeader => {
+                    let p_bold = StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Secondary))
+                        .add(Modifier::BOLD);
+                    row.label_patched("    Workspace", &p_bold);
+                    row.meta("4 vars");
+                }
+                EnvItem::Var {
+                    key,
+                    val,
+                    src,
+                    selected,
+                } => {
+                    if *selected {
+                        row.marker(GlyphRole::Chosen);
+                        let mut cols = row.columns_with_gap(
+                            &[Track::Fixed(22), Track::Fixed(24), Track::Flex(1)],
+                            2,
+                        );
+                        cols.cell(0).text(&format!("  {key}"));
+                        let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                        cols.cell(1).patch(&p_val).text(val);
+                        let p_src = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                        cols.cell(2).patch(&p_src).text(src);
+                    } else {
+                        let mut cols = row.columns_with_gap(
+                            &[Track::Fixed(24), Track::Fixed(24), Track::Flex(1)],
+                            2,
+                        );
                         cols.cell(0).text(&format!("    {key}"));
                         let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
                         cols.cell(1).patch(&p_val).text(val);
                         let p_src = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
                         cols.cell(2).patch(&p_src).text(src);
                     }
-                    EnvItem::AddRoleVar => {
-                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                        row.label_patched("    + Add backend environment variable", &p);
-                    }
-                    EnvItem::AddRoleOverride => {
-                        let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                        row.label_patched("    + Add role override…", &p);
-                    }
+                }
+                EnvItem::AddVar => {
+                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    row.label_patched("    + Add environment variable", &p);
+                }
+                EnvItem::RoleHeader => {
+                    let p_bold = StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Secondary))
+                        .add(Modifier::BOLD);
+                    row.label_patched("    Role overrides", &p_bold);
+                    row.meta("1 configured · 46 in the registry");
+                }
+                EnvItem::RoleGroup(role) => {
+                    let p_bold = StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Secondary))
+                        .add(Modifier::BOLD);
+                    row.label_patched(&format!("  ▾ Role: {role}"), &p_bold);
+                    row.meta("1 var");
+                }
+                EnvItem::RoleVar { key, val, src } => {
+                    let mut cols = row
+                        .columns_with_gap(&[Track::Fixed(24), Track::Fixed(24), Track::Flex(1)], 2);
+                    cols.cell(0).text(&format!("    {key}"));
+                    let p_val = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    cols.cell(1).patch(&p_val).text(val);
+                    let p_src = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                    cols.cell(2).patch(&p_src).text(src);
+                }
+                EnvItem::AddRoleVar => {
+                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    row.label_patched("    + Add backend environment variable", &p);
+                }
+                EnvItem::AddRoleOverride => {
+                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                    row.label_patched("    + Add role override…", &p);
                 }
             })
             .draw(ui, Rect::new(2, 6, 116, 13), &state, &rows);
     }
 
-    fn draw_accounts(ui: &mut Ui<'_>, _area: Rect, _editor: &EditorState, _world: &World, _focused: bool) {
+    fn draw_accounts(
+        ui: &mut Ui<'_>,
+        _area: Rect,
+        _editor: &EditorState,
+        _world: &World,
+        _focused: bool,
+    ) {
         #[derive(Clone)]
         enum AccRow {
             Header,
@@ -1261,43 +1334,53 @@ impl EditorScreen {
 
         let state = ListState::default();
         List::new(FORM.sub("accounts-list"))
-            .row(|item, row| {
-                match item {
-                    AccRow::Header => {
-                        let p_bold = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)).add(Modifier::BOLD);
-                        row.label_patched("Active accounts  5 effective · 4 inherited · 1 enabled here", &p_bold);
-                        row.meta("registry in Accounts (c)");
-                    }
-                    AccRow::Provider { name, meta } => {
-                        let p_bold = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)).add(Modifier::BOLD);
-                        row.label_patched(name, &p_bold);
-                        row.meta(meta);
-                    }
-                    AccRow::Account { name, is_default, policy, status, checked, selected } => {
-                        let mark = if *checked { "[✓]" } else { "[ ]" };
-                        let star = if *is_default { "★" } else { " " };
-                        if *selected {
-                            row.marker(GlyphRole::Chosen);
-                            let mut cols = row.columns_with_gap(&[
-                                Track::Fixed(37),
-                                Track::Fixed(22),
-                                Track::Flex(1),
-                            ], 2);
-                            cols.cell(0).text(&format!(" {mark} {name:<29} {star}"));
-                            let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                            cols.cell(1).patch(&p_muted).text(policy);
-                            cols.cell(2).patch(&p_muted).text(status);
-                        } else {
-                            let mut cols = row.columns_with_gap(&[
-                                Track::Fixed(39),
-                                Track::Fixed(22),
-                                Track::Flex(1),
-                            ], 2);
-                            cols.cell(0).text(&format!("   {mark} {name:<29} {star}"));
-                            let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                            cols.cell(1).patch(&p_muted).text(policy);
-                            cols.cell(2).patch(&p_muted).text(status);
-                        }
+            .row(|item, row| match item {
+                AccRow::Header => {
+                    let p_bold = StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Secondary))
+                        .add(Modifier::BOLD);
+                    row.label_patched(
+                        "Active accounts  5 effective · 4 inherited · 1 enabled here",
+                        &p_bold,
+                    );
+                    row.meta("registry in Accounts (c)");
+                }
+                AccRow::Provider { name, meta } => {
+                    let p_bold = StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Secondary))
+                        .add(Modifier::BOLD);
+                    row.label_patched(name, &p_bold);
+                    row.meta(meta);
+                }
+                AccRow::Account {
+                    name,
+                    is_default,
+                    policy,
+                    status,
+                    checked,
+                    selected,
+                } => {
+                    let mark = if *checked { "[✓]" } else { "[ ]" };
+                    let star = if *is_default { "★" } else { " " };
+                    if *selected {
+                        row.marker(GlyphRole::Chosen);
+                        let mut cols = row.columns_with_gap(
+                            &[Track::Fixed(37), Track::Fixed(22), Track::Flex(1)],
+                            2,
+                        );
+                        cols.cell(0).text(&format!(" {mark} {name:<29} {star}"));
+                        let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                        cols.cell(1).patch(&p_muted).text(policy);
+                        cols.cell(2).patch(&p_muted).text(status);
+                    } else {
+                        let mut cols = row.columns_with_gap(
+                            &[Track::Fixed(39), Track::Fixed(22), Track::Flex(1)],
+                            2,
+                        );
+                        cols.cell(0).text(&format!("   {mark} {name:<29} {star}"));
+                        let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                        cols.cell(1).patch(&p_muted).text(policy);
+                        cols.cell(2).patch(&p_muted).text(status);
                     }
                 }
             })
@@ -1305,12 +1388,7 @@ impl EditorScreen {
     }
 
     /// Draw the save preview modal dialog over the editor screen.
-    pub fn draw_save_preview(
-        ui: &mut Ui<'_>,
-        _area: Rect,
-        editor: &EditorState,
-        _world: &World,
-    ) {
+    pub fn draw_save_preview(ui: &mut Ui<'_>, _area: Rect, editor: &EditorState, _world: &World) {
         let modal_area = Rect::new(27, 14, 66, 13);
         Panel::new(CFG_FORM)
             .kind(PanelKind::Framed)
@@ -1321,34 +1399,62 @@ impl EditorScreen {
                     ("Save workspace", "", false, true),
                     ("", "", false, false),
                     ("Workspace", ws_name, true, false),
-                    ("Scope", "workspace config · ~/.jackin/workspaces/payments…", true, false),
+                    (
+                        "Scope",
+                        "workspace config · ~/.jackin/workspaces/payments…",
+                        true,
+                        false,
+                    ),
                     ("Changes", "1 change", true, false),
                     ("", "", false, false),
                     ("~ keep_awake true → false", "", false, false),
                 ];
 
                 List::new(CFG_FORM.sub("preview-rows"))
-                    .row(|&(label, val, is_kv, is_title): &(&str, &str, bool, bool), row| {
-                        if is_title {
-                            let p_bold = StylePatch::new().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD);
-                            row.label_patched(&format!("  {label}"), &p_bold);
-                        } else if is_kv {
-                            let mut cols = row.columns_with_gap(&[
-                                Track::Fixed(11),
-                                Track::Flex(1),
-                            ], 2);
-                            let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                            cols.cell(0).patch(&p_muted).text(&format!("  {label}"));
-                            cols.cell(1).text(val);
-                        } else if !label.is_empty() {
-                            let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                            row.label_patched(&format!("  {label}"), &p_sec);
-                        }
-                    })
-                    .draw(ui, Rect::new(body.x, body.y.saturating_add(1), body.width, 8), &list_state, &rows);
+                    .row(
+                        |&(label, val, is_kv, is_title): &(&str, &str, bool, bool), row| {
+                            if is_title {
+                                let p_bold = StylePatch::new()
+                                    .set_fg(Role::Fg(FgStep::Primary))
+                                    .add(Modifier::BOLD);
+                                row.label_patched(&format!("  {label}"), &p_bold);
+                            } else if is_kv {
+                                let mut cols =
+                                    row.columns_with_gap(&[Track::Fixed(11), Track::Flex(1)], 2);
+                                let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+                                cols.cell(0).patch(&p_muted).text(&format!("  {label}"));
+                                cols.cell(1).text(val);
+                            } else if !label.is_empty() {
+                                let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+                                row.label_patched(&format!("  {label}"), &p_sec);
+                            }
+                        },
+                    )
+                    .draw(
+                        ui,
+                        Rect::new(body.x, body.y.saturating_add(1), body.width, 8),
+                        &list_state,
+                        &rows,
+                    );
 
-                Button::new(CFG_FORM.sub("cancel"), "Cancel").draw(ui, Rect::new(body.right().saturating_sub(18), body.bottom().saturating_sub(2), 8, 1));
-                Button::new(SAVE, "Save").draw(ui, Rect::new(body.right().saturating_sub(9), body.bottom().saturating_sub(2), 6, 1));
+                Button::new(CFG_FORM.sub("cancel"), "Cancel").draw(
+                    ui,
+                    Rect::new(
+                        body.right().saturating_sub(18),
+                        body.bottom().saturating_sub(2),
+                        8,
+                        1,
+                    ),
+                );
+                Button::new(SAVE, "Save").draw(
+                    ui,
+                    Rect::new(
+                        body.right().saturating_sub(9),
+                        body.bottom().saturating_sub(2),
+                        6,
+                        1,
+                    ),
+                );
             });
     }
 
@@ -1357,10 +1463,26 @@ impl EditorScreen {
         if editor.preview_open {
             HintLayer {
                 hints: vec![
-                    Hint { key: HintKey::Label("← →"), label: "Choose", priority: 100 },
-                    Hint { key: HintKey::Label("Enter"), label: "Confirm", priority: 90 },
-                    Hint { key: HintKey::Label("Esc"), label: "Cancel", priority: 80 },
-                    Hint { key: HintKey::Label("y / n"), label: "Quick answer", priority: 70 },
+                    Hint {
+                        key: HintKey::Label("← →"),
+                        label: "Choose",
+                        priority: 100,
+                    },
+                    Hint {
+                        key: HintKey::Label("Enter"),
+                        label: "Confirm",
+                        priority: 90,
+                    },
+                    Hint {
+                        key: HintKey::Label("Esc"),
+                        label: "Cancel",
+                        priority: 80,
+                    },
+                    Hint {
+                        key: HintKey::Label("y / n"),
+                        label: "Quick answer",
+                        priority: 70,
+                    },
                 ],
                 badge: None,
                 status: None,
@@ -1370,12 +1492,36 @@ impl EditorScreen {
             match editor.tab {
                 Tab::General => HintLayer {
                     hints: vec![
-                        Hint { key: HintKey::Label("← →"), label: "Tab", priority: 100 },
-                        Hint { key: HintKey::Label("1–5"), label: "Jump", priority: 90 },
-                        Hint { key: HintKey::Label("Enter"), label: "Body", priority: 80 },
-                        Hint { key: HintKey::Label("[ ]"), label: "Switch tab", priority: 70 },
-                        Hint { key: HintKey::Label("Ctrl+S"), label: "Save", priority: 60 },
-                        Hint { key: HintKey::Label("Esc"), label: "Back", priority: 50 },
+                        Hint {
+                            key: HintKey::Label("← →"),
+                            label: "Tab",
+                            priority: 100,
+                        },
+                        Hint {
+                            key: HintKey::Label("1–5"),
+                            label: "Jump",
+                            priority: 90,
+                        },
+                        Hint {
+                            key: HintKey::Label("Enter"),
+                            label: "Body",
+                            priority: 80,
+                        },
+                        Hint {
+                            key: HintKey::Label("[ ]"),
+                            label: "Switch tab",
+                            priority: 70,
+                        },
+                        Hint {
+                            key: HintKey::Label("Ctrl+S"),
+                            label: "Save",
+                            priority: 60,
+                        },
+                        Hint {
+                            key: HintKey::Label("Esc"),
+                            label: "Back",
+                            priority: 50,
+                        },
                     ],
                     badge: None,
                     status: None,
@@ -1383,15 +1529,51 @@ impl EditorScreen {
                 },
                 Tab::Mounts => HintLayer {
                     hints: vec![
-                        Hint { key: HintKey::Label("Enter"), label: "Edit…", priority: 100 },
-                        Hint { key: HintKey::Label("r"), label: "Read-only", priority: 90 },
-                        Hint { key: HintKey::Label("i"), label: "Isolation", priority: 80 },
-                        Hint { key: HintKey::Label("o"), label: "Open source", priority: 70 },
-                        Hint { key: HintKey::Label("d"), label: "Remove", priority: 60 },
-                        Hint { key: HintKey::Label("a"), label: "Add mount…", priority: 50 },
-                        Hint { key: HintKey::Label("[ ]"), label: "Switch tab", priority: 40 },
-                        Hint { key: HintKey::Label("Ctrl+S"), label: "Save", priority: 30 },
-                        Hint { key: HintKey::Label("Esc"), label: "Back", priority: 20 },
+                        Hint {
+                            key: HintKey::Label("Enter"),
+                            label: "Edit…",
+                            priority: 100,
+                        },
+                        Hint {
+                            key: HintKey::Label("r"),
+                            label: "Read-only",
+                            priority: 90,
+                        },
+                        Hint {
+                            key: HintKey::Label("i"),
+                            label: "Isolation",
+                            priority: 80,
+                        },
+                        Hint {
+                            key: HintKey::Label("o"),
+                            label: "Open source",
+                            priority: 70,
+                        },
+                        Hint {
+                            key: HintKey::Label("d"),
+                            label: "Remove",
+                            priority: 60,
+                        },
+                        Hint {
+                            key: HintKey::Label("a"),
+                            label: "Add mount…",
+                            priority: 50,
+                        },
+                        Hint {
+                            key: HintKey::Label("[ ]"),
+                            label: "Switch tab",
+                            priority: 40,
+                        },
+                        Hint {
+                            key: HintKey::Label("Ctrl+S"),
+                            label: "Save",
+                            priority: 30,
+                        },
+                        Hint {
+                            key: HintKey::Label("Esc"),
+                            label: "Back",
+                            priority: 20,
+                        },
                     ],
                     badge: None,
                     status: None,
@@ -1399,13 +1581,41 @@ impl EditorScreen {
                 },
                 Tab::Roles => HintLayer {
                     hints: vec![
-                        Hint { key: HintKey::Label("Space"), label: "Allow", priority: 100 },
-                        Hint { key: HintKey::Label("Enter"), label: "Set default", priority: 90 },
-                        Hint { key: HintKey::Label("a"), label: "Load role…", priority: 80 },
-                        Hint { key: HintKey::Label("/"), label: "Filter", priority: 70 },
-                        Hint { key: HintKey::Label("[ ]"), label: "Switch tab", priority: 60 },
-                        Hint { key: HintKey::Label("Ctrl+S"), label: "Save", priority: 50 },
-                        Hint { key: HintKey::Label("Esc"), label: "Back", priority: 40 },
+                        Hint {
+                            key: HintKey::Label("Space"),
+                            label: "Allow",
+                            priority: 100,
+                        },
+                        Hint {
+                            key: HintKey::Label("Enter"),
+                            label: "Set default",
+                            priority: 90,
+                        },
+                        Hint {
+                            key: HintKey::Label("a"),
+                            label: "Load role…",
+                            priority: 80,
+                        },
+                        Hint {
+                            key: HintKey::Label("/"),
+                            label: "Filter",
+                            priority: 70,
+                        },
+                        Hint {
+                            key: HintKey::Label("[ ]"),
+                            label: "Switch tab",
+                            priority: 60,
+                        },
+                        Hint {
+                            key: HintKey::Label("Ctrl+S"),
+                            label: "Save",
+                            priority: 50,
+                        },
+                        Hint {
+                            key: HintKey::Label("Esc"),
+                            label: "Back",
+                            priority: 40,
+                        },
                     ],
                     badge: None,
                     status: None,
@@ -1413,15 +1623,51 @@ impl EditorScreen {
                 },
                 Tab::Environments => HintLayer {
                     hints: vec![
-                        Hint { key: HintKey::Label("Enter"), label: "Edit", priority: 100 },
-                        Hint { key: HintKey::Label("m"), label: "Show", priority: 90 },
-                        Hint { key: HintKey::Label("p"), label: "1Password…", priority: 80 },
-                        Hint { key: HintKey::Label("s"), label: "Scope…", priority: 70 },
-                        Hint { key: HintKey::Label("d"), label: "Remove…", priority: 60 },
-                        Hint { key: HintKey::Label("a"), label: "Add…", priority: 50 },
-                        Hint { key: HintKey::Label("[ ]"), label: "Switch tab", priority: 40 },
-                        Hint { key: HintKey::Label("Ctrl+S"), label: "Save", priority: 30 },
-                        Hint { key: HintKey::Label("Esc"), label: "Back", priority: 20 },
+                        Hint {
+                            key: HintKey::Label("Enter"),
+                            label: "Edit",
+                            priority: 100,
+                        },
+                        Hint {
+                            key: HintKey::Label("m"),
+                            label: "Show",
+                            priority: 90,
+                        },
+                        Hint {
+                            key: HintKey::Label("p"),
+                            label: "1Password…",
+                            priority: 80,
+                        },
+                        Hint {
+                            key: HintKey::Label("s"),
+                            label: "Scope…",
+                            priority: 70,
+                        },
+                        Hint {
+                            key: HintKey::Label("d"),
+                            label: "Remove…",
+                            priority: 60,
+                        },
+                        Hint {
+                            key: HintKey::Label("a"),
+                            label: "Add…",
+                            priority: 50,
+                        },
+                        Hint {
+                            key: HintKey::Label("[ ]"),
+                            label: "Switch tab",
+                            priority: 40,
+                        },
+                        Hint {
+                            key: HintKey::Label("Ctrl+S"),
+                            label: "Save",
+                            priority: 30,
+                        },
+                        Hint {
+                            key: HintKey::Label("Esc"),
+                            label: "Back",
+                            priority: 20,
+                        },
                     ],
                     badge: None,
                     status: None,
@@ -1429,13 +1675,41 @@ impl EditorScreen {
                 },
                 Tab::Accounts => HintLayer {
                     hints: vec![
-                        Hint { key: HintKey::Label("Space"), label: "Enable / disable", priority: 100 },
-                        Hint { key: HintKey::Label("p"), label: "Prefer", priority: 90 },
-                        Hint { key: HintKey::Label("/"), label: "Filter", priority: 80 },
-                        Hint { key: HintKey::Label("c"), label: "Manage accounts", priority: 70 },
-                        Hint { key: HintKey::Label("[ ]"), label: "Switch tab", priority: 60 },
-                        Hint { key: HintKey::Label("Ctrl+S"), label: "Save", priority: 50 },
-                        Hint { key: HintKey::Label("Esc"), label: "Back", priority: 40 },
+                        Hint {
+                            key: HintKey::Label("Space"),
+                            label: "Enable / disable",
+                            priority: 100,
+                        },
+                        Hint {
+                            key: HintKey::Label("p"),
+                            label: "Prefer",
+                            priority: 90,
+                        },
+                        Hint {
+                            key: HintKey::Label("/"),
+                            label: "Filter",
+                            priority: 80,
+                        },
+                        Hint {
+                            key: HintKey::Label("c"),
+                            label: "Manage accounts",
+                            priority: 70,
+                        },
+                        Hint {
+                            key: HintKey::Label("[ ]"),
+                            label: "Switch tab",
+                            priority: 60,
+                        },
+                        Hint {
+                            key: HintKey::Label("Ctrl+S"),
+                            label: "Save",
+                            priority: 50,
+                        },
+                        Hint {
+                            key: HintKey::Label("Esc"),
+                            label: "Back",
+                            priority: 40,
+                        },
                     ],
                     badge: None,
                     status: None,

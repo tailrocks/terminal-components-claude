@@ -245,12 +245,9 @@ impl SafetyDialog {
             ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Elevated)));
         ui.fill(area, elevated_fill);
 
-        let elevated_style = ui.surface_style().patch(
-            ui.paint_patch(
-                &StylePatch::new()
-                    .set_bg(Role::Surface(Surface::Elevated)),
-            ),
-        );
+        let elevated_style = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Elevated))));
 
         let border_style =
             elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
@@ -405,7 +402,11 @@ impl SafetyDialog {
                 } else {
                     truncate(line, inner.width)
                 };
-                ui.paint_str(Rect::new(inner.x, y, inner.width, 1), &shown, secondary_style);
+                ui.paint_str(
+                    Rect::new(inner.x, y, inner.width, 1),
+                    &shown,
+                    secondary_style,
+                );
                 y += 1;
             }
         }

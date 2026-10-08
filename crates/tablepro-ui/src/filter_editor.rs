@@ -581,16 +581,12 @@ impl FilterEditor {
         let fill_bg = termrock::PaintStyle::new().bg(ui.theme_ref().bg(Surface::Elevated));
         ui.fill(area, fill_bg);
 
-        let elevated_style = ui.surface_style().patch(
-            ui.paint_patch(
-                &StylePatch::new()
-                    .set_bg(Role::Surface(Surface::Elevated)),
-            ),
-        );
+        let elevated_style = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Elevated))));
 
-        let border_style = elevated_style.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)),
-        );
+        let border_style =
+            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
         let w = area.width;
         let h = area.height;
         if w >= 2 && h >= 2 {
@@ -600,7 +596,11 @@ impl FilterEditor {
                 top.push('─');
             }
             top.push('╮');
-            ui.paint_str(termrock::Rect::new(area.x, area.y, w, 1), &top, border_style);
+            ui.paint_str(
+                termrock::Rect::new(area.x, area.y, w, 1),
+                &top,
+                border_style,
+            );
 
             let mut bot = String::with_capacity(w as usize);
             bot.push('╰');
@@ -646,13 +646,16 @@ impl FilterEditor {
         // Labels
         let col_focused = self.focus == FilterFocus::Column;
         let col_label_style = if col_focused {
-            elevated_style.patch(ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .add(Modifier::BOLD),
-            ))
+            elevated_style.patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD),
+                ),
+            )
         } else {
-            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+            elevated_style
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
         };
         ui.paint_str(
             termrock::Rect::new(area.x + 4, area.y + 3, 20, 1),
@@ -662,13 +665,16 @@ impl FilterEditor {
 
         let op_focused = self.focus == FilterFocus::Op;
         let op_label_style = if op_focused {
-            elevated_style.patch(ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .add(Modifier::BOLD),
-            ))
+            elevated_style.patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD),
+                ),
+            )
         } else {
-            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+            elevated_style
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
         };
         ui.paint_str(
             termrock::Rect::new(area.x + 34, area.y + 3, 20, 1),
@@ -677,8 +683,8 @@ impl FilterEditor {
         );
 
         // Fields
-        let muted_fg =
-            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        let muted_fg = elevated_style
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
 
         // Column select field (owned by termrock::Select).
         let col_rect = termrock::Rect::new(area.x + 2, area.y + 4, 28, 1);
@@ -709,13 +715,16 @@ impl FilterEditor {
             let between = self.op == FilterOp::Between;
             let val_focused = self.focus == FilterFocus::Value;
             let val_label_style = if val_focused {
-                elevated_style.patch(ui.paint_patch(
-                    &StylePatch::new()
-                        .set_fg(Role::Fg(FgStep::Primary))
-                        .add(Modifier::BOLD),
-                ))
+                elevated_style.patch(
+                    ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Fg(FgStep::Primary))
+                            .add(Modifier::BOLD),
+                    ),
+                )
             } else {
-                elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+                elevated_style
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
             };
             let mut label_str = String::from("Value");
             let target_w = if between { 26usize } else { 57usize };
@@ -822,4 +831,3 @@ impl FilterEditor {
         });
     }
 }
-

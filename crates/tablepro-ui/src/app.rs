@@ -14,12 +14,12 @@ use termrock::{
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
 use crate::domain::ResultGrid;
-use crate::model::SwitchTarget;
 use crate::filter_editor::{
-    Filter, FilterEditor, FilterFocus, FilterOp, FilterOutcome, FILTER_APPLY, FILTER_CANCEL,
-    FILTER_COL, FILTER_EDITOR, FILTER_OP, FILTER_VALUE, FILTER_VALUE2,
+    FILTER_APPLY, FILTER_CANCEL, FILTER_COL, FILTER_EDITOR, FILTER_OP, FILTER_VALUE, FILTER_VALUE2,
+    Filter, FilterEditor, FilterFocus, FilterOp, FilterOutcome,
 };
 use crate::filter_editor::{column_key, column_row, op_key, op_row};
+use crate::model::SwitchTarget;
 use crate::quick_switcher::{self, QuickSwitcher};
 use crate::safe_mode_picker::{self, SafeModePicker};
 use crate::safety_dialog::{
@@ -973,11 +973,12 @@ impl TableProApp {
             self.workbench.maximized = true;
         }
         if surface == Surface::FilterEditor
-            && let Some(tab) = self.workbench.active_table() {
-                let columns = tab.result.columns.clone();
-                let editor = FilterEditor::new(columns, None, None, 0);
-                self.filter_editor = Some(editor);
-            }
+            && let Some(tab) = self.workbench.active_table()
+        {
+            let columns = tab.result.columns.clone();
+            let editor = FilterEditor::new(columns, None, None, 0);
+            self.filter_editor = Some(editor);
+        }
         self.surface = surface;
     }
 
@@ -1631,8 +1632,11 @@ impl TableProApp {
                     "Execute write query?"
                 };
                 let mut facts = vec![
-                    Prop::new("Action", risk.action)
-                        .tone(if risk.dangerous { Tone::Error } else { Tone::Normal }),
+                    Prop::new("Action", risk.action).tone(if risk.dangerous {
+                        Tone::Error
+                    } else {
+                        Tone::Normal
+                    }),
                     Prop::new(
                         "Target",
                         format!(
@@ -1848,9 +1852,7 @@ impl TableProApp {
                         }
                         Tab::Query(q) => {
                             q.editor_state.is_editing()
-                                || q.result
-                                    .as_ref()
-                                    .is_some_and(|r| r.state.is_editing())
+                                || q.result.as_ref().is_some_and(|r| r.state.is_editing())
                         }
                         Tab::History(_) => false,
                     }
@@ -1917,7 +1919,9 @@ impl TableProApp {
         let Some((cursor_key, cursor_col)) = grid.state.cursor() else {
             return;
         };
-        let Some(src_row) = (0..grid.model.row_count()).find(|r| grid.model.row_key(*r) == cursor_key) else {
+        let Some(src_row) =
+            (0..grid.model.row_count()).find(|r| grid.model.row_key(*r) == cursor_key)
+        else {
             return;
         };
         let prev_viewport = grid.state.scroll().viewport_len();
@@ -1925,9 +1929,14 @@ impl TableProApp {
             return;
         };
         let new_key = grid.model.row_key(new_row);
-        let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable(), None, &[]);
-        let _ = result_grid(id, columns.get(..count).unwrap_or(&[]))
-            .move_cursor_to(&mut grid.state, &grid.model, new_key, cursor_col);
+        let (columns, count) =
+            Self::column_specs(&grid.columns, grid.model.is_editable(), None, &[]);
+        let _ = result_grid(id, columns.get(..count).unwrap_or(&[])).move_cursor_to(
+            &mut grid.state,
+            &grid.model,
+            new_key,
+            cursor_col,
+        );
         let scroll = grid.state.scroll_mut();
         scroll.set_content(grid.model.row_count());
         scroll.scroll_to(new_row.saturating_add(1).saturating_sub(prev_viewport));
@@ -1991,7 +2000,9 @@ impl TableProApp {
         self.switcher_open = true;
         cx.open_layer(
             quick_switcher::ID,
-            self.switcher.component(cols, rows).layer(cx, &self.switcher.items),
+            self.switcher
+                .component(cols, rows)
+                .layer(cx, &self.switcher.items),
         );
         self.surface = Surface::QuickSwitcher;
     }
@@ -2000,10 +2011,11 @@ impl TableProApp {
         let was_open = cx.is_open(quick_switcher::ID);
         self.switcher_open = was_open;
         let (cols, rows) = self.screen_dimensions(cx);
-        let mut response =
-            self.switcher
-                .component(cols, rows)
-                .update(cx, &mut self.switcher.state, &self.switcher.items);
+        let mut response = self.switcher.component(cols, rows).update(
+            cx,
+            &mut self.switcher.state,
+            &self.switcher.items,
+        );
         match response.take_action() {
             Some(PickerAction::QueryChanged | PickerAction::Scope(_)) if was_open => {
                 self.switcher.refresh();
@@ -2043,7 +2055,9 @@ impl TableProApp {
         self.tab_list_open = true;
         cx.open_layer(
             tab_list::ID,
-            self.tab_list.component(cols, rows).layer(cx, &self.tab_list.items),
+            self.tab_list
+                .component(cols, rows)
+                .layer(cx, &self.tab_list.items),
         );
         self.surface = Surface::TabListPicker;
     }
@@ -2056,10 +2070,11 @@ impl TableProApp {
         }
         self.tab_list_open = true;
         let (cols, rows) = self.screen_dimensions(cx);
-        let mut response = self
-            .tab_list
-            .component(cols, rows)
-            .update(cx, &mut self.tab_list.state, &self.tab_list.items);
+        let mut response = self.tab_list.component(cols, rows).update(
+            cx,
+            &mut self.tab_list.state,
+            &self.tab_list.items,
+        );
 
         match response.take_action() {
             Some(PickerAction::Chosen(key) | PickerAction::ChosenAlt(key)) => {
@@ -2102,7 +2117,9 @@ impl TableProApp {
                         self.tab_list.open(&self.workbench);
                         cx.resize_layer(
                             tab_list::ID,
-                            self.tab_list.component(cols, rows).measured_size(cx, &self.tab_list.items),
+                            self.tab_list
+                                .component(cols, rows)
+                                .measured_size(cx, &self.tab_list.items),
                         );
                     }
                 }
@@ -2124,7 +2141,9 @@ impl TableProApp {
         self.safe_mode_open = true;
         cx.open_layer(
             safe_mode_picker::ID,
-            self.safe_mode_picker.component(cols, rows).layer(cx, &self.safe_mode_picker.items),
+            self.safe_mode_picker
+                .component(cols, rows)
+                .layer(cx, &self.safe_mode_picker.items),
         );
         self.surface = Surface::SafeModePicker;
     }
@@ -2137,10 +2156,11 @@ impl TableProApp {
         }
         self.safe_mode_open = true;
         let (cols, rows) = self.screen_dimensions(cx);
-        let mut response = self
-            .safe_mode_picker
-            .component(cols, rows)
-            .update(cx, &mut self.safe_mode_picker.state, &self.safe_mode_picker.items);
+        let mut response = self.safe_mode_picker.component(cols, rows).update(
+            cx,
+            &mut self.safe_mode_picker.state,
+            &self.safe_mode_picker.items,
+        );
 
         if let Some(PickerAction::Chosen(key) | PickerAction::ChosenAlt(key)) =
             response.take_action()
@@ -2289,13 +2309,14 @@ impl TableProApp {
             for id in [QUIT_DIALOG, dlg.action_id(0), dlg.action_id(1)] {
                 for it in cx.intents(id) {
                     if let Intent::Key(key) = it
-                        && key.mods.is_empty() {
-                            if key.code == KeyCode::Char('y') {
-                                action = Some(DialogAction::Action(ActionKey::CONFIRM));
-                            } else if key.code == KeyCode::Char('n') {
-                                action = Some(DialogAction::Action(ActionKey::CANCEL));
-                            }
+                        && key.mods.is_empty()
+                    {
+                        if key.code == KeyCode::Char('y') {
+                            action = Some(DialogAction::Action(ActionKey::CONFIRM));
+                        } else if key.code == KeyCode::Char('n') {
+                            action = Some(DialogAction::Action(ActionKey::CANCEL));
                         }
+                    }
                 }
             }
         }
@@ -2430,8 +2451,8 @@ impl TableProApp {
         if btn_cancel.update(cx).activated() {
             action = Some(SafetyDialogAction::Cancel);
         }
-        let btn_confirm = termrock::Button::new(SAFETY_CONFIRM, &dialog.confirm_label)
-            .disabled(!dialog.armed());
+        let btn_confirm =
+            termrock::Button::new(SAFETY_CONFIRM, &dialog.confirm_label).disabled(!dialog.armed());
         if btn_confirm.update(cx).activated() && dialog.armed() {
             action = Some(SafetyDialogAction::Confirm);
         }
@@ -2550,7 +2571,10 @@ impl TableProApp {
             (None, Some(p)) => Some(p.clone()),
             _ => None,
         };
-        let initial_focus = if actual_prefill.as_ref().is_some_and(|(_, _, v)| !v.is_empty()) {
+        let initial_focus = if actual_prefill
+            .as_ref()
+            .is_some_and(|(_, _, v)| !v.is_empty())
+        {
             FILTER_APPLY
         } else {
             FILTER_VALUE
@@ -2715,9 +2739,10 @@ impl TableProApp {
         }
         for intent in cx.intents(FILTER_EDITOR) {
             if let Intent::Key(key) = intent
-                && outcome.is_none() {
-                    outcome = Some(editor.on_key(key));
-                }
+                && outcome.is_none()
+            {
+                outcome = Some(editor.on_key(key));
+            }
         }
         // Owned-button activation overrides any idle `Keep` the key routing
         // above produced for the same frame (Enter reaches both paths).
@@ -2857,7 +2882,10 @@ impl TableProApp {
                 Tab::Query(_) => key.control("query"),
                 Tab::History(_) => key.control("history"),
             };
-            if cx.intents(ctrl).any(|it| matches!(it, Intent::FocusIn { .. })) {
+            if cx
+                .intents(ctrl)
+                .any(|it| matches!(it, Intent::FocusIn { .. }))
+            {
                 self.workbench_focus = ctrl;
             }
             if let Tab::Query(query) = tab {
@@ -2882,8 +2910,7 @@ impl TableProApp {
                 let has_cancel = cx.intents(id).any(|it| match it {
                     Intent::Cancel => true,
                     Intent::Key(termrock::Key {
-                        code: KeyCode::Esc,
-                        ..
+                        code: KeyCode::Esc, ..
                     }) => true,
                     Intent::Binding(k) => {
                         k == ActionKey::CANCEL || k == ActionKey::custom("Cancel")
@@ -2964,8 +2991,12 @@ impl TableProApp {
                 Some(Tab::Table(t)) => (Some(&t.table), t.filters.as_slice()),
                 _ => (None, &[][..]),
             };
-            let (columns, count) =
-                Self::column_specs(&grid.columns, grid.model.is_editable(), active_table, active_filters);
+            let (columns, count) = Self::column_specs(
+                &grid.columns,
+                grid.model.is_editable(),
+                active_table,
+                active_filters,
+            );
             result_grid(id, columns.get(..count).unwrap_or(&[]))
                 .cell(&|cell, painter| {
                     let avail = painter.available_width();
@@ -3011,12 +3042,7 @@ impl TableProApp {
                         painter.text(&shown);
                     }
                 })
-                .draw(
-                    ui,
-                    area,
-                    &grid.state,
-                    &grid.model,
-                );
+                .draw(ui, area, &grid.state, &grid.model);
         }
     }
 
@@ -3074,23 +3100,27 @@ impl TableProApp {
         let fit = fit.clamp(1, 6);
 
         if overflow {
-            let left_st = ui.surface_style().patch(
-                ui.paint_patch(
-                    &StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
-                ),
+            let left_st = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+            ui.paint_str(
+                termrock::Rect::new(body.x, body.y, left_w, 1),
+                "    ",
+                left_st,
             );
-            ui.paint_str(termrock::Rect::new(body.x, body.y, left_w, 1), "    ", left_st);
 
             let hidden_right = 6usize.saturating_sub(fit);
             if hidden_right > 0 {
                 let rx = body.right().saturating_sub(right_w);
                 let overflow_text = format!("{:>3}›", hidden_right.min(99));
-                let st = ui.surface_style().patch(
-                    ui.paint_patch(
-                        &StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
-                    ),
+                let st = ui
+                    .surface_style()
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+                ui.paint_str(
+                    termrock::Rect::new(rx, body.y, right_w, 1),
+                    &overflow_text,
+                    st,
                 );
-                ui.paint_str(termrock::Rect::new(rx, body.y, right_w, 1), &overflow_text, st);
             }
         }
 
@@ -3128,12 +3158,11 @@ impl TableProApp {
         // the panel surface, while the paint runs after `Panel::draw`.
         let status_y = body.bottom().saturating_sub(1);
         let n = table.table.columns.len();
-        let status_str = format!("{n} columns · read from the catalog · changes are queued until Save");
-        let status_style = ui.surface_style().patch(
-            ui.paint_patch(
-                &StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
-            ),
-        );
+        let status_str =
+            format!("{n} columns · read from the catalog · changes are queued until Save");
+        let status_style = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
         *status_out = Some(StructureStatusLine {
             x: inner.x.saturating_add(1),
             y: status_y,
@@ -3199,11 +3228,9 @@ impl TableProApp {
 
         // Column headers
         let col_titles = ["Name", "Type", "Nullable", "Default", "Key"];
-        let header_style = ui.surface_style().patch(
-            ui.paint_patch(
-                &StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
-            ),
-        );
+        let header_style = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
         for ci in 0..col_fit {
             let r = col_rects[ci];
             let title = Self::fit_text(col_titles[ci], r.width);
@@ -3214,11 +3241,9 @@ impl TableProApp {
             );
         }
         if more_right {
-            let faint_style = ui.surface_style().patch(
-                ui.paint_patch(
-                    &StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
-                ),
-            );
+            let faint_style = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
             ui.paint_str(
                 termrock::Rect::new(cols_area.right().saturating_add(1), table_area.y, 1, 1),
                 "…",
@@ -3245,11 +3270,7 @@ impl TableProApp {
 
             if is_focused {
                 let gutter_style = ui.surface_style().patch(
-                    ui.paint_patch(
-                        &StylePatch::new()
-                            .set_fg(Role::Accent)
-                            .add(Modifier::BOLD),
-                    ),
+                    ui.paint_patch(&StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD)),
                 );
                 ui.paint_str(
                     termrock::Rect::new(table_area.x, y, 1, 1),
@@ -3300,11 +3321,7 @@ impl TableProApp {
                 }
                 let cell_style = ui.surface_style().patch(ui.paint_patch(&patch));
                 let text = Self::fit_text(values[ci], r.width);
-                ui.paint_str(
-                    termrock::Rect::new(r.x, y, r.width, 1),
-                    &text,
-                    cell_style,
-                );
+                ui.paint_str(termrock::Rect::new(r.x, y, r.width, 1), &text, cell_style);
             }
         }
 
@@ -3318,27 +3335,19 @@ impl TableProApp {
                 table_area.width.saturating_sub(1),
                 data_rows_height,
             );
-            ui.scroll_edges_except(
-                fade_rect,
-                &scroll,
-                &[table_area.y.saturating_add(1)],
-            );
+            ui.scroll_edges_except(fade_rect, &scroll, &[table_area.y.saturating_add(1)]);
 
             let track_len = visible_rows;
             let len = ((track_len * track_len) / num_rows).max(1);
             let len = len.min(track_len);
             let (start, len) = (0, len);
             let sb_x = table_area.right().saturating_sub(1);
-            let thumb_style = ui.surface_style().patch(
-                ui.paint_patch(
-                    &StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-                ),
-            );
-            let track_style = ui.surface_style().patch(
-                ui.paint_patch(
-                    &StylePatch::new().set_fg(Role::BorderSubtle),
-                ),
-            );
+            let thumb_style = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+            let track_style = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderSubtle)));
             for i in 0..track_len {
                 let sy = table_area.y.saturating_add(1).saturating_add(i as u16);
                 let cell = termrock::Rect::new(sb_x, sy, 1, 1);
@@ -4916,9 +4925,8 @@ impl TableProApp {
     }
 
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        let in_dialog = self.safety_dialog.is_some()
-            || self.destructive_intent.is_some()
-            || self.help_open;
+        let in_dialog =
+            self.safety_dialog.is_some() || self.destructive_intent.is_some() || self.help_open;
         let focused = !in_dialog && self.workbench_focus == EXPLORER;
         let panel = Self::explorer_panel(self.workbench.schema_caption(), focused);
         let inner = panel.inner(ui, area);
@@ -4958,7 +4966,10 @@ impl TableProApp {
                         visible_nodes.push(item);
                     }
                     if descriptor.has_children() {
-                        ancestors_expanded.push(self.explorer_tree_state.is_expanded(explorer_node_key(item)));
+                        ancestors_expanded.push(
+                            self.explorer_tree_state
+                                .is_expanded(explorer_node_key(item)),
+                        );
                     }
                 }
                 let offset = self.explorer_tree_state.scroll().offset();
@@ -4972,7 +4983,9 @@ impl TableProApp {
                     let (depth, glyph_w, label_w, meta_w) = match node {
                         ExplorerNode::Database { name } => (0, 2, termrock::width(name), 0),
                         ExplorerNode::Schema { name } => (1, 2, termrock::width(name), 0),
-                        ExplorerNode::Group { name, count, .. } => (2, 0, termrock::width(name), termrock::width(count)),
+                        ExplorerNode::Group { name, count, .. } => {
+                            (2, 0, termrock::width(name), termrock::width(count))
+                        }
                         ExplorerNode::Object { item, count, .. } => {
                             (3, 2, termrock::width(&item.name), termrock::width(count))
                         }
@@ -5148,9 +5161,8 @@ impl TableProApp {
             None => ("Workbench".to_owned(), None),
         };
         let in_picker = self.switcher_open || self.tab_list_open || self.safe_mode_open;
-        let in_dialog = self.safety_dialog.is_some()
-            || self.destructive_intent.is_some()
-            || self.help_open;
+        let in_dialog =
+            self.safety_dialog.is_some() || self.destructive_intent.is_some() || self.help_open;
         let focused = !in_picker && (in_dialog || self.workbench_focus != EXPLORER);
         let panel = Self::content_panel(&title, meta.as_deref(), focused);
         let mut status_line: Option<StructureStatusLine> = None;
@@ -5181,144 +5193,156 @@ impl TableProApp {
                 let active_key = self.workbench.active_key();
                 if editor_h > 0 {
                     let editor_rect = termrock::Rect::new(inner.x, inner.y, inner.width, editor_h);
-                if let Some(key) = active_key
-                    && !ui.is_inert()
-                {
-                    let query_id = key.control("query");
-                    let flags = if query.editor_state.is_editing() {
-                        termrock::StateFlags::EDITING
+                    if let Some(key) = active_key
+                        && !ui.is_inert()
+                    {
+                        let query_id = key.control("query");
+                        let flags = if query.editor_state.is_editing() {
+                            termrock::StateFlags::EDITING
+                        } else {
+                            termrock::StateFlags::empty()
+                        };
+                        ui.register_editor(query_id, editor_rect, Focusability::Focusable, flags);
+                    }
+                    let field_style = ui.surface_style().patch(ui.paint_patch(
+                        &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field)),
+                    ));
+                    ui.fill(editor_rect, field_style);
+
+                    let is_focused = !ui.is_inert()
+                        && self.safety_dialog.is_none()
+                        && self.destructive_intent.is_none()
+                        && active_key.is_some_and(|k| {
+                            ui.state(k.control("query"))
+                                .contains(termrock::StateFlags::FOCUSED)
+                        });
+
+                    let gutter_style = if is_focused {
+                        field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
                     } else {
-                        termrock::StateFlags::empty()
+                        field_style.patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+                        )
                     };
-                    ui.register_editor(query_id, editor_rect, Focusability::Focusable, flags);
-                }
-                let field_style = ui.surface_style().patch(ui.paint_patch(
-                    &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field)),
-                ));
-                ui.fill(editor_rect, field_style);
-
-                let is_focused = !ui.is_inert()
-                    && self.safety_dialog.is_none()
-                    && self.destructive_intent.is_none()
-                    && active_key.is_some_and(|k| {
-                        ui.state(k.control("query"))
-                            .contains(termrock::StateFlags::FOCUSED)
-                    });
-
-                let gutter_style = if is_focused {
-                    field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
-                } else {
-                    field_style.patch(
-                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-                    )
-                };
-                let query_text = query.editor_state.draft_text().unwrap_or(&query.query);
-                let num_style = if is_focused {
-                    field_style.patch(
-                        ui.paint_patch(
-                            &StylePatch::new()
-                                .set_fg(Role::Fg(FgStep::Primary))
-                                .add(Modifier::BOLD),
-                        ),
-                    )
-                } else if !query_text.is_empty() {
-                    field_style.patch(
-                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-                    )
-                } else {
-                    field_style.patch(
-                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-                    )
-                };
-
-                let bar_style = if is_focused {
-                    field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
-                } else {
-                    field_style.patch(ui.paint_patch(
-                        &StylePatch::new().set_fg(Role::Surface(termrock::Surface::Field)),
-                    ))
-                };
-                ui.paint_str(
-                    termrock::Rect::new(inner.x, inner.y, 1, 1),
-                    if is_focused { "▎" } else { " " },
-                    bar_style,
-                );
-                if !query_text.is_empty() {
-                    ui.paint_str(
-                        termrock::Rect::new(inner.x + 1, inner.y, 1, 1),
-                        "›",
-                        gutter_style,
-                    );
-                }
-                ui.paint_str(
-                    termrock::Rect::new(inner.x + 3, inner.y, 2, 1),
-                    " 1",
-                    num_style,
-                );
-
-                let text_x = inner.x + 6;
-                let text_avail = (inner.width as usize).saturating_sub(6);
-                if query_text.is_empty() && !query.editor_state.is_editing() {
-                    let placeholder = "Type SQL. Ctrl+R runs the statement under the cursor.";
-                    let display_ph = if placeholder.len() > text_avail {
-                        &placeholder[..text_avail]
+                    let query_text = query.editor_state.draft_text().unwrap_or(&query.query);
+                    let num_style = if is_focused {
+                        field_style.patch(
+                            ui.paint_patch(
+                                &StylePatch::new()
+                                    .set_fg(Role::Fg(FgStep::Primary))
+                                    .add(Modifier::BOLD),
+                            ),
+                        )
+                    } else if !query_text.is_empty() {
+                        field_style.patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+                        )
                     } else {
-                        placeholder
+                        field_style.patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+                        )
                     };
-                    let ph_style = field_style.patch(
-                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-                    );
+
+                    let bar_style = if is_focused {
+                        field_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
+                    } else {
+                        field_style.patch(ui.paint_patch(
+                            &StylePatch::new().set_fg(Role::Surface(termrock::Surface::Field)),
+                        ))
+                    };
                     ui.paint_str(
-                        termrock::Rect::new(
-                            text_x,
-                            inner.y,
-                            display_ph.chars().count() as u16,
-                            1,
-                        ),
-                        display_ph,
-                        ph_style,
+                        termrock::Rect::new(inner.x, inner.y, 1, 1),
+                        if is_focused { "▎" } else { " " },
+                        bar_style,
                     );
-                } else {
-                    let display_query = if query_text.len() > text_avail {
-                        if let Some(pos) = query_text.find("FROM ") {
-                            format!("… {}", &query_text[pos..])
+                    if !query_text.is_empty() {
+                        ui.paint_str(
+                            termrock::Rect::new(inner.x + 1, inner.y, 1, 1),
+                            "›",
+                            gutter_style,
+                        );
+                    }
+                    ui.paint_str(
+                        termrock::Rect::new(inner.x + 3, inner.y, 2, 1),
+                        " 1",
+                        num_style,
+                    );
+
+                    let text_x = inner.x + 6;
+                    let text_avail = (inner.width as usize).saturating_sub(6);
+                    if query_text.is_empty() && !query.editor_state.is_editing() {
+                        let placeholder = "Type SQL. Ctrl+R runs the statement under the cursor.";
+                        let display_ph = if placeholder.len() > text_avail {
+                            &placeholder[..text_avail]
+                        } else {
+                            placeholder
+                        };
+                        let ph_style = field_style.patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(
+                                text_x,
+                                inner.y,
+                                display_ph.chars().count() as u16,
+                                1,
+                            ),
+                            display_ph,
+                            ph_style,
+                        );
+                    } else {
+                        let display_query = if query_text.len() > text_avail {
+                            if let Some(pos) = query_text.find("FROM ") {
+                                format!("… {}", &query_text[pos..])
+                            } else {
+                                query_text.to_owned()
+                            }
                         } else {
                             query_text.to_owned()
-                        }
-                    } else {
-                        query_text.to_owned()
-                    };
-                    Self::draw_sql_highlighted(ui, text_x, inner.y, &display_query, field_style);
-                }
+                        };
+                        Self::draw_sql_highlighted(
+                            ui,
+                            text_x,
+                            inner.y,
+                            &display_query,
+                            field_style,
+                        );
+                    }
 
-                if self.safety_dialog.is_none() && (is_focused || query.editor_state.is_editing()) {
-                    let cursor_col = if query_text.is_empty() {
-                        1
-                    } else {
-                        query_text.len() + 1
-                    };
-                    let readout = format!("ln 1/1 · col {cursor_col}");
-                    let readout_w = termrock::width(&readout) as u16;
-                    let readout_x = inner.right().saturating_sub(1).saturating_sub(readout_w);
-                    let muted_field = field_style
-                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
-                    ui.paint_str(
-                        termrock::Rect::new(
-                            readout_x,
-                            inner.y.saturating_add(editor_h).saturating_sub(1),
-                            readout_w,
-                            1,
-                        ),
-                        &readout,
-                        muted_field,
-                    );
-                }
+                    if self.safety_dialog.is_none()
+                        && (is_focused || query.editor_state.is_editing())
+                    {
+                        let cursor_col = if query_text.is_empty() {
+                            1
+                        } else {
+                            query_text.len() + 1
+                        };
+                        let readout = format!("ln 1/1 · col {cursor_col}");
+                        let readout_w = termrock::width(&readout) as u16;
+                        let readout_x = inner.right().saturating_sub(1).saturating_sub(readout_w);
+                        let muted_field = field_style.patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(
+                                readout_x,
+                                inner.y.saturating_add(editor_h).saturating_sub(1),
+                                readout_w,
+                                1,
+                            ),
+                            &readout,
+                            muted_field,
+                        );
+                    }
                 }
 
                 if !bottom_rect.is_empty() {
-                if query.affected.is_some() || query.result.is_some() {
-                    let (tab_text, status_text) =
-                        if let Some((affected_count, affected_action)) = &query.affected {
+                    if query.affected.is_some() || query.result.is_some() {
+                        let (tab_text, status_text) = if let Some((
+                            affected_count,
+                            affected_action,
+                        )) = &query.affected
+                        {
                             let ms = query.last_duration.unwrap_or(42);
                             (
                                 format!("{affected_action} ({affected_count})"),
@@ -5336,179 +5360,198 @@ impl TableProApp {
                             (String::new(), String::new())
                         };
 
-                    let elevated_style = ui.surface_style().patch(*ui.paint_patch(
-                        &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Elevated)),
-                    ));
-                    let tab_title_style = elevated_style.patch(
-                        *ui.paint_patch(
-                            &StylePatch::new()
-                                .set_fg(Role::Fg(FgStep::Primary))
-                                .add(Modifier::BOLD),
-                        ),
-                    );
-                    let tab_close_style = elevated_style.patch(
-                        *ui.paint_patch(
-                            &StylePatch::new()
-                                .set_fg(Role::BorderStrong)
-                                .add(Modifier::BOLD),
-                        ),
-                    );
-
-                    let label_padded = format!(" {tab_text} ");
-                    let label_w = label_padded.len() as u16;
-                    ui.paint_str(
-                        termrock::Rect::new(inner.x, bottom_rect.y, label_w, 1),
-                        &label_padded,
-                        tab_title_style,
-                    );
-                    ui.paint_str(
-                        termrock::Rect::new(inner.x + label_w, bottom_rect.y, 1, 1),
-                        "×",
-                        tab_close_style,
-                    );
-                    ui.paint_str(
-                        termrock::Rect::new(inner.x + label_w + 1, bottom_rect.y, 2, 1),
-                        "  ",
-                        tab_title_style,
-                    );
-
-                    let accent_line_w = label_w + 3;
-                    let accent_style = ui
-                        .surface_style()
-                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
-                    let subtle_style = ui
-                        .surface_style()
-                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderSubtle)));
-                    let line_chars = "━".repeat(accent_line_w as usize);
-                    ui.paint_str(
-                        termrock::Rect::new(inner.x, bottom_rect.y.saturating_add(1), accent_line_w, 1),
-                        &line_chars,
-                        accent_style,
-                    );
-                    let rest_w = inner.width.saturating_sub(accent_line_w);
-                    if rest_w > 0 {
-                        let rest_chars = "─".repeat(rest_w as usize);
-                        ui.paint_str(
-                            termrock::Rect::new(inner.x + accent_line_w, bottom_rect.y.saturating_add(1), rest_w, 1),
-                            &rest_chars,
-                            subtle_style,
-                        );
-                    }
-
-                    let muted_style = ui
-                        .surface_style()
-                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-                    ui.paint_str(
-                        termrock::Rect::new(inner.x + 1, bottom_rect.y.saturating_add(2), inner.width.saturating_sub(1), 1),
-                        &status_text,
-                        muted_style,
-                    );
-
-                    if let Some((affected_count, affected_action)) = &query.affected {
-                        let body_y = bottom_rect.y.saturating_add(3);
-                        let body_h = bottom_rect.bottom().saturating_sub(body_y);
-                        if body_h > 0 {
-                            let card_h = body_h.min(6);
-                            let card_w = bottom_rect.width.min(60);
-                            let card_rect = termrock::Rect::new(bottom_rect.x, body_y, card_w, card_h);
-                            let card_style = ui.surface_style().patch(ui.paint_patch(
-                                &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface)),
-                            ));
-                            ui.fill(card_rect, card_style);
-                            let sec_card = card_style.patch(
-                                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-                            );
-                            let muted_card = card_style.patch(
-                                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-                            );
-                            let primary_card = card_style.patch(
-                                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
-                            );
-
-                            ui.paint_str(
-                                termrock::Rect::new(card_rect.x + 2, card_rect.y, 18, 1),
-                                "Statement executed",
-                                sec_card,
-                            );
-
-                            let inner_y = card_rect.y + 2;
-                            let inner_h = card_rect.height.saturating_sub(3);
-                            if inner_h > 0 {
-                                ui.paint_str(
-                                    termrock::Rect::new(card_rect.x + 2, inner_y, 9, 1),
-                                    "Statement",
-                                    muted_card,
-                                );
-                                ui.paint_str(
-                                    termrock::Rect::new(
-                                        card_rect.x + 17,
-                                        inner_y,
-                                        affected_action.len() as u16,
-                                        1,
-                                    ),
-                                    affected_action,
-                                    primary_card,
-                                );
-                            }
-                            if inner_h > 1 {
-                                let rows_str = format_thousands(*affected_count);
-                                ui.paint_str(
-                                    termrock::Rect::new(card_rect.x + 2, inner_y + 1, 13, 1),
-                                    "Rows affected",
-                                    muted_card,
-                                );
-                                ui.paint_str(
-                                    termrock::Rect::new(
-                                        card_rect.x + 17,
-                                        inner_y + 1,
-                                        rows_str.len() as u16,
-                                        1,
-                                    ),
-                                    &rows_str,
-                                    primary_card,
-                                );
-                            }
-                            if inner_h > 2 {
-                                let ms = query.last_duration.unwrap_or(42);
-                                let dur_str = format!("{ms} ms");
-                                ui.paint_str(
-                                    termrock::Rect::new(card_rect.x + 2, inner_y + 2, 8, 1),
-                                    "Duration",
-                                    muted_card,
-                                );
-                                ui.paint_str(
-                                    termrock::Rect::new(
-                                        card_rect.x + 17,
-                                        inner_y + 2,
-                                        dur_str.len() as u16,
-                                        1,
-                                    ),
-                                    &dur_str,
-                                    muted_card,
-                                );
-                            }
-                        }
-                    } else if query.result.is_some() {
-                        let grid_area = termrock::Rect::new(
-                            inner.x,
-                            bottom_rect.y.saturating_add(3),
-                            inner.width,
-                            bottom_rect.height.saturating_sub(3),
-                        );
-                        self.draw_result_grid(ui, grid_area);
-                    }
-                } else {
-                    Empty::new(
-                        QUERY_EMPTY,
-                        EmptyState::Empty {
-                            title: "No results yet",
-                            hint: Some(
-                                "Ctrl+R runs the statement under the cursor · Alt+R runs all",
+                        let elevated_style = ui.surface_style().patch(*ui.paint_patch(
+                            &StylePatch::new().set_bg(Role::Surface(termrock::Surface::Elevated)),
+                        ));
+                        let tab_title_style = elevated_style.patch(
+                            *ui.paint_patch(
+                                &StylePatch::new()
+                                    .set_fg(Role::Fg(FgStep::Primary))
+                                    .add(Modifier::BOLD),
                             ),
-                        },
-                    )
-                    .draw(ui, bottom_rect);
-                }
+                        );
+                        let tab_close_style = elevated_style.patch(
+                            *ui.paint_patch(
+                                &StylePatch::new()
+                                    .set_fg(Role::BorderStrong)
+                                    .add(Modifier::BOLD),
+                            ),
+                        );
+
+                        let label_padded = format!(" {tab_text} ");
+                        let label_w = label_padded.len() as u16;
+                        ui.paint_str(
+                            termrock::Rect::new(inner.x, bottom_rect.y, label_w, 1),
+                            &label_padded,
+                            tab_title_style,
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(inner.x + label_w, bottom_rect.y, 1, 1),
+                            "×",
+                            tab_close_style,
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(inner.x + label_w + 1, bottom_rect.y, 2, 1),
+                            "  ",
+                            tab_title_style,
+                        );
+
+                        let accent_line_w = label_w + 3;
+                        let accent_style = ui
+                            .surface_style()
+                            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+                        let subtle_style = ui
+                            .surface_style()
+                            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderSubtle)));
+                        let line_chars = "━".repeat(accent_line_w as usize);
+                        ui.paint_str(
+                            termrock::Rect::new(
+                                inner.x,
+                                bottom_rect.y.saturating_add(1),
+                                accent_line_w,
+                                1,
+                            ),
+                            &line_chars,
+                            accent_style,
+                        );
+                        let rest_w = inner.width.saturating_sub(accent_line_w);
+                        if rest_w > 0 {
+                            let rest_chars = "─".repeat(rest_w as usize);
+                            ui.paint_str(
+                                termrock::Rect::new(
+                                    inner.x + accent_line_w,
+                                    bottom_rect.y.saturating_add(1),
+                                    rest_w,
+                                    1,
+                                ),
+                                &rest_chars,
+                                subtle_style,
+                            );
+                        }
+
+                        let muted_style = ui.surface_style().patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+                        );
+                        ui.paint_str(
+                            termrock::Rect::new(
+                                inner.x + 1,
+                                bottom_rect.y.saturating_add(2),
+                                inner.width.saturating_sub(1),
+                                1,
+                            ),
+                            &status_text,
+                            muted_style,
+                        );
+
+                        if let Some((affected_count, affected_action)) = &query.affected {
+                            let body_y = bottom_rect.y.saturating_add(3);
+                            let body_h = bottom_rect.bottom().saturating_sub(body_y);
+                            if body_h > 0 {
+                                let card_h = body_h.min(6);
+                                let card_w = bottom_rect.width.min(60);
+                                let card_rect =
+                                    termrock::Rect::new(bottom_rect.x, body_y, card_w, card_h);
+                                let card_style = ui.surface_style().patch(
+                                    ui.paint_patch(
+                                        &StylePatch::new()
+                                            .set_bg(Role::Surface(termrock::Surface::Surface)),
+                                    ),
+                                );
+                                ui.fill(card_rect, card_style);
+                                let sec_card = card_style.patch(ui.paint_patch(
+                                    &StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+                                ));
+                                let muted_card = card_style.patch(ui.paint_patch(
+                                    &StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
+                                ));
+                                let primary_card = card_style.patch(ui.paint_patch(
+                                    &StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+                                ));
+
+                                ui.paint_str(
+                                    termrock::Rect::new(card_rect.x + 2, card_rect.y, 18, 1),
+                                    "Statement executed",
+                                    sec_card,
+                                );
+
+                                let inner_y = card_rect.y + 2;
+                                let inner_h = card_rect.height.saturating_sub(3);
+                                if inner_h > 0 {
+                                    ui.paint_str(
+                                        termrock::Rect::new(card_rect.x + 2, inner_y, 9, 1),
+                                        "Statement",
+                                        muted_card,
+                                    );
+                                    ui.paint_str(
+                                        termrock::Rect::new(
+                                            card_rect.x + 17,
+                                            inner_y,
+                                            affected_action.len() as u16,
+                                            1,
+                                        ),
+                                        affected_action,
+                                        primary_card,
+                                    );
+                                }
+                                if inner_h > 1 {
+                                    let rows_str = format_thousands(*affected_count);
+                                    ui.paint_str(
+                                        termrock::Rect::new(card_rect.x + 2, inner_y + 1, 13, 1),
+                                        "Rows affected",
+                                        muted_card,
+                                    );
+                                    ui.paint_str(
+                                        termrock::Rect::new(
+                                            card_rect.x + 17,
+                                            inner_y + 1,
+                                            rows_str.len() as u16,
+                                            1,
+                                        ),
+                                        &rows_str,
+                                        primary_card,
+                                    );
+                                }
+                                if inner_h > 2 {
+                                    let ms = query.last_duration.unwrap_or(42);
+                                    let dur_str = format!("{ms} ms");
+                                    ui.paint_str(
+                                        termrock::Rect::new(card_rect.x + 2, inner_y + 2, 8, 1),
+                                        "Duration",
+                                        muted_card,
+                                    );
+                                    ui.paint_str(
+                                        termrock::Rect::new(
+                                            card_rect.x + 17,
+                                            inner_y + 2,
+                                            dur_str.len() as u16,
+                                            1,
+                                        ),
+                                        &dur_str,
+                                        muted_card,
+                                    );
+                                }
+                            }
+                        } else if query.result.is_some() {
+                            let grid_area = termrock::Rect::new(
+                                inner.x,
+                                bottom_rect.y.saturating_add(3),
+                                inner.width,
+                                bottom_rect.height.saturating_sub(3),
+                            );
+                            self.draw_result_grid(ui, grid_area);
+                        }
+                    } else {
+                        Empty::new(
+                            QUERY_EMPTY,
+                            EmptyState::Empty {
+                                title: "No results yet",
+                                hint: Some(
+                                    "Ctrl+R runs the statement under the cursor · Alt+R runs all",
+                                ),
+                            },
+                        )
+                        .draw(ui, bottom_rect);
+                    }
                 }
             }
             Some(Tab::Table(table)) => {
@@ -5544,7 +5587,9 @@ impl TableProApp {
                         termrock::StateFlags::empty(),
                     )
                     .style
-                    .patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::BorderStrong)));
+                    .patch(ui.paint_patch(
+                        &termrock::StylePatch::new().set_fg(termrock::Role::BorderStrong),
+                    ));
                 let border_subtle_style = ui
                     .style(
                         Family::TABS,
@@ -5657,11 +5702,16 @@ impl TableProApp {
 
                         let (u, i, d) = table.result.pending_counts();
                         let text = format!("• {pending_total} pending");
-                        let warning_style = ui.surface_style().patch(
-                            ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Warning)),
-                        );
+                        let warning_style = ui.surface_style().patch(ui.paint_patch(
+                            &termrock::StylePatch::new().set_fg(termrock::Role::Warning),
+                        ));
                         let _ = ui.paint_str(
-                            termrock::Rect::new(inner.x.saturating_add(1), by, termrock::width(&text), 1),
+                            termrock::Rect::new(
+                                inner.x.saturating_add(1),
+                                by,
+                                termrock::width(&text),
+                                1,
+                            ),
                             &text,
                             warning_style,
                         );
@@ -5682,11 +5732,17 @@ impl TableProApp {
                             format!("· {}", parts.join(" · "))
                         };
                         let muted_style = ui.surface_style().patch(
-                            ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Muted))),
+                            ui.paint_patch(
+                                &termrock::StylePatch::new()
+                                    .set_fg(termrock::Role::Fg(termrock::FgStep::Muted)),
+                            ),
                         );
                         let _ = ui.paint_str(
                             termrock::Rect::new(
-                                inner.x.saturating_add(2).saturating_add(termrock::width(&text)),
+                                inner
+                                    .x
+                                    .saturating_add(2)
+                                    .saturating_add(termrock::width(&text)),
                                 by,
                                 termrock::width(&detail),
                                 1,
@@ -5696,10 +5752,14 @@ impl TableProApp {
                         );
 
                         let active_key = self.workbench.active_key();
-                        let id = active_key.map_or_else(|| Id::root("tablepro.pending"), |k| k.control("pending"));
-                        let btn_save = Button::new(id.sub("save"), "Save").variant(Variant::PRIMARY);
-                        let btn_discard = Button::new(id.sub("discard"), "Discard").variant(Variant::SUBTLE);
-                        let btn_preview = Button::new(id.sub("preview"), "Preview SQL").variant(Variant::SUBTLE);
+                        let id = active_key
+                            .map_or_else(|| Id::root("tablepro.pending"), |k| k.control("pending"));
+                        let btn_save =
+                            Button::new(id.sub("save"), "Save").variant(Variant::PRIMARY);
+                        let btn_discard =
+                            Button::new(id.sub("discard"), "Discard").variant(Variant::SUBTLE);
+                        let btn_preview =
+                            Button::new(id.sub("preview"), "Preview SQL").variant(Variant::SUBTLE);
 
                         let save_w = 6;
                         let discard_w = 9;
@@ -5721,8 +5781,12 @@ impl TableProApp {
 
                     if let Some((id, grid)) = self.workbench.active_grid() {
                         let active_table = Some(&table.table);
-                        let (columns, count) =
-                            Self::column_specs(&grid.columns, grid.model.is_editable(), active_table, &table.filters);
+                        let (columns, count) = Self::column_specs(
+                            &grid.columns,
+                            grid.model.is_editable(),
+                            active_table,
+                            &table.filters,
+                        );
                         let grid_widget = result_grid(id, columns.get(..count).unwrap_or(&[]));
                         let mut parts: Vec<(String, u8)> = vec![];
                         if let Some((col_key, dir)) = grid.state.sort() {
@@ -5774,10 +5838,12 @@ impl TableProApp {
                             width: inner.width.saturating_sub(2),
                             height: 1,
                         };
-                        let status_style = ui.surface_style().patch(ui.paint_patch(
-                            &termrock::StylePatch::new()
-                                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted)),
-                        ));
+                        let status_style = ui.surface_style().patch(
+                            ui.paint_patch(
+                                &termrock::StylePatch::new()
+                                    .set_fg(termrock::Role::Fg(termrock::FgStep::Muted)),
+                            ),
+                        );
                         let _ = ui.paint_str(status_rect, &status, status_style);
                     }
                 }
@@ -6318,7 +6384,10 @@ fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
         .sort_indicator(termrock::GridSortIndicator::ActiveOnly)
         .column_gap(2)
         .column_fit(termrock::GridColumnFit::CompleteWithPreview { min_width: 6 })
-        .header_sizing(termrock::GridHeaderSizing::Minimum { padding: 2, cap: 24 })
+        .header_sizing(termrock::GridHeaderSizing::Minimum {
+            padding: 2,
+            cap: 24,
+        })
         .right_reserve(4)
         .gutter(termrock::GridGutter::Detailed {
             row_numbers: true,
@@ -6329,12 +6398,12 @@ fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
 fn draw_filter_chips(ui: &mut Ui<'_>, area: termrock::Rect, table: &TableTab) {
     let mut x = area.x;
     let y = area.y;
-    let muted_style = ui.surface_style().patch(
-        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-    );
-    let secondary_style = ui.surface_style().patch(
-        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-    );
+    let muted_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    let secondary_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
     let chip_bg_style = ui.surface_style().patch(
         ui.paint_patch(
             &StylePatch::new()
@@ -6385,9 +6454,8 @@ fn draw_filter_chips(ui: &mut Ui<'_>, area: termrock::Rect, table: &TableTab) {
             &text_with_space,
             chip_bg_style,
         );
-        let x_style = chip_bg_style.patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-        );
+        let x_style =
+            chip_bg_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
         ui.paint_str(
             termrock::Rect::new(x.saturating_add(1).saturating_add(label_w), y, 1, 1),
             "×",
@@ -6506,7 +6574,11 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
                 clickable: false,
                 priority: 8,
             });
-            let scope_text = format!("{} › {}", app.workbench.catalog.database, app.workbench.current_schema());
+            let scope_text = format!(
+                "{} › {}",
+                app.workbench.catalog.database,
+                app.workbench.current_schema()
+            );
             left.push(HeaderSegment {
                 text: scope_text,
                 role: Some(Role::Fg(FgStep::Secondary)),
@@ -6641,11 +6713,7 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             continue;
         }
         let sw = w(s) + if s.clickable { 2 } else { 0 };
-        let start = if s.clickable {
-            x.saturating_sub(1)
-        } else {
-            x
-        };
+        let start = if s.clickable { x.saturating_sub(1) } else { x };
         draw_segment(ui, start, s);
         x += sw.saturating_sub(if s.clickable { 2 } else { 0 }) + sep;
     }
@@ -7261,7 +7329,9 @@ impl App for TableProApp {
         response |= self.update_filter_editor(cx);
         response |= self.update_tab_controls(cx);
         if self.screen == Screen::Workbench
-            && cx.intents(EXPLORER).any(|it| matches!(it, Intent::FocusIn { .. }))
+            && cx
+                .intents(EXPLORER)
+                .any(|it| matches!(it, Intent::FocusIn { .. }))
         {
             self.workbench_focus = EXPLORER;
         }
@@ -7361,7 +7431,11 @@ impl App for TableProApp {
                     }
                     return self.request_quit(cx);
                 }
-                c if c == INSERT_ROW || c == DUPLICATE_ROW || c == DELETE_ROW || c == DISCARD_ROWS => {
+                c if c == INSERT_ROW
+                    || c == DUPLICATE_ROW
+                    || c == DELETE_ROW
+                    || c == DISCARD_ROWS =>
+                {
                     if self.active_row_action(cx) {
                         if c == INSERT_ROW {
                             self.insert_active_row();
@@ -7467,11 +7541,13 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == CLOSE_TAB => {
-                    if self.screen == Screen::Workbench && !self.is_editing()
-                        && let Some(tab_key) = self.workbench.active_key() {
-                            self.request_close_tab(cx, tab_key);
-                            response |= Response::changed();
-                        }
+                    if self.screen == Screen::Workbench
+                        && !self.is_editing()
+                        && let Some(tab_key) = self.workbench.active_key()
+                    {
+                        self.request_close_tab(cx, tab_key);
+                        response |= Response::changed();
+                    }
                 }
                 c if c == HISTORY => {
                     self.workbench.open_history();
@@ -7486,17 +7562,18 @@ impl App for TableProApp {
                         let _ = self.workbench.toggle_structure();
                         self.sync_active_tab();
                         if let Some(tab_key) = self.workbench.active_key()
-                            && let Some(Tab::Table(t)) = self.workbench.active() {
-                                if t.is_structure() {
-                                    let ctrl = tab_key.control("structure");
-                                    self.workbench_focus = ctrl;
-                                    cx.focus(ctrl);
-                                } else {
-                                    let ctrl = tab_key.control("data");
-                                    self.workbench_focus = ctrl;
-                                    cx.focus(ctrl);
-                                }
+                            && let Some(Tab::Table(t)) = self.workbench.active()
+                        {
+                            if t.is_structure() {
+                                let ctrl = tab_key.control("structure");
+                                self.workbench_focus = ctrl;
+                                cx.focus(ctrl);
+                            } else {
+                                let ctrl = tab_key.control("data");
+                                self.workbench_focus = ctrl;
+                                cx.focus(ctrl);
                             }
+                        }
                         response |= Response::changed();
                     }
                 }
@@ -7539,58 +7616,60 @@ impl App for TableProApp {
                         response |= Response::changed();
                     } else if self.screen == Screen::Workbench
                         && let Some(Tab::Table(table)) = self.workbench.active()
-                            && !table.is_structure() {
-                                let (col_idx, cell_value) = if let Some((row_key, col_key)) =
-                                    table.result.state.cursor()
-                                {
-                                    let c_idx = usize::from(col_key.raw()).saturating_sub(1);
-                                    let row_idx = (0..table.result.model.row_count())
-                                        .find(|r| table.result.model.row_key(*r) == row_key);
-                                    let val = row_idx
-                                        .and_then(|r| table.result.model.cell(r, c_idx))
-                                        .map(|c| c.text.to_owned())
-                                        .unwrap_or_default();
-                                    (c_idx, val)
-                                } else {
-                                    (0, String::new())
-                                };
-                                let prefill = match cell_value.as_str() {
-                                    "" | "NULL" => (col_idx, FilterOp::IsNull, String::new()),
-                                    other => (col_idx, FilterOp::Eq, other.to_owned()),
-                                };
-                                self.open_filter_editor(cx, None, Some(prefill));
-                                response |= Response::changed();
-                            }
+                        && !table.is_structure()
+                    {
+                        let (col_idx, cell_value) =
+                            if let Some((row_key, col_key)) = table.result.state.cursor() {
+                                let c_idx = usize::from(col_key.raw()).saturating_sub(1);
+                                let row_idx = (0..table.result.model.row_count())
+                                    .find(|r| table.result.model.row_key(*r) == row_key);
+                                let val = row_idx
+                                    .and_then(|r| table.result.model.cell(r, c_idx))
+                                    .map(|c| c.text.to_owned())
+                                    .unwrap_or_default();
+                                (c_idx, val)
+                            } else {
+                                (0, String::new())
+                            };
+                        let prefill = match cell_value.as_str() {
+                            "" | "NULL" => (col_idx, FilterOp::IsNull, String::new()),
+                            other => (col_idx, FilterOp::Eq, other.to_owned()),
+                        };
+                        self.open_filter_editor(cx, None, Some(prefill));
+                        response |= Response::changed();
+                    }
                 }
                 c if c == FILTER_EMPTY => {
                     if self.screen == Screen::Workbench
                         && let Some(Tab::Table(table)) = self.workbench.active()
-                            && !table.is_structure() {
-                                self.open_filter_editor(cx, None, None);
-                                response |= Response::changed();
-                            }
+                        && !table.is_structure()
+                    {
+                        self.open_filter_editor(cx, None, None);
+                        response |= Response::changed();
+                    }
                 }
                 c if c == SORT => {
                     if self.screen == Screen::Workbench
                         && let Some(Tab::Table(table)) = self.workbench.active_mut()
-                            && !table.is_structure() {
-                                let col_idx = table
-                                    .result
-                                    .state
-                                    .cursor()
-                                    .map(|(_, col)| usize::from(col.raw()).saturating_sub(1))
-                                    .unwrap_or(0);
-                                let col_key = ColumnKey::num((col_idx as u16).saturating_add(1));
-                                let next_sort = match table.result.state.sort() {
-                                    Some((c, SortDir::Asc)) if c == col_key => {
-                                        Some((col_key, SortDir::Desc))
-                                    }
-                                    Some((c, SortDir::Desc)) if c == col_key => None,
-                                    _ => Some((col_key, SortDir::Asc)),
-                                };
-                                self.status = table.reload_sorted(&self.catalog, col_idx, next_sort);
-                                response |= Response::changed();
+                        && !table.is_structure()
+                    {
+                        let col_idx = table
+                            .result
+                            .state
+                            .cursor()
+                            .map(|(_, col)| usize::from(col.raw()).saturating_sub(1))
+                            .unwrap_or(0);
+                        let col_key = ColumnKey::num((col_idx as u16).saturating_add(1));
+                        let next_sort = match table.result.state.sort() {
+                            Some((c, SortDir::Asc)) if c == col_key => {
+                                Some((col_key, SortDir::Desc))
                             }
+                            Some((c, SortDir::Desc)) if c == col_key => None,
+                            _ => Some((col_key, SortDir::Asc)),
+                        };
+                        self.status = table.reload_sorted(&self.catalog, col_idx, next_sort);
+                        response |= Response::changed();
+                    }
                 }
                 c if c == TAB_LIST => {
                     if self.screen == Screen::Workbench && !self.is_editing() {
@@ -7847,22 +7926,23 @@ impl App for TableProApp {
                 .explorer_nodes
                 .iter()
                 .find(|node| explorer_node_key(node) == *key)
-            {
-                match node {
-                    ExplorerNode::Object { item, .. } => {
-                        let item = item.clone();
-                        if self.open_table(&item)
-                            && let Some(tab_key) = self.workbench.active_key() {
-                                let ctrl = tab_key.control("data");
-                                self.workbench_focus = ctrl;
-                                cx.focus(ctrl);
-                            }
-                    }
-                    _ => {
-                        self.explorer_tree_state.toggle(*key);
+        {
+            match node {
+                ExplorerNode::Object { item, .. } => {
+                    let item = item.clone();
+                    if self.open_table(&item)
+                        && let Some(tab_key) = self.workbench.active_key()
+                    {
+                        let ctrl = tab_key.control("data");
+                        self.workbench_focus = ctrl;
+                        cx.focus(ctrl);
                     }
                 }
+                _ => {
+                    self.explorer_tree_state.toggle(*key);
+                }
             }
+        }
         response |= tree_response.erase();
 
         let tabs_response = tab_strip().update(cx, &mut self.tabs_state, self.workbench.tabs());
@@ -7885,7 +7965,8 @@ impl App for TableProApp {
                                 let ctrl = tab_key.control("data");
                                 self.workbench_focus = ctrl;
                                 cx.focus(ctrl);
-                            } else if let Some(focus) = self.query_id().or_else(|| self.result_id()) {
+                            } else if let Some(focus) = self.query_id().or_else(|| self.result_id())
+                            {
                                 self.workbench_focus = focus;
                                 cx.focus(focus);
                             }
@@ -7936,11 +8017,11 @@ impl App for TableProApp {
             );
             let body = workbench_rows[1];
             let narrow = body.width < 100;
-            let in_dialog = self.safety_dialog.is_some()
-                || self.destructive_intent.is_some()
-                || self.help_open;
+            let in_dialog =
+                self.safety_dialog.is_some() || self.destructive_intent.is_some() || self.help_open;
             let explorer_focused = !in_dialog
-                && (self.workbench_focus == EXPLORER || (narrow && self.workbench.active().is_none()));
+                && (self.workbench_focus == EXPLORER
+                    || (narrow && self.workbench.active().is_none()));
             let show_explorer = self.workbench.explorer_visible
                 && !self.workbench.maximized
                 && (!narrow || explorer_focused);
@@ -7989,19 +8070,28 @@ impl App for TableProApp {
         draw_footer(ui, rows[2], self);
         let (cols, screen_rows) = (full.width, full.height);
         ui.layer(quick_switcher::ID, |ui, area| {
-            self.switcher
-                .component(cols, screen_rows)
-                .draw(ui, area, &self.switcher.state, &self.switcher.items);
+            self.switcher.component(cols, screen_rows).draw(
+                ui,
+                area,
+                &self.switcher.state,
+                &self.switcher.items,
+            );
         });
         ui.layer(tab_list::ID, |ui, area| {
-            self.tab_list
-                .component(cols, screen_rows)
-                .draw(ui, area, &self.tab_list.state, &self.tab_list.items);
+            self.tab_list.component(cols, screen_rows).draw(
+                ui,
+                area,
+                &self.tab_list.state,
+                &self.tab_list.items,
+            );
         });
         ui.layer(safe_mode_picker::ID, |ui, area| {
-            self.safe_mode_picker
-                .component(cols, screen_rows)
-                .draw(ui, area, &self.safe_mode_picker.state, &self.safe_mode_picker.items);
+            self.safe_mode_picker.component(cols, screen_rows).draw(
+                ui,
+                area,
+                &self.safe_mode_picker.state,
+                &self.safe_mode_picker.items,
+            );
         });
         ui.layer(HELP_DIALOG_ID, |ui, area| {
             help_dialog(cols, screen_rows).draw(ui, area, &self.help_dialog_state, |_, _| {});
@@ -8164,7 +8254,11 @@ mod replacement_tests {
     #[test]
     fn table_sort_keystroke_works() {
         let mut app = TableProApp::default();
-        let idx = app.connections.iter().position(|c| c.name == "Production").unwrap();
+        let idx = app
+            .connections
+            .iter()
+            .position(|c| c.name == "Production")
+            .unwrap();
         let _ = app.connect(idx);
         let mut h = Harness::new(app, Theme::junie(), 120, 40);
         // Navigate explorer to orders:
@@ -8186,7 +8280,11 @@ mod replacement_tests {
     #[test]
     fn test_filtered_harness() {
         let mut app = TableProApp::default();
-        let idx = app.connections.iter().position(|c| c.name == "Production").unwrap();
+        let idx = app
+            .connections
+            .iter()
+            .position(|c| c.name == "Production")
+            .unwrap();
         let _ = app.connect(idx);
         let mut h = Harness::new(app, Theme::junie(), 120, 40);
         for _ in 0..5 {
@@ -8674,4 +8772,3 @@ mod action_namespace_tests {
         }
     }
 }
-
