@@ -30,17 +30,17 @@ Each sentence holds one fact.
   Tests that need a PTY use the `pty-capture` adapter.
   Tests that draw to a buffer use the `headless-tick` adapter.
 - **Parameter case**: one Checkpoint capture with fixed viewport, color, and motion.
-  All 414 Checkpoints set `capture: true`.
+  All 421 Checkpoints set `capture: true`.
 - **Legacy root**: one old snapshot path.
   The registry maps old paths to new row IDs.
   Pending roots have no row yet.
 
 ## Required coverage rows
 
-- `registry.json` holds 286 scenarios.
-- The 7 group slices hold the same 286 scenarios.
-- The 7 slices hold 295 coverage row refs across 47 components.
-- Controls lists 133 row refs for 124 scenarios.
+- `registry.json` holds 293 scenarios.
+- The 7 group slices hold the same 293 scenarios.
+- The 7 slices hold 302 coverage row refs across 47 components.
+- Controls lists 135 row refs for 126 scenarios.
   Some rows sit under two components.
 - Every row has at least one input step.
 - Every row has at least one capture Checkpoint.
@@ -48,31 +48,31 @@ Each sentence holds one fact.
 
 | Slice | Scenarios | Components | Row refs | Legacy entries |
 |---|---|---|---|---|
-| controls | 124 | 11 | 133 | 130 |
+| controls | 126 | 11 | 135 | 132 |
 | fields | 17 | 3 | 17 | 11 |
 | navigation | 30 | 8 | 30 | 45 |
-| overlays | 51 | 10 | 51 | 72 |
+| overlays | 56 | 10 | 56 | 77 |
 | forms | 19 | 2 | 19 | 21 |
 | feedback | 13 | 6 | 13 | 11 |
 | data-views | 32 | 7 | 32 | 48 |
-| total | 286 | 47 | 295 | 338 |
+| total | 293 | 47 | 302 | 345 |
 
 ## Required parameter cases
 
-- Checkpoints total 414.
-  All 414 set `capture: true`.
-- Rows by Checkpoint count: 202 rows have 1, 45 rows have 2, 34 rows have 3, 5 rows have 4.
-- Viewports: 114 rows at 80x24, 165 at 120x40, 4 at 72x20, 1 at 100x30, 1 at 60x10, 1 at 12x6.
-- Color: all 286 rows use truecolor.
-- Motion: 276 rows paused, 10 rows playing.
-- Adapters: 284 rows allow both adapters, 1 row PTY only, 1 row headless only.
-- Input steps total 1155.
-- Checks total 2267: visual 582, state 565, action 558, negative 562.
+- Checkpoints total 421.
+  All 421 set `capture: true`.
+- Rows by Checkpoint count: 209 rows have 1, 45 rows have 2, 34 rows have 3, 5 rows have 4.
+- Viewports: 115 rows at 80x24, 171 at 120x40, 4 at 72x20, 1 at 100x30, 1 at 60x10, 1 at 12x6.
+- Color: all 293 rows use truecolor.
+- Motion: 283 rows paused, 10 rows playing.
+- Adapters: 289 rows allow both adapters, 3 rows PTY only, 1 row headless only.
+- Input steps total 1182.
+- Checks total 2323: visual 596, state 579, action 572, negative 576.
 - Legacy matrix: 302 roots x 5 sizes x 5 colors = 7550 captures.
 
 ## Implemented tests
 
-- Registry: 286 of 286 rows are complete.
+- Registry: 293 of 293 rows are complete.
   Complete means inputs plus Checkpoints plus all 4 check classes.
 - Reference Rust suite: `tests/harness/tests/visual_baseline/`.
   It holds matrix tests plus `negative_controls` (18 tests), `control_states` (14 tests),
@@ -113,7 +113,9 @@ Each sentence holds one fact.
   (partial: the upgrade triplet plus 19 of 21 parity roots):
   22 more rows report `pass`; phase-8r executed slice 8A-H5
   (partial: the 2 parity leftovers plus 18 of 25 chrome roots):
-  20 more rows report `pass`, so 180 pass and 106 remain `unrun`.
+  20 more rows report `pass`; phase-8t executed slice 8A-H6
+  (final: the last 7 of the 25 chrome roots):
+  7 more rows report `pass`, so 187 pass and 106 remain `unrun`.
   Evidence: `/tmp/phase8c2-focused.log` (21 pass / 0 fail / 370 skip),
   `/tmp/phase8e-focused.log` (14 pass / 0 fail / 391 skip),
   `/tmp/phase8g-focused.log` (30 pass / 0 fail / 405 skip),
@@ -121,7 +123,8 @@ Each sentence holds one fact.
   `/tmp/phase8k-focused.log` (22 pass / 0 fail / 464 skip),
   `/tmp/phase8n-focused.log` (22 pass / 0 fail / 486 skip),
   `/tmp/phase8p-focused.log` (22 pass / 0 fail / 508 skip),
-  `/tmp/phase8r-focused.log` (20 pass / 0 fail / 530 skip).
+  `/tmp/phase8r-focused.log` (20 pass / 0 fail / 530 skip),
+  `/tmp/phase8t-focused.log` (7 pass / 0 fail / 550 skip).
 
 ## Reference passes
 
@@ -199,9 +202,9 @@ Each sentence holds one fact.
 - The candidate lacks 3 slice files: controls, fields, navigation.
   That is 56 missing coverage row refs and 32 roots triaged nowhere on the candidate.
   On the reference, 26 of those 32 have a mapped row and 6 are pending-only.
-- All 286 `cand_symbols` mirror `ref_symbols` exactly.
+- All 293 `cand_symbols` mirror `ref_symbols` exactly.
   They are placeholders, not derived candidate facts.
-- All 286 `snapshots.cand` lists are empty.
+- All 293 `snapshots.cand` lists are empty.
 - The union `legacy_roots` list still marks all 302 roots pending.
   It was never reconciled with the slice mappings.
 
@@ -211,33 +214,35 @@ Each sentence holds one fact.
 - Reference: argv0 mask holds fail-closed with negative controls.
 - Candidate: html mask tests 6 of 6 pass, including negative controls.
 - Candidate: mask forgiveness fired 0 times in the full run.
-- Registry: 562 negative checks exist across 286 rows, all unrun.
+- Registry: 576 negative checks exist across 293 rows, all unrun.
 - Candidate: no dedicated negative-controls module exists.
 
 ## Uncovered inventory
 
 - App journeys: showcase 23 pages, holla 34 scenarios and 15 routes,
   jackin 8 scenarios and 12 routes, tablepro 2 screens and 21 surfaces.
-- Registry rows by app: showcase 94, jackin-preview 47, tablepro 28, holla 117.
-- Holla is the largest gap: 117 rows against 34 scenarios.
-- Legacy roots: 295 distinct roots triaged in slices.
-  295 have a mapped row, 0 are pending-only.
-  7 roots still pending.
-- Pending roots by app: holla 7, jackin 0, showcase 0, tablepro 0.
+- Registry rows by app: showcase 94, jackin-preview 47, tablepro 28, holla 124.
+- Holla is the largest gap: 124 rows against 34 scenarios.
+- Legacy roots: 302 distinct roots triaged in slices.
+  302 have a mapped row, 0 are pending-only.
+  0 roots still pending.
+- Pending roots by app: holla 0, jackin 0, showcase 0, tablepro 0.
 - 16 slice legacy entries are marked pending, not mapped.
-- 34 roots appear in more than one slice.
+- 35 roots appear in more than one slice.
   24 roots are mapped by more than one slice.
 - `TOOSMALL-NOTICE-001` has no reference snapshots.
   It is a behavioral probe.
 - No full-suite rerun exists at either current tip.
 - No registry-driven runner exists yet; the 21 S1 rows plus the 14 T1
   rows plus the 30 J1 rows plus the 29 H1 rows plus the 22 H2 rows
-  plus the 22 H3 rows plus the 22 H4 rows plus the 20 H5 rows were
-  executed as live-PTY tests (`showcase_pending_s1.rs`, phase-8c;
-  `tablepro_pending_t1.rs`, phase-8e; `jackin_pending_j1.rs`, phase-8g;
-  `holla_pending_h1.rs`, phase-8i; `holla_pending_h2.rs`, phase-8k;
-  `holla_pending_h3.rs`, phase-8n; `holla_pending_h4.rs`, phase-8p;
-  `holla_pending_h5.rs`, phase-8r), so 106 rows remain unrun as cases.
+  plus the 22 H3 rows plus the 22 H4 rows plus the 20 H5 rows plus
+  the 7 H6 rows were executed as live-PTY tests
+  (`showcase_pending_s1.rs`, phase-8c; `tablepro_pending_t1.rs`,
+  phase-8e; `jackin_pending_j1.rs`, phase-8g; `holla_pending_h1.rs`,
+  phase-8i; `holla_pending_h2.rs`, phase-8k; `holla_pending_h3.rs`,
+  phase-8n; `holla_pending_h4.rs`, phase-8p; `holla_pending_h5.rs`,
+  phase-8r; `holla_pending_h6.rs`, phase-8t), so 106 rows remain
+  unrun as cases.
 
 ## Evidence paths
 
