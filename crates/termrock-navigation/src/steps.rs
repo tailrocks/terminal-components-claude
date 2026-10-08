@@ -103,6 +103,10 @@ impl StepState {
     }
 }
 
+/// A step's meta accessor: the trailing text for a step, or `None` to
+/// keep the lifecycle word (`StepState::label`).
+pub type StepMetaFn<'a, T> = &'a dyn Fn(&T) -> Option<&str>;
+
 /// What a navigable rail reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StepsAction {
@@ -386,6 +390,8 @@ pub struct Steps<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     step: Option<&'a dyn Fn(&T) -> StepState>,
+    meta: Option<StepMetaFn<'a, T>>,
+    numbered: bool,
     navigable: bool,
     disabled: bool,
     ov: PartStyle<'a>,
@@ -419,6 +425,8 @@ impl<T> Steps<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             step: None,
+            meta: None,
+            numbered: false,
             navigable: false,
             disabled: false,
             ov: PartStyle::new(),
@@ -472,6 +480,22 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
+    /// The trailing-meta accessor. `Some` replaces the lifecycle word on
+    /// that row; `None` keeps it.
+    #[must_use]
+    pub const fn meta(mut self, f: StepMetaFn<'a, T>) -> Self {
+        self.meta = Some(f);
+        self
+    }
+
+    /// Prefix every row with its 1-based index (`01`, `02`, …) in the
+    /// META voice. Off by default.
+    #[must_use]
+    pub const fn numbered(mut self, yes: bool) -> Self {
+        self.numbered = yes;
+        self
+    }
+
     /// A stable key accessor.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Steps<'a, T, K2, R> {
         Steps {
@@ -479,6 +503,8 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
             key: k,
             row: self.row,
             step: self.step,
+            meta: self.meta,
+            numbered: self.numbered,
             navigable: self.navigable,
             disabled: self.disabled,
             ov: self.ov,
@@ -496,6 +522,8 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
             key: self.key,
             row: r,
             step: self.step,
+            meta: self.meta,
+            numbered: self.numbered,
             navigable: self.navigable,
             disabled: self.disabled,
             ov: self.ov,
@@ -876,11 +904,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                 width: content.width,
                 height: 1,
             };
-            self.paint_row(ui, rect, flags, key, step, item);
+            self.paint_row(ui, rect, flags, key, step, item, i);
         }
         area
     }
 
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the row painter threads the draw context, resolved row identity, lifecycle and index through one private call"
+    )]
     fn paint_row(
         &self,
         ui: &mut Ui<'_>,
@@ -889,6 +921,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         key: ItemKey,
         step: StepState,
         item: &T,
+        index: usize,
     ) {
         let row_style = self.ov.style(
             ui,
@@ -961,10 +994,39 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
             width: rect.width.saturating_sub(3),
             ..rect
         };
-        let meta_width = crate::text::width(step.label());
-        if meta_width > 0 && meta_width.saturating_add(2) <= body.width {
+        // Numbered rails prefix the 1-based index and one gap cell; the
+        // number wears the META voice (faint, secondary while running).
+        if self.numbered && body.width >= 3 {
+            let n = index.saturating_add(1).min(99);
+            let num = [b'0' + (n / 10) as u8, b'0' + (n % 10) as u8];
+            let num_text = core::str::from_utf8(&num).unwrap_or("  ");
+            let style = self.ov.style(
+                ui,
+                self.id,
+                Family::STEPS,
+                Variant::DEFAULT,
+                Part::META,
+                flags,
+            );
+            ui.paint_str(Rect { width: 2, ..body }, num_text, style.style);
+            body.x = body.x.saturating_add(3);
+            body.width = body.width.saturating_sub(3);
+        }
+        // The trailing word is the caller's meta, else the lifecycle word
+        // only for the resting states; a running, done or failed row without
+        // an explicit meta shows none. It renders only when the label keeps
+        // twelve cells past it, right-aligned with a two-cell gap and one
+        // trailing blank.
+        let state_text = self.meta.and_then(|f| f(item)).or_else(|| match step {
+            StepState::Queued | StepState::Skipped | StepState::Blocked => Some(step.label()),
+            StepState::Running | StepState::Done | StepState::Failed => None,
+        });
+        let right = body.right();
+        let avail = right.saturating_sub(body.x.saturating_add(1));
+        let meta_width = state_text.map_or(0, crate::text::width);
+        if meta_width > 0 && usize::from(avail) >= usize::from(meta_width).saturating_add(12) {
             let meta = Rect {
-                x: body.right().saturating_sub(meta_width),
+                x: right.saturating_sub(meta_width.saturating_add(1)),
                 width: meta_width,
                 ..body
             };
@@ -976,8 +1038,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                 Part::META,
                 flags,
             );
-            ui.paint_str(meta, step.label(), style.style);
-            body.width = body.width.saturating_sub(meta_width.saturating_add(1));
+            if let Some(state_text) = state_text {
+                ui.paint_str(meta, state_text, style.style);
+            }
+            body.width = avail.saturating_sub(meta_width.saturating_add(2));
+        } else {
+            body.width = avail;
         }
         if !body.is_empty() {
             let mut r = RowUi::new_with_patches(
@@ -1200,6 +1266,8 @@ mod tests {
     /// symbol-carrying affordances are the `Part::ICON` glyph and the
     /// `Part::META` state word; `Queued` and `Skipped` share a blank glyph,
     /// so the word is the only thing separating them and it must be painted.
+    /// The in-flight and finished states (`Running`, `Done`, `Failed`) carry
+    /// distinct icon glyphs instead and show no word without a caller meta.
     #[test]
     fn every_lifecycle_state_paints_a_symbol_that_separates_it() {
         let items = [
@@ -1214,11 +1282,21 @@ mod tests {
         let (rows, _) = render(&rail, &items, 6);
         assert_eq!(rows.len(), 6);
         for (i, (step, row)) in items.iter().zip(rows.iter()).enumerate() {
-            let want = step.1.label();
-            assert!(
-                row.contains(want),
-                "row {i} does not carry its state word {want:?}: {row:?}"
-            );
+            match step.1 {
+                StepState::Queued | StepState::Skipped | StepState::Blocked => {
+                    let want = step.1.label();
+                    assert!(
+                        row.contains(want),
+                        "row {i} does not carry its state word {want:?}: {row:?}"
+                    );
+                }
+                StepState::Running | StepState::Done | StepState::Failed => {
+                    assert!(
+                        !row.contains(step.1.label()),
+                        "row {i} must not carry a state word without a caller meta: {row:?}"
+                    );
+                }
+            }
         }
         // pairwise: no two rows are the same run of symbols
         for (i, a) in rows.iter().enumerate() {
@@ -1522,7 +1600,9 @@ mod tests {
             .step(&state)
             .row(row)
             .patch_part(&owner_parts);
-        let items = [S("label", StepState::Running)];
+        // Queued carries a component-owned state word; Running shows none
+        // without a caller meta.
+        let items = [S("label", StepState::Queued)];
         let area = Rect::new(0, 0, 40, 1);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
@@ -1554,7 +1634,7 @@ mod tests {
                 "component-owned cell {x} did not receive owner patch"
             );
         }
-        for (text, x) in [("rm", 30), ("cu", 27), ("ce", 24)] {
+        for (text, x) in [("rm", 29), ("cu", 26), ("ce", 23)] {
             assert!(
                 buffer
                     .cell(Position::new(x, 0))

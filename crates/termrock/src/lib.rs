@@ -178,9 +178,9 @@ pub use termrock_navigation::{
     AsItem, BadgeFn, ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, FilterList,
     FilterListAction, FilterListCmd, FilterListState, FilterPolicy, Item, ItemRow, ItemRowLayout,
     List, ListAction, ListCmd, ListState, NavList, NavListAction, NavListCmd, NavListState,
-    NavMode, NodeKind, StepState, Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction,
-    TabsCmd, TabsState, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode,
-    TreeState,
+    NavMode, NodeKind, StepMetaFn, StepState, Steps, StepsAction, StepsCmd, StepsState, Tabs,
+    TabsAction, TabsCmd, TabsState, Tree, TreeAction, TreeBranchActivation, TreeBranchClick,
+    TreeCmd, TreeNode, TreeState,
 };
 
 // components: viewport

@@ -435,5 +435,46 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
             (Part::KEY, StateFlags::DISABLED, dim),
         ],
     );
+    // Q67-SHOWMAIN (terminal rail): a step row voices its lifecycle
+    // (`tag:steps.rs:247-299`). The label is muted at rest, secondary when
+    // done or blocked, primary+bold while running, faint when skipped and
+    // danger+bold when failed; the icon is success once done and accent
+    // while running; the number and the trailing word share the META voice
+    // (faint, secondary while running, danger on failure, warning when
+    // blocked). STEPS-scoped: only the Steps rails resolve here.
+    let rail = &mut recipes.get_mut(Family::STEPS).parts;
+    // The rail fill never voices the lifecycle (`tag:steps.rs:239`: the row
+    // style is interaction-only), so the shared BUSY/ERROR row_like voices
+    // are restored to primary here.
+    let container = rail.entry(Part::CONTAINER);
+    let primary = p().set_fg(Role::Fg(FgStep::Primary));
+    container
+        .when(StateFlags::BUSY, primary)
+        .when(StateFlags::ERROR, primary)
+        .when(StateFlags::WARNING, primary);
+    let label = rail.entry(Part::LABEL);
+    label.base = p().set_fg(Role::Fg(FgStep::Muted));
+    label
+        .when(StateFlags::CHECKED, p().set_fg(Role::Fg(FgStep::Secondary)))
+        .when(
+            StateFlags::BUSY,
+            p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+        )
+        .when(StateFlags::READ_ONLY, p().set_fg(Role::Fg(FgStep::Faint)))
+        .when(
+            StateFlags::ERROR,
+            p().set_fg(Role::Danger).add(Modifier::BOLD),
+        )
+        .when(StateFlags::WARNING, p().set_fg(Role::Fg(FgStep::Secondary)));
+    let icon = rail.entry(Part::ICON);
+    icon.base = p().set_fg(Role::Fg(FgStep::Primary));
+    icon.when(StateFlags::CHECKED, p().set_fg(Role::Success))
+        .when(StateFlags::BUSY, p().set_fg(Role::Accent))
+        .when(StateFlags::ERROR, p().set_fg(Role::Danger));
+    let meta = rail.entry(Part::META);
+    meta.base = p().set_fg(Role::Fg(FgStep::Faint));
+    meta.when(StateFlags::BUSY, p().set_fg(Role::Fg(FgStep::Secondary)))
+        .when(StateFlags::ERROR, p().set_fg(Role::Danger))
+        .when(StateFlags::WARNING, p().set_fg(Role::Warning));
     recipes
 }

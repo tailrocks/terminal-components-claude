@@ -58,7 +58,7 @@ pub use filter_list::{FilterList, FilterListAction, FilterListCmd, FilterListSta
 pub use item::{AsItem, Item, ItemColumns, ItemRow, ItemRowLayout};
 pub use list::{List, ListAction, ListCmd, ListState};
 pub use nav_list::{BadgeFn, NavList, NavListAction, NavListCmd, NavListState, NavMode};
-pub use steps::{StepState, Steps, StepsAction, StepsCmd, StepsState};
+pub use steps::{StepMetaFn, StepState, Steps, StepsAction, StepsCmd, StepsState};
 pub use tabs::{Tabs, TabsAction, TabsCmd, TabsState};
 pub use tree::{
     NodeKind, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode, TreeState,

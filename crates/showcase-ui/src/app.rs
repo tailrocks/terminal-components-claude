@@ -540,6 +540,7 @@ pub struct App {
     quit: bool,
     status: Option<(PageStatus, Moment)>,
     motion_paused: bool,
+    paused_frame: u64,
 }
 
 impl core::fmt::Debug for App {
@@ -553,6 +554,7 @@ impl core::fmt::Debug for App {
             .field("keymap", &self.keymap)
             .field("inspector", &self.inspector)
             .field("motion_paused", &self.motion_paused)
+            .field("paused_frame", &self.paused_frame)
             .field("quit", &self.quit)
             .field("status", &self.status.as_ref().map(|(_, since)| since))
             .finish()
@@ -591,6 +593,7 @@ impl App {
             quit: false,
             status: None,
             motion_paused: paused,
+            paused_frame: u64::try_from(frame).unwrap_or(u64::MAX),
         }
     }
 
@@ -1468,6 +1471,10 @@ impl TuiApp for App {
         // it never changes the selected page or exits the application.
         cx.focus(NAV);
         Response::changed()
+    }
+
+    fn pinned_tick(&self) -> Option<u64> {
+        self.motion_paused.then_some(self.paused_frame)
     }
 }
 
