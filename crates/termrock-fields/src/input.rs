@@ -1073,13 +1073,38 @@ impl<'a> TextInput<'a> {
         true
     }
 
+    /// The update phase over any [`TextTarget`], without the form
+    /// bridge's focus pre-begin. Sensitivity reconciles from this
+    /// control's `.secret()` policy only: a `Secret` value never
+    /// re-sensitizes the state, so plaintext acknowledgement echo keeps a
+    /// secret-typed store. Every other arm matches [`TextInput::update`].
+    pub fn update_value<T: TextTarget + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut TextInputState,
+        value: &mut T,
+    ) -> Response<TextAction> {
+        self.update_core(cx, st, value, false)
+    }
+
     fn update_target<T: TextTarget + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
         st: &mut TextInputState,
         value: &mut T,
     ) -> Response<TextAction> {
-        st.set_sensitive(self.secret.is_some() || value.is_sensitive());
+        let value_sensitive = value.is_sensitive();
+        self.update_core(cx, st, value, value_sensitive)
+    }
+
+    fn update_core<T: TextTarget + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut TextInputState,
+        value: &mut T,
+        value_sensitive: bool,
+    ) -> Response<TextAction> {
+        st.set_sensitive(self.secret.is_some() || value_sensitive);
         let mut acc = super::Acc::<TextAction>::new();
         let editable = self.editable();
         // W08-07: the caller owns the value and may rewrite it under an
@@ -1706,6 +1731,103 @@ mod tests {
             }),
         );
         runtime.app().state.clone()
+    }
+
+    struct ValueApp {
+        state: TextInputState,
+        value: Secret,
+        secret_control: bool,
+        last: Option<TextAction>,
+    }
+
+    impl App for ValueApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let input = TextInput::new(ID);
+            let input = if self.secret_control {
+                input.secret(SecretPolicy::default())
+            } else {
+                input
+            };
+            let r = input.update_value(cx, &mut self.state, &mut self.value);
+            self.last = r.action_ref().copied();
+            r.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let input = TextInput::new(ID);
+            let input = if self.secret_control {
+                input.secret(SecretPolicy::default())
+            } else {
+                input
+            };
+            input
+                .value(self.value.expose())
+                .draw(ui, SCREEN, &self.state);
+        }
+    }
+
+    /// `update_value` is the plain generic path: no focus pre-begin, the
+    /// `update` lifecycle over a `Secret` value, and sensitivity from the
+    /// control policy only — a secret-typed store never re-sensitizes.
+    #[test]
+    fn update_value_is_plain_and_control_sensitive_only() {
+        let mut rt = Runtime::new(
+            ValueApp {
+                state: TextInputState::default(),
+                value: Secret::new(String::new()),
+                secret_control: false,
+                last: None,
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        rt.set_focus(Some(ID));
+        let key = |code| {
+            Input::Key(Key {
+                code,
+                mods: KeyModifiers::NONE,
+            })
+        };
+        let step = |rt: &mut Runtime<ValueApp>, buf: &mut Buffer, input: Input| {
+            let _ = crate::runtime::stub::deliver(rt, input);
+            rt.draw_buffer(SCREEN, &mut *buf).commit_presented();
+        };
+        step(&mut rt, &mut buf, Input::Tick);
+        assert!(
+            !rt.app().state.is_editing(),
+            "update_value never pre-begins on focus"
+        );
+        assert!(
+            !rt.app().state.is_sensitive(),
+            "a Secret value must not re-sensitize a plain control"
+        );
+        step(&mut rt, &mut buf, key(KeyCode::Enter));
+        assert!(rt.app().state.is_editing(), "idle Enter begins");
+        assert_eq!(rt.app().last, None, "begin reports no commit");
+        step(&mut rt, &mut buf, key(KeyCode::Char('a')));
+        assert_eq!(rt.app().last, Some(TextAction::Changed));
+        step(&mut rt, &mut buf, key(KeyCode::Enter));
+        assert_eq!(rt.app().last, Some(TextAction::Committed));
+        assert_eq!(rt.app().value.expose(), "a");
+        assert!(!rt.app().state.is_editing(), "commit ends the edit");
+        assert!(
+            !rt.app().state.is_sensitive(),
+            "committing into a Secret store stays non-sensitive"
+        );
+        step(&mut rt, &mut buf, key(KeyCode::Enter));
+        step(&mut rt, &mut buf, key(KeyCode::Char('b')));
+        step(&mut rt, &mut buf, key(KeyCode::Esc));
+        assert_eq!(rt.app().last, Some(TextAction::Cancelled));
+        assert_eq!(rt.app().value.expose(), "a", "cancel drops the draft");
+        assert!(!rt.app().state.is_editing());
+        rt.app_mut().secret_control = true;
+        step(&mut rt, &mut buf, Input::Tick);
+        assert!(
+            rt.app().state.is_sensitive(),
+            "a .secret() control still sensitizes"
+        );
     }
 
     #[test]

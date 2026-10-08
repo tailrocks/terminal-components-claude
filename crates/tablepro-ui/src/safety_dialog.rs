@@ -1,12 +1,12 @@
 use termrock::{
-    BlurPolicy, Button, FgStep, Field, Id, KeyCode, Modifier, Rect, Role, StylePatch, Surface,
-    TextInput, TextInputState, Ui, Variant, truncate, wrap,
+    Action, ActionKey, Cx, DesignTokens, Dialog, DialogAction, DialogState, FgStep, FrameRead, Id,
+    Intent, ItemKey, Part, Props, PropsRow, Rect, Response, Role, Ui, wrap,
 };
 
 pub const SAFETY_DIALOG: Id = Id::root("tablepro.safety-dialog");
-pub const SAFETY_INPUT: Id = Id::root("tablepro.safety-input");
-pub const SAFETY_CANCEL: Id = Id::root("tablepro.safety-cancel");
-pub const SAFETY_CONFIRM: Id = Id::root("tablepro.safety-confirm");
+pub const SAFETY_INPUT: Id = SAFETY_DIALOG.part(Part::FIELD);
+pub const SAFETY_CANCEL: Id = SAFETY_DIALOG.part(Part::ACTIONS).index(0);
+pub const SAFETY_CONFIRM: Id = SAFETY_DIALOG.part(Part::ACTIONS).index(1);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tone {
@@ -65,6 +65,37 @@ pub enum SafetyIntent {
     Commit,
 }
 
+const QUERY_TOKEN_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::primary(ActionKey::CONFIRM, "Execute"),
+];
+const COMMIT_TOKEN_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::primary(ActionKey::CONFIRM, "Save"),
+];
+const DANGER_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Delete"),
+];
+const QUERY_PLAIN_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::primary(ActionKey::CONFIRM, "Execute"),
+];
+const COMMIT_PLAIN_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::primary(ActionKey::CONFIRM, "Save"),
+];
+
+fn tone_role(tone: Tone) -> Role {
+    match tone {
+        Tone::Normal => Role::Fg(FgStep::Primary),
+        Tone::Secondary => Role::Fg(FgStep::Secondary),
+        Tone::Warning => Role::Warning,
+        Tone::Error => Role::Danger,
+        Tone::Muted => Role::Fg(FgStep::Muted),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct SafetyDialog {
     pub id: Id,
@@ -72,13 +103,13 @@ pub struct SafetyDialog {
     pub facts: Vec<Prop>,
     pub code: Vec<String>,
     pub token: Option<String>,
-    pub input_text: String,
-    pub input_state: TextInputState,
     pub confirm_label: String,
     pub confirm_danger: bool,
     pub width: u16,
     pub focus: SafetyFocus,
     pub intent: SafetyIntent,
+    state: DialogState,
+    max_height: Option<u16>,
 }
 
 impl SafetyDialog {
@@ -107,331 +138,214 @@ impl SafetyDialog {
             facts,
             code,
             token: tok,
-            input_text: String::new(),
-            input_state: TextInputState::default(),
             confirm_label: confirm_label.into(),
             confirm_danger,
             width,
             focus: initial_focus,
             intent,
+            state: DialogState::default(),
+            max_height: None,
         }
     }
 
     pub fn armed(&self) -> bool {
         match &self.token {
-            Some(tok) => {
-                let effective = self
-                    .input_state
-                    .draft_text()
-                    .unwrap_or(self.input_text.as_str());
-                effective.trim() == tok.trim()
-            }
+            Some(tok) => Dialog::acknowledge(SAFETY_DIALOG, &self.title, tok).armed(&self.state),
             None => true,
         }
     }
 
     pub fn is_editing(&self) -> bool {
-        self.input_state.is_editing()
+        self.state.is_editing()
     }
 
-    pub fn label_width(&self) -> usize {
-        self.facts.iter().map(|p| p.label.len()).max().unwrap_or(0) + 2
+    /// The layer-height clamp, applied by the open sites (which own the
+    /// screen rows) and reused on every frame so D1 re-asserts the size
+    /// the layer opened with.
+    pub fn set_max_height(&mut self, h: u16) {
+        self.max_height = Some(h);
     }
 
-    fn code_rows(&self) -> u16 {
-        if self.code.is_empty() {
-            0
-        } else {
-            self.code.len().min(6) as u16 + 1
+    fn kind_actions(token: bool, danger: bool, intent: SafetyIntent) -> &'static [Action<'static>] {
+        match (token, danger, intent) {
+            (true, false, SafetyIntent::Query) => &QUERY_TOKEN_ACTIONS,
+            (true, false, SafetyIntent::Commit) => &COMMIT_TOKEN_ACTIONS,
+            (true, true, _) => &DANGER_ACTIONS,
+            (false, false, SafetyIntent::Query) => &QUERY_PLAIN_ACTIONS,
+            (false, false, SafetyIntent::Commit) => &COMMIT_PLAIN_ACTIONS,
+            (false, true, _) => &DANGER_ACTIONS,
         }
     }
 
-    fn ack_rows(&self) -> u16 {
-        if self.token.is_some() {
-            4 // 1 gap + 3 input field
-        } else {
-            0
-        }
-    }
-
-    pub fn height(&self) -> u16 {
-        let label_w = self.label_width();
-        let inner_w = (self.width.saturating_sub(6) as usize).saturating_sub(label_w);
-        let mut facts_rows = 0u16;
-        for p in &self.facts {
+    /// Wrapped fact rows over the dialog's own content width, so the
+    /// anchored code block lands exactly on its sequential position.
+    fn count_rows(width: u16, facts: &[Prop], d: &DesignTokens) -> u16 {
+        let inner = Dialog::new(SAFETY_DIALOG).width(width).inner_width(d);
+        let label_w = facts
+            .iter()
+            .map(|p| p.label.len())
+            .max()
+            .unwrap_or(0)
+            .min(usize::from(u16::MAX)) as u16;
+        let vw = inner.saturating_sub(label_w).saturating_sub(2).max(4);
+        let mut rows = 0u16;
+        for p in facts {
             if p.wrap {
-                let lines = wrap(&p.value, inner_w.max(4) as u16);
-                facts_rows += lines.len() as u16;
+                rows =
+                    rows.saturating_add(wrap(&p.value, vw).len().min(usize::from(u16::MAX)) as u16);
             } else {
-                facts_rows += 1;
+                rows = rows.saturating_add(1);
             }
         }
-        let body_h = facts_rows + self.code_rows() + self.ack_rows();
-        // border(2) + pad(1) + title(1) + gap(1) + body + gap(1) + actions(1) + pad(1) = body_h + 8
-        body_h + 8
+        rows
     }
 
-    pub fn on_key(&mut self, key: termrock::Key) -> Option<SafetyDialogAction> {
-        match self.focus {
-            SafetyFocus::Input => {
-                // Idle-nav only: the update bridge owns Enter/char (TextInput
-                // pre-begin + update) and Esc/Right (Binding match); the
-                // editing arms died with `input_editing`. Tab never arrives
-                // here — traversal consumes it (dead on base too).
-                if key.code == KeyCode::Down {
-                    self.focus = SafetyFocus::Cancel;
+    /// The stock dialog for this model. Token kinds take the typed
+    /// acknowledgement below the body with the idle gate and plaintext
+    /// echo; plain kinds take no input and focus the primary action
+    /// (or Cancel for danger). Never a description: y/n must type text.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "split borrows keep state mutable"
+    )]
+    fn build<'s>(
+        title: &'s str,
+        codes: &'s [&'s str],
+        token: &'s Option<String>,
+        confirm_danger: bool,
+        width: u16,
+        intent: SafetyIntent,
+        max_height: Option<u16>,
+        label: Option<&'s str>,
+        facts_rows: u16,
+    ) -> Dialog<'s> {
+        let actions = Self::kind_actions(token.is_some(), confirm_danger, intent);
+        let base = match token.as_deref() {
+            Some(tok) => Dialog::acknowledge(SAFETY_DIALOG, title, tok)
+                .actions(actions)
+                .input_after_body(true)
+                .idle_ack(true)
+                .ack_secret(false),
+            None => {
+                let plain = Dialog::new(SAFETY_DIALOG)
+                    .title(title)
+                    .actions(actions)
+                    .cancel(ActionKey::CANCEL);
+                if confirm_danger {
+                    plain
+                } else {
+                    plain.primary(ActionKey::CONFIRM)
                 }
             }
-            SafetyFocus::Cancel => match key.code {
-                KeyCode::Esc => {
-                    return Some(SafetyDialogAction::Cancel);
-                }
-                KeyCode::Enter => {
-                    return Some(SafetyDialogAction::Cancel);
-                }
-                KeyCode::Left | KeyCode::BackTab if self.token.is_some() => {
-                    self.focus = SafetyFocus::Input;
-                }
-                // Tab is dead here (traversal consumes it before `on_key`).
-                KeyCode::Right if self.armed() => {
-                    self.focus = SafetyFocus::Confirm;
-                }
-                _ => {}
-            },
-            SafetyFocus::Confirm => match key.code {
-                KeyCode::Esc => {
-                    return Some(SafetyDialogAction::Cancel);
-                }
-                KeyCode::Enter => {
-                    if self.armed() {
-                        return Some(SafetyDialogAction::Confirm);
-                    }
-                }
-                KeyCode::Left | KeyCode::BackTab => {
-                    self.focus = SafetyFocus::Cancel;
-                }
-                _ => {}
-            },
+        };
+        let mut dlg = base.width(width).body_rows(facts_rows).code(codes);
+        if let Some(max) = max_height {
+            dlg = dlg.max_height(max);
         }
-        None
+        if let Some(l) = label {
+            dlg = dlg.input_label(l);
+        }
+        dlg
+    }
+
+    /// Open the modal layer for this dialog. Initial focus comes from
+    /// the stock dialog (input, primary, or Cancel by kind).
+    pub fn open_layer(&self, cx: &mut Cx<'_>) {
+        let codes: Vec<&str> = self.code.iter().map(String::as_str).collect();
+        let label = self
+            .token
+            .as_ref()
+            .map(|tok| format!("Type {tok} to confirm"));
+        let facts_rows = Self::count_rows(self.width, &self.facts, cx.design());
+        let dlg = Self::build(
+            &self.title,
+            &codes,
+            &self.token,
+            self.confirm_danger,
+            self.width,
+            self.intent,
+            self.max_height,
+            label.as_deref(),
+            facts_rows,
+        );
+        let mut spec = dlg.layer(cx);
+        spec.restore_focus = true;
+        cx.open_layer(SAFETY_DIALOG, spec);
+    }
+
+    /// Host the stock dialog: mirror focus into the model, then drive.
+    pub fn update(&mut self, cx: &mut Cx<'_>) -> Response<DialogAction> {
+        for (id, focus) in [
+            (SAFETY_INPUT, SafetyFocus::Input),
+            (SAFETY_CANCEL, SafetyFocus::Cancel),
+            (SAFETY_CONFIRM, SafetyFocus::Confirm),
+        ] {
+            for intent in cx.intents(id) {
+                if let Intent::FocusIn { .. } = intent {
+                    self.focus = focus;
+                }
+            }
+        }
+        let codes: Vec<&str> = self.code.iter().map(String::as_str).collect();
+        let label = self
+            .token
+            .as_ref()
+            .map(|tok| format!("Type {tok} to confirm"));
+        let facts_rows = Self::count_rows(self.width, &self.facts, cx.design());
+        let Self {
+            title,
+            token,
+            confirm_danger,
+            width,
+            intent,
+            max_height,
+            state,
+            ..
+        } = self;
+        let dlg = Self::build(
+            title,
+            &codes,
+            token,
+            *confirm_danger,
+            *width,
+            *intent,
+            *max_height,
+            label.as_deref(),
+            facts_rows,
+        );
+        dlg.update(cx, state)
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        if area.is_empty() {
-            return;
-        }
-        let elevated_fill =
-            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Elevated)));
-        ui.fill(area, elevated_fill);
-
-        let elevated_style = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Elevated))));
-
-        let border_style =
-            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
-
-        // Corners
-        ui.paint_str(Rect::new(area.x, area.y, 1, 1), "╭", border_style);
-        ui.paint_str(
-            Rect::new(area.right().saturating_sub(1), area.y, 1, 1),
-            "╮",
-            border_style,
-        );
-        ui.paint_str(
-            Rect::new(area.x, area.bottom().saturating_sub(1), 1, 1),
-            "╰",
-            border_style,
-        );
-        ui.paint_str(
-            Rect::new(
-                area.right().saturating_sub(1),
-                area.bottom().saturating_sub(1),
-                1,
-                1,
-            ),
-            "╯",
-            border_style,
-        );
-
-        // Horizontal borders
-        if area.width > 2 {
-            let hbar = "─".repeat(area.width as usize - 2);
-            ui.paint_str(
-                Rect::new(area.x + 1, area.y, area.width - 2, 1),
-                &hbar,
-                border_style,
-            );
-            ui.paint_str(
-                Rect::new(
-                    area.x + 1,
-                    area.bottom().saturating_sub(1),
-                    area.width - 2,
-                    1,
-                ),
-                &hbar,
-                border_style,
-            );
-        }
-
-        // Vertical borders
-        for y in (area.y + 1)..area.bottom().saturating_sub(1) {
-            ui.paint_str(Rect::new(area.x, y, 1, 1), "│", border_style);
-            ui.paint_str(
-                Rect::new(area.right().saturating_sub(1), y, 1, 1),
-                "│",
-                border_style,
-            );
-        }
-
-        let inner = Rect::new(
-            area.x + 3,
-            area.y + 2,
-            area.width.saturating_sub(6),
-            area.height.saturating_sub(4),
-        );
-        if inner.is_empty() {
-            return;
-        }
-
-        // Title
-        let title_style = elevated_style.patch(
-            ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .add(Modifier::BOLD),
-            ),
-        );
-        ui.paint_str(
-            Rect::new(inner.x, inner.y, inner.width, 1),
+        let codes: Vec<&str> = self.code.iter().map(String::as_str).collect();
+        let label = self
+            .token
+            .as_ref()
+            .map(|tok| format!("Type {tok} to confirm"));
+        let facts_rows = Self::count_rows(self.width, &self.facts, ui.design());
+        let dlg = Self::build(
             &self.title,
-            title_style,
+            &codes,
+            &self.token,
+            self.confirm_danger,
+            self.width,
+            self.intent,
+            self.max_height,
+            label.as_deref(),
+            facts_rows,
         );
-
-        // Facts
-        let actions_y = area.bottom().saturating_sub(3);
-        let fixed = self.code_rows() + self.ack_rows();
-        let facts_bottom = actions_y.saturating_sub(1 + fixed);
-        let label_w = self.label_width();
-        let vw = (inner.width as usize).saturating_sub(label_w);
-        let mut y = inner.y + 2;
-        let muted_style = elevated_style
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-        let primary_style = elevated_style
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-        let secondary_style = elevated_style
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
-        let warning_style =
-            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)));
-        let danger_style =
-            elevated_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Danger)));
-
-        for prop in &self.facts {
-            if y >= facts_bottom {
-                break;
-            }
-            let tone_style = match prop.tone {
-                Tone::Normal => primary_style,
-                Tone::Secondary => secondary_style,
-                Tone::Warning => warning_style,
-                Tone::Error => danger_style,
-                Tone::Muted => muted_style,
-            };
-            let lines = if prop.wrap {
-                wrap(&prop.value, vw.max(4) as u16)
-            } else {
-                vec![truncate(&prop.value, vw as u16)]
-            };
-            for (i, line) in lines.iter().enumerate() {
-                if y >= facts_bottom {
-                    break;
-                }
-                if i == 0 {
-                    ui.paint_str(
-                        Rect::new(inner.x, y, label_w as u16, 1),
-                        &prop.label,
-                        muted_style,
-                    );
-                }
-                ui.paint_str(
-                    Rect::new(
-                        inner.x + label_w as u16,
-                        y,
-                        inner.width.saturating_sub(label_w as u16),
-                        1,
-                    ),
-                    line,
-                    tone_style,
-                );
-                y += 1;
-            }
-        }
-
-        // Code
-        if !self.code.is_empty() {
-            y += 1;
-            let max = self.code.len().min(6);
-            for (i, line) in self.code.iter().take(max).enumerate() {
-                let shown = if i == max - 1 && self.code.len() > max {
-                    format!(
-                        "{} … {} more",
-                        truncate(line, inner.width.saturating_sub(12)),
-                        self.code.len() - max
-                    )
-                } else {
-                    truncate(line, inner.width)
-                };
-                ui.paint_str(
-                    Rect::new(inner.x, y, inner.width, 1),
-                    &shown,
-                    secondary_style,
-                );
-                y += 1;
-            }
-        }
-
-        // Token Input: stock `Field` chrome around `TextInput`. The Field area
-        // reproduces the legacy rects exactly: label text at x+2/w-2, the
-        // control row at (x, y+1, w).
-        if let Some(tok) = &self.token {
-            y += 1;
-            let label = format!("Type {tok} to confirm");
-            let field_area = Rect::new(area.x + 2, y, area.width.saturating_sub(5), 2);
-            ui.with_surface(Surface::Elevated, |ui| {
-                Field::new(
-                    &label,
-                    TextInput::new(SAFETY_INPUT)
-                        .value(&self.input_text)
-                        .blur(BlurPolicy::Commit),
-                )
-                .plain(true)
-                .draw(ui, field_area, &self.input_state);
-            });
-        }
-
-        // Actions row
-        let cancel_w = 8u16;
-        let confirm_w = (self.confirm_label.len() + 2) as u16;
-        let confirm_x = area.right().saturating_sub(3 + confirm_w);
-        let cancel_x = confirm_x.saturating_sub(1 + cancel_w);
-
-        let cancel_rect = Rect::new(cancel_x, actions_y, cancel_w, 1);
-        let confirm_rect = Rect::new(confirm_x, actions_y, confirm_w, 1);
-
-        ui.with_surface(Surface::Elevated, |ui| {
-            Button::new(SAFETY_CANCEL, "Cancel")
-                .variant(Variant::DEFAULT)
-                .draw(ui, cancel_rect);
-
-            let confirm_variant = if self.confirm_danger {
-                Variant::DANGER
-            } else {
-                Variant::PRIMARY
-            };
-            Button::new(SAFETY_CONFIRM, &self.confirm_label)
-                .variant(confirm_variant)
-                .disabled(!self.armed())
-                .draw(ui, confirm_rect);
+        let rows: Vec<PropsRow<'_>> = self
+            .facts
+            .iter()
+            .enumerate()
+            .map(|(i, p)| {
+                PropsRow::new(ItemKey::index(i), &p.label, &p.value)
+                    .tone(tone_role(p.tone))
+                    .wrap_if(p.wrap)
+            })
+            .collect();
+        dlg.draw(ui, area, &self.state, |ui, page| {
+            Props::rich(&rows).draw(ui, page);
         });
     }
 }

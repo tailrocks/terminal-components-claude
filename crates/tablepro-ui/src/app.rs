@@ -25,8 +25,7 @@ use crate::model::{SwitchTarget, auto_trigger, completion_batch};
 use crate::quick_switcher::{self, QuickSwitcher};
 use crate::safe_mode_picker::{self, SafeModePicker};
 use crate::safety_dialog::{
-    Prop, SAFETY_CANCEL, SAFETY_CONFIRM, SAFETY_DIALOG, SAFETY_INPUT, SafetyDialog,
-    SafetyDialogAction, SafetyFocus, SafetyIntent, Tone,
+    Prop, SAFETY_DIALOG, SafetyDialog, SafetyDialogAction, SafetyIntent, Tone,
 };
 use crate::tab_list::{self, TabList};
 use crate::tabs::{
@@ -1746,7 +1745,7 @@ impl TableProApp {
                 let cols = if cols == 0 { 120 } else { cols };
                 let rows = if rows == 0 { 40 } else { rows };
                 let dialog_w = 74.min(cols.saturating_sub(4)).max(20);
-                let dialog = SafetyDialog::new(
+                let mut dialog = SafetyDialog::new(
                     title,
                     facts,
                     vec![query_text.trim().to_owned()],
@@ -1756,18 +1755,8 @@ impl TableProApp {
                     dialog_w,
                     SafetyIntent::Query,
                 );
-                let dialog_h = dialog.height().min(rows.saturating_sub(2));
-                let mut spec = LayerSpec::modal(SAFETY_DIALOG);
-                spec.size = LayerSize::Fixed(dialog_w, dialog_h);
-                let focus_id = if dialog.token.is_some() {
-                    SAFETY_INPUT
-                } else {
-                    SAFETY_CONFIRM
-                };
-                spec.initial_focus = Some(focus_id);
-                spec.restore_focus = true;
-                cx.open_layer(SAFETY_DIALOG, spec);
-                cx.focus(focus_id);
+                dialog.set_max_height(rows.saturating_sub(2));
+                dialog.open_layer(cx);
                 self.safety_dialog = Some(dialog);
             }
             _ => {
@@ -1863,7 +1852,7 @@ impl TableProApp {
         let cols = if cols == 0 { 120 } else { cols };
         let rows = if rows == 0 { 40 } else { rows };
         let dialog_w = width.min(cols.saturating_sub(4)).max(20);
-        let dialog = SafetyDialog::new(
+        let mut dialog = SafetyDialog::new(
             "Save changes?",
             facts,
             code,
@@ -1873,18 +1862,8 @@ impl TableProApp {
             dialog_w,
             SafetyIntent::Commit,
         );
-        let dialog_h = dialog.height().min(rows.saturating_sub(2));
-        let mut spec = LayerSpec::modal(SAFETY_DIALOG);
-        spec.size = LayerSize::Fixed(dialog_w, dialog_h);
-        let focus_id = if dialog.token.is_some() {
-            SAFETY_INPUT
-        } else {
-            SAFETY_CONFIRM
-        };
-        spec.initial_focus = Some(focus_id);
-        spec.restore_focus = true;
-        cx.open_layer(SAFETY_DIALOG, spec);
-        cx.focus(focus_id);
+        dialog.set_max_height(rows.saturating_sub(2));
+        dialog.open_layer(cx);
         self.safety_dialog = Some(dialog);
     }
 
@@ -2494,129 +2473,23 @@ impl TableProApp {
         let Some(dialog) = self.safety_dialog.as_mut() else {
             return Response::ignored();
         };
-        if !cx.is_open(SAFETY_DIALOG) {
-            let status = match dialog.intent {
-                SafetyIntent::Query => "Cancelled · nothing was executed",
-                SafetyIntent::Commit => "Changes kept pending",
-            };
-            self.safety_dialog = None;
-            status.clone_into(&mut self.status);
-            self.status_since = Some(cx.now());
-            cx.focus(CONTENT_FRAME);
-            return Response::changed();
-        }
-        let mut action = None;
-        let mut key_received = false;
-        let mut focus_changed = false;
-        let mut response = Response::ignored();
-        for (id, focus) in [
-            (SAFETY_INPUT, SafetyFocus::Input),
-            (SAFETY_CANCEL, SafetyFocus::Cancel),
-            (SAFETY_CONFIRM, SafetyFocus::Confirm),
-        ] {
-            for intent in cx.intents(id) {
-                if let Intent::FocusIn { .. } = intent {
-                    dialog.focus = focus;
-                    focus_changed = true;
-                }
+        // The stock dialog owns its input, buttons, dismissal drain and
+        // focus; the app only maps its typed actions onto domain effects.
+        // `update` runs unconditionally so the `Dismissed` drain fires.
+        let dialog_response = dialog.update(cx);
+        let action = match dialog_response.action_ref() {
+            Some(DialogAction::Action(key)) if *key == ActionKey::CONFIRM => {
+                Some(SafetyDialogAction::Confirm)
             }
-        }
-        // Token field is owned by stock TextInput. The dialog opens gated
-        // (idle, Enter-to-arm), so there is no FocusIn pre-begin: beginning
-        // on focus would turn the opening Enter into a commit of the empty
-        // draft. A bare-char pre-begin is still needed — stock `update`
-        // drops typing while idle — while idle Enter natively begins.
-        let mut input_action = None;
-        if dialog.token.is_some() {
-            if dialog.focus == SafetyFocus::Input
-                && !dialog.input_state.is_editing()
-                && cx
-                    .intents(SAFETY_INPUT)
-                    .any(|intent| matches!(intent, Intent::Key(key) if key.bare_char().is_some()))
-            {
-                dialog.input_state.begin(&dialog.input_text);
+            Some(DialogAction::Action(key)) if *key == ActionKey::CANCEL => {
+                Some(SafetyDialogAction::Cancel)
             }
-            let input_response = termrock::TextInput::new(SAFETY_INPUT)
-                .blur(termrock::BlurPolicy::Commit)
-                .update(cx, &mut dialog.input_state, &mut dialog.input_text);
-            input_action = input_response.action_ref().copied();
-            response |= input_response.erase();
-        }
-        match input_action {
-            // Changed: live `armed()` re-gate; the gate row repaints.
-            Some(TextAction::Changed) => {
-                response |= Response::changed();
-            }
-            Some(TextAction::Committed) => {
-                dialog.focus = SafetyFocus::Cancel;
-                response |= Response::changed();
-            }
-            // Cancelled: the draft is dropped, focus stays on Input and the
-            // value is untouched (accepted delta vs keep-text).
-            _ => {}
-        }
-        // Esc/Right on an idle field arrive as Bindings (TextInput published
-        // SINGLE) rather than Keys. When the field already acted this frame,
-        // the same binding must not also move focus or close the dialog.
-        if input_action.is_none() && !dialog.input_state.is_editing() {
-            for intent in cx.intents(SAFETY_INPUT) {
-                if let Intent::Binding(key) = intent {
-                    if key == ActionKey::CANCEL || key == ActionKey::custom("Cancel") {
-                        action = Some(SafetyDialogAction::Cancel);
-                        break;
-                    }
-                    if key == ActionKey::custom("Right") {
-                        dialog.focus = SafetyFocus::Cancel;
-                        focus_changed = true;
-                        break;
-                    }
-                }
-            }
-        }
-        let btn_cancel = termrock::Button::new(SAFETY_CANCEL, "Cancel");
-        if btn_cancel.update(cx).activated() {
-            action = Some(SafetyDialogAction::Cancel);
-        }
-        let btn_confirm =
-            termrock::Button::new(SAFETY_CONFIRM, &dialog.confirm_label).disabled(!dialog.armed());
-        if btn_confirm.update(cx).activated() && dialog.armed() {
-            action = Some(SafetyDialogAction::Confirm);
-        }
-        if action.is_none() {
-            // SAFETY_INPUT is owned by TextInput now (feeding its keys here
-            // too would double-insert). Down still drains while idle — it is
-            // unbound in SINGLE — but never while editing (a no-op, as base).
-            for intent in cx
-                .intents(SAFETY_CANCEL)
-                .chain(cx.intents(SAFETY_CONFIRM))
-                .chain(cx.intents(SAFETY_DIALOG))
-            {
-                if let Intent::Key(key) = intent {
-                    key_received = true;
-                    if let Some(act) = dialog.on_key(key) {
-                        action = Some(act);
-                        break;
-                    }
-                }
-            }
-            if action.is_none()
-                && dialog.focus == SafetyFocus::Input
-                && !dialog.input_state.is_editing()
-            {
-                for intent in cx.intents(SAFETY_INPUT) {
-                    if let Intent::Key(key) = intent
-                        && key.code == KeyCode::Down
-                    {
-                        key_received = true;
-                        if let Some(act) = dialog.on_key(key) {
-                            action = Some(act);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
+            Some(DialogAction::Dismissed(_)) => Some(SafetyDialogAction::Cancel),
+            _ => None,
+        };
+        let mut response = dialog_response.erase();
         if let Some(act) = action {
+            response |= Response::changed();
             match act {
                 SafetyDialogAction::Cancel => {
                     let intent = dialog.intent;
@@ -2664,14 +2537,6 @@ impl TableProApp {
                     return Response::changed();
                 }
             }
-        }
-        match dialog.focus {
-            SafetyFocus::Input => cx.focus(SAFETY_INPUT),
-            SafetyFocus::Cancel => cx.focus(SAFETY_CANCEL),
-            SafetyFocus::Confirm => cx.focus(SAFETY_CONFIRM),
-        }
-        if key_received || focus_changed {
-            response |= Response::changed();
         }
         response
     }

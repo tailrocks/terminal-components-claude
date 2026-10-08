@@ -34,8 +34,8 @@ use tablepro_ui::{
     TableProApp,
 };
 use termrock::{
-    App, Color, ColorLevel, Cx, Diagnostic, Family, Id, KeyCode, KeyModifiers, LayerSize,
-    LayerSpec, Part, Response, Role, StateFlags, StylePatch, Theme, Ui,
+    App, Color, ColorLevel, Cx, Diagnostic, Family, Id, KeyCode, KeyModifiers, Part, Response,
+    Role, StateFlags, StylePatch, Theme, Ui,
 };
 use termrock_test_support::{Harness, harness_typed_input};
 
@@ -55,6 +55,8 @@ const INFO: Color = Color::Rgb(135, 135, 255);
 const BTN_BG: Color = Color::Rgb(39, 39, 42);
 const BTN_DARK: Color = Color::Rgb(25, 25, 28);
 const BORDER: Color = Color::Rgb(77, 77, 77);
+const WARN: Color = Color::Rgb(245, 158, 9);
+const ERR: Color = Color::Rgb(228, 69, 69);
 
 const BOLD: u16 = 0x0001;
 const UNDERLINED: u16 = 0x0008;
@@ -166,6 +168,46 @@ fn open_gate(t: &mut Harness<TableProApp>) {
     assert_eq!(dialog(t).token.as_deref(), Some(TOKEN));
 }
 
+/// Production/Safe (index 4) + DELETE: the dangerous deliberate gate
+/// (Risk fact, token required).
+fn open_delete_gate(t: &mut Harness<TableProApp>) {
+    assert!(t.app_mut().connect(4), "connect Production");
+    assert_eq!(t.app().screen, Screen::Workbench);
+    t.draw();
+    focus_query(t);
+    let _ = t.key(KeyCode::Char('i'));
+    let _ = t.type_str(DELETE_SQL);
+    let _ = t.key(KeyCode::Esc);
+    let _ = t.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
+    assert!(
+        t.find("Type orders to confirm").is_some(),
+        "token gate visible"
+    );
+    assert_eq!(dialog(t).token.as_deref(), Some(TOKEN));
+}
+
+/// The real commit-dialog flow: explorer to orders, one edit, Ctrl+S.
+fn open_save_dialog(t: &mut Harness<TableProApp>) {
+    assert!(t.app_mut().connect(4), "connect Production");
+    t.draw();
+    assert!(t.tab_to(EXPLORER), "reach the explorer");
+    for _ in 0..5 {
+        let _ = t.key(KeyCode::Down);
+    }
+    let _ = t.key(KeyCode::Enter);
+    assert!(t.find("public › orders").is_some(), "orders open");
+    let _ = t.key(KeyCode::Home);
+    for _ in 0..4 {
+        let _ = t.key(KeyCode::Right);
+    }
+    let _ = t.key(KeyCode::Enter);
+    let _ = t.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    let _ = t.type_str("paid");
+    let _ = t.key(KeyCode::Enter);
+    let _ = t.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
+    assert!(t.find("Save changes?").is_some(), "save review open");
+}
+
 /// Local/Silent (index 0) + DELETE: Confirm{deliberate:false}, token None.
 fn open_confirm(t: &mut Harness<TableProApp>) {
     assert!(t.app_mut().connect(0), "connect Local");
@@ -189,7 +231,8 @@ fn arm(t: &mut Harness<TableProApp>) {
 }
 
 /// Minimal rig for directly-constructed dialogs (production-unreachable
-/// legs: `danger=true`). Opens the modal layer once, then pure paint.
+/// legs: `danger=true`). Opens the modal layer once through the stock
+/// dialog, then hosts it like the application does.
 struct DialogRig {
     dialog: SafetyDialog,
     opened: bool,
@@ -198,15 +241,10 @@ struct DialogRig {
 impl App for DialogRig {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if !self.opened {
-            let mut spec = LayerSpec::modal(SAFETY_DIALOG);
-            spec.size = LayerSize::Fixed(self.dialog.width, self.dialog.height());
-            spec.initial_focus = Some(SAFETY_INPUT);
-            cx.open_layer(SAFETY_DIALOG, spec);
-            cx.focus(SAFETY_INPUT);
+            self.dialog.open_layer(cx);
             self.opened = true;
-            return Response::changed();
         }
-        Response::ignored()
+        self.dialog.update(cx).erase()
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
@@ -316,31 +354,34 @@ fn safety_token_ownership() {
         "LABEL override must repaint the token label row"
     );
     // (c) Danger leg: direct construction (`danger=true` is
-    // production-unreachable), committed echo preset, TEXT override.
-    let mut danger = danger_dialog();
-    danger.input_text = TOKEN.to_owned();
+    // production-unreachable), armed through the real key path, TEXT
+    // override.
     let danger_mut = Theme::junie().override_family(Family::INPUT, |r| {
         r.part(Part::TEXT)
             .base(StylePatch::new().set_fg(Role::Info));
     });
-    let area = {
-        let rig = Harness::new(
-            DialogRig {
-                dialog: danger,
-                opened: false,
-            },
-            danger_mut,
-            120,
-            40,
-        );
-        let area = rig.area_of(SAFETY_INPUT).expect("danger input registered");
-        assert_eq!(
-            rig.cell(area.x + 2, area.y).fg,
-            INFO,
-            "TEXT override must repaint the danger echo"
-        );
-        area
-    };
+    let mut rig = Harness::new(
+        DialogRig {
+            dialog: danger_dialog(),
+            opened: false,
+        },
+        danger_mut,
+        120,
+        40,
+    );
+    let _ = rig.key(KeyCode::Enter);
+    let _ = rig.type_str(TOKEN);
+    let _ = rig.key(KeyCode::Enter);
+    assert!(
+        rig.app().dialog.armed(),
+        "key-driven arming commits the token"
+    );
+    let area = rig.area_of(SAFETY_INPUT).expect("danger input registered");
+    assert_eq!(
+        rig.cell(area.x + 2, area.y).fg,
+        INFO,
+        "TEXT override must repaint the danger echo"
+    );
     assert_eq!((area.x, area.y, area.width), (25, 22, 69));
 }
 
@@ -371,7 +412,6 @@ fn safety_token_editing_keys() {
     let _ = t.key(KeyCode::Esc);
     assert!(!dialog(&t).is_editing(), "Esc ends the edit");
     assert_eq!(dialog(&t).focus, SafetyFocus::Input, "Esc holds focus");
-    assert_eq!(dialog(&t).input_text, "", "Esc drops the draft");
     assert!(!dialog(&t).armed(), "dropped draft disarms");
     let (ax, fy, _) = safety_geom(&t);
     assert_eq!(t.cell(ax + 2, fy).symbol(), " ", "field is empty");
@@ -387,7 +427,8 @@ fn safety_token_tab_commit() {
     let _ = t.key(KeyCode::Tab);
     assert_eq!(dialog(&t).focus, SafetyFocus::Cancel, "Tab-out traverses");
     assert!(!dialog(&t).is_editing(), "Tab-out leaves no draft");
-    assert_eq!(dialog(&t).input_text, "", "Tab-out commits nothing");
+    let (ax, fy, _) = safety_geom(&t);
+    assert_eq!(t.cell(ax + 2, fy).symbol(), " ", "Tab-out commits nothing");
     let _ = t.key_mod(KeyCode::Tab, KeyModifiers::SHIFT);
     assert_eq!(dialog(&t).focus, SafetyFocus::Input, "BackTab returns");
     assert!(!dialog(&t).is_editing(), "re-entry is idle");
@@ -496,7 +537,8 @@ fn safety_token_stock_esc_drop() {
     assert!(dialog(&t).armed(), "draft arms live");
     let _ = t.key(KeyCode::Esc);
     assert!(!dialog(&t).armed(), "dropped draft disarms");
-    assert_eq!(dialog(&t).input_text, "", "nothing committed");
+    let (ax, fy, _) = safety_geom(&t);
+    assert_eq!(t.cell(ax + 2, fy).symbol(), " ", "nothing committed");
 }
 
 /// T8b: idle Enter begins without committing (base begins too, but never
@@ -507,7 +549,8 @@ fn safety_token_stock_idle_enter() {
     open_gate(&mut t);
     let _ = t.key(KeyCode::Enter);
     assert!(dialog(&t).is_editing(), "idle Enter begins");
-    assert_eq!(dialog(&t).input_text, "", "nothing committed");
+    let (ax, fy, _) = safety_geom(&t);
+    assert_eq!(t.cell(ax + 2, fy).symbol(), " ", "nothing committed");
     assert_eq!(dialog(&t).focus, SafetyFocus::Input, "focus holds");
     assert_eq!(
         t.state_of(SAFETY_INPUT),
@@ -555,7 +598,10 @@ fn safety_token_stock_tab_blur_commit() {
     let _ = t.type_str("ord");
     let _ = t.key(KeyCode::Tab);
     assert!(!dialog(&t).is_editing(), "blur ends the edit");
-    assert_eq!(dialog(&t).input_text, "ord", "blur commits");
+    let (ax, fy, _) = safety_geom(&t);
+    for (i, sym) in ["o", "r", "d"].into_iter().enumerate() {
+        assert_eq!(t.cell(ax + 2 + i as u16, fy).symbol(), sym, "blur commits");
+    }
     assert_eq!(dialog(&t).focus, SafetyFocus::Cancel, "traversal lands");
 }
 
@@ -570,7 +616,14 @@ fn safety_token_stock_mid_insert() {
     let _ = t.key(KeyCode::Left);
     let _ = t.type_str("d");
     let _ = t.key(KeyCode::Enter);
-    assert_eq!(dialog(&t).input_text, "ords", "caret insert lands mid");
+    let (ax, fy, _) = safety_geom(&t);
+    for (i, sym) in ["o", "r", "d", "s"].into_iter().enumerate() {
+        assert_eq!(
+            t.cell(ax + 2 + i as u16, fy).symbol(),
+            sym,
+            "caret insert lands mid"
+        );
+    }
 }
 
 /// T8g: click begins editing (base: focus-only; PTY-safe — no click path
@@ -664,12 +717,9 @@ fn safety_token_ansi16_gate() {
 }
 
 /// T11: empty diagnostics through the gate→armed dialog lifetime. The
-/// execute frame itself carries two pre-existing `UndeliveredIntent`
-/// diagnostics (dialog + confirm owners: the manual drain is skipped once
-/// the Button decides the action) — byte-identical on base `c7b6e2805`,
-/// out of slice scope, pinned here so no NEW diagnostic can hide behind
-/// them. (Deviation from §6-T11 as written: "empty after executed" is
-/// false on base too.)
+/// execute frame itself carries the two pre-existing `UndeliveredIntent`
+/// diagnostics (dialog + confirm owners, now under the stock component
+/// ids) — pinned here so no NEW diagnostic can hide behind them.
 #[test]
 fn safety_token_diagnostics_empty() {
     let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
@@ -708,24 +758,7 @@ fn safety_token_diagnostics_empty() {
 #[test]
 fn safety_token_commit_intent() {
     let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
-    assert!(t.app_mut().connect(4), "connect Production");
-    t.draw();
-    assert!(t.tab_to(EXPLORER), "reach the explorer");
-    for _ in 0..5 {
-        let _ = t.key(KeyCode::Down);
-    }
-    let _ = t.key(KeyCode::Enter);
-    assert!(t.find("public › orders").is_some(), "orders open");
-    let _ = t.key(KeyCode::Home);
-    for _ in 0..4 {
-        let _ = t.key(KeyCode::Right);
-    }
-    let _ = t.key(KeyCode::Enter);
-    let _ = t.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
-    let _ = t.type_str("paid");
-    let _ = t.key(KeyCode::Enter);
-    let _ = t.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
-    assert!(t.find("Save changes?").is_some(), "save review open");
+    open_save_dialog(&mut t);
     assert_eq!(dialog(&t).token.as_deref(), Some(TOKEN));
     assert_eq!(dialog(&t).confirm_label, "Save");
     // Save disabled until armed: Confirm skipped in traversal, Right held.
@@ -746,12 +779,10 @@ fn safety_token_commit_intent() {
     assert!(t.app().safety_dialog.is_none(), "saved");
     assert!(t.find("Saving").is_some(), "saving status");
     // Danger leg: direct construction (production-unreachable).
-    let mut danger = danger_dialog();
+    let danger = danger_dialog();
     assert_eq!(danger.focus, SafetyFocus::Input, "token Input start");
     assert!(!danger.armed(), "danger starts disarmed");
-    danger.input_text = TOKEN.to_owned();
-    assert!(danger.armed(), "committed token arms danger");
-    let rig = Harness::new(
+    let mut rig = Harness::new(
         DialogRig {
             dialog: danger,
             opened: false,
@@ -760,6 +791,371 @@ fn safety_token_commit_intent() {
         120,
         40,
     );
+    let _ = rig.key(KeyCode::Enter);
+    let _ = rig.type_str(TOKEN);
+    let _ = rig.key(KeyCode::Enter);
+    assert!(rig.app().dialog.armed(), "committed token arms danger");
     assert!(rig.find("Type orders to confirm").is_some(), "label row");
     assert!(rig.find("Delete").is_some(), "danger confirm visible");
+}
+
+/// F1: the 120x40 gate frame through stock Dialog chrome + Props facts:
+/// corners, borders, title, facts, SQL and actions cell-for-cell.
+/// (Blank cells keep backdrop fg in both renders, so only painted spans
+/// are pinned.)
+#[test]
+fn safety_frame_gate_120() {
+    let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    open_gate(&mut t);
+    // Corners + full horizontal borders (every cell painted).
+    for (x, y, sym) in [
+        (23u16, 11u16, "╭"),
+        (96, 11, "╮"),
+        (23, 29, "╰"),
+        (96, 29, "╯"),
+    ] {
+        assert_cell(&t, x, y, sym, BORDER, ELEVATED, 0);
+    }
+    let top = format!("╭{}╮", "─".repeat(72));
+    assert_row(&t, 23, 11, &top, &[(0, 74, BORDER, ELEVATED, 0)]);
+    let bottom = format!("╰{}╯", "─".repeat(72));
+    assert_row(&t, 23, 29, &bottom, &[(0, 74, BORDER, ELEVATED, 0)]);
+    for y in 12..29 {
+        assert_cell(&t, 23, y, "│", BORDER, ELEVATED, 0);
+        assert_cell(&t, 96, y, "│", BORDER, ELEVATED, 0);
+    }
+    // Title.
+    assert_row(
+        &t,
+        26,
+        13,
+        "Execute write query?",
+        &[(0, 20, WHITE, ELEVATED, BOLD)],
+    );
+    // Facts: label + value spans.
+    assert_row(&t, 26, 15, "Action", &[(0, 6, MUTED, ELEVATED, 0)]);
+    assert_row(&t, 38, 15, "UPDATE", &[(0, 6, WHITE, ELEVATED, 0)]);
+    assert_row(&t, 26, 16, "Target", &[(0, 6, MUTED, ELEVATED, 0)]);
+    assert_row(
+        &t,
+        38,
+        16,
+        "Production · production · acme_prod · orders",
+        &[(0, 44, WHITE, ELEVATED, 0)],
+    );
+    assert_row(&t, 26, 17, "Scope", &[(0, 5, MUTED, ELEVATED, 0)]);
+    assert_row(
+        &t,
+        38,
+        17,
+        "matching rows in orders",
+        &[(0, 23, SECOND, ELEVATED, 0)],
+    );
+    assert_row(&t, 26, 18, "Reversible", &[(0, 10, MUTED, ELEVATED, 0)]);
+    assert_row(
+        &t,
+        38,
+        18,
+        "Reversible by a compensating UPDATE",
+        &[(0, 35, SECOND, ELEVATED, 0)],
+    );
+    assert_row(&t, 26, 19, "Safe Mode", &[(0, 9, MUTED, ELEVATED, 0)]);
+    assert_row(
+        &t,
+        38,
+        19,
+        "Safe Mode · deliberate confirmation required",
+        &[(0, 44, MUTED, ELEVATED, 0)],
+    );
+    // SQL.
+    assert_row(
+        &t,
+        26,
+        21,
+        "UPDATE orders SET status = 'paid' WHERE id = 'x'",
+        &[(0, 48, SECOND, ELEVATED, 0)],
+    );
+    // The field's third row: blank symbols on the elevated surface.
+    // (fg stays backdrop-defined, as on the manual render — unpinned).
+    for x in 25..94 {
+        let cell = t.cell(x, 25);
+        assert_eq!(cell.symbol(), " ", "({x},25) symbol");
+        assert_eq!(cell.bg, ELEVATED, "({x},25) bg");
+    }
+    // Actions: unfocused Cancel, disabled Execute.
+    assert_row(
+        &t,
+        76,
+        27,
+        " Cancel ",
+        &[(0, 1, BTN_BG, BTN_BG, 0), (1, 7, WHITE, BTN_BG, 0)],
+    );
+    assert_row(
+        &t,
+        85,
+        27,
+        " Execute ",
+        &[(0, 1, BTN_BG, BTN_BG, 0), (1, 8, BORDER, BTN_BG, 0)],
+    );
+}
+
+/// F2: delete-gate wrap rows — the Risk fact wraps at the value column
+/// and the dangerous Action value carries the error tone.
+#[test]
+fn safety_frame_delete_gate_wrap() {
+    let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    open_delete_gate(&mut t);
+    assert_cell(&t, 23, 10, "╭", BORDER, ELEVATED, 0);
+    assert_cell(&t, 96, 30, "╯", BORDER, ELEVATED, 0);
+    assert_row(
+        &t,
+        26,
+        12,
+        "This query may permanently modify or delete data",
+        &[(0, 48, WHITE, ELEVATED, BOLD)],
+    );
+    assert_row(
+        &t,
+        38,
+        14,
+        "DELETE without WHERE",
+        &[(0, 20, ERR, ELEVATED, 0)],
+    );
+    assert_row(&t, 26, 17, "Risk", &[(0, 4, MUTED, ELEVATED, 0)]);
+    assert_row(
+        &t,
+        38,
+        17,
+        "Removes all rows; dependent rows may go with ON DELETE",
+        &[(0, 54, WARN, ELEVATED, 0)],
+    );
+    assert_row(&t, 38, 18, "CASCADE.", &[(0, 8, WARN, ELEVATED, 0)]);
+}
+
+/// F3: commit-dialog wrap + truncation — Transaction wraps, the long SQL
+/// truncates with an ellipsis, Save stays right-edged.
+#[test]
+fn safety_frame_commit_wrap_truncate() {
+    let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    open_save_dialog(&mut t);
+    assert_cell(&t, 21, 10, "╭", BORDER, ELEVATED, 0);
+    assert_cell(&t, 98, 29, "╯", BORDER, ELEVATED, 0);
+    assert_row(
+        &t,
+        24,
+        12,
+        "Save changes?",
+        &[(0, 13, WHITE, ELEVATED, BOLD)],
+    );
+    assert_row(
+        &t,
+        37,
+        17,
+        "All statements run in one transaction; a failure rolls",
+        &[(0, 54, MUTED, ELEVATED, 0)],
+    );
+    assert_row(
+        &t,
+        37,
+        18,
+        "everything back.",
+        &[(0, 16, MUTED, ELEVATED, 0)],
+    );
+    assert_row(
+        &t,
+        24,
+        21,
+        "UPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-4488…",
+        &[(0, 72, SECOND, ELEVATED, 0)],
+    );
+    assert_row(
+        &t,
+        81,
+        27,
+        " Cancel ",
+        &[(0, 1, BTN_BG, BTN_BG, 0), (1, 7, WHITE, BTN_BG, 0)],
+    );
+    assert_row(
+        &t,
+        90,
+        27,
+        " Save ",
+        &[(0, 1, BTN_BG, BTN_BG, 0), (1, 5, BORDER, BTN_BG, 0)],
+    );
+}
+
+/// F4: the armed actions row — focused Cancel, enabled primary Execute.
+#[test]
+fn safety_frame_armed_actions() {
+    let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    open_gate(&mut t);
+    arm(&mut t);
+    assert_row(
+        &t,
+        76,
+        27,
+        "▎Cancel ",
+        &[(0, 1, ACCENT, BTN_BG, 0), (1, 7, WHITE, BTN_BG, BOLD)],
+    );
+    assert_row(
+        &t,
+        85,
+        27,
+        " Execute ",
+        &[(0, 1, ACCENT, ACCENT, 0), (1, 8, BTN_DARK, ACCENT, BOLD)],
+    );
+}
+
+/// F5: 72x20 frame — corners, title, clipped facts (Safe Mode gone),
+/// surviving SQL, token field and actions.
+#[test]
+fn safety_frame_small() {
+    let mut t = Harness::new(TableProApp::default(), Theme::junie(), 72, 20);
+    open_gate(&mut t);
+    for (x, y, sym) in [(2u16, 1u16, "╭"), (69, 1, "╮"), (2, 18, "╰"), (69, 18, "╯")] {
+        assert_cell(&t, x, y, sym, BORDER, ELEVATED, 0);
+    }
+    assert_row(
+        &t,
+        5,
+        3,
+        "Execute write query?",
+        &[(0, 20, WHITE, ELEVATED, BOLD)],
+    );
+    assert_row(&t, 5, 5, "Action", &[(0, 6, MUTED, ELEVATED, 0)]);
+    assert_row(&t, 5, 8, "Reversible", &[(0, 10, MUTED, ELEVATED, 0)]);
+    let frame: String = (1..=18).map(|y| row_span(&t, y, 2, 69)).collect();
+    assert!(
+        !frame.contains("Safe Mode"),
+        "short screens clip the facts region"
+    );
+    assert_row(
+        &t,
+        5,
+        10,
+        "UPDATE orders SET status = 'paid' WHERE id = 'x'",
+        &[(0, 48, SECOND, ELEVATED, 0)],
+    );
+    assert_row(
+        &t,
+        49,
+        16,
+        " Cancel ",
+        &[(0, 1, BTN_BG, BTN_BG, 0), (1, 7, WHITE, BTN_BG, 0)],
+    );
+    assert_row(
+        &t,
+        58,
+        16,
+        " Execute ",
+        &[(0, 1, BTN_BG, BTN_BG, 0), (1, 8, BORDER, BTN_BG, 0)],
+    );
+}
+
+/// F6: Ansi16 frame — corners, title and actions through the 16-color lane.
+#[test]
+fn safety_frame_ansi16() {
+    let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40)
+        .with_color(ColorLevel::Ansi16);
+    open_gate(&mut t);
+    for (x, y, sym) in [
+        (23u16, 11u16, "╭"),
+        (96, 11, "╮"),
+        (23, 29, "╰"),
+        (96, 29, "╯"),
+    ] {
+        assert_cell(&t, x, y, sym, Color::DarkGray, Color::Black, 0);
+    }
+    assert_row(
+        &t,
+        26,
+        13,
+        "Execute write query?",
+        &[(0, 20, Color::White, Color::Black, BOLD)],
+    );
+    assert_row(
+        &t,
+        76,
+        27,
+        " Cancel ",
+        &[
+            (0, 1, Color::DarkGray, Color::DarkGray, 0),
+            (1, 7, Color::White, Color::DarkGray, 0),
+        ],
+    );
+    assert_row(
+        &t,
+        85,
+        27,
+        " Execute ",
+        &[
+            (0, 1, Color::Black, Color::Black, 0),
+            (1, 8, Color::DarkGray, Color::Black, 0),
+        ],
+    );
+}
+
+/// F7: stock ownership — DIALOG BORDER/TITLE + PROPS META/LABEL recipe
+/// overrides repaint the frame (manual paint would bypass recipes).
+#[test]
+fn safety_frame_ownership() {
+    let border_mut = Theme::junie().override_family(Family::DIALOG, |r| {
+        r.part(Part::BORDER)
+            .base(StylePatch::new().set_fg(Role::Info));
+    });
+    let mut t = Harness::new(TableProApp::default(), border_mut, 120, 40);
+    open_gate(&mut t);
+    assert_eq!(
+        t.cell(23, 11).fg,
+        INFO,
+        "BORDER override must repaint the frame"
+    );
+    let title_mut = Theme::junie().override_family(Family::DIALOG, |r| {
+        r.part(Part::TITLE)
+            .base(StylePatch::new().set_fg(Role::Info));
+    });
+    let mut t = Harness::new(TableProApp::default(), title_mut, 120, 40);
+    open_gate(&mut t);
+    assert_eq!(
+        t.cell(26, 13).fg,
+        INFO,
+        "TITLE override must repaint the title"
+    );
+    let meta_mut = Theme::junie().override_family(Family::PROPS, |r| {
+        r.part(Part::META)
+            .base(StylePatch::new().set_fg(Role::Info));
+    });
+    let mut t = Harness::new(TableProApp::default(), meta_mut, 120, 40);
+    open_gate(&mut t);
+    assert_eq!(
+        t.cell(26, 15).fg,
+        INFO,
+        "META override must repaint the fact labels"
+    );
+    let label_mut = Theme::junie().override_family(Family::PROPS, |r| {
+        r.part(Part::LABEL)
+            .base(StylePatch::new().set_fg(Role::Info));
+    });
+    let mut t = Harness::new(TableProApp::default(), label_mut, 120, 40);
+    open_gate(&mut t);
+    assert_eq!(
+        t.cell(38, 15).fg,
+        INFO,
+        "LABEL override must repaint the fact values"
+    );
+}
+
+/// F8: no-paint tripwire — the dialog model paints nothing itself.
+#[test]
+fn safety_frame_no_manual_paint() {
+    let src = include_str!("../src/safety_dialog.rs");
+    for needle in [
+        "paint_str",
+        "ui.fill",
+        "paint_patch",
+        "with_surface",
+        "Ui::frame",
+    ] {
+        assert!(!src.contains(needle), "manual painter survived: {needle}");
+    }
 }
