@@ -9693,6 +9693,361 @@
         ]
       }
     }
+,
+    {
+      "id": "PICKER-ACTIVITIES-001",
+      "app": "holla",
+      "component": "Picker",
+      "part": "empty activities picker with cancel roundtrip",
+      "ref_symbols": [
+        {
+          "glyph": "Activities",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "Nothing has been started yet",
+          "meaning": "empty state"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Activities",
+          "meaning": "picker title"
+        },
+        {
+          "glyph": "Nothing has been started yet",
+          "meaning": "empty state"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/app.rs",
+          "symbols": [
+            "activities",
+            "Picker"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "world": "first-use",
+        "live": 0
+      },
+      "state": {
+        "picker": "open",
+        "live": 0
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario first-use (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "press Ctrl+G (the picker opens)",
+          "key": "Ctrl+G",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the picker cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Ctrl+G (the picker opens again)",
+          "key": "Ctrl+G",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "picker",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the picker titles the empty live count"
+          },
+          {
+            "id": "V2",
+            "text": "the empty state names itself"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the footer offers the switch gesture"
+          },
+          {
+            "id": "S2",
+            "text": "the finder shelf behind keeps its suggestion"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Ctrl+G opens the empty activities picker"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the picker and Ctrl+G re-opens it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the finder focus bar may not stay with the picker open"
+          },
+          {
+            "id": "N2",
+            "text": "the live count may not stay after the cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "1010",
+            "note": "activities picker construction"
+          },
+          {
+            "path": "src/bin/holla/domain/fixtures.rs",
+            "lines": "1348",
+            "note": "world_for scenario worlds"
+          },
+          {
+            "path": "src/widgets/picker.rs",
+            "lines": "82",
+            "note": "Picker widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/activities/empty/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:33:42Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8r H5 h5_activities_empty live-PTY PASS @2493cf1 (nextest visual_baseline --run-ignored all h5_ --test-threads 2, 20 pass/0 fail/530 skip; bin tests/harness/target/debug/holla 16648872B sha256:7aacbfe9b573 built 2026-10-08T01:19:52Z; log /tmp/phase8r-focused.log)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "PICKER-ACTIVITIES-002",
+      "app": "holla",
+      "component": "Picker",
+      "part": "live activities picker with cancel roundtrip",
+      "ref_symbols": [
+        {
+          "glyph": "4 live",
+          "meaning": "live count"
+        },
+        {
+          "glyph": "⠋ frontend dev",
+          "meaning": "top picker row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "4 live",
+          "meaning": "live count"
+        },
+        {
+          "glyph": "⠋ frontend dev",
+          "meaning": "top picker row"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/app.rs",
+          "symbols": [
+            "activities",
+            "Picker"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "world": "activities-multi",
+        "live": 4
+      },
+      "state": {
+        "picker": "open",
+        "live": 4
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario activities-multi (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "press Ctrl+G (the picker opens)",
+          "key": "Ctrl+G",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the picker cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Ctrl+G (the picker opens again)",
+          "key": "Ctrl+G",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "picker",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the tab strip carries all five activities"
+          },
+          {
+            "id": "V2",
+            "text": "the cursor sits on the preview action"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the status line counts the live activities"
+          },
+          {
+            "id": "S2",
+            "text": "the picker lists the detached monitor"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Ctrl+G opens the live activities picker"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the picker and Ctrl+G re-opens it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the finder focus bar may not stay with the picker open"
+          },
+          {
+            "id": "N2",
+            "text": "the picker row state may not stay after the cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/app.rs",
+            "lines": "1010",
+            "note": "activities picker construction"
+          },
+          {
+            "path": "src/bin/holla/domain/fixtures.rs",
+            "lines": "1348",
+            "note": "world_for scenario worlds"
+          },
+          {
+            "path": "src/widgets/picker.rs",
+            "lines": "82",
+            "note": "Picker widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/activities/overlay/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:33:42Z",
+            "branch": "visual-baseline",
+            "status": "pass",
+            "note": "phase-8r H5 h5_activities_overlay live-PTY PASS @2493cf1 (nextest visual_baseline --run-ignored all h5_ --test-threads 2, 20 pass/0 fail/530 skip; bin tests/harness/target/debug/holla 16648872B sha256:7aacbfe9b573 built 2026-10-08T01:19:52Z; log /tmp/phase8r-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "coverage": [
     {
@@ -9741,7 +10096,9 @@
         "PICKER-LAUNCH-004",
         "PICKER-FILES-001",
         "PICKER-FILES-002",
-        "PICKER-GIT-001"
+        "PICKER-GIT-001",
+        "PICKER-ACTIVITIES-001",
+        "PICKER-ACTIVITIES-002"
       ],
       "handlers": [
         "on_key: Esc clears then cancels; Enter chooses/alt-chooses/submits; Tab scopes; Delete secondaries; Backspace rewinds; j/k only when not searchable",
@@ -11065,6 +11422,37 @@
      "status": "mapped",
      "also": [],
      "note": "phase-8p slice 8A-H3 (tail): h4_upgrade_confirm live-PTY check"
+    }
+,
+    {
+     "old": "holla/flows/activities/empty",
+     "app": "holla",
+     "sizes": [
+       "72x20",
+       "80x24",
+       "100x30",
+       "120x40",
+       "160x50"
+     ],
+     "new": "PICKER-ACTIVITIES-001",
+     "status": "mapped",
+     "also": [],
+     "note": "phase-8r slice 8A-H5: h5_activities_empty live-PTY check"
+    },
+    {
+     "old": "holla/flows/activities/overlay",
+     "app": "holla",
+     "sizes": [
+       "72x20",
+       "80x24",
+       "100x30",
+       "120x40",
+       "160x50"
+     ],
+     "new": "PICKER-ACTIVITIES-002",
+     "status": "mapped",
+     "also": [],
+     "note": "phase-8r slice 8A-H5: h5_activities_overlay live-PTY check"
     }
   ]
 }
