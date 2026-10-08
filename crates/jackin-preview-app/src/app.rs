@@ -5912,11 +5912,13 @@ impl App {
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
+        // The manager keeps focus while its menu is open: the frozen
+        // menu-open frame shows the focused workspace (strong border,
+        // bright title, selected-row tint) with the dropdown above it,
+        // and the menu's own rows inherit the focused underpaint.
         let focused = !self.manager_quit_confirm
             && !self.help_open
             && !self.manager_inspect_open
-            && !self.manager_menu_open
-            && !self.manager_menu_state.is_open()
             && !self.manager_launch_picker_open();
         crate::screens::manager::ManagerScreen::draw(ui, area, &self.manager, &self.world, focused);
     }
