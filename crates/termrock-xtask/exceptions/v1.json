@@ -1192,24 +1192,24 @@
       "rule": "OWN-11"
     },
     {
-      "max": 107,
+      "max": 100,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FOOTER: footer through stock HintBar (was 115)",
+      "review": "WI-TABLEPRO-FORM-RADIO: form radios through stock RadioGroup+Note (was 107)",
       "rule": "OWN-02"
     },
     {
-      "max": 12,
+      "max": 10,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FOOTER: footer through stock HintBar (was 13)",
+      "review": "WI-TABLEPRO-FORM-RADIO: form radios through stock RadioGroup+Note (was 12)",
       "rule": "OWN-04"
     },
     {
-      "max": 20,
+      "max": 17,
       "path": "crates/tablepro-ui/src/app.rs",
       "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
-      "review": "WI-TABLEPRO-FOOTER: footer through stock HintBar (was 21)",
+      "review": "WI-TABLEPRO-FORM-RADIO: form radios through stock RadioGroup+Note (was 20)",
       "rule": "OWN-11"
     },
     {
