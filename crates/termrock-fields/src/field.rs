@@ -28,8 +28,10 @@ use crate::ui::{FrameRead, Ui};
 /// `.required(bool)` (`false`; paints `*`), `.optional_suffix(bool)`
 /// (`true`; paints `optional` when not required and the row is wide
 /// enough), `.help(&str)`, `.error(Option<&str>)` (wins over help),
-/// `.plain(bool)` (`false`; suppresses the optional suffix),
-/// `.patch_part`.
+/// `.plain(bool)` (`false`; drops the suffix word only — the label-row
+/// fill keys on `optional_suffix`, not on `plain`), `.patch_part`.
+/// Controls needing per-phase caller data (option slices, lookups) adapt
+/// through a small `FieldControl` wrapper holding that data.
 ///
 /// ## Variants
 /// `Family::FIELD`, `DEFAULT` only.

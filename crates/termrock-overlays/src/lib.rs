@@ -72,6 +72,7 @@ pub mod menu;
 pub mod picker;
 pub mod picker_chain;
 pub mod select;
+pub mod select_field;
 
 pub use completion::{
     Completion, CompletionAction, CompletionCmd, CompletionController, CompletionState,
@@ -87,3 +88,4 @@ pub use picker_chain::{
     PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage,
 };
 pub use select::{LabelSelect, Select, SelectAction, SelectCmd, SelectState};
+pub use select_field::SelectField;
