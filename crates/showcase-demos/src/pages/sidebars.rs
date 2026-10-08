@@ -5,7 +5,7 @@ use termrock::{
     RowUi, Ui, Variant, id,
 };
 
-use super::{Page, PageUpdate, frame, lines};
+use super::{Page, PageUpdate, ProseLine, frame, lines_prose};
 
 const NAV: Id = id!("sidebars.nav");
 const SIDE_PANEL: Id = id!("sidebars.panel");
@@ -250,7 +250,7 @@ impl Page for SidebarsPage {
                     ..body
                 };
                 content_panel(self.selected).draw(ui, content, |ui, inner| {
-                    Self::draw_content(ui, inner, body.width);
+                    Self::draw_content(ui, inner);
                 });
             },
         );
@@ -262,52 +262,45 @@ impl Page for SidebarsPage {
 }
 
 impl SidebarsPage {
-    fn draw_content(ui: &mut Ui<'_>, inner: Rect, body_width: u16) {
+    fn draw_content(ui: &mut Ui<'_>, inner: Rect) {
+        // Q67-B2 (N2-content): the tag wraps every line to the panel
+        // inner width and paints the ›/▎/░ first glyphs accent
+        // (`tag:sidebars.rs:420-450`); the wrap-capable PageFrame prose
+        // path owns that geometry, so no canned narrow overpaint remains.
         let text = [
-            "One focus stop. ↑ ↓ move the cursor, Enter opens.",
-            "",
-            "›  current item · persists when focus leaves",
-            "▎  keyboard cursor · only while focused",
-            "░  hover · follows the pointer",
-            "",
-            "Disabled items are skipped and ignore the pointer.",
-            "Collapsed mode keeps rows and markers, initials only.",
+            ProseLine {
+                text: "One focus stop. ↑ ↓ move the cursor, Enter opens.",
+                marker: false,
+            },
+            ProseLine {
+                text: "",
+                marker: false,
+            },
+            ProseLine {
+                text: "›  current item · persists when focus leaves",
+                marker: true,
+            },
+            ProseLine {
+                text: "▎  keyboard cursor · only while focused",
+                marker: true,
+            },
+            ProseLine {
+                text: "░  hover · follows the pointer",
+                marker: true,
+            },
+            ProseLine {
+                text: "",
+                marker: false,
+            },
+            ProseLine {
+                text: "Disabled items are skipped and ignore the pointer.",
+                marker: false,
+            },
+            ProseLine {
+                text: "Collapsed mode keeps rows and markers, initials only.",
+                marker: false,
+            },
         ];
-        lines(ui, inner, &text);
-        // Q67-S14 OWED (N2-content): this narrow canned wrap tracks
-        // the tag's wrapped prose — deleting it regresses narrow combos
-        // GREEN→RED (S14 probe). Removal needs a wrap-capable `lines`
-        // (component capability, own slice).
-        if body_width < 70 {
-            let visible = [
-                "One focus stop. ↑ ↓ move",
-                "the cursor, Enter opens.",
-                "",
-                "›  current item ·",
-                "persists when focus",
-                "leaves",
-                "▎  keyboard cursor · only",
-                "while focused",
-                "░  hover · follows the",
-                "pointer",
-                "",
-                "Disabled items are",
-                "skipped and ignore the",
-                "pointer.",
-                "Collapsed mode keeps rows",
-            ];
-            for (offset, line) in visible.iter().enumerate() {
-                let Ok(offset) = u16::try_from(offset) else {
-                    break;
-                };
-                let row = Rect {
-                    y: inner.y.saturating_add(offset),
-                    height: 1,
-                    ..inner
-                };
-                ui.fill(row, ui.surface_style());
-                let _ = ui.paint_str(row, line, ui.surface_style());
-            }
-        }
+        lines_prose(ui, inner, &text);
     }
 }
