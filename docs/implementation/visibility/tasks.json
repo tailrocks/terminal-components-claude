@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 19,
+  "queue_revision": 26,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -31,18 +31,148 @@
         "README.md",
         "crates/termrock-visibility-tests/tests/status.rs"
       ],
-      "owner": "/root/status_luna",
+      "owner": "/root/status_recovery_luna",
       "reviewer": "/root/technical_review",
-      "claim_token": "visibility-bootstrap-20261008-01",
+      "claim_token": "visibility-status-recovery-20261008-01",
       "expiry": "2026-10-09T00:00:00Z",
       "state": "in_progress",
       "evidence": [
         "Independent plan approval from /root/technical_review; exact staged review pending.",
         "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests.",
-        "User requires Rust-only tests. Preserve 12 existing status assertion groups in the accepted Rust module before removing Python tests; the receipt-reader contract remains pending."
+        "User requires Rust-only tests. Preserve 12 existing status assertion groups in the accepted Rust module before removing Python tests; the receipt-reader contract remains pending.",
+        "Explicit owner release and independently reviewed handoff applied at revision 20; scope and base preserved; paired receipts and publication remain unqualified."
       ],
-      "handoff": null,
-      "accepted_queue_revision": 1
+      "handoff": {
+        "handoff_at": "2026-10-08T07:55:55Z",
+        "handoff_by": "/root",
+        "from_owner": "/root/status_luna",
+        "to_owner": "/root/status_recovery_luna",
+        "owner_released": true,
+        "coordinator_verified_stopped": true,
+        "stop_evidence": "Earlier coordinator observation supplied by /root: collaboration.list_agents showed /root/status_luna in pending_init, and interrupt_agent(status_luna) returned previous_status=pending_init. That earlier observation was a coordinator stop, not owner release. The actual owner later replied via a followup FINAL in the coordination conversation, relayed by /root: \"No running process or pending edit remains. I release VIS-01 ownership for handoff to status_recovery_luna; the old token will not authorize further edits.\" This is owner acknowledgment and release. owner_released=true records that statement; coordinator_verified_stopped=true records both the prior coordinator stop and the owner's confirmation that no process or pending edit remains. No provider-issued hash or signed receipt for the conversation was supplied; none is claimed.",
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch termrock-implementation; local HEAD 186c28774ae6abe740fc7663a3db2e17444f086a (unsigned, unpublished, pending correction); GitHub candidate head observed as b07540df4f7a97fcca8c4d3396102651be459503; local origin tracking ref 85b51da2e9832dba642abf7d64d032f848cade0e is stale.",
+        "git_status": "Shared worktree and index are dirty in unrelated paths. This preparer's read-only checks found no staged, unstaged, or untracked change in the seven accepted VIS-01 paths; their current scoped diff is empty. The local HEAD is an unpublished pending-correction tip and is not attributed to the prior VIS-01 owner. Preserve it and all shared remote updates. This proposal makes no Git, index, or ref change.",
+        "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_paths": [],
+        "unpublished_commits": [
+          "186c28774ae6abe740fc7663a3db2e17444f086a (current local HEAD; unsigned and unpublished pending correction; attribution to the prior VIS-01 owner is not established; preserve independently of this handoff)"
+        ],
+        "checks": [
+          {
+            "command": "This preparer's read-only check: git status --short -- tools/visibility/status.py tools/visibility/tests/test_status.py tools/visibility/source-facts.json tools/visibility/README.md STATUS.md README.md crates/termrock-visibility-tests/tests/status.rs",
+            "result": "Empty output. No staged or unstaged changes in the accepted paths. tools/visibility/tests/test_status.py is absent."
+          },
+          {
+            "command": "This preparer's read-only check: git diff --binary --full-index HEAD -- the seven accepted VIS-01 paths | shasum -a 256; git ls-files --others --exclude-standard -- the same paths",
+            "result": "Empty scoped diff with SHA-256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; no untracked scoped files. /root will repeat this audit before applying the handoff."
+          },
+          {
+            "command": "This preparer's read-only check: git diff --name-status cc3ce8f6ac149aaee406047c5180d1a658d6bb9c HEAD -- the seven accepted VIS-01 paths",
+            "result": "Already-present base-to-HEAD changes are README.md, STATUS.md, crates/termrock-visibility-tests/tests/status.rs, tools/visibility/README.md, tools/visibility/source-facts.json, and tools/visibility/status.py. The Python test path is absent. These existing changes remain in the branch; this is not a current worktree diff or a claim about which worker authored each commit."
+          },
+          {
+            "command": "This preparer's read-only check: SHA-256 of docs/implementation/visibility/tasks.json and inspection of the VIS-01 record at queue revision 19",
+            "result": "Record file SHA-256 cc9f54961428185c4d4fe5d9b5677bf156c3021420962f5fd31792ae04d86c67. VIS-01 owner /root/status_luna, state in_progress, old token visibility-bootstrap-20261008-01, base cc3ce8f6ac149aaee406047c5180d1a658d6bb9c, handoff null. Existing seven allowed paths and evidence must be retained by v1 reassign."
+          },
+          {
+            "command": "Coordinator observation supplied by /root; not executed by this preparer: collaboration.list_agents and interrupt_agent(status_luna)",
+            "result": "Root reports pending_init and previous_status=pending_init. This is not owner acknowledgment or release. Root will independently repeat and preserve the actual runtime stop proof before queue mutation; no raw-output digest is claimed in this proposal."
+          },
+          {
+            "command": "Accepted-task writer overlap observation supplied by /root; not independently executed by this preparer",
+            "result": "Root reports no other accepted agent writes the seven VIS-01 paths. Root will repeat the live accepted-task and writer audit before queue mutation."
+          },
+          {
+            "command": "External q19 Rust status record supplied by /root; summary read and SHA-256 computed by this preparer; test not run by this preparer",
+            "result": "/private/tmp/termrock-rust-tool-test-execution/status-records19-20261008-m1V6Ox/summary.txt SHA-256 dc38afcbf18eb42ffcaf9cf14c6880ba2340425d00b8f7c8590557e06ee04f09; Nextest run ID 039cb3d2-8579-43db-b197-fa09c6111301; checked_in_records_render_from_exact_copies passed 1 selected test, 12 skipped by explicit filter. The recorded checked-in input hashes match the current q19 source-facts, STATUS.md, tasks.json, and WORK_QUEUE.md. This is status-rendering evidence only; product results remain NOT_RUN."
+          },
+          {
+            "command": "Actual owner coordination reply; source: /root/status_luna followup FINAL relayed by /root; not executed by this preparer",
+            "result": "Exact owner statement: \"No running process or pending edit remains. I release VIS-01 ownership for handoff to status_recovery_luna; the old token will not authorize further edits.\" Attribution: /root/status_luna followup FINAL in the coordination conversation, relayed by /root. This is an actual owner reply, not a provider-issued receipt; no provider hash was supplied."
+          }
+        ],
+        "next_action": "Before applying, /root independently repeats the q19 record/hash, seven-path clean-diff, accepted-writer overlap, and actual owner-release checks, then obtains narrow independent review of this exact payload. Apply queue-v1 reassign at expected revision 19. Preserve the existing accepted base cc3ce8f6ac149aaee406047c5180d1a658d6bb9c, seven allowed paths, evidence, and claim history. Continue only in that scope; keep product rows NOT_RUN without validated receipts. Do not add or run Python tests; use Rust tests through cargo nextest only. Any collector integration requires a separate accepted scope amendment. Do not create a new claim from current HEAD 186c287 while history correction is pending, because it would orphan the accepted base."
+      },
+      "accepted_queue_revision": 20,
+      "claim_history": [
+        {
+          "claim": {
+            "owner": "/root/status_luna",
+            "reviewer": "/root/technical_review",
+            "branch": "termrock-implementation",
+            "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+            "allowed_paths": [
+              "tools/visibility/status.py",
+              "tools/visibility/tests/test_status.py",
+              "tools/visibility/source-facts.json",
+              "tools/visibility/README.md",
+              "STATUS.md",
+              "README.md",
+              "crates/termrock-visibility-tests/tests/status.rs"
+            ],
+            "claim_token": "visibility-bootstrap-20261008-01",
+            "expiry": "2026-10-09T00:00:00Z",
+            "state": "in_progress",
+            "accepted_queue_revision": 1,
+            "evidence": [
+              "Independent plan approval from /root/technical_review; exact staged review pending.",
+              "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests.",
+              "User requires Rust-only tests. Preserve 12 existing status assertion groups in the accepted Rust module before removing Python tests; the receipt-reader contract remains pending."
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-08T07:55:55Z",
+            "handoff_by": "/root",
+            "from_owner": "/root/status_luna",
+            "to_owner": "/root/status_recovery_luna",
+            "owner_released": true,
+            "coordinator_verified_stopped": true,
+            "stop_evidence": "Earlier coordinator observation supplied by /root: collaboration.list_agents showed /root/status_luna in pending_init, and interrupt_agent(status_luna) returned previous_status=pending_init. That earlier observation was a coordinator stop, not owner release. The actual owner later replied via a followup FINAL in the coordination conversation, relayed by /root: \"No running process or pending edit remains. I release VIS-01 ownership for handoff to status_recovery_luna; the old token will not authorize further edits.\" This is owner acknowledgment and release. owner_released=true records that statement; coordinator_verified_stopped=true records both the prior coordinator stop and the owner's confirmation that no process or pending edit remains. No provider-issued hash or signed receipt for the conversation was supplied; none is claimed.",
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch termrock-implementation; local HEAD 186c28774ae6abe740fc7663a3db2e17444f086a (unsigned, unpublished, pending correction); GitHub candidate head observed as b07540df4f7a97fcca8c4d3396102651be459503; local origin tracking ref 85b51da2e9832dba642abf7d64d032f848cade0e is stale.",
+            "git_status": "Shared worktree and index are dirty in unrelated paths. This preparer's read-only checks found no staged, unstaged, or untracked change in the seven accepted VIS-01 paths; their current scoped diff is empty. The local HEAD is an unpublished pending-correction tip and is not attributed to the prior VIS-01 owner. Preserve it and all shared remote updates. This proposal makes no Git, index, or ref change.",
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "changed_paths": [],
+            "unpublished_commits": [
+              "186c28774ae6abe740fc7663a3db2e17444f086a (current local HEAD; unsigned and unpublished pending correction; attribution to the prior VIS-01 owner is not established; preserve independently of this handoff)"
+            ],
+            "checks": [
+              {
+                "command": "This preparer's read-only check: git status --short -- tools/visibility/status.py tools/visibility/tests/test_status.py tools/visibility/source-facts.json tools/visibility/README.md STATUS.md README.md crates/termrock-visibility-tests/tests/status.rs",
+                "result": "Empty output. No staged or unstaged changes in the accepted paths. tools/visibility/tests/test_status.py is absent."
+              },
+              {
+                "command": "This preparer's read-only check: git diff --binary --full-index HEAD -- the seven accepted VIS-01 paths | shasum -a 256; git ls-files --others --exclude-standard -- the same paths",
+                "result": "Empty scoped diff with SHA-256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; no untracked scoped files. /root will repeat this audit before applying the handoff."
+              },
+              {
+                "command": "This preparer's read-only check: git diff --name-status cc3ce8f6ac149aaee406047c5180d1a658d6bb9c HEAD -- the seven accepted VIS-01 paths",
+                "result": "Already-present base-to-HEAD changes are README.md, STATUS.md, crates/termrock-visibility-tests/tests/status.rs, tools/visibility/README.md, tools/visibility/source-facts.json, and tools/visibility/status.py. The Python test path is absent. These existing changes remain in the branch; this is not a current worktree diff or a claim about which worker authored each commit."
+              },
+              {
+                "command": "This preparer's read-only check: SHA-256 of docs/implementation/visibility/tasks.json and inspection of the VIS-01 record at queue revision 19",
+                "result": "Record file SHA-256 cc9f54961428185c4d4fe5d9b5677bf156c3021420962f5fd31792ae04d86c67. VIS-01 owner /root/status_luna, state in_progress, old token visibility-bootstrap-20261008-01, base cc3ce8f6ac149aaee406047c5180d1a658d6bb9c, handoff null. Existing seven allowed paths and evidence must be retained by v1 reassign."
+              },
+              {
+                "command": "Coordinator observation supplied by /root; not executed by this preparer: collaboration.list_agents and interrupt_agent(status_luna)",
+                "result": "Root reports pending_init and previous_status=pending_init. This is not owner acknowledgment or release. Root will independently repeat and preserve the actual runtime stop proof before queue mutation; no raw-output digest is claimed in this proposal."
+              },
+              {
+                "command": "Accepted-task writer overlap observation supplied by /root; not independently executed by this preparer",
+                "result": "Root reports no other accepted agent writes the seven VIS-01 paths. Root will repeat the live accepted-task and writer audit before queue mutation."
+              },
+              {
+                "command": "External q19 Rust status record supplied by /root; summary read and SHA-256 computed by this preparer; test not run by this preparer",
+                "result": "/private/tmp/termrock-rust-tool-test-execution/status-records19-20261008-m1V6Ox/summary.txt SHA-256 dc38afcbf18eb42ffcaf9cf14c6880ba2340425d00b8f7c8590557e06ee04f09; Nextest run ID 039cb3d2-8579-43db-b197-fa09c6111301; checked_in_records_render_from_exact_copies passed 1 selected test, 12 skipped by explicit filter. The recorded checked-in input hashes match the current q19 source-facts, STATUS.md, tasks.json, and WORK_QUEUE.md. This is status-rendering evidence only; product results remain NOT_RUN."
+              },
+              {
+                "command": "Actual owner coordination reply; source: /root/status_luna followup FINAL relayed by /root; not executed by this preparer",
+                "result": "Exact owner statement: \"No running process or pending edit remains. I release VIS-01 ownership for handoff to status_recovery_luna; the old token will not authorize further edits.\" Attribution: /root/status_luna followup FINAL in the coordination conversation, relayed by /root. This is an actual owner reply, not a provider-issued receipt; no provider hash was supplied."
+              }
+            ],
+            "next_action": "Before applying, /root independently repeats the q19 record/hash, seven-path clean-diff, accepted-writer overlap, and actual owner-release checks, then obtains narrow independent review of this exact payload. Apply queue-v1 reassign at expected revision 19. Preserve the existing accepted base cc3ce8f6ac149aaee406047c5180d1a658d6bb9c, seven allowed paths, evidence, and claim history. Continue only in that scope; keep product rows NOT_RUN without validated receipts. Do not add or run Python tests; use Rust tests through cargo nextest only. Any collector integration requires a separate accepted scope amendment. Do not create a new claim from current HEAD 186c287 while history correction is pending, because it would orphan the accepted base."
+          }
+        }
+      ]
     },
     {
       "work_id": "VIS-02",
@@ -121,17 +251,130 @@
         "docs/implementation/visibility/evidence/deferred/**",
         "crates/termrock-visibility-tests/tests/deferred.rs"
       ],
-      "owner": "/root/deferred_execution",
-      "reviewer": "/root/technical_review",
-      "claim_token": "visibility-deferred-20261008-04",
+      "owner": "/root/current_branch_comparison_luna",
+      "reviewer": "/root/holla_owner",
+      "claim_token": "visibility-deferred-recovery-20261008-04",
       "expiry": "2026-10-09T00:00:00Z",
-      "state": "in_progress",
+      "state": "claimed",
       "evidence": [
         "Independent plan approved by /root/technical_review; build slot not granted yet.",
         "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests."
       ],
-      "handoff": null,
-      "accepted_queue_revision": 4
+      "handoff": {
+        "handoff_at": "2026-10-08T10:44:03Z",
+        "handoff_by": "/root",
+        "from_owner": "/root/deferred_execution",
+        "to_owner": "/root/current_branch_comparison_luna",
+        "owner_released": false,
+        "coordinator_verified_stopped": true,
+        "stop_evidence": "Coordinator-only supervised stop proposal, not owner release. Bind to /private/tmp/termrock-vis04-supervised-handoff-prerequisites-20261008.json SHA-256 4650769494555fb01709bf0d9b7c3b30b560fcd4de98cae7c329cb3b9f3b9997. Root repeated q23 task/path hashes and scoped status; its deferred_execution roster query returned no listed owner. Root's bounded process scan found Cargo PID 69312, parent 28736, elapsed 02:12, cwd /private/tmp/repo-scan-pr1.oefGGx/repo; no arguments or environment were read. This is an external worktree, not VIS-04 execution. The audit's bounded snapshots found no matching process names, stable VIS-04 source hashes, no tracked or staged scoped diff, and one independently reviewed untracked mapping file. These observations support a supervised stop only for this accepted scope; they do not prove owner acknowledgment, OS-level isolation, or global process absence.",
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch termrock-implementation; HEAD 186c28774ae6abe740fc7663a3db2e17444f086a; accepted base cc3ce8f6ac149aaee406047c5180d1a658d6bb9c.",
+        "git_status": "Accepted VIS-04 scope at q23: one untracked docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md with SHA-256 e77ebc09f91cdb37b26b9096252a3212da784085238d1e5f32bf8198e96a5e9d; no other scoped worktree status. Tracked HEAD-to-worktree and index diffs are empty. Base-to-HEAD history contains 37 additions and 12,448 insertions, already present at local HEAD. tools/visibility/tests/test_deferred.py is absent from the worktree and index. No accepted base, local HEAD, or history change is proposed.",
+        "diff_sha256": "5b271781d62376502a5deaa7eb21ab278012fb9a5156fd579c0e570c4ab2ba4b",
+        "changed_paths": [
+          "docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md"
+        ],
+        "unpublished_commits": [
+          "186c28774ae6abe740fc7663a3db2e17444f086a (preserve current local tip and history; STATUS.md records it as unpublished and missing the exact DCO trailer)"
+        ],
+        "checks": [
+          {
+            "command": "Root's q23 recheck of VIS-04 record, source hashes, scoped status, and roster",
+            "result": "Root reports q23 and hashes unchanged, the only accepted-scope worktree item remains the reviewed mapping document, and the deferred_execution roster query returned no listed owner."
+          },
+          {
+            "command": "Root's bounded process metadata scan",
+            "result": "Found Cargo PID 69312, PPID 28736, elapsed 02:12, working directory /private/tmp/repo-scan-pr1.oefGGx/repo. No args or environment inspected. This is external to the target worktree and is recorded separately; no global no-Cargo claim."
+          },
+          {
+            "command": "Scoped Git status and diff, repeated by the auditor with GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1",
+            "result": "HEAD-to-worktree tracked diff and staged diff are both empty (SHA-256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855). One untracked mapping file remains (SHA-256 e77ebc09f91cdb37b26b9096252a3212da784085238d1e5f32bf8198e96a5e9d); its no-index binary patch digest is 5b271781d62376502a5deaa7eb21ab278012fb9a5156fd579c0e570c4ab2ba4b."
+          },
+          {
+            "command": "Accepted-base-to-HEAD scoped history",
+            "result": "Accepted base is an ancestor. Base tree has no files under accepted VIS-04 paths; 37 additions / 12,448 insertions are already present at local HEAD, binary diff SHA-256 633958faffb41878be79820729ff030ad30642fffe830c8ceb43a4c8a1fdc542."
+          },
+          {
+            "command": "Historical deferred receipt",
+            "result": "Receipt 34e64f00be0a76bc66de5d8feaaa4d2328b900a15b966ad747848faad9748018 records 23 executed, 23 failed, 0 passed; it is a historical dirty-worktree red result, not a current pass."
+          },
+          {
+            "command": "Independent handoff payload review",
+            "result": "Pending. This exact record and its expected effect must be approved before root repeats final CAS preconditions. Any changed field or handoff timestamp requires review of the changed exact record."
+          }
+        ],
+        "next_action": "After independent approval and root's final CAS checks, transfer the in-progress VIS-04 assignment to the proposed owner without changing base, allowed paths, or historical claim/evidence. The queue CLI will set the successor state to claimed. Continue from current local history; preserve the historical 23-fail result as red evidence and do not claim a current pass."
+      },
+      "accepted_queue_revision": 24,
+      "claim_history": [
+        {
+          "claim": {
+            "owner": "/root/deferred_execution",
+            "reviewer": "/root/technical_review",
+            "branch": "termrock-implementation",
+            "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+            "allowed_paths": [
+              "tools/visibility/deferred.py",
+              "tools/visibility/tests/test_deferred.py",
+              "docs/implementation/visibility/evidence/deferred/**",
+              "crates/termrock-visibility-tests/tests/deferred.rs"
+            ],
+            "claim_token": "visibility-deferred-20261008-04",
+            "expiry": "2026-10-09T00:00:00Z",
+            "state": "in_progress",
+            "accepted_queue_revision": 4,
+            "evidence": [
+              "Independent plan approved by /root/technical_review; build slot not granted yet.",
+              "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests."
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-08T10:44:03Z",
+            "handoff_by": "/root",
+            "from_owner": "/root/deferred_execution",
+            "to_owner": "/root/current_branch_comparison_luna",
+            "owner_released": false,
+            "coordinator_verified_stopped": true,
+            "stop_evidence": "Coordinator-only supervised stop proposal, not owner release. Bind to /private/tmp/termrock-vis04-supervised-handoff-prerequisites-20261008.json SHA-256 4650769494555fb01709bf0d9b7c3b30b560fcd4de98cae7c329cb3b9f3b9997. Root repeated q23 task/path hashes and scoped status; its deferred_execution roster query returned no listed owner. Root's bounded process scan found Cargo PID 69312, parent 28736, elapsed 02:12, cwd /private/tmp/repo-scan-pr1.oefGGx/repo; no arguments or environment were read. This is an external worktree, not VIS-04 execution. The audit's bounded snapshots found no matching process names, stable VIS-04 source hashes, no tracked or staged scoped diff, and one independently reviewed untracked mapping file. These observations support a supervised stop only for this accepted scope; they do not prove owner acknowledgment, OS-level isolation, or global process absence.",
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch termrock-implementation; HEAD 186c28774ae6abe740fc7663a3db2e17444f086a; accepted base cc3ce8f6ac149aaee406047c5180d1a658d6bb9c.",
+            "git_status": "Accepted VIS-04 scope at q23: one untracked docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md with SHA-256 e77ebc09f91cdb37b26b9096252a3212da784085238d1e5f32bf8198e96a5e9d; no other scoped worktree status. Tracked HEAD-to-worktree and index diffs are empty. Base-to-HEAD history contains 37 additions and 12,448 insertions, already present at local HEAD. tools/visibility/tests/test_deferred.py is absent from the worktree and index. No accepted base, local HEAD, or history change is proposed.",
+            "diff_sha256": "5b271781d62376502a5deaa7eb21ab278012fb9a5156fd579c0e570c4ab2ba4b",
+            "changed_paths": [
+              "docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md"
+            ],
+            "unpublished_commits": [
+              "186c28774ae6abe740fc7663a3db2e17444f086a (preserve current local tip and history; STATUS.md records it as unpublished and missing the exact DCO trailer)"
+            ],
+            "checks": [
+              {
+                "command": "Root's q23 recheck of VIS-04 record, source hashes, scoped status, and roster",
+                "result": "Root reports q23 and hashes unchanged, the only accepted-scope worktree item remains the reviewed mapping document, and the deferred_execution roster query returned no listed owner."
+              },
+              {
+                "command": "Root's bounded process metadata scan",
+                "result": "Found Cargo PID 69312, PPID 28736, elapsed 02:12, working directory /private/tmp/repo-scan-pr1.oefGGx/repo. No args or environment inspected. This is external to the target worktree and is recorded separately; no global no-Cargo claim."
+              },
+              {
+                "command": "Scoped Git status and diff, repeated by the auditor with GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1",
+                "result": "HEAD-to-worktree tracked diff and staged diff are both empty (SHA-256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855). One untracked mapping file remains (SHA-256 e77ebc09f91cdb37b26b9096252a3212da784085238d1e5f32bf8198e96a5e9d); its no-index binary patch digest is 5b271781d62376502a5deaa7eb21ab278012fb9a5156fd579c0e570c4ab2ba4b."
+              },
+              {
+                "command": "Accepted-base-to-HEAD scoped history",
+                "result": "Accepted base is an ancestor. Base tree has no files under accepted VIS-04 paths; 37 additions / 12,448 insertions are already present at local HEAD, binary diff SHA-256 633958faffb41878be79820729ff030ad30642fffe830c8ceb43a4c8a1fdc542."
+              },
+              {
+                "command": "Historical deferred receipt",
+                "result": "Receipt 34e64f00be0a76bc66de5d8feaaa4d2328b900a15b966ad747848faad9748018 records 23 executed, 23 failed, 0 passed; it is a historical dirty-worktree red result, not a current pass."
+              },
+              {
+                "command": "Independent handoff payload review",
+                "result": "Pending. This exact record and its expected effect must be approved before root repeats final CAS preconditions. Any changed field or handoff timestamp requires review of the changed exact record."
+              }
+            ],
+            "next_action": "After independent approval and root's final CAS checks, transfer the in-progress VIS-04 assignment to the proposed owner without changing base, allowed paths, or historical claim/evidence. The queue CLI will set the successor state to claimed. Continue from current local history; preserve the historical 23-fail result as red evidence and do not claim a current pass."
+          }
+        }
+      ]
     },
     {
       "work_id": "VIS-05",
@@ -276,17 +519,113 @@
         "crates/termrock-visibility-tests/tests/queue.rs",
         "tools/visibility/tests/test_queue.py"
       ],
-      "owner": "/root/coordination_luna",
-      "reviewer": "/root/reference_luna",
-      "claim_token": "visibility-rust-queue-tests-20261008-09",
+      "owner": "/root/rust_test_infrastructure",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-rust-queue-diagnostic-20261008-09",
       "expiry": "2026-10-09T00:00:00Z",
       "state": "in_progress",
       "evidence": [
         "Independent Rust-only black-box test architecture approved by /root/technical_review. Preserve all 34 queue assertion groups before removing the Python test file.",
-        "Implement Rust assertions against the actual queue CLI, with disposable Git and filesystem fixtures; no production test backdoors."
+        "Implement Rust assertions against the actual queue CLI, with disposable Git and filesystem fixtures; no production test backdoors.",
+        "Explicit VIS09 owner release and independently reviewed handoff applied at revision 22; post-CAS Rust nextest actual-record check c6a1cc34-8dd5-4646-873b-40e106899fbb passed 1 case with 33 filtered. Independent diagnostic plan v3 approved; preserve ambient failing CAS unchanged and add separate Rust controls. No lock-cause or visibility-completion claim."
       ],
-      "handoff": null,
-      "accepted_queue_revision": 15
+      "handoff": {
+        "handoff_at": "2026-10-08T08:16:45Z",
+        "handoff_by": "/root",
+        "from_owner": "/root/coordination_luna",
+        "to_owner": "/root/rust_test_infrastructure",
+        "owner_released": true,
+        "coordinator_verified_stopped": false,
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+        "git_status": " D tools/visibility/tests/test_queue.py\n?? crates/termrock-visibility-tests/tests/queue.rs\nShared index and unrelated files remain dirty. Preserve all bytes and unpublished unsigned HEAD186 pending user decision.",
+        "diff_sha256": "b9b683c5dff9d586c60ffbb39534afb439224651361b9fd0f5d545599b58555b",
+        "changed_paths": [
+          "crates/termrock-visibility-tests/tests/queue.rs",
+          "tools/visibility/tests/test_queue.py"
+        ],
+        "unpublished_commits": [
+          "186c28774ae6abe740fc7663a3db2e17444f086a (unsigned local tip; unrelated to VIS09 ownership; preserve pending user decision)"
+        ],
+        "checks": [
+          {
+            "command": "Actual owner coordination FINAL",
+            "result": "coordination_luna explicitly released ONLY VIS09; no active process or pending edit on queue.rs or absent Python file; VIS10 retained."
+          },
+          {
+            "command": "Root git status and complete scoped tracked plus untracked binary diff capture",
+            "result": " D tools/visibility/tests/test_queue.py\n?? crates/termrock-visibility-tests/tests/queue.rs\nqueue.rs SHA256 870007030a37da25171405edea64f1b8c936f801175fc75d9a3d824979d56dec; Python test absent; full diff /private/tmp/termrock-vis09-handoff-scoped.diff SHA256 b9b683c5dff9d586c60ffbb39534afb439224651361b9fd0f5d545599b58555b"
+          },
+          {
+            "command": "Root q21 task bytes",
+            "result": "SHA256 28e02702e16e61fd0801c91220a2ae53bfabe69a591dd9032a72c67516cabd8c; base and existing allowed paths preserved."
+          },
+          {
+            "command": "Actual Rust nextest q21 source/render check, executed by rust_test_execution",
+            "result": "run402f9469-2695-4c3d-9a04-2db3b098fead 1PASS33filtered; summary SHA256 d23dd4ff2ee37dd55f5d6b84f325f06d701add0ea66ef74a753aa05c58a23496; no ambient CAS qualification."
+          }
+        ],
+        "next_action": "Independent review exact payload before q21 CAS handoff; preserve base/scope/history. Transition and separately reviewed diagnostic implementation only afterward. Keep original ambient failing CAS test unchanged; add controlled Rust diagnostics under same scope. Never recreate Python tests or mutate Git/index/refs."
+      },
+      "accepted_queue_revision": 22,
+      "claim_history": [
+        {
+          "claim": {
+            "owner": "/root/coordination_luna",
+            "reviewer": "/root/reference_luna",
+            "branch": "termrock-implementation",
+            "base_sha": "effccf68d68a8ecc702bc7935b820e9c7b38b408",
+            "allowed_paths": [
+              "crates/termrock-visibility-tests/tests/queue.rs",
+              "tools/visibility/tests/test_queue.py"
+            ],
+            "claim_token": "visibility-rust-queue-tests-20261008-09",
+            "expiry": "2026-10-09T00:00:00Z",
+            "state": "in_progress",
+            "accepted_queue_revision": 15,
+            "evidence": [
+              "Independent Rust-only black-box test architecture approved by /root/technical_review. Preserve all 34 queue assertion groups before removing the Python test file.",
+              "Implement Rust assertions against the actual queue CLI, with disposable Git and filesystem fixtures; no production test backdoors."
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-08T08:16:45Z",
+            "handoff_by": "/root",
+            "from_owner": "/root/coordination_luna",
+            "to_owner": "/root/rust_test_infrastructure",
+            "owner_released": true,
+            "coordinator_verified_stopped": false,
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+            "git_status": " D tools/visibility/tests/test_queue.py\n?? crates/termrock-visibility-tests/tests/queue.rs\nShared index and unrelated files remain dirty. Preserve all bytes and unpublished unsigned HEAD186 pending user decision.",
+            "diff_sha256": "b9b683c5dff9d586c60ffbb39534afb439224651361b9fd0f5d545599b58555b",
+            "changed_paths": [
+              "crates/termrock-visibility-tests/tests/queue.rs",
+              "tools/visibility/tests/test_queue.py"
+            ],
+            "unpublished_commits": [
+              "186c28774ae6abe740fc7663a3db2e17444f086a (unsigned local tip; unrelated to VIS09 ownership; preserve pending user decision)"
+            ],
+            "checks": [
+              {
+                "command": "Actual owner coordination FINAL",
+                "result": "coordination_luna explicitly released ONLY VIS09; no active process or pending edit on queue.rs or absent Python file; VIS10 retained."
+              },
+              {
+                "command": "Root git status and complete scoped tracked plus untracked binary diff capture",
+                "result": " D tools/visibility/tests/test_queue.py\n?? crates/termrock-visibility-tests/tests/queue.rs\nqueue.rs SHA256 870007030a37da25171405edea64f1b8c936f801175fc75d9a3d824979d56dec; Python test absent; full diff /private/tmp/termrock-vis09-handoff-scoped.diff SHA256 b9b683c5dff9d586c60ffbb39534afb439224651361b9fd0f5d545599b58555b"
+              },
+              {
+                "command": "Root q21 task bytes",
+                "result": "SHA256 28e02702e16e61fd0801c91220a2ae53bfabe69a591dd9032a72c67516cabd8c; base and existing allowed paths preserved."
+              },
+              {
+                "command": "Actual Rust nextest q21 source/render check, executed by rust_test_execution",
+                "result": "run402f9469-2695-4c3d-9a04-2db3b098fead 1PASS33filtered; summary SHA256 d23dd4ff2ee37dd55f5d6b84f325f06d701add0ea66ef74a753aa05c58a23496; no ambient CAS qualification."
+              }
+            ],
+            "next_action": "Independent review exact payload before q21 CAS handoff; preserve base/scope/history. Transition and separately reviewed diagnostic implementation only afterward. Keep original ambient failing CAS test unchanged; add controlled Rust diagnostics under same scope. Never recreate Python tests or mutate Git/index/refs."
+          }
+        }
+      ]
     },
     {
       "work_id": "VIS-10",
@@ -307,17 +646,100 @@
         "crates/termrock-visibility-tests/tests/queue_v2.rs",
         "docs/implementation/visibility/queue-v2.md"
       ],
-      "owner": "/root/coordination_luna",
-      "reviewer": "/root/jackin_owner",
-      "claim_token": "visibility-queue-v2-20261008-10",
+      "owner": "/root/registry_check_luna",
+      "reviewer": "/root/jackin_inventory_current_luna",
+      "claim_token": "visibility-registry-check-20261008-10",
       "expiry": "2026-10-09T00:00:00Z",
       "state": "in_progress",
       "evidence": [
         "Independent plan approval /private/tmp/termrock-vis10-queue-v2-plan-review.json SHA-256 bd9dbce82a27aa57608fde5d3870828765448daf53fc7a936e6cb405e3607aa0. Code prerequisite uses committed helper 8189; actual migration remains blocked until status v2 compatibility and separately qualified roots/preflight.",
-        "Independent reviewed implementation scope accepted; live migration is not authorized by this transition."
+        "Independent reviewed implementation scope accepted; live migration is not authorized by this transition.",
+        "Integrator acceptance: reviewed VIS10 scope-amendment plan /private/tmp/termrock-vis10-scope-amendment-plan-20261009-r2.md SHA-256 509b6cefae8e062477bbd647d9d55b3afbff77e98ec2b44d44160deb4017264b; independent review /private/tmp/termrock-vis10-scope-amendment-plan-review-luna-r2.json SHA-256 e5fb2a8d9bd474cf3c087b3ccab34c5140476f6640eaeb4a82ae0e1d49ec9574 approves this exact bounded workplan. This plan supersedes the prior handoff next_action only for the next implementation sequence. Preserve the existing VIS10 base, owner, reviewer, token, expiry, allowed paths, historical handoff object, and claim history. Implement only this schema-v2 scope-amendment increment in the existing three paths. No live migration, publication, history rewrite, or out-of-scope writes are authorized."
       ],
-      "handoff": null,
-      "accepted_queue_revision": 18
+      "handoff": {
+        "handoff_at": "2026-10-08T16:04:46.263Z",
+        "handoff_by": "/root",
+        "from_owner": "/root/coordination_luna",
+        "to_owner": "/root/registry_check_luna",
+        "owner_released": true,
+        "coordinator_verified_stopped": false,
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+        "git_status": " M STATUS.md\n M WORK_QUEUE.md\n M crates/termrock-e2e/README.md\n M crates/termrock-e2e/cases/registry.json\n M crates/termrock-e2e/profile.json\n M crates/termrock-e2e/src/lib.rs\n M crates/termrock-e2e/tests/contract.rs\n M crates/termrock-e2e/tests/holla_help_overlay.rs\nM  crates/termrock-visibility-tests/src/bin/fixture.rs\n M crates/termrock-visibility-tests/tests/deferred.rs\n M crates/termrock-visibility-tests/tests/status.rs\n M crates/termrock-visibility-tests/tests/subjects.rs\n M docs/implementation/visibility/evidence/reviews/20261008-external-records/index.md\n M docs/implementation/visibility/evidence/subjects/implementation-pilot-v1.json\n M docs/implementation/visibility/tasks.json\n M tools/visibility/README.md\n M tools/visibility/deferred.py\n M tools/visibility/queue.py\n M tools/visibility/source-facts.json\n M tools/visibility/status.py\n M tools/visibility/subjects.py\n D tools/visibility/tests/test_queue.py\n?? crates/termrock-e2e/schemas/expected-generation-v1.schema.json\n?? crates/termrock-e2e/schemas/receipt-v2.schema.json\n?? crates/termrock-e2e/schemas/receipt-v3.schema.json\n?? crates/termrock-e2e/schemas/subject-manifest-v2.schema.json\n?? crates/termrock-e2e/schemas/trust-record-v2.schema.json\n?? crates/termrock-e2e/src/visual.rs\n?? crates/termrock-visibility-tests/tests/queue.rs\n?? crates/termrock-visibility-tests/tests/queue_v2.rs\n?? docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md\n?? docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json\n?? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/\n?? docs/implementation/visibility/queue-v2.md\n",
+        "diff_sha256": "854fcd57912ee9fd83846ab3c06416f280d0d8edae17814d0367cace90dc530e",
+        "changed_paths": [
+          "tools/visibility/queue.py",
+          "crates/termrock-visibility-tests/tests/queue_v2.rs",
+          "docs/implementation/visibility/queue-v2.md"
+        ],
+        "unpublished_commits": [
+          "186c28774ae6abe740fc7663a3db2e17444f086a"
+        ],
+        "checks": [
+          {
+            "command": "Owner release via collaboration message",
+            "result": "Owner explicitly released all VIS10 writes and reported no pending edit or active process; three scope hashes independently match."
+          },
+          {
+            "command": "Fresh Rust status lane",
+            "result": "26/26 PASS; receipt ae39ef2e303bb182e15e49e00a5f26cf8d1ff9fb11085ebcbe76a531ff53de4e sealed and Cargo slot released."
+          }
+        ],
+        "next_action": "After independent handoff review and integrator CAS, implement only reviewed registry-check-v2 plan r3; preserve original branch/base/scope/history. No publication or history rewrite is authorized."
+      },
+      "accepted_queue_revision": 25,
+      "claim_history": [
+        {
+          "claim": {
+            "owner": "/root/coordination_luna",
+            "reviewer": "/root/jackin_owner",
+            "branch": "termrock-implementation",
+            "base_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
+            "allowed_paths": [
+              "tools/visibility/queue.py",
+              "crates/termrock-visibility-tests/tests/queue_v2.rs",
+              "docs/implementation/visibility/queue-v2.md"
+            ],
+            "claim_token": "visibility-queue-v2-20261008-10",
+            "expiry": "2026-10-09T00:00:00Z",
+            "state": "in_progress",
+            "accepted_queue_revision": 18,
+            "evidence": [
+              "Independent plan approval /private/tmp/termrock-vis10-queue-v2-plan-review.json SHA-256 bd9dbce82a27aa57608fde5d3870828765448daf53fc7a936e6cb405e3607aa0. Code prerequisite uses committed helper 8189; actual migration remains blocked until status v2 compatibility and separately qualified roots/preflight.",
+              "Independent reviewed implementation scope accepted; live migration is not authorized by this transition."
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-08T16:04:46.263Z",
+            "handoff_by": "/root",
+            "from_owner": "/root/coordination_luna",
+            "to_owner": "/root/registry_check_luna",
+            "owner_released": true,
+            "coordinator_verified_stopped": false,
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+            "git_status": " M STATUS.md\n M WORK_QUEUE.md\n M crates/termrock-e2e/README.md\n M crates/termrock-e2e/cases/registry.json\n M crates/termrock-e2e/profile.json\n M crates/termrock-e2e/src/lib.rs\n M crates/termrock-e2e/tests/contract.rs\n M crates/termrock-e2e/tests/holla_help_overlay.rs\nM  crates/termrock-visibility-tests/src/bin/fixture.rs\n M crates/termrock-visibility-tests/tests/deferred.rs\n M crates/termrock-visibility-tests/tests/status.rs\n M crates/termrock-visibility-tests/tests/subjects.rs\n M docs/implementation/visibility/evidence/reviews/20261008-external-records/index.md\n M docs/implementation/visibility/evidence/subjects/implementation-pilot-v1.json\n M docs/implementation/visibility/tasks.json\n M tools/visibility/README.md\n M tools/visibility/deferred.py\n M tools/visibility/queue.py\n M tools/visibility/source-facts.json\n M tools/visibility/status.py\n M tools/visibility/subjects.py\n D tools/visibility/tests/test_queue.py\n?? crates/termrock-e2e/schemas/expected-generation-v1.schema.json\n?? crates/termrock-e2e/schemas/receipt-v2.schema.json\n?? crates/termrock-e2e/schemas/receipt-v3.schema.json\n?? crates/termrock-e2e/schemas/subject-manifest-v2.schema.json\n?? crates/termrock-e2e/schemas/trust-record-v2.schema.json\n?? crates/termrock-e2e/src/visual.rs\n?? crates/termrock-visibility-tests/tests/queue.rs\n?? crates/termrock-visibility-tests/tests/queue_v2.rs\n?? docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md\n?? docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json\n?? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/\n?? docs/implementation/visibility/queue-v2.md\n",
+            "diff_sha256": "854fcd57912ee9fd83846ab3c06416f280d0d8edae17814d0367cace90dc530e",
+            "changed_paths": [
+              "tools/visibility/queue.py",
+              "crates/termrock-visibility-tests/tests/queue_v2.rs",
+              "docs/implementation/visibility/queue-v2.md"
+            ],
+            "unpublished_commits": [
+              "186c28774ae6abe740fc7663a3db2e17444f086a"
+            ],
+            "checks": [
+              {
+                "command": "Owner release via collaboration message",
+                "result": "Owner explicitly released all VIS10 writes and reported no pending edit or active process; three scope hashes independently match."
+              },
+              {
+                "command": "Fresh Rust status lane",
+                "result": "26/26 PASS; receipt ae39ef2e303bb182e15e49e00a5f26cf8d1ff9fb11085ebcbe76a531ff53de4e sealed and Cargo slot released."
+              }
+            ],
+            "next_action": "After independent handoff review and integrator CAS, implement only reviewed registry-check-v2 plan r3; preserve original branch/base/scope/history. No publication or history rewrite is authorized."
+          }
+        }
+      ]
     }
   ]
 }
