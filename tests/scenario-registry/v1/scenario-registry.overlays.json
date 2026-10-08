@@ -9508,6 +9508,197 @@
         ]
       }
     }
+,
+    {
+      "id": "DIALOG-UPGRADE-001",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "upgrade confirm dialog over the 7-included plan",
+      "ref_symbols": [
+        {
+          "glyph": "Start upgrade everything?",
+          "meaning": "confirm title"
+        },
+        {
+          "glyph": "7 included · 1 excluded",
+          "meaning": "plan counts"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Start upgrade everything?",
+          "meaning": "confirm title"
+        },
+        {
+          "glyph": "7 included · 1 excluded",
+          "meaning": "plan counts"
+        }
+      ],
+      "ref_source": [
+        {
+          "path": "src/bin/holla/screens/plan.rs",
+          "symbols": [
+            "PlanReviewPage",
+            "CONFIRM"
+          ]
+        }
+      ],
+      "cand_source": [],
+      "data": {
+        "steps": 8,
+        "included": 7,
+        "excluded": 1
+      },
+      "state": {
+        "dialog": "confirm",
+        "choice": "cancel"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario upgrade-plan (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "press Down five times (step 06 takes the cursor)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Space (step 06 is excluded)",
+          "key": "Space",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press c (the confirm dialog opens)",
+          "key": "c",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (the dialog cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press c, Esc (the dialog re-opens and cancels)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "confirm",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the dialog titles the upgrade question"
+          },
+          {
+            "id": "V2",
+            "text": "the steps fact pairs 7 included with 1 excluded"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "Cancel stays the focused choice beside Start plan"
+          },
+          {
+            "id": "S2",
+            "text": "the footer offers the choose, confirm, and cancel gestures"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "c opens the confirm dialog over the 7-included plan"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the dialog and c plus Esc repeat the roundtrip"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the cancelled status may not set while the dialog is open"
+          },
+          {
+            "id": "N2",
+            "text": "the dialog title may not stay after cancelling"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/plan.rs",
+            "lines": "36",
+            "note": "CONFIRM WidgetId"
+          },
+          {
+            "path": "src/bin/holla/screens/plan.rs",
+            "lines": "438",
+            "note": "PlanReviewPage struct"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "44",
+            "note": "Dialog struct"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/upgrade/confirm/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_upgrade_confirm live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "coverage": [
     {
@@ -9711,7 +9902,8 @@
         "DIALOG-REMOTE-001",
         "DIALOG-REMOTE-002",
         "DIALOG-REMOTE-003",
-        "DIALOG-TRUST-001"
+        "DIALOG-TRUST-001",
+        "DIALOG-UPGRADE-001"
       ],
       "handlers": [
         "confirm/destructive/prompt/facts: action shapes with cancel_index and initial focus (dialog.rs)",
@@ -10863,6 +11055,22 @@
       "status": "mapped",
       "also": [],
       "note": "phase-8n slice 8A-H3: h3_trust_prompt live-PTY check"
+    }
+,
+    {
+     "old": "holla/flows/upgrade/confirm",
+     "app": "holla",
+     "sizes": [
+       "72x20",
+       "80x24",
+       "100x30",
+       "120x40",
+       "160x50"
+     ],
+     "new": "DIALOG-UPGRADE-001",
+     "status": "mapped",
+     "also": [],
+     "note": "phase-8p slice 8A-H3 (tail): h4_upgrade_confirm live-PTY check"
     }
   ]
 }

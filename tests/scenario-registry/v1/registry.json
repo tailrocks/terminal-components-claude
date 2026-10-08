@@ -39183,6 +39183,3789 @@
         ]
       }
     }
+,
+    {
+      "id": "DIALOG-UPGRADE-001",
+      "app": "holla",
+      "component": "Dialog",
+      "part": "upgrade confirm dialog over the 7-included plan",
+      "ref_symbols": [
+        {
+          "glyph": "Start upgrade everything?",
+          "meaning": "confirm title"
+        },
+        {
+          "glyph": "7 included · 1 excluded",
+          "meaning": "plan counts"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "Start upgrade everything?",
+          "meaning": "confirm title"
+        },
+        {
+          "glyph": "7 included · 1 excluded",
+          "meaning": "plan counts"
+        }
+      ],
+      "data": {
+        "steps": 8,
+        "included": 7,
+        "excluded": 1
+      },
+      "state": {
+        "dialog": "confirm",
+        "choice": "cancel"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario upgrade-plan (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "press Down five times (step 06 takes the cursor)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Space (step 06 is excluded)",
+          "key": "Space",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press c (the confirm dialog opens)",
+          "key": "c",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Esc (the dialog cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press c, Esc (the dialog re-opens and cancels)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "confirm",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the dialog titles the upgrade question"
+          },
+          {
+            "id": "V2",
+            "text": "the steps fact pairs 7 included with 1 excluded"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "Cancel stays the focused choice beside Start plan"
+          },
+          {
+            "id": "S2",
+            "text": "the footer offers the choose, confirm, and cancel gestures"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "c opens the confirm dialog over the 7-included plan"
+          },
+          {
+            "id": "A2",
+            "text": "Esc cancels the dialog and c plus Esc repeat the roundtrip"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the cancelled status may not set while the dialog is open"
+          },
+          {
+            "id": "N2",
+            "text": "the dialog title may not stay after cancelling"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/plan.rs",
+            "lines": "36",
+            "note": "CONFIRM WidgetId"
+          },
+          {
+            "path": "src/bin/holla/screens/plan.rs",
+            "lines": "438",
+            "note": "PlanReviewPage struct"
+          },
+          {
+            "path": "src/widgets/dialog.rs",
+            "lines": "44",
+            "note": "Dialog struct"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/upgrade/confirm/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_upgrade_confirm live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-UPGRADE-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "upgrade plan with step 06 excluded",
+      "ref_symbols": [
+        {
+          "glyph": "7 included · 1 excluded",
+          "meaning": "exclusion count"
+        },
+        {
+          "glyph": "excluded",
+          "meaning": "step state"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "7 included · 1 excluded",
+          "meaning": "exclusion count"
+        },
+        {
+          "glyph": "excluded",
+          "meaning": "step state"
+        }
+      ],
+      "data": {
+        "steps": 8,
+        "cursor": 6
+      },
+      "state": {
+        "excluded": "06",
+        "dialog": "closed"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario upgrade-plan (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "press Down five times (step 06 takes the cursor)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Space (step 06 is excluded)",
+          "key": "Space",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Space (step 06 is included again)",
+          "key": "Space",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Space (step 06 is excluded again)",
+          "key": "Space",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "excluded",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the cursor row marks step 06 excluded"
+          },
+          {
+            "id": "V2",
+            "text": "the header counts 7 included and 1 excluded"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts drawer reports the excluded state"
+          },
+          {
+            "id": "S2",
+            "text": "the header keeps the 8-step plan"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Space excludes step 06"
+          },
+          {
+            "id": "A2",
+            "text": "Space re-includes and Space excludes again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the full-inclusion count may not stay after excluding"
+          },
+          {
+            "id": "N2",
+            "text": "the zero-exclusion count may not stay after re-excluding"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/plan.rs",
+            "lines": "438",
+            "note": "PlanReviewPage struct"
+          },
+          {
+            "path": "src/bin/holla/domain/plan.rs",
+            "lines": "165",
+            "note": "Plan struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/upgrade/excluded/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_upgrade_excluded live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PANEL-UPGRADE-002",
+      "app": "holla",
+      "component": "Panel",
+      "part": "plan step-facts drawer with keyboard focus",
+      "ref_symbols": [
+        {
+          "glyph": "▎01 Preflight",
+          "meaning": "focused drawer header"
+        },
+        {
+          "glyph": "cat /etc/os-release",
+          "meaning": "first preflight check"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "▎01 Preflight",
+          "meaning": "focused drawer header"
+        },
+        {
+          "glyph": "cat /etc/os-release",
+          "meaning": "first preflight check"
+        }
+      ],
+      "data": {
+        "step": "01 Preflight",
+        "focus": "drawer"
+      },
+      "state": {
+        "cursor": "drawer",
+        "privilege": "sudo"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario upgrade-plan (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "press p (focus moves into the facts drawer)",
+          "key": "p",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press p (focus returns to the steps)",
+          "key": "p",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press p (the drawer takes focus again)",
+          "key": "p",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "facts",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the drawer header carries focus with its required badge"
+          },
+          {
+            "id": "V2",
+            "text": "the runs fact names the first preflight check"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the privilege fact reads sudo"
+          },
+          {
+            "id": "S2",
+            "text": "the state fact reads ready"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "p moves focus into the step-facts drawer"
+          },
+          {
+            "id": "A2",
+            "text": "p returns focus to the steps and p focuses the drawer again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the steps cursor may not stay with drawer focus"
+          },
+          {
+            "id": "N2",
+            "text": "the drawer cursor may not stay with steps focus"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/screens/plan.rs",
+            "lines": "438",
+            "note": "PlanReviewPage struct"
+          },
+          {
+            "path": "src/bin/holla/domain/plan.rs",
+            "lines": "53",
+            "note": "Step struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/flows/upgrade/facts/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_upgrade_facts live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-BREW-SERVICES-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "brew-services parity boot and services listing",
+      "ref_symbols": [
+        {
+          "glyph": "›Tasks",
+          "meaning": "explore cursor"
+        },
+        {
+          "glyph": "svc02",
+          "meaning": "errored service row"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "›Tasks",
+          "meaning": "explore cursor"
+        },
+        {
+          "glyph": "svc02",
+          "meaning": "errored service row"
+        }
+      ],
+      "data": {
+        "world": "parity-brew-services",
+        "services": 11
+      },
+      "state": {
+        "page": "finder",
+        "host": "mbp"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-brew-services (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Homebrew services`, Enter (the listing opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the finder returns)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the query clears)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "type `Homebrew services`, Enter (the listing re-opens)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "services",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the explore row lists the entry points with Tasks first"
+          },
+          {
+            "id": "V2",
+            "text": "the recent shelf reads empty at boot"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the listing world"
+          },
+          {
+            "id": "S2",
+            "text": "the detail panel opens on the listing"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the services listing"
+          },
+          {
+            "id": "A2",
+            "text": "Esc backs to the finder, Esc clears the query, and the listing re-opens"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the empty-query placeholder may not stay on the listing"
+          },
+          {
+            "id": "N2",
+            "text": "the detail panel may not stay after backing out"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "562",
+            "note": "brew_services fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/brew-services/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_brew_services live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-BROWSER-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "browser parity boot and hidden-entries toggle",
+      "ref_symbols": [
+        {
+          "glyph": "› pnpm a",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "2 hidden shown",
+          "meaning": "toggled status"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› pnpm a",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "2 hidden shown",
+          "meaning": "toggled status"
+        }
+      ],
+      "data": {
+        "world": "parity-browser",
+        "entries": 16
+      },
+      "state": {
+        "page": "finder",
+        "folder": "site"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-browser (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Browse ~/work/site`, Enter (the listing opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Ctrl+H (hidden entries show)",
+          "key": "Ctrl+H",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Ctrl+H (hidden entries hide)",
+          "key": "Ctrl+H",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Ctrl+H (hidden entries show again)",
+          "key": "Ctrl+H",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "hidden",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top suggestion pairs the script with its manifest"
+          },
+          {
+            "id": "V2",
+            "text": "the script shelf lists the package scripts"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the site folder"
+          },
+          {
+            "id": "S2",
+            "text": "the header counts all entries with hidden shown"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Ctrl+H toggles hidden entries on"
+          },
+          {
+            "id": "A2",
+            "text": "Ctrl+H toggles hidden back off, then on again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the hidden-hidden status may not stay with the toggle"
+          },
+          {
+            "id": "N2",
+            "text": "the shown count may not stay after the second toggle"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "317",
+            "note": "browser fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/browser/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_browser live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-CARGO-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "cargo parity boot and clean-action dialog",
+      "ref_symbols": [
+        {
+          "glyph": "cargo clean · 900.0 MiB",
+          "meaning": "clean badge"
+        },
+        {
+          "glyph": "one confirmation",
+          "meaning": "gate flow"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "cargo clean · 900.0 MiB",
+          "meaning": "clean badge"
+        },
+        {
+          "glyph": "one confirmation",
+          "meaning": "gate flow"
+        }
+      ],
+      "data": {
+        "world": "parity-cargo",
+        "bytes": "900.0 MiB"
+      },
+      "state": {
+        "page": "finder",
+        "project": "engine"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-cargo (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `cargo clean` (the action filters into view)"
+        },
+        {
+          "step": 3,
+          "action": "press Enter (the dialog opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the dialog cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Enter, Esc (the dialog re-opens and cancels)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "clean",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top suggestion pairs the build with its manifest"
+          },
+          {
+            "id": "V2",
+            "text": "the clean action carries its byte badge"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the engine folder"
+          },
+          {
+            "id": "S2",
+            "text": "the gate fact names the one-confirmation flow"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "typing filters to the clean action"
+          },
+          {
+            "id": "A2",
+            "text": "Enter opens the dialog and Esc cancels it, twice"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the confirm dialog may not open before Enter"
+          },
+          {
+            "id": "N2",
+            "text": "the dialog may not stay after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "510",
+            "note": "cargo fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/cargo/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_cargo live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-CLEANUP-RESULTS-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "cleanup-results parity boot and history page",
+      "ref_symbols": [
+        {
+          "glyph": "cargo clean · 1000.0 MiB",
+          "meaning": "clean row"
+        },
+        {
+          "glyph": "1 operation log records",
+          "meaning": "history count"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "cargo clean · 1000.0 MiB",
+          "meaning": "clean row"
+        },
+        {
+          "glyph": "1 operation log records",
+          "meaning": "history count"
+        }
+      ],
+      "data": {
+        "world": "parity-cleanup-results",
+        "records": 1
+      },
+      "state": {
+        "page": "finder",
+        "folder": "safe"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-cleanup-results (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Show cleanup history`, Enter (the history opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the finder returns)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Enter (the history re-opens)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "history",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the clean row pairs the action with the destructive badge"
+          },
+          {
+            "id": "V2",
+            "text": "the cargo shelf lists the project actions"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the safe folder"
+          },
+          {
+            "id": "S2",
+            "text": "the history header counts the operation log"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the cleanup history"
+          },
+          {
+            "id": "A2",
+            "text": "Esc leaves the history and Enter re-opens it over the intact query"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the history page may not show at boot"
+          },
+          {
+            "id": "N2",
+            "text": "the history chrome may not stay after leaving"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "1298",
+            "note": "cleanup_results fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/cleanup-results/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_cleanup_results live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-CUSTOM-ACTIONS-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "custom-actions parity boot and trust prompt",
+      "ref_symbols": [
+        {
+          "glyph": "› Deploy preview",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "Trust ~/work/team/.holla.toml?",
+          "meaning": "prompt title"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› Deploy preview",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "Trust ~/work/team/.holla.toml?",
+          "meaning": "prompt title"
+        }
+      ],
+      "data": {
+        "world": "parity-custom-actions",
+        "shelf": "custom"
+      },
+      "state": {
+        "page": "finder",
+        "trust": "unreviewed"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-custom-actions (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Deploy preview`, Enter (the prompt opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the finder returns)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the query clears)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "type `Deploy preview`, Enter (the prompt re-opens)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "prompt",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top suggestion pairs the deploy with its unreviewed mark"
+          },
+          {
+            "id": "V2",
+            "text": "the trusted shelf lists the shared actions"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the gate fact names the trust requirement"
+          },
+          {
+            "id": "S2",
+            "text": "the review names the exact untrusted definition"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the trust review"
+          },
+          {
+            "id": "A2",
+            "text": "Esc backs to the finder, Esc clears the query, and the prompt re-opens"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the empty-query placeholder may not stay on the review"
+          },
+          {
+            "id": "N2",
+            "text": "the trust prompt may not stay after backing out"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "898",
+            "note": "custom_actions fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/custom-actions/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_custom_actions live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-DELETE-SAFETY-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "delete-safety parity boot and disk scan",
+      "ref_symbols": [
+        {
+          "glyph": "cargo clean · 1000.0 MiB",
+          "meaning": "clean row"
+        },
+        {
+          "glyph": "1 unreadable",
+          "meaning": "warning count"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "cargo clean · 1000.0 MiB",
+          "meaning": "clean row"
+        },
+        {
+          "glyph": "1 unreadable",
+          "meaning": "warning count"
+        }
+      ],
+      "data": {
+        "world": "parity-delete-safety",
+        "unreadable": 1
+      },
+      "state": {
+        "page": "finder",
+        "folder": "safe"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-delete-safety (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press s (the apparent sort applies)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press s (the allocated sort returns)",
+          "key": "s",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "scan",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the clean row pairs the action with the destructive badge"
+          },
+          {
+            "id": "V2",
+            "text": "the cargo shelf lists the project actions"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the freshness fact ticks with the live clock"
+          },
+          {
+            "id": "S2",
+            "text": "the allocated sort is active at the scan state"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter runs the scan to the unreadable warning"
+          },
+          {
+            "id": "A2",
+            "text": "s switches to apparent sort and s switches back"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the apparent sort may not run at the scan state"
+          },
+          {
+            "id": "N2",
+            "text": "the apparent sort may not stay after the toggle-back"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "1239",
+            "note": "delete_safety fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/delete-safety/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_delete_safety live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-DISK-NAVIGATION-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "disk-navigation parity boot and disk scan",
+      "ref_symbols": [
+        {
+          "glyph": "cargo clean · 2.0 MiB",
+          "meaning": "clean row"
+        },
+        {
+          "glyph": "scan complete",
+          "meaning": "completion summary"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "cargo clean · 2.0 MiB",
+          "meaning": "clean row"
+        },
+        {
+          "glyph": "scan complete",
+          "meaning": "completion summary"
+        }
+      ],
+      "data": {
+        "world": "parity-disk-navigation",
+        "bytes": "2.0 MiB"
+      },
+      "state": {
+        "page": "finder",
+        "folder": "big"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-disk-navigation (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Analyze disk usage`, Enter (the scan runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press s (the apparent sort applies)",
+          "key": "s",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press s (the allocated sort returns)",
+          "key": "s",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "scan",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the clean row pairs the action with the destructive badge"
+          },
+          {
+            "id": "V2",
+            "text": "the cargo shelf lists the project actions"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the big folder"
+          },
+          {
+            "id": "S2",
+            "text": "the allocated sort is active at the scan state"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter runs the scan to completion"
+          },
+          {
+            "id": "A2",
+            "text": "s switches to apparent sort and s switches back"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the apparent sort may not run at the scan state"
+          },
+          {
+            "id": "N2",
+            "text": "the apparent sort may not stay after the toggle-back"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "1016",
+            "note": "disk_navigation fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/disk-navigation/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_disk_navigation live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-DOCKER-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "docker parity boot and stop-and-remove gates",
+      "ref_symbols": [
+        {
+          "glyph": "› Follow acme-api-1 logs",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "6 containers removed",
+          "meaning": "changes fact"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› Follow acme-api-1 logs",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "6 containers removed",
+          "meaning": "changes fact"
+        }
+      ],
+      "data": {
+        "world": "parity-docker",
+        "removed": 6
+      },
+      "state": {
+        "page": "finder",
+        "folder": "stack"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-docker (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Stop and remove all`, Enter (gate 1 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right, Enter (gate 2 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (gate 2 cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right, Enter, Esc (gate 2 re-opens and cancels)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate1",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top row pairs the unhealthy service with its state"
+          },
+          {
+            "id": "V2",
+            "text": "the healthy shelf lists the running services"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the stack folder"
+          },
+          {
+            "id": "S2",
+            "text": "the changes fact counts the removed containers"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the gate-1 review"
+          },
+          {
+            "id": "A2",
+            "text": "Right plus Enter opens gate 2 and Esc cancels it, twice"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the gate-2 dialog may not open before Right plus Enter"
+          },
+          {
+            "id": "N2",
+            "text": "the gate-2 chrome may not stay after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "535",
+            "note": "docker fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/docker/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_docker live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-EXECUTOR-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "executor parity boot and burst run",
+      "ref_symbols": [
+        {
+          "glyph": "› Status across 3 child",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "500 earlier lines dropped",
+          "meaning": "retention report"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› Status across 3 child",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "500 earlier lines dropped",
+          "meaning": "retention report"
+        }
+      ],
+      "data": {
+        "world": "parity-executor",
+        "lines": 4500
+      },
+      "state": {
+        "page": "finder",
+        "folder": "batch"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-executor (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Emit a burst`, Enter (the burst runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press r (the script restarts and succeeds again)",
+          "key": "r",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (back to Here)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "burst",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top row pairs the batch status with its child state"
+          },
+          {
+            "id": "V2",
+            "text": "the burst shelf lists the fixture scripts"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the batch folder"
+          },
+          {
+            "id": "S2",
+            "text": "the title pairs the burst with its clean exit"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter runs the burst to the dropped-lines report"
+          },
+          {
+            "id": "A2",
+            "text": "r restarts the script and the report returns"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the empty-query placeholder may not stay on the output"
+          },
+          {
+            "id": "N2",
+            "text": "the burst body may not stay after leaving the executor"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "751",
+            "note": "executor fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/executor/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_executor live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-FILES-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "files parity boot and find results",
+      "ref_symbols": [
+        {
+          "glyph": "›Tasks",
+          "meaning": "explore cursor"
+        },
+        {
+          "glyph": "3 results · home scope",
+          "meaning": "result count"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "›Tasks",
+          "meaning": "explore cursor"
+        },
+        {
+          "glyph": "3 results · home scope",
+          "meaning": "result count"
+        }
+      ],
+      "data": {
+        "world": "parity-files",
+        "indexed": 29
+      },
+      "state": {
+        "page": "finder",
+        "folder": "notes"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-files (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Find files under home`, Enter, type `readme` (3 results)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down (the preview follows)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Up (the preview returns)",
+          "key": "Up",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "results",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the explore row lists the entry points with Tasks first"
+          },
+          {
+            "id": "V2",
+            "text": "the recent shelf reads empty at boot"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the notes folder"
+          },
+          {
+            "id": "S2",
+            "text": "the preview titles the top result with its byte count"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "typing filters to the three readme results"
+          },
+          {
+            "id": "A2",
+            "text": "Down moves the preview down and Up moves it back"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the first preview title may not stay after moving down"
+          },
+          {
+            "id": "N2",
+            "text": "the second preview title may not stay after moving back"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "278",
+            "note": "files fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/files/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_files live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-GIT-BATCH-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "git-batch parity boot and sibling batch",
+      "ref_symbols": [
+        {
+          "glyph": "› Status across 5 child",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "2 ok · 2 failed · 0 cancelled",
+          "meaning": "batch footer"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› Status across 5 child",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "2 ok · 2 failed · 0 cancelled",
+          "meaning": "batch footer"
+        }
+      ],
+      "data": {
+        "world": "parity-git-batch",
+        "children": 4
+      },
+      "state": {
+        "page": "finder",
+        "scope": "child"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-git-batch (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Pull 4 sibling`, Enter, Right, Enter (the batch runs)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press r (the script restarts and reports again)",
+          "key": "r",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Alt+0 (back to Here)",
+          "key": "Alt+0",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "batch",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top row pairs the batch status with its child state"
+          },
+          {
+            "id": "V2",
+            "text": "the explore shelf counts the child projects"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts scope the batch to the children"
+          },
+          {
+            "id": "S2",
+            "text": "the title pairs the pull with its clean exit"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "running the batch lands on the fast-forward report"
+          },
+          {
+            "id": "A2",
+            "text": "r restarts the script and the report returns"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the empty-query placeholder may not stay on the output"
+          },
+          {
+            "id": "N2",
+            "text": "the report line may not stay after leaving the executor"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "407",
+            "note": "git_batch fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/git-batch/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_git_batch live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-GIT-CURRENT-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "git-current parity boot and blocked-pull results",
+      "ref_symbols": [
+        {
+          "glyph": "› Review 1 modified files",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "blocked · 1 modified",
+          "meaning": "block reason"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› Review 1 modified files",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "blocked · 1 modified",
+          "meaning": "block reason"
+        }
+      ],
+      "data": {
+        "world": "parity-git-current",
+        "modified": 1
+      },
+      "state": {
+        "page": "finder",
+        "scope": "parent"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-git-current (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Pull` (the blocked results filter into view)"
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the query clears)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "type `Pull` (the blocked results return)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "blocked",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top row pairs the review with its file counts"
+          },
+          {
+            "id": "V2",
+            "text": "the explore shelf names the parent project"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts scope the review to the parent"
+          },
+          {
+            "id": "S2",
+            "text": "the finder counts the pull results"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "typing filters to the pull actions"
+          },
+          {
+            "id": "A2",
+            "text": "Esc clears the query and typing filters again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the empty-query placeholder may not stay with the results"
+          },
+          {
+            "id": "N2",
+            "text": "the result count may not stay after the clear"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "376",
+            "note": "git_current fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/git-current/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_git_current live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-GRADLE-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "gradle parity boot and cleanup review",
+      "ref_symbols": [
+        {
+          "glyph": "› Clean Gradle outputs",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "4 of 4 candidates eligible",
+          "meaning": "selection fact"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› Clean Gradle outputs",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "4 of 4 candidates eligible",
+          "meaning": "selection fact"
+        }
+      ],
+      "data": {
+        "world": "parity-gradle",
+        "candidates": 4
+      },
+      "state": {
+        "page": "finder",
+        "folder": "android"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-gradle (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Clean Gradle outputs`, Enter, Right (the fold opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Left (the fold closes)",
+          "key": "Left",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Right (the fold re-opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press d (gate 1 opens)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Esc (back to the review)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "cleanup",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top row pairs the cleanup with the destructive badge"
+          },
+          {
+            "id": "V2",
+            "text": "the gradle shelf lists the build actions"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the gate fact names the review flow"
+          },
+          {
+            "id": "S2",
+            "text": "the selection fact counts the full eligibility"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the review and Right opens the fold"
+          },
+          {
+            "id": "A2",
+            "text": "Left closes the fold and Right re-opens it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the gate review may not open before d"
+          },
+          {
+            "id": "N2",
+            "text": "the gate chrome may not stay after leaving"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "623",
+            "note": "gradle fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/gradle/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_gradle live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-HISTORY-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "history parity boot and finder query",
+      "ref_symbols": [
+        {
+          "glyph": "› Run check",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "Results · 3",
+          "meaning": "result count"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› Run check",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "Results · 3",
+          "meaning": "result count"
+        }
+      ],
+      "data": {
+        "world": "parity-history",
+        "tasks": 5
+      },
+      "state": {
+        "page": "finder",
+        "folder": "holla"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-history (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `pull` (the results filter into view)"
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the query clears)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "type `pull` (the results return)"
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "query",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top row pairs the task with its manifest"
+          },
+          {
+            "id": "V2",
+            "text": "the task shelf lists the mise tasks"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the holla folder"
+          },
+          {
+            "id": "S2",
+            "text": "the footer offers the run gesture"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "typing filters to the pull results"
+          },
+          {
+            "id": "A2",
+            "text": "Esc clears the query and typing filters again"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the empty-query placeholder may not stay with the results"
+          },
+          {
+            "id": "N2",
+            "text": "the result count may not stay after the clear"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "236",
+            "note": "history fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/history/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_history live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-IDEA-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "idea parity boot and cleanup page",
+      "ref_symbols": [
+        {
+          "glyph": "› Clean IntelliJ metadata",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "4 candidates",
+          "meaning": "candidate count"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› Clean IntelliJ metadata",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "4 candidates",
+          "meaning": "candidate count"
+        }
+      ],
+      "data": {
+        "world": "parity-idea",
+        "candidates": 4
+      },
+      "state": {
+        "page": "finder",
+        "folder": "ide"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-idea (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Clean IntelliJ`, Enter (the page opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the finder returns)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the query clears)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "type `Clean IntelliJ`, Enter (the page re-opens)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "page",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top row pairs the cleanup with the destructive badge"
+          },
+          {
+            "id": "V2",
+            "text": "the boot counts the metadata candidates"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the ide folder"
+          },
+          {
+            "id": "S2",
+            "text": "the selection fact counts the full eligibility"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the cleanup page"
+          },
+          {
+            "id": "A2",
+            "text": "Esc backs to the finder, Esc clears the query, and the page re-opens"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the empty-query placeholder may not stay on the page"
+          },
+          {
+            "id": "N2",
+            "text": "the page title may not stay after backing out"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "669",
+            "note": "idea fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/idea/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_idea live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-INSIGHTS-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "insights parity boot and category review",
+      "ref_symbols": [
+        {
+          "glyph": "› Review cleanup candidates",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "18.8 GiB",
+          "meaning": "byte count"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› Review cleanup candidates",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "18.8 GiB",
+          "meaning": "byte count"
+        }
+      ],
+      "data": {
+        "world": "parity-insights",
+        "categories": 18
+      },
+      "state": {
+        "page": "finder",
+        "scope": "host"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-insights (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Review cleanup candidates`, Enter (the review opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Down (the cursor moves)",
+          "key": "Down",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Up (the cursor returns)",
+          "key": "Up",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right (the fold opens)",
+          "key": "Right",
+          "ticks": 0
+        },
+        {
+          "step": 6,
+          "action": "press Left (the fold closes)",
+          "key": "Left",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "review",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top row pairs the review with its byte count"
+          },
+          {
+            "id": "V2",
+            "text": "the boot counts the cleanup categories"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts scope the review host-wide"
+          },
+          {
+            "id": "S2",
+            "text": "the detail panel scopes to the cursor row"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the category review"
+          },
+          {
+            "id": "A2",
+            "text": "Down moves the cursor and Up returns it"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the first fold may not open before Right"
+          },
+          {
+            "id": "N2",
+            "text": "the fold may not stay open after the roundtrip"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "1059",
+            "note": "insights fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/insights/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_insights live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-PLATFORMS-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "platforms parity boot and top-files page",
+      "ref_symbols": [
+        {
+          "glyph": "›Tasks",
+          "meaning": "explore cursor"
+        },
+        {
+          "glyph": "0 files · 0 selected",
+          "meaning": "empty status"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "›Tasks",
+          "meaning": "explore cursor"
+        },
+        {
+          "glyph": "0 files · 0 selected",
+          "meaning": "empty status"
+        }
+      ],
+      "data": {
+        "world": "parity-platforms",
+        "files": 0
+      },
+      "state": {
+        "page": "finder",
+        "folder": "mac"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-platforms (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Top files on this Mac`, Enter (the page opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the finder returns)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the query clears)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "type `Top files on this Mac`, Enter (the page re-opens)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "files",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the explore row lists the entry points with Tasks first"
+          },
+          {
+            "id": "V2",
+            "text": "the recent shelf reads empty at boot"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the mac folder"
+          },
+          {
+            "id": "S2",
+            "text": "the footer offers the back gesture"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter opens the Top files page"
+          },
+          {
+            "id": "A2",
+            "text": "Esc backs to the finder, Esc clears the query, and the page re-opens"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the empty-query placeholder may not stay on the page"
+          },
+          {
+            "id": "N2",
+            "text": "the timeout report may not stay after backing out"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "1328",
+            "note": "platforms_mac fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/platforms/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_platforms live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-PLATFORMS-LINUX-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "platforms-linux parity boot and Linux trash gates",
+      "ref_symbols": [
+        {
+          "glyph": "System · devbox",
+          "meaning": "Linux shelf"
+        },
+        {
+          "glyph": "no Trash backend",
+          "meaning": "mode fact"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "System · devbox",
+          "meaning": "Linux shelf"
+        },
+        {
+          "glyph": "no Trash backend",
+          "meaning": "mode fact"
+        }
+      ],
+      "data": {
+        "world": "parity-platforms-linux",
+        "host": "devbox"
+      },
+      "state": {
+        "page": "finder",
+        "backend": "none"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-platforms-linux (paused frame 40)"
+        },
+        {
+          "step": 2,
+          "action": "type `Review cleanup candidates`, Enter, Right, Down, Space, d (gate 1 opens)",
+          "key": "d",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Right, Enter (gate 2 opens)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (gate 2 cancels)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "press Right, Enter, Esc (gate 2 re-opens and cancels)",
+          "key": "Esc",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "gate1",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the explore row lists the entry points with Tasks first"
+          },
+          {
+            "id": "V2",
+            "text": "the explore shelf names the Linux host"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts anchor the Linux host"
+          },
+          {
+            "id": "S2",
+            "text": "the selection size survives into the review"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "d opens the gate-1 review over the selected row"
+          },
+          {
+            "id": "A2",
+            "text": "Right plus Enter opens gate 2 and Esc cancels it, twice"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the gate-2 dialog may not open before Right plus Enter"
+          },
+          {
+            "id": "N2",
+            "text": "the gate-2 chrome may not stay after the second cancel"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "1364",
+            "note": "platforms_linux fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/platforms-linux/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_platforms_linux live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
+,
+    {
+      "id": "PARITY-TASK-INPUT-001",
+      "app": "holla",
+      "component": "Panel",
+      "part": "task-input parity boot and deploy prompt",
+      "ref_symbols": [
+        {
+          "glyph": "› Follow payments-worker",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "waiting for input",
+          "meaning": "run state"
+        }
+      ],
+      "cand_symbols": [
+        {
+          "glyph": "› Follow payments-worker",
+          "meaning": "top suggestion row"
+        },
+        {
+          "glyph": "waiting for input",
+          "meaning": "run state"
+        }
+      ],
+      "data": {
+        "world": "parity-task-input",
+        "scripts": 2
+      },
+      "state": {
+        "page": "finder",
+        "scope": "on devbox"
+      },
+      "env": {
+        "TERM": "xterm-256color"
+      },
+      "viewport": {
+        "width": 120,
+        "height": 40
+      },
+      "color": "truecolor",
+      "motion": "paused",
+      "inputs": [
+        {
+          "step": 1,
+          "action": "boot holla with --scenario parity-task-input (reduced motion)"
+        },
+        {
+          "step": 2,
+          "action": "type `Deploy the release`, Enter (the password prompt shows)",
+          "key": "Enter",
+          "ticks": 0
+        },
+        {
+          "step": 3,
+          "action": "press Esc (the finder returns)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 4,
+          "action": "press Esc (the query clears)",
+          "key": "Esc",
+          "ticks": 0
+        },
+        {
+          "step": 5,
+          "action": "type `Deploy the release`, Enter (the prompt re-opens)",
+          "key": "Enter",
+          "ticks": 0
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "password",
+          "tick": 0,
+          "capture": true
+        }
+      ],
+      "assertions": {
+        "visual": [
+          {
+            "id": "V1",
+            "text": "the top row pairs the journal tail with its restart state"
+          },
+          {
+            "id": "V2",
+            "text": "the custom shelf lists the fixture scripts"
+          }
+        ],
+        "state": [
+          {
+            "id": "S1",
+            "text": "the facts scope the journal to the device"
+          },
+          {
+            "id": "S2",
+            "text": "the title marks the run waiting for input"
+          }
+        ],
+        "action": [
+          {
+            "id": "A1",
+            "text": "Enter runs the deploy to the password prompt"
+          },
+          {
+            "id": "A2",
+            "text": "Esc backs to the finder, Esc clears the query, and the prompt re-opens"
+          }
+        ],
+        "negative": [
+          {
+            "id": "N1",
+            "text": "the empty-query placeholder may not stay on the output"
+          },
+          {
+            "id": "N2",
+            "text": "the password prompt may not stay after backing out"
+          }
+        ]
+      },
+      "provenance": {
+        "sources": [
+          {
+            "path": "src/bin/holla/domain/parity.rs",
+            "lines": "813",
+            "note": "task_input fixture world"
+          },
+          {
+            "path": "src/bin/holla/screens/finder.rs",
+            "lines": "53",
+            "note": "FinderPage struct"
+          },
+          {
+            "path": "src/widgets/panel.rs",
+            "lines": "31",
+            "note": "Panel widget"
+          }
+        ],
+        "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+      },
+      "applicability": {
+        "branches": [
+          "termrock-refactor",
+          "termrock-implementation"
+        ],
+        "requires": [
+          "glyph-capture",
+          "key-injection"
+        ]
+      },
+      "adapters": [
+        "headless-tick",
+        "pty-capture"
+      ],
+      "snapshots": {
+        "ref": [
+          "snapshots/holla/parity/task-input/120x40/truecolor.txt"
+        ],
+        "cand": []
+      },
+      "results": {
+        "status": "pass",
+        "runs": [
+          {
+            "at": "2026-10-08T01:21:06Z",
+            "branch": "termrock-implementation",
+            "status": "pass",
+            "note": "phase-8q H4 h4_parity_task_input live-PTY PASS @64329bb5 (nextest visual_baseline --run-ignored only -E 'test(h4_)' --test-threads 2, 22 pass/0 fail/637 skip; bin target/debug/holla 19313800B sha256:12383dee1754 built 2026-10-08T01:18:32Z; log /tmp/phase8q-focused.log)"
+          }
+        ]
+      }
+    }
   ],
   "legacy_roots": [
     {
