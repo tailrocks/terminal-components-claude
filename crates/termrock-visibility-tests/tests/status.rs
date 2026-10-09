@@ -349,6 +349,83 @@ fn facts_with_current_ci_observation() -> serde_json::Value {
     facts
 }
 
+fn add_latest_ci_snapshot_fixture(
+    fixture: &StatusFixture,
+    facts: &mut serde_json::Value,
+) {
+    let latest = facts["latest_source_observation"].clone();
+    let api = facts["current_ci_observation"]["api_capture"].clone();
+    let candidate_sha = latest["candidate_remote"]["head_sha"]
+        .as_str()
+        .expect("synthetic candidate source SHA");
+    let candidate_dco = &api["candidate_dco"];
+    let missing_signoff_ids = serde_json::json!([]);
+
+    facts["current_ci_observation"]["separate_check_observations"] = serde_json::json!([{
+        "check_run_id": 888888888,
+        "name": "DCO",
+        "head_sha": candidate_sha,
+        "reported_missing_signoff_commit_ids": missing_signoff_ids
+    }]);
+    let source_facts = serde_json::json!({
+        "record_type": "termrock-vis06-source-facts-and-build-only-status-v1",
+        "latest_source_observation": latest,
+        "current_ci_observation": facts["current_ci_observation"].clone()
+    });
+    let source_facts_evidence = write_pinned_json(
+        fixture,
+        "synthetic-latest-ci-source-facts.json",
+        &source_facts,
+    );
+
+    facts["latest_ci_snapshot"] = serde_json::json!({
+        "schema": "termrock-status-latest-ci-snapshot-v1",
+        "captured_at": "2026-10-08T05:02:19Z",
+        "captured_interval_utc": [
+            "2026-10-08T05:00:00Z",
+            "2026-10-08T05:02:19Z"
+        ],
+        "source_pair": {
+            "candidate_commit": latest["candidate_remote"]["head_sha"],
+            "reference_commit": latest["reference_remote"]["head_sha"]
+        },
+        "source_facts_evidence": source_facts_evidence,
+        "raw_api_responses_preserved": false,
+        "candidate_run": {
+            "run_id": api["candidate_run"]["run_id"],
+            "workflow_path": api["candidate_run"]["workflow_path"],
+            "head_sha": api["candidate_run"]["head_sha"],
+            "status": api["candidate_run"]["status"],
+            "conclusion": api["candidate_run"]["conclusion"],
+            "created_at": api["candidate_run"]["created_at"],
+            "job_count": api["candidate_run"]["job_count"],
+            "run_url": api["candidate_run"]["run_url"]
+        },
+        "artifact_count": null,
+        "artifact_query": "NOT_QUERIED",
+        "failure_cause": "UNKNOWN_NOT_CAPTURED",
+        "product_execution": "NOT_RUN",
+        "reference_query": {
+            "query_status": api["reference_query"]["query_status"],
+            "head_sha": api["reference_query"]["head_sha"],
+            "workflow_path": api["reference_query"]["workflow_path"],
+            "query_total_count": api["reference_query"]["query_total_count"],
+            "matching_run_ids": api["reference_query"]["matching_run_ids"],
+            "request_url": api["reference_query"]["request_url"]
+        },
+        "candidate_dco": {
+            "check_run_id": candidate_dco["check_run_id"],
+            "name": candidate_dco["name"],
+            "head_sha": candidate_dco["head_sha"],
+            "status": candidate_dco["status"],
+            "conclusion": candidate_dco["conclusion"],
+            "reported_missing_signoff_commit_ids": missing_signoff_ids,
+            "details_url": "https://github.com/tailrocks/terminal-components-claude/runs/888888888"
+        },
+        "reference_dco": null
+    });
+}
+
 fn with_four_predecessors(mut facts: serde_json::Value) -> serde_json::Value {
     if facts.get("source_observation_history").is_none() {
         facts["source_observation_history"] = serde_json::json!([
@@ -1053,7 +1130,7 @@ fn initial_status_keeps_products_not_run_and_pairs_exact() {
     assert!(report.contains(CANDIDATE_SHA));
     assert!(report.contains(REFERENCE_SHA));
     assert!(report.contains(
-        "Ready has its own column, separate from Build, Launch, First frame, input and interaction, Exit, Restoration, Visual, and Ownership."
+        "The Ready column is separate from Build, Launch, First frame, Interaction, Exit, Restoration, Visual, and Ownership."
     ));
     assert!(report.contains("required shared-case and per-component checkpoint sets are unknown"));
     assert!(!report.contains("| Required set | 0 |"));
@@ -1081,8 +1158,13 @@ fn bounded_execution_receipts_render_partial_results_without_ready_claims() {
     assert!(report.contains("1 passed; 1 failed of 2 terminal tests"));
     assert!(report.contains("BD-21 / W13-05 (test_failed)"));
     assert!(report.contains("Holla | BLOCKED (4) | BLOCKED (4) | PASS (16) | PASS (16)"));
+    assert!(report.contains("Per-role outcomes:"));
+    assert!(report.contains("| Candidate | build: PASS (4), launch: PASS (4), first_frame: PASS (4), interaction: PASS (16), visual: BLOCKED (4), exit: NOT_APPLICABLE (4), restoration: NOT_APPLICABLE (4) |"));
+    assert!(report.contains("| Reference | build: PASS (4), launch: PASS (4), first_frame: PASS (4), interaction: PASS (16), visual: BLOCKED (4), exit: NOT_APPLICABLE (4), restoration: NOT_APPLICABLE (4) |"));
+    assert!(report.contains("The review records 12 registry assertion IDs and 4 aggregate interaction checks per subject across 4 checkpoints."));
     assert!(report.contains("80 checks: 56 PASS, 8 BLOCKED, 16 NOT_APPLICABLE"));
-    assert!(report.contains("single 120x40 truecolor case only"));
+    assert!(report.contains("The candidate and reference release-build commands each exited with code 0."));
+    assert!(report.contains("This covers one 120x40 truecolor case only."));
     assert!(report.contains("No API or ownership result is recorded"));
     assert!(report.contains("proposed R5 denominator is not accepted"));
     assert!(report.contains(
@@ -1493,6 +1575,7 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(report.contains(reference_sha));
     assert!(report.contains(latest_candidate_sha));
     assert!(report.contains(latest_reference_sha));
+    assert!(report.contains("These source snapshots remain historical. Their CI and Developer Certificate of Origin (DCO) captures are bound to the exact pair in each row. They do not qualify product results or change the fixed comparison pair."));
     assert_eq!(candidate_sha, "85b51da2e9832dba642abf7d64d032f848cade0e");
     assert_eq!(reference_sha, "5f6e52f31861f9f4281f1db264ab012457b9bc2e");
     assert!(facts["latest_source_observation"]["branch_last_update_at"].is_null());
@@ -2112,7 +2195,7 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
     let report = output_text(&output);
-    assert!(!report.contains("## Current CI and DCO observations"));
+    assert!(!report.contains("## Current CI and Developer Certificate of Origin (DCO) observations"));
     assert_eq!(
         original["latest_source_observation"]["candidate_remote"]["head_sha"],
         "1d797d41c8141fcbdc3f69d7f11eb8875ab54712"
@@ -2183,7 +2266,7 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     explicit_fetch_fixture.write_facts(&explicit_fetch.to_string());
     let output = explicit_fetch_fixture.run(&[]);
     assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
-    assert!(!output_text(&output).contains("## Current CI and DCO observations"));
+    assert!(!output_text(&output).contains("## Current CI and Developer Certificate of Origin (DCO) observations"));
 
     let mut missing_committer_date = explicit_fetch.clone();
     assert!(missing_committer_date["latest_source_observation"]["candidate_remote"]
@@ -2243,16 +2326,17 @@ fn reports_latest_remote_refs_and_local_checkout_separately() {
     assert!(report.contains("4444444444444444444444444444444444444444"));
     assert!(report.contains("5555555555555555555555555555555555555555"));
     assert!(report.contains("6666666666666666666666666666666666666666"));
-    assert!(report.contains("Local cryptographic commit signature"));
+    assert!(report.contains("Captured local cryptographic commit signature"));
     assert!(report.contains("Git reported no cryptographic signature"));
-    assert!(report.contains("Local DCO sign-off trailer"));
+    assert!(report.contains("Captured local Developer Certificate of Origin (DCO) trailer"));
     assert!(report.contains(
-        "Expected exact line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is missing"
+        "Expected line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is missing"
     ));
-    assert!(report.contains("parsed trailers: none"));
-    assert!(report.contains("does not infer a remote DCO check"));
+    assert!(report.contains("Parsed local DCO trailers | none"));
+    assert!(report.contains("They do not report a remote DCO check."));
     assert!(report.contains("| Local publication | Local checkout observation only. |"));
     assert!(report.contains("two latest branch tips are separate observations"));
+    assert!(report.contains("No paired product run is inferred from them."));
     assert!(report.contains("Recorded CI and repository checks"));
     assert!(report.contains("does not match the latest observed candidate branch tip"));
     assert!(report.contains("Visibility / Complete | NOT_RUN"));
@@ -2417,25 +2501,50 @@ fn absent_optional_current_ci_capture_keeps_only_historical_rows() {
     assert!(report.contains("Recorded CI and repository checks"));
     assert!(report.contains("37721476033"));
     assert!(report.contains("113129904697"));
-    assert!(!report.contains("Current CI and DCO observations"));
+    assert!(!report.contains("Current CI and Developer Certificate of Origin (DCO) observations"));
     assert!(!report.contains("no matching Actions runs"));
 }
 
 #[test]
 fn current_ci_snapshot_binds_each_gate_and_keeps_products_not_run() {
     let fixture = StatusFixture::new();
-    write_json_facts(&fixture, &facts_with_current_ci_observation());
+    let mut facts = facts_with_current_ci_observation();
+    add_latest_ci_snapshot_fixture(&fixture, &mut facts);
+    let api_capture = &facts["current_ci_observation"]["api_capture"];
+    assert_eq!(
+        api_capture["candidate_dco"]["check_run_id"].as_str(),
+        Some("888888888")
+    );
+    assert_eq!(
+        api_capture["candidate_dco"]["result_url"].as_str(),
+        Some("https://github.com/tailrocks/terminal-components-claude/runs/888888888")
+    );
+    assert_eq!(
+        api_capture["reference_dco"]["check_run_id"].as_str(),
+        Some("999999999")
+    );
+    assert_eq!(
+        api_capture["reference_dco"]["result_url"].as_str(),
+        Some("https://github.com/tailrocks/terminal-components-claude/runs/999999999")
+    );
+    write_json_facts(&fixture, &facts);
     let output = fixture.run(&[]);
     let report = output_text(&output);
 
     assert_eq!(output.exit_code, Some(0));
-    assert!(report.contains("Current CI and DCO observations"));
+    assert!(report.contains("Current CI and Developer Certificate of Origin (DCO) observations"));
     assert!(report.contains("Candidate Actions run [987654321]"));
     assert!(report.contains("failure at `3333333333333333333333333333333333333333`; 0 jobs; 0 artifacts"));
     assert!(report.contains("returned 0 matching Actions runs for this source tip"));
-    assert!(report.contains("Candidate DCO check [888888888]"));
+    assert!(report.contains("Candidate DCO status |"));
+    assert!(report.contains(
+        "[action_required](https://github.com/tailrocks/terminal-components-claude/runs/888888888)"
+    ));
     assert!(report.contains("2 commits are reported with sign-off problems"));
-    assert!(report.contains("Reference DCO check [999999999]"));
+    assert!(report.contains("Reference DCO status |"));
+    assert!(report.contains(
+        "[action_required](https://github.com/tailrocks/terminal-components-claude/runs/999999999)"
+    ));
     assert!(report.contains("14 commits are reported with sign-off problems"));
     assert!(report.contains("Workflow file exceeds the maximum allowed size of 500 KB."));
     assert!(report.contains("SHA-256 `dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd`"));
@@ -2444,6 +2553,42 @@ fn current_ci_snapshot_binds_each_gate_and_keeps_products_not_run() {
     assert!(report.contains("Refactor / Ready | NOT_RUN"));
     assert!(report.contains("37721476033"));
     assert!(report.contains("113129904697"));
+    let latest_ci_section = report
+        .split("## Latest candidate-source CI snapshot")
+        .nth(1)
+        .expect("latest CI snapshot fixture section");
+    assert!(latest_ci_section.contains(
+        "[action_required](https://github.com/tailrocks/terminal-components-claude/runs/888888888)"
+    ));
+
+    let mut missing_url_facts = facts.clone();
+    missing_url_facts["current_ci_observation"]["api_capture"]["candidate_dco"]["result_url"] =
+        serde_json::Value::Null;
+    missing_url_facts["current_ci_observation"]["api_capture"]["candidate_dco"]["details_url"] =
+        serde_json::json!("https://example.invalid/unvalidated-dco-link");
+    missing_url_facts["latest_ci_snapshot"]["candidate_dco"]["details_url"] =
+        serde_json::Value::Null;
+    missing_url_facts["latest_ci_snapshot"]["candidate_dco"]["result_url"] =
+        serde_json::json!("https://example.invalid/unvalidated-snapshot-link");
+    write_json_facts(&fixture, &missing_url_facts);
+    let missing_url_output = fixture.run(&[]);
+    let missing_url_report = output_text(&missing_url_output);
+    assert_eq!(missing_url_output.exit_code, Some(0));
+    assert!(missing_url_report.contains(
+        "action_required (result URL unavailable); 2 commits are reported with sign-off problems"
+    ));
+    assert!(!missing_url_report.contains(
+        "[action_required](https://github.com/tailrocks/terminal-components-claude/runs/888888888)"
+    ));
+    assert!(!missing_url_report.contains("example.invalid/unvalidated-dco-link"));
+    assert!(!missing_url_report.contains("example.invalid/unvalidated-snapshot-link"));
+    let missing_latest_ci_section = missing_url_report
+        .split("## Latest candidate-source CI snapshot")
+        .nth(1)
+        .expect("latest CI snapshot negative fixture section");
+    assert!(missing_latest_ci_section.contains(
+        "action_required (result URL unavailable); 0 commits are reported with sign-off problems"
+    ));
 }
 
 #[test]
@@ -2548,7 +2693,7 @@ fn mismatched_or_absent_provider_capture_does_not_supply_failure_cause() {
         write_json_facts(&fixture, &facts);
         let report = output_text(&fixture.run(&[]));
         let (historical, after_current) = report
-            .split_once("## Current CI and DCO observations")
+            .split_once("## Current CI and Developer Certificate of Origin (DCO) observations")
             .expect("current CI section boundary");
         let (current, _) = after_current
             .split_once("Tool versions recorded at ")
@@ -2567,7 +2712,7 @@ fn mismatched_or_absent_provider_capture_does_not_supply_failure_cause() {
     write_json_facts(&fixture, &absent);
     let report = output_text(&fixture.run(&[]));
     let (historical, after_current) = report
-        .split_once("## Current CI and DCO observations")
+        .split_once("## Current CI and Developer Certificate of Origin (DCO) observations")
         .expect("current CI section boundary");
     let (current, _) = after_current
         .split_once("Tool versions recorded at ")
@@ -2654,10 +2799,10 @@ fn does_not_accept_wrong_or_partial_dco_trailers() {
 
         assert_eq!(output.exit_code, Some(0));
         assert!(report.contains(
-            "Expected exact line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is missing"
+            "Expected line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is missing"
         ));
         assert!(!report.contains(
-            "Expected exact line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is present"
+            "Expected line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is present"
         ));
     }
 }
@@ -2941,10 +3086,21 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
 
     assert!(report.contains("Current implementation-branch and external-tool observations"));
     assert!(report.contains("9f1f756219b6bd42131b6e7291f54f99e1128cf1"));
-    assert!(report.contains("DCO check 113663911182 completed successfully"));
+    assert_eq!(
+        facts["current_status_observations"]["branch_gate_observations"][0]
+            ["dco_check_run_id"]
+            .as_str(),
+        Some("113663911182")
+    );
+    assert!(report.contains(
+        "DCO status: [completed successfully](https://github.com/tailrocks/terminal-components-claude/runs/113663911182)"
+    ));
     assert!(report.contains("37882112951"));
     assert!(report.contains("0 jobs; 0 artifacts; workflow source 537470 bytes"));
     assert!(report.contains("FAILED: 22/23 passed, 1 failed, 87 filtered"));
+    assert!(report.contains("The candidate API/deferred test run FAILED: 22 of 23 tests passed; 1 failed."));
+    assert!(report.contains("The required set and acceptance remain incomplete. The failure was BD-21 case W13-05 (w13_filter_wide_trail_cells_clear). This candidate-only run does not qualify a paired product result."));
+    assert!(report.contains("The candidate API/deferred test run FAILED, so Refactor / Ready remains NOT_READY."));
     assert!(report.contains("BD-21 case W13-05 failed in w13_filter_wide_trail_cells_clear"));
     assert!(report.contains("independent review VERIFIED_FAILED_RUN"));
     assert!(report.contains("Requirement registry: NOT_RUN"));

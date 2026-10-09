@@ -1507,6 +1507,18 @@ def summarize_holla_dimensions(
     return "; ".join(roles)
 
 
+def summarize_holla_role(dimension_counts: Mapping[str, Mapping[str, int]]) -> str:
+    return ", ".join(
+        "{}: {}".format(
+            dimension, summarize_dimension_statuses(dimension_counts.get(dimension, {}))
+        )
+        for dimension in (
+            "build", "launch", "first_frame", "interaction", "visual", "exit",
+            "restoration",
+        )
+    )
+
+
 def summarize_holla_findings(
     dimension_counts: Mapping[str, Mapping[str, int]]
 ) -> str:
@@ -1578,27 +1590,50 @@ def render_execution_observations(
             holla["review"]["sha256"],
         ),
         "",
-        "The deferred failure is {}, and Holla recorded {} total result rows: {}. "
-        "Per-role measured outcomes are {}. Aggregate PASS dimensions are {}, "
-        "visual status counts are {}, and exit and restoration status counts are {}. "
-        "The harness selected {} test and exited 100 with {} passed, {} failed, and {} skipped. "
-        "The independent review recorded this harness explanation: {}. "
-        "Recorded FAIL/BLOCKED rows are {}. "
-        "The review records {} registry assertion IDs and {} aggregate interaction checks per subject "
-        "across {} checkpoints for this single {} {} case only. "
-        "The pinned independent artifact review reports matching hash and size for all {} expected artifact files. "
-        "The paired build review records separate candidate and reference release builds with exit 0. "
-        "No API or ownership result is recorded.".format(
-            failed_rows, holla["checks"], status_summary, role_summary, pass_dimensions,
-            blocked_dimensions, not_applicable,
+        "Per-role outcomes:",
+        "",
+        "| Role | Measured outcomes |",
+        "| --- | --- |",
+        "| Candidate | {} |".format(
+            summarize_holla_role(holla["role_dimension_counts"]["candidate"]),
+        ),
+        "| Reference | {} |".format(
+            summarize_holla_role(holla["role_dimension_counts"]["reference"]),
+        ),
+        "",
+        "Aggregate status counts:",
+        "",
+        "| Scope | Count |",
+        "| --- | --- |",
+        "| Holla results | {} rows: {} |".format(holla["checks"], status_summary),
+        "",
+        "Aggregate dimension counts:",
+        "",
+        "| Status | Dimensions |",
+        "| --- | --- |",
+        "| PASS | {} |".format(pass_dimensions),
+        "| BLOCKED | {} |".format(blocked_dimensions),
+        "| NOT_APPLICABLE | {} |".format(not_applicable),
+        "",
+        "The deferred failure is {}.".format(failed_rows),
+        "Holla recorded {} total result rows: {}.".format(holla["checks"], status_summary),
+        "The harness selected {} test and exited 100: {} passed, {} failed, and {} skipped.".format(
             holla_selection["selected"], holla_selection["passed"],
             holla_selection["failed"], holla_selection["skipped"],
-            cell(holla["harness_assertion_outcome"]).rstrip("."), finding_summary,
+        ),
+        "{}.".format(cell(holla["harness_assertion_outcome"]).rstrip(".")),
+        "Recorded FAIL/BLOCKED rows: {}.".format(finding_summary),
+        "The review records {} registry assertion IDs and {} aggregate interaction checks per subject across {} checkpoints.".format(
             holla["candidate_assertions"],
             holla["aggregate_interaction_checks_per_subject"],
-            holla["checkpoints_per_subject"], holla["viewport"], holla["color_mode"],
+            holla["checkpoints_per_subject"],
+        ),
+        "This covers one {} {} case only.".format(holla["viewport"], holla["color_mode"]),
+        "The independent artifact review matched the hash and size of all {} expected artifact files.".format(
             holla["artifact_count"],
         ),
+        "The candidate and reference release-build commands each exited with code 0.",
+        "No API or ownership result is recorded.",
         "",
         "This partial case does not cover the 293-case, 421-checkpoint, or 7,550-snapshot/profile inventory. The proposed R5 denominator is not accepted as the active required set.",
         "",
@@ -1985,8 +2020,9 @@ def validate_current_ci_observation(
                 "current {} DCO finding count must be nonnegative".format(role))
         require(type(dco.get("annotations_count")) is int and dco["annotations_count"] >= 0,
                 "current {} DCO annotation count must be nonnegative".format(role))
-        require(dco.get("result_url")
-                == "https://github.com/{}/runs/{}".format(REPOSITORY, check_id),
+        result_url = dco.get("result_url")
+        require(result_url is None or result_url ==
+                "https://github.com/{}/runs/{}".format(REPOSITORY, check_id),
                 "current {} DCO result URL does not match its ID".format(role))
 
     provider = observation.get("provider_annotation_capture")
@@ -2152,7 +2188,8 @@ def validate_latest_ci_snapshot(
             "latest DCO missing-signoff IDs are invalid")
     for item in missing_ids:
         sha(item, "latest DCO missing-signoff commit SHA")
-    require(candidate_dco.get("details_url") ==
+    details_url = candidate_dco.get("details_url")
+    require(details_url is None or details_url ==
             "https://github.com/{}/runs/{}".format(REPOSITORY, check_id),
             "latest candidate DCO URL does not match its ID")
     require(value.get("reference_dco") is None,
@@ -2424,6 +2461,12 @@ def provider_annotation_is_correlated(
     )
 
 
+def dco_status_link(label: str, result_url: Optional[str]) -> str:
+    if result_url:
+        return "[{}]({})".format(label, result_url)
+    return "{} (result URL unavailable)".format(label)
+
+
 def render_current_ci_observation(
     observation: Optional[Mapping[str, Any]], *, partial_execution: bool = False
 ) -> str:
@@ -2498,7 +2541,13 @@ def render_current_ci_observation(
             findings = "1 commit is reported with sign-off problems."
         else:
             findings = "{} commits are reported with sign-off problems.".format(count)
-        return "{}; {}".format(dco["conclusion"] or "unknown", findings)
+        return "{}; {}".format(
+            dco_status_link(
+                dco["conclusion"] or "unknown",
+                dco.get("result_url"),
+            ),
+            findings,
+        )
 
     provider_evidence = ""
     if provider is not None:
@@ -2524,14 +2573,14 @@ def render_current_ci_observation(
     )
 
     return """\
-## Current CI and DCO observations
+## Current CI and Developer Certificate of Origin (DCO) observations
 
 | Check | Observation | Scope |
 | --- | --- | --- |
 | Candidate Actions run [{run_id}]({run_url}) | {conclusion} at `{head_sha}`; {job_count} jobs; {artifact_count} artifacts. {ci_note} | Workflow-level result; product execution remains NOT_RUN. |
 | Reference Actions query | {reference_ci} | Query source SHA `{reference_sha}`; this is not a paired execution. |
-| Candidate DCO check [{candidate_dco_id}]({candidate_dco_url}) | {candidate_dco_note} | Repository gate at `{candidate_dco_sha}`; separate from product results. |
-| Reference DCO check [{reference_dco_id}]({reference_dco_url}) | {reference_dco_note} | Repository gate at `{reference_dco_sha}`; separate from product results. |
+| Candidate DCO status | {candidate_dco_note} | Repository gate at `{candidate_dco_sha}`; separate from product results. |
+| Reference DCO status | {reference_dco_note} | Repository gate at `{reference_dco_sha}`; separate from product results. |
 
 {api_evidence} The candidate workflow source is `{workflow_path}` at `{workflow_sha}`, {workflow_bytes} bytes, SHA-256 `{workflow_hash}`. {provider_evidence}
 
@@ -2546,12 +2595,8 @@ def render_current_ci_observation(
         ci_note=ci_note,
         reference_ci=reference_ci,
         reference_sha=source_pair["reference_head_sha"],
-        candidate_dco_id=candidate_dco["check_run_id"],
-        candidate_dco_url=candidate_dco["result_url"],
         candidate_dco_note=dco_note(candidate_dco),
         candidate_dco_sha=candidate_dco["head_sha"],
-        reference_dco_id=reference_dco["check_run_id"],
-        reference_dco_url=reference_dco["result_url"],
         reference_dco_note=dco_note(reference_dco),
         reference_dco_sha=reference_dco["head_sha"],
         api_evidence=api_evidence,
@@ -2580,11 +2625,15 @@ def render_latest_ci_snapshot(snapshot: Optional[Mapping[str, Any]]) -> str:
     else:
         reference_text = "matching-run status unknown; query failed"
     missing_count = len(dco["reported_missing_signoff_commit_ids"])
+    dco_status = dco_status_link(
+        dco["conclusion"] or "unknown",
+        dco.get("details_url"),
+    )
     if missing_count == 1:
-        dco_text = "action_required; 1 commit is reported with sign-off problems"
+        dco_text = "{}; 1 commit is reported with sign-off problems".format(dco_status)
     else:
-        dco_text = "action_required; {} commits are reported with sign-off problems".format(
-            missing_count
+        dco_text = "{}; {} commits are reported with sign-off problems".format(
+            dco_status, missing_count
         )
     cause_text = (
         "Failure cause UNKNOWN_NOT_CAPTURED; no provider annotation was captured."
@@ -2608,8 +2657,8 @@ def render_latest_ci_snapshot(snapshot: Optional[Mapping[str, Any]]) -> str:
         "| Reference Actions query | {} | Query source `{}`; this is not a paired execution. |".format(
             reference_text, query["head_sha"],
         ),
-        "| Candidate DCO check [{}]({}) | {} | Repository gate at `{}`; separate from product results. |".format(
-            dco["check_run_id"], dco["details_url"], dco_text, dco["head_sha"],
+        "| Candidate DCO status | {} | Repository gate at `{}`; separate from product results. |".format(
+            dco_text, dco["head_sha"],
         ),
         "| Reference DCO check | NOT_CAPTURED | No reference DCO result is recorded for this observation. |",
         "",
@@ -2717,9 +2766,9 @@ def render_source_observation_history(
     return "\n".join([
         "## Previous source observations",
         "",
-        "These source snapshots remain historical. Their CI/DCO captures are bound to the exact pair in each row; they do not qualify product results or change the fixed comparison pair.",
+        "These source snapshots remain historical. Their CI and Developer Certificate of Origin (DCO) captures are bound to the exact pair in each row. They do not qualify product results or change the fixed comparison pair.",
         "",
-        "| Candidate / reference source pair | Source observed at | Method | CI/DCO observation (source evidence) | CI capture times | Next source observation at |",
+        "| Candidate / reference source pair | Source observed at | Method | CI and DCO observation (source evidence) | CI capture times | Next source observation at |",
         "| --- | --- | --- | --- | --- | --- |",
         *rows,
         "",
@@ -2791,6 +2840,7 @@ def validate_current_status_observations(
     require(isinstance(gates, list) and len(gates) >= 1,
             "branch gate observations must be a nonempty array")
     gate_by_head: dict[str, Mapping[str, Any]] = {}
+    validated_dco_result_urls: dict[str, Optional[str]] = {}
     for index, gate in enumerate(gates):
         label = "branch_gate_observations[{}]".format(index)
         require(isinstance(gate, dict), "{} must be an object".format(label))
@@ -2823,6 +2873,11 @@ def validate_current_status_observations(
                 and check.get("status") == gate["dco_status"]
                 and check.get("conclusion") == gate["dco_conclusion"],
                 "{} DCO fields do not match the captured check".format(label))
+        result_url = check.get("html_url")
+        require(result_url is None or result_url ==
+                "https://github.com/{}/runs/{}".format(REPOSITORY, check_id),
+                "{} DCO result URL does not match its ID".format(label))
+        validated_dco_result_urls[head] = result_url
         require(head not in gate_by_head,
                 "duplicate branch gate observation for one commit")
         gate_by_head[head] = gate
@@ -3221,7 +3276,9 @@ def validate_current_status_observations(
     ):
         require(readiness.get(field) == "NOT_RUN",
                 "current observations cannot promote {}".format(field))
-    return value
+    validated = dict(value)
+    validated["_validated_dco_result_urls"] = validated_dco_result_urls
+    return validated
 
 
 def render_current_status_observations(
@@ -3234,6 +3291,15 @@ def render_current_status_observations(
     branch = observations["branch_tip"]
     gates = {item["head_sha"]: item for item in observations["branch_gate_observations"]}
     current_gate = gates[branch["head_sha"]]
+    current_gate_label = (
+        "completed successfully"
+        if current_gate["dco_conclusion"] == "success"
+        else "completed with failure"
+    )
+    current_gate_status = dco_status_link(
+        current_gate_label,
+        observations["_validated_dco_result_urls"].get(branch["head_sha"]),
+    )
     workflow_rows = "<br>".join(
         "[{}]({}): completed with {} at {}; {} jobs; {} artifacts; workflow source {} bytes; {}".format(
             item["run_id"], item["run_url"], item["conclusion"],
@@ -3274,14 +3340,14 @@ def render_current_status_observations(
 | --- | --- | --- |
 | Observation bundle | Recorded at {ledger_observed}; evidence freshness remains NOT_RUN. | Source-pinned current observations. The fixed product pair remains candidate {candidate} / reference {reference}. |
 | Repository evidence archive | {archive_files} files / {archive_bytes} bytes verified from `{archive_path}`. | Raw source inputs are repository-relative and hash-pinned; the archive does not qualify product execution or acceptance. |
-| Implementation branch | {branch} at {head} (tree {tree}), observed {observed}; DCO check {dco_id} completed successfully. | Branch and repository-gate metadata. |
+| Implementation branch | {branch} at {head} (tree {tree}), observed {observed}; DCO status: {dco_status}. | Branch and repository-gate metadata. |
 | Provider workflow runs | {workflow_rows} | Provider workflow admission results; the captured runs had zero jobs and artifacts, so product execution remains NOT_RUN for those runs. |
 | Candidate API/deferred run | {measurement_status}: {passed}/{expected} passed, {failed} failed, {nextest_filtered} filtered; requirement {requirement} case {case} failed in {test_name}: {failure_summary} | Candidate-only source {candidate}, package {package}, binary {binary}, Nextest run {nextest_run_id}; independent review {review_verdict}. Requirement registry: {requirement_status}; paired reference: {paired_reference_status}; paired visual: {paired_visual_status}; acceptance: {acceptance_decision}. Receipt SHA-256 {receipt_sha}; ledger SHA-256 {ledger_sha}; review SHA-256 {review_sha}. |
 | Immutable-tag capture attempts | {attempt_rows} | Tag object {tag_object}, peeled commit {tag_commit}; suite f072 {suite} has no source commit/tree recorded. No tag capture or qualification is accepted. |
 | Tag source-validator control | Run {regression_run}: 1 selected, 0 passed, 1 failed, {regression_skipped} skipped; isolated environment facts differed (2 versus 0). | Synthetic validator regression only; source inputs unchanged; no product build or capture. |
 | Velnor Actions CLI control | Source tree {velnor_tree}; build and version checks PASS; {executed}/{tool_expected} expected tests executed ({tool_passed} passed, {tool_failed} failed, {tool_not_run} NOT_RUN). {command_parts}. | External tool control, NOT_QUALIFIED; source commit is null and no current Git branch is asserted. |
 
-The source record's readiness fields remain NOT_RUN because no readiness acceptance is recorded. The verified candidate API/deferred failure makes Refactor / Ready NOT_READY; its requirement registry status remains NOT_RUN, paired reference and visual lanes remain NOT_RUN, and acceptance is NOT_RECORDED. No complete paired run is accepted. Artifact paths and full pins are recorded in `tools/visibility/source-facts.json` under `current_status_observations`. Repository gates and external-tool controls do not qualify a product comparison.
+The source record's readiness fields remain NOT_RUN because no readiness acceptance is recorded. The candidate API/deferred test run FAILED, so Refactor / Ready remains NOT_READY. The requirement registry remains NOT_RUN. The paired reference and visual lanes remain NOT_RUN. Acceptance remains NOT_RECORDED. No complete paired run is accepted. Artifact paths and full pins are recorded in `tools/visibility/source-facts.json` under `current_status_observations`. Repository gates and external-tool controls do not qualify a product comparison.
 """.format(
         ledger_observed=observations["observed_at"],
         archive_files=archive["file_count"],
@@ -3291,8 +3357,7 @@ The source record's readiness fields remain NOT_RUN because no readiness accepta
         head=branch["head_sha"],
         tree=branch["tree_sha"],
         observed=branch["captured_at"],
-        dco_id=current_gate["dco_check_run_id"],
-        dco_conclusion=current_gate["dco_conclusion"],
+        dco_status=current_gate_status,
         candidate=pair["candidate_commit"],
         reference=pair["reference_commit"],
         workflow_rows=workflow_rows,
@@ -3811,9 +3876,9 @@ def render_status(
         )
         if has_partial_evidence
         else (
-            "The verified candidate API/deferred result is FAILED: {} of {} passed, {} failed; "
-            "the required set and acceptance remain incomplete. The failure is {} "
-            "case {} ({}) and does not qualify a paired product result.".format(
+            "The candidate API/deferred test run FAILED: {} of {} tests passed; {} failed. "
+            "The required set and acceptance remain incomplete. The failure was {} "
+            "case {} ({}). This candidate-only run does not qualify a paired product result.".format(
                 current_status_observations["candidate_api_deferred_run"]["passed"],
                 current_status_observations["candidate_api_deferred_run"]["executed"],
                 current_status_observations["candidate_api_deferred_run"]["failed"],
@@ -3895,7 +3960,7 @@ def render_status(
 
 ## Required commands
 
-Each result cell shows reference and candidate separately. Ready has its own column, separate from Build, Launch, First frame, input and interaction, Exit, Restoration, Visual, and Ownership.
+The table reports each metric separately for the reference and candidate. The Ready column is separate from Build, Launch, First frame, Interaction, Exit, Restoration, Visual, and Ownership.
 Reference ownership is NOT_APPLICABLE because the reference is not required to use the candidate Termrock architecture.
 
 | ID | Exact root command | Build | Launch | First frame | Interaction | Exit | Restoration | Visual | Ownership | Ready |
@@ -3929,10 +3994,15 @@ This is the earlier source pair captured at the timestamp below. The branch tips
 | {source_observed_label} | {remote_observed_at} |
 | Source timestamp meaning | {source_timing_value} |
 | Earlier source observations | {prior_candidate_description} |
-| Local checkout | {local_branch_name} at `{local_sha}`; compare this local identity with the selected source commit above. |
-| Local cryptographic commit signature | `{signature_status}` from `{signature_command}` ({signature_note}). |
-| Local DCO sign-off trailer | Expected exact line `{expected_trailer}` is {local_dco_status} in commit `{local_dco_sha}`; parsed trailers: {local_dco_trailers}. Message subject: {local_dco_subject}; observed at {local_dco_observed_at}. This inspection covers the local commit message only and does not infer a remote DCO check. |
+| Captured local checkout (source facts) | {local_branch_name} at `{local_sha}`; compare this recorded identity with the selected source commit above. |
+| Captured local cryptographic commit signature | `{signature_status}` from `{signature_command}` ({signature_note}). |
+| Captured local Developer Certificate of Origin (DCO) trailer | Expected line `{expected_trailer}` is {local_dco_status} in commit `{local_dco_sha}`. |
+| Parsed local DCO trailers | {local_dco_trailers} |
+| Captured local commit subject | {local_dco_subject} |
+| Captured local commit observation time | {local_dco_observed_at} |
 | Local publication | {local_publication} |
+
+The DCO observations above describe the captured local commit message. They do not report a remote DCO check.
 
 {source_statement}
 
