@@ -1,0 +1,229 @@
+{
+  "record_type": "termrock-vis06-source-facts-and-build-only-status-v1",
+  "schema_version": 2,
+  "repository": "tailrocks/terminal-components-claude",
+  "generated_at": "2026-10-08T23:30:54Z",
+  "latest_source_observation": {
+    "observed_at": "2026-10-08T23:25:02Z",
+    "method": "read-only GitHub branch API observation; local fetched refs verified afterward",
+    "candidate_remote": {
+      "branch": "termrock-implementation",
+      "head_sha": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "commit_committer_at": "2026-10-08T23:14:25Z"
+    },
+    "reference_remote": {
+      "branch": "visual-baseline",
+      "head_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+      "commit_committer_at": "2026-10-08T16:13:33Z"
+    },
+    "branch_last_update_at": null,
+    "timestamp_provenance": {
+      "candidate_committer_date_source": "Direct GitHub branches API response for termrock-implementation; commit.commit.committer.date",
+      "reference_committer_date_source": "Direct GitHub branches API response for visual-baseline; commit.commit.committer.date",
+      "branch_last_update_at_source": "No separate branch-update timestamp was recorded; commit dates are not branch-update times.",
+      "committer_dates_are_branch_update_times": false
+    },
+    "api_observation": {
+      "candidate_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/termrock-implementation",
+      "reference_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/visual-baseline",
+      "raw_response_files_preserved": false,
+      "observation_scope": "These branch heads were observed at the timestamp above; this record makes no claim about later remote updates."
+    },
+    "fetch_provenance": {
+      "evidence_kind": "coordinator-reported fetch result with post-fetch local-ref verification",
+      "transport": "HTTPS",
+      "operation": "fetch",
+      "refspecs": [
+        "refs/heads/termrock-implementation",
+        "refs/heads/visual-baseline"
+      ],
+      "session_id": 79755,
+      "exit_code": 0,
+      "completed_at": null,
+      "raw_fetch_output_preserved": false,
+      "post_fetch_ref_query": {
+        "observed_at": "2026-10-08T23:30:54Z",
+        "candidate_head_sha": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "reference_head_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+      },
+      "fetch_history": [
+        {
+          "session_id": 36055,
+          "transport": "SSH",
+          "exit_code": 128,
+          "reported_error": "agent refused ED25519 public-key authentication"
+        },
+        {
+          "session_id": 79755,
+          "transport": "HTTPS",
+          "exit_code": 0,
+          "note": "The coordinator reported a one-command credential fallback; the original origin URL remained SSH. No global Git, shell, or Cargo settings were changed."
+        }
+      ]
+    }
+  },
+  "cached_pair_superseded_by_live_observation": {
+    "candidate_head_sha": "6d0bea9fce6a1155e39390f3ae4281fb1c26404a",
+    "reference_head_sha": "b682cb26d68b353aeeccf9e51653eddf097b39f5",
+    "observation_time": null,
+    "observation_method": "Local cached remote-tracking refs observed before the successful fetch in this work session; no timestamped raw ref-query record was saved.",
+    "status": "STALE_FOR_CURRENT_PAIR_SELECTION",
+    "build_status": "NOT_RUN"
+  },
+  "superseded_repository_facts": {
+    "path": "/Users/donbeave/Projects/tailrocks/terminal-components-claude/tools/visibility/source-facts.json",
+    "sha256_at_observation": "ead23e20999e39939575eb9ed1bb669212ae1eed15c4b20586b83dc91096c615",
+    "latest_source_observation_candidate_sha": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+    "status": "Do not use for the selected live pair; it records an older observation."
+  },
+  "immutable_oracle": {
+    "tag_ref": "refs/tags/visual-baseline",
+    "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+    "tag_object_type": "tag",
+    "peeled_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "verification": "Local tag ref, object type, and peeled commit matched these exact IDs after the HTTPS fetch."
+  },
+  "current_ci_observation": {
+    "captured_interval_utc": [
+      "2026-10-08T23:25:02Z",
+      "2026-10-08T23:30:54Z"
+    ],
+    "api_capture": {
+      "source_pair": {
+        "candidate_head_sha": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "reference_head_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+      },
+      "candidate_run": {
+        "run_id": "37858314774",
+        "workflow_path": ".github/workflows/ci.yml",
+        "event": "push",
+        "head_sha": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": "2026-10-08T23:14:33Z",
+        "run_started_at": "2026-10-08T23:14:33Z",
+        "run_number": 797,
+        "run_attempt": 1,
+        "job_count": 0,
+        "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37858314774"
+      },
+      "reference_query": {
+        "query_status": "success",
+        "head_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+        "workflow_path": ".github/workflows/ci.yml",
+        "query_total_count": 0,
+        "matching_run_ids": [],
+        "request_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs?head_sha=b274dd57f4dd078ade6e424d546d83efbd2e8526&per_page=100"
+      }
+    },
+    "failure_reason": "UNKNOWN_FROM_CAPTURED_WORKFLOW_RUN",
+    "interpretation": "The candidate workflow run failed with zero jobs. No cause is inferred and no diagnosis from a different commit or earlier run is reused.",
+    "separate_check_observations": [
+      {
+        "check_run_id": 113587796998,
+        "name": "DCO",
+        "head_sha": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "status": "completed",
+        "conclusion": "action_required",
+        "reported_missing_signoff_commit_ids": [
+          "cb89f1d61a0d8d78a1b7b7c872de16c12131e8b1",
+          "99c9524772f717111489db5324ccd8632138c8d9"
+        ],
+        "details_url": "https://github.com/tailrocks/terminal-components-claude/runs/113587796998",
+        "relation_to_zero_job_workflow_failure": "Not established; recorded as a separate check only."
+      }
+    ]
+  },
+  "source_qualification_comparison": {
+    "status": "STATIC_PATH_COMPARISON_ONLY",
+    "immutable_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "immutable_tag_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+    "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+    "reference_tree": "ff774280a5f1f30b649dc6f762d8c686b1b64c67",
+    "tag_is_ancestor_of_reference": true,
+    "reference_path_scope_identical_to_tag": [
+      "Cargo.toml",
+      "Cargo.lock",
+      ".cargo/**",
+      "mise.toml",
+      "build.rs",
+      "rust-toolchain",
+      "rust-toolchain.toml",
+      "rustfmt.toml",
+      "src/**",
+      "crates/**"
+    ],
+    "reference_diff_exit_code": 0,
+    "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+    "candidate_tree": "d184b8935e99748756180e19fdb84286d054991d",
+    "candidate_vs_tag_relevant_path_diffstat": {
+      "files_changed": 560,
+      "insertions": 298756,
+      "deletions": 69233,
+      "scope": [
+        "Cargo.toml",
+        "Cargo.lock",
+        ".cargo/**",
+        "mise.toml",
+        "build.rs",
+        "src/**",
+        "crates/**"
+      ]
+    },
+    "interpretation": "Reference product/build-input paths match the immutable tag in the listed Git path scope. Candidate paths differ substantially, including workspace manifests and split crate sources. These static Git comparisons do not prove full build-input closure, cache/PATH/linker/SDK identity, binary equality, runtime behavior, capture, or admission."
+  },
+  "suite": {
+    "revision": "termrock-e2e-2026-10-09.1",
+    "sha256": "56ab89b6c281745b8122cb9e4726eaf00849a0a16480fa3bf9b0a6e57be4105f",
+    "digest_method": "Recomputed with the sorted 28-file path/byte-length framing in crates/termrock-e2e/build.rs; reconfirm accepted suite bytes before execution."
+  },
+  "execution_observations": {
+    "record_scope": "Build-only facts for this selected source pair; no command or product binary was run for this record.",
+    "source_pair": {
+      "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+    },
+    "app_build_status": {
+      "showcase": "NOT_RUN",
+      "jackin-preview": "NOT_RUN",
+      "holla": "NOT_RUN",
+      "tablepro": "NOT_RUN"
+    },
+    "expected_generation": null,
+    "product_execution": "NOT_RUN",
+    "capture": "NOT_RUN",
+    "admission": "NOT_RUN",
+    "qualification": {
+      "status": "blocked",
+      "reason": "No paired build receipts exist for this selected pair; static source comparison is not a product qualification."
+    }
+  },
+  "historical_execution_observations": [
+    {
+      "run_id": "vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
+      "app": "holla",
+      "source_pair": {
+        "reference_commit": "b682cb26d68b353aeeccf9e51653eddf097b39f5",
+        "candidate_commit": "1ea1c17707f0a8f1639af506be179013d5e2d52a"
+      },
+      "source_facts_sha256": "26f42d1d74f5aee2c0bc2401852e26ac1a18f3a11b525d7d8b0de090145482ca",
+      "suite_revision": "termrock-e2e-2026-10-08.1",
+      "suite_sha256": "a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0",
+      "run_state": "complete",
+      "run_qualification": "blocked",
+      "supervisor_child_outcome": "success",
+      "supervisor_child_exit_code": 0,
+      "run_json_path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/run.json",
+      "run_json_sha256": "218de161e2e3b89678565544c62977edae2dfb57b0d9144bb91ab87154595b24",
+      "subject_manifest_path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/subject-manifest.json",
+      "subject_manifest_sha256": "0799aca655f619a06adda1a13067722e0d8bb8b5c9eb33a70847ee3e997837a9",
+      "supervisor_result_path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/supervisor/result.json",
+      "supervisor_result_sha256": "e8da2cb27b45d08d9d4a2308e50f7ab47661a11e6ec42761a5903d78784ec118",
+      "binary_sha256": {
+        "reference": "07f6a793d2af38896873a00c9883855217dbb23610aa2a49779a9915e14e435c",
+        "candidate": "af7bdeca543603e5ce75110fc521dba6ab84d6e51f4a15666b2ab037a9f6cdec"
+      },
+      "classification": "Historical 1ea/b682 Holla build evidence only; it is not a result for the selected 1d/b274 pair and does not change current app statuses from NOT_RUN."
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "schema": "termrock-postcommit-review/v1",
+  "reviewer": "technical_review",
+  "verdict": "LOCAL_COMMIT_MATCHES_REVIEWED_TREE; PUBLICATION_RECEIPT_MATCHES",
+  "publication_receipt": {
+    "path": "/private/tmp/termrock-vis10-foundation-publication-20261009.json",
+    "sha256": "6dbaf2e84e7befa9e6eda15f6a4885f706e657d33496bd4f1aa4d36dc64912c2",
+    "remote_branch": "termrock-implementation",
+    "normal_fast_forward_reported": true,
+    "push_exit_code_reported": 0,
+    "session": 16244,
+    "remote_api_confirmed_reported": true
+  },
+  "review_binding": {
+    "path": "/private/tmp/termrock-vis10-foundation-commit-review-technical.json",
+    "sha256": "1130dab37c276cae272a57973f209591720ac1d77d1539cd1db8fe5dde6c19f3",
+    "verdict": "READY_FOR_COMMIT_TREE"
+  },
+  "observed_commit": {
+    "commit": "b9e34b13ef47401865f1511b9babaab6e020eedc",
+    "parent": "169380c7d6a4cff9f1c43ecef592abc715e6df6a",
+    "tree": "3d7c68dcf6724799c38aefb774ac25447ea630b3",
+    "parent_tree": "904fe74a84da3c826608d0fb2756269c79100d53",
+    "commit_message": "test: add queue registry validation and migration preview\n\nSigned-off-by: Alexey Zhokhov <alexey@zhokhov.com>\n",
+    "commit_message_sha256": "9126bae8fc9120fee55af7137de3e55d790c2c440b6a0e4f0ddd4bd794d1d355",
+    "diff_paths": [
+      "A crates/termrock-visibility-tests/tests/queue_v2.rs",
+      "A docs/implementation/visibility/queue-v2.md",
+      "M tools/visibility/queue.py"
+    ],
+    "diff_stat": "3 files changed, 4375 insertions(+), 17 deletions(-)",
+    "blob_ids": {
+      "crates/termrock-visibility-tests/tests/queue_v2.rs": "b2e4b1002dd2165b6eb94a32b530e7f39173b73d",
+      "docs/implementation/visibility/queue-v2.md": "1f0f643a6c7125e0d819ffc60de0f9b1e43ff320",
+      "tools/visibility/queue.py": "6345bbc46a6bf1a7cae01a55c9dbb2a3808ff7b7"
+    }
+  },
+  "local_state_observed": {
+    "head_unchanged_from_prepublication": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+    "real_index_sha256_unchanged_from_prepublication": "bdb1c1ea3935936eeaaaa4dadd3728f4490c4e2b20bbdc8f7decf8e7be633ed8",
+    "source_worktree_remains_dirty": true,
+    "local_origin_tracking_ref_was_not_refreshed": true,
+    "source_repository_or_index_mutated_by_review": false
+  },
+  "publication_observation_limit": "The root publication receipt reports a normal fast-forward push and remote API confirmation. My direct read-only git ls-remote did not return within 30 seconds and was terminated; therefore this review independently verifies the local commit object and binds, but does not independently re-query the remote ref. The local origin tracking status remained stale.",
+  "evidence_accounting": {
+    "historical_q25_passes_reused": 20,
+    "q26_selected_case_pass_observed": 1,
+    "not_run": 29,
+    "fresh_full_21_case_pass_claim": false,
+    "original_r4_wrapper_exit_125_preserved": true,
+    "cargo_or_tests_run_during_review": false,
+    "qualification_claim": false
+  }
+}

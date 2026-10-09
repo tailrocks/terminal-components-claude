@@ -88,10 +88,42 @@ impl StatusFixture {
             repo.copy_project_file_exact(Path::new(relative_path))
                 .expect("copy exact checked-in status input");
         }
+        Self::copy_manifest_members(
+            &repo,
+            Path::new("docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json"),
+            None,
+        );
+        Self::copy_manifest_members(
+            &repo,
+            Path::new("docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/SHA256SUMS.json"),
+            Some(Path::new("docs/implementation/visibility/evidence/deferred/product23-s1d-20261009")),
+        );
         Self {
             repo,
             script: status_tool.path,
             queue_script: queue_tool.path,
+        }
+    }
+
+    fn copy_manifest_members(repo: &TempRepo, manifest_path: &Path, member_root: Option<&Path>) {
+        let manifest_copy = repo
+            .copy_project_file_exact(manifest_path)
+            .expect("copy exact evidence manifest");
+        let manifest: serde_json::Value = serde_json::from_slice(
+            &fs::read(manifest_copy.path).expect("read copied evidence manifest"),
+        )
+        .expect("parse copied evidence manifest");
+        let members = manifest["files"].as_array().expect("manifest member array");
+        for member in members {
+            let member_path = Path::new(
+                member["path"].as_str().expect("manifest member path"),
+            );
+            let relative_path = match member_root {
+                Some(root) => root.join(member_path),
+                None => member_path.to_path_buf(),
+            };
+            repo.copy_project_file_exact(&relative_path)
+                .expect("copy exact manifest member");
         }
     }
 
@@ -237,7 +269,7 @@ fn current_ci_observation() -> serde_json::Value {
     serde_json::json!({
         "api_capture": {
             "captured_at": "2026-10-08T04:33:53Z",
-            "manifest_path": "/private/tmp/current-ci/manifest.json",
+            "manifest_path": "fixtures/current-ci/manifest.json",
             "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "source_pair": {
                 "candidate_head_sha": "3333333333333333333333333333333333333333",
@@ -262,7 +294,7 @@ fn current_ci_observation() -> serde_json::Value {
                 "query_total_count": 0,
                 "matching_run_ids": [],
                 "request_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs?head_sha=4444444444444444444444444444444444444444&per_page=100",
-                "response_file": "/private/tmp/current-ci/runs-by-sha-reference.json"
+                "response_file": "fixtures/current-ci/runs-by-sha-reference.json"
             },
             "workflow_source": {
                 "path": ".github/workflows/ci.yml",
@@ -294,7 +326,7 @@ fn current_ci_observation() -> serde_json::Value {
         },
         "provider_annotation_capture": {
             "captured_at": "2026-10-08T05:02:19Z",
-            "manifest_path": "/private/tmp/current-ci/annotation-manifest.json",
+            "manifest_path": "fixtures/current-ci/annotation-manifest.json",
             "manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "run_id": "987654321",
             "run_page_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/987654321",
@@ -335,7 +367,7 @@ fn with_four_predecessors(mut facts: serde_json::Value) -> serde_json::Value {
                     "branch_last_update_at": null
                 },
                 "source_evidence": {
-                    "path": "/private/tmp/synthetic-source-observation-0.json",
+                    "path": "fixtures/source-observation/history-0.json",
                     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                 },
                 "current_ci_observation": null,
@@ -356,7 +388,7 @@ fn with_four_predecessors(mut facts: serde_json::Value) -> serde_json::Value {
                     "branch_last_update_at": null
                 },
                 "source_evidence": {
-                    "path": "/private/tmp/synthetic-source-observation-1.json",
+                    "path": "fixtures/source-observation/history-1.json",
                     "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
                 },
                 "current_ci_observation": null,
@@ -377,7 +409,7 @@ fn with_four_predecessors(mut facts: serde_json::Value) -> serde_json::Value {
                     "branch_last_update_at": null
                 },
                 "source_evidence": {
-                    "path": "/private/tmp/synthetic-source-observation-2.json",
+                    "path": "fixtures/source-observation/history-2.json",
                     "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
                 },
                 "current_ci_observation": null,
@@ -389,7 +421,7 @@ fn with_four_predecessors(mut facts: serde_json::Value) -> serde_json::Value {
         .as_array()
         .expect("source history array")
         .len();
-    if history_len == 4 {
+    if history_len >= 4 {
         return facts;
     }
     assert_eq!(history_len, 3, "fixture has three historical source rows");
@@ -404,7 +436,7 @@ fn with_four_predecessors(mut facts: serde_json::Value) -> serde_json::Value {
         })
     } else {
         serde_json::json!({
-            "path": "/private/tmp/synthetic-latest-source-observation.json",
+            "path": "fixtures/source-observation/latest.json",
             "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         })
     };
@@ -438,7 +470,7 @@ fn with_four_predecessors(mut facts: serde_json::Value) -> serde_json::Value {
             "committer_dates_are_branch_update_times": false
         },
         "fetch_provenance": {
-            "evidence_path": "/private/tmp/termrock-resume-ref-fetch-observation-20261008-151133.json",
+            "evidence_path": "fixtures/source-observation/resume-ref-fetch-20261008-151133.json",
             "evidence_sha256": "367121e3eb643453d46d33b598388752c41b1c5fa23e9c099e751c280e0568aa",
             "evidence_kind": "coordinator external observation record",
             "transport": "HTTPS",
@@ -1287,7 +1319,7 @@ fn execution_evidence_rejects_tmp_traversal_and_symlinked_parent() {
         serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
             .expect("parse source facts");
     facts["execution_observations"]["holla_diagnostic"]["seal"]["path"] =
-        serde_json::json!("/private/tmp/../../etc/passwd");
+        serde_json::json!("../../etc/passwd");
     write_json_facts(&fixture, &facts);
     let traversal = fixture.run(&[]);
     assert_eq!(traversal.exit_code, Some(2));
@@ -1508,7 +1540,12 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(latest_ci_section.contains("0 matching runs"));
     assert!(latest_ci_section.contains("113587796998"));
     assert!(latest_ci_section.contains("Reference DCO check | NOT_CAPTURED"));
-    assert!(!latest_ci_section.contains("500 KB"));
+    let provider_annotation = facts["current_status_observations"]["workflow_run_observations"][0]
+        ["provider_annotation"]
+        .as_str()
+        .expect("captured current workflow failure annotation");
+    assert!(latest_ci_section.contains(provider_annotation));
+    assert!(latest_ci_section.contains("workflow source 537470 bytes"));
     assert_eq!(
         facts["latest_local_checkout_observation"]["head_sha"],
         "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
@@ -1553,7 +1590,7 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(report.contains("this is not one full green run"));
     assert!(report.contains("The f307 Holla product result remains NOT_RUN."));
     assert!(report.contains("| Visibility / Complete | NOT_RUN |"));
-    assert!(report.contains("| Refactor / Ready | NOT_RUN |"));
+    assert!(report.contains("| Refactor / Ready | NOT_READY |"));
 }
 
 #[test]
@@ -1643,7 +1680,8 @@ fn local_package_and_report_control_metadata_rejects_unbound_inputs() {
                     ["receipt"]["path"]
                     .as_str()
                     .expect("f307 receipt path");
-                let receipt_bytes = fs::read(receipt_path).expect("read f307 receipt");
+                let receipt_bytes = fs::read(fixture.repo.root().join(receipt_path))
+                    .expect("read copied f307 receipt");
                 let mut receipt: serde_json::Value =
                     serde_json::from_slice(&receipt_bytes).expect("parse f307 receipt");
                 receipt["test_results"][2]["counts"]["passed"] = serde_json::json!(0);
@@ -1829,7 +1867,7 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     )
     .expect("parse checked-in source facts");
     let original = with_four_predecessors(facts);
-    assert_eq!(original["source_observation_history"].as_array().unwrap().len(), 4);
+    assert_eq!(original["source_observation_history"].as_array().unwrap().len(), 5);
 
     fixture.write_facts(&original.to_string());
     let output = fixture.run(&[]);
@@ -1837,8 +1875,22 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     let report = output_text(&output);
     assert!(report.contains("1ea1c17707f0a8f1639af506be179013d5e2d52a"));
     assert!(report.contains("b682cb26d68b353aeeccf9e51653eddf097b39f5"));
-    assert!(report.contains("Visibility / Complete | NOT_READY"));
+    assert!(report.contains("1d797d41c8141fcbdc3f69d7f11eb8875ab54712"));
+    assert!(report.contains("b274dd57f4dd078ade6e424d546d83efbd2e8526"));
+    assert_eq!(
+        original["latest_source_observation"]["candidate_remote"]["head_sha"],
+        "1d797d41c8141fcbdc3f69d7f11eb8875ab54712"
+    );
+    assert_eq!(
+        original["latest_source_observation"]["reference_remote"]["head_sha"],
+        "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+    );
+    assert!(report.contains("Visibility / Complete | NOT_RUN"));
     assert!(report.contains("Refactor / Ready | NOT_READY"));
+    assert!(report.contains("FAILED: 22/23 passed, 1 failed, 87 filtered"));
+    assert!(report.contains(
+        "verified candidate API/deferred result is FAILED: 22 of 23 passed, 1 failed"
+    ));
 
     let mut malformed_source = original.clone();
     malformed_source["source_observation_history"][0]["source_observation"]
@@ -1920,7 +1972,7 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     fixture.write_facts(&misbound_query.to_string());
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("post-fetch ref query does not match the selected source pair"));
+    assert!(error_text(&output).contains("post-fetch refs do not match its branch API pair"));
 
     let mut mismatched_capture = original.clone();
     mismatched_capture["source_observation_history"][1]
@@ -1962,14 +2014,107 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
     let report = output_text(&output);
     assert!(!report.contains("## Current CI and DCO observations"));
-    assert!(report.contains("| Pair selected at | 2026-10-08T15:11:33Z |"));
+    assert_eq!(
+        original["latest_source_observation"]["candidate_remote"]["head_sha"],
+        "1d797d41c8141fcbdc3f69d7f11eb8875ab54712"
+    );
+    assert_eq!(
+        original["latest_source_observation"]["reference_remote"]["head_sha"],
+        "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+    );
+    assert!(report.contains("1d797d41c8141fcbdc3f69d7f11eb8875ab54712"));
+    assert!(report.contains("b274dd57f4dd078ade6e424d546d83efbd2e8526"));
+    assert!(report.contains("| Pair selected at | 2026-10-08T23:25:02Z |"));
 
-    let mut missing = original.clone();
+    // This checked-in pair uses a branch API observation, so its top-level CI
+    // capture is optional. Exercise the explicit-fetch presence rule with a
+    // small synthetic source observation whose provenance is internally bound.
+    let explicit_fetch_fixture = StatusFixture::new();
+    let mut explicit_fetch: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse synthetic explicit-fetch facts");
+    explicit_fetch["source_observation_history"] = serde_json::json!([]);
+    explicit_fetch["current_ci_observation"] = serde_json::Value::Null;
+    explicit_fetch["latest_source_observation"]["method"] =
+        serde_json::json!("explicit HTTPS refs/heads fetch");
+    explicit_fetch["latest_source_observation"]["branch_last_update_at"] =
+        serde_json::Value::Null;
+    explicit_fetch["latest_source_observation"]["timestamp_provenance"] =
+        serde_json::json!({
+            "candidate_committer_date_source": "synthetic explicit-fetch fixture",
+            "reference_committer_date_source": "synthetic explicit-fetch fixture",
+            "branch_last_update_at_source": "not recorded in this synthetic fixture",
+            "committer_dates_are_branch_update_times": false
+        });
+    explicit_fetch["latest_source_observation"]["candidate_remote"]["commit_committer_at"] =
+        serde_json::json!("2026-10-08T04:20:00Z");
+    assert!(explicit_fetch["latest_source_observation"]["candidate_remote"]
+        .as_object_mut()
+        .expect("candidate remote")
+        .remove("updated_at")
+        .is_some());
+    explicit_fetch["latest_source_observation"]["reference_remote"]["commit_committer_at"] =
+        serde_json::json!("2026-10-08T04:10:00Z");
+    assert!(explicit_fetch["latest_source_observation"]["reference_remote"]
+        .as_object_mut()
+        .expect("reference remote")
+        .remove("updated_at")
+        .is_some());
+    explicit_fetch["latest_source_observation"]["fetch_provenance"] =
+        serde_json::json!({
+            "evidence_path": "fixtures/source-observation/latest.json",
+            "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_kind": "synthetic explicit-fetch test fixture",
+            "transport": "HTTPS",
+            "operation": "fetch",
+            "refspecs": [
+                "refs/heads/termrock-implementation",
+                "refs/heads/visual-baseline"
+            ],
+            "session_id": 1,
+            "exit_code": 0,
+            "completed_at": "2026-10-08T04:30:00Z",
+            "raw_fetch_output_preserved": false,
+            "post_fetch_ref_query": {
+                "record_id": "synthetic-explicit-fetch-query",
+                "observed_at": null,
+                "candidate_head_sha": "3333333333333333333333333333333333333333",
+                "reference_head_sha": "4444444444444444444444444444444444444444"
+            }
+        });
+    explicit_fetch_fixture.write_facts(&explicit_fetch.to_string());
+    let output = explicit_fetch_fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
+    assert!(!output_text(&output).contains("## Current CI and DCO observations"));
+
+    let mut missing_committer_date = explicit_fetch.clone();
+    assert!(missing_committer_date["latest_source_observation"]["candidate_remote"]
+        .as_object_mut()
+        .expect("candidate remote")
+        .remove("commit_committer_at")
+        .is_some());
+    explicit_fetch_fixture.write_facts(&missing_committer_date.to_string());
+    let output = explicit_fetch_fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains(
+        "latest_source_observation.candidate_remote.commit_committer_at must be text"
+    ));
+
+    let mut malformed_committer_date = explicit_fetch.clone();
+    malformed_committer_date["latest_source_observation"]["reference_remote"]
+        ["commit_committer_at"] = serde_json::json!("not-a-timestamp");
+    explicit_fetch_fixture.write_facts(&malformed_committer_date.to_string());
+    let output = explicit_fetch_fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains(
+        "latest_source_observation.reference_remote.commit_committer_at must be RFC3339 with a timezone"
+    ));
+
+    let mut missing = explicit_fetch;
     missing.as_object_mut()
         .expect("source facts object")
         .remove("current_ci_observation");
-    fixture.write_facts(&missing.to_string());
-    let output = fixture.run(&[]);
+    explicit_fetch_fixture.write_facts(&missing.to_string());
+    let output = explicit_fetch_fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
     assert!(error_text(&output).contains(
         "source observation requires current_ci_observation; use null if no capture exists"
@@ -2601,4 +2746,218 @@ fn generation_is_byte_deterministic() {
     assert_eq!(write_two.exit_code, Some(0));
     assert_eq!(report_one, report_two);
     assert_eq!(check.exit_code, Some(0));
+}
+
+#[test]
+fn current_observations_render_source_bound_branch_and_candidate_failure() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture
+        .repo
+        .root()
+        .join("tools/visibility/source-facts.json");
+    let facts: serde_json::Value =
+        serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
+            .expect("parse copied source facts");
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(0));
+    let report = output_text(&output);
+
+    assert!(report.contains("Current implementation-branch and external-tool observations"));
+    assert!(report.contains("9f1f756219b6bd42131b6e7291f54f99e1128cf1"));
+    assert!(report.contains("DCO check 113663911182 completed successfully"));
+    assert!(report.contains("37882112951"));
+    assert!(report.contains("0 jobs; 0 artifacts; workflow source 537470 bytes"));
+    assert!(report.contains("FAILED: 22/23 passed, 1 failed, 87 filtered"));
+    assert!(report.contains("BD-21 case W13-05 failed in w13_filter_wide_trail_cells_clear"));
+    assert!(report.contains("independent review VERIFIED_FAILED_RUN"));
+    assert!(report.contains("Requirement registry: NOT_RUN"));
+    assert!(report.contains("paired reference: NOT_RUN; paired visual: NOT_RUN; acceptance: NOT_RECORDED"));
+    assert!(report.contains("Repository evidence archive | 59 files / 5554254 bytes verified"));
+    assert!(report.contains("Historical raw-evidence coverage gap: normalized source/CI summaries for 5 retained records remain"));
+    assert!(report.contains("Receipt SHA-256 c6fec50571f45a875c375bf5668e4f1b8754eb9ac87ec9aa98c95590c79e1929"));
+    assert!(report.contains("R12: Nextest stopped before selecting tests; 0 selected"));
+    assert!(report.contains("R13: 1 selected, 0 passed, 1 failed before PTY launch"));
+    assert!(report.contains("16/27 expected tests executed (14 passed, 2 failed, 11 NOT_RUN)"));
+    for conclusion in [
+        "Visibility / Complete | NOT_RUN",
+        "Refactor / Ready | NOT_READY",
+        "Reference / Qualified | NOT_RUN",
+        "Command / Ready | NOT_RUN",
+        "Evidence freshness | NOT_RUN",
+    ] {
+        assert!(report.contains(conclusion), "missing `{conclusion}`");
+    }
+    assert_eq!(
+        facts["current_status_observations"]["candidate_api_deferred_run"]["measurement_status"]
+            .as_str(),
+        Some("FAILED")
+    );
+    assert_eq!(
+        facts["current_status_observations"]["report_readiness"]["refactor_ready"]
+            .as_str(),
+        Some("NOT_RUN")
+    );
+}
+
+#[test]
+fn rejects_changed_current_observation_evidence_pin() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture
+        .repo
+        .root()
+        .join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value =
+        serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
+            .expect("parse copied source facts");
+    facts["current_status_observations"]["branch_tip"]["branch_response"]["sha256"] =
+        serde_json::Value::String("0".repeat(64));
+    write_json_facts(&fixture, &facts);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains(
+        "current implementation branch API response bytes do not match the recorded SHA-256"
+    ));
+}
+
+#[test]
+fn rejects_a_temporary_root_locator_in_checked_in_source_facts() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture
+        .repo
+        .root()
+        .join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value =
+        serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
+            .expect("parse copied source facts");
+    facts["test_only_unbound_locator"] = serde_json::Value::String(
+        "/private/tmp/termrock-vis01-branch-b106-observation-20261009-luna-r1/branch.json"
+            .to_string(),
+    );
+    write_json_facts(&fixture, &facts);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains(
+        "source-facts paths must be repository-relative"
+    ));
+}
+
+#[test]
+fn rejects_a_stale_source_evidence_archive_manifest_pin() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture
+        .repo
+        .root()
+        .join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value =
+        serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
+            .expect("parse copied source facts");
+    facts["source_evidence_archive"]["manifest"]["sha256"] =
+        serde_json::Value::String("0".repeat(64));
+    write_json_facts(&fixture, &facts);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains(
+        "source evidence archive manifest bytes do not match the recorded SHA-256"
+    ));
+}
+
+#[test]
+fn rejects_missing_archived_current_observation_input() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture
+        .repo
+        .root()
+        .join("tools/visibility/source-facts.json");
+    let facts: serde_json::Value =
+        serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
+            .expect("parse copied source facts");
+    let archived_path = facts["current_status_observations"]["branch_tip"]
+        ["branch_response"]["path"]
+        .as_str()
+        .expect("repository-relative branch response path");
+    fs::remove_file(fixture.repo.root().join(archived_path))
+        .expect("remove copied current archive member");
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains(
+        "cannot be opened without following symlinks"
+    ));
+}
+
+#[test]
+fn rejects_tampered_candidate_measurement_packet_member() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let member = fixture.repo.root().join(
+        "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/preflight.json",
+    );
+    let mut bytes = fs::read(&member).expect("read copied packet member");
+    bytes.push(b' ');
+    fs::write(&member, bytes).expect("tamper copied packet member");
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains(
+        "bytes do not match the recorded SHA-256"
+    ));
+}
+
+#[test]
+fn keeps_historical_raw_capture_gap_separate_from_readiness() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(0));
+    let report = output_text(&output);
+    assert!(report.contains("Historical raw-evidence coverage gap"));
+    assert!(report.contains("Visibility / Complete | NOT_RUN"));
+    assert!(report.contains("Refactor / Ready | NOT_READY"));
+    assert!(report.contains("Reference / Qualified | NOT_RUN"));
+    assert!(report.contains("Command / Ready | NOT_RUN"));
+    assert!(report.contains("Evidence freshness | NOT_RUN"));
+}
+
+#[test]
+fn rejects_relabeling_a_verified_candidate_failure_as_not_run() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture
+        .repo
+        .root()
+        .join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value =
+        serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
+            .expect("parse copied source facts");
+    facts["current_status_observations"]["candidate_api_deferred_run"]["measurement_status"] =
+        serde_json::Value::String("NOT_RUN".to_string());
+    write_json_facts(&fixture, &facts);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains(
+        "candidate deferred/API run must remain a source-bound partial failure"
+    ));
+}
+
+
+#[test]
+fn rejects_unrecorded_candidate_acceptance_promotion() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture
+        .repo
+        .root()
+        .join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value =
+        serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
+            .expect("parse copied source facts");
+    facts["current_status_observations"]["candidate_api_deferred_run"]["acceptance_decision"] =
+        serde_json::Value::String("ACCEPTED".to_string());
+    write_json_facts(&fixture, &facts);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains(
+        "candidate deferred/API run must remain a source-bound partial failure"
+    ));
 }

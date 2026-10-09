@@ -25,6 +25,12 @@ SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 MAX_EXECUTION_EVIDENCE_BYTES = 8 * 1024 * 1024
 EVIDENCE_TMP_ROOT = Path("/private/tmp")
+STATUS_EVIDENCE_ARCHIVE_ROOT = Path(
+    "docs/implementation/visibility/evidence/reports/status-source-archive-20261009"
+)
+STATUS_EVIDENCE_ARCHIVE_RAW_ROOT = STATUS_EVIDENCE_ARCHIVE_ROOT / "raw"
+ARCHIVED_EXTERNAL_EVIDENCE_PATHS: Optional[frozenset[str]] = None
+ARCHIVED_REPOSITORY_EVIDENCE_PATHS: Optional[frozenset[str]] = None
 PRIORITY = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
 TASK_STATES = {"ready", "claimed", "in_progress", "review", "blocked", "verified"}
 CURRENT_CI_WORKFLOW = ".github/workflows/ci.yml"
@@ -68,6 +74,18 @@ def require(condition: bool, message: str) -> None:
         raise ValueError(message)
 
 
+def require_repository_relative_source_paths(value: Any) -> None:
+    if isinstance(value, str):
+        require(not value.startswith(EVIDENCE_TMP_ROOT.as_posix() + "/"),
+                "source-facts paths must be repository-relative, not temporary-root locators")
+    elif isinstance(value, list):
+        for item in value:
+            require_repository_relative_source_paths(item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            require_repository_relative_source_paths(item)
+
+
 def sha(value: Any, label: str) -> str:
     require(isinstance(value, str) and SHA.fullmatch(value) is not None,
             "{} must be a full lowercase SHA-1".format(label))
@@ -108,22 +126,113 @@ def validate_source_evidence(evidence: Any, label: str) -> Mapping[str, Any]:
     return evidence
 
 
+
+def pinned_evidence_location(raw_path: Path, label: str) -> tuple[Path, Path]:
+    if raw_path.is_absolute():
+        try:
+            relative_path = raw_path.relative_to(EVIDENCE_TMP_ROOT)
+        except ValueError as error:
+            raise ValueError(
+                "{} absolute evidence is outside the archived source root".format(label)
+            ) from error
+        original_relative_path = relative_path.as_posix()
+        require(ARCHIVED_EXTERNAL_EVIDENCE_PATHS is not None
+                and original_relative_path in ARCHIVED_EXTERNAL_EVIDENCE_PATHS,
+                "{} absolute evidence is not in the pinned repository archive".format(label))
+        evidence_root = ROOT.resolve() / STATUS_EVIDENCE_ARCHIVE_RAW_ROOT
+    else:
+        evidence_root = ROOT.resolve()
+        relative_path = raw_path
+        archive_relative_path = relative_path.as_posix()
+        if archive_relative_path.startswith(STATUS_EVIDENCE_ARCHIVE_RAW_ROOT.as_posix() + "/"):
+            require(ARCHIVED_REPOSITORY_EVIDENCE_PATHS is not None
+                    and archive_relative_path in ARCHIVED_REPOSITORY_EVIDENCE_PATHS,
+                    "{} repository archive path is not listed in its pinned manifest".format(label))
+    return evidence_root, relative_path
+
+
+def canonical_evidence_path(value: Any, label: str) -> str:
+    require(isinstance(value, str) and value.strip(),
+            "{} evidence path is required".format(label))
+    raw_path = Path(value)
+    if raw_path.is_absolute():
+        try:
+            relative_path = raw_path.relative_to(EVIDENCE_TMP_ROOT)
+        except ValueError as error:
+            raise ValueError(
+                "{} absolute evidence is outside the archived source root".format(label)
+            ) from error
+        original_relative_path = relative_path.as_posix()
+        require(ARCHIVED_EXTERNAL_EVIDENCE_PATHS is not None
+                and original_relative_path in ARCHIVED_EXTERNAL_EVIDENCE_PATHS,
+                "{} absolute evidence is not in the pinned repository archive".format(label))
+        return (STATUS_EVIDENCE_ARCHIVE_RAW_ROOT / relative_path).as_posix()
+    return raw_path.as_posix()
+
+
+def read_pinned_bytes(evidence: Any, label: str) -> bytes:
+    validate_source_evidence(evidence, label)
+    raw_path = Path(evidence["path"])
+    evidence_root, relative_path = pinned_evidence_location(raw_path, label)
+    path_parts = relative_path.parts
+    require(bool(path_parts) and all(part not in {"", ".", ".."} for part in path_parts),
+            "{} evidence path must stay below its allowed root".format(label))
+    require(hasattr(os, "O_DIRECTORY") and hasattr(os, "O_NOFOLLOW")
+            and hasattr(os, "O_NONBLOCK"),
+            "{} secure component-wise evidence reads are unavailable".format(label))
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    root_descriptor = -1
+    descriptor = -1
+    try:
+        root_descriptor = os.open(os.sep, directory_flags)
+        for component in evidence_root.parts[1:]:
+            next_descriptor = os.open(component, directory_flags, dir_fd=root_descriptor)
+            previous_descriptor = root_descriptor
+            root_descriptor = next_descriptor
+            os.close(previous_descriptor)
+        for component in path_parts[:-1]:
+            next_descriptor = os.open(
+                component, directory_flags, dir_fd=root_descriptor
+            )
+            previous_descriptor = root_descriptor
+            root_descriptor = next_descriptor
+            os.close(previous_descriptor)
+        descriptor = os.open(
+            path_parts[-1],
+            os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+            dir_fd=root_descriptor,
+        )
+    except OSError as error:
+        raise ValueError("{} cannot be opened without following symlinks: {}".format(
+            label, error
+        )) from error
+    finally:
+        if root_descriptor >= 0:
+            os.close(root_descriptor)
+    try:
+        with os.fdopen(descriptor, "rb") as stream:
+            file_stat = os.fstat(stream.fileno())
+            if not stat.S_ISREG(file_stat.st_mode):
+                raise ValueError("{} must be a regular file".format(label))
+            require(file_stat.st_size <= MAX_EXECUTION_EVIDENCE_BYTES,
+                    "{} exceeds the bounded evidence-file size".format(label))
+            raw = stream.read(MAX_EXECUTION_EVIDENCE_BYTES + 1)
+            require(len(raw) <= MAX_EXECUTION_EVIDENCE_BYTES,
+                    "{} exceeds the bounded evidence-file size".format(label))
+    except OSError as error:
+        raise ValueError("{} cannot be read: {}".format(label, error)) from error
+    actual_sha256 = hashlib.sha256(raw).hexdigest()
+    require(actual_sha256 == evidence["sha256"],
+            "{} bytes do not match the recorded SHA-256".format(label))
+    return raw
+
+
 def read_pinned_json(
     evidence: Any, label: str, queue_module: Any
 ) -> Any:
     validate_source_evidence(evidence, label)
     raw_path = Path(evidence["path"])
-    if raw_path.is_absolute():
-        evidence_root = EVIDENCE_TMP_ROOT
-        try:
-            relative_path = raw_path.relative_to(evidence_root)
-        except ValueError as error:
-            raise ValueError(
-                "{} absolute evidence must be under /private/tmp".format(label)
-            ) from error
-    else:
-        evidence_root = ROOT.resolve()
-        relative_path = raw_path
+    evidence_root, relative_path = pinned_evidence_location(raw_path, label)
     path_parts = relative_path.parts
     require(bool(path_parts) and all(part not in {"", ".", ".."} for part in path_parts),
             "{} evidence path must stay below its allowed root".format(label))
@@ -180,6 +289,213 @@ def read_pinned_json(
     require(isinstance(value, (dict, list)),
             "{} must contain a JSON object or array".format(label))
     return value
+
+
+def validate_source_evidence_archive(
+    pin: Any, queue_module: Any, *, required: bool
+) -> Optional[Mapping[str, Any]]:
+    global ARCHIVED_EXTERNAL_EVIDENCE_PATHS, ARCHIVED_REPOSITORY_EVIDENCE_PATHS
+    ARCHIVED_EXTERNAL_EVIDENCE_PATHS = frozenset()
+    ARCHIVED_REPOSITORY_EVIDENCE_PATHS = frozenset()
+    if pin is None:
+        require(not required,
+                "current status observations require a repository-relative source evidence archive")
+        return None
+    require(isinstance(pin, dict)
+            and pin.get("schema") == "termrock-status-source-evidence-archive-pin/v1",
+            "unsupported source evidence archive pin")
+    manifest_pin = pin.get("manifest")
+    require(isinstance(manifest_pin, dict)
+            and manifest_pin.get("path") ==
+            (STATUS_EVIDENCE_ARCHIVE_ROOT / "MANIFEST.json").as_posix(),
+            "source evidence archive manifest must use the pinned repository-relative path")
+    manifest = read_pinned_json(
+        manifest_pin, "source evidence archive manifest", queue_module,
+    )
+    require(isinstance(manifest, dict)
+            and manifest.get("schema") == "termrock-status-source-evidence-archive/v1"
+            and manifest.get("archive_root") == STATUS_EVIDENCE_ARCHIVE_ROOT.as_posix()
+            and manifest.get("raw_root") == STATUS_EVIDENCE_ARCHIVE_RAW_ROOT.as_posix()
+            and isinstance(manifest.get("inventory_method"), str)
+            and manifest["inventory_method"].strip(),
+            "source evidence archive manifest identity is malformed")
+    files = manifest.get("files")
+    require(isinstance(files, list) and 0 < len(files) <= 100
+            and type(manifest.get("file_count")) is int
+            and manifest["file_count"] == len(files)
+            and type(manifest.get("total_bytes")) is int
+            and 0 <= manifest["total_bytes"] <= 8 * 1024 * 1024,
+            "source evidence archive count or total byte bound is invalid")
+    require(all(isinstance(item, dict)
+                and isinstance(item.get("original_relative_path"), str)
+                and isinstance(item.get("path"), str)
+                for item in files),
+            "source evidence archive entries must have text paths")
+    external_index = {item["original_relative_path"] for item in files}
+    repository_index = {manifest_pin["path"]}
+    repository_index.update(item["path"] for item in files)
+    require(len(external_index) == len(files)
+            and len(repository_index) == len(files) + 1,
+            "source evidence archive repeats a path")
+    ARCHIVED_EXTERNAL_EVIDENCE_PATHS = frozenset(external_index)
+    ARCHIVED_REPOSITORY_EVIDENCE_PATHS = frozenset(repository_index)
+    seen_external = set()
+    seen_repository = {manifest_pin["path"]}
+    total_bytes = 0
+    for index, item in enumerate(files):
+        label = "source evidence archive files[{}]".format(index)
+        require(isinstance(item, dict), "{} must be an object".format(label))
+        original = item.get("original_relative_path")
+        archived = item.get("path")
+        require(isinstance(original, str) and original.strip(),
+                "{}.original_relative_path is required".format(label))
+        original_parts = Path(original).parts
+        require(not Path(original).is_absolute() and bool(original_parts)
+                and all(part not in {"", ".", ".."} for part in original_parts),
+                "{}.original_relative_path must be a safe relative path".format(label))
+        require(original not in seen_external,
+                "source evidence archive repeats an original path")
+        seen_external.add(original)
+        expected_archived = (
+            STATUS_EVIDENCE_ARCHIVE_RAW_ROOT / Path(original)
+        ).as_posix()
+        require(archived == expected_archived,
+                "{}.path does not preserve the source-relative archive layout".format(label))
+        archived_parts = Path(archived).parts
+        require(not Path(archived).is_absolute() and bool(archived_parts)
+                and all(part not in {"", ".", ".."} for part in archived_parts),
+                "{}.path must be a safe repository-relative path".format(label))
+        require(archived not in seen_repository,
+                "source evidence archive repeats an archived path")
+        seen_repository.add(archived)
+        count = item.get("bytes")
+        require(type(count) is int and 0 <= count <= MAX_EXECUTION_EVIDENCE_BYTES,
+                "{}.bytes is outside the evidence file bound".format(label))
+        digest = sha256(item.get("sha256"), "{}.sha256".format(label))
+        require(isinstance(item.get("read_kinds"), list)
+                and item["read_kinds"]
+                and all(kind in {"READ_JSON", "READ_BYTES"}
+                        for kind in item["read_kinds"])
+                and isinstance(item.get("labels"), list)
+                and item["labels"]
+                and all(isinstance(name, str) and name.strip()
+                        for name in item["labels"]),
+                "{}.read_kinds or labels are malformed".format(label))
+        raw = read_pinned_bytes(
+            {"path": archived, "sha256": digest}, "{} archived bytes".format(label),
+        )
+        require(len(raw) == count,
+                "{} bytes do not match the archive manifest".format(label))
+        total_bytes += count
+    require(total_bytes == manifest["total_bytes"]
+            and pin.get("file_count") == len(files)
+            and pin.get("total_bytes") == total_bytes,
+            "source evidence archive totals do not match the source-facts pin")
+    require(pin.get("effect_on_product_qualification") == "NONE",
+            "evidence archive cannot change product qualification")
+    return manifest
+
+
+def validate_historical_evidence_gaps(
+    value: Any, history: Sequence[Mapping[str, Any]]
+) -> Mapping[str, Any]:
+    require(isinstance(value, dict)
+            and value.get("schema") == "termrock-status-historical-evidence-gaps/v1"
+            and value.get("status") == "RAW_CAPTURE_GAP",
+            "historical raw-evidence gap record is required")
+    records = value.get("records")
+    require(isinstance(records, list) and len(records) == len(history),
+            "historical evidence-gap records must match retained source history")
+    for index, (gap, historical) in enumerate(zip(records, history)):
+        source = historical["source_observation"]
+        pair = source["candidate_remote"], source["reference_remote"]
+        require(isinstance(gap, dict)
+                and gap.get("history_index") == index
+                and gap.get("candidate_sha") == pair[0]["head_sha"]
+                and gap.get("reference_sha") == pair[1]["head_sha"]
+                and gap.get("normalized_source_observation") == "RETAINED"
+                and gap.get("normalized_ci_observation") == (
+                    "NOT_RECORDED"
+                    if historical.get("current_ci_observation") is None else "RETAINED"
+                )
+                and gap.get("raw_source_evidence") == "NOT_ARCHIVED"
+                and gap.get("raw_ci_capture") == (
+                    "NOT_RECORDED"
+                    if historical.get("current_ci_observation") is None else "NOT_ARCHIVED"
+                ),
+                "historical evidence gap {} does not match its source record".format(index))
+    require(value.get("report_readiness_effect")
+            == "NONE; all existing report-level readiness values remain NOT_RUN",
+            "historical evidence gaps cannot change report readiness")
+    return value
+
+
+def validate_product_evidence_packet(
+    manifest_pin: Any, measurement: Mapping[str, Any], queue_module: Any
+) -> Mapping[str, Any]:
+    manifest = read_pinned_json(
+        manifest_pin, "candidate measurement packet manifest", queue_module,
+    )
+    require(isinstance(manifest, dict)
+            and manifest.get("schema") == "termrock-evidence-file-hashes/v1"
+            and manifest.get("includes_self") is False,
+            "candidate measurement packet manifest identity changed")
+    files = manifest.get("files")
+    require(isinstance(files, list) and len(files) == 22,
+            "candidate measurement packet must enumerate its 22 files")
+    manifest_path = Path(manifest_pin["path"])
+    packet_root = manifest_path.parent
+    seen = set()
+    total_bytes = 0
+    hashes = {}
+    for index, item in enumerate(files):
+        label = "candidate measurement packet files[{}]".format(index)
+        require(isinstance(item, dict), "{} must be an object".format(label))
+        relative = item.get("path")
+        require(isinstance(relative, str) and relative.strip(),
+                "{}.path is required".format(label))
+        member = Path(relative)
+        require(not member.is_absolute() and bool(member.parts)
+                and all(part not in {"", ".", ".."} for part in member.parts),
+                "{}.path must be a safe packet-relative path".format(label))
+        member_name = member.as_posix()
+        require(member_name not in seen,
+                "candidate measurement packet repeats a member path")
+        seen.add(member_name)
+        digest = sha256(item.get("sha256"), "{}.sha256".format(label))
+        count = item.get("bytes")
+        require(type(count) is int and 0 <= count <= MAX_EXECUTION_EVIDENCE_BYTES,
+                "{}.bytes is outside the evidence file bound".format(label))
+        path = (packet_root / member).as_posix()
+        raw = read_pinned_bytes(
+            {"path": path, "sha256": digest}, "{} bytes".format(label),
+        )
+        require(len(raw) == count,
+                "{} byte count does not match its manifest".format(label))
+        hashes[member_name] = digest
+        total_bytes += count
+    require(total_bytes <= 8 * 1024 * 1024,
+            "candidate measurement packet exceeds its total byte bound")
+    runs_root = Path("runs/2026-10-09T03-04-14-975Z-10bae096")
+    for field in ("receipt", "ledger", "review"):
+        evidence = measurement.get(field)
+        require(isinstance(evidence, dict),
+                "candidate measurement {} pin is required".format(field))
+        try:
+            relative = Path(evidence["path"]).relative_to(packet_root).as_posix()
+        except (KeyError, ValueError) as error:
+            raise ValueError(
+                "candidate measurement {} must be inside its pinned packet".format(field)
+            ) from error
+        expected_name = {
+            "receipt": "receipt.json",
+            "ledger": "ledger-record.json",
+            "review": "actual-independent-review-luna.json",
+        }[field]
+        require(relative == (runs_root / expected_name).as_posix()
+                and hashes.get(relative) == evidence.get("sha256"),
+                "candidate measurement {} pin does not match its packet".format(field))
+    return manifest
 
 
 def source_pair_matches(recorded: Any, expected_candidate: str,
@@ -648,7 +964,12 @@ def load_holla_diagnostic(
     require(holla_interactions_per_role == {"candidate": 16, "reference": 16},
             "Holla interaction check rows do not match the reviewed case scope")
     require(isinstance(artifact_audit, dict)
-            and artifact_audit.get("actual_receipt_path") == record["receipt"]["path"]
+            and canonical_evidence_path(
+                artifact_audit.get("actual_receipt_path"),
+                "Holla artifact review receipt path",
+            ) == canonical_evidence_path(
+                record["receipt"]["path"], "Holla paired receipt path",
+            )
             and artifact_audit.get("actual_receipt_sha256") == record["receipt"]["sha256"]
             and artifact_audit.get("artifact_observations") == artifact_count
             and artifact_audit.get("role_checkpoint_pairs") == 8
@@ -1324,7 +1645,7 @@ def validate_source_observation(observation: Any, label: str) -> Mapping[str, An
             else:
                 timestamp_with_offset(
                     remote.get("commit_committer_at"),
-                    "{}.{}.commit_committer_at".format(label, role),
+                    "{}.{}_remote.commit_committer_at".format(label, role),
                 )
                 provenance = observation.get("timestamp_provenance")
                 require(isinstance(provenance, dict)
@@ -1386,7 +1707,15 @@ def validate_source_observation(observation: Any, label: str) -> Mapping[str, An
                 and observation["branch_last_update_at"] is None,
                 "{} branch last-update time must be explicitly unknown".format(label))
         for role, remote in (("candidate", candidate_remote), ("reference", reference_remote)):
-            if "commit_committer_at" in remote:
+            if label == "latest_source_observation":
+                # The current fixed-pair renderer reports commit dates as metadata.
+                # Require and validate them here so malformed facts fail as a
+                # schema error instead of raising KeyError during rendering.
+                timestamp_with_offset(
+                    remote.get("commit_committer_at"),
+                    "{}.{}_remote.commit_committer_at".format(label, role),
+                )
+            elif "commit_committer_at" in remote:
                 timestamp_with_offset(
                     remote["commit_committer_at"],
                     "{}.{}.commit_committer_at".format(label, role),
@@ -2033,12 +2362,20 @@ def validate_report_publication_observation(
     review_pin = value["postcommit_review"]
     review_receipt = review.get("publication_receipt")
     require(isinstance(review_receipt, dict)
-            and review_receipt.get("path") == publication_pin["path"]
+            and canonical_evidence_path(
+                review_receipt.get("path"), "postcommit publication receipt path",
+            ) == canonical_evidence_path(
+                publication_pin["path"], "publication record path",
+            )
             and review_receipt.get("sha256") == publication_pin["sha256"],
             "postcommit review does not bind the publication record")
     review_binding = review.get("review_binding")
     require(isinstance(review_binding, dict)
-            and review_binding.get("path") == precommit_pin["path"]
+            and canonical_evidence_path(
+                review_binding.get("path"), "postcommit precommit-review path",
+            ) == canonical_evidence_path(
+                precommit_pin["path"], "precommit review path",
+            )
             and review_binding.get("sha256") == precommit_pin["sha256"],
             "postcommit review does not bind its precommit review")
     local_state = review.get("local_state_observed", {})
@@ -2332,7 +2669,10 @@ def render_publication_observations(
     return "\n".join(lines)
 
 
-def render_source_observation_history(history: Sequence[Mapping[str, Any]]) -> str:
+def render_source_observation_history(
+    history: Sequence[Mapping[str, Any]],
+    evidence_gaps: Optional[Mapping[str, Any]] = None,
+) -> str:
     if not history:
         return ""
     rows = []
@@ -2384,7 +2724,613 @@ def render_source_observation_history(history: Sequence[Mapping[str, Any]]) -> s
         "| --- | --- | --- | --- | --- | --- |",
         *rows,
         "",
+        *([
+            "Historical raw-evidence coverage gap: normalized source/CI summaries for {} retained records remain, but their original raw source and CI capture files are not in the repository archive. The gap does not change the fixed source pair or the current readiness assessment; current candidate measurements and paired-result gaps determine readiness separately.".format(
+                len(evidence_gaps["records"])
+            ),
+            "",
+        ] if evidence_gaps is not None else []),
     ])
+
+
+
+def validate_current_status_observations(
+    value: Any, latest: Mapping[str, Any], authority: Mapping[str, Any],
+    queue_module: Any,
+) -> Optional[Mapping[str, Any]]:
+    if value is None:
+        return None
+    require(isinstance(value, dict)
+            and value.get("schema") == "termrock-status-current-observations-v1",
+            "unsupported current status observations schema")
+    timestamp(value.get("observed_at"), "current status observations observed_at")
+
+    pair = value.get("fixed_comparison_pair")
+    source_pair_matches(
+        pair, latest["candidate_remote"]["head_sha"],
+        latest["reference_remote"]["head_sha"], "current status fixed pair",
+    )
+    tag = value.get("immutable_visual_tag")
+    require(isinstance(tag, dict)
+            and tag.get("tag_object_sha") == authority["tag_object_sha"]
+            and tag.get("peeled_commit_sha") == authority["commit_sha"],
+            "current status immutable visual tag identity changed")
+
+    branch = value.get("branch_tip")
+    require(isinstance(branch, dict)
+            and branch.get("branch") == "termrock-implementation",
+            "current implementation branch observation is required")
+    branch_head = sha(branch.get("head_sha"), "current implementation branch head")
+    branch_tree = sha(branch.get("tree_sha"), "current implementation branch tree")
+    timestamp(branch.get("captured_at"), "current implementation branch capture time")
+    branch_api = read_pinned_json(
+        branch.get("branch_response"), "current implementation branch API response",
+        queue_module,
+    )
+    require(isinstance(branch_api, dict)
+            and branch_api.get("name") == branch["branch"],
+            "current branch API response names another branch")
+    api_commit = branch_api.get("commit")
+    require(isinstance(api_commit, dict)
+            and api_commit.get("sha") == branch_head,
+            "current branch API does not match the recorded tip")
+    api_commit_detail = api_commit.get("commit")
+    require(isinstance(api_commit_detail, dict)
+            and isinstance(api_commit_detail.get("tree"), dict)
+            and api_commit_detail["tree"].get("sha") == branch_tree,
+            "current branch API tree does not match the recorded tip")
+    runs_by_head = read_pinned_json(
+        branch.get("workflow_runs_response"),
+        "current implementation branch workflow-runs response", queue_module,
+    )
+    require(isinstance(runs_by_head, dict)
+            and type(runs_by_head.get("total_count")) is int
+            and isinstance(runs_by_head.get("workflow_runs"), list),
+            "current branch workflow-runs response is malformed")
+
+    gates = value.get("branch_gate_observations")
+    require(isinstance(gates, list) and len(gates) >= 1,
+            "branch gate observations must be a nonempty array")
+    gate_by_head: dict[str, Mapping[str, Any]] = {}
+    for index, gate in enumerate(gates):
+        label = "branch_gate_observations[{}]".format(index)
+        require(isinstance(gate, dict), "{} must be an object".format(label))
+        head = sha(gate.get("head_sha"), "{}.head_sha".format(label))
+        sha(gate.get("tree_sha"), "{}.tree_sha".format(label))
+        check_id = gate.get("dco_check_run_id")
+        require(isinstance(check_id, str) and check_id.isdigit(),
+                "{} DCO check ID must be numeric text".format(label))
+        require(gate.get("dco_name") == "DCO"
+                and gate.get("dco_status") == "completed"
+                and gate.get("dco_conclusion") in {"success", "failure"},
+                "{} DCO result is incomplete or unknown".format(label))
+        timestamp(gate.get("captured_at"), "{} capture time".format(label))
+        checks = read_pinned_json(
+            gate.get("check_runs_response"), "{} check-runs response".format(label),
+            queue_module,
+        )
+        require(isinstance(checks, dict)
+                and isinstance(checks.get("check_runs"), list),
+                "{} check-runs response is malformed".format(label))
+        matching = [
+            item for item in checks["check_runs"]
+            if isinstance(item, dict) and str(item.get("id")) == check_id
+        ]
+        require(len(matching) == 1,
+                "{} DCO check ID is absent or duplicated in its capture".format(label))
+        check = matching[0]
+        require(check.get("name") == gate["dco_name"]
+                and check.get("head_sha") == head
+                and check.get("status") == gate["dco_status"]
+                and check.get("conclusion") == gate["dco_conclusion"],
+                "{} DCO fields do not match the captured check".format(label))
+        require(head not in gate_by_head,
+                "duplicate branch gate observation for one commit")
+        gate_by_head[head] = gate
+
+    runs = value.get("workflow_run_observations")
+    require(isinstance(runs, list) and len(runs) >= 1,
+            "workflow run observations must be a nonempty array")
+    run_by_head: dict[str, Mapping[str, Any]] = {}
+    for index, observation in enumerate(runs):
+        label = "workflow_run_observations[{}]".format(index)
+        require(isinstance(observation, dict), "{} must be an object".format(label))
+        run_id = observation.get("run_id")
+        require(isinstance(run_id, str) and run_id.isdigit(),
+                "{} run ID must be numeric text".format(label))
+        head = sha(observation.get("head_sha"), "{}.head_sha".format(label))
+        tree = sha(observation.get("tree_sha"), "{}.tree_sha".format(label))
+        require(head in gate_by_head,
+                "{} has no commit-bound DCO observation".format(label))
+        require(observation.get("workflow_path") == CURRENT_CI_WORKFLOW,
+                "{} workflow path changed".format(label))
+        require(observation.get("status") == "completed"
+                and observation.get("conclusion") in {"failure", "success"},
+                "{} workflow run is incomplete or unknown".format(label))
+        timestamp(observation.get("created_at"), "{} creation time".format(label))
+        run_url = "https://github.com/{}/actions/runs/{}".format(REPOSITORY, run_id)
+        require(observation.get("run_url") == run_url,
+                "{} run URL does not match its ID".format(label))
+        captures = observation.get("captures")
+        require(isinstance(captures, dict), "{} captures are required".format(label))
+        run_detail = read_pinned_json(
+            captures.get("run_detail"), "{} run detail".format(label), queue_module,
+        )
+        require(isinstance(run_detail, dict)
+                and str(run_detail.get("id")) == run_id
+                and run_detail.get("name") == observation["workflow_path"]
+                and run_detail.get("head_sha") == head
+                and run_detail.get("head_branch") == branch["branch"]
+                and run_detail.get("status") == observation["status"]
+                and run_detail.get("conclusion") == observation["conclusion"]
+                and run_detail.get("created_at") == observation["created_at"]
+                and run_detail.get("html_url") == run_url,
+                "{} fields do not match the captured workflow run".format(label))
+        head_commit = run_detail.get("head_commit")
+        require(isinstance(head_commit, dict)
+                and head_commit.get("id") == head
+                and head_commit.get("tree_id") == tree,
+                "{} commit tree does not match the captured run".format(label))
+        jobs = read_pinned_json(
+            captures.get("jobs"), "{} jobs response".format(label), queue_module,
+        )
+        artifacts = read_pinned_json(
+            captures.get("artifacts"), "{} artifacts response".format(label),
+            queue_module,
+        )
+        require(isinstance(jobs, dict) and type(jobs.get("total_count")) is int
+                and isinstance(jobs.get("jobs"), list),
+                "{} jobs response is malformed".format(label))
+        require(isinstance(artifacts, dict)
+                and type(artifacts.get("total_count")) is int
+                and isinstance(artifacts.get("artifacts"), list),
+                "{} artifacts response is malformed".format(label))
+        require(observation.get("job_count") == jobs["total_count"]
+                == len(jobs["jobs"]),
+                "{} job count does not match the captured API response".format(label))
+        require(observation.get("artifact_count") == artifacts["total_count"]
+                == len(artifacts["artifacts"]),
+                "{} artifact count does not match the captured API response".format(label))
+        provider_annotation = observation.get("provider_annotation")
+        require(isinstance(provider_annotation, str) and provider_annotation.strip(),
+                "{} provider annotation is required".format(label))
+        page_capture = read_pinned_bytes(
+            captures.get("provider_page"), "{} provider run page".format(label),
+        )
+        annotation_prefix = provider_annotation.split(" See ", 1)[0]
+        require(page_capture.count(annotation_prefix.encode("utf-8"))
+                == observation.get("provider_annotation_count") == 1
+                and b"#workflow-file-size" in page_capture
+                and b"1 error" in page_capture,
+                "{} annotation does not match its provider page".format(label))
+        require(run_id.encode("ascii") in page_capture,
+                "{} provider page does not identify its run".format(label))
+        workflow_source = observation.get("workflow_source")
+        require(isinstance(workflow_source, dict),
+                "{} workflow source is required".format(label))
+        workflow_api = read_pinned_json(
+            captures.get("workflow_content_api"),
+            "{} workflow content API response".format(label), queue_module,
+        )
+        workflow_bytes = read_pinned_bytes(
+            captures.get("workflow_bytes"), "{} workflow source bytes".format(label),
+        )
+        require(isinstance(workflow_api, dict)
+                and workflow_api.get("path") == observation["workflow_path"]
+                and workflow_api.get("size") == workflow_source.get("size_bytes")
+                and workflow_api.get("sha") == workflow_source.get("github_blob_sha"),
+                "{} workflow content metadata does not match its capture".format(label))
+        require(len(workflow_bytes) == workflow_source.get("size_bytes")
+                and hashlib.sha256(workflow_bytes).hexdigest()
+                == workflow_source.get("sha256")
+                and captures["workflow_bytes"]["sha256"] == workflow_source.get("sha256"),
+                "{} workflow source bytes do not match their pin".format(label))
+        require(workflow_api.get("html_url")
+                == "https://github.com/{}/blob/{}/{}".format(
+                    REPOSITORY, head, observation["workflow_path"]),
+                "{} workflow content is not bound to its run head".format(label))
+        require(observation.get("product_execution") == "NOT_RUN",
+                "{} workflow metadata cannot record product execution".format(label))
+        require(head not in run_by_head,
+                "duplicate workflow run observation for one commit")
+        run_by_head[head] = observation
+
+    require(branch_head in run_by_head and branch_head in gate_by_head,
+            "current branch tip lacks captured workflow and DCO observations")
+    current_run_ids = {
+        str(item.get("id")) for item in runs_by_head["workflow_runs"]
+        if isinstance(item, dict) and item.get("head_sha") == branch_head
+    }
+    require(run_by_head[branch_head]["run_id"] in current_run_ids,
+            "current branch workflow run is absent from the head-SHA query")
+
+    suite = value.get("tag_suite")
+    require(isinstance(suite, dict), "tag capture suite identity is required")
+    sha256(suite.get("suite_sha256"), "tag capture suite SHA-256")
+    freeze = read_pinned_json(
+        suite.get("source_freeze"), "tag capture source freeze", queue_module,
+    )
+    require(isinstance(freeze, dict)
+            and freeze.get("schema") == "termrock-e2e/shared-suite-source-freeze-v1"
+            and freeze.get("status") == "PREPARED_ONLY_SOURCE_NOT_EXECUTED"
+            and freeze.get("suite_sha256") == suite["suite_sha256"]
+            and freeze.get("file_count") == suite.get("file_count")
+            and freeze.get("source_commit") is None
+            and freeze.get("source_tree") is None
+            and suite.get("source_commit") is None
+            and suite.get("source_tree") is None,
+            "tag suite freeze identity or null source identity changed")
+    attempts = value.get("tag_capture_attempts")
+    require(isinstance(attempts, list) and len(attempts) == 2,
+            "tag capture attempt ledger must preserve the two recorded attempts")
+    for attempt in attempts:
+        require(isinstance(attempt, dict)
+                and attempt.get("tag_object_sha") == authority["tag_object_sha"]
+                and attempt.get("tag_commit_sha") == authority["commit_sha"],
+                "tag attempt does not match the immutable visual tag")
+        require(attempt.get("capture_status") == "NOT_RUN"
+                and attempt.get("qualification_status") == "NOT_RUN",
+                "tag capture and qualification must remain NOT_RUN")
+        runner_result = read_pinned_json(
+            attempt.get("runner_result"), "{} runner result".format(attempt.get("attempt_id")),
+            queue_module,
+        )
+        require(isinstance(runner_result, dict)
+                and runner_result.get("schema")
+                == "termrock-rust-tool-test-execution/immutable-tag-capture-result-v1",
+                "{} runner result schema changed".format(attempt.get("attempt_id")))
+        stdout = read_pinned_bytes(
+            attempt.get("stdout"), "{} Nextest stdout".format(attempt.get("attempt_id")),
+        )
+        stderr = read_pinned_bytes(
+            attempt.get("stderr"), "{} Nextest stderr".format(attempt.get("attempt_id")),
+        )
+        if attempt.get("attempt_id") == "R12":
+            require(attempt.get("state") == "runner_stopped_before_tests"
+                    and attempt.get("nextest_selected") == 0
+                    and attempt.get("nextest_passed") == 0
+                    and attempt.get("nextest_failed") == 0
+                    and stdout == b""
+                    and b"NEXTEST_EXPERIMENTAL_LIBTEST_JSON=1" in stderr,
+                    "R12 does not match the captured pre-test tool stop")
+        elif attempt.get("attempt_id") == "R13":
+            require(attempt.get("state") == "test_failed_before_pty"
+                    and attempt.get("nextest_selected") == 1
+                    and attempt.get("nextest_passed") == 0
+                    and attempt.get("nextest_failed") == 1
+                    and attempt.get("nextest_skipped") == 0
+                    and runner_result.get("nextest_summaries") is None
+                    and b"1 test run: 0 passed, 1 failed, 0 skipped" in stderr
+                    and attempt.get("failure_summary", "").encode("utf-8") in stderr,
+                    "R13 does not match the pinned pre-PTY Nextest failure")
+        else:
+            raise ValueError("unknown tag capture attempt ID")
+
+    regression = value.get("tag_validator_regression")
+    require(isinstance(regression, dict)
+            and regression.get("scope")
+            == "synthetic Rust black-box validator regression only",
+            "tag validator regression scope changed")
+    regression_result = read_pinned_json(
+        regression.get("runner_result"), "tag validator regression receipt",
+        queue_module,
+    )
+    regression_stderr = read_pinned_bytes(
+        regression.get("stderr"), "tag validator regression stderr",
+    )
+    summaries = regression_result.get("nextest_summaries")
+    require(regression_result.get("schema")
+            == "termrock-vis06-tree-oid-rust-regression-run-result/v1"
+            and isinstance(summaries, list) and len(summaries) == 1
+            and summaries[0] == {
+                "selected": regression.get("selected"),
+                "passed": regression.get("passed"),
+                "failed": regression.get("failed"),
+                "skipped": regression.get("skipped"),
+            }
+            and regression_result.get("source_inputs_unchanged") is True
+            and regression.get("source_inputs_unchanged") is True
+            and regression.get("capture_status") == "NOT_RUN"
+            and regression.get("qualification_status") == "NOT_QUALIFIED"
+            and b"tag isolated environment facts differ from the run record" in regression_stderr,
+            "tag validator regression does not match its captured test result")
+
+    control = value.get("external_tool_control")
+    require(isinstance(control, dict)
+            and control.get("tool") == "Velnor Actions CLI"
+            and control.get("source_commit") is None
+            and control.get("source_git_metadata")
+            == "absent; this execution binds tree contents, not a commit or branch"
+            and control.get("qualification_status") == "NOT_QUALIFIED",
+            "Velnor control must remain unqualified and commit-unbound")
+    receipt = read_pinned_json(
+        control.get("receipt"), "Velnor actual receipt", queue_module,
+    )
+    review = read_pinned_json(
+        control.get("review"), "Velnor actual run review", queue_module,
+    )
+    summary = review.get("result_summary") if isinstance(review, dict) else None
+    pins = review.get("execution_pins") if isinstance(review, dict) else None
+    source = review.get("source_binding") if isinstance(review, dict) else None
+    require(isinstance(receipt, dict)
+            and receipt.get("record_type") == "velnor_ca3ef_latest_source_gate_receipt_v1"
+            and receipt.get("source_tree") == control.get("source_tree")
+            and receipt.get("source_commit") is None
+            and receipt.get("source_manifest_sha256") == control.get("source_manifest_sha256")
+            and receipt.get("source_binding_sha256") == control.get("source_binding_sha256")
+            and receipt.get("qualification") == "NOT_QUALIFIED"
+            and receipt.get("status") == control.get("status"),
+            "Velnor actual receipt does not match the recorded source binding")
+    require(isinstance(summary, dict) and isinstance(pins, dict)
+            and isinstance(source, dict)
+            and pins.get("actual_receipt_sha256") == control["receipt"]["sha256"]
+            and source.get("tree") == control["source_tree"]
+            and source.get("git_metadata") == control["source_git_metadata"]
+            and summary.get("expected_commands") == control.get("expected_commands")
+            and summary.get("completed_commands") == control.get("completed_commands")
+            and summary.get("expected_tests") == control.get("expected_tests")
+            and summary.get("tests_executed") == control.get("executed_tests")
+            and summary.get("tests_passed") == control.get("passed_tests")
+            and summary.get("tests_failed") == control.get("failed_tests")
+            and summary.get("overall_qualification") == "NOT_QUALIFIED",
+            "Velnor actual review does not match its receipt summary")
+    require(control.get("passed_tests") + control.get("failed_tests")
+            == control.get("executed_tests")
+            and control.get("executed_tests") + control.get("not_run_tests")
+            == control.get("expected_tests"),
+            "Velnor test counts do not reconcile")
+    require(control.get("cli_build_status") == "PASS"
+            and control.get("cli_version_status") == "PASS"
+            and control.get("cli_version") == "velnor-actions 0.1.5",
+            "Velnor build and version controls must remain separate recorded passes")
+    require(isinstance(control.get("test_commands"), list)
+            and len(control["test_commands"]) == 4,
+            "Velnor completed test-command rows are required")
+    completed = review.get("completed_commands", [])
+    for command in control["test_commands"]:
+        item = next(
+            (row for row in completed
+             if isinstance(row, dict) and row.get("index") == command.get("index")),
+            None,
+        )
+        require(isinstance(item, dict)
+                and item.get("expected") == command.get("expected")
+                and item.get("executed") == command.get("executed")
+                and item.get("passed") == command.get("passed")
+                and item.get("failed") == command.get("failed"),
+                "Velnor command {} counts do not match the actual review".format(
+                    command.get("index")
+                ))
+
+    candidate_run = value.get("candidate_api_deferred_run")
+    require(isinstance(candidate_run, dict)
+            and candidate_run.get("candidate_commit")
+            == latest["candidate_remote"]["head_sha"]
+            and candidate_run.get("measurement_status") == "FAILED"
+            and candidate_run.get("paired_reference_status") == "NOT_RUN"
+            and candidate_run.get("paired_visual_status") == "NOT_RUN"
+            and candidate_run.get("acceptance_decision") == "NOT_RECORDED",
+            "candidate deferred/API run must remain a source-bound partial failure")
+    expected = candidate_run.get("expected")
+    executed = candidate_run.get("executed")
+    passed = candidate_run.get("passed")
+    failed = candidate_run.get("failed")
+    require(all(type(count) is int and count >= 0
+                for count in (expected, executed, passed, failed))
+            and expected == executed and passed + failed == executed and failed > 0
+            and candidate_run.get("timed_out") is False
+            and candidate_run.get("parse_errors") == [],
+            "candidate deferred/API result counts or completion state do not reconcile")
+    failure = candidate_run.get("failure")
+    require(isinstance(failure, dict)
+            and failure.get("requirement_id") == "BD-21"
+            and failure.get("case_id") == "W13-05"
+            and failure.get("test_name") == "w13_filter_wide_trail_cells_clear"
+            and failure.get("registry_status") == "NOT_RUN"
+            and isinstance(failure.get("failure_summary"), str),
+            "candidate API failure must preserve its requirement and registry states")
+    validate_product_evidence_packet(
+        candidate_run.get("packet_manifest"), candidate_run, queue_module,
+    )
+    run_receipt = read_pinned_json(
+        candidate_run.get("receipt"), "candidate deferred/API run receipt",
+        queue_module,
+    )
+    run_ledger = read_pinned_json(
+        candidate_run.get("ledger"), "candidate deferred/API run ledger",
+        queue_module,
+    )
+    run_review = read_pinned_json(
+        candidate_run.get("review"), "candidate deferred/API run independent review",
+        queue_module,
+    )
+    execution = run_receipt.get("execution") if isinstance(run_receipt, dict) else None
+    selection = run_receipt.get("selection") if isinstance(run_receipt, dict) else None
+    receipt_source = run_receipt.get("source") if isinstance(run_receipt, dict) else None
+    ledger_run = run_ledger.get("run") if isinstance(run_ledger, dict) else None
+    ledger_counts = run_ledger.get("counts") if isinstance(run_ledger, dict) else None
+    review_run = run_review.get("run") if isinstance(run_review, dict) else None
+    review_ledger = run_review.get("ledger") if isinstance(run_review, dict) else None
+    review_run_counts = review_run.get("counts") if isinstance(review_run, dict) else None
+    review_run_selection = review_run.get("selection") if isinstance(review_run, dict) else None
+    review_failed_rows = review_run.get("failed_rows") if isinstance(review_run, dict) else None
+    failed_row = (
+        review_failed_rows[0]
+        if isinstance(review_failed_rows, list)
+        and len(review_failed_rows) == 1
+        and isinstance(review_failed_rows[0], dict)
+        else None
+    )
+    review_ledger_counts = (
+        review_ledger.get("counts") if isinstance(review_ledger, dict) else None
+    )
+    require(isinstance(execution, dict) and isinstance(selection, dict)
+            and isinstance(receipt_source, dict)
+            and run_receipt.get("schema") == "termrock-vis04-product23-run-receipt/v1"
+            and receipt_source.get("candidate_product_commit")
+            == candidate_run["candidate_commit"]
+            and selection.get("package") == candidate_run.get("package")
+            and selection.get("binary") == candidate_run.get("binary")
+            and selection.get("expected_count") == expected
+            and execution.get("result") == candidate_run.get("measurement_status")
+            and execution.get("exit_code") == candidate_run.get("child_exit_code")
+            and execution.get("nextest_run_id") == candidate_run.get("nextest_run_id")
+            and execution.get("timed_out") is False,
+            "candidate deferred/API receipt does not match its measurement")
+    require(isinstance(ledger_run, dict) and isinstance(ledger_counts, dict)
+            and ledger_run.get("receipt_sha256") == candidate_run["receipt"]["sha256"]
+            and ledger_counts.get("expected") == expected
+            and ledger_counts.get("passed") == passed
+            and ledger_counts.get("failed") == failed,
+            "candidate deferred/API ledger does not reconcile with its receipt")
+    require(isinstance(run_review, dict)
+            and run_review.get("verdict") == candidate_run.get("review_verdict")
+            and candidate_run.get("review_verdict") == "VERIFIED_FAILED_RUN"
+            and isinstance(review_run, dict)
+            and review_run.get("receipt_sha256") == candidate_run["receipt"]["sha256"]
+            and review_run.get("nextest_run_id") == candidate_run.get("nextest_run_id")
+            and review_run.get("child_exit_code") == candidate_run.get("child_exit_code")
+            and review_run.get("timed_out") is False
+            and review_run.get("parse_errors") == candidate_run.get("parse_errors")
+            and isinstance(review_run_counts, dict)
+            and review_run_counts.get("passed") == passed
+            and review_run_counts.get("failed") == failed
+            and isinstance(review_run_selection, dict)
+            and review_run_selection.get("package") == candidate_run.get("package")
+            and review_run_selection.get("binary") == candidate_run.get("binary")
+            and review_run_selection.get("expected_count") == expected
+            and review_run.get("outer_nextest_summary")
+            == "{} tests run: {} passed, {} failed, {} skipped".format(
+                executed, passed, failed, candidate_run.get("nextest_filtered")
+            )
+            and isinstance(failed_row, dict)
+            and failed_row.get("id") == failure.get("requirement_id")
+            and failed_row.get("cases") == [failure.get("case_id")]
+            and failed_row.get("test_name") == failure.get("test_name")
+            and failed_row.get("registry_status") == failure.get("registry_status")
+            and isinstance(review_ledger_counts, dict)
+            and review_ledger_counts.get("expected") == expected
+            and review_ledger_counts.get("passed") == passed
+            and review_ledger_counts.get("failed") == failed,
+            "candidate deferred/API independent review does not match its receipts")
+
+    readiness = value.get("report_readiness")
+    require(isinstance(readiness, dict), "report readiness states are required")
+    for field in (
+        "visibility_complete", "refactor_ready", "reference_qualified",
+        "command_ready", "evidence_freshness",
+    ):
+        require(readiness.get(field) == "NOT_RUN",
+                "current observations cannot promote {}".format(field))
+    return value
+
+
+def render_current_status_observations(
+    observations: Optional[Mapping[str, Any]],
+) -> str:
+    if observations is None:
+        return ""
+    pair = observations["fixed_comparison_pair"]
+    tag = observations["immutable_visual_tag"]
+    branch = observations["branch_tip"]
+    gates = {item["head_sha"]: item for item in observations["branch_gate_observations"]}
+    current_gate = gates[branch["head_sha"]]
+    workflow_rows = "<br>".join(
+        "[{}]({}): completed with {} at {}; {} jobs; {} artifacts; workflow source {} bytes; {}".format(
+            item["run_id"], item["run_url"], item["conclusion"],
+            item["head_sha"], item["job_count"], item["artifact_count"],
+            item["workflow_source"]["size_bytes"], cell(item["provider_annotation"]),
+        )
+        for item in observations["workflow_run_observations"]
+    )
+    attempt_rows = "<br>".join(
+        "{}: {}; capture {}; qualification {}".format(
+            item["attempt_id"],
+            (
+                "Nextest stopped before selecting tests; 0 selected. "
+                + cell(item["failure_summary"])
+                if item["attempt_id"] == "R12"
+                else "1 selected, 0 passed, 1 failed before PTY launch. "
+                + cell(item["failure_summary"])
+            ),
+            item["capture_status"], item["qualification_status"],
+        )
+        for item in observations["tag_capture_attempts"]
+    )
+    regression = observations["tag_validator_regression"]
+    control = observations["external_tool_control"]
+    command_parts = "; ".join(
+        "command {}: {}/{} passed, {} failed".format(
+            item["index"], item["passed"], item["executed"], item["failed"]
+        )
+        for item in control["test_commands"]
+    )
+    candidate_run = observations["candidate_api_deferred_run"]
+    failure = candidate_run["failure"]
+    archive = observations["_source_evidence_archive"]
+    return """\
+## Current implementation-branch and external-tool observations
+
+| Lane | Observation | Scope |
+| --- | --- | --- |
+| Observation bundle | Recorded at {ledger_observed}; evidence freshness remains NOT_RUN. | Source-pinned current observations. The fixed product pair remains candidate {candidate} / reference {reference}. |
+| Repository evidence archive | {archive_files} files / {archive_bytes} bytes verified from `{archive_path}`. | Raw source inputs are repository-relative and hash-pinned; the archive does not qualify product execution or acceptance. |
+| Implementation branch | {branch} at {head} (tree {tree}), observed {observed}; DCO check {dco_id} completed successfully. | Branch and repository-gate metadata. |
+| Provider workflow runs | {workflow_rows} | Provider workflow admission results; the captured runs had zero jobs and artifacts, so product execution remains NOT_RUN for those runs. |
+| Candidate API/deferred run | {measurement_status}: {passed}/{expected} passed, {failed} failed, {nextest_filtered} filtered; requirement {requirement} case {case} failed in {test_name}: {failure_summary} | Candidate-only source {candidate}, package {package}, binary {binary}, Nextest run {nextest_run_id}; independent review {review_verdict}. Requirement registry: {requirement_status}; paired reference: {paired_reference_status}; paired visual: {paired_visual_status}; acceptance: {acceptance_decision}. Receipt SHA-256 {receipt_sha}; ledger SHA-256 {ledger_sha}; review SHA-256 {review_sha}. |
+| Immutable-tag capture attempts | {attempt_rows} | Tag object {tag_object}, peeled commit {tag_commit}; suite f072 {suite} has no source commit/tree recorded. No tag capture or qualification is accepted. |
+| Tag source-validator control | Run {regression_run}: 1 selected, 0 passed, 1 failed, {regression_skipped} skipped; isolated environment facts differed (2 versus 0). | Synthetic validator regression only; source inputs unchanged; no product build or capture. |
+| Velnor Actions CLI control | Source tree {velnor_tree}; build and version checks PASS; {executed}/{tool_expected} expected tests executed ({tool_passed} passed, {tool_failed} failed, {tool_not_run} NOT_RUN). {command_parts}. | External tool control, NOT_QUALIFIED; source commit is null and no current Git branch is asserted. |
+
+The source record's readiness fields remain NOT_RUN because no readiness acceptance is recorded. The verified candidate API/deferred failure makes Refactor / Ready NOT_READY; its requirement registry status remains NOT_RUN, paired reference and visual lanes remain NOT_RUN, and acceptance is NOT_RECORDED. No complete paired run is accepted. Artifact paths and full pins are recorded in `tools/visibility/source-facts.json` under `current_status_observations`. Repository gates and external-tool controls do not qualify a product comparison.
+""".format(
+        ledger_observed=observations["observed_at"],
+        archive_files=archive["file_count"],
+        archive_bytes=archive["total_bytes"],
+        archive_path=archive["manifest_path"],
+        branch=cell(branch["branch"]),
+        head=branch["head_sha"],
+        tree=branch["tree_sha"],
+        observed=branch["captured_at"],
+        dco_id=current_gate["dco_check_run_id"],
+        dco_conclusion=current_gate["dco_conclusion"],
+        candidate=pair["candidate_commit"],
+        reference=pair["reference_commit"],
+        workflow_rows=workflow_rows,
+        measurement_status=candidate_run["measurement_status"],
+        passed=candidate_run["passed"],
+        expected=candidate_run["expected"],
+        failed=candidate_run["failed"],
+        nextest_filtered=candidate_run["nextest_filtered"],
+        package=candidate_run["package"],
+        binary=candidate_run["binary"],
+        nextest_run_id=candidate_run["nextest_run_id"],
+        paired_reference_status=candidate_run["paired_reference_status"],
+        paired_visual_status=candidate_run["paired_visual_status"],
+        acceptance_decision=candidate_run["acceptance_decision"],
+        requirement_status=failure["registry_status"],
+        receipt_sha=candidate_run["receipt"]["sha256"],
+        ledger_sha=candidate_run["ledger"]["sha256"],
+        review_sha=candidate_run["review"]["sha256"],
+        requirement=failure["requirement_id"],
+        case=failure["case_id"],
+        test_name=failure["test_name"],
+        failure_summary=cell(failure["failure_summary"]),
+        review_verdict=candidate_run["review_verdict"],
+        tag_object=tag["tag_object_sha"],
+        tag_commit=tag["peeled_commit_sha"],
+        suite=observations["tag_suite"]["suite_sha256"],
+        attempt_rows=attempt_rows,
+        regression_run=regression["nextest_run_id"],
+        regression_skipped=regression["skipped"],
+        velnor_tree=control["source_tree"],
+        executed=control["executed_tests"],
+        tool_expected=control["expected_tests"],
+        tool_passed=control["passed_tests"],
+        tool_failed=control["failed_tests"],
+        tool_not_run=control["not_run_tests"],
+        command_parts=command_parts,
+    )
 
 
 def validate_facts(facts: Any) -> Mapping[str, Any]:
@@ -2596,6 +3542,18 @@ def render_status(
 ) -> str:
     require(role in {"candidate", "reference"}, "role must be candidate or reference")
     facts = validate_facts(facts_value)
+    archive_manifest = validate_source_evidence_archive(
+        facts.get("source_evidence_archive"), queue_module,
+        required=facts.get("current_status_observations") is not None,
+    )
+    history = facts.get("source_observation_history", [])
+    historical_evidence_gaps = (
+        validate_historical_evidence_gaps(
+            facts.get("historical_evidence_gaps"), history,
+        )
+        if facts.get("source_evidence_archive") is not None
+        and "source_observation_history" in facts else None
+    )
     tasks = validate_accepted_tasks(tasks_value, queue_module)
     candidate, reference = facts["candidate"], facts["reference"]
     authority, ci, dco = facts["visual_authority"], facts["ci_observation"], facts["dco_observation"]
@@ -2676,6 +3634,26 @@ def render_status(
     latest_ci_snapshot = validate_latest_ci_snapshot(
         latest, facts.get("latest_ci_snapshot"), queue_module
     )
+    current_status_observations = validate_current_status_observations(
+        facts.get("current_status_observations"), latest, authority, queue_module
+    )
+    if current_status_observations is not None:
+        require(archive_manifest is not None,
+                "current observations require the verified repository evidence archive")
+        current_status_observations = dict(current_status_observations)
+        current_status_observations["_source_evidence_archive"] = {
+            "file_count": archive_manifest["file_count"],
+            "total_bytes": archive_manifest["total_bytes"],
+            "manifest_path": (STATUS_EVIDENCE_ARCHIVE_ROOT / "MANIFEST.json").as_posix(),
+        }
+    candidate_api_failure = (
+        current_status_observations is not None
+        and current_status_observations["candidate_api_deferred_run"]["measurement_status"]
+        == "FAILED"
+    )
+    current_status_observations_section = render_current_status_observations(
+        current_status_observations
+    )
     current_ci_section = "\n\n".join(
         section for section in (
             render_current_ci_observation(
@@ -2690,6 +3668,9 @@ def render_status(
     publication_ci = validate_publication_ci_observations(
         facts.get("publication_ci_observations"), queue_module
     )
+    # Resolve and validate pinned evidence before rejecting machine-local locators.
+    # This preserves field-specific traversal and provenance errors.
+    require_repository_relative_source_paths(facts)
     publication_section = render_publication_observations(publication, publication_ci)
     remote_candidate, remote_reference = latest["candidate_remote"], latest["reference_remote"]
     fixed_pair = latest["method"] in {
@@ -2714,7 +3695,7 @@ def render_status(
         source_section_heading = "Fixed source pair and local checkout"
         ci_scope_label = "selected candidate source commit"
         history_section = render_source_observation_history(
-            facts.get("source_observation_history", [])
+            facts.get("source_observation_history", []), historical_evidence_gaps,
         )
     else:
         candidate_source_label = "Candidate remote branch tip"
@@ -2818,6 +3799,9 @@ def render_status(
 
     has_partial_evidence = bool(execution_observations)
     readiness_state = "NOT_READY" if has_partial_evidence else "NOT_RUN"
+    refactor_readiness_state = (
+        "NOT_READY" if has_partial_evidence or candidate_api_failure else "NOT_RUN"
+    )
     deferred_execution = next(
         (item for item in execution_observations if item["kind"] == "deferred_nextest"),
         None,
@@ -2848,7 +3832,20 @@ def render_status(
             deferred_failure_summary, holla_status_summary
         )
         if has_partial_evidence
-        else "No complete current evidence covers required visual, interaction, API, ownership, and review checks."
+        else (
+            "The verified candidate API/deferred result is FAILED: {} of {} passed, {} failed; "
+            "the required set and acceptance remain incomplete. The failure is {} "
+            "case {} ({}) and does not qualify a paired product result.".format(
+                current_status_observations["candidate_api_deferred_run"]["passed"],
+                current_status_observations["candidate_api_deferred_run"]["executed"],
+                current_status_observations["candidate_api_deferred_run"]["failed"],
+                current_status_observations["candidate_api_deferred_run"]["failure"]["requirement_id"],
+                current_status_observations["candidate_api_deferred_run"]["failure"]["case_id"],
+                current_status_observations["candidate_api_deferred_run"]["failure"]["test_name"],
+            )
+            if candidate_api_failure
+            else "No complete current evidence covers required visual, interaction, API, ownership, and review checks."
+        )
     )
     freshness_state = "PARTIAL" if has_partial_evidence else "NOT_RUN"
     freshness_evidence = (
@@ -2867,7 +3864,12 @@ def render_status(
     final_evidence_note = (
         "Partial records are shown with their limits; unmeasured obligations remain NOT_RUN and overall readiness remains NOT_READY."
         if has_partial_evidence
-        else "If no current run receipt is present, the product result remains NOT_RUN. NOT_RUN is a result status, not a run-receipt status. No historical pass is promoted to current evidence."
+        else (
+            "The candidate-only API/deferred run is a measured failure, but no complete paired run receipt exists. "
+            "Paired product evidence remains NOT_RUN and acceptance remains NOT_RECORDED; no product pass is shown."
+            if candidate_api_failure
+            else "If no current run receipt is present, the product result remains NOT_RUN. NOT_RUN is a result status, not a run-receipt status. No historical pass is promoted to current evidence."
+        )
     )
 
     open_tasks = [task for task in tasks["tasks"] if task["state"] != "verified"]
@@ -2908,7 +3910,7 @@ def render_status(
 | Conclusion | State | Evidence |
 | --- | --- | --- |
 | Visibility / Complete | {readiness_state} | {visibility_evidence} |
-| Refactor / Ready | {readiness_state} | {readiness_evidence} |
+| Refactor / Ready | {refactor_readiness_state} | {readiness_evidence} |
 | Reference / Qualified | NOT_RUN | The tag identity is recorded, but no paired reference execution is qualified. |
 | Command / Ready | NOT_RUN | No exact root command has current execution evidence. |
 | Evidence freshness | {freshness_state} | {freshness_evidence} |
@@ -2966,6 +3968,8 @@ This is the earlier source pair captured at the timestamp below. The branch tips
 | [DCO check {dco_id}](https://github.com/{repository}/commit/{dco_sha}/checks) | {dco_conclusion}; {dco_findings} | The check head {dco_scope} the {ci_scope_label}. This is a repository gate, separate from product results; no remote history change is inferred. |
 
 {current_ci_section}
+
+{current_status_observations_section}
 
 {publication_section}
 
@@ -3058,6 +4062,7 @@ The required shared-case and per-component checkpoint sets are unknown until the
         host=ambient["host"],
         app_rows=app_rows,
         readiness_state=readiness_state,
+        refactor_readiness_state=refactor_readiness_state,
         visibility_evidence=visibility_evidence,
         readiness_evidence=readiness_evidence,
         freshness_state=freshness_state,
@@ -3069,6 +4074,7 @@ The required shared-case and per-component checkpoint sets are unknown until the
         final_evidence_note=final_evidence_note,
         task_section=task_section,
         current_ci_section=current_ci_section,
+        current_status_observations_section=current_status_observations_section,
         publication_section=publication_section,
     )
 

@@ -1,0 +1,64 @@
+{
+  "schema": "termrock-independent-status-r9-actual-review/v1",
+  "reviewer": "Codex technical_review",
+  "verdict": "VERIFIED",
+  "scope": "Read-only verification of the R9 exact-one status test run and cumulative 35-case test-identity reconciliation. This record does not claim a single 35-test green run or product readiness.",
+  "r9_subject": {
+    "project_root": "/private/tmp/termrock-vis01-r5-status-gate-20261009-r9/project",
+    "source_manifest_sha256": "0e8c78a3d1ee29c1bf08d33c9ca3b69e10700b20da173a21baec5ccaabe6659d",
+    "project_file_list_sha256": "ceb939b9d54752d297bc71daf8869830e1c66ddd3834e2ddbd2c4c53cfed0a47",
+    "project_tree_manifest_sha256": "2d2999750345c95343e4ac896fd75fa0cca9a73b58a35ae3048da53e46f9a45e",
+    "status_test_sha256": "8111c3a2c9472627765843d88b687dacf281710fde35e294a7501c0a98bba2f7",
+    "production_status_py_sha256": "b22e9cee9ea654cf65b55979bbed91afad1712dc265aec61e59d9b86f52f103a",
+    "source_facts_sha256": "1253fb97e5f6ccdfabab8c9753082794af90bc6d9b12bfecb14baa1bba79c069",
+    "runner_sha256": "5a494c81725f428c609b3ae1718072ee3dfbd7b794aae6d3f4d406250cecadf2",
+    "supervisor_sha256": "d8eefd796c54f182cf04e1db042763cf716840463f1baaf1807ac3d509f8f6ac"
+  },
+  "r9_run": {
+    "run_inputs_sha256": "cdaeed4279e5b6fe8f9c30784aa3a6309068d668ccee6ca0e3912f44641feb7d",
+    "nextest_stderr_sha256": "d3f9b7b286164dedef29c1f3cd64ffdaebeb9758642586066f1f46f07e4b6e5b",
+    "nextest_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "supervisor_result_sha256": "e2ea0ca38e005fab6d036181f577bc36fc10a1d46ca0ec60ea9d5d4f8099caa0",
+    "tool_hash_log_sha256": "c6c75b856c8ec8b0abdf720398b1e97d9763b67adc0bc78cd54fcd487a1a82c1",
+    "nextest_exit": 0,
+    "supervisor_exit": 0,
+    "timed_out": false,
+    "capture_errors": [],
+    "nextest_result": "1 test run: 1 passed, 34 skipped; exact selected case holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes.",
+    "source_inputs_before_after_exit": [0, 0],
+    "project_tree_before_after_exit": [0, 0],
+    "membership_before_after": "Project file list matches exact pinned manifest before and after; symlink lists are empty.",
+    "toolchain": "Recorded executable hashes match current direct tool hashes; Cargo/rustc/rustdoc/Nextest/Node/Python versions and resolved Python path match the pinned run inputs."
+  },
+  "historical_test_identity_reconciliation": {
+    "r4": {
+      "nextest_stderr_sha256": "556383b6512f296d3ec937045be2e69cf6dda2b7c9e15242b39ff907eeb5040a",
+      "parent_seal_sha256": "18411b63c997d91e1221250126ff88414b50060f8eaa423f1eaff7ed9da86f40",
+      "status_test_sha256": "babcdda1d3ff6e92fbe9fa7829beb17a0fab726d3f15403159f89ee98404b36c",
+      "result": "35 tests: 26 passed, 9 failed, 0 skipped."
+    },
+    "r6": {
+      "nextest_stderr_sha256": "b4ca700d29778d3aa51ed7228ae95c2b66f3e77b50d5b37bffdffa27006b9467",
+      "status_test_sha256": "0bb7f92b7d922b492ab92d8fddcfdf7620b276b0cdcd3303581be0c79dfec1cd",
+      "result": "Exact rerun of the nine R4 failed identities: 7 passed, 2 failed."
+    },
+    "r7": {
+      "nextest_stderr_sha256": "a9dac9a078e31099f85e0e1ea8d1ec4c5c2d40098402765701c75070cf78f544",
+      "status_test_sha256": "bab162c93c4cd41847bfc42adae327253707430bbec66371702de57606153b9a",
+      "result": "Exact rerun of the two R6 failed identities: 1 passed, 1 failed."
+    },
+    "r9": {
+      "nextest_stderr_sha256": "d3f9b7b286164dedef29c1f3cd64ffdaebeb9758642586066f1f46f07e4b6e5b",
+      "status_test_sha256": "8111c3a2c9472627765843d88b687dacf281710fde35e294a7501c0a98bba2f7",
+      "result": "Exact rerun of the remaining R7 failed identity: 1 passed."
+    },
+    "reconciliation": "The 26 R4-passing identities plus 7, 1, and 1 identities resolved by successive exact failed-test reruns total 35 unique test names. These outcomes span reviewed test-source revisions; they are not one complete green gate. All earlier failed raw receipts remain preserved."
+  },
+  "checked_in_evidence_separation": {
+    "r4_checked_in_receipt_test": "checked_in_records_render_from_exact_copies passed in the R4 35-test run.",
+    "r4_nextest_stderr_sha256": "556383b6512f296d3ec937045be2e69cf6dda2b7c9e15242b39ff907eeb5040a",
+    "claim_limit": "R9 itself is a synthetic status-row assertion. The actual checked-in Holla receipt rendering is evidenced separately by that R4 test. Neither result promotes product readiness or paired qualification."
+  },
+  "findings": [],
+  "review_execution": "No Cargo, Nextest, tests, builds, or repository/Git mutations were performed by this reviewer. Independent checksum and raw-log inspection only."
+}

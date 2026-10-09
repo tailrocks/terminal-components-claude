@@ -3,7 +3,7 @@
 | Conclusion | State | Evidence |
 | --- | --- | --- |
 | Visibility / Complete | NOT_RUN | The shared suite, paired results, and publication checks have not been accepted as a complete current run. |
-| Refactor / Ready | NOT_RUN | No complete current evidence covers required visual, interaction, API, ownership, and review checks. |
+| Refactor / Ready | NOT_READY | The verified candidate API/deferred result is FAILED: 22 of 23 passed, 1 failed; the required set and acceptance remain incomplete. The failure is BD-21 case W13-05 (w13_filter_wide_trail_cells_clear) and does not qualify a paired product result. |
 | Reference / Qualified | NOT_RUN | The tag identity is recorded, but no paired reference execution is qualified. |
 | Command / Ready | NOT_RUN | No exact root command has current execution evidence. |
 | Evidence freshness | NOT_RUN | No validated paired run receipt is available for the measured source pair. |
@@ -69,6 +69,8 @@ These source snapshots remain historical. Their CI/DCO captures are bound to the
 | `cee7e2e307514e49a70d8b8fcb028923ccdc7322` / `68d98ac99238c8580464f238a65b0f862ecc3dbd` | 2026-10-08T10:19:24Z | explicit HTTPS refs/heads fetch | run 37762481719 failure (0 jobs, 0 artifacts); reference query returned 0 runs; candidate/reference DCO 113262062732 / 113195062894; product execution NOT_RUN (evidence SHA-256 `6645a0d40d4777d8fc8af0f74e64bf2c701986ed9bf2d5d30aa1d73a82e1db3c`) | API 2026-10-08T10:22:44Z; provider page 2026-10-08T10:22:44Z | 2026-10-08T15:11:33Z |
 | `1ea1c17707f0a8f1639af506be179013d5e2d52a` / `b682cb26d68b353aeeccf9e51653eddf097b39f5` | 2026-10-08T15:11:33Z | explicit HTTPS refs/heads fetch | run 37793991551 failure (0 jobs, 0 artifacts); reference query returned 0 runs; candidate/reference DCO 113368579050 / 113326850483; product execution NOT_RUN (evidence SHA-256 `367121e3eb643453d46d33b598388752c41b1c5fa23e9c099e751c280e0568aa`) | API 2026-10-08T15:22:16Z; provider page 2026-10-08T15:22:16Z | 2026-10-08T23:25:02Z |
 
+Historical raw-evidence coverage gap: normalized source/CI summaries for 5 retained records remain, but their original raw source and CI capture files are not in the repository archive. The gap does not change the fixed source pair or the current readiness assessment; current candidate measurements and paired-result gaps determine readiness separately.
+
 
 ## Recorded CI and repository checks
 
@@ -88,14 +90,30 @@ This incomplete GitHub source-facts capture applies only to candidate `1d797d41c
 | Candidate DCO check [113587796998](https://github.com/tailrocks/terminal-components-claude/runs/113587796998) | action_required; 2 commits are reported with sign-off problems | Repository gate at `1d797d41c8141fcbdc3f69d7f11eb8875ab54712`; separate from product results. |
 | Reference DCO check | NOT_CAPTURED | No reference DCO result is recorded for this observation. |
 
-Capture interval: 2026-10-08T23:25:02Z–2026-10-08T23:30:54Z. The pinned source-facts record is `/private/tmp/termrock-vis06-current-source-facts-20261008T233054Z-luna.json` (SHA-256 `fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d`); raw GitHub API response bodies were not preserved in that record.
+Capture interval: 2026-10-08T23:25:02Z–2026-10-08T23:30:54Z. The pinned source-facts record is `docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis06-current-source-facts-20261008T233054Z-luna.json` (SHA-256 `fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d`); raw GitHub API response bodies were not preserved in that record.
+
+
+## Current implementation-branch and external-tool observations
+
+| Lane | Observation | Scope |
+| --- | --- | --- |
+| Observation bundle | Recorded at 2026-10-09T04:07:09Z; evidence freshness remains NOT_RUN. | Source-pinned current observations. The fixed product pair remains candidate 1d797d41c8141fcbdc3f69d7f11eb8875ab54712 / reference b274dd57f4dd078ade6e424d546d83efbd2e8526. |
+| Repository evidence archive | 59 files / 5554254 bytes verified from `docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json`. | Raw source inputs are repository-relative and hash-pinned; the archive does not qualify product execution or acceptance. |
+| Implementation branch | termrock-implementation at 9f1f756219b6bd42131b6e7291f54f99e1128cf1 (tree a89e345e148c85f2f72fbc1a026e35ff002e9b7f), observed 2026-10-09T04:07:01Z; DCO check 113663911182 completed successfully. | Branch and repository-gate metadata. |
+| Provider workflow runs | [37882112951](https://github.com/tailrocks/terminal-components-claude/actions/runs/37882112951): completed with failure at 9f1f756219b6bd42131b6e7291f54f99e1128cf1; 0 jobs; 0 artifacts; workflow source 537470 bytes; Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information. | Provider workflow admission results; the captured runs had zero jobs and artifacts, so product execution remains NOT_RUN for those runs. |
+| Candidate API/deferred run | FAILED: 22/23 passed, 1 failed, 87 filtered; requirement BD-21 case W13-05 failed in w13_filter_wide_trail_cells_clear: W13-05: wide-character trail cells were not cleared; the reviewer observed an unexpected y in the rendered 旧日本 cells. | Candidate-only source 1d797d41c8141fcbdc3f69d7f11eb8875ab54712, package termrock-conformance, binary control_states, Nextest run b88b36d1-5809-4cc9-b9fd-306970f65be7; independent review VERIFIED_FAILED_RUN. Requirement registry: NOT_RUN; paired reference: NOT_RUN; paired visual: NOT_RUN; acceptance: NOT_RECORDED. Receipt SHA-256 c6fec50571f45a875c375bf5668e4f1b8754eb9ac87ec9aa98c95590c79e1929; ledger SHA-256 485142854f3569909c0d8980de58a4e2f2f863eaf522982a027638d9496853ff; review SHA-256 8d397a4d2fb9e866e197792bf4eafd4c09e30fb66d9709b8b22523e83242eaf4. |
+| Immutable-tag capture attempts | R12: Nextest stopped before selecting tests; 0 selected. Nextest stopped before selecting tests because experimental libtest JSON output requires NEXTEST_EXPERIMENTAL_LIBTEST_JSON=1.; capture NOT_RUN; qualification NOT_RUN<br>R13: 1 selected, 0 passed, 1 failed before PTY launch. subjects: snapshot tree_oid must be a lowercase SHA-256; capture NOT_RUN; qualification NOT_RUN | Tag object 1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5, peeled commit 4a79c0a2d40fca46fc406b77157ce3b3f12ec16b; suite f072 f072118c54c7c4c2c76ba203bef51e0584617e5359da334a614dcff2fc8f0c27 has no source commit/tree recorded. No tag capture or qualification is accepted. |
+| Tag source-validator control | Run 944e3365-4b92-4dc9-b813-4e77903d675d: 1 selected, 0 passed, 1 failed, 16 skipped; isolated environment facts differed (2 versus 0). | Synthetic validator regression only; source inputs unchanged; no product build or capture. |
+| Velnor Actions CLI control | Source tree ca3ef07606236282a03ccd2a027b2f2efa4cb094; build and version checks PASS; 16/27 expected tests executed (14 passed, 2 failed, 11 NOT_RUN). command 3: 2/2 passed, 0 failed; command 4: 2/2 passed, 0 failed; command 5: 2/2 passed, 0 failed; command 6: 8/10 passed, 2 failed. | External tool control, NOT_QUALIFIED; source commit is null and no current Git branch is asserted. |
+
+The source record's readiness fields remain NOT_RUN because no readiness acceptance is recorded. The verified candidate API/deferred failure makes Refactor / Ready NOT_READY; its requirement registry status remains NOT_RUN, paired reference and visual lanes remain NOT_RUN, and acceptance is NOT_RECORDED. No complete paired run is accepted. Artifact paths and full pins are recorded in `tools/visibility/source-facts.json` under `current_status_observations`. Repository gates and external-tool controls do not qualify a product comparison.
 
 
 ## Report publication observations
 
 The pinned root publication record reports commit `b9e34b13ef47401865f1511b9babaab6e020eedc` as a normal fast-forward from `169380c7d6a4cff9f1c43ecef592abc715e6df6a` (tree `3d7c68dcf6724799c38aefb774ac25447ea630b3`) with 3 queue/test/documentation paths. Its postcommit review matched the local commit tree and publication record; the reviewer could not independently refresh the remote branch tip. This administrative publication is separate from product execution.
 
-Publication record `/private/tmp/termrock-vis10-foundation-publication-20261009.json` (SHA-256 `6dbaf2e84e7befa9e6eda15f6a4885f706e657d33496bd4f1aa4d36dc64912c2`); postcommit review `/private/tmp/termrock-vis10-foundation-postcommit-review-technical.json` (SHA-256 `5591df8eeeb9250f7cc50135d5cdb0ed11d3b569e7f6f591b0fcac63e1a0edd5`).
+Publication record `docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis10-foundation-publication-20261009.json` (SHA-256 `6dbaf2e84e7befa9e6eda15f6a4885f706e657d33496bd4f1aa4d36dc64912c2`); postcommit review `docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis10-foundation-postcommit-review-technical.json` (SHA-256 `5591df8eeeb9250f7cc50135d5cdb0ed11d3b569e7f6f591b0fcac63e1a0edd5`).
 
 | Publication commit | Actions run | Result | Jobs | Artifacts | Failure cause | Product execution |
 | --- | --- | --- | ---: | ---: | --- | --- |
@@ -152,21 +170,22 @@ No compatible previous complete required-set run is recorded, so trend changes a
 
 ## Next work
 
-Highest open priority: **P0**, from accepted queue revision 34.
+Highest open priority: **P0**, from accepted queue revision 41.
 
 | Work | State | Owner | Reviewer | Priority reason |
 | --- | --- | --- | --- | --- |
-| VIS-01 | claimed | /root | /root/technical_review | Publish source facts and show missing paired execution and the current CI failure. |
-| VIS-02 | claimed | /root | /root/controls_wrapper_review_luna | A shared driver for real binaries is needed before visibility can be measured. |
+| VIS-01 | claimed | /root/tag_capture_boundary_luna | /root/ci_parity_review_luna | Publish source facts and show missing paired execution and the current CI failure. |
+| VIS-02 | claimed | /root/rust_test_infrastructure | /root/controls_wrapper_review_luna | A shared driver for real binaries is needed before visibility can be measured. |
 | VIS-03 | review | /root/showcase_owner | /root/technical_review | Direct agents to the visibility tasks and accepted work paths before further product refactoring. |
 | VIS-04 | claimed | /root | /root/jackin_inventory_current_luna | Run the deferred assertions and preserve their failure results. |
-| VIS-06 | in_progress | /root/tablepro_owner | /root/technical_review | Resolve and build actual release binaries from pinned source before paired observations. |
+| VIS-06 | claimed | /root/rust_test_execution | /root/subjects_runner_review_luna | Resolve and build actual release binaries from pinned source before paired observations. |
 | VIS-07 | in_progress | /root/language_review | /root/technical_review | Keep actual independent review and commit bindings in repository evidence. |
 | VIS-08 | in_progress | /root/rust_test_infrastructure | /root/technical_review | Use Rust tests to preserve and verify the reporting, queue, deferred, and binary-build requirements. |
 | VIS-09 | in_progress | /root/rust_test_infrastructure | /root/technical_review | Preserve all queue assertions in Rust tests before further queue changes. |
-| VIS-10 | claimed | /root | /root/jackin_inventory_current_luna | Implement the repository-aware amendment prerequisite before reference and isolated tool claims. |
-| VIS-11 | claimed | /root/status_recovery_luna | /root/technical_review | The user explicitly requested repair of PR #17 CI/CD; preserve required visibility and product gates. |
+| VIS-10 | in_progress | /root/coordination_luna | /root/jackin_inventory_current_luna | Implement the repository-aware amendment prerequisite before reference and isolated tool claims. |
+| VIS-11 | claimed | /root/current_branch_comparison_luna | /root/velnor_residual_review_luna | The user explicitly requested repair of PR #17 CI/CD; preserve required visibility and product gates. |
 | VIS-12 | review | /root/coordination_luna | /root/technical_review | The user explicitly authorized limited DCO commit repairs and guarded force push for PR #17. |
+| VIS-13 | claimed | /root/tag_capture_boundary_luna | /root/ci_parity_review_luna | Provide the repository-portable, hash-checked current-observation archive needed by VIS-01 status evidence; retain current failure and NOT_RUN states without promoting readiness. |
 
 See [WORK_QUEUE.md](WORK_QUEUE.md) for dependencies and claim details.
 
@@ -178,4 +197,4 @@ See [WORK_QUEUE.md](WORK_QUEUE.md) for dependencies and claim details.
 - [Product checklist](CHECKLIST.md)
 - [Source facts and observation commands](tools/visibility/README.md)
 
-If no current run receipt is present, the product result remains NOT_RUN. NOT_RUN is a result status, not a run-receipt status. No historical pass is promoted to current evidence.
+The candidate-only API/deferred run is a measured failure, but no complete paired run receipt exists. Paired product evidence remains NOT_RUN and acceptance remains NOT_RECORDED; no product pass is shown.
