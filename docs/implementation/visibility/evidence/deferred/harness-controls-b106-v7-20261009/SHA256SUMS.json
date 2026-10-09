@@ -1,0 +1,165 @@
+{
+  "schema": "termrock-vis04-deferred-controls-archive-manifest/v1",
+  "files": [
+    {
+      "path": "provenance/cargo-cache-manifest.json",
+      "bytes": 24114,
+      "sha256": "64ca31c14e9d9cbbc8c6f6ce8ad69dc1014e6955669c3eae079a9a9a64190b71"
+    },
+    {
+      "path": "provenance/launch.sh",
+      "bytes": 199,
+      "sha256": "24a17669a1331fa7a2d22f017e659f2f7e46815a2914acfabdca4ca5b7492106"
+    },
+    {
+      "path": "provenance/PACKAGE-INVENTORY.json",
+      "bytes": 17010,
+      "sha256": "fd3e1f2166ce8f84e9be4990ed5e0f62484b62c9745996a9a046d787697d5624"
+    },
+    {
+      "path": "provenance/preflight.cjs",
+      "bytes": 7528,
+      "sha256": "d4db7338f2f52ead2673fee6c32bdeb94f877a4fd5562e2346293fa77a9f3201"
+    },
+    {
+      "path": "provenance/preflight.json",
+      "bytes": 1635,
+      "sha256": "3f78f8e27a41abda8b2df8efb54ce604e4c068edc54fe559b570941a8c685a7e"
+    },
+    {
+      "path": "provenance/prelaunch-audit.json",
+      "bytes": 3131,
+      "sha256": "991457df7b72c3ed98202d92c6b03631db1e596e5b56b5333cae8b26e05ba9b8"
+    },
+    {
+      "path": "provenance/review-request.json",
+      "bytes": 3731,
+      "sha256": "e4c676ff96731bebf12bab8575215a3a33293ffca665baef409df54fcf96432f"
+    },
+    {
+      "path": "provenance/run-controls.cjs",
+      "bytes": 22582,
+      "sha256": "cb637afb80b87910dcbdb6b5601c735773c585f25e906cba9ad0a058b7061ee4"
+    },
+    {
+      "path": "provenance/runplan.json",
+      "bytes": 9034,
+      "sha256": "834171f244fb72d514192f967a0dbe8a2acb23396bfd9b5282b8c1de71f125f9"
+    },
+    {
+      "path": "provenance/runtime-preflight-receipt.json",
+      "bytes": 8411,
+      "sha256": "978536fa896851b21ac534743bcd07587c9b5efd2dbc4261651ecdeade14ec84"
+    },
+    {
+      "path": "provenance/source-manifest.json",
+      "bytes": 7781,
+      "sha256": "3fba61dc932f1cd40f7dd522f5883346a947e96746a2819f30834b88add3133b"
+    },
+    {
+      "path": "provenance/test-names.json",
+      "bytes": 1604,
+      "sha256": "78d14ca903206f26ee12a6fba4abc24503511d628454ae4a9f7555035520f596"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3827,
+      "sha256": "334fa6dcbd7887fde0f75f9971350f2eff1c0a7520a72a1ecdf7caa49a8ec52b"
+    },
+    {
+      "path": "reviews/actual-review.json",
+      "bytes": 5183,
+      "sha256": "2ea0fd32c9f541425fcf4045e5eb0501fb7d670f33f5069753b9dadea57abcd4"
+    },
+    {
+      "path": "reviews/static-review.json",
+      "bytes": 5137,
+      "sha256": "6f87efa80d42dab14f1c736b96faf5f5c397ba09dddc7165c6041dc16bb33b80"
+    },
+    {
+      "path": "runs/2026-10-09T04-10-28-951Z-2fccc5cd/nextest.stderr.log",
+      "bytes": 7368,
+      "sha256": "98db926a1ec58014c87b707bcfe49a6dd54ee8b0b7764b9b136dffbb3892147f"
+    },
+    {
+      "path": "runs/2026-10-09T04-10-28-951Z-2fccc5cd/nextest.stdout.jsonl",
+      "bytes": 8046,
+      "sha256": "ef00d1a85c62809ea0822b35bc7c592d6952b4f81eda0c6e0b572f4be898b5b2"
+    },
+    {
+      "path": "runs/2026-10-09T04-10-28-951Z-2fccc5cd/receipt.json",
+      "bytes": 11273,
+      "sha256": "62e96370d3bb97bd83df72171ffc9d5654405fc0e522786a2583923e8c7e8980"
+    },
+    {
+      "path": "source/component-ownership.json",
+      "bytes": 4243,
+      "sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4"
+    },
+    {
+      "path": "source/crates/termrock-conformance/Cargo.toml",
+      "bytes": 726,
+      "sha256": "4d2b924566c74131adc9e4d57c3dad7ffd03fc487120683f1f8296c8d4f3c8d6"
+    },
+    {
+      "path": "source/crates/termrock-conformance/tests/control_states.rs",
+      "bytes": 278760,
+      "sha256": "dad018454b706e35518f2a405e4f4603f6a625c23de5d697932ec995fd55cabc"
+    },
+    {
+      "path": "source/crates/termrock-conformance/tests/parity_burndown.rs",
+      "bytes": 4195,
+      "sha256": "30d402b5f71fc078efa205c76139e43fa7effd3f9b9282ec889ce2d5c5e3a738"
+    },
+    {
+      "path": "source/crates/termrock-e2e/cases/deferred-obligations.json",
+      "bytes": 3675,
+      "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464"
+    },
+    {
+      "path": "source/crates/termrock-visibility-tests/Cargo.lock",
+      "bytes": 7322,
+      "sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2"
+    },
+    {
+      "path": "source/crates/termrock-visibility-tests/Cargo.toml",
+      "bytes": 324,
+      "sha256": "f56265e959da084a19586110cf155b7a0232b0c42b96ca6ab07daa41c69997ae"
+    },
+    {
+      "path": "source/crates/termrock-visibility-tests/src/bin/fixture.rs",
+      "bytes": 21577,
+      "sha256": "a7ee4a89646439a67d2d4e016b759a2d68eecec7339310778e81acf60235adc4"
+    },
+    {
+      "path": "source/crates/termrock-visibility-tests/src/lib.rs",
+      "bytes": 51086,
+      "sha256": "96a6d3e8aea50b464444b598e2ee53b639548712fbfdbb8a0b5a39405c44a247"
+    },
+    {
+      "path": "source/crates/termrock-visibility-tests/tests/deferred.rs",
+      "bytes": 62489,
+      "sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d"
+    },
+    {
+      "path": "source/docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md",
+      "bytes": 27023,
+      "sha256": "e77ebc09f91cdb37b26b9096252a3212da784085238d1e5f32bf8198e96a5e9d"
+    },
+    {
+      "path": "source/docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json",
+      "bytes": 3138,
+      "sha256": "90a08a85047f0b30fa159ec6a2779375db37472d734199d74b097f5edcdd9d9d"
+    },
+    {
+      "path": "source/tests/conformance/required_cases.json",
+      "bytes": 621343,
+      "sha256": "04ebb893bdf4f9003e3f0957ff753eda95d1a0c68c4583b336d29af842acb99a"
+    },
+    {
+      "path": "source/tools/visibility/deferred.py",
+      "bytes": 52726,
+      "sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0"
+    }
+  ]
+}

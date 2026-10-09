@@ -1,0 +1,274 @@
+{
+  "schema": "termrock-vis04-deferred-harness-controls-run-receipt/v1",
+  "run_id": "2026-10-09T04-10-28-951Z-2fccc5cd",
+  "started_at": "2026-10-09T04:10:28.951Z",
+  "finished_at": "2026-10-09T04:11:03.103Z",
+  "source": {
+    "candidate_product_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+    "fixture_base_commit": "b106b2426cfce016381c58b3d380e762a454c7a6",
+    "source_manifest_sha256": "3fba61dc932f1cd40f7dd522f5883346a947e96746a2819f30834b88add3133b",
+    "runplan_sha256": "834171f244fb72d514192f967a0dbe8a2acb23396bfd9b5282b8c1de71f125f9",
+    "runner_sha256": "cb637afb80b87910dcbdb6b5601c735773c585f25e906cba9ad0a058b7061ee4",
+    "launch_script_sha256": "24a17669a1331fa7a2d22f017e659f2f7e46815a2914acfabdca4ca5b7492106",
+    "preflight_sha256": "3f78f8e27a41abda8b2df8efb54ce604e4c068edc54fe559b570941a8c685a7e",
+    "test_names_sha256": "78d14ca903206f26ee12a6fba4abc24503511d628454ae4a9f7555035520f596"
+  },
+  "selection": {
+    "target": "termrock-visibility-tests::deferred",
+    "count": 27,
+    "names": [
+      "inventory_uses_canonical_23_rows_and_25_case_references",
+      "inventory_rejects_non_not_run_status_and_changed_reason_sidecar",
+      "filter_uses_exact_names_and_explicit_writer_exclusion",
+      "receipt_separates_accepted_and_current_queue_revisions",
+      "environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing",
+      "source_digest_tracks_workspace_and_ignores_nonworkspace_crates",
+      "source_drift_after_list_or_during_run_blocks_the_receipt",
+      "run_command_keeps_all_selected_failures_visible",
+      "list_requires_the_exact_canonical_selection",
+      "list_reconciles_selected_count_separately_from_nextest_total",
+      "list_rejects_total_smaller_than_the_selection",
+      "list_rejects_missing_and_writer_like_selected_tests",
+      "list_accepts_mixed_registration_and_rejects_metadata_drift",
+      "list_rejects_malformed_json_before_run",
+      "list_rejects_a_wrong_package_or_binary",
+      "list_rejects_a_duplicate_selected_name_across_suites",
+      "assertion_failure_stays_failed_without_expected_failure_inversion",
+      "non_success_terminal_events_stay_incomplete_and_cannot_follow_a_pass",
+      "receipt_rows_keep_stable_ids_and_test_metadata",
+      "prefixed_nextest_event_names_map_to_stable_test_names",
+      "unselected_case_events_are_rejected_with_run_ignored_all",
+      "unselected_terminal_results_are_rejected",
+      "run_requires_one_terminal_event_per_canonical_test",
+      "build_error_is_blocked_with_raw_exit_and_zero_executions",
+      "zero_exit_with_invalid_results_is_blocked_nonzero",
+      "signal_termination_is_blocked_and_maps_to_shell_status",
+      "assertion_failure_remains_failed_with_an_unreadable_event"
+    ]
+  },
+  "toolchain": {
+    "rust": "1.98.1",
+    "cargo_nextest": "0.9.146",
+    "build_jobs": 2,
+    "test_threads": 1,
+    "offline": true
+  },
+  "command": {
+    "program": "/Users/donbeave/.cargo/bin/rustup",
+    "argv": [
+      "run",
+      "1.98.1",
+      "cargo",
+      "nextest",
+      "run",
+      "--manifest-path",
+      "/private/tmp/termrock-vis04-deferred-controls-b106-20261009-v6.H4MeYi/source/crates/termrock-visibility-tests/Cargo.toml",
+      "--locked",
+      "--offline",
+      "--package",
+      "termrock-visibility-tests",
+      "--test",
+      "deferred",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--run-ignored",
+      "all",
+      "--user-config-file",
+      "none",
+      "--ignore-default-filter",
+      "--no-tests",
+      "fail",
+      "--no-fail-fast",
+      "--retries",
+      "0",
+      "--flaky-result",
+      "fail",
+      "--failure-output",
+      "immediate-final",
+      "--status-level",
+      "all",
+      "--final-status-level",
+      "all",
+      "--no-output-indent",
+      "--show-progress",
+      "none",
+      "--color",
+      "never",
+      "--filterset",
+      "test(=inventory_uses_canonical_23_rows_and_25_case_references) | test(=inventory_rejects_non_not_run_status_and_changed_reason_sidecar) | test(=filter_uses_exact_names_and_explicit_writer_exclusion) | test(=receipt_separates_accepted_and_current_queue_revisions) | test(=environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing) | test(=source_digest_tracks_workspace_and_ignores_nonworkspace_crates) | test(=source_drift_after_list_or_during_run_blocks_the_receipt) | test(=run_command_keeps_all_selected_failures_visible) | test(=list_requires_the_exact_canonical_selection) | test(=list_reconciles_selected_count_separately_from_nextest_total) | test(=list_rejects_total_smaller_than_the_selection) | test(=list_rejects_missing_and_writer_like_selected_tests) | test(=list_accepts_mixed_registration_and_rejects_metadata_drift) | test(=list_rejects_malformed_json_before_run) | test(=list_rejects_a_wrong_package_or_binary) | test(=list_rejects_a_duplicate_selected_name_across_suites) | test(=assertion_failure_stays_failed_without_expected_failure_inversion) | test(=non_success_terminal_events_stay_incomplete_and_cannot_follow_a_pass) | test(=receipt_rows_keep_stable_ids_and_test_metadata) | test(=prefixed_nextest_event_names_map_to_stable_test_names) | test(=unselected_case_events_are_rejected_with_run_ignored_all) | test(=unselected_terminal_results_are_rejected) | test(=run_requires_one_terminal_event_per_canonical_test) | test(=build_error_is_blocked_with_raw_exit_and_zero_executions) | test(=zero_exit_with_invalid_results_is_blocked_nonzero) | test(=signal_termination_is_blocked_and_maps_to_shell_status) | test(=assertion_failure_remains_failed_with_an_unreadable_event)",
+      "--message-format",
+      "libtest-json-plus",
+      "--message-format-version",
+      "0.1"
+    ],
+    "cwd": "/private/tmp/termrock-vis04-deferred-controls-b106-20261009-v6.H4MeYi/source"
+  },
+  "environment": {
+    "inherits_parent": false,
+    "CARGO": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "CARGO_HOME": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/cargo-home",
+    "CARGO_TARGET_DIR": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/runner/target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_TERM_COLOR": "never",
+    "CARGO_NET_OFFLINE": "true",
+    "TMPDIR": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/runner/scratch",
+    "RUSTUP_HOME": "/Users/donbeave/.rustup",
+    "RUSTUP_TOOLCHAIN": "1.98.1",
+    "PATH": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.cargo/bin:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin",
+    "HOME": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/runner/scratch/home",
+    "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"
+  },
+  "bounds": {
+    "timeout_ms": 600000,
+    "term_grace_ms": 5000,
+    "post_kill_grace_ms": 1000,
+    "combined_log_cap_bytes": 16777216
+  },
+  "execution": {
+    "result": "PASSED_27",
+    "elapsed_ms": 34152,
+    "timed_out": false,
+    "interrupted_by": null,
+    "exit_code": 0,
+    "signal": null,
+    "spawn_error": null,
+    "cargo_spawned": true,
+    "nextest_run_id": "e2844649-cddf-4afa-9b9c-4eff48edf3ae",
+    "test_results": [
+      {
+        "name": "inventory_uses_canonical_23_rows_and_25_case_references",
+        "result": "passed"
+      },
+      {
+        "name": "inventory_rejects_non_not_run_status_and_changed_reason_sidecar",
+        "result": "passed"
+      },
+      {
+        "name": "filter_uses_exact_names_and_explicit_writer_exclusion",
+        "result": "passed"
+      },
+      {
+        "name": "receipt_separates_accepted_and_current_queue_revisions",
+        "result": "passed"
+      },
+      {
+        "name": "environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing",
+        "result": "passed"
+      },
+      {
+        "name": "source_digest_tracks_workspace_and_ignores_nonworkspace_crates",
+        "result": "passed"
+      },
+      {
+        "name": "source_drift_after_list_or_during_run_blocks_the_receipt",
+        "result": "passed"
+      },
+      {
+        "name": "run_command_keeps_all_selected_failures_visible",
+        "result": "passed"
+      },
+      {
+        "name": "list_requires_the_exact_canonical_selection",
+        "result": "passed"
+      },
+      {
+        "name": "list_reconciles_selected_count_separately_from_nextest_total",
+        "result": "passed"
+      },
+      {
+        "name": "list_rejects_total_smaller_than_the_selection",
+        "result": "passed"
+      },
+      {
+        "name": "list_rejects_missing_and_writer_like_selected_tests",
+        "result": "passed"
+      },
+      {
+        "name": "list_accepts_mixed_registration_and_rejects_metadata_drift",
+        "result": "passed"
+      },
+      {
+        "name": "list_rejects_malformed_json_before_run",
+        "result": "passed"
+      },
+      {
+        "name": "list_rejects_a_wrong_package_or_binary",
+        "result": "passed"
+      },
+      {
+        "name": "list_rejects_a_duplicate_selected_name_across_suites",
+        "result": "passed"
+      },
+      {
+        "name": "assertion_failure_stays_failed_without_expected_failure_inversion",
+        "result": "passed"
+      },
+      {
+        "name": "non_success_terminal_events_stay_incomplete_and_cannot_follow_a_pass",
+        "result": "passed"
+      },
+      {
+        "name": "receipt_rows_keep_stable_ids_and_test_metadata",
+        "result": "passed"
+      },
+      {
+        "name": "prefixed_nextest_event_names_map_to_stable_test_names",
+        "result": "passed"
+      },
+      {
+        "name": "unselected_case_events_are_rejected_with_run_ignored_all",
+        "result": "passed"
+      },
+      {
+        "name": "unselected_terminal_results_are_rejected",
+        "result": "passed"
+      },
+      {
+        "name": "run_requires_one_terminal_event_per_canonical_test",
+        "result": "passed"
+      },
+      {
+        "name": "build_error_is_blocked_with_raw_exit_and_zero_executions",
+        "result": "passed"
+      },
+      {
+        "name": "zero_exit_with_invalid_results_is_blocked_nonzero",
+        "result": "passed"
+      },
+      {
+        "name": "signal_termination_is_blocked_and_maps_to_shell_status",
+        "result": "passed"
+      },
+      {
+        "name": "assertion_failure_remains_failed_with_an_unreadable_event",
+        "result": "passed"
+      }
+    ],
+    "parse_errors": [],
+    "forced_close": false
+  },
+  "artifacts": {
+    "stdout": {
+      "path": "runs/2026-10-09T04-10-28-951Z-2fccc5cd/nextest.stdout.jsonl",
+      "bytes_received": 8046,
+      "bytes_stored": 8046,
+      "sha256": "ef00d1a85c62809ea0822b35bc7c592d6952b4f81eda0c6e0b572f4be898b5b2",
+      "truncated": false,
+      "write_failed": false
+    },
+    "stderr": {
+      "path": "runs/2026-10-09T04-10-28-951Z-2fccc5cd/nextest.stderr.log",
+      "bytes_received": 7368,
+      "bytes_stored": 7368,
+      "sha256": "98db926a1ec58014c87b707bcfe49a6dd54ee8b0b7764b9b136dffbb3892147f",
+      "truncated": false,
+      "write_failed": false
+    },
+    "total_bytes_stored": 15414,
+    "total_cap_bytes": 16777216
+  },
+  "cleanup_errors": [],
+  "log_errors": []
+}
