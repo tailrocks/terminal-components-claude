@@ -20,30 +20,48 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 ROOT = Path(__file__).resolve().parents[2]
 TASKS_PATH = ROOT / "docs/implementation/visibility/tasks.json"
-BURNDOWN_PATH = ROOT / "crates/termrock-conformance/tests/parity_burndown.rs"
+DEFERRED_REGISTRY_PATH = ROOT / "crates/termrock-e2e/cases/deferred-obligations.json"
+HISTORICAL_REASONS_PATH = ROOT / "docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json"
 CONTROL_STATES_PATH = ROOT / "crates/termrock-conformance/tests/control_states.rs"
 OWNERSHIP_PATH = ROOT / "component-ownership.json"
 CASE_REGISTRY_PATH = ROOT / "tests/conformance/required_cases.json"
 EVIDENCE_ROOT = ROOT / "docs/implementation/visibility/evidence/deferred"
 RUNNER_TEST_PATH = ROOT / "crates/termrock-visibility-tests/tests/deferred.rs"
 
-SCHEMA = "termrock-deferred-run/v1"
-SCHEMA_VERSION = 1
+SCHEMA = "termrock-deferred-run/v2"
+SCHEMA_VERSION = 2
 WORK_ID = "VIS-04"
-OWNER = "/root/deferred_execution"
-CLAIM_TOKEN = "visibility-deferred-20261008-04"
+OWNER = "/root/current_branch_comparison_luna"
+CLAIM_TOKEN = "visibility-deferred-recovery-20261008-04"
+ACCEPTED_QUEUE_REVISION = 24
 PACKAGE = "termrock-conformance"
 BINARY = "control_states"
 EXPECTED_COUNT = 23
 EXPECTED_CASE_REFERENCES = 25
+EXPECTED_REGISTRY_SCHEMA = "termrock-e2e/deferred-obligations-v1"
+EXPECTED_REGISTRY_SOURCE = (
+    "DEFERRED-CASES.md / parity_burndown.rs at "
+    "9deb66b48c99f674f23bb5ba183b3a8d0e57e534"
+)
+HISTORICAL_REASON_SCHEMA = "termrock-visibility/deferred-historical-reasons-v1"
+HISTORICAL_REASON_COMMIT = "9deb66b48c99f674f23bb5ba183b3a8d0e57e534"
+HISTORICAL_REASON_PATH = "crates/termrock-conformance/tests/parity_burndown.rs"
+HISTORICAL_REASON_BLOB = "d7f588218e5128db53a374f641199f5736267b7b"
+HISTORICAL_REASON_SHA256 = "037f56cd5b40585b1321c3919bd589031b7f2d56ef0b78ff0338f8b592899014"
+HISTORICAL_REASON_SIDECAR_SHA256 = "90a08a85047f0b30fa159ec6a2779375db37472d734199d74b097f5edcdd9d9d"
 RUST_TOOLCHAIN = "1.98.1"
 BUILD_JOBS = 2
 EXPECTED_DEFERRED_IDS = tuple(
     ["BD-{:02d}".format(number) for number in range(1, 19)]
     + ["BD-{:02d}".format(number) for number in range(20, 25)]
 )
-WRITER_EXCLUSION = r"test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write)/)"
-WRITER_NAME = re.compile(r"(?i)(admission|approve|baseline|capture|snapshot|publish|write)")
+WRITER_EXCLUSION = (
+    r"test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write|"
+    r"rebuild_review_html)/)"
+)
+WRITER_NAME = re.compile(
+    r"(?i)(admission|approve|baseline|capture|snapshot|publish|write|rebuild_review_html)"
+)
 
 
 class DeferredError(ValueError):
@@ -57,8 +75,16 @@ class DeferredCase:
     test_name: str
     component: str
     owner: str
-    source_reason: str
-    ignore_reason: str
+    status: str
+    source_recorded_reason: str
+    source_reason_commit: str
+    source_reason_path: str
+    source_reason_blob: str
+    source_reason_sha256: str
+    source_reason_sidecar_path: str
+    source_reason_sidecar_sha256: str
+    registered_ignored: bool
+    ignore_reason: Optional[str]
 
     def receipt_metadata(self) -> Dict[str, Any]:
         return {
@@ -69,7 +95,21 @@ class DeferredCase:
             "application": None,
             "dimension": "behavior",
             "test_name": self.test_name,
-            "source_recorded_reason": self.source_reason,
+            "registry_status": self.status,
+            "source_recorded_reason": self.source_recorded_reason,
+            "source_reason_source": {
+                "commit": self.source_reason_commit,
+                "path": self.source_reason_path,
+                "git_blob": self.source_reason_blob,
+                "raw_sha256": self.source_reason_sha256,
+                "sidecar_path": self.source_reason_sidecar_path,
+                "sidecar_sha256": self.source_reason_sidecar_sha256,
+                "meaning": (
+                    "historical source-recorded context only; not a current diagnosis, ignore "
+                    "reason, assertion outcome, or PASS/FAIL result"
+                ),
+            },
+            "registered_ignored": self.registered_ignored,
             "ignore_reason": self.ignore_reason,
         }
 
@@ -86,101 +126,177 @@ def read_json(path: Path) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
-        raise DeferredError("cannot read {}: {}".format(path.relative_to(ROOT), error)) from error
+        raise DeferredError("cannot read {}: {}".format(path, error)) from error
 
 
-def parse_burndown(text: str) -> List[Tuple[str, Tuple[str, ...], str, str, str, str]]:
-    marker = "const BURNDOWN: &[Burndown] = &["
-    start = text.find(marker)
-    if start < 0:
-        raise DeferredError("parity_burndown.rs has no BURNDOWN table")
-    end = text.find("\n];", start)
-    if end < 0:
-        raise DeferredError("parity_burndown.rs BURNDOWN table is unterminated")
-    table = text[start + len(marker):end]
-    blocks = re.findall(r"(?ms)^\s*Burndown\s*\{(.*?)^\s*\},", table)
-    rows: List[Tuple[str, Tuple[str, ...], str, str, str, str]] = []
-    for block in blocks:
-        def field(pattern: str, label: str) -> str:
-            match = re.search(pattern, block, re.S)
-            if match is None:
-                raise DeferredError("malformed BURNDOWN row: missing {}".format(label))
-            return match.group(1)
-
-        deferral_id = field(r'\bid:\s*"([^"]+)"', "id")
-        cases_text = field(r"\bcases:\s*&\[(.*?)\]", "cases")
-        cases = tuple(re.findall(r'"(W\d{2}-\d{2})"', cases_text))
-        test_name = field(r'\btest:\s*"([^"]+)"', "test")
-        component = field(r'\bcomponent:\s*"([^"]+)"', "component")
-        owner = field(r'\bowner:\s*"([^"]+)"', "owner")
-        reason = field(r'\breason:\s*"((?:\\.|[^"\\])*)"', "reason")
-        if not cases:
-            raise DeferredError("{} has no deferred case IDs".format(deferral_id))
-        rows.append((deferral_id, cases, test_name, component, owner, reason))
-    return rows
-
-
-def parse_ignored_tests(text: str) -> Dict[str, str]:
+def parse_test_metadata(text: str) -> Dict[str, Tuple[bool, Optional[str]]]:
+    """Return test names and their current Rust ignore metadata."""
     pattern = re.compile(
-        r'(?m)^\s*#\[ignore\s*=\s*"(PARITY [^"]+)"\]\s*\n\s*fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\('
+        r"(?m)^[ \t]*#\[test\][ \t]*\n"
+        r"(?P<attributes>(?:[ \t]*#\[[^\n]*\][ \t]*\n)*)"
+        r"[ \t]*fn[ \t]+(?P<name>[A-Za-z_][A-Za-z0-9_]*)[ \t]*\("
     )
-    return {test_name: reason for reason, test_name in pattern.findall(text)}
+    result: Dict[str, Tuple[bool, Optional[str]]] = {}
+    for match in pattern.finditer(text):
+        name = match.group("name")
+        ignore_attributes = re.findall(
+            r'(?m)^[ \t]*#\[ignore(?:[ \t]*=[ \t]*"((?:\\.|[^"\\])*)")?\][ \t]*$',
+            match.group("attributes"),
+        )
+        ignore_present = re.search(
+            r"(?m)^[ \t]*#\[ignore(?:[ \t]*=[^\]]*)?\][ \t]*$",
+            match.group("attributes"),
+        ) is not None
+        if len(ignore_attributes) > 1 or (not ignore_present and ignore_attributes):
+            raise DeferredError("{} has malformed Rust ignore metadata".format(name))
+        reason: Optional[str] = None
+        if ignore_attributes and ignore_attributes[0]:
+            try:
+                reason = json.loads('"{}"'.format(ignore_attributes[0]))
+            except json.JSONDecodeError as error:
+                raise DeferredError("{} has an invalid Rust ignore reason".format(name)) from error
+        if name in result:
+            raise DeferredError("duplicate Rust test function {}".format(name))
+        result[name] = (ignore_present, reason)
+    return result
 
 
 def load_inventory(root: Path = ROOT) -> List[DeferredCase]:
-    table_path = root / BURNDOWN_PATH.relative_to(ROOT)
+    registry_path = root / DEFERRED_REGISTRY_PATH.relative_to(ROOT)
+    reasons_path = root / HISTORICAL_REASONS_PATH.relative_to(ROOT)
     test_path = root / CONTROL_STATES_PATH.relative_to(ROOT)
     ownership_path = root / OWNERSHIP_PATH.relative_to(ROOT)
     cases_path = root / CASE_REGISTRY_PATH.relative_to(ROOT)
 
     try:
-        table_text = table_path.read_text(encoding="utf-8")
+        registry_bytes = registry_path.read_bytes()
+        reasons_bytes = reasons_path.read_bytes()
         test_text = test_path.read_text(encoding="utf-8")
     except OSError as error:
         raise DeferredError("cannot read deferred test inventory: {}".format(error)) from error
 
-    parsed_rows = parse_burndown(table_text)
+    try:
+        registry = json.loads(registry_bytes.decode("utf-8"))
+        reason_source = json.loads(reasons_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise DeferredError("deferred registry or historical reason sidecar is malformed: {}".format(error)) from error
+    if sha256_bytes(reasons_bytes) != HISTORICAL_REASON_SIDECAR_SHA256:
+        raise DeferredError("historical reason sidecar content hash changed")
+
+    if not isinstance(registry, dict) or registry.get("schema") != EXPECTED_REGISTRY_SCHEMA:
+        raise DeferredError("canonical deferred registry schema is not supported")
+    if registry.get("source") != EXPECTED_REGISTRY_SOURCE:
+        raise DeferredError("canonical deferred registry source identity changed")
+    parsed_rows = registry.get("rows")
+    if not isinstance(parsed_rows, list):
+        raise DeferredError("canonical deferred registry rows must be an array")
+    if type(registry.get("row_count")) is not int or registry["row_count"] != EXPECTED_COUNT:
+        raise DeferredError("canonical deferred registry row_count is not 23")
+    if type(registry.get("case_reference_count")) is not int or registry["case_reference_count"] != EXPECTED_CASE_REFERENCES:
+        raise DeferredError("canonical deferred registry case_reference_count is not 25")
+    if registry.get("missing_historical_id") != "BD-19":
+        raise DeferredError("canonical deferred registry historical ID gap changed")
     if len(parsed_rows) != EXPECTED_COUNT:
         raise DeferredError(
-            "expected {} deferred rows, found {}".format(EXPECTED_COUNT, len(parsed_rows))
+            "expected {} canonical deferred rows, found {}".format(EXPECTED_COUNT, len(parsed_rows))
         )
-    if tuple(row[0] for row in parsed_rows) != EXPECTED_DEFERRED_IDS:
+    if any(not isinstance(row, dict) for row in parsed_rows):
+        raise DeferredError("canonical deferred registry rows must be objects")
+    if tuple(row.get("id") for row in parsed_rows) != EXPECTED_DEFERRED_IDS:
         raise DeferredError("deferred IDs changed or were reordered")
-    if sum(len(row[1]) for row in parsed_rows) != EXPECTED_CASE_REFERENCES:
+    if any(row.get("status") != "NOT_RUN" for row in parsed_rows):
+        raise DeferredError("canonical deferred registry contains a non-NOT_RUN status")
+    references: List[Tuple[str, str]] = []
+    for row in parsed_rows:
+        case_ids = row.get("cases")
+        if not isinstance(case_ids, list) or not case_ids or any(
+            not isinstance(case_id, str) for case_id in case_ids
+        ):
+            raise DeferredError("{} has invalid canonical case references".format(row.get("id")))
+        if len(set(case_ids)) != len(case_ids):
+            raise DeferredError("{} repeats a canonical case reference".format(row.get("id")))
+        references.extend((row["id"], case_id) for case_id in case_ids)
+    if len(references) != EXPECTED_CASE_REFERENCES or len(set(references)) != len(references):
         raise DeferredError(
-            "expected {} deferred case references, found {}".format(
-                EXPECTED_CASE_REFERENCES, sum(len(row[1]) for row in parsed_rows)
+            "expected {} unique canonical row/case references, found {}".format(
+                EXPECTED_CASE_REFERENCES, len(set(references))
             )
         )
 
-    ignores = parse_ignored_tests(test_text)
-    table_names = [row[2] for row in parsed_rows]
-    if len(ignores) != EXPECTED_COUNT:
-        raise DeferredError(
-            "expected {} PARITY ignored tests, found {}".format(EXPECTED_COUNT, len(ignores))
-        )
-    if set(table_names) != set(ignores):
-        missing = sorted(set(table_names) - set(ignores))
-        extra = sorted(set(ignores) - set(table_names))
-        raise DeferredError(
-            "burndown and PARITY ignore sets differ; missing={}, extra={}".format(missing, extra)
-        )
-    if any(WRITER_NAME.search(name) for name in table_names):
-        raise DeferredError("deferred test inventory includes a writer-like test name")
+    if not isinstance(reason_source, dict) or reason_source.get("schema") != HISTORICAL_REASON_SCHEMA:
+        raise DeferredError("historical reason sidecar schema is not supported")
+    expected_source = {
+        "commit": HISTORICAL_REASON_COMMIT,
+        "path": HISTORICAL_REASON_PATH,
+        "git_blob": HISTORICAL_REASON_BLOB,
+        "raw_sha256": HISTORICAL_REASON_SHA256,
+    }
+    if reason_source.get("source") != expected_source:
+        raise DeferredError("historical reason sidecar source binding changed")
+    if not isinstance(reason_source.get("interpretation"), str) or "not current diagnoses" not in reason_source["interpretation"]:
+        raise DeferredError("historical reason sidecar omits its context-only limitation")
+    reason_rows = reason_source.get("rows")
+    if not isinstance(reason_rows, list) or len(reason_rows) != EXPECTED_COUNT:
+        raise DeferredError("historical reason sidecar must contain 23 rows")
+    if reason_source.get("row_count") != EXPECTED_COUNT or reason_source.get("missing_historical_id") != "BD-19":
+        raise DeferredError("historical reason sidecar denominator metadata changed")
+    if any(not isinstance(row, dict) for row in reason_rows):
+        raise DeferredError("historical reason sidecar rows must be objects")
+    if tuple(row.get("id") for row in reason_rows) != EXPECTED_DEFERRED_IDS:
+        raise DeferredError("historical reasons changed IDs or ordering")
+    reason_by_id: Dict[str, str] = {}
+    for row in reason_rows:
+        reason = row.get("source_recorded_reason")
+        if not isinstance(reason, str) or not reason.strip():
+            raise DeferredError("{} has no historical source-recorded reason".format(row.get("id")))
+        reason_by_id[row["id"]] = reason
 
     ownership = read_json(ownership_path)
+    if not isinstance(ownership, dict) or not isinstance(ownership.get("components"), list):
+        raise DeferredError("component-ownership.json has no components array")
     owner_by_component = {
         row.get("id"): row.get("owner")
         for row in ownership.get("components", [])
         if isinstance(row, dict)
     }
-    registry = read_json(cases_path)
+    case_registry = read_json(cases_path)
+    if not isinstance(case_registry, dict) or not isinstance(case_registry.get("cases"), list):
+        raise DeferredError("required case registry has no cases array")
     registry_ids = {
-        row.get("id") for row in registry.get("cases", []) if isinstance(row, dict)
+        row.get("id") for row in case_registry.get("cases", []) if isinstance(row, dict)
     }
+    test_metadata = parse_test_metadata(test_text)
 
     result = []
-    for deferral_id, case_ids, test_name, component, owner, reason in parsed_rows:
+    seen_tests = set()
+    sidecar_sha256 = sha256_bytes(reasons_bytes)
+    for row in parsed_rows:
+        deferral_id = row.get("id")
+        case_ids_value = row.get("cases")
+        test_name = row.get("legacy_test")
+        owner = row.get("owner")
+        if not isinstance(deferral_id, str) or not isinstance(case_ids_value, list) or not case_ids_value:
+            raise DeferredError("canonical deferred row has invalid ID or cases")
+        if any(not isinstance(case_id, str) for case_id in case_ids_value):
+            raise DeferredError("{} has invalid case IDs".format(deferral_id))
+        case_ids = tuple(case_ids_value)
+        if not isinstance(test_name, str) or not isinstance(owner, str):
+            raise DeferredError("{} has invalid legacy_test or owner".format(deferral_id))
+        if test_name in seen_tests:
+            raise DeferredError("canonical inventory maps multiple rows to {}".format(test_name))
+        seen_tests.add(test_name)
+        components = {case_id[:3] for case_id in case_ids}
+        if len(components) != 1 or not re.fullmatch(r"W\d{2}", next(iter(components))):
+            raise DeferredError("{} case IDs do not identify one component".format(deferral_id))
+        component = next(iter(components))
+        if WRITER_NAME.search(test_name):
+            raise DeferredError("canonical deferred inventory includes a writer-like test name")
+        if deferral_id not in reason_by_id:
+            raise DeferredError("{} has no historical source-recorded reason".format(deferral_id))
+        registered = test_metadata.get(test_name)
+        if registered is None:
+            raise DeferredError("{} is not registered as a Rust integration test".format(test_name))
+        registered_ignored, ignore_reason = registered
         if owner_by_component.get(component) != owner:
             raise DeferredError("{} owner differs from component-ownership.json".format(deferral_id))
         missing_cases = sorted(set(case_ids) - registry_ids)
@@ -195,8 +311,16 @@ def load_inventory(root: Path = ROOT) -> List[DeferredCase]:
                 test_name=test_name,
                 component=component,
                 owner=owner,
-                source_reason=reason,
-                ignore_reason=ignores[test_name],
+                status=row["status"],
+                source_recorded_reason=reason_by_id[deferral_id],
+                source_reason_commit=HISTORICAL_REASON_COMMIT,
+                source_reason_path=HISTORICAL_REASON_PATH,
+                source_reason_blob=HISTORICAL_REASON_BLOB,
+                source_reason_sha256=HISTORICAL_REASON_SHA256,
+                source_reason_sidecar_path=HISTORICAL_REASONS_PATH.relative_to(ROOT).as_posix(),
+                source_reason_sidecar_sha256=sidecar_sha256,
+                registered_ignored=registered_ignored,
+                ignore_reason=ignore_reason,
             )
         )
     return result
@@ -214,12 +338,14 @@ def filterset_for(cases: Sequence[DeferredCase]) -> str:
 def common_nextest_args(cases: Sequence[DeferredCase]) -> List[str]:
     return [
         "--locked",
+        "--user-config-file",
+        "none",
         "--package",
         PACKAGE,
         "--test",
         BINARY,
         "--run-ignored",
-        "only",
+        "all",
         "--ignore-default-filter",
         "--color",
         "never",
@@ -227,7 +353,6 @@ def common_nextest_args(cases: Sequence[DeferredCase]) -> List[str]:
         "none",
         "--filterset",
         filterset_for(cases),
-        "--cargo-quiet",
         "--cargo-quiet",
     ]
 
@@ -385,9 +510,16 @@ def parse_nextest_list(data: Any, expected: Sequence[DeferredCase]) -> Dict[str,
                 sorted(expected_names), sorted(selected)
             )
         )
-    not_ignored = sorted(name for name, ignored in selected.items() if not ignored)
-    if not_ignored:
-        raise DeferredError("selected deferred tests are no longer ignored: {}".format(not_ignored))
+    expected_ignored = {case.test_name: case.registered_ignored for case in expected}
+    metadata_drift = sorted(
+        name for name, ignored in selected.items() if ignored != expected_ignored[name]
+    )
+    if metadata_drift:
+        raise DeferredError(
+            "nextest ignored metadata differs from current Rust registration for {}".format(
+                metadata_drift
+            )
+        )
     total_count = data.get("test-count")
     if type(total_count) is not int or total_count < len(selected):
         raise DeferredError(
@@ -442,9 +574,8 @@ def parse_run_events(stdout: bytes, expected: Sequence[DeferredCase],
     expected_names = [case.test_name for case in expected]
     unselected_names = set(known_unselected or ()) - set(expected_names)
     started = set()
-    unselected_started = set()
-    unselected_ignored = set()
     outcomes: Dict[str, str] = {}
+    terminal_events: Dict[str, str] = {}
     errors: List[str] = []
     try:
         decoded = stdout.decode("utf-8")
@@ -469,14 +600,9 @@ def parse_run_events(stdout: bytes, expected: Sequence[DeferredCase],
             continue
         if basename in unselected_names:
             event_kind = event.get("event")
-            if event_kind == "started":
-                unselected_started.add(basename)
-            elif event_kind == "ignored":
-                unselected_ignored.add(basename)
-            elif event_kind in ("ok", "failed", "timeout", "cancelled", "exec-failed"):
-                errors.append("unselected test was not filtered: {} ({})".format(
-                    basename, event_kind
-                ))
+            errors.append("unselected test emitted an event: {} ({})".format(
+                basename, event_kind
+            ))
             continue
         try:
             test_name = normalize_event_name(event_name, expected_names)
@@ -486,22 +612,36 @@ def parse_run_events(stdout: bytes, expected: Sequence[DeferredCase],
         event_kind = event.get("event")
         if event_kind == "started":
             started.add(test_name)
-        elif event_kind in ("ok", "failed", "ignored"):
-            status = {"ok": "passed", "failed": "failed", "ignored": "skipped"}[event_kind]
-            previous = outcomes.get(test_name)
-            if previous is not None:
-                errors.append("duplicate terminal result for {}".format(test_name))
+        elif event_kind in ("ok", "failed", "ignored", "timeout", "cancelled", "exec-failed"):
+            status = {
+                "ok": "passed",
+                "failed": "failed",
+                "ignored": "skipped",
+                "timeout": "incomplete",
+                "cancelled": "incomplete",
+                "exec-failed": "incomplete",
+            }[event_kind]
+            previous_event = terminal_events.get(test_name)
+            if previous_event is not None:
+                errors.append(
+                    "duplicate terminal result for {}: {} then {}".format(
+                        test_name, previous_event, event_kind
+                    )
+                )
+                # Contradictory terminal events cannot leave a pass or skip in
+                # the receipt. Keep any real assertion failure visible.
+                if outcomes[test_name] == "failed" or status == "failed":
+                    outcomes[test_name] = "failed"
+                else:
+                    outcomes[test_name] = "incomplete"
             else:
+                terminal_events[test_name] = event_kind
                 outcomes[test_name] = status
-        elif event_kind in ("timeout", "cancelled", "exec-failed"):
-            started.add(test_name)
-            outcomes.setdefault(test_name, "incomplete")
+            if event_kind in ("timeout", "cancelled", "exec-failed"):
+                started.add(test_name)
 
     for name in started:
         outcomes.setdefault(name, "incomplete")
-    not_ignored = sorted(unselected_started - unselected_ignored)
-    if not_ignored:
-        errors.append("unselected tests did not finish as ignored: {}".format(not_ignored))
     unexpected = sorted(set(outcomes) - set(expected_names))
     if unexpected:
         errors.append("unexpected test results: {}".format(unexpected))
@@ -551,16 +691,19 @@ def validate_claim() -> Dict[str, Any]:
     task = matches[0]
     if task.get("owner") != OWNER or task.get("claim_token") != CLAIM_TOKEN:
         raise DeferredError("VIS-04 owner or claim token changed")
-    if task.get("branch") != "termrock-implementation" or task.get("state") != "in_progress":
+    if task.get("branch") != "termrock-implementation" or task.get("state") not in ("claimed", "in_progress"):
         raise DeferredError("VIS-04 is not active on termrock-implementation")
-    allowed = set(task.get("allowed_paths", []))
-    required = {
+    if task.get("accepted_queue_revision") != ACCEPTED_QUEUE_REVISION:
+        raise DeferredError("VIS-04 accepted queue revision changed")
+    accepted_paths = {
         "tools/visibility/deferred.py",
+        "tools/visibility/tests/test_deferred.py",
         "docs/implementation/visibility/evidence/deferred/**",
         "crates/termrock-visibility-tests/tests/deferred.rs",
     }
-    if not required.issubset(allowed):
-        raise DeferredError("VIS-04 allowed paths no longer include this execution scope")
+    allowed_list = task.get("allowed_paths")
+    if not isinstance(allowed_list, list) or set(allowed_list) != accepted_paths:
+        raise DeferredError("VIS-04 allowed paths changed from the accepted scope")
     return {
         "work_id": WORK_ID,
         "owner": OWNER,
@@ -568,6 +711,7 @@ def validate_claim() -> Dict[str, Any]:
         "queue_revision": records.get("queue_revision"),
         "accepted_queue_revision": task.get("accepted_queue_revision"),
         "accepted_base_sha": task.get("base_sha"),
+        "state": task.get("state"),
     }
 
 
@@ -576,11 +720,15 @@ def relevant_input_digest(root: Path = ROOT) -> str:
     candidates = [
         root / "Cargo.toml",
         root / "Cargo.lock",
+        root / "tools/visibility/deferred.py",
         root / "mise.toml",
         root / "rust-toolchain",
         root / "rust-toolchain.toml",
         root / "component-ownership.json",
         root / "tests/conformance/required_cases.json",
+        root / "crates/termrock-e2e/cases/deferred-obligations.json",
+        root / "docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json",
+        root / "crates/termrock-visibility-tests/tests/deferred.rs",
         root / "crates/termrock-conformance/tests/parity_burndown.rs",
         root / "crates/termrock-conformance/tests/control_states.rs",
     ]
@@ -596,11 +744,23 @@ def relevant_input_digest(root: Path = ROOT) -> str:
         if workspace_root.exists():
             candidates.extend(
                 path for path in workspace_root.rglob("*")
-                if path.is_file() and path.name != ".DS_Store"
+                if path.is_file()
+                and path.name != ".DS_Store"
+                and not any(
+                    part in {"target", "cache", ".cache"}
+                    for part in path.relative_to(root).parts
+                )
             )
     cargo_dir = root / ".cargo"
     if cargo_dir.exists():
-        candidates.extend(path for path in cargo_dir.rglob("*") if path.is_file())
+        candidates.extend(
+            path for path in cargo_dir.rglob("*")
+            if path.is_file()
+            and not any(
+                part in {"target", "cache", ".cache"}
+                for part in path.relative_to(root).parts
+            )
+        )
     nextest_config = root / ".config/nextest.toml"
     if nextest_config.is_file():
         candidates.append(nextest_config)
@@ -679,34 +839,48 @@ def build_receipt_base(run_id: str, started_at: str, branch: str,
             "claim": dict(claim),
             "inventory_sha256": inventory_digest(inventory),
             "source_inputs_sha256": source_digest,
+            "historical_reason_source": {
+                "path": HISTORICAL_REASONS_PATH.relative_to(ROOT).as_posix(),
+                "sidecar_sha256": inventory[0].source_reason_sidecar_sha256 if inventory else None,
+                "commit": HISTORICAL_REASON_COMMIT,
+                "source_path": HISTORICAL_REASON_PATH,
+                "git_blob": HISTORICAL_REASON_BLOB,
+                "raw_sha256": HISTORICAL_REASON_SHA256,
+                "interpretation": "historical source-recorded context, not current diagnoses or results",
+            },
             "runner_source": file_ref(Path(__file__).resolve()),
             "runner_test_source": file_ref(RUNNER_TEST_PATH),
         },
         "selection": {
             "lane": "deferred-behavior",
+            "evidence_class": "candidate-direct-assertions",
+            "qualifies_paired_pty_evidence": False,
             "package": PACKAGE,
             "binary": BINARY,
-            "ignored_only": True,
+            "run_ignored": "all",
             "expected_tests": [case.receipt_metadata() for case in inventory],
             "listed_tests": [],
             "listed_test_names": [],
+            "listed_test_metadata": [],
             "listed_total_count": None,
             "writer_exclusion": WRITER_EXCLUSION,
             "filterset": filterset_for(inventory),
-            "count": EXPECTED_COUNT,
+            "registered_ignored_count": sum(case.registered_ignored for case in inventory),
+            "registered_normal_count": sum(not case.registered_ignored for case in inventory),
+            "count": len(inventory),
         },
         "execution": {
             "exit_code": None,
             "result": "blocked",
             "executed_tests": [],
             "counts": {
-                "expected": EXPECTED_COUNT,
+                "expected": len(inventory),
                 "listed": 0,
                 "executed": 0,
                 "passed": 0,
                 "failed": 0,
                 "skipped": 0,
-                "not_run": EXPECTED_COUNT,
+                "not_run": len(inventory),
             },
             "block_reason": None,
             "nextest_list_exit_code": None,
@@ -831,12 +1005,17 @@ def execute() -> Tuple[int, Path]:
                  "cargo_path": shutil.which("cargo"),
                  "cargo_nextest_path": shutil.which("cargo-nextest")},
         "tool_inputs": {"work_item": WORK_ID, "claim": None, "inventory_sha256": None,
-                        "source_inputs_sha256": None},
-        "selection": {"lane": "deferred-behavior", "package": PACKAGE, "binary": BINARY,
-                       "ignored_only": True, "expected_tests": [], "listed_tests": [],
+                        "source_inputs_sha256": None, "historical_reason_source": None},
+        "selection": {"lane": "deferred-behavior",
+                       "evidence_class": "candidate-direct-assertions",
+                       "qualifies_paired_pty_evidence": False,
+                       "package": PACKAGE, "binary": BINARY,
+                       "run_ignored": "all", "expected_tests": [], "listed_tests": [],
+                       "listed_test_metadata": [],
                        "listed_test_names": [],
                        "listed_total_count": None,
                        "writer_exclusion": WRITER_EXCLUSION, "filterset": None,
+                       "registered_ignored_count": 0, "registered_normal_count": 0,
                        "count": EXPECTED_COUNT},
         "execution": {"exit_code": None, "result": "blocked", "executed_tests": [],
                        "counts": {"expected": EXPECTED_COUNT, "listed": 0, "executed": 0,
@@ -862,13 +1041,17 @@ def execute() -> Tuple[int, Path]:
         receipt["subject"]["commit"] = commit
         receipt["subject"]["accepted_base_sha"] = claim.get("accepted_base_sha")
         receipt["subject"]["working_tree"] = worktree_record()
+        source_digest = relevant_input_digest()
         inventory = load_inventory()
+        inventory_source_digest = relevant_input_digest()
+        if inventory_source_digest != source_digest:
+            raise DeferredError("test source inputs changed while reading canonical inventory")
+        source_digest = inventory_source_digest
         receipt["selection"]["expected_tests"] = [
             case.receipt_metadata() for case in inventory
         ]
         receipt["selection"]["filterset"] = filterset_for(inventory)
         receipt["tool_inputs"]["inventory_sha256"] = inventory_digest(inventory)
-        source_digest = relevant_input_digest()
         receipt["subject"]["source_inputs_sha256"] = source_digest
         receipt["tool_inputs"]["source_inputs_sha256"] = source_digest
         if branch != "termrock-implementation":
@@ -932,6 +1115,14 @@ def execute() -> Tuple[int, Path]:
         listed_ids = [case.deferral_id for case in selected_cases]
         receipt["selection"]["listed_tests"] = listed_ids
         receipt["selection"]["listed_test_names"] = listed_names
+        receipt["selection"]["listed_test_metadata"] = [
+            {
+                "requirement_id": case.deferral_id,
+                "test_name": case.test_name,
+                "ignored": selected[case.test_name],
+            }
+            for case in inventory
+        ]
         receipt["selection"]["listed_total_count"] = list_output["test-count"]
         receipt["execution"]["counts"]["listed"] = len(listed_names)
         if relevant_input_digest() != source_digest:
@@ -995,7 +1186,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument(
         "action",
         choices=("run",),
-        help="build/list the exact ignored selection, then execute all 23 deferred tests",
+        help="build/list the exact canonical selection, then execute all 23 deferred tests",
     )
     args = parser.parse_args(argv)
     if args.action != "run":
