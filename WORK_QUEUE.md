@@ -1,7 +1,7 @@
 # Work queue
 
 Generated from [accepted task records](docs/implementation/visibility/tasks.json).
-Queue revision: 39. Acceptance owner: `/root`.
+Queue revision: 40. Acceptance owner: `/root`.
 
 Highest open priority: **P0**.
 
@@ -17,7 +17,7 @@ Highest open priority: **P0**.
 | VIS-08 | VIS-V01, VIS-P02 | P0 | in_progress | — | /root/rust_test_infrastructure | /root/technical_review | crates/termrock-visibility-tests/Cargo.toml, crates/termrock-visibility-tests/Cargo.lock, crates/termrock-visibility-tests/src/**, crates/termrock-visibility-tests/README.md |
 | VIS-09 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | in_progress | — | /root/rust_test_infrastructure | /root/technical_review | crates/termrock-visibility-tests/tests/queue.rs, tools/visibility/tests/test_queue.py |
 | VIS-10 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | claimed | — | /root/coordination_luna | /root/jackin_inventory_current_luna | tools/visibility/queue.py, crates/termrock-visibility-tests/tests/queue_v2.rs, docs/implementation/visibility/queue-v2.md |
-| VIS-11 | VIS-I01, VIS-I02, VIS-I03, VIS-I04, VIS-I05, VIS-I06, VIS-I07, VIS-I08, VIS-I09, VIS-I10 | P0 | claimed | — | /root/status_recovery_luna | /root/technical_review | .github/workflows/**, .velnor/**, docs/implementation/visibility/evidence/ci/**, docs/implementation/visibility/evidence/tools/** |
+| VIS-11 | VIS-I01, VIS-I02, VIS-I03, VIS-I04, VIS-I05, VIS-I06, VIS-I07, VIS-I08, VIS-I09, VIS-I10 | P0 | claimed | — | /root/current_branch_comparison_luna | /root/velnor_residual_review_luna | .github/workflows/**, .velnor/**, docs/implementation/visibility/evidence/ci/**, docs/implementation/visibility/evidence/tools/** |
 | VIS-12 | VIS-I05, VIS-P06, VIS-P07 | P0 | review | — | /root/coordination_luna | /root/technical_review | docs/implementation/visibility/evidence/dco/** |
 | VIS-13 | VIS-S06, VIS-P02 | P0 | claimed | — | /root/tag_capture_boundary_luna | /root/ci_parity_review_luna | docs/implementation/visibility/evidence/reports/** |
 
@@ -139,11 +139,13 @@ Last handoff: /root → /root/coordination_luna by `/root`. Recorded next action
 
 Priority reason: The user explicitly requested repair of PR #17 CI/CD; preserve required visibility and product gates.
 
-Claim token: `visibility-pr17-ci-repair-20261009-0136Z`; accepted at queue revision 30; expires `2026-10-09T06:00:00Z`.
+Claim token: `visibility-pr17-ci-repair-comparison-q39-20261009-01`; accepted at queue revision 40; expires `2026-10-09T08:00:00Z`.
 
 Branch/base: `termrock-implementation` / `766ae1e925e32b4b28aa9100bb3fde5279aa223b`.
 
 Evidence: User explicitly authorized PR #17 CI/CD repair, including parallel subagents. Root remains the branch integration owner., Required evidence: live provider failure details; reviewed generator source/tool identity; generated workflows without manual YAML changes; workflow admission and actual branch/PR runs; failure artifact publication and separate visibility/readiness gates., Local base 766ae is the preserved checkout anchor, not the current remote product/test identity. Workflow generation must use independently pinned current remote source inputs and preserve newer work.
+
+Last handoff: /root/status_recovery_luna → /root/current_branch_comparison_luna by `/root/status_recovery_luna`. Recorded next action at handoff: Do not apply this proposal until /root/current_branch_comparison_luna confirms availability, /root/velnor_residual_review_luna completes independent review of this exact payload, and /root repeats the q39 tasks/view/queue.py hash, exact VIS-11 claim, allowed-path clean diff, active-writer overlap, and recipient/reviewer availability checks. Root alone applies the canonical queue-v1 reassign CAS at expected q39, preserving the existing branch, base, requirements, priority, all four allowed paths, existing evidence, and claim history; only owner, reviewer, claim token, expiry, handoff history, and the queue revision change. After CAS, the recipient must coordinate the required VIS-04 deferred `--claim-pin` caller update before relying on that contract. Current CI remains unqualified until a compact generated workflow is independently source/tool bound and passes workflow admission and actual branch/PR runs. Preserve the required 260 task identities and 44 product plus 4 infrastructure jobs. The R5 260-row ID/environment/dependency/output mapping remains unaccepted and full parity unestablished. Do not hand-edit generated YAML or expand to `.github/workflows/actionlint.yaml` without a separate accepted scope amendment.
 
 ### VIS-12
 

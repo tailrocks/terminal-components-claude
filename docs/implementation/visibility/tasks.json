@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 39,
+  "queue_revision": 40,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -1382,9 +1382,56 @@
       "dependencies": [],
       "branch": "termrock-implementation",
       "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
-      "expiry": "2026-10-09T06:00:00Z",
+      "expiry": "2026-10-09T08:00:00Z",
       "state": "claimed",
-      "handoff": null,
+      "handoff": {
+        "handoff_at": "2026-10-09T05:30:24Z",
+        "handoff_by": "/root/status_recovery_luna",
+        "from_owner": "/root/status_recovery_luna",
+        "to_owner": "/root/current_branch_comparison_luna",
+        "owner_released": true,
+        "coordinator_verified_stopped": false,
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch termrock-implementation; accepted VIS-11 base and local HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b, tree b5701830ac45f93620b2f55da71862aacc549cd6; the current worktree has unrelated edits outside VIS-11 paths.",
+        "git_status": "This owner has no pending repository edit or active command in VIS-11 paths and releases VIS-11 to /root/current_branch_comparison_luna. The prior claim token will not authorize further edits. The scoped paths are clean. Local branch status is ahead 3 / behind 62 against the stale local origin tracking ref; its three local ancestry commits are 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, and accepted base 766ae1e925e32b4b28aa9100bb3fde5279aa223b. Their publication status against the later live remote observation is not established. Preserve the branch, index, and all commit objects. The external R5 comparator prototype remains preserved and unmodified; its 260-row parity mapping gap remains open.",
+        "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_paths": [],
+        "unpublished_commits": [],
+        "checks": [
+          {
+            "command": "Read-only jq of docs/implementation/visibility/tasks.json and SHA-256 of tasks.json, WORK_QUEUE.md, tools/visibility/queue.py, and STATUS.md",
+            "result": "Queue revision 39; VIS-11 is claimed by /root/status_recovery_luna with token visibility-pr17-ci-repair-20261009-0136Z, reviewer /root/technical_review, accepted revision 30, base 766ae1e925e32b4b28aa9100bb3fde5279aa223b, branch termrock-implementation, and allowed paths .github/workflows/**, .velnor/**, docs/implementation/visibility/evidence/ci/**, docs/implementation/visibility/evidence/tools/**. Current file hashes: tasks.json 01927b9f7c929a197090971219811a59721af6e33e163d6ddd4524b1f9fe3b8f; WORK_QUEUE.md 6c26ad41b5d3d3fc696d10708de7420cd7b28c500c3c38e0fbf3cfb38c19877a; queue.py 741c9af4a40a3a7e675bcbc6c09da9d6b7768a8378d191061c29a805e680b1e8; STATUS.md 4220eebf7f296b764217471f86ee1f80117e388407b67b4cb5c06ef3da8eabcc."
+          },
+          {
+            "command": "git status --short -- .github/workflows .velnor docs/implementation/visibility/evidence/ci docs/implementation/visibility/evidence/tools; git diff --binary --full-index HEAD -- same paths | shasum -a 256; git ls-files --others --exclude-standard -- same paths",
+            "result": "Scoped status and untracked-path outputs were empty; diff SHA-256 was the empty-content hash e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855."
+          },
+          {
+            "command": "Read-only inventory of all q39 task allowed_paths in docs/implementation/visibility/tasks.json",
+            "result": "No other accepted task has an allowed-path overlap with the four VIS-11 path roots. /root remains the branch and queue integrator. Root supplied the coordination observation that no active canonical CI writer overlaps these paths; root must repeat the writer audit immediately before applying the handoff."
+          },
+          {
+            "command": "Read-only shasum/find/cat of /private/tmp/termrock-vis11-live-parity-r5",
+            "result": "The preserved external comparator R5 freeze SHA-256 is 1fcc74d68974aa5be87a1df7cc872a3050e64bf8332771bdef87b8d4046ef9e4; it contains only Cargo.toml, README.md, freeze.json, src/lib.rs, and src/main.rs. Its README/freeze explicitly state no accepted 260-row mapping and no full parity. Independent R5 review is /private/tmp/termrock-vis11-live-parity-r5-review-luna-20261009.md, SHA-256 5eb28c52eb67bfb51a8bb7eef47c10136f9b7461b89c78aaada914a67dc87437. R5 did not run Cargo/Nextest, generation, migration, or workflow output. Preserve this package and its earlier revisions unchanged."
+          },
+          {
+            "command": "Read-only hash of pinned legacy workflow body and source pins",
+            "result": "Legacy workflow body /private/tmp/termrock-vis11-e44-28058-comparison-20261009T0206Z/ci.body SHA-256 607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24, selected source commit 28058beecf63acee3b65bab847e507fe8e1c539d, old generator source commit 38eb3174d7111420c9cccbff2764229aade2bf1c. This describes the fixed historical comparison input, not the latest remote ref."
+          },
+          {
+            "command": "Read-only git ls-remote of refs/heads/termrock-implementation",
+            "result": "At 2026-10-09T05:28:57Z, returned 2494142d54e3b58390bf7c21dc5b49b25cd456bb. Root stated this was its q39 task-handoff publication after the comparison agent's earlier 82b2f915 observation. Keep 82b2 as the deliberately selected historical generation input and do not label it the latest remote tip. Root must rebind remote source and workflow/tool observations before any generation."
+          },
+          {
+            "command": "collaboration.list_agents and direct availability requests",
+            "result": "At the roster observation, /root/current_branch_comparison_luna was running and /root/velnor_residual_review_luna had completed its prior task. I sent each a direct request to confirm availability for the proposed owner handoff or exact-payload review. No acknowledgment had arrived when this proposal was frozen; both confirmations are preconditions for queue application."
+          },
+          {
+            "command": "Owner release declaration by /root/status_recovery_luna in this proposal",
+            "result": "I release VIS-11 ownership to /root/current_branch_comparison_luna. I have no pending repository edit or active command in the accepted paths. This is an owner release, not a coordinator-verified process-stop claim; no external provider hash is asserted. The old token will not authorize further edits."
+          }
+        ],
+        "next_action": "Do not apply this proposal until /root/current_branch_comparison_luna confirms availability, /root/velnor_residual_review_luna completes independent review of this exact payload, and /root repeats the q39 tasks/view/queue.py hash, exact VIS-11 claim, allowed-path clean diff, active-writer overlap, and recipient/reviewer availability checks. Root alone applies the canonical queue-v1 reassign CAS at expected q39, preserving the existing branch, base, requirements, priority, all four allowed paths, existing evidence, and claim history; only owner, reviewer, claim token, expiry, handoff history, and the queue revision change. After CAS, the recipient must coordinate the required VIS-04 deferred `--claim-pin` caller update before relying on that contract. Current CI remains unqualified until a compact generated workflow is independently source/tool bound and passes workflow admission and actual branch/PR runs. Preserve the required 260 task identities and 44 product plus 4 infrastructure jobs. The R5 260-row ID/environment/dependency/output mapping remains unaccepted and full parity unestablished. Do not hand-edit generated YAML or expand to `.github/workflows/actionlint.yaml` without a separate accepted scope amendment."
+      },
       "work_id": "VIS-11",
       "requirement_ids": [
         "VIS-I01",
@@ -1405,15 +1452,88 @@
         "docs/implementation/visibility/evidence/ci/**",
         "docs/implementation/visibility/evidence/tools/**"
       ],
-      "owner": "/root/status_recovery_luna",
-      "reviewer": "/root/technical_review",
-      "claim_token": "visibility-pr17-ci-repair-20261009-0136Z",
+      "owner": "/root/current_branch_comparison_luna",
+      "reviewer": "/root/velnor_residual_review_luna",
+      "claim_token": "visibility-pr17-ci-repair-comparison-q39-20261009-01",
       "evidence": [
         "User explicitly authorized PR #17 CI/CD repair, including parallel subagents. Root remains the branch integration owner.",
         "Required evidence: live provider failure details; reviewed generator source/tool identity; generated workflows without manual YAML changes; workflow admission and actual branch/PR runs; failure artifact publication and separate visibility/readiness gates.",
         "Local base 766ae is the preserved checkout anchor, not the current remote product/test identity. Workflow generation must use independently pinned current remote source inputs and preserve newer work."
       ],
-      "accepted_queue_revision": 30
+      "accepted_queue_revision": 40,
+      "claim_history": [
+        {
+          "claim": {
+            "owner": "/root/status_recovery_luna",
+            "reviewer": "/root/technical_review",
+            "branch": "termrock-implementation",
+            "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+            "allowed_paths": [
+              ".github/workflows/**",
+              ".velnor/**",
+              "docs/implementation/visibility/evidence/ci/**",
+              "docs/implementation/visibility/evidence/tools/**"
+            ],
+            "claim_token": "visibility-pr17-ci-repair-20261009-0136Z",
+            "expiry": "2026-10-09T06:00:00Z",
+            "state": "claimed",
+            "accepted_queue_revision": 30,
+            "evidence": [
+              "User explicitly authorized PR #17 CI/CD repair, including parallel subagents. Root remains the branch integration owner.",
+              "Required evidence: live provider failure details; reviewed generator source/tool identity; generated workflows without manual YAML changes; workflow admission and actual branch/PR runs; failure artifact publication and separate visibility/readiness gates.",
+              "Local base 766ae is the preserved checkout anchor, not the current remote product/test identity. Workflow generation must use independently pinned current remote source inputs and preserve newer work."
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-09T05:30:24Z",
+            "handoff_by": "/root/status_recovery_luna",
+            "from_owner": "/root/status_recovery_luna",
+            "to_owner": "/root/current_branch_comparison_luna",
+            "owner_released": true,
+            "coordinator_verified_stopped": false,
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch termrock-implementation; accepted VIS-11 base and local HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b, tree b5701830ac45f93620b2f55da71862aacc549cd6; the current worktree has unrelated edits outside VIS-11 paths.",
+            "git_status": "This owner has no pending repository edit or active command in VIS-11 paths and releases VIS-11 to /root/current_branch_comparison_luna. The prior claim token will not authorize further edits. The scoped paths are clean. Local branch status is ahead 3 / behind 62 against the stale local origin tracking ref; its three local ancestry commits are 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, and accepted base 766ae1e925e32b4b28aa9100bb3fde5279aa223b. Their publication status against the later live remote observation is not established. Preserve the branch, index, and all commit objects. The external R5 comparator prototype remains preserved and unmodified; its 260-row parity mapping gap remains open.",
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "changed_paths": [],
+            "unpublished_commits": [],
+            "checks": [
+              {
+                "command": "Read-only jq of docs/implementation/visibility/tasks.json and SHA-256 of tasks.json, WORK_QUEUE.md, tools/visibility/queue.py, and STATUS.md",
+                "result": "Queue revision 39; VIS-11 is claimed by /root/status_recovery_luna with token visibility-pr17-ci-repair-20261009-0136Z, reviewer /root/technical_review, accepted revision 30, base 766ae1e925e32b4b28aa9100bb3fde5279aa223b, branch termrock-implementation, and allowed paths .github/workflows/**, .velnor/**, docs/implementation/visibility/evidence/ci/**, docs/implementation/visibility/evidence/tools/**. Current file hashes: tasks.json 01927b9f7c929a197090971219811a59721af6e33e163d6ddd4524b1f9fe3b8f; WORK_QUEUE.md 6c26ad41b5d3d3fc696d10708de7420cd7b28c500c3c38e0fbf3cfb38c19877a; queue.py 741c9af4a40a3a7e675bcbc6c09da9d6b7768a8378d191061c29a805e680b1e8; STATUS.md 4220eebf7f296b764217471f86ee1f80117e388407b67b4cb5c06ef3da8eabcc."
+              },
+              {
+                "command": "git status --short -- .github/workflows .velnor docs/implementation/visibility/evidence/ci docs/implementation/visibility/evidence/tools; git diff --binary --full-index HEAD -- same paths | shasum -a 256; git ls-files --others --exclude-standard -- same paths",
+                "result": "Scoped status and untracked-path outputs were empty; diff SHA-256 was the empty-content hash e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855."
+              },
+              {
+                "command": "Read-only inventory of all q39 task allowed_paths in docs/implementation/visibility/tasks.json",
+                "result": "No other accepted task has an allowed-path overlap with the four VIS-11 path roots. /root remains the branch and queue integrator. Root supplied the coordination observation that no active canonical CI writer overlaps these paths; root must repeat the writer audit immediately before applying the handoff."
+              },
+              {
+                "command": "Read-only shasum/find/cat of /private/tmp/termrock-vis11-live-parity-r5",
+                "result": "The preserved external comparator R5 freeze SHA-256 is 1fcc74d68974aa5be87a1df7cc872a3050e64bf8332771bdef87b8d4046ef9e4; it contains only Cargo.toml, README.md, freeze.json, src/lib.rs, and src/main.rs. Its README/freeze explicitly state no accepted 260-row mapping and no full parity. Independent R5 review is /private/tmp/termrock-vis11-live-parity-r5-review-luna-20261009.md, SHA-256 5eb28c52eb67bfb51a8bb7eef47c10136f9b7461b89c78aaada914a67dc87437. R5 did not run Cargo/Nextest, generation, migration, or workflow output. Preserve this package and its earlier revisions unchanged."
+              },
+              {
+                "command": "Read-only hash of pinned legacy workflow body and source pins",
+                "result": "Legacy workflow body /private/tmp/termrock-vis11-e44-28058-comparison-20261009T0206Z/ci.body SHA-256 607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24, selected source commit 28058beecf63acee3b65bab847e507fe8e1c539d, old generator source commit 38eb3174d7111420c9cccbff2764229aade2bf1c. This describes the fixed historical comparison input, not the latest remote ref."
+              },
+              {
+                "command": "Read-only git ls-remote of refs/heads/termrock-implementation",
+                "result": "At 2026-10-09T05:28:57Z, returned 2494142d54e3b58390bf7c21dc5b49b25cd456bb. Root stated this was its q39 task-handoff publication after the comparison agent's earlier 82b2f915 observation. Keep 82b2 as the deliberately selected historical generation input and do not label it the latest remote tip. Root must rebind remote source and workflow/tool observations before any generation."
+              },
+              {
+                "command": "collaboration.list_agents and direct availability requests",
+                "result": "At the roster observation, /root/current_branch_comparison_luna was running and /root/velnor_residual_review_luna had completed its prior task. I sent each a direct request to confirm availability for the proposed owner handoff or exact-payload review. No acknowledgment had arrived when this proposal was frozen; both confirmations are preconditions for queue application."
+              },
+              {
+                "command": "Owner release declaration by /root/status_recovery_luna in this proposal",
+                "result": "I release VIS-11 ownership to /root/current_branch_comparison_luna. I have no pending repository edit or active command in the accepted paths. This is an owner release, not a coordinator-verified process-stop claim; no external provider hash is asserted. The old token will not authorize further edits."
+              }
+            ],
+            "next_action": "Do not apply this proposal until /root/current_branch_comparison_luna confirms availability, /root/velnor_residual_review_luna completes independent review of this exact payload, and /root repeats the q39 tasks/view/queue.py hash, exact VIS-11 claim, allowed-path clean diff, active-writer overlap, and recipient/reviewer availability checks. Root alone applies the canonical queue-v1 reassign CAS at expected q39, preserving the existing branch, base, requirements, priority, all four allowed paths, existing evidence, and claim history; only owner, reviewer, claim token, expiry, handoff history, and the queue revision change. After CAS, the recipient must coordinate the required VIS-04 deferred `--claim-pin` caller update before relying on that contract. Current CI remains unqualified until a compact generated workflow is independently source/tool bound and passes workflow admission and actual branch/PR runs. Preserve the required 260 task identities and 44 product plus 4 infrastructure jobs. The R5 260-row ID/environment/dependency/output mapping remains unaccepted and full parity unestablished. Do not hand-edit generated YAML or expand to `.github/workflows/actionlint.yaml` without a separate accepted scope amendment."
+          }
+        }
+      ]
     },
     {
       "priority": "P0",
