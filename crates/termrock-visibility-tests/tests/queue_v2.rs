@@ -2239,6 +2239,53 @@ fn current_accepted_records_preview_to_v2_without_writing_and_preserve_history()
 }
 
 #[test]
+fn handoff_next_action_is_labeled_as_recorded_in_v1_and_v2() {
+    let fixture = QueueV2Fixture::new();
+    let (tasks_path, view_path, source_tasks, _source_view) = fixture.install_current_v1_queue();
+    let mut records: Value = serde_json::from_slice(&source_tasks)
+        .expect("parse copied accepted task records");
+    let recorded_action = "fixture instruction retained from the prior handoff";
+    let task = records["tasks"]
+        .as_array_mut()
+        .expect("task array")
+        .iter_mut()
+        .find(|task| task.get("handoff").is_some_and(Value::is_object))
+        .expect("accepted records contain a current handoff to render");
+    task["handoff"]["next_action"] = json!(recorded_action);
+    let v1_bytes = serde_json::to_vec_pretty(&records).expect("serialize v1 fixture records");
+    fs::write(&tasks_path, v1_bytes).expect("write modified records to disposable fixture");
+
+    let v1_render = fixture.run(&["render".to_owned()]);
+    assert_success(&v1_render);
+    let v1_view_bytes = v1_render.stdout.clone();
+    let v1_text = String::from_utf8(v1_view_bytes.clone()).expect("v1 view is UTF-8");
+    let recorded_label = format!("Recorded next action at handoff: {}", recorded_action);
+    assert!(v1_text.contains(&recorded_label), "v1 view: {v1_text}");
+    assert!(
+        !v1_text.contains(&format!(". Next: {}", recorded_action)),
+        "v1 view must not present the recorded action as current: {v1_text}"
+    );
+    fs::write(&view_path, &v1_view_bytes).expect("write generated v1 view to disposable fixture");
+
+    let preview = fixture.run(&fixture.identity_map_args());
+    assert_success(&preview);
+    let preview: Value = serde_json::from_slice(&preview.stdout).expect("parse v2 preview");
+    let mut v2_bytes = serde_json::to_vec_pretty(&preview["records"])
+        .expect("serialize v2 fixture records");
+    v2_bytes.push(b'\n');
+    fs::write(&tasks_path, v2_bytes).expect("install v2 records in disposable fixture");
+
+    let v2_render = fixture.run(&["render-v2".to_owned()]);
+    assert_success(&v2_render);
+    let v2_text = String::from_utf8(v2_render.stdout).expect("v2 view is UTF-8");
+    assert!(v2_text.contains(&recorded_label), "v2 view: {v2_text}");
+    assert!(
+        !v2_text.contains(&format!(". Next: {}", recorded_action)),
+        "v2 view must not present the recorded action as current: {v2_text}"
+    );
+}
+
+#[test]
 fn schema_v2_active_path_conflicts_are_repository_scoped() {
     let fixture = QueueV2Fixture::new();
     let (_tasks_path, _view_path, source_tasks, _source_view) = fixture.install_current_v1_queue();

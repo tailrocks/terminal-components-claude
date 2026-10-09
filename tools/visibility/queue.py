@@ -731,7 +731,7 @@ def render_queue(records_value: Any) -> str:
         ])
         handoff = task.get("handoff")
         if handoff is not None:
-            lines.extend(["", "Last handoff: {} → {} by `{}`. Next: {}".format(
+            lines.extend(["", "Last handoff: {} → {} by `{}`. Recorded next action at handoff: {}".format(
                 _markdown_cell(handoff["from_owner"]), _markdown_cell(handoff["to_owner"]),
                 _markdown_cell(handoff["handoff_by"]), _markdown_cell(handoff["next_action"]),
             )])
@@ -803,7 +803,7 @@ def render_queue_v2(records_value: Any) -> str:
         ])
         handoff = task.get("handoff")
         if handoff is not None:
-            lines.extend(["", "Last handoff: {} → {} by `{}`. Next: {}.".format(
+            lines.extend(["", "Last handoff: {} → {} by `{}`. Recorded next action at handoff: {}.".format(
                 _markdown_cell(handoff["from_owner"]), _markdown_cell(handoff["to_owner"]),
                 _markdown_cell(handoff["handoff_by"]), _markdown_cell(handoff["next_action"]),
             )])
