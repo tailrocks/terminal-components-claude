@@ -81,6 +81,7 @@ impl StatusFixture {
             .copy_tool_exact(Tool::Queue)
             .expect("copy exact adjacent queue CLI");
         for relative_path in [
+            "STATUS.md",
             "tools/visibility/source-facts.json",
             "docs/implementation/visibility/tasks.json",
             "WORK_QUEUE.md",
@@ -103,6 +104,45 @@ impl StatusFixture {
             script: status_tool.path,
             queue_script: queue_tool.path,
         }
+    }
+
+    fn from_checked_in_report_snapshot() -> Self {
+        let fixture = Self::from_checked_in_records();
+        let task_snapshot_path = fixture.repo.root().join(
+            "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-q59-task-record.json",
+        );
+        let task_snapshot = fs::read(&task_snapshot_path)
+            .expect("read archived q59 task snapshot for checked-in report");
+        assert_eq!(
+            sha256_hex(&task_snapshot),
+            "b38f71cf073e1a0249e1b084137de04d71301b763f6300af7a5416da998d1109",
+            "historical task snapshot must match its archived source pin"
+        );
+        let task_value: serde_json::Value =
+            serde_json::from_slice(&task_snapshot).expect("parse archived q59 task snapshot");
+        assert_eq!(task_value["queue_revision"], 59);
+        fixture.write_tasks(
+            std::str::from_utf8(&task_snapshot).expect("q59 task snapshot is UTF-8"),
+        );
+
+        let rendered_queue = fixture.run_queue(&["render"]);
+        assert_eq!(
+            rendered_queue.exit_code,
+            Some(0),
+            "{}",
+            error_text(&rendered_queue)
+        );
+        assert_eq!(
+            sha256_hex(&rendered_queue.stdout),
+            "9adb4cb2788b01a03be421d0666f7334a96910a0d823edce526fc67c913922db",
+            "q59 task snapshot must render the published q59 WORK_QUEUE bytes"
+        );
+        fs::write(
+            fixture.repo.root().join("WORK_QUEUE.md"),
+            &rendered_queue.stdout,
+        )
+        .expect("write matched q59 WORK_QUEUE fixture");
+        fixture
     }
 
     fn copy_manifest_members(repo: &TempRepo, manifest_path: &Path, member_root: Option<&Path>) {
@@ -577,6 +617,84 @@ fn write_json_facts(fixture: &StatusFixture, facts: &serde_json::Value) {
     fixture.write_facts(
         &serde_json::to_string_pretty(facts).expect("serialize source facts fixture"),
     );
+}
+
+fn write_attempt_artifact(
+    fixture: &StatusFixture,
+    name: &str,
+    bytes: &[u8],
+    format: &str,
+) -> serde_json::Value {
+    let relative = format!("tools/visibility/evidence/attempt-history/{name}");
+    let path = fixture.repo.root().join(&relative);
+    fs::create_dir_all(path.parent().expect("attempt artifact parent"))
+        .expect("create attempt artifact directory");
+    fs::write(path, bytes).expect("write attempt artifact");
+    serde_json::json!({
+        "path": relative,
+        "sha256": sha256_hex(bytes),
+        "format": format,
+    })
+}
+
+fn write_attempt_json(
+    fixture: &StatusFixture,
+    name: &str,
+    value: &serde_json::Value,
+) -> serde_json::Value {
+    let bytes = serde_json::to_vec(value).expect("serialize attempt JSON artifact");
+    write_attempt_artifact(fixture, name, &bytes, "json")
+}
+
+fn paired_attempt_fixture(fixture: &StatusFixture) -> serde_json::Value {
+    let source_binding = serde_json::json!({
+        "kind": "candidate_reference_pair",
+        "candidate_commit": "3333333333333333333333333333333333333333",
+        "reference_commit": "4444444444444444444444444444444444444444",
+    });
+    let counts = serde_json::json!({
+        "inventory": 4,
+        "selected": 1,
+        "started": 1,
+        "passed": 0,
+        "failed": 1,
+        "filtered": 3,
+        "incomplete": 0,
+    });
+    let states = serde_json::json!({
+        "test": "FAIL",
+        "child": "FAIL",
+        "wrapper": "FAIL",
+        "collector": "INCOMPLETE",
+        "postflight": "UNVERIFIED",
+        "cleanup": "UNVERIFIED",
+        "product_qualification": "BLOCKED",
+        "capture": "INCOMPLETE",
+        "admission": "NOT_RUN",
+    });
+    let result_record = write_attempt_json(
+        fixture,
+        "paired-result.json",
+        &serde_json::json!({
+            "schema": "termrock-status-attempt-result/v1",
+            "attempt_id": "run03-r7",
+            "lane": "paired_nextest",
+            "source_binding": source_binding.clone(),
+            "counts": counts.clone(),
+            "states": states.clone(),
+        }),
+    );
+    serde_json::json!({
+        "sequence": 1,
+        "attempt_id": "run03-r7",
+        "recorded_at": "2026-10-08T15:23:00Z",
+        "lane": "paired_nextest",
+        "scope": "CURRENT",
+        "source_binding": source_binding,
+        "counts": counts,
+        "states": states,
+        "evidence": {"result_record": result_record},
+    })
 }
 
 fn write_pinned_json(
@@ -1541,7 +1659,9 @@ fn execution_receipt_json_rejects_duplicate_keys() {
 
 #[test]
 fn checked_in_records_render_from_exact_copies() {
-    let fixture = StatusFixture::from_checked_in_records();
+    let fixture = StatusFixture::from_checked_in_report_snapshot();
+    let checked_in_report = fs::read(fixture.repo.root().join("STATUS.md"))
+        .expect("read exact checked-in STATUS report");
     let facts_path = fixture
         .repo
         .root()
@@ -1564,11 +1684,20 @@ fn checked_in_records_render_from_exact_copies() {
     let history = facts["source_observation_history"]
         .as_array()
         .expect("superseded source observation history");
+    assert!(
+        facts.get("execution_attempt_history").is_none(),
+        "checked-in source facts must exercise absent optional attempt history"
+    );
 
     let output = fixture.run(&[]);
     let repeated = fixture.run(&[]);
     let report = output_text(&output);
     assert_eq!(output.exit_code, Some(0));
+    assert_eq!(
+        output.stdout.as_slice(),
+        checked_in_report.as_slice(),
+        "absent optional history must preserve checked-in STATUS bytes"
+    );
     assert_eq!(repeated.exit_code, Some(0));
     assert_eq!(output.stdout, repeated.stdout);
     assert!(report.contains(candidate_sha));
@@ -1848,7 +1977,7 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
     ]);
     assert_eq!(scoped_preview.exit_code, Some(2));
     assert!(error_text(&scoped_preview)
-        .contains("tasks[1].branch_scopes is a schema-v1 claim extension"));
+        .contains("tasks[0].branch_scopes is a schema-v1 claim extension"));
     assert_eq!(
         fs::read(&tasks_path).expect("tasks after rejecting scoped preview"),
         current_v1_tasks
@@ -1874,7 +2003,49 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
             removed_scope_count += 1;
         }
     }
-    assert_eq!(removed_scope_count, 1, "the q47 fixture has one v1 scope extension");
+    assert_eq!(
+        removed_scope_count, 2,
+        "both scoped claim rows must be removed for the schema-v1 migration preview"
+    );
+    let mut removed_history_scope_contexts = Vec::new();
+    let history_tasks = representable_v1["tasks"]
+        .as_array_mut()
+        .expect("schema-v1 task array after current-claim normalization");
+    for task in history_tasks.iter_mut() {
+        let work_id = task["work_id"]
+            .as_str()
+            .expect("checked-in task work id")
+            .to_owned();
+        let Some(history) = task.get_mut("claim_history") else {
+            continue;
+        };
+        let history = history
+            .as_array_mut()
+            .expect("checked-in claim history array");
+        for (history_index, entry) in history.iter_mut().enumerate() {
+            let claim = entry
+                .get_mut("claim")
+                .expect("checked-in history claim snapshot")
+                .as_object_mut()
+                .expect("checked-in history claim object");
+            if !claim.contains_key("branch_scopes") {
+                continue;
+            }
+            let mut expected_claim = claim.clone();
+            assert!(expected_claim.remove("branch_scopes").is_some());
+            assert!(claim.remove("branch_scopes").is_some());
+            assert_eq!(
+                *claim, expected_claim,
+                "normalizing a v1 history snapshot must preserve every non-scope field"
+            );
+            removed_history_scope_contexts.push((work_id.clone(), history_index));
+        }
+    }
+    assert_eq!(
+        removed_history_scope_contexts,
+        vec![("VIS-01".to_owned(), 3), ("VIS-02".to_owned(), 2)],
+        "only the two accepted history snapshots with the schema-v1 claim extension are normalized"
+    );
     fixture.write_tasks(
         &serde_json::to_string(&representable_v1).expect("serialize representable schema-v1 tasks"),
     );
@@ -2071,7 +2242,7 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     assert!(report.contains("Refactor / Ready | NOT_READY"));
     assert!(report.contains("FAILED: 22/23 passed, 1 failed, 87 filtered"));
     assert!(report.contains(
-        "verified candidate API/deferred result is FAILED: 22 of 23 passed, 1 failed"
+        "The candidate API/deferred test run FAILED: 22 of 23 tests passed; 1 failed."
     ));
 
     let mut malformed_source = original.clone();
@@ -3371,4 +3542,216 @@ fn rejects_unrecorded_candidate_acceptance_promotion() {
     assert!(error_text(&output).contains(
         "candidate deferred/API run must remain a source-bound partial failure"
     ));
+}
+
+#[test]
+fn execution_attempt_history_keeps_test_wrapper_and_readiness_states_separate() {
+    let fixture = StatusFixture::new();
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+    facts["execution_attempt_history"] = serde_json::json!({
+        "schema": "termrock-status-execution-attempt-history/v1",
+        "attempts": [paired_attempt_fixture(&fixture)],
+    });
+    write_json_facts(&fixture, &facts);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
+    let report = output_text(&output);
+    assert!(report.contains("## Execution attempt history"));
+    assert!(report.contains("run03-r7"));
+    assert!(report.contains("1/4 selected; 1 started; 0 passed; 1 failed; 3 filtered; 0 incomplete"));
+    assert!(report.contains("| FAIL | FAIL | FAIL | INCOMPLETE | UNVERIFIED | UNVERIFIED | BLOCKED |"));
+    assert!(report.contains("Visibility / Complete | NOT_RUN"));
+    assert!(report.contains("Refactor / Ready | NOT_RUN"));
+    assert!(report.contains("Reference / Qualified | NOT_RUN"));
+    assert!(report.contains("they do not promote product readiness"));
+}
+
+#[test]
+fn stale_attempt_must_be_historical_and_does_not_promote_readiness() {
+    let fixture = StatusFixture::new();
+    let mut stale = paired_attempt_fixture(&fixture);
+    stale["source_binding"]["candidate_commit"] = serde_json::json!("5555555555555555555555555555555555555555");
+    stale["source_binding"]["reference_commit"] = serde_json::json!("6666666666666666666666666666666666666666");
+    let stale_result_record = write_attempt_json(
+        &fixture,
+        "stale-paired-result.json",
+        &serde_json::json!({
+            "schema": "termrock-status-attempt-result/v1",
+            "attempt_id": stale["attempt_id"].clone(),
+            "lane": stale["lane"].clone(),
+            "source_binding": stale["source_binding"].clone(),
+            "counts": stale["counts"].clone(),
+            "states": stale["states"].clone(),
+        }),
+    );
+    stale["evidence"]["result_record"] = stale_result_record;
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+    facts["execution_attempt_history"] = serde_json::json!({
+        "schema": "termrock-status-execution-attempt-history/v1",
+        "attempts": [stale.clone()],
+    });
+    write_json_facts(&fixture, &facts);
+
+    let mislabeled = fixture.run(&[]);
+    assert_eq!(mislabeled.exit_code, Some(2));
+    assert!(error_text(&mislabeled).contains("cannot label a stale or unrelated source as CURRENT"));
+
+    stale["scope"] = serde_json::json!("HISTORICAL");
+    facts["execution_attempt_history"]["attempts"] = serde_json::json!([stale]);
+    write_json_facts(&fixture, &facts);
+    let historical = fixture.run(&[]);
+    assert_eq!(historical.exit_code, Some(0), "{}", error_text(&historical));
+    let report = output_text(&historical);
+    assert!(report.contains("| HISTORICAL | `5555555555555555555555555555555555555555` / `6666666666666666666666666666666666666666` |"));
+    assert!(report.contains("Visibility / Complete | NOT_RUN"));
+    assert!(report.contains("Refactor / Ready | NOT_RUN"));
+}
+
+#[test]
+fn attempt_history_rejects_count_sequence_and_artifact_pin_drift() {
+    let fixture = StatusFixture::new();
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+    let valid = paired_attempt_fixture(&fixture);
+    facts["execution_attempt_history"] = serde_json::json!({
+        "schema": "termrock-status-execution-attempt-history/v1",
+        "attempts": [valid.clone()],
+    });
+
+    let mut bad_counts = facts.clone();
+    bad_counts["execution_attempt_history"]["attempts"][0]["counts"]["passed"] = serde_json::json!(1);
+    write_json_facts(&fixture, &bad_counts);
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("counts do not reconcile"));
+
+    let mut inconsistent_record = facts.clone();
+    inconsistent_record["execution_attempt_history"]["attempts"][0]["states"]["wrapper"] =
+        serde_json::json!("INVALID");
+    write_json_facts(&fixture, &inconsistent_record);
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("result_record does not match its typed attempt row"));
+
+    let mut bad_sequence = facts.clone();
+    bad_sequence["execution_attempt_history"]["attempts"][0]["sequence"] = serde_json::json!(2);
+    write_json_facts(&fixture, &bad_sequence);
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("sequence must be contiguous"));
+
+    let mut bad_pin = facts;
+    bad_pin["execution_attempt_history"]["attempts"][0]["evidence"]["result_record"]["sha256"] =
+        serde_json::json!("0".repeat(64));
+    write_json_facts(&fixture, &bad_pin);
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("bytes do not match the recorded SHA-256"));
+}
+
+#[test]
+fn ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs() {
+    let fixture = StatusFixture::new();
+    let run = serde_json::json!({
+        "id": 37985833303_u64,
+        "name": ".github/workflows/ci.yml",
+        "head_branch": "termrock-implementation",
+        "head_sha": "ed7d30de8ffabe9ebe6f1119f8f364142b777d0f",
+        "status": "completed",
+        "conclusion": "failure",
+        "check_suite_id": 102925783239_u64
+    });
+    let failed_suite = serde_json::json!({
+        "id": 102925783239_u64,
+        "head_branch": "termrock-implementation",
+        "head_sha": "ed7d30de8ffabe9ebe6f1119f8f364142b777d0f",
+        "status": "completed",
+        "conclusion": "failure",
+        "latest_check_runs_count": 0,
+        "check_runs_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/check-suites/102925783239/check-runs"
+    });
+    let evidence = serde_json::json!({
+        "run_detail": write_attempt_json(&fixture, "ci-run.json", &run),
+        "failed_suite": write_attempt_json(&fixture, "ci-suite.json", &failed_suite),
+        "failed_suite_runs": write_attempt_json(
+            &fixture, "ci-suite-runs.json", &serde_json::json!({"total_count": 0, "check_runs": []}),
+        ),
+        "jobs": write_attempt_json(
+            &fixture, "ci-jobs.json", &serde_json::json!({"total_count": 0, "jobs": []}),
+        ),
+        "artifacts": write_attempt_json(
+            &fixture, "ci-artifacts.json", &serde_json::json!({"total_count": 0, "artifacts": []}),
+        ),
+        "log_cli_output": write_attempt_artifact(
+            &fixture, "ci-log-cli.txt", b"failed to get run log: log not found\n", "utf8",
+        ),
+    });
+    let attempt = serde_json::json!({
+        "sequence": 1,
+        "attempt_id": "github-ci-37985833303",
+        "recorded_at": "2026-10-09T20:44:35Z",
+        "lane": "ci_provider",
+        "scope": "HISTORICAL",
+        "source_binding": {
+            "kind": "candidate_commit",
+            "commit_sha": "ed7d30de8ffabe9ebe6f1119f8f364142b777d0f"
+        },
+        "counts": {
+            "inventory": 0, "selected": 0, "started": 0, "passed": 0,
+            "failed": 0, "filtered": 0, "incomplete": 0
+        },
+        "states": {
+            "test": "NOT_RUN", "child": "NOT_RUN", "wrapper": "NOT_APPLICABLE",
+            "collector": "INCOMPLETE", "postflight": "NOT_APPLICABLE",
+            "cleanup": "NOT_APPLICABLE", "product_qualification": "BLOCKED",
+            "capture": "INCOMPLETE", "admission": "NOT_RUN"
+        },
+        "evidence": evidence,
+        "diagnostic": {
+            "status": "NOT_EXPOSED",
+            "log_fetch_outcome": "CLI_REPORTED_LOG_NOT_FOUND",
+            "http_status": "NOT_CAPTURED",
+            "log_cli_exit_code": 1
+        }
+    });
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+    facts["execution_attempt_history"] = serde_json::json!({
+        "schema": "termrock-status-execution-attempt-history/v1",
+        "attempts": [attempt],
+    });
+    write_json_facts(&fixture, &facts);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
+    let report = output_text(&output);
+    let row = report.lines().find(|line| line.contains("37985833303"))
+        .expect("CI attempt row is rendered");
+    assert!(row.contains("diagnostic NOT_EXPOSED"));
+    assert!(row.contains("CLI_REPORTED_LOG_NOT_FOUND"));
+    assert!(row.contains("HTTP status NOT_CAPTURED"));
+    assert!(!row.contains("537470 bytes"));
+    assert!(report.contains("Refactor / Ready | NOT_RUN"));
+
+    facts["execution_attempt_history"]["attempts"][0]["diagnostic"]["http_status"] =
+        serde_json::json!(404);
+    write_json_facts(&fixture, &facts);
+    let inferred_http = fixture.run(&[]);
+    assert_eq!(inferred_http.exit_code, Some(2));
+    assert!(error_text(&inferred_http).contains("preserve the unavailable cause and HTTP status"));
+
+    facts["execution_attempt_history"]["attempts"][0]["diagnostic"]["http_status"] =
+        serde_json::json!("NOT_CAPTURED");
+    facts["execution_attempt_history"]["attempts"][0]["evidence"]["failed_suite_runs"] =
+        write_attempt_json(
+            &fixture, "ci-suite-runs-nonzero.json",
+            &serde_json::json!({"total_count": 1, "check_runs": [{"id": 1}]}),
+        );
+    write_json_facts(&fixture, &facts);
+    let nonzero_suite = fixture.run(&[]);
+    assert_eq!(nonzero_suite.exit_code, Some(2));
+    assert!(error_text(&nonzero_suite).contains("prove zero suite check-runs"));
 }
