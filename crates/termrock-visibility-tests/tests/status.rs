@@ -964,22 +964,52 @@ fn base_tasks() -> String {
     r#"{
   "schema_version": 1,
   "queue_revision": 7,
+  "accepted_by": "fixture-integrator",
+  "acceptance_mode": "synthetic",
+  "accepted_at": "2026-10-08T00:00:00Z",
   "tasks": [
     {
       "work_id": "VIS-01",
+      "requirement_ids": ["VIS-P02"],
       "priority": "P0",
-      "state": "in_progress",
+      "priority_reason": "Publish measured visibility evidence.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+      "allowed_paths": ["tools/visibility/status.py"],
       "owner": "/root/status_luna",
       "reviewer": "/root/technical_review",
-      "priority_reason": "Publish measured visibility evidence."
+      "claim_token": "fixture-vis01",
+      "expiry": "2026-10-09T06:00:00Z",
+      "state": "in_progress",
+      "evidence": ["synthetic status fixture"],
+      "handoff": null,
+      "accepted_queue_revision": 7
     },
     {
       "work_id": "VIS-02",
+      "requirement_ids": ["VIS-T01"],
       "priority": "P0",
-      "state": "ready",
+      "priority_reason": "Run paired binary checks.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+      "allowed_paths": ["crates/termrock-e2e/**"],
+      "state": "claimed",
       "owner": "/root/suite_luna",
       "reviewer": "/root/technical_review",
-      "priority_reason": "Run paired binary checks."
+      "claim_token": "fixture-vis02",
+      "expiry": "2026-10-09T06:00:00Z",
+      "evidence": ["synthetic q47 branch-scope fixture"],
+      "handoff": null,
+      "accepted_queue_revision": 7,
+      "branch_scopes": [
+        {
+          "branch": "visual-baseline",
+          "base_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+          "allowed_paths": ["crates/termrock-e2e/**"]
+        }
+      ]
     }
   ]
 }"#
@@ -1723,11 +1753,57 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
         .root()
         .join("docs/implementation/visibility/tasks.json");
     let queue_view_path = fixture.repo.root().join("WORK_QUEUE.md");
-    let v1_tasks = fs::read(&tasks_path).expect("read copied schema-v1 tasks");
-    let v1_queue_view = fs::read(&queue_view_path).expect("read copied v1 queue view");
+    let current_v1_tasks = fs::read(&tasks_path).expect("read copied schema-v1 tasks");
+    let current_v1_queue_view = fs::read(&queue_view_path).expect("read copied v1 queue view");
 
+    let scoped_preview = fixture.run_queue(&[
+        "migration-preview",
+        "--repository-id",
+        "termrock",
+        "--worktree-id",
+        "coordinator",
+    ]);
+    assert_eq!(scoped_preview.exit_code, Some(2));
+    assert!(error_text(&scoped_preview)
+        .contains("tasks[1].branch_scopes is a schema-v1 claim extension"));
+    assert_eq!(
+        fs::read(&tasks_path).expect("tasks after rejecting scoped preview"),
+        current_v1_tasks
+    );
+    assert_eq!(
+        fs::read(&queue_view_path).expect("queue view after rejecting scoped preview"),
+        current_v1_queue_view
+    );
+
+    let mut representable_v1: serde_json::Value =
+        serde_json::from_slice(&current_v1_tasks).expect("parse copied schema-v1 tasks");
+    let tasks = representable_v1["tasks"]
+        .as_array_mut()
+        .expect("schema-v1 task array");
+    let mut removed_scope_count = 0;
+    for task in tasks {
+        if task
+            .as_object_mut()
+            .expect("schema-v1 task object")
+            .remove("branch_scopes")
+            .is_some()
+        {
+            removed_scope_count += 1;
+        }
+    }
+    assert_eq!(removed_scope_count, 1, "the q47 fixture has one v1 scope extension");
+    fixture.write_tasks(
+        &serde_json::to_string(&representable_v1).expect("serialize representable schema-v1 tasks"),
+    );
+    let rendered_v1 = fixture.run_queue(&["render"]);
+    assert_eq!(rendered_v1.exit_code, Some(0), "{}", error_text(&rendered_v1));
+    fs::write(&queue_view_path, &rendered_v1.stdout)
+        .expect("write v1 view for the isolated representable fixture");
+
+    let v1_tasks = fs::read(&tasks_path).expect("read representable schema-v1 tasks");
+    let v1_queue_view = fs::read(&queue_view_path).expect("read representable v1 queue view");
     let v1_output = fixture.run(&[]);
-    assert_eq!(v1_output.exit_code, Some(0));
+    assert_eq!(v1_output.exit_code, Some(0), "{}", error_text(&v1_output));
 
     let preview = fixture.run_queue(&[
         "migration-preview",
@@ -1824,6 +1900,29 @@ fn status_fails_closed_when_adjacent_queue_is_missing_or_symlinked() {
     let output = symlinked.run(&[]);
     assert_eq!(output.exit_code, Some(2));
     assert!(error_text(&output).contains("trusted adjacent queue module is unavailable"));
+}
+
+#[test]
+fn status_fails_closed_when_adjacent_queue_lacks_v1_validator() {
+    let fixture = StatusFixture::new();
+    let v2_only_queue_module = concat!(
+        "def strict_json_loads(value):\n",
+        "    return value\n\n",
+        "def validate_records_v2(records):\n",
+        "    return records\n",
+    );
+    fs::write(
+        &fixture.queue_script,
+        v2_only_queue_module,
+    )
+    .expect("write queue module without schema-v1 validator");
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(
+        error_text(&output).contains("trusted adjacent queue module lacks required validators")
+    );
+    assert!(output.stdout.is_empty());
 }
 
 #[test]
@@ -2719,13 +2818,91 @@ fn rejects_duplicate_task_ids_and_unknown_states() {
 
     let unknown = replace_once(
         base_tasks(),
-        "\"state\": \"ready\"",
+        "\"state\": \"claimed\"",
         "\"state\": \"passed\"",
     );
     fixture.write_tasks(&unknown);
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
     assert!(error_text(&output).contains("unknown task state"));
+}
+
+#[test]
+fn status_accepts_q47_reference_branch_scope() {
+    let fixture = StatusFixture::new();
+    let output = fixture.run(&[]);
+
+    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
+    assert!(!output.stdout.is_empty());
+}
+
+#[test]
+fn status_rejects_malformed_or_incomplete_q47_v1_records() {
+    let fixture = StatusFixture::new();
+    let valid: serde_json::Value =
+        serde_json::from_str(&base_tasks()).expect("parse strict q47-scope fixture");
+    let reject = |name: &str, records: &serde_json::Value, expected: &str| {
+        fixture.write_tasks(
+            &serde_json::to_string(records).expect("serialize mutated accepted-task fixture"),
+        );
+        let output = fixture.run(&[]);
+        assert_eq!(output.exit_code, Some(2), "{name}");
+        assert!(output.stdout.is_empty(), "{name}");
+        assert!(error_text(&output).contains(expected), "{name}: {}", error_text(&output));
+    };
+
+    let mut malformed_scope = valid.clone();
+    malformed_scope["tasks"][1]["branch_scopes"][0]["allowed_paths"] =
+        serde_json::json!(["crates/**"]);
+    reject(
+        "malformed branch scope",
+        &malformed_scope,
+        "VIS-02.branch_scopes[0].allowed_paths must contain only crates/termrock-e2e/**",
+    );
+
+    let mut missing_scope_field = valid.clone();
+    missing_scope_field["tasks"][1]["branch_scopes"][0]
+        .as_object_mut()
+        .expect("q47 branch-scope object")
+        .remove("base_sha");
+    reject(
+        "missing branch-scope field",
+        &missing_scope_field,
+        "VIS-02.branch_scopes[0] is missing fields: base_sha",
+    );
+
+    let mut extra_scope_field = valid.clone();
+    extra_scope_field["tasks"][1]["branch_scopes"][0]
+        .as_object_mut()
+        .expect("q47 branch-scope object")
+        .insert("unexpected".to_owned(), serde_json::json!(true));
+    reject(
+        "extra branch-scope field",
+        &extra_scope_field,
+        "VIS-02.branch_scopes[0] has unknown fields: unexpected",
+    );
+
+    let mut missing_task_field = valid.clone();
+    missing_task_field["tasks"][1]
+        .as_object_mut()
+        .expect("q47 task record")
+        .remove("handoff");
+    reject(
+        "missing task field",
+        &missing_task_field,
+        "tasks[1] is missing fields: handoff",
+    );
+
+    let mut extra_task_field = valid;
+    extra_task_field["tasks"][1]
+        .as_object_mut()
+        .expect("q47 task record")
+        .insert("unexpected_task_field".to_owned(), serde_json::json!(true));
+    reject(
+        "extra task field",
+        &extra_task_field,
+        "tasks[1] has unknown fields: unexpected_task_field",
+    );
 }
 
 #[test]

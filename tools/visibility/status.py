@@ -32,7 +32,6 @@ STATUS_EVIDENCE_ARCHIVE_RAW_ROOT = STATUS_EVIDENCE_ARCHIVE_ROOT / "raw"
 ARCHIVED_EXTERNAL_EVIDENCE_PATHS: Optional[frozenset[str]] = None
 ARCHIVED_REPOSITORY_EVIDENCE_PATHS: Optional[frozenset[str]] = None
 PRIORITY = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
-TASK_STATES = {"ready", "claimed", "in_progress", "review", "blocked", "verified"}
 CURRENT_CI_WORKFLOW = ".github/workflows/ci.yml"
 WORKFLOW_SIZE_ANNOTATION = (
     "Workflow file exceeds the maximum allowed size of 500 KB. See "
@@ -3498,32 +3497,11 @@ def validate_facts(facts: Any) -> Mapping[str, Any]:
     return facts
 
 
-def validate_tasks(records: Any) -> Mapping[str, Any]:
-    require(isinstance(records, dict) and records.get("schema_version") == 1,
-            "unsupported accepted-task schema")
-    revision = records.get("queue_revision")
-    require(type(revision) is int and revision > 0, "invalid queue revision")
-    tasks = records.get("tasks")
-    require(isinstance(tasks, list), "accepted tasks must be an array")
-    seen = set()
-    for task in tasks:
-        require(isinstance(task, dict), "task record must be an object")
-        work_id = task.get("work_id")
-        require(isinstance(work_id, str) and work_id not in seen, "missing or duplicate work ID")
-        seen.add(work_id)
-        require(task.get("priority") in PRIORITY, "unknown task priority")
-        require(task.get("state") in TASK_STATES, "unknown task state")
-        require(all(isinstance(task.get(field), str)
-                    for field in ("owner", "reviewer", "priority_reason")),
-                "task owner, reviewer, and priority reason are required")
-    return records
-
-
 def validate_accepted_tasks(records: Any, queue_module: Any) -> Mapping[str, Any]:
     require(isinstance(records, dict), "unsupported accepted-task schema")
     version = records.get("schema_version")
     if type(version) is int and version == 1:
-        return validate_tasks(records)
+        return queue_module.validate_records(records)
     if type(version) is int and version == 2:
         return queue_module.validate_records_v2(records)
     raise ValueError("unsupported accepted-task schema")
@@ -4101,9 +4079,9 @@ def load_queue_module() -> Any:
         spec.loader.exec_module(module)
     except Exception as error:
         raise ValueError("cannot load trusted adjacent queue module: {}".format(error)) from error
-    if not callable(getattr(module, "strict_json_loads", None)) or not callable(
-        getattr(module, "validate_records_v2", None)
-    ):
+    if not all(callable(getattr(module, name, None)) for name in (
+        "strict_json_loads", "validate_records", "validate_records_v2",
+    )):
         raise ValueError("trusted adjacent queue module lacks required validators")
     return module
 
