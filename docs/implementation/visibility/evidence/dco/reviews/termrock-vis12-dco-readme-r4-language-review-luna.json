@@ -1,0 +1,43 @@
+{
+  "schema": "termrock-independent-language-review-receipt/v1",
+  "proposal_id": "VIS12-dco-readme-language-r4-20261009",
+  "reviewed_at_utc": "2026-10-09 03:33:57 UTC",
+  "inputs": {
+    "review_request_sha256": "a8f9eaa497b4451ad60ddcfe4e988cd4b0c10cab72d26d49020aa651325e29c9",
+    "candidate_sha256": "f9941ee745e303671c73e0d42ad7014ad30dad83e1b417d2d35a2d4f0a4f87a2",
+    "preimage_sha256": "db7cb20a24416c631b0156b353cf09f771421a73a12fe37adeeeacd2b5aee192",
+    "plan_sha256": "45c38cd8cc863075cdeba9c9f52ed254d29816566d4f4b5e9d886c4e08b37820",
+    "source_manifest_sha256": "1a9afd0e36ac1cbbdabd857f2d02c683239a1db8bb84084d946c22d61ec23a14",
+    "sha256sums_sha256": "f2c338380da6eec6d7bbc189d13619ecaa87df2237f3ec228ec4e2a5a1e480cb"
+  },
+  "standard": {
+    "name": "ASD-STE100 Issue 9",
+    "path": "/tmp/asd-ste100-issue9-official.pdf",
+    "sha256": "d1f4ea9e7cd6e46b47aa9057209f99e78c0e9cfc4e27a5b07895b05c1a166431",
+    "selected_rules_consulted": ["6.3"],
+    "rule_applied": "Descriptive sentences have a maximum of 25 words."
+  },
+  "finding": {
+    "verdict": "focused_language_follow_up_pass",
+    "replacements": [
+      {
+        "text": "It records the old and new heads, equal tree, and unchanged local HEAD and index.",
+        "word_count": 15
+      },
+      {
+        "text": "It also records the frozen tag object and target commit IDs, and the DCO check ID.",
+        "word_count": 16
+      }
+    ],
+    "conclusion": "Both replacement sentences are below the 25-word limit. The R4 split preserves the facts in R3 and the pinned preimage, adds no facts, and changes no other candidate wording."
+  },
+  "limits": {
+    "selected_rule_review_only": true,
+    "full_dictionary_audit": false,
+    "full_asd_ste100_compliance_finding": false,
+    "history_evidence_validated": false,
+    "repository_edited": false,
+    "tests_or_builds_run": false,
+    "candidate_applied_or_accepted": false
+  }
+}

@@ -60,9 +60,9 @@
     },
     {
       "path": "README.md",
-      "source_path": null,
-      "size_bytes": 3824,
-      "sha256": "db7cb20a24416c631b0156b353cf09f771421a73a12fe37adeeeacd2b5aee192"
+      "source_path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/candidate/README.md",
+      "size_bytes": 4093,
+      "sha256": "f9941ee745e303671c73e0d42ad7014ad30dad83e1b417d2d35a2d4f0a4f87a2"
     },
     {
       "path": "remote-head-and-tag.raw",
