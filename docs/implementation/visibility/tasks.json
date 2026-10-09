@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 34,
+  "queue_revision": 35,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -1121,6 +1121,33 @@
         "Independent post-push actual review /private/tmp/termrock-pr17-dco-postpush-actual-review-technical.json (SHA-256 e931261240829fa67a814c102ce35b6499bf8c3f0ff90dd631d4319d064a9369) verified the 83 actual projected objects and 82 trees against the map, and bound the supplied remote/tag and DCO-success captures. Current VIS-12 allowed-path subject digest is 29b789040a1107e1ab0e465af4a3d590d3c56237919a546bd8b616eb69661ad1. Verification remains pending because the accepted task source has no review_subject_sha256 field."
       ],
       "accepted_queue_revision": 31
+    },
+    {
+      "work_id": "VIS-13",
+      "requirement_ids": [
+        "VIS-S06",
+        "VIS-P02"
+      ],
+      "priority": "P0",
+      "priority_reason": "Provide the repository-portable, hash-checked current-observation archive needed by VIS-01 status evidence; retain current failure and NOT_RUN states without promoting readiness.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "allowed_paths": [
+        "docs/implementation/visibility/evidence/reports/**"
+      ],
+      "owner": "/root/tag_capture_boundary_luna",
+      "reviewer": "/root/ci_parity_review_luna",
+      "claim_token": "visibility-status-archive-q34-20261009-01",
+      "expiry": "2026-10-09T06:00:00Z",
+      "state": "claimed",
+      "evidence": [
+        "VIS-01 current-observation portability R3 bundle proposes a 50-raw-file archive totaling 3,993,515 bytes, manifest SHA-256 95c44bc19d03e1d17252e7bdf3f146060057f11e2fed34bcbf161c26286f3429; this is not yet a repository archive or qualification.",
+        "VIS-13 is a repository-artifact prerequisite for VIS-01. Its output target is docs/implementation/visibility/evidence/reports/status-source-archive-20261009/**, within this claim scope. VIS-01 must later bind its renderer/facts to this target; the external R3 patch currently names a different target under evidence/status-source-archive-20261009.",
+        "Applicable existing requirements: VIS-S06 (current receipts rather than historical claims) and VIS-P02 (canonical queue and accepted claims)."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 35
     }
   ]
 }

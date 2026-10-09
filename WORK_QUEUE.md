@@ -1,7 +1,7 @@
 # Work queue
 
 Generated from [accepted task records](docs/implementation/visibility/tasks.json).
-Queue revision: 34. Acceptance owner: `/root`.
+Queue revision: 35. Acceptance owner: `/root`.
 
 Highest open priority: **P0**.
 
@@ -19,6 +19,7 @@ Highest open priority: **P0**.
 | VIS-10 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | claimed | — | /root | /root/jackin_inventory_current_luna | tools/visibility/queue.py, crates/termrock-visibility-tests/tests/queue_v2.rs, docs/implementation/visibility/queue-v2.md |
 | VIS-11 | VIS-I01, VIS-I02, VIS-I03, VIS-I04, VIS-I05, VIS-I06, VIS-I07, VIS-I08, VIS-I09, VIS-I10 | P0 | claimed | — | /root/status_recovery_luna | /root/technical_review | .github/workflows/**, .velnor/**, docs/implementation/visibility/evidence/ci/**, docs/implementation/visibility/evidence/tools/** |
 | VIS-12 | VIS-I05, VIS-P06, VIS-P07 | P0 | review | — | /root/coordination_luna | /root/technical_review | docs/implementation/visibility/evidence/dco/** |
+| VIS-13 | VIS-S06, VIS-P02 | P0 | claimed | — | /root/tag_capture_boundary_luna | /root/ci_parity_review_luna | docs/implementation/visibility/evidence/reports/** |
 
 ## Claim details
 
@@ -151,6 +152,16 @@ Claim token: `visibility-pr17-dco-repair-20261009-0136Z`; accepted at queue revi
 Branch/base: `termrock-implementation` / `766ae1e925e32b4b28aa9100bb3fde5279aa223b`.
 
 Evidence: User explicitly authorizes conflict resolution and force push only to fix offending past DCO commits, without replacing or dropping unrelated history., Git operation scope: repair only confirmed offending remote PR commit messages; preserve every file tree, original authorship, topology, and commit order; rebuild descendants only as required by changed parent identities. Root alone integrates and pushes refs/heads/termrock-implementation with an exact-head lease. Preserve immutable visual tag/release and local HEAD/index., Required evidence: live DCO offending commit IDs; exact old/new mapping; all tree and metadata preservation checks; independent repair review; recoverable old head; exact remote lease; refreshed PR DCO result., The allowed file paths are evidence publication scope. The Git metadata operation is separately authorized above; this record does not confer a general history rewrite permission., PR #17 limited DCO repair was published at remote head 6819529c2d24d871ba1c251988d8544cfaa82c51 from old head 28058beecf63acee3b65bab847e507fe8e1c539d. The old and new tree is 3a58036c595688898fc989ef6453e6d9d512f230; the R2 map records 83 recreated commit objects and four message edits. GitHub DCO check 113639531062 completed success. The all-history audit still records 16 older unsigned commits; product visibility remains unaccepted and refactor readiness remains not ready. Evidence packet: docs/implementation/visibility/evidence/dco/20261009-pr17-repair/., Independent post-push actual review /private/tmp/termrock-pr17-dco-postpush-actual-review-technical.json (SHA-256 e931261240829fa67a814c102ce35b6499bf8c3f0ff90dd631d4319d064a9369) verified the 83 actual projected objects and 82 trees against the map, and bound the supplied remote/tag and DCO-success captures. Current VIS-12 allowed-path subject digest is 29b789040a1107e1ab0e465af4a3d590d3c56237919a546bd8b616eb69661ad1. Verification remains pending because the accepted task source has no review_subject_sha256 field.
+
+### VIS-13
+
+Priority reason: Provide the repository-portable, hash-checked current-observation archive needed by VIS-01 status evidence; retain current failure and NOT_RUN states without promoting readiness.
+
+Claim token: `visibility-status-archive-q34-20261009-01`; accepted at queue revision 35; expires `2026-10-09T06:00:00Z`.
+
+Branch/base: `termrock-implementation` / `766ae1e925e32b4b28aa9100bb3fde5279aa223b`.
+
+Evidence: VIS-01 current-observation portability R3 bundle proposes a 50-raw-file archive totaling 3,993,515 bytes, manifest SHA-256 95c44bc19d03e1d17252e7bdf3f146060057f11e2fed34bcbf161c26286f3429; this is not yet a repository archive or qualification., VIS-13 is a repository-artifact prerequisite for VIS-01. Its output target is docs/implementation/visibility/evidence/reports/status-source-archive-20261009/**, within this claim scope. VIS-01 must later bind its renderer/facts to this target; the external R3 patch currently names a different target under evidence/status-source-archive-20261009., Applicable existing requirements: VIS-S06 (current receipts rather than historical claims) and VIS-P02 (canonical queue and accepted claims).
 
 Expiry does not release an active claim. Reassignment requires a recorded safe handoff.
 Task state is assignment state; it does not prove test results or requirement completion.
