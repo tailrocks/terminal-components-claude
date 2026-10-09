@@ -78,6 +78,8 @@ CLAIM_SNAPSHOT_FIELDS = {
 CLAIM_SNAPSHOT_OPTIONAL_FIELDS = {"branch_scopes"}
 REFERENCE_BRANCH = "visual-baseline"
 REFERENCE_PACKAGE_SCOPE = "crates/termrock-e2e/**"
+BRANCH_SCOPE_AMENDMENT_WORK_IDS = {"VIS-01", "VIS-02", "VIS-11"}
+VIS01_REFERENCE_PATH_COUNT = 89
 MAX_REFERENCE_PROBE_BYTES = 4096
 REFERENCE_PROBE_TIMEOUT_SECONDS = 10.0
 REFERENCE_REF_OUTPUT = re.compile(rb"([0-9a-f]{40})\trefs/heads/visual-baseline\n")
@@ -285,7 +287,7 @@ def _task_scopes(task: Mapping[str, Any]) -> list[str]:
     return scopes
 
 
-def _validated_branch_scopes(value: Any, label: str) -> list[dict[str, Any]]:
+def _validated_branch_scopes(value: Any, label: str, work_id: str) -> list[dict[str, Any]]:
     require(isinstance(value, list), "{}.branch_scopes must be an array".format(label))
     scopes: list[dict[str, Any]] = []
     branches: set[str] = set()
@@ -302,9 +304,26 @@ def _validated_branch_scopes(value: Any, label: str) -> list[dict[str, Any]]:
         require(isinstance(base_sha, str) and SHA1.fullmatch(base_sha) is not None,
                 "{}.base_sha must be a full lowercase SHA-1".format(item_label))
         allowed_paths = item.get("allowed_paths")
-        require(allowed_paths == [REFERENCE_PACKAGE_SCOPE],
-                "{}.allowed_paths must contain only {}".format(item_label, REFERENCE_PACKAGE_SCOPE))
+        require(isinstance(allowed_paths, list) and bool(allowed_paths),
+                "{}.allowed_paths must be a nonempty array".format(item_label))
         normalized = [normalize_scope(path) for path in allowed_paths]
+        if work_id == "VIS-02":
+            require(normalized == [REFERENCE_PACKAGE_SCOPE],
+                    "{}.allowed_paths must contain only {}".format(item_label, REFERENCE_PACKAGE_SCOPE))
+        else:
+            require(work_id in {"VIS-01", "VIS-11"},
+                    "{}.branch_scopes are not enabled for {}".format(item_label, work_id))
+            require(all(not scope.endswith("/**") for scope in normalized),
+                    "{}.allowed_paths must be literal file paths for {}".format(item_label, work_id))
+            require(len(normalized) == len(set(normalized)),
+                    "{}.allowed_paths repeats a literal path".format(item_label))
+            for path_index, scope in enumerate(normalized):
+                for other in normalized[path_index + 1 :]:
+                    require(not scopes_overlap(scope, other),
+                            "{}.allowed_paths contains overlapping literal paths".format(item_label))
+            if work_id == "VIS-01":
+                require(len(normalized) == VIS01_REFERENCE_PATH_COUNT,
+                        "VIS-01 reference grant must contain exactly 89 literal paths")
         scopes.append({
             "branch": branch,
             "base_sha": base_sha,
@@ -315,7 +334,7 @@ def _validated_branch_scopes(value: Any, label: str) -> list[dict[str, Any]]:
 
 def _task_branch_grants(task: Mapping[str, Any]) -> list[tuple[str, list[str]]]:
     grants = [(task["branch"], _task_scopes(task))]
-    for scope in _validated_branch_scopes(task.get("branch_scopes", []), task["work_id"]):
+    for scope in _validated_branch_scopes(task.get("branch_scopes", []), task["work_id"], task["work_id"]):
         grants.append((scope["branch"], scope["allowed_paths"]))
     return grants
 
@@ -396,7 +415,7 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
                     "{} visual-baseline primary grant is limited to {}".format(
                         work_id, REFERENCE_PACKAGE_SCOPE
                     ))
-        branch_scopes = _validated_branch_scopes(task.get("branch_scopes", []), work_id)
+        branch_scopes = _validated_branch_scopes(task.get("branch_scopes", []), work_id, work_id)
         require(task["branch"] not in {scope["branch"] for scope in branch_scopes},
                 "{} repeats its primary branch in branch_scopes".format(work_id))
         owner = _text(task.get("owner"), "{}.owner".format(work_id))
@@ -461,7 +480,7 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
             require(frozenset(prior) in expected_snapshot_keys,
                     "{} claim snapshot has missing or unknown fields".format(history_label))
             if schema_version == 1 and "branch_scopes" in prior:
-                prior_branch_scopes = _validated_branch_scopes(prior["branch_scopes"], history_label)
+                prior_branch_scopes = _validated_branch_scopes(prior["branch_scopes"], history_label, work_id)
                 require(prior.get("branch") not in {scope["branch"] for scope in prior_branch_scopes},
                         "{} repeats its primary branch in branch_scopes".format(history_label))
             if schema_version == 2:
@@ -774,7 +793,7 @@ def bind_review_subject_record(
 
 
 def _accepted_branch_scope_plan(
-    records: Mapping[str, Any], plan_sha256: str, review_sha256: str,
+    records: Mapping[str, Any], work_id: str, plan_sha256: str, review_sha256: str,
 ) -> dict[str, Any] | None:
     # Accepted evidence pins local artifact bytes; it is queue policy data, not identity proof.
     plan_task = next((task for task in records["tasks"] if task["work_id"] == "VIS-10"), None)
@@ -826,7 +845,9 @@ def _accepted_branch_scope_plan(
             }.issubset(request):
                 requests.append(request)
         if len(requests) == 1:
-            accepted.append(requests[0])
+            request_work_id = requests[0].get("work_id", "VIS-02")
+            if request_work_id == work_id and ("work_id" in requests[0] or work_id == "VIS-02"):
+                accepted.append(requests[0])
     return accepted[0] if len(accepted) == 1 else None
 
 
@@ -839,8 +860,8 @@ def amend_branch_scope_record(
 ) -> tuple[dict[str, Any], str]:
     records = copy.deepcopy(validate_records(records_value))
     _ensure_revision(records, expected_revision)
-    require(work_id == "VIS-02",
-            "branch-scope amendment is authorized only for VIS-02")
+    require(work_id in BRANCH_SCOPE_AMENDMENT_WORK_IDS,
+            "branch-scope amendment is authorized only for VIS-01, VIS-02, or VIS-11")
     _text(claim_token, "claim token")
     require(isinstance(amendment_value, dict), "branch-scope amendment must be an object")
     _exact_keys(
@@ -859,18 +880,24 @@ def amend_branch_scope_record(
             "plan_sha256 must be a full lowercase SHA-256")
     require(isinstance(review_sha256, str) and SHA256.fullmatch(review_sha256) is not None,
             "review_sha256 must be a full lowercase SHA-256")
-    accepted_plan = _accepted_branch_scope_plan(records, plan_sha256, review_sha256)
+    accepted_plan = _accepted_branch_scope_plan(records, work_id, plan_sha256, review_sha256)
     require(accepted_plan is not None,
             "plan and review hashes are not bound to accepted VIS-10 evidence")
     _exact_keys(
         accepted_plan,
         {"expected_primary", "branch_scopes", "authorization_evidence"},
-        set(),
+        {"work_id"},
         "accepted branch-scope plan request",
     )
+    if "work_id" not in accepted_plan:
+        require(work_id == "VIS-02",
+                "accepted VIS-10 plan request must bind its work_id")
+    else:
+        require(accepted_plan["work_id"] == work_id,
+                "accepted VIS-10 plan request work_id differs from the target task")
 
-    replacement = _validated_branch_scopes(amendment_value["branch_scopes"], work_id)
-    accepted_scopes = _validated_branch_scopes(accepted_plan["branch_scopes"], work_id)
+    replacement = _validated_branch_scopes(amendment_value["branch_scopes"], work_id, work_id)
+    accepted_scopes = _validated_branch_scopes(accepted_plan["branch_scopes"], work_id, work_id)
     require(len(accepted_scopes) == 1,
             "accepted VIS-10 plan must name exactly one visual-baseline branch grant")
     accepted_base_sha = accepted_scopes[0]["base_sha"]
@@ -896,8 +923,8 @@ def amend_branch_scope_record(
             "expected_primary differs from the accepted VIS-10 plan")
     for field, value in accepted_primary.items():
         require(task.get(field) == value,
-                "VIS-02 {} differs from the accepted primary assignment".format(field))
-    current_scopes = _validated_branch_scopes(task.get("branch_scopes", []), work_id)
+                "{} {} differs from the accepted primary assignment".format(work_id, field))
+    current_scopes = _validated_branch_scopes(task.get("branch_scopes", []), work_id, work_id)
     require(current_scopes in ([], accepted_scopes),
             "existing visual-baseline grant differs from the accepted VIS-10 plan")
     require(replacement != current_scopes, "branch-scope amendment is a no-op")
@@ -1036,7 +1063,7 @@ def render_queue(records_value: Any) -> str:
             "",
             "Evidence: {}".format(_markdown_cell(task["evidence"])),
         ])
-        branch_scopes = _validated_branch_scopes(task.get("branch_scopes", []), task["work_id"])
+        branch_scopes = _validated_branch_scopes(task.get("branch_scopes", []), task["work_id"], task["work_id"])
         if branch_scopes:
             lines.extend(["", "Additional branch scopes:"])
             for scope in branch_scopes:

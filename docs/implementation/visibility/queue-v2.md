@@ -542,19 +542,32 @@ CAS. The operation appends both the authorization statement and an evidence
 entry containing the previous and replacement grants, queue revision, fresh
 reference tip, and accepted plan/review references.
 
-For this increment, `amend-branch-scope` applies only to VIS-02 and accepts
-either the exact additional grant recorded in the accepted plan or `[]` to
-remove it. The addition uses the plan's fixed `visual-baseline` base SHA and
-`allowed_paths` exactly `["crates/termrock-e2e/**"]`; a fresh probe must still
-match that fixed base before any write. The task keeps its existing primary candidate grant
-and assignment. Old v1 tasks and handoff snapshots without `branch_scopes`
-remain valid. New handoff snapshots preserve the field when present. New
-`accept` requests cannot preseed it. The generated view prints each added
-branch, base, and path. Candidate review-subject digests continue to cover the
-primary scope only; amendments are rejected while a subject is active, and a
-candidate-only digest cannot be bound or used to verify a task while an
-additional branch scope is active. The reference grant does not imply parity
-or verification.
+This increment keeps the existing VIS-02 request shape and adds exact task
+binding for VIS-01 and VIS-11. The accepted VIS-02 plan may omit `work_id`; that
+legacy shape is interpreted as VIS-02 only. A VIS-01 or VIS-11 plan must include
+its exact `work_id`. The target task's owner, reviewer, priority, candidate
+branch, base, and primary paths still must match the accepted plan byte for
+byte. The operation accepts only the plan's complete reference grant or `[]`
+to remove it, and it preserves the task's primary assignment and paths.
+
+VIS-01 reference grants contain exactly 89 normalized literal paths. VIS-11
+grants contain normalized literal paths only; their accepted plan must freeze
+the generated workflow outputs and shards, Velnor configuration and tool pins,
+and any other required producer leaves. `/**` scopes and other globs are
+rejected for both tasks. The implementation does not invent or preaccept an
+S6 path list: each VIS-11 grant needs a producer-frozen plan/review pair bound
+in VIS-10 evidence. Tests use synthetic plan fixtures and do not authorize a
+real grant. New grants use the reviewed current `visual-baseline` base SHA; the
+locked `ls-remote` check fails closed if that ref moves before the CAS. This
+operation reads the reference ref and never updates it or the frozen tag.
+
+Old v1 tasks and handoff snapshots without `branch_scopes` remain valid. New
+handoff snapshots preserve the field when present. New `accept` requests cannot
+preseed it. The generated view prints each added branch, base, and path.
+Candidate review-subject digests continue to cover the primary scope only;
+amendments are rejected while a subject is active, and a candidate-only digest
+cannot be bound or used to verify a task while an additional branch scope is
+active. The reference grant does not imply parity or verification.
 
 A legacy schema-v1 primary grant on `visual-baseline` is accepted only with the
 same test-package path so the overlap scan can account for older active claims.
