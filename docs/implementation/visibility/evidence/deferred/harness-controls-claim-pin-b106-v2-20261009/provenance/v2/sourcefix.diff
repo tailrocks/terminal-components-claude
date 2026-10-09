@@ -1,0 +1,422 @@
+--- a/tools/visibility/deferred.py
++++ b/tools/visibility/deferred.py
+@@ -31,9 +31,7 @@
+ SCHEMA = "termrock-deferred-run/v2"
+ SCHEMA_VERSION = 2
+ WORK_ID = "VIS-04"
+-OWNER = "/root/current_branch_comparison_luna"
+-CLAIM_TOKEN = "visibility-deferred-recovery-20261008-04"
+-ACCEPTED_QUEUE_REVISION = 24
++CLAIM_PIN_SCHEMA = "termrock-visibility-claim-pin/v1"
+ PACKAGE = "termrock-conformance"
+ BINARY = "control_states"
+ EXPECTED_COUNT = 23
+@@ -127,6 +125,48 @@
+         return json.loads(path.read_text(encoding="utf-8"))
+     except (OSError, json.JSONDecodeError) as error:
+         raise DeferredError("cannot read {}: {}".format(path, error)) from error
++
++
++def _unique_json_object(pairs: Sequence[Tuple[str, Any]]) -> Dict[str, Any]:
++    result: Dict[str, Any] = {}
++    for key, value in pairs:
++        if key in result:
++            raise DeferredError("claim pin contains a duplicate field: {}".format(key))
++        result[key] = value
++    return result
++
++
++def read_claim_pin(path: Path) -> Tuple[Dict[str, Any], bytes]:
++    try:
++        raw = path.read_bytes()
++        pin = json.loads(
++            raw.decode("utf-8"), object_pairs_hook=_unique_json_object
++        )
++    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
++        raise DeferredError("cannot read claim pin {}: {}".format(path, error)) from error
++    if not isinstance(pin, dict):
++        raise DeferredError("claim pin must be an object")
++    expected_fields = {
++        "schema",
++        "work_id",
++        "expected_owner",
++        "expected_claim_token",
++        "expected_accepted_queue_revision",
++    }
++    if set(pin) != expected_fields:
++        raise DeferredError("claim pin fields do not match the required schema")
++    for name in ("schema", "work_id", "expected_owner", "expected_claim_token"):
++        if type(pin[name]) is not str or not pin[name].strip():
++            raise DeferredError("claim pin {} must be a non-empty string".format(name))
++    if pin["schema"] != CLAIM_PIN_SCHEMA:
++        raise DeferredError("claim pin schema is not supported")
++    if pin["work_id"] != WORK_ID:
++        raise DeferredError("claim pin work_id does not match {}".format(WORK_ID))
++    if type(pin["expected_accepted_queue_revision"]) is not int:
++        raise DeferredError("claim pin expected_accepted_queue_revision must be an integer")
++    if pin["expected_accepted_queue_revision"] < 1:
++        raise DeferredError("claim pin expected_accepted_queue_revision must be positive")
++    return pin, raw
+ 
+ 
+ def parse_test_metadata(text: str) -> Dict[str, Tuple[bool, Optional[str]]]:
+@@ -680,21 +720,32 @@
+     return {"state": "dirty" if entries else "clean", "porcelain_v1": entries}
+ 
+ 
+-def validate_claim() -> Dict[str, Any]:
++def validate_claim(claim_pin_path: Path) -> Dict[str, Any]:
++    pin, pin_bytes = read_claim_pin(claim_pin_path)
+     records = read_json(TASKS_PATH)
+     if not isinstance(records, dict) or not isinstance(records.get("tasks"), list):
+         raise DeferredError("accepted task registry is malformed")
++    current_queue_revision = records.get("queue_revision")
++    if type(current_queue_revision) is not int or current_queue_revision < 1:
++        raise DeferredError("current queue_revision must be a positive integer")
+     matches = [task for task in records["tasks"] if isinstance(task, dict)
+                and task.get("work_id") == WORK_ID]
+     if len(matches) != 1:
+         raise DeferredError("expected one accepted VIS-04 claim")
+     task = matches[0]
+-    if task.get("owner") != OWNER or task.get("claim_token") != CLAIM_TOKEN:
+-        raise DeferredError("VIS-04 owner or claim token changed")
++    if task.get("owner") != pin["expected_owner"]:
++        raise DeferredError("VIS-04 owner does not match the caller-pinned claim")
++    if task.get("claim_token") != pin["expected_claim_token"]:
++        raise DeferredError("VIS-04 claim token does not match the caller-pinned claim")
+     if task.get("branch") != "termrock-implementation" or task.get("state") not in ("claimed", "in_progress"):
+         raise DeferredError("VIS-04 is not active on termrock-implementation")
+-    if task.get("accepted_queue_revision") != ACCEPTED_QUEUE_REVISION:
+-        raise DeferredError("VIS-04 accepted queue revision changed")
++    accepted_queue_revision = task.get("accepted_queue_revision")
++    if type(accepted_queue_revision) is not int or accepted_queue_revision < 1:
++        raise DeferredError("VIS-04 accepted_queue_revision must be a positive integer")
++    if accepted_queue_revision != pin["expected_accepted_queue_revision"]:
++        raise DeferredError("VIS-04 accepted queue revision does not match the caller-pinned claim")
++    if current_queue_revision < accepted_queue_revision:
++        raise DeferredError("current queue_revision is older than the accepted claim")
+     accepted_paths = {
+         "tools/visibility/deferred.py",
+         "tools/visibility/tests/test_deferred.py",
+@@ -706,10 +757,11 @@
+         raise DeferredError("VIS-04 allowed paths changed from the accepted scope")
+     return {
+         "work_id": WORK_ID,
+-        "owner": OWNER,
+-        "claim_token": CLAIM_TOKEN,
+-        "queue_revision": records.get("queue_revision"),
+-        "accepted_queue_revision": task.get("accepted_queue_revision"),
++        "owner": pin["expected_owner"],
++        "claim_token": pin["expected_claim_token"],
++        "claim_pin_sha256": sha256_bytes(pin_bytes),
++        "queue_revision": current_queue_revision,
++        "accepted_queue_revision": accepted_queue_revision,
+         "accepted_base_sha": task.get("base_sha"),
+         "state": task.get("state"),
+     }
+@@ -976,7 +1028,7 @@
+     return "blocked", "nextest run did not produce a complete 23-test result set", 2
+ 
+ 
+-def execute() -> Tuple[int, Path]:
++def execute(claim_pin_path: Path) -> Tuple[int, Path]:
+     started_at = utc_now()
+     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+     evidence_dir = EVIDENCE_ROOT / run_id
+@@ -1033,7 +1085,7 @@
+     }
+     exit_code = 2
+     try:
+-        claim = validate_claim()
++        claim = validate_claim(claim_pin_path)
+         branch = git_output("rev-parse", "--abbrev-ref", "HEAD")
+         commit = git_output("rev-parse", "HEAD")
+         receipt["tool_inputs"]["claim"] = claim
+@@ -1188,10 +1240,16 @@
+         choices=("run",),
+         help="build/list the exact canonical selection, then execute all 23 deferred tests",
+     )
++    parser.add_argument(
++        "--claim-pin",
++        required=True,
++        type=Path,
++        help="caller-pinned VIS-04 owner, token, and accepted queue revision JSON",
++    )
+     args = parser.parse_args(argv)
+     if args.action != "run":
+         return 2
+-    exit_code, receipt_path = execute()
++    exit_code, receipt_path = execute(args.claim_pin)
+     try:
+         relative_receipt = receipt_path.relative_to(ROOT)
+     except ValueError:
+--- a/crates/termrock-visibility-tests/tests/deferred.rs
++++ b/crates/termrock-visibility-tests/tests/deferred.rs
+@@ -40,6 +40,7 @@
+ use std::time::Duration;
+ 
+ use serde_json::{Map, Value, json};
++use sha2::{Digest, Sha256};
+ use termrock_visibility_tests::{
+     CliOutput, TempRepo, Tool, fixture_env, install_fixture_aliases, run_cli,
+ };
+@@ -67,8 +68,12 @@
+ const CONTROL_STATES_TEXT: &str =
+     include_str!("../../termrock-conformance/tests/control_states.rs");
+ const BRANCH: &str = "termrock-implementation";
+-const OWNER: &str = "/root/current_branch_comparison_luna";
+-const CLAIM_TOKEN: &str = "visibility-deferred-recovery-20261008-04";
++const OWNER: &str = "/root";
++const CLAIM_TOKEN: &str = "visibility-deferred-root-q33-20261009-01";
++const OBSOLETE_OWNER: &str = "/root/current_branch_comparison_luna";
++const OBSOLETE_CLAIM_TOKEN: &str = "visibility-deferred-recovery-20261008-04";
++const ACCEPTED_QUEUE_REVISION: u64 = 34;
++const CURRENT_QUEUE_REVISION: u64 = 38;
+ 
+ fn canonical_rows() -> Vec<Value> {
+     let registry: Value =
+@@ -177,6 +182,7 @@
+     path_value: String,
+     list_path: PathBuf,
+     run_path: PathBuf,
++    claim_pin_path: PathBuf,
+     trace_path: PathBuf,
+     run_exit: i32,
+ }
+@@ -245,6 +251,17 @@
+             "docs/implementation/visibility/tasks.json",
+             &fixture_tasks("pending"),
+         );
++        let claim_pin_path = root.join("fixtures/claim-pin.json");
++        write(
++            root,
++            "fixtures/claim-pin.json",
++            &serde_json::to_vec(&claim_pin(
++                OWNER,
++                CLAIM_TOKEN,
++                json!(ACCEPTED_QUEUE_REVISION),
++            ))
++            .expect("encode caller-pinned VIS-04 claim"),
++        );
+ 
+         git(root, &["init", "--quiet"]);
+         git(root, &["checkout", "--quiet", "-b", BRANCH]);
+@@ -280,6 +297,7 @@
+             path_value,
+             list_path,
+             run_path,
++            claim_pin_path,
+             trace_path,
+             run_exit,
+         }
+@@ -303,8 +321,20 @@
+ 
+     fn set_run(&self, bytes: &[u8]) {
+         fs::write(&self.run_path, bytes).expect("write Nextest run fixture");
++    }
++
++    fn set_claim_pin(&self, bytes: &[u8]) {
++        fs::write(&self.claim_pin_path, bytes).expect("write caller-pinned VIS-04 claim");
+     }
+ 
++    fn set_tasks(&self, bytes: &[u8]) {
++        write(
++            self.root(),
++            "docs/implementation/visibility/tasks.json",
++            bytes,
++        );
++    }
++
+     fn run(&self) -> Observation {
+         self.run_with(&[])
+     }
+@@ -339,7 +369,11 @@
+             .collect();
+         let output = run_cli(
+             &self.script,
+-            &["run".to_owned()],
++            &[
++                "run".to_owned(),
++                "--claim-pin".to_owned(),
++                self.claim_pin_path.display().to_string(),
++            ],
+             self.root(),
+             &borrowed_environment,
+             None,
+@@ -421,7 +455,7 @@
+ 
+ fn fixture_tasks(base_sha: &str) -> Vec<u8> {
+     serde_json::to_vec_pretty(&json!({
+-        "queue_revision": 24,
++        "queue_revision": CURRENT_QUEUE_REVISION,
+         "tasks": [{
+             "work_id": "VIS-04",
+             "owner": OWNER,
+@@ -429,7 +463,7 @@
+             "branch": BRANCH,
+             "state": "claimed",
+             "base_sha": base_sha,
+-            "accepted_queue_revision": 24,
++            "accepted_queue_revision": ACCEPTED_QUEUE_REVISION,
+             "allowed_paths": [
+                 "tools/visibility/deferred.py",
+                 "tools/visibility/tests/test_deferred.py",
+@@ -439,6 +473,16 @@
+         }]
+     }))
+     .expect("encode accepted claim fixture")
++}
++
++fn claim_pin(owner: &str, token: &str, accepted_revision: Value) -> Value {
++    json!({
++        "schema": "termrock-visibility-claim-pin/v1",
++        "work_id": "VIS-04",
++        "expected_owner": owner,
++        "expected_claim_token": token,
++        "expected_accepted_queue_revision": accepted_revision
++    })
+ }
+ 
+ fn list_metadata(total_count: usize, extras: &[(&str, bool, &str)]) -> Value {
+@@ -737,9 +781,12 @@
+     assert_cli_exit(&observed, 0);
+ 
+     let claim = &observed.receipt["tool_inputs"]["claim"];
+-    assert_eq!(claim["accepted_queue_revision"], 24);
+-    assert_eq!(claim["queue_revision"], 24);
++    assert_eq!(claim["accepted_queue_revision"], ACCEPTED_QUEUE_REVISION);
++    assert_eq!(claim["queue_revision"], CURRENT_QUEUE_REVISION);
+     assert_eq!(claim["claim_token"], CLAIM_TOKEN);
++    let pin_bytes = fs::read(&fixture.claim_pin_path).expect("read caller-pinned claim");
++    let expected_pin_hash = format!("{:x}", Sha256::digest(&pin_bytes));
++    assert_eq!(claim["claim_pin_sha256"], expected_pin_hash);
+     assert_eq!(
+         observed.receipt["subject"]["accepted_base_is_ancestor"],
+         true
+@@ -747,6 +794,126 @@
+ }
+ 
+ #[test]
++fn claim_pin_rejects_obsolete_or_mismatched_identity_before_tool_setup() {
++    let mut extra_field_pin = claim_pin(OWNER, CLAIM_TOKEN, json!(ACCEPTED_QUEUE_REVISION));
++    extra_field_pin["unexpected"] = json!(true);
++    let invalid_pins = [
++        (
++            "obsolete owner, token, and accepted revision",
++            serde_json::to_vec(&claim_pin(
++                OBSOLETE_OWNER,
++                OBSOLETE_CLAIM_TOKEN,
++                json!(24),
++            ))
++            .expect("encode obsolete caller pin"),
++        ),
++        (
++            "wrong owner",
++            serde_json::to_vec(&claim_pin(
++                "/wrong-owner",
++                CLAIM_TOKEN,
++                json!(ACCEPTED_QUEUE_REVISION),
++            ))
++            .expect("encode caller pin with wrong owner"),
++        ),
++        (
++            "wrong token",
++            serde_json::to_vec(&claim_pin(
++                OWNER,
++                "wrong-token",
++                json!(ACCEPTED_QUEUE_REVISION),
++            ))
++            .expect("encode caller pin with wrong token"),
++        ),
++        (
++            "wrong accepted revision",
++            serde_json::to_vec(&claim_pin(
++                OWNER,
++                CLAIM_TOKEN,
++                json!(ACCEPTED_QUEUE_REVISION - 1),
++            ))
++            .expect("encode caller pin with wrong accepted revision"),
++        ),
++        (
++            "non-integer expected accepted revision",
++            serde_json::to_vec(&claim_pin(OWNER, CLAIM_TOKEN, json!(true)))
++                .expect("encode caller pin with non-integer revision"),
++        ),
++        (
++            "wrong work ID",
++            serde_json::to_vec(&json!({
++                "schema": "termrock-visibility-claim-pin/v1",
++                "work_id": "VIS-05",
++                "expected_owner": OWNER,
++                "expected_claim_token": CLAIM_TOKEN,
++                "expected_accepted_queue_revision": ACCEPTED_QUEUE_REVISION
++            }))
++            .expect("encode caller pin with wrong work ID"),
++        ),
++        (
++            "unexpected pin field",
++            serde_json::to_vec(&extra_field_pin).expect("encode caller pin with extra field"),
++        ),
++        (
++            "duplicate pin field",
++            br#"{"schema":"termrock-visibility-claim-pin/v1","work_id":"VIS-04","expected_owner":"/root","expected_owner":"/root","expected_claim_token":"visibility-deferred-root-q33-20261009-01","expected_accepted_queue_revision":34}"#.to_vec(),
++        ),
++    ];
++
++    for (case, pin_bytes) in invalid_pins {
++        let fixture = DeferredFixture::new(list_metadata(23, &[]), &all_pass_events(), 0);
++        fixture.set_claim_pin(&pin_bytes);
++        let observed = fixture.run();
++        assert_cli_exit(&observed, 2);
++        assert_eq!(
++            observed.receipt["execution"]["result"], "blocked",
++            "invalid pin must block: {case}"
++        );
++        assert_eq!(observed.receipt["execution"]["counts"]["executed"], 0);
++        assert_eq!(observed.receipt["tool"]["version"], Value::Null);
++        assert_eq!(observed.receipt["tool"]["list_argv"], Value::Null);
++        assert!(
++            fixture.trace().is_empty(),
++            "invalid pin must fail before version/setup probes: {case}"
++        );
++    }
++}
++
++#[test]
++fn claim_registry_rejects_non_integer_revisions_before_tool_setup() {
++    for accepted_revision_is_bool in [false, true] {
++        let fixture = DeferredFixture::new(list_metadata(23, &[]), &all_pass_events(), 0);
++        let mut records: Value = serde_json::from_slice(
++            &fs::read(
++                fixture
++                    .root()
++                    .join("docs/implementation/visibility/tasks.json"),
++            )
++            .expect("read accepted task fixture"),
++        )
++        .expect("parse accepted task fixture");
++        if accepted_revision_is_bool {
++            records["tasks"][0]["accepted_queue_revision"] = json!(true);
++        } else {
++            records["queue_revision"] = json!(true);
++        }
++        fixture.set_tasks(
++            &serde_json::to_vec(&records).expect("encode malformed queue revision fixture"),
++        );
++
++        let observed = fixture.run();
++        assert_cli_exit(&observed, 2);
++        assert_eq!(observed.receipt["execution"]["result"], "blocked");
++        assert_eq!(observed.receipt["execution"]["counts"]["executed"], 0);
++        assert_eq!(observed.receipt["tool"]["version"], Value::Null);
++        assert!(
++            fixture.trace().is_empty(),
++            "boolean revision must fail before version/setup probes"
++        );
++    }
++}
++
++#[test]
+ fn environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing() {
+     let fixture = DeferredFixture::new(list_metadata(23, &[]), &all_pass_events(), 0);
+     let executable = Path::new(env!("CARGO_BIN_EXE_fixture"));
