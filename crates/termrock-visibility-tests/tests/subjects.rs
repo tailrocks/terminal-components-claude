@@ -4237,10 +4237,10 @@ fn real_build_unix_millis() -> u128 {
 #[test]
 #[ignore = "real Holla pair build; requires accepted source facts and an assigned build slot"]
 fn supervises_real_holla_pair_build() {
-    const REFERENCE_COMMIT: &str = "b682cb26d68b353aeeccf9e51653eddf097b39f5";
-    const CANDIDATE_COMMIT: &str = "1ea1c17707f0a8f1639af506be179013d5e2d52a";
+    const REFERENCE_COMMIT: &str = "b274dd57f4dd078ade6e424d546d83efbd2e8526";
+    const CANDIDATE_COMMIT: &str = "1d797d41c8141fcbdc3f69d7f11eb8875ab54712";
     const SUBJECTS_TOOL_SHA256: &str =
-        "cdcd4b3ad560a3aaa2dda1bbc19e06f9b3b52838609dad4771669e3739f9d32d";
+        "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853";
     const CAPTURE_LIMIT: usize = 8 * 1024 * 1024;
 
     let run_id = real_build_required_env("TERMROCK_VIS06_REAL_RUN_ID");
