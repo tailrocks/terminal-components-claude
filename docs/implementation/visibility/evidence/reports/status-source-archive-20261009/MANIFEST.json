@@ -2,9 +2,9 @@
   "schema": "termrock-status-source-evidence-archive/v1",
   "archive_root": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009",
   "raw_root": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw",
-  "inventory_method": "Pinned raw source inputs consumed by the current status renderer plus retained historical raw captures. Every listed member is checked for a safe repository-relative path, byte count, and SHA-256; retained superseded observations remain labeled as historical and are not rendered as current.",
-  "file_count": 59,
-  "total_bytes": 5554254,
+  "inventory_method": "Pinned raw source inputs consumed by the current status renderer plus retained historical raw captures and the current publication/provider addendum. Every listed member is checked for a safe repository-relative path, byte count, and SHA-256; retained superseded observations remain labeled as historical and are not rendered as current.",
+  "file_count": 70,
+  "total_bytes": 6171844,
   "files": [
     {
       "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/logs/nextest.stderr.raw",
@@ -714,6 +714,138 @@
         "9f1 workflow source bytes"
       ],
       "original_relative_path": "termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-ci.yml"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-status-publication.json",
+      "bytes": 680,
+      "sha256": "94be47eb731d22b01aa17ea236f4d1f7ad4f9ead35c3823569964dde174245d6",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Root candidate report publication receipt"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/candidate-status-publication.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-status-postcommit-review.json",
+      "bytes": 2017,
+      "sha256": "2e2bb3ca9d869963bcfaee36929fc0d5cd3bedeb1a0d75c3cc389fb783979c2a",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Independent candidate report postcommit review"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/candidate-status-postcommit-review.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/reference-status-publication.json",
+      "bytes": 555,
+      "sha256": "f2b9e5b53305fca4cac797e9075673d3817aa252624d1181a8e9d3f04146073a",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Root reference report publication receipt"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/reference-status-publication.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/reference-status-postcommit-review.json",
+      "bytes": 1287,
+      "sha256": "626c45a62f1671159a771054c4c388387594cdb3fe577cdd0713546e549849e8",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Independent reference report postcommit review"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/reference-status-postcommit-review.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-q59-publication.json",
+      "bytes": 676,
+      "sha256": "e6f9bba0e41a811ee21588e409f7497634d9af203b839ddec4d6c8e7cf2e5bd5",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Root candidate queue revision 59 publication receipt"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/candidate-q59-publication.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-q59-task-record.json",
+      "bytes": 181762,
+      "sha256": "b38f71cf073e1a0249e1b084137de04d71301b763f6300af7a5416da998d1109",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Exact candidate task record snapshot from status commit 20f2d485; queue revision 59"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/candidate-q59-task-record.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/reference-q56-task-record.json",
+      "bytes": 180123,
+      "sha256": "e7343bfcd57090af67c0f84563cdce6d8ea4cc8a80fbfae6733df8da3ef4a907",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Exact historical reference task record snapshot from status commit 28c6940; queue revision 56"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/reference-q56-task-record.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/f0a-ci-root-observation.json",
+      "bytes": 788,
+      "sha256": "7858acd50d904e538191db2348fd91f41a01d125319f68aa951372324b28e2aa",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Root captured provider observation for candidate source head f0a05fa"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/f0a-ci-root-observation.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/f0a-run-37954103945-provider-page.html",
+      "bytes": 191357,
+      "sha256": "21fd2bc7bcf5926f992254238664eba6cc60b12588969334adba28f725fe1b37",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "Retained provider page for Actions run 37954103945"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/f0a-run-37954103945-provider-page.html"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/f0a-check-runs.json",
+      "bytes": 57430,
+      "sha256": "56677e9e88c757cedb7a62833c63628f983ca12e5fe409512aadcb4130f427b3",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Captured check-runs response for candidate source head f0a05fa"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/f0a-check-runs.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/paired-suite-publication.json",
+      "bytes": 915,
+      "sha256": "75d7d89f1981ebad4a8be13b63e3e203b6a18cf81b01aadf7cfd2df6d7bf44fe",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Root paired-source publication record; suite b67, common package tree c962, corpus not admitted"
+      ],
+      "original_relative_path": "termrock-vis01-current-publication-20261009/paired-suite-publication.json"
     }
   ]
 }

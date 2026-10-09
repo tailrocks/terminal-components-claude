@@ -227,6 +227,34 @@ The reporter does not fetch GitHub. It verifies the pinned execution JSON
 records when rendering local partial observations; it does not rehash the
 artifact files named inside the paired Holla receipt.
 
+## Published report and provider evidence
+
+The current-publication record keeps report commits separate from the fixed
+product comparison pair. Candidate report commit 20f2d485 and reference report
+commit 28c6940 are pinned with their postcommit reviews. The candidate
+revision-59 and reference revision-56 task records are historical snapshots.
+Later queue edits are outside this evidence record.
+
+The archived f0a provider run and DCO check apply to candidate source commit
+f0a05fa, before those report commits. The run page records the 500 KB workflow
+annotation. The retained Root record has no raw Actions run or jobs response, so
+the report does not state job or artifact counts. The DCO result links to its
+recorded check page.
+
+The paired-source publication records suite SHA-256
+b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d and common
+package tree c962085b9c9e6b80ddba31d8c82e01c8d2e97179. Paired execution remains
+NOT_RUN and the corpus remains NOT_ADMITTED. The product comparison pair stays
+1d797d41c8141fcbdc3f69d7f11eb8875ab54712 /
+b274dd57f4dd078ade6e424d546d83efbd2e8526. The package identity does not
+qualify product behavior.
+
+The source evidence archive contains 70 raw members and 6,171,844 bytes. Its
+manifest pins each file by repository-relative path, byte count, and SHA-256.
+For --role reference, the report links checklist and source-instructions files
+at the immutable candidate report commit because those files are absent from
+the reference tree.
+
 ## Generate and check
 
 Run the report CLI from the repository root with Python 3.9 or later:
@@ -238,9 +266,10 @@ Run the black-box CLI contract tests with Rust nextest:
 
     mise exec -- cargo nextest run --manifest-path crates/termrock-visibility-tests/Cargo.toml --test status --locked
 
-The `--role reference` option renders the same measured pair, result rows, and
-accepted task records with `visual-baseline` as the local role. Keep source
-facts and accepted task records mirrored read-only on the reference branch.
+The `--role reference` option changes the local-role presentation and uses
+immutable candidate links for files that are absent from the reference tree.
+Each branch reads its checked-in task record. The archived revision-59 and
+revision-56 records remain historical snapshots.
 The default role is `candidate`; `--write` writes the role selected for the
 current checkout.
 

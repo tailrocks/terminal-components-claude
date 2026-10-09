@@ -6,7 +6,7 @@
 //! | --- | --- |
 //! | `test_initial_conclusions_are_not_run_and_source_pair_is_exact` | `initial_status_keeps_products_not_run_and_pairs_exact` |
 //! | `test_all_seven_commands_and_each_layer_are_visible` | `renders_all_seven_exact_commands_and_layers` |
-//! | `test_role_changes_local_presentation_and_keeps_candidate_queue_link` | `role_changes_only_local_label_and_queue_target` |
+//! | `test_role_changes_local_presentation_and_keeps_candidate_queue_link` | `role_changes_local_label_and_uses_reference_links` |
 //! | `test_cli_accepts_reference_role` | `reference_role_cli_renders_reference_presentation` |
 //! | `test_visual_interaction_api_and_ownership_are_separate` | `keeps_visual_interaction_api_ownership_distinct` |
 //! | `test_ci_and_dco_remain_separate_from_product_results` | `keeps_ci_dco_observations_separate` |
@@ -2395,14 +2395,35 @@ fn renders_all_seven_exact_commands_and_layers() {
 }
 
 #[test]
-fn role_changes_only_local_label_and_queue_target() {
+fn role_changes_local_label_and_uses_reference_links() {
     let fixture = StatusFixture::new();
     let candidate = output_text(&fixture.run(&[]));
     let reference = output_text(&fixture.run(&["--role", "reference"]));
     let queue_url = "https://github.com/tailrocks/terminal-components-claude/blob/termrock-implementation/WORK_QUEUE.md";
+    let checklist_markdown_url = format!(
+        "https://github.com/tailrocks/terminal-components-claude/blob/{CANDIDATE_SHA}/CHECKLIST.md"
+    );
+    let checklist_json_url = format!(
+        "https://github.com/tailrocks/terminal-components-claude/blob/{CANDIDATE_SHA}/checklist.json"
+    );
+    let source_readme_url = format!(
+        "https://github.com/tailrocks/terminal-components-claude/blob/{CANDIDATE_SHA}/tools/visibility/README.md"
+    );
 
     assert!(candidate.contains("| Local role | Candidate (termrock-implementation) |"));
     assert!(reference.contains("| Local role | Reference (visual-baseline) |"));
+    assert!(candidate.contains("[CHECKLIST.md](CHECKLIST.md)"));
+    assert!(candidate.contains("[checklist.json](checklist.json)"));
+    assert!(candidate.contains(
+        "[Source facts and observation commands](tools/visibility/README.md)"
+    ));
+    assert!(reference.contains(&format!("[CHECKLIST.md]({checklist_markdown_url})")));
+    assert!(reference.contains(&format!("[checklist.json]({checklist_json_url})")));
+    assert!(reference.contains(&format!(
+        "[Source facts and observation commands]({source_readme_url})"
+    )));
+    assert!(candidate.contains("[WORK_QUEUE.md](WORK_QUEUE.md)"));
+    assert!(candidate.contains("[Work queue](WORK_QUEUE.md)"));
     assert!(reference.contains(&format!("[WORK_QUEUE.md]({queue_url})")));
     assert!(reference.contains(&format!("[Work queue]({queue_url})")));
     for (id, command) in [
@@ -2433,21 +2454,55 @@ fn role_changes_only_local_label_and_queue_target() {
             "| Local role | Candidate (termrock-implementation) |",
             "| Local role | LOCAL_ROLE |",
         )
-        .replace("](WORK_QUEUE.md)", &format!("]({queue_url})"));
+        .replace(
+            "[WORK_QUEUE.md](WORK_QUEUE.md)",
+            &format!("[WORK_QUEUE.md]({queue_url})"),
+        )
+        .replace(
+            "[Work queue](WORK_QUEUE.md)",
+            &format!("[Work queue]({queue_url})"),
+        );
     let reference_common = reference.replace(
         "| Local role | Reference (visual-baseline) |",
         "| Local role | LOCAL_ROLE |",
+    )
+    .replace(
+        &format!("[CHECKLIST.md]({checklist_markdown_url})"),
+        "[CHECKLIST.md](CHECKLIST.md)",
+    )
+    .replace(
+        &format!("[checklist.json]({checklist_json_url})"),
+        "[checklist.json](checklist.json)",
+    )
+    .replace(
+        &format!("[Source facts and observation commands]({source_readme_url})"),
+        "[Source facts and observation commands](tools/visibility/README.md)",
     );
     assert_eq!(candidate_common, reference_common);
 }
 
 #[test]
 fn reference_role_cli_renders_reference_presentation() {
-    let fixture = StatusFixture::new();
+    let fixture = StatusFixture::from_checked_in_records();
     let output = fixture.run(&["--role", "reference"]);
 
     assert_eq!(output.exit_code, Some(0));
-    assert!(output_text(&output).contains("| Local role | Reference (visual-baseline) |"));
+    let report = output_text(&output);
+    assert!(report.contains("| Local role | Reference (visual-baseline) |"));
+    assert!(report.contains(
+        "[CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/CHECKLIST.md)"
+    ));
+    assert!(report.contains(
+        "[checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/checklist.json)"
+    ));
+    assert!(report.contains(
+        "[Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/tools/visibility/README.md)"
+    ));
+    assert!(!report.contains("[CHECKLIST.md](CHECKLIST.md)"));
+    assert!(!report.contains("[checklist.json](checklist.json)"));
+    assert!(!report.contains(
+        "[Source facts and observation commands](tools/visibility/README.md)"
+    ));
 }
 
 #[test]
@@ -3085,6 +3140,18 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
     let report = output_text(&output);
 
     assert!(report.contains("Current implementation-branch and external-tool observations"));
+    assert!(report.contains("Published report commits and source evidence"));
+    assert!(report.contains("20f2d485695991632f1ff5210d696576eb602583"));
+    assert!(report.contains("28c694037ee06e093a23de2ec0e0f6ed3f7f5569"));
+    assert!(report.contains("Candidate task snapshot revision 59 (historical)"));
+    assert!(report.contains("Historical reference task snapshot revision 56"));
+    assert!(report.contains("Later queue edits are outside this evidence record."));
+    assert!(report.contains("Workflow file exceeds the maximum allowed size of 500 KB."));
+    assert!(report.contains("The retained Root record contains no raw Actions run/jobs responses"));
+    assert!(report.contains("[completed successfully](https://github.com/tailrocks/terminal-components-claude/runs/113900149889)"));
+    assert!(report.contains("suite SHA-256 b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d"));
+    assert!(report.contains("paired execution NOT_RUN, corpus NOT_ADMITTED"));
+    assert!(report.contains("Repository evidence archive | 70 files / 6171844 bytes verified"));
     assert!(report.contains("9f1f756219b6bd42131b6e7291f54f99e1128cf1"));
     assert_eq!(
         facts["current_status_observations"]["branch_gate_observations"][0]
@@ -3105,7 +3172,7 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
     assert!(report.contains("independent review VERIFIED_FAILED_RUN"));
     assert!(report.contains("Requirement registry: NOT_RUN"));
     assert!(report.contains("paired reference: NOT_RUN; paired visual: NOT_RUN; acceptance: NOT_RECORDED"));
-    assert!(report.contains("Repository evidence archive | 59 files / 5554254 bytes verified"));
+    assert!(report.contains("Repository evidence archive | 70 files / 6171844 bytes verified"));
     assert!(report.contains("Historical raw-evidence coverage gap: normalized source/CI summaries for 5 retained records remain"));
     assert!(report.contains("Receipt SHA-256 c6fec50571f45a875c375bf5668e4f1b8754eb9ac87ec9aa98c95590c79e1929"));
     assert!(report.contains("R12: Nextest stopped before selecting tests; 0 selected"));
@@ -3142,6 +3209,7 @@ fn rejects_changed_current_observation_evidence_pin() {
     let mut facts: serde_json::Value =
         serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
             .expect("parse copied source facts");
+    let original_branch_pin = facts["current_status_observations"]["branch_tip"]["branch_response"]["sha256"].clone();
     facts["current_status_observations"]["branch_tip"]["branch_response"]["sha256"] =
         serde_json::Value::String("0".repeat(64));
     write_json_facts(&fixture, &facts);
@@ -3150,6 +3218,16 @@ fn rejects_changed_current_observation_evidence_pin() {
     assert_eq!(output.exit_code, Some(2));
     assert!(error_text(&output).contains(
         "current implementation branch API response bytes do not match the recorded SHA-256"
+    ));
+
+    facts["current_status_observations"]["branch_tip"]["branch_response"]["sha256"] = original_branch_pin;
+    facts["current_publication_observation"]["candidate_report"]["publication"]["sha256"] =
+        serde_json::Value::String("0".repeat(64));
+    write_json_facts(&fixture, &facts);
+    let tampered_publication = fixture.run(&[]);
+    assert_eq!(tampered_publication.exit_code, Some(2));
+    assert!(error_text(&tampered_publication).contains(
+        "candidate report publication is not an exact member of the verified source archive"
     ));
 }
 

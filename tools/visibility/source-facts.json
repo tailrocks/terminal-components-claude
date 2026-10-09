@@ -1309,10 +1309,69 @@
     "schema": "termrock-status-source-evidence-archive-pin/v1",
     "manifest": {
       "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json",
-      "sha256": "25c3f3a8791c34ecd9f7d231832f4058dd6cd34a6cd5040caab508ad31a1243f"
+      "sha256": "e77fa551b5669585e9d21356d4f2baeff16a8cbc3f348bbade470d98f90b839a"
     },
-    "file_count": 59,
-    "total_bytes": 5554254,
+    "file_count": 70,
+    "total_bytes": 6171844,
     "effect_on_product_qualification": "NONE"
+  },
+  "current_publication_observation": {
+    "schema": "termrock-current-publication-observation/v1",
+    "fixed_product_pair": {
+      "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+    },
+    "candidate_report": {
+      "publication": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-status-publication.json",
+        "sha256": "94be47eb731d22b01aa17ea236f4d1f7ad4f9ead35c3823569964dde174245d6"
+      },
+      "postcommit_review": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-status-postcommit-review.json",
+        "sha256": "2e2bb3ca9d869963bcfaee36929fc0d5cd3bedeb1a0d75c3cc389fb783979c2a"
+      },
+      "queue_publication": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-q59-publication.json",
+        "sha256": "e6f9bba0e41a811ee21588e409f7497634d9af203b839ddec4d6c8e7cf2e5bd5"
+      },
+      "task_snapshot": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-q59-task-record.json",
+        "sha256": "b38f71cf073e1a0249e1b084137de04d71301b763f6300af7a5416da998d1109"
+      }
+    },
+    "reference_report": {
+      "publication": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/reference-status-publication.json",
+        "sha256": "f2b9e5b53305fca4cac797e9075673d3817aa252624d1181a8e9d3f04146073a"
+      },
+      "postcommit_review": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/reference-status-postcommit-review.json",
+        "sha256": "626c45a62f1671159a771054c4c388387594cdb3fe577cdd0713546e549849e8"
+      },
+      "historical_task_snapshot": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/reference-q56-task-record.json",
+        "sha256": "e7343bfcd57090af67c0f84563cdce6d8ea4cc8a80fbfae6733df8da3ef4a907"
+      }
+    },
+    "paired_suite_publication": {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/paired-suite-publication.json",
+      "sha256": "75d7d89f1981ebad4a8be13b63e3e203b6a18cf81b01aadf7cfd2df6d7bf44fe"
+    },
+    "prepublication_provider_observation": {
+      "source_commit": "f0a05fa55d4fd09b19be63d51f512d4c32076f67",
+      "root_observation": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/f0a-ci-root-observation.json",
+        "sha256": "7858acd50d904e538191db2348fd91f41a01d125319f68aa951372324b28e2aa"
+      },
+      "provider_page": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/f0a-run-37954103945-provider-page.html",
+        "sha256": "21fd2bc7bcf5926f992254238664eba6cc60b12588969334adba28f725fe1b37"
+      },
+      "check_runs": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/f0a-check-runs.json",
+        "sha256": "56677e9e88c757cedb7a62833c63628f983ca12e5fe409512aadcb4130f427b3"
+      },
+      "raw_actions_run_and_jobs_responses_preserved": false
+    }
   }
 }
