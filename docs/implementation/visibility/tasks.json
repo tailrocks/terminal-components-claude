@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 62,
+  "queue_revision": 63,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -1801,6 +1801,40 @@
       ],
       "handoff": null,
       "accepted_queue_revision": 48
+    },
+    {
+      "work_id": "VIS-16",
+      "requirement_ids": [
+        "VIS-I07",
+        "VIS-I08",
+        "VIS-I09"
+      ],
+      "priority": "P0",
+      "priority_reason": "Add a narrow Rust command-line boundary for the accepted read-only observer-ingestion API, with process-level tests for caller and observer identity validation. Keep CLI source work independent from VIS-14 while requiring its transport source to be merged before build or test execution.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "allowed_paths": [
+        "crates/termrock-visibility-publisher/src/bin/observer-ingest.rs",
+        "crates/termrock-visibility-publisher/tests/observer_ingest_cli.rs"
+      ],
+      "owner": "/root/api_ownership_luna",
+      "reviewer": "/root/subjects_runner_review_luna",
+      "claim_token": "visibility-vis16-observer-ingest-cli-20261010-0c72d78b84b55c6418d0b1fd2bfab34a",
+      "expiry": "2026-10-10T06:00:00Z",
+      "state": "claimed",
+      "evidence": [
+        "Separate new claim for exactly the two allowed CLI paths. They do not overlap VIS-14's seven accepted paths. This claim does not hand off, renew, or change VIS-14. The empty dependency list permits independent source work; build and test execution must wait until the pinned TLS transport source is merged and the inputs are re-bound to that merged source.",
+        "Queue state reference: Root published q62 as commit 774adee47b52d2796096e017bd6fff3eadf11688 (parent f8f2ce4932619e6dab5f0531b8326869f6b4b1a4, tree e8e72e9686a532149ebcb4fe930ee95414caa580). Publication observation /private/tmp/termrock-q62-append-root-proposal-20261010/publication.json SHA-256 9d8912458b9fd09894e51a91b14586018a99abf01875c3c659dd9c27c1bdba51 confirms q62, 14 tasks, remote readback, and canonical HEAD/index/fixture unchanged. The q62 append result /private/tmp/termrock-queue-append-root-administrative-cli-20261010/result.json SHA-256 7014b6e86525c2458462ecaf04faed05da3bb3ce7d0316a2706881db476ae51a records task/view hashes bd1335e4e90ccb0019ceb221d88eec211a4b44a477d06a65e7eaf6defca3a897 and 95d2f541a0098343bd7352c6149917ec192684c2ffa8b18b1e859cff7b81dc53. Acceptance must freshly re-read the production queue and use the existing accept CLI; no task table or WORK_QUEUE hand edit is authorized.",
+        "Acceptance checkout anchor is the actual canonical termrock-implementation HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b, distinct from published queue commit 774adee47b52d2796096e017bd6fff3eadf11688. Root must recheck branch and HEAD immediately before acceptance and stop/rebind on drift.",
+        "Caller identity must not be trusted merely because values appear in CLI arguments or an observer report. Resolve each caller, target, and observer RunIdentity against authenticated GET-only API RunRecord data. Map repository to repository, run_id to RunRecord.id, attempt to run_attempt, workflow_id to workflow_id, workflow_path to workflow_path, event to event, branch to head_branch, and head_sha to head_sha. RunRecord has no workflow_ref or workflow_sha fields. Validate those caller workflow values against the pinned trusted workflow source and reviewed event/ref contract, and fetch workflow content at the exact workflow SHA through authenticated GET. Validate strict ObserverReportV2 and compare observer_run_id/observer_run_attempt with the resolved observer run; bind report target fields to the resolved target. Reject mismatched caller, target, observer, artifact, or report identities and unsupported/untrusted contexts; do not execute candidate workflow or artifact content.",
+        "The caller/event allowlist remains PENDING: this claim does not accept or finalize an allowlist. Finalize it only after exact actual generated caller and ci-observer producer workflow bytes are pinned. Then obtain CI parity review from /root/ci_parity_review_luna. That review must bind trusted repository, workflow path/ID and source identity, supported event/ref/branch/head identity, run ID and attempt, target/observer relationship, and artifact/report identity. Derive supported events from the reviewed producer contract; do not invent or broaden the event set in this claim.",
+        "The trusted caller/event allowlist remains PENDING until the actual generated caller and ci-observer producer workflow bytes are pinned. After those exact bytes are pinned, obtain CI parity review from /root/ci_parity_review_luna. That review must bind trusted repository, workflow path/ID and source identity, supported event/ref/branch/head identity, run ID and attempt, target/observer relationship, and artifact/report identity. Derive supported events from the reviewed producer contract; do not invent or broaden the event set in this claim.",
+        "Acceptance requires focused Rust cargo nextest CLI tests in tests/observer_ingest_cli.rs after the TLS transport source is merged and the source closure is re-bound. Tests must exercise the actual command boundary with deterministic fake-transport inputs, including valid identity and mismatch/rejection cases. They must not make live GitHub requests or present a synthetic case as a live CI gate. No STATUS/report projection, Git-ref write, source/artifact execution, Cargo.toml or Cargo.lock edit, or live readiness claim is included.",
+        "Actual TLS input execution is now recorded separately from the manifest historical status: R7 receipt /private/tmp/termrock-vis14-tls-nextest-10-20261010-r7/output/final-receipt.json SHA-256 b49fa5d8e11db051b42c58d758ebf6c4ea4d2095e69edbe9203777177e2e0f43; status FAILED_EXIT, child exit 100, 10 selected TLS tests, 3 passed and 7 failed, source_stable_before_after=true. Independent review /private/tmp/termrock-vis14-tls-r7-actual-result-review-observer-20261010.json SHA-256 36826a98549b1cd3bde42915dff12203260ce0fff50a67773046122d4e1317ce confirms FAILED_7_OF_10_TLS_TESTS. Raw stdout SHA-256 dd7eaaea354710182f2682653b8f5a0a453e8542c81fa2c29bda86d68f01a5db; raw stderr SHA-256 3ed82941a124455ca181f58859ae693b5b1e91b17e9e985514438d55bf0f586e. Preserve this failed result; do not treat the TLS source as passing or merge-ready based on this gate."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 63
     }
   ]
 }
