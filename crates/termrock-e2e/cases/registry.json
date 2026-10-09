@@ -276,7 +276,7 @@
         },
         {
           "op": "press",
-          "key": "ctrl-s"
+          "key": "ctrl+s"
         },
         {
           "op": "checkpoint",
@@ -382,7 +382,7 @@
         },
         {
           "op": "press",
-          "key": "ctrl-s"
+          "key": "ctrl+s"
         },
         {
           "op": "checkpoint",
@@ -689,7 +689,7 @@
         },
         {
           "op": "press",
-          "key": "ctrl-d"
+          "key": "ctrl+d"
         },
         {
           "op": "checkpoint",
@@ -721,7 +721,7 @@
         },
         {
           "op": "press",
-          "key": "ctrl-d"
+          "key": "ctrl+d"
         },
         {
           "op": "press",

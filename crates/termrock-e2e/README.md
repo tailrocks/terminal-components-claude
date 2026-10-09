@@ -8,6 +8,46 @@ The first executable case is `HELP-HOLLA-004`. The registry also keeps all 23
 known deferred component obligations with `NOT_RUN` status. One pilot case
 does not mean that the full old assertion inventory has migrated.
 
+## Journey input steps
+
+Case programs retain the original `press` and `checkpoint` steps and can also
+send explicit key events, text, paste, mouse input, resize the PTY, and observe
+the direct child's exit. The serialized forms are closed: unknown operation,
+event, or mouse-action fields are rejected.
+
+```json
+{"op":"key_event","key":"ctrl-a","kind":"down"}
+{"op":"text","text":"typed text"}
+{"op":"paste","text":"pasted text"}
+{"op":"mouse","input":{"action":"click","button":"left","x":4,"y":2}}
+{"op":"resize","cols":100,"rows":30}
+{"op":"expect_exit","code":0}
+```
+
+Key-event kinds are `down`, `repeat`, and `up`; `press` remains the compact
+legacy chord operation. Text and paste are separate Tuiscotti calls. Mouse
+actions include click, down, release, move, drag, and wheel. Release is a
+generic button release because Tuiscotti does not encode a button for it.
+Mouse coordinates are zero-based and must fit the effective PTY geometry at
+that step. The supported geometry is 1–1000 columns by 1–1000 rows. A resize
+changes the dimensions used by later inputs, checkpoints, capture paths, and
+expected-generation frames; earlier checkpoints keep their original size.
+
+`expect_exit` must be the final step and follow a checkpoint. It replaces that
+checkpoint's existing exit `NOT_APPLICABLE` row with the observed direct-child
+status. A successful input API call only means Tuiscotti returned success; it
+does not prove the application acted on it. For example, key-up may be a no-op
+when Kitty keyboard mode is inactive, and mouse input depends on the
+application enabling compatible DEC mouse reporting. The isolated PTY runner
+still does not measure or restore the caller's parent terminal state.
+
+Expected-generation schema geometry is bounded and generic. At load time, Rust
+binds the manifest to the selected case input digest and pinned suite profile
+digest, then checks each checkpoint's dimensions and color path against that
+case. The current pilot registry and `profile.json` remain the source of
+enabled case/profile identity; adding input operations does not register the
+separate legacy geometry/color matrix by itself.
+
 ## Run the contract checks
 
 ```sh
