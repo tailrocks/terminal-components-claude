@@ -91,6 +91,169 @@ fn registry_contains_four_seed_cases_and_holla_checkpointed_preconditions() {
 }
 
 #[test]
+fn jackin_save_preview_registry_preserves_reopen_and_second_cancel() {
+    let registry = registry().expect("registry parses");
+    let case = registry
+        .cases
+        .iter()
+        .find(|case| case.id == "JACKIN-EDITOR-SAVE-CANCEL-120X40-TRUECOLOR")
+        .expect("Jackin save-preview case remains registered");
+    termrock_e2e::validate_case_contract(case).expect("Jackin save-preview case is valid");
+
+    let checkpoint_ids = case
+        .steps
+        .iter()
+        .filter_map(|step| match step {
+            termrock_e2e::Step::Checkpoint { id, .. } => Some(id.as_str()),
+            termrock_e2e::Step::Press { .. } => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        checkpoint_ids,
+        vec![
+            "00-manager",
+            "01-editor",
+            "02-dirty",
+            "03-save-preview",
+            "04-cancelled",
+            "05-preview-reopened",
+            "06-cancelled-again",
+        ]
+    );
+
+    let presses = case
+        .steps
+        .iter()
+        .filter_map(|step| match step {
+            termrock_e2e::Step::Press { key } => Some(key.as_str()),
+            termrock_e2e::Step::Checkpoint { .. } => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        presses,
+        vec![
+            "e", "down", "down", "down", "space", "ctrl-s", "escape", "ctrl-s", "escape",
+        ]
+    );
+
+    let mut assertions = std::collections::BTreeMap::new();
+    let mut checkpoints = std::collections::BTreeMap::new();
+    for step in &case.steps {
+        if let termrock_e2e::Step::Checkpoint {
+            id,
+            assertions: checkpoint_assertions,
+            legacy_snapshot_path,
+            ..
+        } = step
+        {
+            checkpoints.insert(id.as_str(), legacy_snapshot_path.as_deref());
+            for assertion in checkpoint_assertions {
+                assertions.insert(assertion.id.as_str(), assertion);
+            }
+        }
+    }
+
+    let expected_assertion_ids = std::collections::BTreeSet::from([
+        "manager.chrome",
+        "manager.current_directory",
+        "editor.crumb",
+        "editor.dirty_count",
+        "preview.title",
+        "preview.keep_awake_diff",
+        "preview.workspace_name",
+        "preview.change_count",
+        "preview.dirty_badge",
+        "preview.dirty_tab",
+        "preview.cancel_focus",
+        "cancel.status",
+        "cancel.dirty_count",
+        "cancel.editor_crumb",
+        "cancel.preview_absent",
+        "reopened.title",
+        "reopened.diff",
+        "cancel_again.dirty_count",
+        "cancel_again.editor_crumb",
+        "cancel_again.preview_absent",
+        "cancel_again.diff_absent",
+    ]);
+    assert_eq!(assertions.len(), 21);
+    assert_eq!(assertions.keys().copied().collect::<std::collections::BTreeSet<_>>(), expected_assertion_ids);
+
+    let mut ordered_signatures = Vec::new();
+    for step in &case.steps {
+        if let termrock_e2e::Step::Checkpoint { assertions, .. } = step {
+            for assertion in assertions {
+                ordered_signatures.push((
+                    assertion.id.as_str(),
+                    assertion.kind.as_str(),
+                    assertion.needle.as_deref(),
+                    assertion.left.as_deref(),
+                    assertion.right.as_deref(),
+                    assertion.requires.as_deref(),
+                ));
+            }
+        }
+    }
+    assert_eq!(
+        ordered_signatures,
+        vec![
+            ("manager.chrome", "contains", Some("jackin❯"), None, None, None),
+            ("manager.current_directory", "contains", Some("Current directory"), None, None, None),
+            ("editor.crumb", "contains", Some("Workspaces › payments-platform › edit"), None, None, None),
+            ("editor.dirty_count", "contains", Some("• 1 change"), None, None, None),
+            ("preview.title", "contains", Some("Save workspace"), None, None, None),
+            ("preview.keep_awake_diff", "contains", Some("~ keep_awake true → false"), None, None, None),
+            ("preview.workspace_name", "contains", Some("payments-platform"), None, None, None),
+            ("preview.change_count", "contains", Some("1 change"), None, None, None),
+            ("preview.dirty_badge", "contains", Some("• 1 change"), None, None, None),
+            ("preview.dirty_tab", "contains", Some("General •"), None, None, None),
+            ("preview.cancel_focus", "same_line", None, Some("▎Cancel"), Some("Save"), None),
+            ("cancel.status", "contains", Some("Not saved · keep editing"), None, None, None),
+            ("cancel.dirty_count", "contains", Some("• 1 change"), None, None, None),
+            ("cancel.editor_crumb", "contains", Some("Workspaces › payments-platform › edit"), None, None, None),
+            ("cancel.preview_absent", "absent", Some("Save workspace"), None, None, Some("preview.title")),
+            ("reopened.title", "contains", Some("Save workspace"), None, None, None),
+            ("reopened.diff", "contains", Some("~ keep_awake true → false"), None, None, None),
+            ("cancel_again.dirty_count", "contains", Some("• 1 change"), None, None, None),
+            ("cancel_again.editor_crumb", "contains", Some("Workspaces › payments-platform › edit"), None, None, None),
+            ("cancel_again.preview_absent", "absent", Some("Save workspace"), None, None, Some("reopened.title")),
+            ("cancel_again.diff_absent", "absent", Some("~ keep_awake true → false"), None, None, Some("reopened.diff")),
+        ]
+    );
+    let cancel_focus = assertions["preview.cancel_focus"];
+    assert_eq!(cancel_focus.kind, "same_line");
+    assert_eq!(cancel_focus.left.as_deref(), Some("▎Cancel"));
+    assert_eq!(cancel_focus.right.as_deref(), Some("Save"));
+    assert_eq!(
+        assertions["cancel_again.preview_absent"].requires.as_deref(),
+        Some("reopened.title")
+    );
+    assert_eq!(
+        assertions["cancel_again.diff_absent"].requires.as_deref(),
+        Some("reopened.diff")
+    );
+    assert_eq!(
+        assertions["cancel.preview_absent"].requires.as_deref(),
+        Some("preview.title")
+    );
+    assert_eq!(checkpoints["05-preview-reopened"], None);
+    assert_eq!(checkpoints["06-cancelled-again"], None);
+
+    let mut missing_positive_precondition = (*case).clone();
+    for step in &mut missing_positive_precondition.steps {
+        if let termrock_e2e::Step::Checkpoint { assertions, .. } = step {
+            if let Some(assertion) = assertions
+                .iter_mut()
+                .find(|assertion| assertion.id == "cancel_again.diff_absent")
+            {
+                assertion.requires = Some("missing.positive".to_string());
+            }
+        }
+    }
+    assert!(termrock_e2e::validate_case_contract(&missing_positive_precondition).is_err());
+}
+
+#[test]
 fn all_known_deferred_rows_remain_not_run_and_bd19_stays_absent() {
     assert_eq!(
         deferred_row_count().expect("deferred inventory parses"),
