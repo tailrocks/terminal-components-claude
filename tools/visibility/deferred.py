@@ -31,9 +31,7 @@ RUNNER_TEST_PATH = ROOT / "crates/termrock-visibility-tests/tests/deferred.rs"
 SCHEMA = "termrock-deferred-run/v2"
 SCHEMA_VERSION = 2
 WORK_ID = "VIS-04"
-OWNER = "/root/current_branch_comparison_luna"
-CLAIM_TOKEN = "visibility-deferred-recovery-20261008-04"
-ACCEPTED_QUEUE_REVISION = 24
+CLAIM_PIN_SCHEMA = "termrock-visibility-claim-pin/v1"
 PACKAGE = "termrock-conformance"
 BINARY = "control_states"
 EXPECTED_COUNT = 23
@@ -127,6 +125,48 @@ def read_json(path: Path) -> Any:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise DeferredError("cannot read {}: {}".format(path, error)) from error
+
+
+def _unique_json_object(pairs: Sequence[Tuple[str, Any]]) -> Dict[str, Any]:
+    result: Dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise DeferredError("claim pin contains a duplicate field: {}".format(key))
+        result[key] = value
+    return result
+
+
+def read_claim_pin(path: Path) -> Tuple[Dict[str, Any], bytes]:
+    try:
+        raw = path.read_bytes()
+        pin = json.loads(
+            raw.decode("utf-8"), object_pairs_hook=_unique_json_object
+        )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise DeferredError("cannot read claim pin {}: {}".format(path, error)) from error
+    if not isinstance(pin, dict):
+        raise DeferredError("claim pin must be an object")
+    expected_fields = {
+        "schema",
+        "work_id",
+        "expected_owner",
+        "expected_claim_token",
+        "expected_accepted_queue_revision",
+    }
+    if set(pin) != expected_fields:
+        raise DeferredError("claim pin fields do not match the required schema")
+    for name in ("schema", "work_id", "expected_owner", "expected_claim_token"):
+        if type(pin[name]) is not str or not pin[name].strip():
+            raise DeferredError("claim pin {} must be a non-empty string".format(name))
+    if pin["schema"] != CLAIM_PIN_SCHEMA:
+        raise DeferredError("claim pin schema is not supported")
+    if pin["work_id"] != WORK_ID:
+        raise DeferredError("claim pin work_id does not match {}".format(WORK_ID))
+    if type(pin["expected_accepted_queue_revision"]) is not int:
+        raise DeferredError("claim pin expected_accepted_queue_revision must be an integer")
+    if pin["expected_accepted_queue_revision"] < 1:
+        raise DeferredError("claim pin expected_accepted_queue_revision must be positive")
+    return pin, raw
 
 
 def parse_test_metadata(text: str) -> Dict[str, Tuple[bool, Optional[str]]]:
@@ -680,21 +720,32 @@ def worktree_record() -> Dict[str, Any]:
     return {"state": "dirty" if entries else "clean", "porcelain_v1": entries}
 
 
-def validate_claim() -> Dict[str, Any]:
+def validate_claim(claim_pin_path: Path) -> Dict[str, Any]:
+    pin, pin_bytes = read_claim_pin(claim_pin_path)
     records = read_json(TASKS_PATH)
     if not isinstance(records, dict) or not isinstance(records.get("tasks"), list):
         raise DeferredError("accepted task registry is malformed")
+    current_queue_revision = records.get("queue_revision")
+    if type(current_queue_revision) is not int or current_queue_revision < 1:
+        raise DeferredError("current queue_revision must be a positive integer")
     matches = [task for task in records["tasks"] if isinstance(task, dict)
                and task.get("work_id") == WORK_ID]
     if len(matches) != 1:
         raise DeferredError("expected one accepted VIS-04 claim")
     task = matches[0]
-    if task.get("owner") != OWNER or task.get("claim_token") != CLAIM_TOKEN:
-        raise DeferredError("VIS-04 owner or claim token changed")
+    if task.get("owner") != pin["expected_owner"]:
+        raise DeferredError("VIS-04 owner does not match the caller-pinned claim")
+    if task.get("claim_token") != pin["expected_claim_token"]:
+        raise DeferredError("VIS-04 claim token does not match the caller-pinned claim")
     if task.get("branch") != "termrock-implementation" or task.get("state") not in ("claimed", "in_progress"):
         raise DeferredError("VIS-04 is not active on termrock-implementation")
-    if task.get("accepted_queue_revision") != ACCEPTED_QUEUE_REVISION:
-        raise DeferredError("VIS-04 accepted queue revision changed")
+    accepted_queue_revision = task.get("accepted_queue_revision")
+    if type(accepted_queue_revision) is not int or accepted_queue_revision < 1:
+        raise DeferredError("VIS-04 accepted_queue_revision must be a positive integer")
+    if accepted_queue_revision != pin["expected_accepted_queue_revision"]:
+        raise DeferredError("VIS-04 accepted queue revision does not match the caller-pinned claim")
+    if current_queue_revision < accepted_queue_revision:
+        raise DeferredError("current queue_revision is older than the accepted claim")
     accepted_paths = {
         "tools/visibility/deferred.py",
         "tools/visibility/tests/test_deferred.py",
@@ -706,10 +757,11 @@ def validate_claim() -> Dict[str, Any]:
         raise DeferredError("VIS-04 allowed paths changed from the accepted scope")
     return {
         "work_id": WORK_ID,
-        "owner": OWNER,
-        "claim_token": CLAIM_TOKEN,
-        "queue_revision": records.get("queue_revision"),
-        "accepted_queue_revision": task.get("accepted_queue_revision"),
+        "owner": pin["expected_owner"],
+        "claim_token": pin["expected_claim_token"],
+        "claim_pin_sha256": sha256_bytes(pin_bytes),
+        "queue_revision": current_queue_revision,
+        "accepted_queue_revision": accepted_queue_revision,
         "accepted_base_sha": task.get("base_sha"),
         "state": task.get("state"),
     }
@@ -976,7 +1028,7 @@ def classify_execution(run_exit: int, outcomes: Mapping[str, str],
     return "blocked", "nextest run did not produce a complete 23-test result set", 2
 
 
-def execute() -> Tuple[int, Path]:
+def execute(claim_pin_path: Path) -> Tuple[int, Path]:
     started_at = utc_now()
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
     evidence_dir = EVIDENCE_ROOT / run_id
@@ -1033,7 +1085,7 @@ def execute() -> Tuple[int, Path]:
     }
     exit_code = 2
     try:
-        claim = validate_claim()
+        claim = validate_claim(claim_pin_path)
         branch = git_output("rev-parse", "--abbrev-ref", "HEAD")
         commit = git_output("rev-parse", "HEAD")
         receipt["tool_inputs"]["claim"] = claim
@@ -1188,10 +1240,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         choices=("run",),
         help="build/list the exact canonical selection, then execute all 23 deferred tests",
     )
+    parser.add_argument(
+        "--claim-pin",
+        required=True,
+        type=Path,
+        help="caller-pinned VIS-04 owner, token, and accepted queue revision JSON",
+    )
     args = parser.parse_args(argv)
     if args.action != "run":
         return 2
-    exit_code, receipt_path = execute()
+    exit_code, receipt_path = execute(args.claim_pin)
     try:
         relative_receipt = receipt_path.relative_to(ROOT)
     except ValueError:
