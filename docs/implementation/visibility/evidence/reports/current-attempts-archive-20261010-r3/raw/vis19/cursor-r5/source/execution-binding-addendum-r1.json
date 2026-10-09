@@ -1,0 +1,32 @@
+{
+  "schema": "termrock-vis19-cursor-selection-binding-addendum/v1",
+  "created_at_utc": "2026-10-09T21:24:29Z",
+  "revision": "R1",
+  "source_packet": {
+    "path": "/private/tmp/termrock-vis19-cursor-increment1-r3/manifest.json",
+    "sha256": "df3648c0fcade4d48b135f019b8d5fc5f8ba93a35fe768727097b1fd4d96a682",
+    "selection_path": "/private/tmp/termrock-vis19-cursor-increment1-r3/selection.json",
+    "selection_sha256": "e4eed31d6afd7771a2b6c9c8228b3b67aa7ebe880d6c10536c5179ee45709034",
+    "source_path": "/private/tmp/termrock-vis19-tuiscotti-cursor-r3",
+    "source_patch_sha256": "a16c2b9c7795110ed152f8cc991860b2f298c4b72acc2bea24a1bf2ac4c0efa2",
+    "r2_to_r3_test_delta_sha256": "158239c507bf94e1014c73926b4080bc4ae0b89dbfd31cdc5281fc848091f386",
+    "mod_rs_sha256": "9408375ac3d08bb15ab8f4c2015e65d55cff25629838c31712e433d83b168a6b"
+  },
+  "previous_reviewed_pins": {
+    "manifest_sha256": "89fec696601ab7f4e91cf8e5b3ec4d57e6fc6fc7fff7355813ea99d8e220d1d9",
+    "selection_sha256": "10f1ded3a9d1c76b06fcc52f9d5c521157713d3c1af7c67004c5e7ea284a02b7",
+    "review_source_delta_sha256": "a16c2b9c7795110ed152f8cc991860b2f298c4b72acc2bea24a1bf2ac4c0efa2",
+    "preservation_status": "The original manifest and selection bytes were overwritten before an exact copy was preserved. These hashes remain historical review references; this addendum does not claim a recoverable exact copy."
+  },
+  "metadata_correction": {
+    "selection_ids": "The current selection uses the module-qualified test naming convention already used by the R2 manifest. The prior selection used a crate-prefixed spelling. The nine test functions and selected set are unchanged.",
+    "selection_bytes": "The current selection file is 1271 bytes and its manifest entry now records that exact length. The earlier manifest entry listed 1124 bytes, which did not match the earlier selection file's 1289 bytes.",
+    "source_change": "None beyond the two test functions already reviewed in the R3 source patch; source.patch, R2-to-R3 test delta, and mod.rs hashes are unchanged."
+  },
+  "current_selection": {
+    "run_status": "NOT_RUN",
+    "selected_test_count": 9,
+    "selection_ids_path": "/private/tmp/termrock-vis19-cursor-increment1-r3/selection.json",
+    "review_status": "Pending focused current-selection review. No Cargo/Nextest run is authorized by this addendum."
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "schema": "termrock-vis19-cursor-r3-metadata-review-addendum/v1",
+  "reviewer": "/root/current_branch_comparison_luna",
+  "verdict": "READY_WITH_SELECTION_METADATA_DELTA",
+  "qualification": "NOT_RUN_NOT_QUALIFIED",
+  "current_artifacts": {
+    "root": "/private/tmp/termrock-vis19-cursor-increment1-r3",
+    "manifest_sha256": "df3648c0fcade4d48b135f019b8d5fc5f8ba93a35fe768727097b1fd4d96a682",
+    "selection_sha256": "e4eed31d6afd7771a2b6c9c8228b3b67aa7ebe880d6c10536c5179ee45709034",
+    "readme_sha256": "6b59bf7a3337337386c3b963e362ad57ddacb289ad805969131186634007bbd4",
+    "r2_to_r3_patch_sha256": "158239c507bf94e1014c73926b4080bc4ae0b89dbfd31cdc5281fc848091f386",
+    "source_patch_sha256": "a16c2b9c7795110ed152f8cc991860b2f298c4b72acc2bea24a1bf2ac4c0efa2"
+  },
+  "prior_review": {
+    "receipt": "/private/tmp/termrock-vis19-cursor-increment1-r3-independent-review-current-branch-luna-20261010.json",
+    "receipt_sha256": "9d6c8631081f0a5c0ccf49c16d5ae75dc90eda5acb03ceb3fc6283a346388ed6",
+    "prior_manifest_sha256": "89fec696601ab7f4e91cf8e5b3ec4d57e6fc6fc7fff7355813ea99d8e220d1d9",
+    "prior_selection_sha256": "10f1ded3a9d1c76b06fcc52f9d5c521157713d3c1af7c67004c5e7ea284a02b7"
+  },
+  "findings": [
+    {
+      "id": "selection-unit-prefix-normalized",
+      "severity": "metadata-delta",
+      "detail": "The current selection retains the same nine source test functions (four unit and five integration), but four raw unit selector strings changed from `tuiscotti_runtime::tui::cursor_projection_tests::...` in the previously reviewed selection to `tui::cursor_projection_tests::...`. The five `replay::...` strings are unchanged. The current manifest's embedded unit names use the current shorter `tui::...` spelling, so the current manifest and selection agree. Exact raw selector-string equality to the prior selection is not claimed."
+    }
+  ],
+  "confirmed": {
+    "source_delta": "The only R2-to-R3 source path remains crates/tuiscotti-runtime/src/tui/mod.rs; the two added matrix/bounds tests and all four changed-file content hashes match the R3 manifest. The production code and the other three R2 files are unchanged.",
+    "selected_functions": [
+      "tui::cursor_projection_tests::hidden_cursor_preserves_raw_coordinates_style_and_blink",
+      "tui::cursor_projection_tests::hidden_pending_wrap_preserves_column_equal_to_width",
+      "tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscusr_shapes",
+      "tui::cursor_projection_tests::visibility_requires_backend_and_bounds_without_clamping_raw_position",
+      "replay::hidden_cup_cursor_coordinates_match_live_and_replay",
+      "replay::hidden_pending_wrap_cursor_coordinates_match_live_and_replay",
+      "replay::replay_matches_live_session",
+      "replay::replay_chunk_invariance_all_split_points",
+      "replay::replay_recorded_pty_bytes_chunk_invariant"
+    ],
+    "default_zero": "Code 0 is asserted as the Termpane default sentinel mapping to Block/nonblinking. The pinned API cannot distinguish initial default from explicit CSI 0; the latter behavior remains an acknowledged coverage/representation gap, not a claimed pass.",
+    "static_check": "git diff --check passed. No compiler, Cargo, or tests were run."
+  },
+  "actions_not_performed": [
+    "No compiler, Cargo, build, or tests.",
+    "No source edits.",
+    "No Git mutation, fetch, push, or ref/tag/release change."
+  ]
+}

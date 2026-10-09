@@ -1,0 +1,56 @@
+{
+  "schema": "termrock-independent-metadata-review/v1",
+  "verdict": "READY_METADATA_CORRECTION_ONLY",
+  "scope": "Read-only review of the VIS-19 R4 selector metadata correction. This does not authorize or claim source, build, or test execution.",
+  "artifacts": {
+    "original_manifest": {
+      "path": "/private/tmp/termrock-vis19-cursor-increment1-r4-r3/manifest.json",
+      "sha256": "9964744c14822af5e8570823e53fd8bdafdf438a05ce61d001cb0b17947b57ae"
+    },
+    "corrected_manifest": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r2-20261010/r4-manifest-selection-correction.json",
+      "sha256": "4b95beab6a005c7271b067a7b193e3ac5165fcf1b2ec4a9c29f30ff6663ddf9b"
+    },
+    "correction_addendum": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r2-20261010/selection-metadata-correction-addendum.json",
+      "sha256": "fb00f6402e5a10910e76f722632e3f55fd81a05fbfd931fc3ff539306369a6d0"
+    }
+  },
+  "verified": {
+    "delta": {
+      "json_pointer": "/selected_tests/unit/2",
+      "before": "tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscsr_shapes",
+      "after": "tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscusr_shapes",
+      "replacement_count": 1,
+      "all_other_manifest_fields_equal": true
+    },
+    "selection_authority": {
+      "path": "/private/tmp/termrock-vis19-cursor-increment1-r3/selection.json",
+      "sha256": "e4eed31d6afd7771a2b6c9c8228b3b67aa7ebe880d6c10536c5179ee45709034",
+      "selected_test_count": 9,
+      "corrected_test_id_matches": true
+    },
+    "source_confirmation": {
+      "path": "/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3/crates/tuiscotti-runtime/src/tui/mod.rs",
+      "sha256": "9408375ac3d08bb15ab8f4c2015e65d55cff25629838c31712e433d83b168a6b",
+      "function": "style_code_matrix_preserves_default_and_six_decscusr_shapes",
+      "corrected_test_id_matches_declaration": true
+    },
+    "source_review": {
+      "path": "/private/tmp/termrock-vis19-cursor-increment1-r4-r3-independent-review-luna-20261010.json",
+      "sha256": "f94c437b0bbd6e8612f407485ef7bc5303d10eda46ea023e4a402057a9842f8e"
+    },
+    "preserved_r3_failure": {
+      "result_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r3-nine-tests-20261010/attempt-03/receipt.json",
+      "result_sha256": "e25c1158fbf27fe77d613cdc3b99661289a94a6fca968f02d69f982ebbf5fce2",
+      "actual_review_path": "/private/tmp/termrock-vis19-cursor-r3-nine-tests-actual-result-review-luna-20261010.json",
+      "actual_review_sha256": "097700f900432ebe50d1b1ffe0b33034cb0955638783e059e69cae9b25738b75",
+      "outcome": "Cargo exit 101 during compilation; zero Nextest tests started; separate postflight CARGO_HOME mutation is preserved"
+    }
+  },
+  "actions_not_performed": [
+    "no source edits",
+    "no Cargo, Nextest, tests, preflight, or launch",
+    "no authorization or qualification claim"
+  ]
+}

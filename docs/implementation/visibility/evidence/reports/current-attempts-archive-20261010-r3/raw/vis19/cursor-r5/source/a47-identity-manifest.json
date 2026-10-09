@@ -1,0 +1,178 @@
+{
+  "schema": "termrock-vis19-tuiscotti-source-projection/v1",
+  "prepared_at_utc": "2026-10-09T20:47:56.806Z",
+  "source_identity": {
+    "repository_name": "tuiscotti",
+    "commit": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+    "tree": "618b561d867f1bda0c1678d18a8f531a06c6469d",
+    "object_format": "sha1",
+    "source_snapshot_path": "/private/tmp/termrock-vis19-tuiscotti-a47-source-r1",
+    "source_snapshot_state": "detached HEAD; git status clean at preparation; no build or tests run",
+    "source_snapshot_remote": "origin points to the local Cargo git cache path below; no fetch or push was performed",
+    "cloned_from": "/Users/donbeave/.cargo/git/checkouts/tuiscotti-9317ad0850957efe/a47c9aa",
+    "source_cache_observation": {
+      "head": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+      "branch_status": "master...origin/master [gone]",
+      "untracked_entry": ".cargo-ok (not copied into the external clone)",
+      "remote": "origin file URL points to /Users/donbeave/.cargo/git/db/tuiscotti-9317ad0850957efe"
+    }
+  },
+  "applicable_instructions": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "aa16b34b636c4091d86f84865e579d1a4416e3edf763cc5719d1f5c9ab090a89",
+      "applies_to": "repository source; requires delegation for bounded source work, correctness-first investigation, and verification before commits"
+    },
+    {
+      "path": ".github/AGENTS.md",
+      "sha256": "a63e6a4550e75e14c2dd2ebe6efefe1360a847967c0ee2f28803eb43949dc6e4",
+      "applies_to": "only generated .github workflow/configuration files; no such path is in the planned scope"
+    }
+  ],
+  "implementation_scope_reviewed": {
+    "increment_1_cursor_only": [
+      "crates/tuiscotti-runtime/src/tui/frame.rs",
+      "crates/tuiscotti-runtime/src/tui/mod.rs",
+      "crates/tuiscotti-runtime/src/tui_shell/replay_screen.rs",
+      "crates/tuiscotti-runtime/tests/tui_shell/replay.rs"
+    ],
+    "existing_test_binary_gate": "crates/tuiscotti-runtime/tests/tui_shell.rs has crate cfg(feature = \"pty\") and cfg(unix), and includes replay.rs; runtime crate exposes tui/tui_shell only under feature pty; frame/replay screen implementation is Unix-gated",
+    "first_increment_behavior": "one shared pure cursor projection preserves raw x/y, shape, and blink independent of visibility; projected visibility is raw visibility AND in-bounds; tests must retain hidden CUP row 2/column 4 as x=3,y=1 and pending-wrap 8x4 row 3/column 8 after X as x=8,y=2, both hidden; do not clamp/reset/remove checks",
+    "adapter_cfg_constraint": "future Observation adapter must use the same Unix/pty cfg as optional Termpane dependency",
+    "loss_boundary": "canonical Screen is not a lossless Termpane Observation; retain complete Observation/cursor sidecar and report projection losses"
+  },
+  "plan_review": {
+    "plan_path": "/private/tmp/termrock-vis19-tuiscotti-observation-implementation-plan-20261010-luna-r1.md",
+    "plan_sha256": "c3704c28cef26b162aa31c10f7aee732eee049c08fdf6b30b405aa47f11483f4",
+    "review_path": "/private/tmp/termrock-vis19-tuiscotti-observation-plan-independent-review-current-branch-luna-20261010-r1.json",
+    "review_sha256": "2a0ba1b4f46b3df747b823f1e5e1cea4805ecccb02a781a01fccfce50bb6aa84",
+    "verdict": "READY; no blockers"
+  },
+  "no_actions_performed": [
+    "no Tuiscotti source edits",
+    "no upstream fetch/ref/tag/release mutations",
+    "no Cargo/build/tests",
+    "no canonical repository writes"
+  ],
+  "tracked_file_pins": [
+    {
+      "path": "AGENTS.md",
+      "mode": "100644",
+      "git_blob": "46d9c51b613e1e237f0e149d1e8cf513657497e6",
+      "bytes": 1456,
+      "sha256": "aa16b34b636c4091d86f84865e579d1a4416e3edf763cc5719d1f5c9ab090a89"
+    },
+    {
+      "path": ".github/AGENTS.md",
+      "mode": "100644",
+      "git_blob": "136957df7e763ca599acd619e18d9f74e1c896cb",
+      "bytes": 2165,
+      "sha256": "a63e6a4550e75e14c2dd2ebe6efefe1360a847967c0ee2f28803eb43949dc6e4"
+    },
+    {
+      "path": "Cargo.toml",
+      "mode": "100644",
+      "git_blob": "93cb50e33c855db745f59665ec24d672408c8df1",
+      "bytes": 2681,
+      "sha256": "a2eb07c8291ee17def98e59eafa1eee070ac4bf150e7974cb7b2b33f0148e3c2"
+    },
+    {
+      "path": "Cargo.lock",
+      "mode": "100644",
+      "git_blob": "0ed4dca6fb0bd86d3b64453bb36864d18bfaf2ad",
+      "bytes": 39666,
+      "sha256": "3f89805ce891dfd9ad34b09618492116c99cb7242cf31eceaa340047bde0550f"
+    },
+    {
+      "path": "crates/tuiscotti-runtime/Cargo.toml",
+      "mode": "100644",
+      "git_blob": "6b458df9ef62c29ca99fd381ef9e166fe1a477a1",
+      "bytes": 1156,
+      "sha256": "ef915cbd179544433a0bf5798802d22fdc4d54fa06adc8fc30c4ae8b077be4c9"
+    },
+    {
+      "path": "crates/tuiscotti-runtime/src/lib.rs",
+      "mode": "100644",
+      "git_blob": "c48e06170f482bad78544cfc12a4a7e00bf782ee",
+      "bytes": 1067,
+      "sha256": "d398a0db3ae1fc5c20063a674840f81278c11097a69da3362235a45d9d7d14df"
+    },
+    {
+      "path": "crates/tuiscotti-runtime/src/tui/mod.rs",
+      "mode": "100644",
+      "git_blob": "6f974f51ba9827ef03bdc633b35605d24ed0a87c",
+      "bytes": 3270,
+      "sha256": "99ec2bb2c36d4323c41a81baf908e2c0ef9b185644472e8459da66dbb4be9177"
+    },
+    {
+      "path": "crates/tuiscotti-runtime/src/tui/frame.rs",
+      "mode": "100644",
+      "git_blob": "0a92caac3437b0c18f41779514b40da5f9ac26ee",
+      "bytes": 8103,
+      "sha256": "6739ee9dfea7e42e324509b6e5fe2780e658e8893b8407664d252720ff32d29a"
+    },
+    {
+      "path": "crates/tuiscotti-runtime/src/tui_shell/mod.rs",
+      "mode": "100644",
+      "git_blob": "526f5174cb648fa77cb8f877780ad4900a63115b",
+      "bytes": 2655,
+      "sha256": "87831702f1361411ea508e81c80d515fa18e1af330f8658c2557205b3264a3a9"
+    },
+    {
+      "path": "crates/tuiscotti-runtime/src/tui_shell/replay_api.rs",
+      "mode": "100644",
+      "git_blob": "22d19ecaf78cdc888bfd871c0fbd303030f76b21",
+      "bytes": 8400,
+      "sha256": "a6f8f63b13c482ce6394e49e93f0d7f4b96f9981120eb4228e25f1de49dbd6df"
+    },
+    {
+      "path": "crates/tuiscotti-runtime/src/tui_shell/replay_screen.rs",
+      "mode": "100644",
+      "git_blob": "a0317326f7c78a4ea4d5d5f08e8303eaceec4b53",
+      "bytes": 6188,
+      "sha256": "79c5f3e6894389254c5c8f6a8d3a8820de57de8a827cc77b060ef752c5d11c9d"
+    },
+    {
+      "path": "crates/tuiscotti-runtime/tests/tui_shell.rs",
+      "mode": "100644",
+      "git_blob": "33d2506a81725fc1cacf70d921cc881dac0a0662",
+      "bytes": 2741,
+      "sha256": "54f16343c06f570a8aff06bdabcf85eaa24549b9f005b0b4a20e4e015af08bb3"
+    },
+    {
+      "path": "crates/tuiscotti-runtime/tests/tui_shell/replay.rs",
+      "mode": "100644",
+      "git_blob": "0152a6522a5277387417181087d23b2e40c9ba9c",
+      "bytes": 7852,
+      "sha256": "f2919dd8680c73b4a992d888e093033e6527288f47819a86aac23c6846e7dba6"
+    },
+    {
+      "path": "crates/tuiscotti-core/src/frame/cell.rs",
+      "mode": "100644",
+      "git_blob": "aad120ba576d2334ef14d25bbaa6dde88f9c7986",
+      "bytes": 2329,
+      "sha256": "bf50c89597701d37fe5db15cab76f32d85d95f11a55de205286d969ceca8133a"
+    },
+    {
+      "path": "crates/tuiscotti-core/src/screen/grid.rs",
+      "mode": "100644",
+      "git_blob": "a8499fcf0deaf6d3fed39a275514485f07c13f5f",
+      "bytes": 6960,
+      "sha256": "ff59db7a732f08491a45c5c66ef970d045a51fe0680b46665c4d351c7e2ea9ad"
+    },
+    {
+      "path": "crates/tuiscotti-core/src/screen/validate.rs",
+      "mode": "100644",
+      "git_blob": "9721e5b8fa1958af02d24485b66f5cafef5501cc",
+      "bytes": 4517,
+      "sha256": "6f02cab15b3b4b6e6baff180863fbb318aa04054d5e747d80a1a4cd5eab4ab09"
+    },
+    {
+      "path": "crates/tuiscotti-core/src/screen/observation.rs",
+      "mode": "100644",
+      "git_blob": "21950aea5254703c99a784b5370dec01407bbcf6",
+      "bytes": 5159,
+      "sha256": "0029e18d59de37e20633a4092fda56f2a5be0c8b15fdd80fc103b3b3aad49f10"
+    }
+  ]
+}
