@@ -1,7 +1,7 @@
 # Work queue
 
 Generated from [accepted task records](docs/implementation/visibility/tasks.json).
-Queue revision: 29. Acceptance owner: `/root`.
+Queue revision: 31. Acceptance owner: `/root`.
 
 Highest open priority: **P0**.
 
@@ -17,6 +17,8 @@ Highest open priority: **P0**.
 | VIS-08 | VIS-V01, VIS-P02 | P0 | in_progress | — | /root/rust_test_infrastructure | /root/technical_review | crates/termrock-visibility-tests/Cargo.toml, crates/termrock-visibility-tests/Cargo.lock, crates/termrock-visibility-tests/src/**, crates/termrock-visibility-tests/README.md |
 | VIS-09 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | in_progress | — | /root/rust_test_infrastructure | /root/technical_review | crates/termrock-visibility-tests/tests/queue.rs, tools/visibility/tests/test_queue.py |
 | VIS-10 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | claimed | — | /root | /root/jackin_inventory_current_luna | tools/visibility/queue.py, crates/termrock-visibility-tests/tests/queue_v2.rs, docs/implementation/visibility/queue-v2.md |
+| VIS-11 | VIS-I01, VIS-I02, VIS-I03, VIS-I04, VIS-I05, VIS-I06, VIS-I07, VIS-I08, VIS-I09, VIS-I10 | P0 | claimed | — | /root/status_recovery_luna | /root/technical_review | .github/workflows/**, .velnor/**, docs/implementation/visibility/evidence/ci/**, docs/implementation/visibility/evidence/tools/** |
+| VIS-12 | VIS-I05, VIS-P06, VIS-P07 | P0 | claimed | — | /root/coordination_luna | /root/technical_review | docs/implementation/visibility/evidence/dco/** |
 
 ## Claim details
 
@@ -129,6 +131,26 @@ Branch/base: `termrock-implementation` / `85b51da2e9832dba642abf7d64d032f848cade
 Evidence: Independent plan approval /private/tmp/termrock-vis10-queue-v2-plan-review.json SHA-256 bd9dbce82a27aa57608fde5d3870828765448daf53fc7a936e6cb405e3607aa0. Code prerequisite uses committed helper 8189; actual migration remains blocked until status v2 compatibility and separately qualified roots/preflight., Independent reviewed implementation scope accepted; live migration is not authorized by this transition., Integrator acceptance: reviewed VIS10 scope-amendment plan /private/tmp/termrock-vis10-scope-amendment-plan-20261009-r2.md SHA-256 509b6cefae8e062477bbd647d9d55b3afbff77e98ec2b44d44160deb4017264b; independent review /private/tmp/termrock-vis10-scope-amendment-plan-review-luna-r2.json SHA-256 e5fb2a8d9bd474cf3c087b3ccab34c5140476f6640eaeb4a82ae0e1d49ec9574 approves this exact bounded workplan. This plan supersedes the prior handoff next_action only for the next implementation sequence. Preserve the existing VIS10 base, owner, reviewer, token, expiry, allowed paths, historical handoff object, and claim history. Implement only this schema-v2 scope-amendment increment in the existing three paths. No live migration, publication, history rewrite, or out-of-scope writes are authorized.
 
 Last handoff: /root/registry_check_luna → /root by `/root/registry_check_luna`. Recorded next action at handoff: Before applying, /root independently repeats the q26 revision and task/view hashes, current owner/token/base/three-path scope, full scoped and staged/untracked diff, accepted-writer overlap, reviewer availability, and current process stop checks. Abort on drift. If checks pass, apply only queue-v1 handoff at expected revision 26 using this exact {new_claim,handoff} payload. Preserve the accepted base, allowed paths, existing evidence and claim history; the new owner continues only within the three paths until a separate plan is accepted. Do not migrate schema v1, alter history, publish, or infer a same-owner renewal from this release.
+
+### VIS-11
+
+Priority reason: The user explicitly requested repair of PR #17 CI/CD; preserve required visibility and product gates.
+
+Claim token: `visibility-pr17-ci-repair-20261009-0136Z`; accepted at queue revision 30; expires `2026-10-09T06:00:00Z`.
+
+Branch/base: `termrock-implementation` / `766ae1e925e32b4b28aa9100bb3fde5279aa223b`.
+
+Evidence: User explicitly authorized PR #17 CI/CD repair, including parallel subagents. Root remains the branch integration owner., Required evidence: live provider failure details; reviewed generator source/tool identity; generated workflows without manual YAML changes; workflow admission and actual branch/PR runs; failure artifact publication and separate visibility/readiness gates., Local base 766ae is the preserved checkout anchor, not the current remote product/test identity. Workflow generation must use independently pinned current remote source inputs and preserve newer work.
+
+### VIS-12
+
+Priority reason: The user explicitly authorized limited DCO commit repairs and guarded force push for PR #17.
+
+Claim token: `visibility-pr17-dco-repair-20261009-0136Z`; accepted at queue revision 31; expires `2026-10-09T06:00:00Z`.
+
+Branch/base: `termrock-implementation` / `766ae1e925e32b4b28aa9100bb3fde5279aa223b`.
+
+Evidence: User explicitly authorizes conflict resolution and force push only to fix offending past DCO commits, without replacing or dropping unrelated history., Git operation scope: repair only confirmed offending remote PR commit messages; preserve every file tree, original authorship, topology, and commit order; rebuild descendants only as required by changed parent identities. Root alone integrates and pushes refs/heads/termrock-implementation with an exact-head lease. Preserve immutable visual tag/release and local HEAD/index., Required evidence: live DCO offending commit IDs; exact old/new mapping; all tree and metadata preservation checks; independent repair review; recoverable old head; exact remote lease; refreshed PR DCO result., The allowed file paths are evidence publication scope. The Git metadata operation is separately authorized above; this record does not confer a general history rewrite permission.
 
 Expiry does not release an active claim. Reassignment requires a recorded safe handoff.
 Task state is assignment state; it does not prove test results or requirement completion.

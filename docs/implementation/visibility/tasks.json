@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 29,
+  "queue_revision": 31,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -977,6 +977,73 @@
           }
         }
       ]
+    },
+    {
+      "priority": "P0",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "expiry": "2026-10-09T06:00:00Z",
+      "state": "claimed",
+      "handoff": null,
+      "work_id": "VIS-11",
+      "requirement_ids": [
+        "VIS-I01",
+        "VIS-I02",
+        "VIS-I03",
+        "VIS-I04",
+        "VIS-I05",
+        "VIS-I06",
+        "VIS-I07",
+        "VIS-I08",
+        "VIS-I09",
+        "VIS-I10"
+      ],
+      "priority_reason": "The user explicitly requested repair of PR #17 CI/CD; preserve required visibility and product gates.",
+      "allowed_paths": [
+        ".github/workflows/**",
+        ".velnor/**",
+        "docs/implementation/visibility/evidence/ci/**",
+        "docs/implementation/visibility/evidence/tools/**"
+      ],
+      "owner": "/root/status_recovery_luna",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-pr17-ci-repair-20261009-0136Z",
+      "evidence": [
+        "User explicitly authorized PR #17 CI/CD repair, including parallel subagents. Root remains the branch integration owner.",
+        "Required evidence: live provider failure details; reviewed generator source/tool identity; generated workflows without manual YAML changes; workflow admission and actual branch/PR runs; failure artifact publication and separate visibility/readiness gates.",
+        "Local base 766ae is the preserved checkout anchor, not the current remote product/test identity. Workflow generation must use independently pinned current remote source inputs and preserve newer work."
+      ],
+      "accepted_queue_revision": 30
+    },
+    {
+      "priority": "P0",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "expiry": "2026-10-09T06:00:00Z",
+      "state": "claimed",
+      "handoff": null,
+      "work_id": "VIS-12",
+      "requirement_ids": [
+        "VIS-I05",
+        "VIS-P06",
+        "VIS-P07"
+      ],
+      "priority_reason": "The user explicitly authorized limited DCO commit repairs and guarded force push for PR #17.",
+      "allowed_paths": [
+        "docs/implementation/visibility/evidence/dco/**"
+      ],
+      "owner": "/root/coordination_luna",
+      "reviewer": "/root/technical_review",
+      "claim_token": "visibility-pr17-dco-repair-20261009-0136Z",
+      "evidence": [
+        "User explicitly authorizes conflict resolution and force push only to fix offending past DCO commits, without replacing or dropping unrelated history.",
+        "Git operation scope: repair only confirmed offending remote PR commit messages; preserve every file tree, original authorship, topology, and commit order; rebuild descendants only as required by changed parent identities. Root alone integrates and pushes refs/heads/termrock-implementation with an exact-head lease. Preserve immutable visual tag/release and local HEAD/index.",
+        "Required evidence: live DCO offending commit IDs; exact old/new mapping; all tree and metadata preservation checks; independent repair review; recoverable old head; exact remote lease; refreshed PR DCO result.",
+        "The allowed file paths are evidence publication scope. The Git metadata operation is separately authorized above; this record does not confer a general history rewrite permission."
+      ],
+      "accepted_queue_revision": 31
     }
   ]
 }
