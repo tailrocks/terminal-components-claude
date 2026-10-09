@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 67,
+  "queue_revision": 71,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -625,61 +625,48 @@
       "allowed_paths": [
         "crates/termrock-e2e/**"
       ],
-      "owner": "/root/rust_test_infrastructure",
-      "reviewer": "/root/controls_wrapper_review_luna",
-      "claim_token": "visibility-e2e-root-to-rustinfra-q35-20261009-01",
-      "expiry": "2026-10-09T06:00:00Z",
-      "state": "in_progress",
+      "owner": "/root/controls_wrapper_review_luna",
+      "reviewer": "/root/subjects_runner_review_luna",
+      "claim_token": "visibility-vis02-controls-handoff-q70-20261010-01",
+      "expiry": "2026-10-11T12:00:00Z",
+      "state": "claimed",
       "evidence": [
         "Independent narrow pilot plan approved by /root/technical_review; exact staged review pending.",
         "User authorized /root/rust_test_infrastructure to install and execute the identical shared Termrock E2E package on refs/heads/visual-baseline at b274dd57f4dd078ade6e424d546d83efbd2e8526, limited to crates/termrock-e2e/**; keep the frozen visual-baseline tag and release unchanged.",
         "amended branch scopes at queue revision 47: previous []; replacement [{\"allowed_paths\":[\"crates/termrock-e2e/**\"],\"base_sha\":\"b274dd57f4dd078ade6e424d546d83efbd2e8526\",\"branch\":\"visual-baseline\"}]; observed refs/heads/visual-baseline b274dd57f4dd078ade6e424d546d83efbd2e8526; accepted plan SHA-256 d81bcb0c87ebebbaee02bc8a1fa314e50068963f24e8846889e6a18a6b5a171c; independent review SHA-256 d9578accb3177f3ba34bc382f5ddf1bfef40e242e0d0591e2980791fb68ac8f4",
-        "Owner /root/rust_test_infrastructure reconfirmed sole-writer continuation through 2026-10-10T12:00:00Z with the existing token, primary scope, visual-baseline scope at b274dd57f4dd078ade6e424d546d83efbd2e8526, and dependencies (Root-reported actual owner confirmation, 2026-10-09). Root admits crates/termrock-e2e/cases/registry.json as the sixth incremental source path under the existing crates/termrock-e2e/** claim; preserve event requirements; parser syntax ctrl-s/ctrl-d to ctrl+s/ctrl+d only. Source plan /private/tmp/termrock-rust-tool-test-execution/step-input-r2-layout-r4-20261009/ctrl-s-correction-plan-r1.md SHA-256 39a8ed9be9dfb4d2b871fbce0628990feca61a072f1a51551d810efbde9d52c4; independent review /private/tmp/termrock-rust-tool-test-execution/step-input-r2-layout-r4-20261009/reviews/ctrl-s-proposal-review-luna.json SHA-256 ea425ce9e15b729ee1c1e8ed6ddf74aeb1adeb8cac42acf0e241d042f715aad0. This transition changes state/evidence only; allowed_paths, branch_scopes, base, owner, reviewer, token, expiry, and dependencies remain unchanged."
+        "Owner /root/rust_test_infrastructure reconfirmed sole-writer continuation through 2026-10-10T12:00:00Z with the existing token, primary scope, visual-baseline scope at b274dd57f4dd078ade6e424d546d83efbd2e8526, and dependencies (Root-reported actual owner confirmation, 2026-10-09). Root admits crates/termrock-e2e/cases/registry.json as the sixth incremental source path under the existing crates/termrock-e2e/** claim; preserve event requirements; parser syntax ctrl-s/ctrl-d to ctrl+s/ctrl+d only. Source plan /private/tmp/termrock-rust-tool-test-execution/step-input-r2-layout-r4-20261009/ctrl-s-correction-plan-r1.md SHA-256 39a8ed9be9dfb4d2b871fbce0628990feca61a072f1a51551d810efbde9d52c4; independent review /private/tmp/termrock-rust-tool-test-execution/step-input-r2-layout-r4-20261009/reviews/ctrl-s-proposal-review-luna.json SHA-256 ea425ce9e15b729ee1c1e8ed6ddf74aeb1adeb8cac42acf0e241d042f715aad0. This transition changes state/evidence only; allowed_paths, branch_scopes, base, owner, reviewer, token, expiry, and dependencies remain unchanged.",
+        "reviewer handoff at queue revision 69: /root/controls_wrapper_review_luna -> /root/subjects_runner_review_luna; Root assigns Subjects as independent reviewer before transferring VIS-02 to Controls. Subjects confirms availability and no E2E source ownership; this reviewer-only change preserves the expired claim and does not mark the work complete. Reviewed sequence 96bb065ab586329c18a30325dd649394c58ba4f1e615b91e8b0c14792f2685af."
       ],
       "handoff": {
-        "handoff_at": "2026-10-09T04:14:47Z",
+        "handoff_at": "2026-10-09T21:42:00Z",
         "handoff_by": "/root",
-        "from_owner": "/root",
-        "to_owner": "/root/rust_test_infrastructure",
+        "from_owner": "/root/rust_test_infrastructure",
+        "to_owner": "/root/controls_wrapper_review_luna",
         "owner_released": true,
         "coordinator_verified_stopped": false,
-        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; tree=b5701830ac45f93620b2f55da71862aacc549cd6",
-        "git_status": "At the q35 observation, local HEAD was 766ae1e925e32b4b28aa9100bb3fde5279aa223b. Prior Root handoff history records cached-tracking local-ahead IDs 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, and 766ae1e925e32b4b28aa9100bb3fde5279aa223b. For VIS-02 paths, f61abd3dfba1b4f867a539ab18ed7e4760b24a18 and 766ae1e925e32b4b28aa9100bb3fde5279aa223b are retained; 186c28774ae6abe740fc7663a3db2e17444f086a touches VIS-01 paths outside this scope and remains preserved in repository history. This is a prior cached observation, not a fresh remote query or full ancestry census; no attribution is made. Scope manifest SHA-256 c10c2c278d250389b0adb92478ec813e0bbc243ce41b64b237ed4c40a8a60bfe; staged scoped diff empty. Root reports no pending canonical writes/tests. No process-stop or global quiescence claim.",
-        "diff_sha256": "599d7fb1cf54095d26610c0dc3c745841953b25a5e2895d0e4c52e42cd9ce5eb",
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+        "git_status": " M crates/termrock-e2e/cases/registry.json\n M crates/termrock-e2e/src/lib.rs\n M crates/termrock-e2e/tests/command_lane.rs\n M crates/termrock-e2e/tests/contract.rs\n",
+        "diff_sha256": "5821cb76fe5be100a30dcb07e3c842d12b32708cac7decacdfad97c4400d498e",
         "changed_paths": [
           "crates/termrock-e2e/cases/registry.json",
+          "crates/termrock-e2e/src/lib.rs",
           "crates/termrock-e2e/tests/command_lane.rs",
           "crates/termrock-e2e/tests/contract.rs"
         ],
-        "unpublished_commits": [
-          "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
-          "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
-        ],
+        "unpublished_commits": [],
         "checks": [
           {
-            "command": "q35 source queue and accepted task preimage",
-            "result": "tasks.json SHA-256 99d139d2f6f58291af7399b1605a85e60811b29f2dd874b7c3e58c2363e0fcdf; WORK_QUEUE.md SHA-256 ef1867df55c9f9fc226e7c32d09fe8b06703c6d1b1e207e19ae117693f97cb49; VIS-02 compact record SHA-256 ad414b447fa97a561301afd315a6150c31d148ffb72df48d10d977ca904104a1; queue revision 35."
+            "command": "Root read-only Git branch/HEAD/index/fixture and scoped status/diff checks",
+            "result": "PASS: canonical state and scoped source hashes preserved; no staged scope changes."
           },
           {
-            "command": "owner release from Root in this task thread",
-            "result": "Root explicitly releases only these three scoped writer claims now: no pending canonical writes/tests in these scopes; external preparatory packets remain preserved, no repo ownership transferred until actual CAS."
-          },
-          {
-            "command": "recipient availability",
-            "result": "Yes, I’m available for the exact crates/termrock-e2e/** scope after the actual reviewed VIS-02 CAS. It is disjoint from my earlier crates/termrock-visibility-tests/src/** scope. No writes before the CAS."
-          },
-          {
-            "command": "independent reviewer assignment",
-            "result": "Assigned reviewer remains /root/controls_wrapper_review_luna; exact-payload review receipt required before CAS."
-          },
-          {
-            "command": "scoped source preimage manifest",
-            "result": "SHA-256 c10c2c278d250389b0adb92478ec813e0bbc243ce41b64b237ed4c40a8a60bfe; 28 path/file observations; rows in scope-manifests.json."
+            "command": "Root collaboration runtime and owner-release messages",
+            "result": "RustInfra explicitly released VIS-02 with no pending E2E source writes or frozen source work."
           }
         ],
-        "next_action": "After exact-payload independent review and Root final preconditions, apply only the VIS-02 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift."
+        "next_action": "Use external published source for the identical common recorder and application drivers after required tool qualification. Preserve dirty canonical E2E files."
       },
-      "accepted_queue_revision": 37,
+      "accepted_queue_revision": 70,
       "claim_history": [
         {
           "claim": {
@@ -793,6 +780,66 @@
               }
             ],
             "next_action": "After exact-payload independent review and Root final preconditions, apply only the VIS-02 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift."
+          }
+        },
+        {
+          "claim": {
+            "owner": "/root/rust_test_infrastructure",
+            "reviewer": "/root/subjects_runner_review_luna",
+            "branch": "termrock-implementation",
+            "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+            "allowed_paths": [
+              "crates/termrock-e2e/**"
+            ],
+            "claim_token": "visibility-e2e-root-to-rustinfra-q35-20261009-01",
+            "expiry": "2026-10-09T06:00:00Z",
+            "state": "in_progress",
+            "accepted_queue_revision": 37,
+            "evidence": [
+              "Independent narrow pilot plan approved by /root/technical_review; exact staged review pending.",
+              "User authorized /root/rust_test_infrastructure to install and execute the identical shared Termrock E2E package on refs/heads/visual-baseline at b274dd57f4dd078ade6e424d546d83efbd2e8526, limited to crates/termrock-e2e/**; keep the frozen visual-baseline tag and release unchanged.",
+              "amended branch scopes at queue revision 47: previous []; replacement [{\"allowed_paths\":[\"crates/termrock-e2e/**\"],\"base_sha\":\"b274dd57f4dd078ade6e424d546d83efbd2e8526\",\"branch\":\"visual-baseline\"}]; observed refs/heads/visual-baseline b274dd57f4dd078ade6e424d546d83efbd2e8526; accepted plan SHA-256 d81bcb0c87ebebbaee02bc8a1fa314e50068963f24e8846889e6a18a6b5a171c; independent review SHA-256 d9578accb3177f3ba34bc382f5ddf1bfef40e242e0d0591e2980791fb68ac8f4",
+              "Owner /root/rust_test_infrastructure reconfirmed sole-writer continuation through 2026-10-10T12:00:00Z with the existing token, primary scope, visual-baseline scope at b274dd57f4dd078ade6e424d546d83efbd2e8526, and dependencies (Root-reported actual owner confirmation, 2026-10-09). Root admits crates/termrock-e2e/cases/registry.json as the sixth incremental source path under the existing crates/termrock-e2e/** claim; preserve event requirements; parser syntax ctrl-s/ctrl-d to ctrl+s/ctrl+d only. Source plan /private/tmp/termrock-rust-tool-test-execution/step-input-r2-layout-r4-20261009/ctrl-s-correction-plan-r1.md SHA-256 39a8ed9be9dfb4d2b871fbce0628990feca61a072f1a51551d810efbde9d52c4; independent review /private/tmp/termrock-rust-tool-test-execution/step-input-r2-layout-r4-20261009/reviews/ctrl-s-proposal-review-luna.json SHA-256 ea425ce9e15b729ee1c1e8ed6ddf74aeb1adeb8cac42acf0e241d042f715aad0. This transition changes state/evidence only; allowed_paths, branch_scopes, base, owner, reviewer, token, expiry, and dependencies remain unchanged.",
+              "reviewer handoff at queue revision 69: /root/controls_wrapper_review_luna -> /root/subjects_runner_review_luna; Root assigns Subjects as independent reviewer before transferring VIS-02 to Controls. Subjects confirms availability and no E2E source ownership; this reviewer-only change preserves the expired claim and does not mark the work complete. Reviewed sequence 96bb065ab586329c18a30325dd649394c58ba4f1e615b91e8b0c14792f2685af."
+            ],
+            "branch_scopes": [
+              {
+                "branch": "visual-baseline",
+                "base_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+                "allowed_paths": [
+                  "crates/termrock-e2e/**"
+                ]
+              }
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-09T21:42:00Z",
+            "handoff_by": "/root",
+            "from_owner": "/root/rust_test_infrastructure",
+            "to_owner": "/root/controls_wrapper_review_luna",
+            "owner_released": true,
+            "coordinator_verified_stopped": false,
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+            "git_status": " M crates/termrock-e2e/cases/registry.json\n M crates/termrock-e2e/src/lib.rs\n M crates/termrock-e2e/tests/command_lane.rs\n M crates/termrock-e2e/tests/contract.rs\n",
+            "diff_sha256": "5821cb76fe5be100a30dcb07e3c842d12b32708cac7decacdfad97c4400d498e",
+            "changed_paths": [
+              "crates/termrock-e2e/cases/registry.json",
+              "crates/termrock-e2e/src/lib.rs",
+              "crates/termrock-e2e/tests/command_lane.rs",
+              "crates/termrock-e2e/tests/contract.rs"
+            ],
+            "unpublished_commits": [],
+            "checks": [
+              {
+                "command": "Root read-only Git branch/HEAD/index/fixture and scoped status/diff checks",
+                "result": "PASS: canonical state and scoped source hashes preserved; no staged scope changes."
+              },
+              {
+                "command": "Root collaboration runtime and owner-release messages",
+                "result": "RustInfra explicitly released VIS-02 with no pending E2E source writes or frozen source work."
+              }
+            ],
+            "next_action": "Use external published source for the identical common recorder and application drivers after required tool qualification. Preserve dirty canonical E2E files."
           }
         }
       ],
@@ -1278,13 +1325,14 @@
         "crates/termrock-visibility-tests/README.md"
       ],
       "owner": "/root/rust_test_infrastructure",
-      "reviewer": "/root/technical_review",
+      "reviewer": "/root/subjects_runner_review_luna",
       "claim_token": "visibility-rust-test-infrastructure-20261008-08",
       "expiry": "2026-10-09T00:00:00Z",
       "state": "in_progress",
       "evidence": [
         "Independent Rust test infrastructure plan approved by /root/technical_review. Synthetic tool protocols do not prove product results.",
-        "Implement Rust-only shared test helpers and a compiled synthetic protocol fixture; no UI dependencies or Python test scripts."
+        "Implement Rust-only shared test helpers and a compiled synthetic protocol fixture; no UI dependencies or Python test scripts.",
+        "reviewer handoff at queue revision 68: /root/technical_review -> /root/subjects_runner_review_luna; Root requested this reviewer-only handoff because /root/technical_review is unavailable; /root/subjects_runner_review_luna is assigned to review the preserved VIS-08 six-test result. The original Nextest run reported six named passes and 77 skipped, while its child exited 0 and its wrapper exited 125 with a false success predicate. Independent reconstruction review db821385e3c69182c9f66b661054a2bbe32006609dcdb335f42d70d1fcf285ad confirms those facts. This changes the reviewer only; it does not extend the expired claim, rerun tests, or mark the task complete."
       ],
       "handoff": null,
       "accepted_queue_revision": 12
@@ -2070,10 +2118,10 @@
       "allowed_paths": [
         "crates/termrock-visibility-tests/tests/cache_source_audit.rs"
       ],
-      "owner": "/root/branch_facts",
+      "owner": "/root/rust_test_infrastructure",
       "reviewer": "/root/subjects_runner_review_luna",
-      "claim_token": "visibility-vis18-cache-source-audit-q64-0031d378-5d8d-46f6-8c54-420ca9b5dac6",
-      "expiry": "2026-10-10T06:00:00Z",
+      "claim_token": "visibility-vis18-rustinfra-handoff-q71-20261010-01",
+      "expiry": "2026-10-11T12:00:00Z",
       "state": "claimed",
       "evidence": [
         "Acceptance precondition: q64, queue revision 64, tasks.json SHA-256 f7d6509eed5ed64b1de2eb5e192fe94049bb08b5efef6db18cb1e3a809b89553, WORK_QUEUE.md SHA-256 51c88560f5630915e27123658d0187934c82d154335c073112eae2d0788f587e. The q64 publication record is /private/tmp/termrock-q64-vis17-root-proposal-20261010/publication.json, SHA-256 5ca18fbc3637c4b9bcbdbd482d8c2f73a3f56ad32becb77cf1905c3953408eb20, published commit eb9f2bb8cea0dafeb9f106325cabe955ef6c8381. Root must recheck the current queue revision, source branch, and canonical base before acceptance.",
@@ -2086,8 +2134,85 @@
         "dependencies is empty deliberately: VIS-18 is the audit prerequisite, so depending on VIS-06 would prevent the prerequisite from running. The source-only work may proceed independently; actual audit execution remains gated on separately reviewed VIS-08 dependency/cache preparation, exact input revalidation, and Root's execution authorization. No Cargo, Nextest, or test run is authorized by this claim.",
         "The proposed owner /root/branch_facts confirmed availability for only the listed test path after acceptance. The proposed independent reviewer /root/subjects_runner_review_luna confirmed availability. Root remains the queue integrator and must perform the production CLI acceptance at the expected revision."
       ],
-      "handoff": null,
-      "accepted_queue_revision": 65
+      "handoff": {
+        "handoff_at": "2026-10-09T21:42:10Z",
+        "handoff_by": "/root",
+        "from_owner": "/root/branch_facts",
+        "to_owner": "/root/rust_test_infrastructure",
+        "owner_released": false,
+        "coordinator_verified_stopped": true,
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+        "git_status": "No changes in the canonical claim scope.",
+        "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_paths": [],
+        "unpublished_commits": [],
+        "checks": [
+          {
+            "command": "Root read-only Git branch/HEAD/index/fixture and scoped status/diff checks",
+            "result": "PASS: canonical state and scoped source hashes preserved; no staged scope changes."
+          },
+          {
+            "command": "Root collaboration runtime and owner-release messages",
+            "result": "Root current runtime roster contains no /root/branch_facts; frozen audit source still matches e25e84f9, pending work is the preserved compile failure and read-only successor proposal."
+          }
+        ],
+        "next_action": "Apply only the reviewed external one-line Debug derive repair, run the cache audit through Root, and retain the failed compilation evidence.",
+        "stop_evidence": "Root verified the current collaboration roster directly before this sequence: /root/branch_facts is absent. The frozen external owner source is unchanged; RustInfra has only a read-only one-line compile repair proposal. This coordinator-verified stop does not rely on claim expiry. No source writes or unintegrated owner Git commits were identified."
+      },
+      "accepted_queue_revision": 71,
+      "claim_history": [
+        {
+          "claim": {
+            "owner": "/root/branch_facts",
+            "reviewer": "/root/subjects_runner_review_luna",
+            "branch": "termrock-implementation",
+            "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+            "allowed_paths": [
+              "crates/termrock-visibility-tests/tests/cache_source_audit.rs"
+            ],
+            "claim_token": "visibility-vis18-cache-source-audit-q64-0031d378-5d8d-46f6-8c54-420ca9b5dac6",
+            "expiry": "2026-10-10T06:00:00Z",
+            "state": "claimed",
+            "accepted_queue_revision": 65,
+            "evidence": [
+              "Acceptance precondition: q64, queue revision 64, tasks.json SHA-256 f7d6509eed5ed64b1de2eb5e192fe94049bb08b5efef6db18cb1e3a809b89553, WORK_QUEUE.md SHA-256 51c88560f5630915e27123658d0187934c82d154335c073112eae2d0788f587e. The q64 publication record is /private/tmp/termrock-q64-vis17-root-proposal-20261010/publication.json, SHA-256 5ca18fbc3637c4b9bcbdbd482d8c2f73a3f56ad32becb77cf1905c3953408eb20, published commit eb9f2bb8cea0dafeb9f106325cabe955ef6c8381. Root must recheck the current queue revision, source branch, and canonical base before acceptance.",
+              "The base_sha is the canonical checkout anchor recorded in q64: 766ae1e925e32b4b28aa9100bb3fde5279aa223b. It is not the published q64 proposal commit or the external R14 source freeze; no Git identity is inferred for that external freeze.",
+              "The exact source fixture is /private/tmp/termrock-vis06-tag-linker-r2-20261010/source/candidate-r14-r11-response-fail-closed/crates/termrock-visibility-tests. Its R14 freeze record is /private/tmp/termrock-vis06-tag-linker-r2-20261010/freeze-r14-r11-response-fail-closed/freeze.json, SHA-256 143d290244fca513305917ef208b6fb9bbdbbcfab98e59384324df2ff48345ec. The freeze records 20 source files with tree digest 2cca2a085971778b4ba437b4c360249975f8c8a6d78d1b9daead1429b7353a9a and a nine-file standalone package with digest 75e0a945b2c7eb4c2bd7cbb0a5ad88551a83a74358b919b636e9a2b680c7ee37. The package file-hash list is pinned by SHA-256 ea0b62e941861fbc8dd8b0a07a461e491ef425c203b1d10ebf51e465360be9c9. Independent R14 source review: /private/tmp/termrock-vis06-tag-linker-r14-source-review-luna-r2-20261010.json, SHA-256 ecfb302d031d61b98cefd153ef658621db273a177f3b529bcc43f42414b79ccc; it is static source review only, and the R14 freeze says execution authorization was not granted.",
+              "The actual VIS-06 R11 runner result is /private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/attempt-01/runner-result.json, SHA-256 dbdf8853ed8b616c09209c096560194372a2713518f4a6676fa6f3585beccd73. Its independent actual-result review is /private/tmp/termrock-vis06-tag-r11-actual-review-luna-20261010.json, SHA-256 dcc0900899d7d6024e9b27bfcbb09f526a91e7f51c50f93eb4318ea23f0c8646. Preserve the recorded outcomes: product Holla build PASS and real linker exit 0; the selected test failed (0 passed, 1 failed, 16 filtered), capture and admission NOT_RUN, qualification BLOCKED, and protected_inputs_unchanged=false.",
+              "The R11 result records 7,231 unmanifested registry-source entries (6,054 files and 1,177 directories), including 153 new package roots proposed for this derivative audit. The prior cache preparation record is /private/tmp/termrock-vis06-tag-linker-r1-20261009/execution/tag-r4-20261009-ba912a28e055/cache-preparation.json, SHA-256 3200168cb388657b90009d49f938479ecfc8d4d023d6c998413ddacee548cb12; it binds 319 locked archive checksums and the frozen visual-baseline tag object/commit. The proposed audit must independently bind the exact R11 result, preparation receipt, and post-run cache; it must not rewrite either receipt or treat cache preparation as proof of extracted-source contents.",
+              "This claim authorizes one ignored Rust test source path only. The test must read the bound result, preparation evidence, lock-pinned archives, and observed post-run cache; stream gzip/TAR entries without extracting or writing to the cache; reject traversal, absolute or duplicate paths, links, special entries, wrong package roots, content/type/size mismatches, and uncovered unmanifested paths; allow only the exact seven-byte Cargo .cargo-ok marker; and write any derivative receipt to a fresh external output path. The test must not alter product snapshots or VIS-06/R11 records.",
+              "The q64 VIS-08 claim, owned by /root/rust_test_infrastructure, owns crates/termrock-visibility-tests/Cargo.toml and Cargo.lock under token visibility-rust-test-infrastructure-20261008-08. It is in_progress at q64; its recorded expiry is 2026-10-09T00:00:00Z, and expiry does not release that claim. The current owner has not accepted this audit dependency change. VIS-18 excludes manifest/lock paths and makes no source or dependency changes there. Any tar/flate2 dependency, lock update, and separate offline archive closure must be coordinated through the currently accepted owner or a separately accepted scope/handoff before audit execution.",
+              "dependencies is empty deliberately: VIS-18 is the audit prerequisite, so depending on VIS-06 would prevent the prerequisite from running. The source-only work may proceed independently; actual audit execution remains gated on separately reviewed VIS-08 dependency/cache preparation, exact input revalidation, and Root's execution authorization. No Cargo, Nextest, or test run is authorized by this claim.",
+              "The proposed owner /root/branch_facts confirmed availability for only the listed test path after acceptance. The proposed independent reviewer /root/subjects_runner_review_luna confirmed availability. Root remains the queue integrator and must perform the production CLI acceptance at the expected revision."
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-09T21:42:10Z",
+            "handoff_by": "/root",
+            "from_owner": "/root/branch_facts",
+            "to_owner": "/root/rust_test_infrastructure",
+            "owner_released": false,
+            "coordinator_verified_stopped": true,
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+            "git_status": "No changes in the canonical claim scope.",
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "changed_paths": [],
+            "unpublished_commits": [],
+            "checks": [
+              {
+                "command": "Root read-only Git branch/HEAD/index/fixture and scoped status/diff checks",
+                "result": "PASS: canonical state and scoped source hashes preserved; no staged scope changes."
+              },
+              {
+                "command": "Root collaboration runtime and owner-release messages",
+                "result": "Root current runtime roster contains no /root/branch_facts; frozen audit source still matches e25e84f9, pending work is the preserved compile failure and read-only successor proposal."
+              }
+            ],
+            "next_action": "Apply only the reviewed external one-line Debug derive repair, run the cache audit through Root, and retain the failed compilation evidence.",
+            "stop_evidence": "Root verified the current collaboration roster directly before this sequence: /root/branch_facts is absent. The frozen external owner source is unchanged; RustInfra has only a read-only one-line compile repair proposal. This coordinator-verified stop does not rely on claim expiry. No source writes or unintegrated owner Git commits were identified."
+          }
+        }
+      ]
     },
     {
       "allowed_paths": [
