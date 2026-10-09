@@ -751,6 +751,35 @@ def transition_record(
     return records
 
 
+def append_evidence_record(
+    records_value: Any,
+    work_id: str,
+    claim_token: str,
+    evidence: str,
+    expected_revision: int,
+) -> dict[str, Any]:
+    records = copy.deepcopy(validate_records(records_value))
+    _ensure_revision(records, expected_revision)
+    _text(claim_token, "claim token")
+    _text(evidence, "evidence")
+    task = next((item for item in records["tasks"] if item["work_id"] == work_id), None)
+    require(task is not None, "unknown work ID {}".format(work_id))
+    require(task["state"] in ACTIVE_STATES,
+            "evidence can only be appended to an active claim")
+    require(_task_token(task) == claim_token,
+            "claim token does not match the current task claim")
+    highest = highest_open_priority(records)
+    require(highest is not None and task["priority"] == highest,
+            "cannot append evidence for lower priority {} while {} remains open".format(
+                task["priority"], highest or "no priority"
+            ))
+    require(evidence not in task["evidence"], "evidence entry already exists")
+    task["evidence"].append(evidence)
+    records["queue_revision"] += 1
+    validate_records(records)
+    return records
+
+
 def bind_review_subject_record(
     records_value: Any,
     work_id: str,
@@ -2845,6 +2874,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="trusted caller's SHA-256 of the exact external review file bytes",
     )
 
+    append_evidence = subparsers.add_parser(
+        "append-evidence", help="append claim evidence through revision compare-and-swap"
+    )
+    append_evidence.add_argument("work_id")
+    append_evidence.add_argument("--expected-revision", required=True, type=int)
+    append_evidence.add_argument("--claim-token", required=True)
+    append_evidence.add_argument("--evidence", required=True)
+
     bind_subject = subparsers.add_parser(
         "bind-review-subject", help="bind the current review scope through revision compare-and-swap"
     )
@@ -2991,6 +3028,19 @@ def run(args: Sequence[str] | None = None) -> int:
                 repo_root=root, subject_reader=lambda: _git_subject(root),
             )
             print("updated {} at queue revision {}".format(options.work_id, changed["queue_revision"]))
+        elif options.command == "append-evidence":
+            changed = _mutate(
+                options.expected_revision,
+                lambda current, _branch, _head: append_evidence_record(
+                    current, options.work_id, options.claim_token,
+                    options.evidence, options.expected_revision,
+                ),
+                tasks_path=tasks_path, queue_path=queue_path,
+                repo_root=root, subject_reader=lambda: _git_subject(root),
+            )
+            print("appended evidence for {} at queue revision {}".format(
+                options.work_id, changed["queue_revision"]
+            ))
         elif options.command == "bind-review-subject":
             def update_review_subject(current: Mapping[str, Any], _branch: str, _head: str) -> dict[str, Any]:
                 task = next((item for item in current["tasks"] if item["work_id"] == options.work_id), None)

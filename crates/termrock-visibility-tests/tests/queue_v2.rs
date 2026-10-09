@@ -2949,6 +2949,19 @@ impl ReviewSubjectFixture {
         ])
     }
 
+    fn append_evidence(&self, revision: u64, token: &str, evidence: &str) -> CliOutput {
+        self.run(&[
+            "append-evidence".to_owned(),
+            "VIS-12".to_owned(),
+            "--expected-revision".to_owned(),
+            revision.to_string(),
+            "--claim-token".to_owned(),
+            token.to_owned(),
+            "--evidence".to_owned(),
+            evidence.to_owned(),
+        ])
+    }
+
     fn transition(
         &self,
         state: &str,
@@ -3071,6 +3084,106 @@ fn review_subject_binding_uses_revision_cas_and_preserves_existing_verified_reco
         after_verified, old_verified,
         "binding VIS-12 must preserve every pre-existing verified task and receipt"
     );
+}
+
+#[test]
+fn append_evidence_uses_revision_cas_and_preserves_claim_identity_and_state() {
+    let fixture = ReviewSubjectFixture::new();
+    let before = fixture.read_records();
+    let revision = fixture.revision();
+    let token = fixture.claim_token();
+    let evidence = "reviewed source packet: sha256:abc123";
+
+    let output = fixture.append_evidence(revision, &token, evidence);
+    assert_success(&output);
+    assert_eq!(fixture.revision(), revision + 1);
+
+    let mut expected = before;
+    expected["queue_revision"] = json!(revision + 1);
+    let task = expected["tasks"]
+        .as_array_mut()
+        .expect("task array")
+        .iter_mut()
+        .find(|task| task["work_id"] == "VIS-12")
+        .expect("VIS-12 task");
+    task["evidence"]
+        .as_array_mut()
+        .expect("evidence array")
+        .push(json!(evidence));
+    assert_eq!(fixture.read_records(), expected,
+        "only queue revision and the target evidence list may change");
+    assert_eq!(fixture.read_task("VIS-12")["state"], "review");
+    assert_eq!(
+        fixture.read_task("VIS-12")["claim_token"].as_str(),
+        Some(token.as_str())
+    );
+    assert_success(&fixture.run(&["check".to_owned()]));
+}
+
+#[test]
+fn append_evidence_rejects_stale_empty_wrong_token_and_duplicate_without_writes() {
+    let fixture = ReviewSubjectFixture::new();
+    let revision = fixture.revision();
+    let token = fixture.claim_token();
+    let existing = fixture.read_task("VIS-12")["evidence"][0]
+        .as_str()
+        .expect("existing evidence")
+        .to_owned();
+    let unchanged = fixture.queue_files();
+
+    assert_error(
+        &fixture.append_evidence(revision.saturating_sub(1), &token, "new evidence"),
+        "stale queue revision",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "stale CAS writes no queue files");
+    assert_error(
+        &fixture.append_evidence(revision, &token, "  \t  "),
+        "evidence must be nonempty text",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "empty evidence writes no queue files");
+    assert_error(
+        &fixture.append_evidence(revision, "wrong-claim-token", "new evidence"),
+        "claim token does not match the current task claim",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "wrong token writes no queue files");
+    assert_error(
+        &fixture.append_evidence(revision, &token, &existing),
+        "evidence entry already exists",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "duplicate evidence writes no queue files");
+}
+
+#[test]
+fn append_evidence_rejects_lower_priority_work_without_writes() {
+    let fixture = ReviewSubjectFixture::new();
+    let mut records = fixture.read_records();
+    let task = records["tasks"]
+        .as_array_mut()
+        .expect("task array")
+        .iter_mut()
+        .find(|task| task["work_id"] == "VIS-12")
+        .expect("VIS-12 task");
+    task["priority"] = json!("P1");
+    task["priority_reason"] = json!("synthetic lower-priority control");
+    assert!(records["tasks"].as_array().unwrap().iter().any(|task|
+        task["state"] != "verified" && task["priority"] == "P0"));
+    fs::write(
+        &fixture.tasks_path,
+        serde_json::to_vec_pretty(&records).expect("serialize lower-priority fixture"),
+    )
+    .expect("install lower-priority fixture records");
+    let rendered = fixture.run(&["render".to_owned()]);
+    assert_success(&rendered);
+    fs::write(&fixture.view_path, rendered.stdout).expect("refresh lower-priority fixture view");
+
+    let revision = fixture.revision();
+    let token = fixture.claim_token();
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.append_evidence(revision, &token, "lower-priority evidence"),
+        "cannot append evidence for lower priority P1 while P0 remains open",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "priority rejection writes no queue files");
 }
 
 #[test]

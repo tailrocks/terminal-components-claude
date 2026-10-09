@@ -486,6 +486,32 @@ This operation is schema-v1 only. It does not perform registry qualification,
 schema migration, scope amendment, or task promotion. V2 records remain
 read-only, and their legacy review digests are not reinterpreted.
 
+## Schema-v1 evidence append
+
+Use `append-evidence` to add one evidence string to an active claim without
+changing its state or claim details:
+
+```text
+python3 tools/visibility/queue.py --root <candidate-root> append-evidence <work-id> \
+  --expected-revision <queue-revision> \
+  --claim-token <current-claim-token> \
+  --evidence <evidence-text>
+```
+
+The command uses the existing queue mutation lock and source/view write path.
+It requires the current queue revision, the matching claim token, an active
+claim, nonempty evidence that is not already present, and the highest open
+priority. It appends the evidence string and increments `queue_revision`.
+The only record fields that change are the queue revision and the target
+claim's evidence list. The command does not change task state, owner, reviewer,
+claim token, scope, base, expiry, dependencies, or accepted revision. It does
+not accept, transition, hand off, renew, or verify a claim.
+
+The claim token is queue data supplied by the caller. It provides a compare
+check against the current claim, but it does not authenticate a person's
+identity. An evidence append records a supplied string; it does not validate
+the evidence or imply task completion.
+
 ## Schema-v1 branch-scope amendment
 
 The accepted VIS-02 schema-v1 assignment can receive its reviewed reference
