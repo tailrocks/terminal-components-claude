@@ -1,6 +1,6 @@
 {
   "schema": "termrock-e2e/case-registry-v1",
-  "suite_revision": "termrock-e2e-2026-10-09.1",
+  "suite_revision": "termrock-e2e-2026-10-09.2",
   "cases": [
     {
       "id": "HELP-HOLLA-004",
@@ -480,6 +480,47 @@
       "color_path": "truecolor",
       "environment": {},
       "steps": [
+        {
+          "op": "checkpoint",
+          "id": "00-dialogs-initial",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Open a dialog"
+            },
+            {
+              "kind": "contains",
+              "needle": "Delete branch…"
+            },
+            {
+              "kind": "contains",
+              "needle": "Nothing yet"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "initial.dialogs_panel",
+              "kind": "contains",
+              "needle": "Open a dialog"
+            },
+            {
+              "id": "initial.delete_branch_action",
+              "kind": "contains",
+              "needle": "Delete branch…"
+            },
+            {
+              "id": "initial.result_empty",
+              "kind": "contains",
+              "needle": "Nothing yet"
+            },
+            {
+              "id": "initial.dialog_closed",
+              "kind": "absent",
+              "needle": "Delete branch?",
+              "requires": "initial.dialogs_panel"
+            }
+          ]
+        },
         {
           "op": "press",
           "key": "d"

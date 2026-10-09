@@ -6786,7 +6786,7 @@ fn drive_case_subject(
                     checkpoint,
                     "exit",
                     "NOT_APPLICABLE",
-                    "HELP-HOLLA-004 closes and reopens an overlay but does not exit the root TUI",
+                    "Application process exit is not measured in this checkpoint-driven journey",
                     Vec::new(),
                 );
                 push_check(

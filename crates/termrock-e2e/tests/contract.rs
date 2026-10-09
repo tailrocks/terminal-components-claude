@@ -9,7 +9,7 @@ use termrock_e2e::{
 fn registry_contains_four_seed_cases_and_holla_checkpointed_preconditions() {
     let registry = registry().expect("registry parses");
     assert_eq!(registry.schema, "termrock-e2e/case-registry-v1");
-    assert_eq!(registry.suite_revision, "termrock-e2e-2026-10-09.1");
+    assert_eq!(registry.suite_revision, "termrock-e2e-2026-10-09.2");
 
     let expected_ids = std::collections::BTreeSet::from([
         "HELP-HOLLA-004",
@@ -88,6 +88,87 @@ fn registry_contains_four_seed_cases_and_holla_checkpointed_preconditions() {
         }
     }
     assert!(termrock_e2e::validate_case_contract(&non_positive_prerequisite).is_err());
+}
+
+#[test]
+fn showcase_dialog_journey_starts_with_initial_frame_and_preserves_assertions() {
+    let registry = registry().expect("registry parses");
+    let case = registry
+        .cases
+        .iter()
+        .find(|case| case.id == "SHOWCASE-DIALOG-001")
+        .expect("Showcase dialog case remains registered");
+    termrock_e2e::validate_case_contract(case).expect("Showcase dialog case is valid");
+
+    let Some(termrock_e2e::Step::Checkpoint { id, wait, .. }) = case.steps.first() else {
+        panic!("Showcase dialog journey begins with a checkpoint");
+    };
+    assert_eq!(id, "00-dialogs-initial");
+    for needle in ["Open a dialog", "Delete branch…", "Nothing yet"] {
+        assert!(
+            wait.iter()
+                .any(|condition| condition.kind == "contains" && condition.needle == needle),
+            "initial checkpoint waits for {needle:?}"
+        );
+    }
+
+    let Some(termrock_e2e::Step::Press { key }) = case.steps.get(1) else {
+        panic!("Showcase dialog opens only after the initial checkpoint");
+    };
+    assert_eq!(key, "d");
+
+    let checkpoint_ids = case
+        .steps
+        .iter()
+        .filter_map(|step| match step {
+            termrock_e2e::Step::Checkpoint { id, .. } => Some(id.as_str()),
+            termrock_e2e::Step::Press { .. } => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        checkpoint_ids,
+        vec!["00-dialogs-initial", "dialog.open", "dialog.confirmed"]
+    );
+
+    for (id, kind, needle, requires) in [
+        ("dialog.title", "contains", "Delete branch?", None),
+        ("dialog.cancel", "contains", "Cancel", None),
+        ("dialog.confirm", "contains", "Delete branch", None),
+        (
+            "dialog.result",
+            "contains",
+            "Branch feat/rate-limit deleted",
+            None,
+        ),
+        (
+            "dialog.closed",
+            "absent",
+            "Delete branch?",
+            Some("dialog.title"),
+        ),
+    ] {
+        let assertion = case
+            .steps
+            .iter()
+            .find_map(|step| match step {
+                termrock_e2e::Step::Checkpoint { assertions, .. } => assertions
+                    .iter()
+                    .find(|assertion| assertion.id == id),
+                termrock_e2e::Step::Press { .. } => None,
+            })
+            .unwrap_or_else(|| panic!("original assertion {id} remains"));
+        assert_eq!(assertion.kind, kind, "assertion {id} keeps its kind");
+        assert_eq!(
+            assertion.needle.as_deref(),
+            Some(needle),
+            "assertion {id} keeps its needle"
+        );
+        assert_eq!(
+            assertion.requires.as_deref(),
+            requires,
+            "assertion {id} keeps its precondition"
+        );
+    }
 }
 
 #[test]
