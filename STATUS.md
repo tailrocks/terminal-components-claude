@@ -23,7 +23,7 @@ Reference ownership is NOT_APPLICABLE because the reference is not required to u
 | RUN-06 | cargo run --release --bin jackin-preview -- --scenario accounts-mixed | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_APPLICABLE; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN |
 | RUN-07 | cargo run --release --bin holla -- --scenario remote-host | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_APPLICABLE; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN |
 
-The status reporter generated this report from measured facts in [source-facts.json](tools/visibility/source-facts.json). A run receipt records execution results tied to an exact source pair and required test set. No validated paired run receipt is available, so this report cannot show a product pass. Product requirements remain in [CHECKLIST.md](CHECKLIST.md) and [checklist.json](checklist.json).
+The status reporter generated this report from measured facts in [source-facts.json](tools/visibility/source-facts.json). A run receipt records execution results tied to an exact source pair and required test set. No validated paired run receipt is available, so this report cannot show a product pass. Product requirements remain in [CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/CHECKLIST.md) and [checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/checklist.json).
 
 ## Recorded source pair
 
@@ -103,7 +103,7 @@ Capture interval: 2026-10-08T23:25:02Z–2026-10-08T23:30:54Z. The pinned source
 | Lane | Observation | Scope |
 | --- | --- | --- |
 | Observation bundle | Recorded at 2026-10-09T04:07:09Z; evidence freshness remains NOT_RUN. | Source-pinned current observations. The fixed product pair remains candidate 1d797d41c8141fcbdc3f69d7f11eb8875ab54712 / reference b274dd57f4dd078ade6e424d546d83efbd2e8526. |
-| Repository evidence archive | 59 files / 5554254 bytes verified from `docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json`. | Raw source inputs are repository-relative and hash-pinned; the archive does not qualify product execution or acceptance. |
+| Repository evidence archive | 70 files / 6171844 bytes verified from `docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json`. | Raw source inputs are repository-relative and hash-pinned; the archive does not qualify product execution or acceptance. |
 | Implementation branch | termrock-implementation at 9f1f756219b6bd42131b6e7291f54f99e1128cf1 (tree a89e345e148c85f2f72fbc1a026e35ff002e9b7f), observed 2026-10-09T04:07:01Z; DCO status: [completed successfully](https://github.com/tailrocks/terminal-components-claude/runs/113663911182). | Branch and repository-gate metadata. |
 | Provider workflow runs | [37882112951](https://github.com/tailrocks/terminal-components-claude/actions/runs/37882112951): completed with failure at 9f1f756219b6bd42131b6e7291f54f99e1128cf1; 0 jobs; 0 artifacts; workflow source 537470 bytes; Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information. | Provider workflow admission results; the captured runs had zero jobs and artifacts, so product execution remains NOT_RUN for those runs. |
 | Candidate API/deferred run | FAILED: 22/23 passed, 1 failed, 87 filtered; requirement BD-21 case W13-05 failed in w13_filter_wide_trail_cells_clear: W13-05: wide-character trail cells were not cleared; the reviewer observed an unexpected y in the rendered 旧日本 cells. | Candidate-only source 1d797d41c8141fcbdc3f69d7f11eb8875ab54712, package termrock-conformance, binary control_states, Nextest run b88b36d1-5809-4cc9-b9fd-306970f65be7; independent review VERIFIED_FAILED_RUN. Requirement registry: NOT_RUN; paired reference: NOT_RUN; paired visual: NOT_RUN; acceptance: NOT_RECORDED. Receipt SHA-256 c6fec50571f45a875c375bf5668e4f1b8754eb9ac87ec9aa98c95590c79e1929; ledger SHA-256 485142854f3569909c0d8980de58a4e2f2f863eaf522982a027638d9496853ff; review SHA-256 8d397a4d2fb9e866e197792bf4eafd4c09e30fb66d9709b8b22523e83242eaf4. |
@@ -112,6 +112,24 @@ Capture interval: 2026-10-08T23:25:02Z–2026-10-08T23:30:54Z. The pinned source
 | Velnor Actions CLI control | Source tree ca3ef07606236282a03ccd2a027b2f2efa4cb094; build and version checks PASS; 16/27 expected tests executed (14 passed, 2 failed, 11 NOT_RUN). command 3: 2/2 passed, 0 failed; command 4: 2/2 passed, 0 failed; command 5: 2/2 passed, 0 failed; command 6: 8/10 passed, 2 failed. | External tool control, NOT_QUALIFIED; source commit is null and no current Git branch is asserted. |
 
 The source record's readiness fields remain NOT_RUN because no readiness acceptance is recorded. The candidate API/deferred test run FAILED, so Refactor / Ready remains NOT_READY. The requirement registry remains NOT_RUN. The paired reference and visual lanes remain NOT_RUN. Acceptance remains NOT_RECORDED. No complete paired run is accepted. Artifact paths and full pins are recorded in `tools/visibility/source-facts.json` under `current_status_observations`. Repository gates and external-tool controls do not qualify a product comparison.
+
+
+## Published report commits and source evidence
+
+| Branch | Published report commit | Parent source commit | Report paths | Queue snapshot |
+| --- | --- | --- | ---: | --- |
+| Candidate | [20f2d485695991632f1ff5210d696576eb602583](https://github.com/tailrocks/terminal-components-claude/commit/20f2d485695991632f1ff5210d696576eb602583) | f0a05fa55d4fd09b19be63d51f512d4c32076f67 | 3 | Candidate task snapshot revision 59 (historical) |
+| Reference | [28c694037ee06e093a23de2ec0e0f6ed3f7f5569](https://github.com/tailrocks/terminal-components-claude/commit/28c694037ee06e093a23de2ec0e0f6ed3f7f5569) | 48e67af8511d4883759c97e384080fcb2b112c7a | 89 | Historical reference task snapshot revision 56 |
+
+These report commits publish status documents; they are not product source measurements. The f0a provider observations below apply to source commit f0a05fa55d4fd09b19be63d51f512d4c32076f67, before the report commits. They do not describe checks on either report commit.
+The candidate revision-59 and reference revision-56 task records are snapshots. Later queue edits are outside this evidence record.
+
+| Provider observation | Result | Scope |
+| --- | --- | --- |
+| [Actions run 37954103945](https://github.com/tailrocks/terminal-components-claude/actions/runs/37954103945) | completed / failure; provider annotation: Workflow file exceeds the maximum allowed size of 500 KB. | Candidate source f0a05fa55d4fd09b19be63d51f512d4c32076f67. The retained Root record contains no raw Actions run/jobs responses, so job and artifact counts are not reported. |
+| Candidate DCO status | [completed successfully](https://github.com/tailrocks/terminal-components-claude/runs/113900149889) | Repository check on source f0a05fa55d4fd09b19be63d51f512d4c32076f67; separate from product results. |
+
+The paired-source publication records suite SHA-256 b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d and common package tree c962085b9c9e6b80ddba31d8c82e01c8d2e97179. It records paired execution NOT_RUN, corpus NOT_ADMITTED, Visibility INCOMPLETE, and Refactor / Ready NOT_READY. The fixed product comparison pair remains candidate 1d797d41c8141fcbdc3f69d7f11eb8875ab54712 / reference b274dd57f4dd078ade6e424d546d83efbd2e8526; this shared package identity does not qualify product behavior.
 
 
 ## Report publication observations
@@ -205,12 +223,12 @@ No compatible previous complete required-set run is recorded, so trend changes a
 
 ## Next work
 
-Highest open priority: **P0**, from accepted queue revision 51.
+Highest open priority: **P0**, from accepted queue revision 56.
 
 | Work | State | Owner | Reviewer | Priority reason |
 | --- | --- | --- | --- | --- |
-| VIS-01 | claimed | /root/tag_capture_boundary_luna | /root/ci_parity_review_luna | Publish source facts and show missing paired execution and the current CI failure. |
-| VIS-02 | claimed | /root/rust_test_infrastructure | /root/controls_wrapper_review_luna | A shared driver for real binaries is needed before visibility can be measured. |
+| VIS-01 | in_progress | /root/tag_capture_boundary_luna | /root/ci_parity_review_luna | Publish source facts and show missing paired execution and the current CI failure. |
+| VIS-02 | in_progress | /root/rust_test_infrastructure | /root/controls_wrapper_review_luna | A shared driver for real binaries is needed before visibility can be measured. |
 | VIS-03 | review | /root/showcase_owner | /root/technical_review | Direct agents to the visibility tasks and accepted work paths before further product refactoring. |
 | VIS-04 | claimed | /root | /root/jackin_inventory_current_luna | Run the deferred assertions and preserve their failure results. |
 | VIS-06 | claimed | /root/rust_test_execution | /root/subjects_runner_review_luna | Resolve and build actual release binaries from pinned source before paired observations. |
@@ -230,7 +248,7 @@ See [WORK_QUEUE.md](https://github.com/tailrocks/terminal-components-claude/blob
 - [Work queue](https://github.com/tailrocks/terminal-components-claude/blob/termrock-implementation/WORK_QUEUE.md)
 - [Implementation PR #17](https://github.com/tailrocks/terminal-components-claude/pull/17)
 - [Recorded CI run](https://github.com/tailrocks/terminal-components-claude/actions/runs/37736017446)
-- [Product checklist](CHECKLIST.md)
-- [Source facts and observation commands](tools/visibility/README.md)
+- Product requirements: [CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/CHECKLIST.md) and [checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/checklist.json)
+- [Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/tools/visibility/README.md)
 
 The candidate-only API/deferred run is a measured failure, but no complete paired run receipt exists. Paired product evidence remains NOT_RUN and acceptance remains NOT_RECORDED; no product pass is shown.

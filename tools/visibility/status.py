@@ -2671,6 +2671,237 @@ def render_latest_ci_snapshot(snapshot: Optional[Mapping[str, Any]]) -> str:
     ])
 
 
+def validate_current_publication_observation(
+    value: Any, latest: Mapping[str, Any], archive_manifest: Optional[Mapping[str, Any]],
+    queue_module: Any,
+) -> Optional[Mapping[str, Any]]:
+    if value is None:
+        return None
+    require(isinstance(value, dict)
+            and value.get("schema") == "termrock-current-publication-observation/v1",
+            "current report-publication observation schema changed")
+    require(archive_manifest is not None,
+            "current report-publication observation requires the pinned source archive")
+    archive_files = {
+        item["path"]: item["sha256"] for item in archive_manifest["files"]
+    }
+
+    def pinned_json(pin: Any, label: str) -> Mapping[str, Any]:
+        require(isinstance(pin, dict), "{}.pin is required".format(label))
+        path_value = pin.get("path")
+        digest = sha256(pin.get("sha256"), "{}.sha256".format(label))
+        require(isinstance(path_value, str) and archive_files.get(path_value) == digest,
+                "{} is not an exact member of the verified source archive".format(label))
+        parsed = read_pinned_json(pin, label, queue_module)
+        require(isinstance(parsed, dict), "{} must contain an object".format(label))
+        return parsed
+
+    def publication_side(side: str, expected_commit: str, expected_parent: str,
+                         expected_tree: str, expected_paths: int) -> Mapping[str, Any]:
+        side_record = value["candidate_report" if side == "candidate" else "reference_report"]
+        record = pinned_json(side_record["publication"], "{} report publication".format(side))
+        review = pinned_json(side_record["postcommit_review"],
+                             "{} report postcommit review".format(side))
+        expected_schema = (
+            "termrock-candidate-status-publication/v1" if side == "candidate"
+            else "termrock-reference-status-publication/v1"
+        )
+        require(record.get("schema") == expected_schema
+                and record.get("commit") == expected_commit
+                and record.get("parent") == expected_parent
+                and record.get("tree") == expected_tree
+                and record.get("paths") == expected_paths
+                and record.get("tag_unchanged") is True
+                and record.get("visibility") == "INCOMPLETE"
+                and record.get("refactor") == "NOT_READY",
+                "{} report publication facts changed".format(side))
+        reviewed_commit = review.get("commit")
+        if isinstance(reviewed_commit, dict):
+            reviewed_commit_sha = reviewed_commit.get("object_id")
+        else:
+            reviewed_commit_sha = review.get("commit")
+        if reviewed_commit_sha is None:
+            reviewed_commit_sha = review.get("observed_commit", {}).get("commit")
+        expected_review_schema = (
+            "termrock-postcommit-binding-review/v1" if side == "candidate"
+            else "termrock-vis01-reference-status-postcommit-binding-review/v1"
+        )
+        require(review.get("schema") == expected_review_schema
+                and review.get("verdict") == "READY_POSTCOMMIT_BINDING"
+                and reviewed_commit_sha == expected_commit,
+                "{} postcommit review does not bind its report commit".format(side))
+        if side == "candidate":
+            require(reviewed_commit.get("parent") == expected_parent
+                    and reviewed_commit.get("tree") == expected_tree
+                    and reviewed_commit.get("message_matches_approved_bytes") is True,
+                    "candidate postcommit review ancestry or message binding changed")
+        else:
+            require(review.get("parent") == expected_parent
+                    and review.get("tree") == expected_tree
+                    and review.get("path_binding", {}).get("reviewed_path_count") == expected_paths
+                    and review.get("path_binding", {}).get("commit_path_count") == expected_paths
+                    and review.get("path_binding", {}).get("exact_status_and_path_set_match") is True,
+                    "reference postcommit review path or ancestry binding changed")
+        return {"publication": record, "review": review}
+
+    fixed_pair = value.get("fixed_product_pair")
+    require(isinstance(fixed_pair, dict)
+            and fixed_pair.get("candidate_commit") ==
+            latest["candidate_remote"]["head_sha"]
+            and fixed_pair.get("reference_commit") == latest["reference_remote"]["head_sha"],
+            "current report context must preserve the fixed product source pair")
+    candidate = publication_side(
+        "candidate", "20f2d485695991632f1ff5210d696576eb602583",
+        "f0a05fa55d4fd09b19be63d51f512d4c32076f67",
+        "e6eb50897b20b30c873cd00e612009b251535d01", 3,
+    )
+    reference = publication_side(
+        "reference", "28c694037ee06e093a23de2ec0e0f6ed3f7f5569",
+        "48e67af8511d4883759c97e384080fcb2b112c7a",
+        "ca4ee5c1f0a8108566852269e6d060450147c2cf", 89,
+    )
+    candidate_queue = pinned_json(
+        value["candidate_report"]["queue_publication"], "candidate q59 publication"
+    )
+    require(candidate_queue.get("schema") == "termrock-root-publication/v1"
+            and candidate_queue.get("branch") == "termrock-implementation"
+            and candidate_queue.get("queue_revision") == 59
+            and candidate_queue.get("commit") == "82ad0dff9eba8ae7748e9bc44623e20fd10d31bc",
+            "candidate queue publication is not the archived q59 snapshot")
+    candidate_tasks = pinned_json(
+        value["candidate_report"]["task_snapshot"], "candidate q59 task snapshot"
+    )
+    reference_tasks = pinned_json(
+        value["reference_report"]["historical_task_snapshot"],
+        "historical reference q56 task snapshot",
+    )
+    require(candidate_tasks.get("schema_version") == 1
+            and candidate_tasks.get("queue_revision") == 59
+            and reference_tasks.get("schema_version") == 1
+            and reference_tasks.get("queue_revision") == 56,
+            "candidate/reference task snapshot revisions changed")
+
+    suite = pinned_json(value["paired_suite_publication"], "paired-source publication")
+    require(suite.get("schema") == "termrock-paired-source-publication/v1"
+            and suite.get("candidate", {}).get("commit") == candidate["publication"]["parent"]
+            and suite.get("reference", {}).get("commit") == reference["publication"]["parent"]
+            and suite.get("suite_sha256") ==
+            "b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d"
+            and suite.get("common_package_tree") ==
+            "c962085b9c9e6b80ddba31d8c82e01c8d2e97179"
+            and suite.get("tag_object") == TAG_OBJECT
+            and suite.get("tag_commit") == TAG_COMMIT
+            and suite.get("compile_list", {}).get("tests_executed") == 0
+            and suite.get("paired_run") == "NOT_RUN"
+            and suite.get("corpus") == "NOT_ADMITTED"
+            and suite.get("visibility") == "INCOMPLETE"
+            and suite.get("refactor") == "NOT_READY",
+            "paired-source publication identity or blocked state changed")
+
+    provider = value.get("prepublication_provider_observation")
+    require(isinstance(provider, dict)
+            and provider.get("source_commit") == candidate["publication"]["parent"]
+            and provider.get("raw_actions_run_and_jobs_responses_preserved") is False,
+            "pre-publication provider observation scope changed")
+    root_observation = pinned_json(provider.get("root_observation"),
+                                   "f0a provider root observation")
+    page_pin = provider.get("provider_page")
+    require(isinstance(page_pin, dict)
+            and archive_files.get(page_pin.get("path")) == page_pin.get("sha256"),
+            "f0a provider page is not an exact source-archive member")
+    page = read_pinned_bytes(page_pin, "f0a provider run page")
+    expected_annotation = "Workflow file exceeds the maximum allowed size of 500 KB."
+    run = root_observation.get("run", {})
+    require(root_observation.get("schema") == "termrock-ci-current-observation/v1"
+            and root_observation.get("head") == provider["source_commit"]
+            and run.get("id") == 37954103945
+            and run.get("status") == "completed"
+            and run.get("conclusion") == "failure"
+            and run.get("url") ==
+            "https://github.com/{}/actions/runs/37954103945".format(REPOSITORY)
+            and run.get("annotation") == expected_annotation
+            and run.get("sha256") == page_pin["sha256"]
+            and "job_count" not in run and "artifact_count" not in run
+            and expected_annotation.encode("utf-8") in page,
+            "f0a provider run/page facts or unavailable-count boundary changed")
+    checks = pinned_json(provider.get("check_runs"), "f0a check-runs response")
+    check_runs = checks.get("check_runs")
+    dco = next((item for item in check_runs if item.get("name") == "DCO"), None) \
+        if isinstance(check_runs, list) else None
+    require(checks.get("total_count") == 1
+            and isinstance(dco, dict)
+            and dco.get("id") == 113900149889
+            and dco.get("head_sha") == provider["source_commit"]
+            and dco.get("status") == "completed"
+            and dco.get("conclusion") == "success"
+            and dco.get("html_url") ==
+            "https://github.com/{}/runs/113900149889".format(REPOSITORY),
+            "f0a DCO check is not a successful canonical result for its source head")
+    return {
+        "fixed_product_pair": fixed_pair,
+        "candidate": candidate,
+        "reference": reference,
+        "candidate_queue": candidate_queue,
+        "candidate_tasks": candidate_tasks,
+        "reference_tasks": reference_tasks,
+        "suite": suite,
+        "provider": {"source_commit": provider["source_commit"],
+                     "root_observation": root_observation,
+                     "run_page_sha256": page_pin["sha256"],
+                     "dco": dco},
+    }
+
+
+def render_current_publication_observation(
+    observation: Optional[Mapping[str, Any]],
+) -> str:
+    if observation is None:
+        return ""
+    candidate = observation["candidate"]["publication"]
+    reference = observation["reference"]["publication"]
+    suite = observation["suite"]
+    provider = observation["provider"]
+    run = provider["root_observation"]["run"]
+    dco = provider["dco"]
+    dco_link = dco_status_link("completed successfully", dco["html_url"])
+    return "\n".join([
+        "## Published report commits and source evidence",
+        "",
+        "| Branch | Published report commit | Parent source commit | Report paths | Queue snapshot |",
+        "| --- | --- | --- | ---: | --- |",
+        "| Candidate | [{}](https://github.com/{}/commit/{}) | {} | {} | Candidate task snapshot revision 59 (historical) |".format(
+            candidate["commit"], REPOSITORY, candidate["commit"], candidate["parent"],
+            candidate["paths"],
+        ),
+        "| Reference | [{}](https://github.com/{}/commit/{}) | {} | {} | Historical reference task snapshot revision 56 |".format(
+            reference["commit"], REPOSITORY, reference["commit"], reference["parent"],
+            reference["paths"],
+        ),
+        "",
+        "These report commits publish status documents; they are not product source measurements. The f0a provider observations below apply to source commit {}, before the report commits. They do not describe checks on either report commit.".format(
+            provider["source_commit"],
+        ),
+        "The candidate revision-59 and reference revision-56 task records are snapshots. Later queue edits are outside this evidence record.",
+        "",
+        "| Provider observation | Result | Scope |",
+        "| --- | --- | --- |",
+        "| [Actions run {}]({}) | {} / {}; provider annotation: {} | Candidate source {}. The retained Root record contains no raw Actions run/jobs responses, so job and artifact counts are not reported. |".format(
+            run["id"], run["url"], run["status"], run["conclusion"],
+            run["annotation"], provider["source_commit"],
+        ),
+        "| Candidate DCO status | {} | Repository check on source {}; separate from product results. |".format(
+            dco_link, provider["source_commit"],
+        ),
+        "",
+        "The paired-source publication records suite SHA-256 {} and common package tree {}. It records paired execution NOT_RUN, corpus NOT_ADMITTED, Visibility INCOMPLETE, and Refactor / Ready NOT_READY. The fixed product comparison pair remains candidate {} / reference {}; this shared package identity does not qualify product behavior.".format(
+            suite["suite_sha256"], suite["common_package_tree"],
+            observation["fixed_product_pair"]["candidate_commit"],
+            observation["fixed_product_pair"]["reference_commit"],
+        ),
+        "",
+    ])
+
+
 def render_publication_observations(
     publication: Optional[Mapping[str, Any]],
     ci_observations: Sequence[Mapping[str, Any]],
@@ -3680,6 +3911,34 @@ def render_status(
     current_status_observations = validate_current_status_observations(
         facts.get("current_status_observations"), latest, authority, queue_module
     )
+    current_publication_observation = validate_current_publication_observation(
+        facts.get("current_publication_observation"), latest, archive_manifest, queue_module,
+    )
+    current_publication_section = render_current_publication_observation(
+        current_publication_observation
+    )
+    checklist_revision = (
+        current_publication_observation["candidate"]["publication"]["commit"]
+        if current_publication_observation is not None
+        else candidate["head_sha"]
+    )
+    if role == "candidate":
+        checklist_markdown_link = "[CHECKLIST.md](CHECKLIST.md)"
+        checklist_json_link = "[checklist.json](checklist.json)"
+        source_readme_link = "[Source facts and observation commands](tools/visibility/README.md)"
+    else:
+        checklist_markdown_link = (
+            "[CHECKLIST.md](https://github.com/{}/blob/{}/CHECKLIST.md)"
+            .format(REPOSITORY, checklist_revision)
+        )
+        checklist_json_link = (
+            "[checklist.json](https://github.com/{}/blob/{}/checklist.json)"
+            .format(REPOSITORY, checklist_revision)
+        )
+        source_readme_link = (
+            "[Source facts and observation commands](https://github.com/{}/blob/{}/tools/visibility/README.md)"
+            .format(REPOSITORY, checklist_revision)
+        )
     if current_status_observations is not None:
         require(archive_manifest is not None,
                 "current observations require the verified repository evidence archive")
@@ -3967,7 +4226,7 @@ Reference ownership is NOT_APPLICABLE because the reference is not required to u
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 {command_rows}
 
-The status reporter generated this report from measured facts in [source-facts.json](tools/visibility/source-facts.json). A run receipt records execution results tied to an exact source pair and required test set. {receipt_statement} Product requirements remain in [CHECKLIST.md](CHECKLIST.md) and [checklist.json](checklist.json).
+The status reporter generated this report from measured facts in [source-facts.json](tools/visibility/source-facts.json). A run receipt records execution results tied to an exact source pair and required test set. {receipt_statement} Product requirements remain in {checklist_markdown_link} and {checklist_json_link}.
 
 ## Recorded source pair
 
@@ -4019,6 +4278,8 @@ The DCO observations above describe the captured local commit message. They do n
 
 {current_status_observations_section}
 
+{current_publication_section}
+
 {publication_section}
 
 Tool versions recorded at {tools_observed_at}: Python {python}, Rust {rust}, and cargo-nextest {nextest} through mise on {host}. This records installed tools only; it does not show that a product check ran.
@@ -4050,8 +4311,8 @@ The required shared-case and per-component checkpoint sets are unknown until the
 - [Work queue]({queue_link})
 - [Implementation PR #17](https://github.com/{repository}/pull/17)
 - [Recorded CI run]({ci_url})
-- [Product checklist](CHECKLIST.md)
-- [Source facts and observation commands](tools/visibility/README.md)
+- Product requirements: {checklist_markdown_link} and {checklist_json_link}
+- {source_readme_link}
 
 {final_evidence_note}
 """.format(
@@ -4123,6 +4384,10 @@ The required shared-case and per-component checkpoint sets are unknown until the
         task_section=task_section,
         current_ci_section=current_ci_section,
         current_status_observations_section=current_status_observations_section,
+        current_publication_section=current_publication_section,
+        checklist_markdown_link=checklist_markdown_link,
+        checklist_json_link=checklist_json_link,
+        source_readme_link=source_readme_link,
         publication_section=publication_section,
     )
 
