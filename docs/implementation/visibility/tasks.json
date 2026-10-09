@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 46,
+  "queue_revision": 47,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -350,7 +350,9 @@
       "expiry": "2026-10-09T06:00:00Z",
       "state": "claimed",
       "evidence": [
-        "Independent narrow pilot plan approved by /root/technical_review; exact staged review pending."
+        "Independent narrow pilot plan approved by /root/technical_review; exact staged review pending.",
+        "User authorized /root/rust_test_infrastructure to install and execute the identical shared Termrock E2E package on refs/heads/visual-baseline at b274dd57f4dd078ade6e424d546d83efbd2e8526, limited to crates/termrock-e2e/**; keep the frozen visual-baseline tag and release unchanged.",
+        "amended branch scopes at queue revision 47: previous []; replacement [{\"allowed_paths\":[\"crates/termrock-e2e/**\"],\"base_sha\":\"b274dd57f4dd078ade6e424d546d83efbd2e8526\",\"branch\":\"visual-baseline\"}]; observed refs/heads/visual-baseline b274dd57f4dd078ade6e424d546d83efbd2e8526; accepted plan SHA-256 d81bcb0c87ebebbaee02bc8a1fa314e50068963f24e8846889e6a18a6b5a171c; independent review SHA-256 d9578accb3177f3ba34bc382f5ddf1bfef40e242e0d0591e2980791fb68ac8f4"
       ],
       "handoff": {
         "handoff_at": "2026-10-09T04:14:47Z",
@@ -510,6 +512,15 @@
             ],
             "next_action": "After exact-payload independent review and Root final preconditions, apply only the VIS-02 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift."
           }
+        }
+      ],
+      "branch_scopes": [
+        {
+          "branch": "visual-baseline",
+          "base_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+          "allowed_paths": [
+            "crates/termrock-e2e/**"
+          ]
         }
       ]
     },

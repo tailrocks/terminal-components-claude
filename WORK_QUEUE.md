@@ -1,7 +1,7 @@
 # Work queue
 
 Generated from [accepted task records](docs/implementation/visibility/tasks.json).
-Queue revision: 46. Acceptance owner: `/root`.
+Queue revision: 47. Acceptance owner: `/root`.
 
 Highest open priority: **P0**.
 
@@ -43,7 +43,10 @@ Claim token: `visibility-e2e-root-to-rustinfra-q35-20261009-01`; accepted at que
 
 Branch/base: `termrock-implementation` / `cc3ce8f6ac149aaee406047c5180d1a658d6bb9c`.
 
-Evidence: Independent narrow pilot plan approved by /root/technical_review; exact staged review pending.
+Evidence: Independent narrow pilot plan approved by /root/technical_review; exact staged review pending., User authorized /root/rust_test_infrastructure to install and execute the identical shared Termrock E2E package on refs/heads/visual-baseline at b274dd57f4dd078ade6e424d546d83efbd2e8526, limited to crates/termrock-e2e/**; keep the frozen visual-baseline tag and release unchanged., amended branch scopes at queue revision 47: previous []; replacement [{"allowed_paths":["crates/termrock-e2e/**"],"base_sha":"b274dd57f4dd078ade6e424d546d83efbd2e8526","branch":"visual-baseline"}]; observed refs/heads/visual-baseline b274dd57f4dd078ade6e424d546d83efbd2e8526; accepted plan SHA-256 d81bcb0c87ebebbaee02bc8a1fa314e50068963f24e8846889e6a18a6b5a171c; independent review SHA-256 d9578accb3177f3ba34bc382f5ddf1bfef40e242e0d0591e2980791fb68ac8f4
+
+Additional branch scopes:
+- `visual-baseline` / `b274dd57f4dd078ade6e424d546d83efbd2e8526`: crates/termrock-e2e/**
 
 Last handoff: /root → /root/rust_test_infrastructure by `/root`. Recorded next action at handoff: After exact-payload independent review and Root final preconditions, apply only the VIS-02 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift.
 
