@@ -485,3 +485,106 @@ from verifying a changed subject.
 This operation is schema-v1 only. It does not perform registry qualification,
 schema migration, scope amendment, or task promotion. V2 records remain
 read-only, and their legacy review digests are not reinterpreted.
+
+## Schema-v1 branch-scope amendment
+
+The accepted VIS-02 schema-v1 assignment can receive its reviewed reference
+branch grant through the queue's existing revision-CAS mutation path:
+
+```text
+python3 tools/visibility/queue.py amend-branch-scope <work-id> \
+  --expected-revision <queue-revision> \
+  --claim-token <current-claim-token> \
+  --record <reviewed-amendment.json>
+```
+
+The request is an operation, not a replacement `tasks.json`. It binds the
+current owner, reviewer, priority, candidate branch, candidate base, and
+candidate paths in `expected_primary`; supplies the replacement
+`branch_scopes` list, exact user authorization text, and the accepted plan and
+independent-review SHA-256 references. The current VIS-10 evidence must contain
+that accepted plan/review pair. The queue reads both referenced artifacts,
+checks their raw SHA-256 values, and extracts the exact primary assignment,
+reference branch grant, and authorization text from the plan's reviewed JSON
+request. The caller cannot choose another task, primary assignment, branch
+base, or path. References and authorization are queue data; they do not
+authenticate a person. This local operation also requires the absolute artifact
+paths recorded in VIS-10 evidence to remain readable; it does not claim fresh
+clone portability. If these records are archived in-repository later, retain
+the exact artifact bytes and recorded SHA-256 values. The request has exactly
+these fields:
+
+```json
+{
+  "expected_primary": {
+    "owner": "/root/rust_test_infrastructure",
+    "reviewer": "/root/controls_wrapper_review_luna",
+    "priority": "P0",
+    "branch": "termrock-implementation",
+    "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+    "allowed_paths": ["crates/termrock-e2e/**"]
+  },
+  "branch_scopes": [
+    {
+      "branch": "visual-baseline",
+      "base_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+      "allowed_paths": ["crates/termrock-e2e/**"]
+    }
+  ],
+  "authorization_evidence": "User authorized /root/rust_test_infrastructure to install and execute the identical shared Termrock E2E package on refs/heads/visual-baseline at b274dd57f4dd078ade6e424d546d83efbd2e8526, limited to crates/termrock-e2e/**; keep the frozen visual-baseline tag and release unchanged.",
+  "plan_sha256": "<accepted-plan-sha256>",
+  "review_sha256": "<independent-review-sha256>"
+}
+```
+
+Setting `branch_scopes` to `[]` removes the additional grant through another
+CAS. The operation appends both the authorization statement and an evidence
+entry containing the previous and replacement grants, queue revision, fresh
+reference tip, and accepted plan/review references.
+
+For this increment, `amend-branch-scope` applies only to VIS-02 and accepts
+either the exact additional grant recorded in the accepted plan or `[]` to
+remove it. The addition uses the plan's fixed `visual-baseline` base SHA and
+`allowed_paths` exactly `["crates/termrock-e2e/**"]`; a fresh probe must still
+match that fixed base before any write. The task keeps its existing primary candidate grant
+and assignment. Old v1 tasks and handoff snapshots without `branch_scopes`
+remain valid. New handoff snapshots preserve the field when present. New
+`accept` requests cannot preseed it. The generated view prints each added
+branch, base, and path. Candidate review-subject digests continue to cover the
+primary scope only; amendments are rejected while a subject is active, and a
+candidate-only digest cannot be bound or used to verify a task while an
+additional branch scope is active. The reference grant does not imply parity
+or verification.
+
+A legacy schema-v1 primary grant on `visual-baseline` is accepted only with the
+same test-package path so the overlap scan can account for older active claims.
+New claims still start on `termrock-implementation`.
+
+The operation checks revision, work ID, token, the accepted plan and review
+artifacts, current primary assignment, replacement/no-op state, authorization,
+and branch-scoped path conflicts before starting a remote process. While still
+holding the existing queue lock, it then checks the exact
+`refs/heads/visual-baseline` advertisement using `git ls-remote --exit-code
+--refs origin refs/heads/visual-baseline`. The child runs without a shell, in a
+dedicated process group, with Git repository/config overrides cleared, system
+and global Git configuration disabled, and terminal/credential prompts
+disabled. For the canonical SSH origin `git@github.com:tailrocks/terminal-components-claude.git`,
+the command also supplies process-scoped `-c credential.helper=` and an exact
+`url.https://github.com/tailrocks/terminal-components-claude.git.insteadOf=git@github.com:tailrocks/terminal-components-claude.git`
+rewrite to reach the same repository over HTTPS. These options do not edit the
+local origin or any global/system Git configuration; local bare origins used
+by fixtures do not match this rewrite and continue to work unchanged. The probe
+has a 10-second monotonic deadline and a 4096-byte combined stdout/stderr cap.
+It accepts only one byte-exact lowercase SHA-1 plus the exact branch ref line
+and requires empty stderr and exit status zero. Timeout, overflow,
+malformed/duplicate output, wrong tip, or cleanup failure kills and reaps the
+child, closes its pipes, writes neither canonical queue file, and releases the
+lock. The exact heads-only query excludes the same-name tag; this operation
+never queries or writes tag refs, fetches, checks out, pushes, or updates refs.
+
+Conflict checks expand every active task into its legacy primary grant and any
+optional branch scopes. Same-branch overlapping paths conflict across all
+active states even after expiry; grants on different branches may name the
+same relative package path. A base SHA does not permit overlapping grants on
+the same branch. Failed compare-and-swap and probe cases leave the task record
+and generated view byte-for-byte unchanged.

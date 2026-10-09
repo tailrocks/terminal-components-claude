@@ -3360,3 +3360,1136 @@ fn accept_rejects_a_claim_that_preseeds_review_subject() {
     assert_error(&output, "new claim cannot prebind a review subject");
     assert_eq!(fixture.queue_files(), unchanged, "rejected claim writes no queue files");
 }
+
+const BRANCH_SCOPE_PATH: &str = "crates/termrock-e2e/**";
+const BRANCH_SCOPE_PLAN_BASE_SHA: &str = "b274dd57f4dd078ade6e424d546d83efbd2e8526";
+const VIS02_PRIMARY_BASE_SHA: &str = "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c";
+
+struct BranchScopeFixture {
+    repository: TempRepo,
+    origin: TempRepo,
+    script: PathBuf,
+    tasks_path: PathBuf,
+    view_path: PathBuf,
+    plan_path: PathBuf,
+    plan_sha256: String,
+    review_sha256: String,
+    accepted_reference_base: String,
+    reference_tip: String,
+    candidate_head: String,
+}
+
+impl BranchScopeFixture {
+    fn new() -> Self {
+        Self::new_with_plan_base(false)
+    }
+
+    fn new_with_reference_tip_plan() -> Self {
+        Self::new_with_plan_base(true)
+    }
+
+    fn new_with_plan_base(reference_tip_as_plan_base: bool) -> Self {
+        let repository = TempRepo::new().expect("create branch-scope queue fixture");
+        let origin = TempRepo::new().expect("create local bare origin");
+        let script = repository
+            .copy_tool_exact(Tool::Queue)
+            .expect("copy exact queue CLI");
+
+        git(repository.root(), &["init", "--quiet"]);
+        git(
+            repository.root(),
+            &["checkout", "--quiet", "-b", CANDIDATE_BRANCH],
+        );
+        fs::create_dir_all(repository.root().join("crates/termrock-e2e"))
+            .expect("create package scope");
+        fs::write(
+            repository.root().join("crates/termrock-e2e/fixture.rs"),
+            b"candidate package fixture\n",
+        )
+        .expect("write candidate package fixture");
+        git(repository.root(), &["add", "--all"]);
+        git_with_identity(
+            repository.root(),
+            &["commit", "--quiet", "-m", "candidate fixture"],
+        );
+        let candidate_head = git_output(repository.root(), &["rev-parse", "--verify", "HEAD"]);
+
+        git(
+            repository.root(),
+            &["checkout", "--quiet", "-b", "visual-baseline"],
+        );
+        fs::write(
+            repository.root().join("crates/termrock-e2e/reference.rs"),
+            b"reference package fixture\n",
+        )
+        .expect("write reference package fixture");
+        git(repository.root(), &["add", "--all"]);
+        git_with_identity(
+            repository.root(),
+            &["commit", "--quiet", "-m", "reference fixture"],
+        );
+        let reference_tip = git_output(repository.root(), &["rev-parse", "--verify", "HEAD"]);
+        let accepted_reference_base = if reference_tip_as_plan_base {
+            reference_tip.clone()
+        } else {
+            BRANCH_SCOPE_PLAN_BASE_SHA.to_owned()
+        };
+
+        git(origin.root(), &["init", "--bare", "--quiet"]);
+        let origin_path = path_text(origin.root());
+        git(
+            repository.root(),
+            &["remote", "add", "origin", origin_path.as_str()],
+        );
+        git(
+            repository.root(),
+            &[
+                "push",
+                "--quiet",
+                "origin",
+                "refs/heads/visual-baseline:refs/heads/visual-baseline",
+            ],
+        );
+        git(
+            repository.root(),
+            &["checkout", "--quiet", CANDIDATE_BRANCH],
+        );
+
+        let tasks_path = repository
+            .root()
+            .join("docs/implementation/visibility/tasks.json");
+        let view_path = repository.root().join("WORK_QUEUE.md");
+        let plan_path = repository.root().join("accepted-branch-scope-plan.md");
+        let review_path = repository.root().join("accepted-branch-scope-review.json");
+        let accepted_plan = json!({
+            "expected_primary": {
+                "owner": "/root/rust_test_infrastructure",
+                "reviewer": "/root/controls_wrapper_review_luna",
+                "priority": "P0",
+                "branch": CANDIDATE_BRANCH,
+                "base_sha": VIS02_PRIMARY_BASE_SHA,
+                "allowed_paths": [BRANCH_SCOPE_PATH]
+            },
+            "branch_scopes": [{
+                "branch": "visual-baseline",
+                "base_sha": accepted_reference_base.clone(),
+                "allowed_paths": [BRANCH_SCOPE_PATH]
+            }],
+            "authorization_evidence": format!(
+                "User authorized /root/rust_test_infrastructure to install and execute the identical shared Termrock E2E package on refs/heads/visual-baseline at {}, limited to crates/termrock-e2e/**; keep the frozen visual-baseline tag and release unchanged.",
+                accepted_reference_base
+            )
+        });
+        let plan_bytes = format!(
+            "# Accepted branch-scope plan fixture\n\n```json\n{}\n```\n",
+            serde_json::to_string_pretty(&accepted_plan).expect("serialize accepted plan fixture")
+        )
+        .into_bytes();
+        fs::write(&plan_path, &plan_bytes).expect("write accepted plan fixture");
+        let review_bytes = br#"{"decision":"READY"}"#;
+        fs::write(&review_path, review_bytes).expect("write accepted review fixture");
+        let plan_sha256 = sha256_hex(&plan_bytes);
+        let review_sha256 = sha256_hex(review_bytes);
+        let fixture = Self {
+            repository,
+            origin,
+            script: script.path,
+            tasks_path,
+            view_path,
+            plan_path,
+            plan_sha256,
+            review_sha256,
+            accepted_reference_base,
+            reference_tip,
+            candidate_head,
+        };
+        fixture.install_records(fixture.base_records());
+        fixture
+    }
+
+    fn base_records(&self) -> Value {
+        let vis02 = branch_scope_task(
+            "VIS-02",
+            CANDIDATE_BRANCH,
+            VIS02_PRIMARY_BASE_SHA,
+            &[BRANCH_SCOPE_PATH],
+            "/root/rust_test_infrastructure",
+            "/root/controls_wrapper_review_luna",
+            "visibility-e2e-root-to-rustinfra-q35-20261009-01",
+        );
+        let vis10 = branch_scope_task(
+            "VIS-10",
+            CANDIDATE_BRANCH,
+            &self.candidate_head,
+            &[
+                "tools/visibility/queue.py",
+                "crates/termrock-visibility-tests/tests/queue_v2.rs",
+                "docs/implementation/visibility/queue-v2.md",
+            ],
+            "/root/coordination_luna",
+            "/root/jackin_inventory_current_luna",
+            "visibility-queuev2-root-to-coordination-q35-20261009-01",
+        );
+        let mut vis10 = vis10;
+        vis10["state"] = json!("in_progress");
+        vis10["evidence"] = json!([format!(
+            "Integrator acceptance: reviewed v1 branch-scope amendment plan {} SHA-256 {}; independent review {} SHA-256 {}. This exact bounded extension supersedes the prior schema-v2-only next increment.",
+            path_text(&self.plan_path),
+            self.plan_sha256,
+            path_text(
+                &self
+                    .repository
+                    .root()
+                    .join("accepted-branch-scope-review.json")
+            ),
+            self.review_sha256
+        )]);
+        json!({
+            "schema_version": 1,
+            "queue_revision": 41,
+            "accepted_by": "/root",
+            "acceptance_mode": "root accepted fixture",
+            "accepted_at": "2026-10-09T07:30:00Z",
+            "tasks": [vis02, vis10]
+        })
+    }
+
+    fn install_records(&self, records: Value) {
+        fs::create_dir_all(self.tasks_path.parent().expect("task file parent"))
+            .expect("create task directory");
+        fs::write(
+            &self.tasks_path,
+            serde_json::to_vec_pretty(&records).expect("serialize queue fixture"),
+        )
+        .expect("write accepted queue fixture");
+        let rendered = self.run(&["render".to_owned()]);
+        assert_success(&rendered);
+        fs::write(&self.view_path, rendered.stdout).expect("write rendered fixture view");
+    }
+
+    fn run(&self, tail: &[String]) -> CliOutput {
+        self.run_with_env(tail, &[])
+    }
+
+    fn run_with_env(&self, tail: &[String], environment: &[(&str, &str)]) -> CliOutput {
+        let mut arguments = vec!["--root".to_owned(), path_text(self.repository.root())];
+        arguments.extend_from_slice(tail);
+        run_cli(
+            &self.script,
+            &arguments,
+            self.repository.root(),
+            environment,
+            None,
+        )
+        .expect("run branch-scope queue fixture command")
+    }
+
+    fn read_records(&self) -> Value {
+        serde_json::from_slice(&fs::read(&self.tasks_path).expect("read queue fixture"))
+            .expect("parse queue fixture")
+    }
+
+    fn read_task(&self, work_id: &str) -> Value {
+        self.read_records()["tasks"]
+            .as_array()
+            .expect("task array")
+            .iter()
+            .find(|task| task["work_id"] == work_id)
+            .cloned()
+            .expect("fixture task")
+    }
+
+    fn revision(&self) -> u64 {
+        self.read_records()["queue_revision"]
+            .as_u64()
+            .expect("queue revision")
+    }
+
+    fn queue_files(&self) -> (Vec<u8>, Vec<u8>) {
+        (
+            fs::read(&self.tasks_path).expect("read task bytes"),
+            fs::read(&self.view_path).expect("read view bytes"),
+        )
+    }
+
+    fn add_task(&self, task: Value) {
+        let mut records = self.read_records();
+        records["tasks"]
+            .as_array_mut()
+            .expect("task array")
+            .push(task);
+        self.install_records(records);
+    }
+
+    fn amendment(&self, replacement: Value) -> Value {
+        let task = self.read_task("VIS-02");
+        let base_sha = replacement
+            .as_array()
+            .and_then(|items| items.first())
+            .and_then(|item| item["base_sha"].as_str())
+            .map(str::to_owned)
+            .or_else(|| {
+                task.get("branch_scopes")
+                    .and_then(Value::as_array)
+                    .and_then(|items| items.first())
+                    .and_then(|item| item["base_sha"].as_str())
+                    .map(str::to_owned)
+            })
+            .unwrap_or_default();
+        json!({
+            "expected_primary": {
+                "owner": task["owner"],
+                "reviewer": task["reviewer"],
+                "priority": task["priority"],
+                "branch": task["branch"],
+                "base_sha": task["base_sha"],
+                "allowed_paths": task["allowed_paths"]
+            },
+            "branch_scopes": replacement,
+            "authorization_evidence": format!(
+                "User authorized {} to install and execute the identical shared Termrock E2E package on refs/heads/visual-baseline at {}, limited to crates/termrock-e2e/**; keep the frozen visual-baseline tag and release unchanged.",
+                task["owner"].as_str().expect("owner"), base_sha
+            ),
+            "plan_sha256": self.plan_sha256.clone(),
+            "review_sha256": self.review_sha256.clone()
+        })
+    }
+
+    fn amend_with_env(&self, amendment: Value, environment: &[(&str, &str)]) -> CliOutput {
+        let record_path = self.repository.root().join("branch-scope-amendment.json");
+        fs::write(
+            &record_path,
+            serde_json::to_vec(&amendment).expect("serialize amendment request"),
+        )
+        .expect("write amendment request");
+        self.amend_record_for_work_id("VIS-02", &record_path, environment)
+    }
+
+    fn amend_record_for_work_id(
+        &self,
+        work_id: &str,
+        record_path: &Path,
+        environment: &[(&str, &str)],
+    ) -> CliOutput {
+        self.run_with_env(
+            &[
+                "amend-branch-scope".to_owned(),
+                work_id.to_owned(),
+                "--expected-revision".to_owned(),
+                self.revision().to_string(),
+                "--claim-token".to_owned(),
+                self.read_task("VIS-02")["claim_token"]
+                    .as_str()
+                    .expect("claim token")
+                    .to_owned(),
+                "--record".to_owned(),
+                path_text(&record_path),
+            ],
+            environment,
+        )
+    }
+
+    #[cfg(unix)]
+    fn amend_with_probe_mode(
+        &self,
+        amendment: Value,
+        mode: &str,
+        payload: &str,
+        extra_environment: &[(&str, &str)],
+    ) -> CliOutput {
+        let path = fake_git_path(self);
+        let mut environment = vec![
+            ("PATH", path.as_str()),
+            ("VIS_TEST_GIT_MODE", mode),
+            ("VIS_TEST_GIT_PAYLOAD", payload),
+        ];
+        environment.extend_from_slice(extra_environment);
+        self.amend_with_env(amendment, &environment)
+    }
+
+    fn add_scope(&self) -> Value {
+        json!([{
+            "branch": "visual-baseline",
+            "base_sha": self.accepted_reference_base,
+            "allowed_paths": [BRANCH_SCOPE_PATH]
+        }])
+    }
+}
+
+fn branch_scope_task(
+    work_id: &str,
+    branch: &str,
+    base_sha: &str,
+    allowed_paths: &[&str],
+    owner: &str,
+    reviewer: &str,
+    claim_token: &str,
+) -> Value {
+    json!({
+        "work_id": work_id,
+        "requirement_ids": [format!("{work_id}-REQ")],
+        "priority": "P0",
+        "priority_reason": "synthetic branch-scope fixture",
+        "dependencies": [],
+        "branch": branch,
+        "base_sha": base_sha,
+        "allowed_paths": allowed_paths,
+        "owner": owner,
+        "reviewer": reviewer,
+        "claim_token": claim_token,
+        "expiry": "2000-01-01T00:00:00Z",
+        "state": "claimed",
+        "evidence": ["synthetic active claim"],
+        "handoff": null,
+        "accepted_queue_revision": 35
+    })
+}
+
+fn branch_scope_command(revision: u64, token: &str, record_path: &Path) -> Vec<String> {
+    branch_scope_command_for("VIS-02", revision, token, record_path)
+}
+
+fn branch_scope_command_for(
+    work_id: &str,
+    revision: u64,
+    token: &str,
+    record_path: &Path,
+) -> Vec<String> {
+    vec![
+        "amend-branch-scope".to_owned(),
+        work_id.to_owned(),
+        "--expected-revision".to_owned(),
+        revision.to_string(),
+        "--claim-token".to_owned(),
+        token.to_owned(),
+        "--record".to_owned(),
+        path_text(record_path),
+    ]
+}
+
+#[test]
+#[cfg(unix)]
+fn branch_scope_amendment_uses_revision_cas_and_keeps_primary_assignment() {
+    let fixture = BranchScopeFixture::new_with_reference_tip_plan();
+    let before = fixture.read_task("VIS-02");
+    let revision = fixture.revision();
+    let amendment = fixture.amendment(fixture.add_scope());
+    assert_success(
+        &fixture.amend_with_env(amendment, &[("GIT_DIR", "/invalid/inherited/git/override")]),
+    );
+
+    let records = fixture.read_records();
+    let after = fixture.read_task("VIS-02");
+    assert_eq!(records["queue_revision"], json!(revision + 1));
+    for field in [
+        "owner",
+        "reviewer",
+        "priority",
+        "branch",
+        "base_sha",
+        "allowed_paths",
+        "state",
+    ] {
+        assert_eq!(
+            after[field], before[field],
+            "primary claim field {field} changed"
+        );
+    }
+    assert_eq!(after["branch_scopes"][0]["branch"], "visual-baseline");
+    assert_eq!(
+        after["branch_scopes"][0]["base_sha"],
+        fixture.accepted_reference_base
+    );
+    assert_eq!(
+        after["branch_scopes"][0]["allowed_paths"],
+        json!([BRANCH_SCOPE_PATH])
+    );
+    assert_eq!(after.get("claim_history"), before.get("claim_history"));
+    let evidence = after["evidence"].as_array().expect("task evidence");
+    assert!(evidence.iter().any(|entry| {
+        entry
+            .as_str()
+            .unwrap()
+            .contains("User authorized /root/rust_test_infrastructure")
+    }));
+    assert!(evidence.iter().any(|entry| {
+        entry.as_str().unwrap().contains(&fixture.plan_sha256)
+            && entry.as_str().unwrap().contains(&fixture.review_sha256)
+            && entry
+                .as_str()
+                .unwrap()
+                .contains(&fixture.accepted_reference_base)
+    }));
+    let view = String::from_utf8(fixture.queue_files().1).expect("rendered view UTF-8");
+    assert!(view.contains("Additional branch scopes:"));
+    assert!(view.contains("visual-baseline"));
+    assert!(view.contains(&fixture.accepted_reference_base));
+    assert!(view.contains(BRANCH_SCOPE_PATH));
+}
+
+#[test]
+#[cfg(unix)]
+fn branch_scope_amendment_can_be_reversed_and_rejects_noop() {
+    let fixture = BranchScopeFixture::new();
+    let payload = format!("{}\trefs/heads/visual-baseline", BRANCH_SCOPE_PLAN_BASE_SHA);
+    assert_success(&fixture.amend_with_probe_mode(
+        fixture.amendment(fixture.add_scope()),
+        "valid",
+        &payload,
+        &[],
+    ));
+    let added = fixture.read_task("VIS-02");
+    let before_remove = fixture.revision();
+    assert_success(&fixture.amend_with_probe_mode(
+        fixture.amendment(json!([])),
+        "valid",
+        &payload,
+        &[],
+    ));
+    let removed = fixture.read_task("VIS-02");
+    assert_eq!(fixture.revision(), before_remove + 1);
+    assert_eq!(removed["branch_scopes"], json!([]));
+    assert!(
+        removed["evidence"].as_array().unwrap().len()
+            >= added["evidence"].as_array().unwrap().len() + 2
+    );
+
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.amend_with_env(fixture.amendment(json!([])), &[]),
+        "branch-scope amendment is a no-op",
+    );
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "no-op must not write queue files"
+    );
+}
+
+#[test]
+#[cfg(unix)]
+fn candidate_only_review_subject_cannot_verify_a_task_with_branch_scopes() {
+    let fixture = BranchScopeFixture::new();
+    let payload = format!("{}\trefs/heads/visual-baseline", BRANCH_SCOPE_PLAN_BASE_SHA);
+    assert_success(&fixture.amend_with_probe_mode(
+        fixture.amendment(fixture.add_scope()),
+        "valid",
+        &payload,
+        &[],
+    ));
+    assert_success(&fixture.run(&[
+        "transition".to_owned(),
+        "VIS-02".to_owned(),
+        "in_progress".to_owned(),
+        "--expected-revision".to_owned(),
+        fixture.revision().to_string(),
+        "--evidence".to_owned(),
+        "synthetic candidate-side setup".to_owned(),
+    ]));
+    assert_success(&fixture.run(&[
+        "transition".to_owned(),
+        "VIS-02".to_owned(),
+        "review".to_owned(),
+        "--expected-revision".to_owned(),
+        fixture.revision().to_string(),
+        "--evidence".to_owned(),
+        "synthetic review-state setup".to_owned(),
+    ]));
+    let digest_output = fixture.run(&["subject-digest".to_owned(), "VIS-02".to_owned()]);
+    assert_success(&digest_output);
+    let digest = String::from_utf8(digest_output.stdout)
+        .expect("candidate-only digest is UTF-8")
+        .trim()
+        .to_owned();
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.run(&[
+            "bind-review-subject".to_owned(),
+            "VIS-02".to_owned(),
+            "--expected-revision".to_owned(),
+            fixture.revision().to_string(),
+            "--claim-token".to_owned(),
+            fixture.read_task("VIS-02")["claim_token"]
+                .as_str()
+                .unwrap()
+                .to_owned(),
+            "--expected-subject-sha256".to_owned(),
+            digest,
+        ]),
+        "candidate-only review subject cannot bind an additional branch scope",
+    );
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "candidate-only review binding must not write"
+    );
+}
+
+#[test]
+fn expired_active_primary_and_optional_reference_grants_both_conflict() {
+    for optional in [false, true] {
+        let fixture = BranchScopeFixture::new();
+        let mut conflict = branch_scope_task(
+            "VIS-21",
+            CANDIDATE_BRANCH,
+            &fixture.candidate_head,
+            &["synthetic/vis21/**"],
+            "/root/vis21-owner",
+            "/root/vis21-reviewer",
+            "vis21-branch-scope-conflict",
+        );
+        if optional {
+            conflict["branch_scopes"] = json!([{
+                "branch": "visual-baseline",
+                "base_sha": BRANCH_SCOPE_PLAN_BASE_SHA,
+                "allowed_paths": [BRANCH_SCOPE_PATH]
+            }]);
+        } else {
+            conflict["branch"] = json!("visual-baseline");
+            conflict["allowed_paths"] = json!([BRANCH_SCOPE_PATH]);
+        }
+        fixture.add_task(conflict);
+        let unchanged = fixture.queue_files();
+        assert_error(
+            &fixture.amend_with_env(fixture.amendment(fixture.add_scope()), &[]),
+            "active path conflict",
+        );
+        assert_eq!(
+            fixture.queue_files(),
+            unchanged,
+            "conflicting expired claim must not write"
+        );
+    }
+}
+
+#[cfg(unix)]
+fn find_git_executable() -> PathBuf {
+    let path = std::env::var_os("PATH").expect("test PATH");
+    std::env::split_paths(&path)
+        .map(|directory| directory.join("git"))
+        .find(|candidate| candidate.is_file())
+        .expect("find real git executable")
+}
+
+#[cfg(unix)]
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+#[cfg(unix)]
+fn fake_git_path(fixture: &BranchScopeFixture) -> String {
+    let fake_bin = fixture.repository.root().join("fake-bin");
+    fs::create_dir_all(&fake_bin).expect("create fake Git bin directory");
+    let fake_git = fake_bin.join("git");
+    let real_git = shell_quote(&path_text(&find_git_executable()));
+    let script = format!(
+        "#!/bin/sh\nprobe=0\nfor arg in \"$@\"; do\n  [ \"$arg\" = ls-remote ] && probe=1\ndone\nif [ \"$probe\" = 1 ]; then\n  case \"$VIS_TEST_GIT_MODE\" in\n    valid) printf '%s\\n' \"$VIS_TEST_GIT_PAYLOAD\"; exit 0 ;;\n    marker) : > \"$VIS_TEST_GIT_MARKER\"; printf '%s\\n' \"$VIS_TEST_GIT_PAYLOAD\"; exit 0 ;;\n    capture) printf '%s\\n' \"$@\" > \"$VIS_TEST_GIT_MARKER\"; printf '%s\\n' \"$VIS_TEST_GIT_PAYLOAD\"; exit 0 ;;\n    timeout) sleep 30; exit 0 ;;\n    cap) head -c 4097 /dev/zero; exit 0 ;;\n    duplicate) printf '%s\\n%s\\n' \"$VIS_TEST_GIT_PAYLOAD\" \"$VIS_TEST_GIT_PAYLOAD\"; exit 0 ;;\n    extra) printf '%s\\nextra\\n' \"$VIS_TEST_GIT_PAYLOAD\"; exit 0 ;;\n    badsha|wrongref) printf '%s\\n' \"$VIS_TEST_GIT_PAYLOAD\"; exit 0 ;;\n    stderr) printf '%s\\n' \"$VIS_TEST_GIT_PAYLOAD\"; printf 'noise\\n' >&2; exit 0 ;;\n    nonzero) printf '%s\\n' \"$VIS_TEST_GIT_PAYLOAD\"; exit 7 ;;\n  esac\nfi\nexec {real_git} \"$@\"\n"
+    );
+    fs::write(&fake_git, script).expect("write bounded Git probe fixture");
+    let mut permissions = fs::metadata(&fake_git)
+        .expect("fake Git metadata")
+        .permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(&fake_git, permissions).expect("make fake Git executable");
+    let mut paths =
+        std::env::split_paths(&std::env::var_os("PATH").expect("test PATH")).collect::<Vec<_>>();
+    paths.insert(0, fake_bin);
+    std::env::join_paths(paths)
+        .expect("compose fake Git PATH")
+        .into_string()
+        .expect("fake Git PATH is UTF-8")
+}
+
+#[cfg(unix)]
+#[test]
+fn reference_probe_uses_scoped_https_transport_without_rewriting_origin() {
+    let fixture = BranchScopeFixture::new();
+    let ssh_origin = "git@github.com:tailrocks/terminal-components-claude.git";
+    let https_origin = "https://github.com/tailrocks/terminal-components-claude.git";
+    git(
+        fixture.repository.root(),
+        &["remote", "set-url", "origin", ssh_origin],
+    );
+    let marker = fixture
+        .repository
+        .root()
+        .join("captured-reference-probe-argv");
+    let marker_text = path_text(&marker);
+    let payload = format!("{}\trefs/heads/visual-baseline", BRANCH_SCOPE_PLAN_BASE_SHA);
+    assert_success(&fixture.amend_with_probe_mode(
+        fixture.amendment(fixture.add_scope()),
+        "capture",
+        &payload,
+        &[("VIS_TEST_GIT_MARKER", marker_text.as_str())],
+    ));
+
+    let argv = fs::read_to_string(&marker)
+        .expect("read captured reference-probe argv")
+        .lines()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    let rewrite = format!("url.{}.insteadOf={}", https_origin, ssh_origin);
+    let has_pair = |first: &str, second: &str| {
+        argv.windows(2)
+            .any(|pair| pair[0].as_str() == first && pair[1].as_str() == second)
+    };
+    assert!(has_pair("-c", "credential.helper="));
+    assert!(has_pair("-c", &rewrite));
+    assert!(has_pair("--refs", "origin"));
+    assert!(has_pair("origin", "refs/heads/visual-baseline"));
+    assert_eq!(
+        git_output(
+            fixture.repository.root(),
+            &["config", "--local", "--get", "remote.origin.url"],
+        ),
+        ssh_origin,
+        "transport override must not persistently rewrite remote.origin.url"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn malformed_reference_probe_output_fails_without_queue_writes() {
+    let fixture = BranchScopeFixture::new();
+    let valid_payload = format!("{}\trefs/heads/visual-baseline", BRANCH_SCOPE_PLAN_BASE_SHA);
+    let cases = [
+        ("duplicate", valid_payload.clone(), "one exact SHA/ref line"),
+        ("extra", valid_payload.clone(), "one exact SHA/ref line"),
+        (
+            "badsha",
+            format!("{}\trefs/heads/visual-baseline", "A".repeat(40)),
+            "one exact SHA/ref line",
+        ),
+        (
+            "wrongref",
+            format!("{}\trefs/tags/visual-baseline", BRANCH_SCOPE_PLAN_BASE_SHA),
+            "one exact SHA/ref line",
+        ),
+        ("stderr", valid_payload.clone(), "wrote to stderr"),
+        ("nonzero", valid_payload, "exited with status 7"),
+    ];
+    let path = fake_git_path(&fixture);
+    for (mode, payload, expected) in cases {
+        let unchanged = fixture.queue_files();
+        let amendment = fixture.amendment(fixture.add_scope());
+        let payload_value = payload;
+        let environment = [
+            ("PATH", path.as_str()),
+            ("VIS_TEST_GIT_MODE", mode),
+            ("VIS_TEST_GIT_PAYLOAD", payload_value.as_str()),
+        ];
+        assert_error(&fixture.amend_with_env(amendment, &environment), expected);
+        assert_eq!(
+            fixture.queue_files(),
+            unchanged,
+            "{mode} output must not write queue files"
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn reference_probe_timeout_and_output_cap_leave_queue_unchanged_and_release_lock() {
+    for (mode, expected) in [
+        ("timeout", "exceeded 10-second deadline"),
+        ("cap", "exceeded 4096-byte output cap"),
+    ] {
+        let fixture = BranchScopeFixture::new();
+        let unchanged = fixture.queue_files();
+        let amendment = fixture.amendment(fixture.add_scope());
+        let payload = format!("{}\trefs/heads/visual-baseline", BRANCH_SCOPE_PLAN_BASE_SHA);
+        assert_error(
+            &fixture.amend_with_probe_mode(amendment, mode, &payload, &[]),
+            expected,
+        );
+        assert_eq!(
+            fixture.queue_files(),
+            unchanged,
+            "{mode} must not write queue files"
+        );
+
+        assert_success(&fixture.amend_with_probe_mode(
+            fixture.amendment(fixture.add_scope()),
+            "valid",
+            &payload,
+            &[],
+        ));
+        assert_eq!(
+            fixture.revision(),
+            42,
+            "retry must acquire the same queue lock and succeed"
+        );
+    }
+}
+
+#[test]
+fn amendment_rejects_stale_inputs_bad_authority_and_moved_branch_without_writes() {
+    for case in [
+        "stale-revision",
+        "stale-token",
+        "primary",
+        "bad-auth",
+        "bad-plan",
+        "bad-path",
+        "bad-branch",
+        "bad-sha",
+    ] {
+        let fixture = BranchScopeFixture::new();
+        let mut amendment = fixture.amendment(fixture.add_scope());
+        let expected = match case {
+            "stale-revision" => "stale queue revision",
+            "stale-token" => "claim token does not match",
+            "primary" => {
+                amendment["expected_primary"]["owner"] = json!("/root/wrong-owner");
+                "expected_primary.owner does not match"
+            }
+            "bad-auth" => {
+                amendment["authorization_evidence"] = json!("invented authorization");
+                "authorization_evidence differs from the accepted VIS-10 plan"
+            }
+            "bad-plan" => {
+                amendment["plan_sha256"] = json!("0".repeat(64));
+                "not bound to accepted VIS-10 evidence"
+            }
+            "bad-path" => {
+                amendment["branch_scopes"][0]["allowed_paths"] = json!(["src/lib.rs"]);
+                "allowed_paths must contain only"
+            }
+            "bad-branch" => {
+                amendment["branch_scopes"][0]["branch"] = json!("refs/tags/visual-baseline");
+                "branch must be the authorized"
+            }
+            "bad-sha" => {
+                amendment["branch_scopes"][0]["base_sha"] = json!("not-a-sha");
+                "base_sha must be a full lowercase SHA-1"
+            }
+            _ => unreachable!(),
+        };
+        let unchanged = fixture.queue_files();
+        let current_task = fixture.read_task("VIS-02");
+        let token = if case == "stale-token" {
+            "stale-claim-token".to_owned()
+        } else {
+            current_task["claim_token"].as_str().unwrap().to_owned()
+        };
+        let record_path = fixture.repository.root().join("amendment.json");
+        fs::write(&record_path, serde_json::to_vec(&amendment).unwrap()).unwrap();
+        let expected_revision = if case == "stale-revision" {
+            fixture.revision() - 1
+        } else {
+            fixture.revision()
+        };
+        assert_error(
+            &fixture.run(&branch_scope_command(
+                expected_revision,
+                &token,
+                &record_path,
+            )),
+            expected,
+        );
+        assert_eq!(
+            fixture.queue_files(),
+            unchanged,
+            "{case} must not write queue files"
+        );
+    }
+
+    let fixture = BranchScopeFixture::new();
+    let changed_tip = fixture.candidate_head.clone();
+    git(
+        fixture.origin.root(),
+        &[
+            "update-ref",
+            "refs/heads/visual-baseline",
+            changed_tip.as_str(),
+        ],
+    );
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.amend_with_env(fixture.amendment(fixture.add_scope()), &[]),
+        "branch tip changed from the accepted VIS-10 plan base SHA",
+    );
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "moved reference branch must not write"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn amendment_rejects_unaccepted_task_primary_and_base_before_reference_probe() {
+    for case in ["other-task", "primary-drift", "base-drift"] {
+        let fixture = BranchScopeFixture::new();
+        let marker = fixture.repository.root().join("reference-probe-called");
+        let fake_path = fake_git_path(&fixture);
+        let planned_payload = format!("{}\trefs/heads/visual-baseline", BRANCH_SCOPE_PLAN_BASE_SHA);
+        let marker_text = path_text(&marker);
+        let environment = [
+            ("PATH", fake_path.as_str()),
+            ("VIS_TEST_GIT_MODE", "marker"),
+            ("VIS_TEST_GIT_PAYLOAD", planned_payload.as_str()),
+            ("VIS_TEST_GIT_MARKER", marker_text.as_str()),
+        ];
+        let mut amendment = fixture.amendment(fixture.add_scope());
+        let mut work_id = "VIS-02".to_owned();
+        let mut token = fixture.read_task("VIS-02")["claim_token"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let expected = match case {
+            "other-task" => {
+                let task = fixture.read_task("VIS-10");
+                amendment["expected_primary"] = json!({
+                    "owner": task["owner"],
+                    "reviewer": task["reviewer"],
+                    "priority": task["priority"],
+                    "branch": task["branch"],
+                    "base_sha": task["base_sha"],
+                    "allowed_paths": task["allowed_paths"]
+                });
+                amendment["authorization_evidence"] = json!(format!(
+                    "User authorized {} to install and execute the identical shared Termrock E2E package on refs/heads/visual-baseline at {}, limited to crates/termrock-e2e/**; keep the frozen visual-baseline tag and release unchanged.",
+                    task["owner"].as_str().unwrap(),
+                    BRANCH_SCOPE_PLAN_BASE_SHA
+                ));
+                work_id = "VIS-10".to_owned();
+                token = task["claim_token"].as_str().unwrap().to_owned();
+                "branch-scope amendment is authorized only for VIS-02"
+            }
+            "primary-drift" => {
+                let mut records = fixture.read_records();
+                let task = records["tasks"]
+                    .as_array_mut()
+                    .unwrap()
+                    .iter_mut()
+                    .find(|task| task["work_id"] == "VIS-02")
+                    .unwrap();
+                task["owner"] = json!("/root/unaccepted-vis02-owner");
+                fixture.install_records(records);
+                amendment = fixture.amendment(fixture.add_scope());
+                "expected_primary differs from the accepted VIS-10 plan"
+            }
+            "base-drift" => {
+                amendment = fixture.amendment(json!([{
+                    "branch": "visual-baseline",
+                    "base_sha": fixture.reference_tip,
+                    "allowed_paths": [BRANCH_SCOPE_PATH]
+                }]));
+                "branch-scope replacement differs from the accepted VIS-10 plan"
+            }
+            _ => unreachable!(),
+        };
+        let record_path = fixture.repository.root().join("unaccepted-amendment.json");
+        fs::write(&record_path, serde_json::to_vec(&amendment).unwrap()).unwrap();
+        let unchanged = fixture.queue_files();
+        assert_error(
+            &fixture.run_with_env(
+                &branch_scope_command_for(&work_id, fixture.revision(), &token, &record_path),
+                &environment,
+            ),
+            expected,
+        );
+        assert_eq!(
+            fixture.queue_files(),
+            unchanged,
+            "{case} must not write queue files"
+        );
+        assert!(
+            !marker.exists(),
+            "{case} must reject before the remote probe"
+        );
+    }
+}
+
+#[test]
+fn active_review_subject_blocks_scope_change_and_duplicate_json_keys_are_rejected() {
+    let fixture = BranchScopeFixture::new();
+    let mut records = fixture.read_records();
+    let task = records["tasks"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|task| task["work_id"] == "VIS-02")
+        .unwrap();
+    task["state"] = json!("in_progress");
+    task["review_subject_sha256"] = json!("c".repeat(64));
+    fixture.install_records(records);
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.amend_with_env(fixture.amendment(fixture.add_scope()), &[]),
+        "cannot change while a review subject is active",
+    );
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "active review binding must not be changed"
+    );
+
+    let fixture = BranchScopeFixture::new();
+    let amendment = fixture.amendment(fixture.add_scope());
+    let encoded = serde_json::to_string(&amendment).expect("serialize valid amendment");
+    let duplicate = encoded.replacen(
+        "\"branch_scopes\":",
+        "\"branch_scopes\":[],\"branch_scopes\":",
+        1,
+    );
+    let record_path = fixture.repository.root().join("duplicate-amendment.json");
+    fs::write(&record_path, duplicate).expect("write duplicate-key amendment");
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.run(&[
+            "amend-branch-scope".to_owned(),
+            "VIS-02".to_owned(),
+            "--expected-revision".to_owned(),
+            fixture.revision().to_string(),
+            "--claim-token".to_owned(),
+            fixture.read_task("VIS-02")["claim_token"]
+                .as_str()
+                .unwrap()
+                .to_owned(),
+            "--record".to_owned(),
+            path_text(&record_path),
+        ]),
+        "JSON object repeats key 'branch_scopes'",
+    );
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "duplicate JSON keys must not write queue files"
+    );
+}
+
+#[test]
+#[cfg(unix)]
+fn handoff_snapshot_preserves_amended_branch_scope_and_old_snapshots_remain_compatible() {
+    let fixture = BranchScopeFixture::new();
+    let mut records = fixture.read_records();
+    let task = records["tasks"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|task| task["work_id"] == "VIS-02")
+        .unwrap();
+    task["claim_history"] = json!([{
+        "claim": {
+            "owner": "/root/old-vis02-owner",
+            "reviewer": "/root/old-vis02-reviewer",
+            "branch": CANDIDATE_BRANCH,
+            "base_sha": VIS02_PRIMARY_BASE_SHA,
+            "allowed_paths": [BRANCH_SCOPE_PATH],
+            "claim_token": "old-vis02-claim-token",
+            "expiry": "2000-01-01T00:00:00Z",
+            "state": "claimed",
+            "accepted_queue_revision": 20,
+            "evidence": ["legacy snapshot without branch_scopes"]
+        },
+        "handoff": {
+            "handoff_at": "2026-10-09T07:30:00Z",
+            "handoff_by": "/root",
+            "from_owner": "/root/old-vis02-owner",
+            "to_owner": "/root/rust_test_infrastructure",
+            "owner_released": true,
+            "coordinator_verified_stopped": false,
+            "worktree": path_text(fixture.repository.root()),
+            "git_status": "synthetic old claim fixture",
+            "diff_sha256": "a".repeat(64),
+            "changed_paths": [],
+            "unpublished_commits": [],
+            "checks": [],
+            "next_action": "continue the accepted test package task"
+        }
+    }]);
+    let current_handoff = task["claim_history"][0]["handoff"].clone();
+    task["handoff"] = current_handoff;
+    fixture.install_records(records);
+    let probe_payload = format!("{}\trefs/heads/visual-baseline", BRANCH_SCOPE_PLAN_BASE_SHA);
+    assert_success(&fixture.amend_with_probe_mode(
+        fixture.amendment(fixture.add_scope()),
+        "valid",
+        &probe_payload,
+        &[],
+    ));
+
+    let current = fixture.read_task("VIS-02");
+    let new_owner = "/root/vis02-next-owner";
+    let handoff = json!({
+        "handoff_at": "2026-10-09T08:00:00Z",
+        "handoff_by": "/root",
+        "from_owner": current["owner"],
+        "to_owner": new_owner,
+        "owner_released": true,
+        "coordinator_verified_stopped": false,
+        "worktree": path_text(fixture.repository.root()),
+        "git_status": "synthetic branch-scope handoff fixture",
+        "diff_sha256": "b".repeat(64),
+        "changed_paths": [],
+        "unpublished_commits": [],
+        "checks": [],
+        "next_action": "continue the accepted test package task"
+    });
+    let payload = json!({
+        "new_claim": {
+            "owner": new_owner,
+            "reviewer": current["reviewer"],
+            "claim_token": "vis02-next-claim-token",
+            "expiry": "2099-01-01T00:00:00Z"
+        },
+        "handoff": handoff
+    });
+    let record_path = fixture.repository.root().join("handoff.json");
+    fs::write(&record_path, serde_json::to_vec(&payload).unwrap()).unwrap();
+    assert_success(&fixture.run(&[
+        "handoff".to_owned(),
+        "VIS-02".to_owned(),
+        "--expected-revision".to_owned(),
+        fixture.revision().to_string(),
+        "--record".to_owned(),
+        path_text(&record_path),
+    ]));
+    let changed = fixture.read_task("VIS-02");
+    let history = changed["claim_history"].as_array().unwrap();
+    assert!(history[0]["claim"].get("branch_scopes").is_none());
+    assert_eq!(
+        history[1]["claim"]["branch_scopes"][0]["base_sha"],
+        BRANCH_SCOPE_PLAN_BASE_SHA
+    );
+}
+
+#[test]
+fn accept_cannot_preseed_an_additional_branch_scope() {
+    let fixture = BranchScopeFixture::new();
+    let mut claim = fixture.read_task("VIS-02");
+    claim["work_id"] = json!("VIS-90");
+    claim["requirement_ids"] = json!(["VIS-90-REQ"]);
+    claim["base_sha"] = json!(fixture.candidate_head);
+    claim["claim_token"] = json!("vis90-preseed-branch-scope");
+    claim["owner"] = json!("/root/vis90-owner");
+    claim["reviewer"] = json!("/root/vis90-reviewer");
+    claim["branch_scopes"] = fixture.add_scope();
+    claim
+        .as_object_mut()
+        .unwrap()
+        .remove("accepted_queue_revision");
+    let record_path = fixture
+        .repository
+        .root()
+        .join("preseeded-branch-scope.json");
+    fs::write(&record_path, serde_json::to_vec(&claim).unwrap()).unwrap();
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.run(&[
+            "accept".to_owned(),
+            "--expected-revision".to_owned(),
+            fixture.revision().to_string(),
+            "--record".to_owned(),
+            path_text(&record_path),
+        ]),
+        "new claim cannot preseed an additional branch scope",
+    );
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "preseeded grant must not alter queue"
+    );
+}

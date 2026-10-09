@@ -19,10 +19,13 @@ import json
 import os
 import re
 import secrets
+import selectors
+import signal
 import stat
 import subprocess
 import sys
 import tempfile
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -58,6 +61,7 @@ TASK_REQUIRED_FIELDS = {
 }
 TASK_OPTIONAL_FIELDS = {
     "shared_api_decisions", "claim_history", "review_subject_sha256", "review_record",
+    "branch_scopes",
     "review_record_sha256",
 }
 HANDOFF_FIELDS = {
@@ -71,6 +75,14 @@ CLAIM_SNAPSHOT_FIELDS = {
     "owner", "reviewer", "branch", "base_sha", "allowed_paths", "claim_token", "expiry",
     "state", "accepted_queue_revision", "evidence",
 }
+CLAIM_SNAPSHOT_OPTIONAL_FIELDS = {"branch_scopes"}
+REFERENCE_BRANCH = "visual-baseline"
+REFERENCE_PACKAGE_SCOPE = "crates/termrock-e2e/**"
+MAX_REFERENCE_PROBE_BYTES = 4096
+REFERENCE_PROBE_TIMEOUT_SECONDS = 10.0
+REFERENCE_REF_OUTPUT = re.compile(rb"([0-9a-f]{40})\trefs/heads/visual-baseline\n")
+REFERENCE_SSH_ORIGIN = "git@github.com:tailrocks/terminal-components-claude.git"
+REFERENCE_HTTPS_ORIGIN = "https://github.com/tailrocks/terminal-components-claude.git"
 ROOT_REGISTRY_FIELDS = {"schema_version", "repositories", "worktrees", "visual_authority"}
 ROOT_REGISTRY_V2_FIELDS = {
     "schema_version", "queue_authority", "repositories", "worktrees", "visual_authority",
@@ -273,12 +285,50 @@ def _task_scopes(task: Mapping[str, Any]) -> list[str]:
     return scopes
 
 
+def _validated_branch_scopes(value: Any, label: str) -> list[dict[str, Any]]:
+    require(isinstance(value, list), "{}.branch_scopes must be an array".format(label))
+    scopes: list[dict[str, Any]] = []
+    branches: set[str] = set()
+    for index, item in enumerate(value):
+        item_label = "{}.branch_scopes[{}]".format(label, index)
+        require(isinstance(item, dict), "{} must be an object".format(item_label))
+        _exact_keys(item, {"branch", "base_sha", "allowed_paths"}, set(), item_label)
+        branch = item.get("branch")
+        require(branch == REFERENCE_BRANCH,
+                "{}.branch must be the authorized {} branch".format(item_label, REFERENCE_BRANCH))
+        require(branch not in branches, "{}.branch_scopes repeats {}".format(label, branch))
+        branches.add(branch)
+        base_sha = item.get("base_sha")
+        require(isinstance(base_sha, str) and SHA1.fullmatch(base_sha) is not None,
+                "{}.base_sha must be a full lowercase SHA-1".format(item_label))
+        allowed_paths = item.get("allowed_paths")
+        require(allowed_paths == [REFERENCE_PACKAGE_SCOPE],
+                "{}.allowed_paths must contain only {}".format(item_label, REFERENCE_PACKAGE_SCOPE))
+        normalized = [normalize_scope(path) for path in allowed_paths]
+        scopes.append({
+            "branch": branch,
+            "base_sha": base_sha,
+            "allowed_paths": normalized,
+        })
+    return scopes
+
+
+def _task_branch_grants(task: Mapping[str, Any]) -> list[tuple[str, list[str]]]:
+    grants = [(task["branch"], _task_scopes(task))]
+    for scope in _validated_branch_scopes(task.get("branch_scopes", []), task["work_id"]):
+        grants.append((scope["branch"], scope["allowed_paths"]))
+    return grants
+
+
 def _claim_snapshot(task: Mapping[str, Any]) -> dict[str, Any]:
     fields = (
         "owner", "reviewer", "branch", "base_sha", "allowed_paths", "claim_token",
         "expiry", "state", "accepted_queue_revision", "evidence",
     )
-    return {field: copy.deepcopy(task.get(field)) for field in fields}
+    snapshot = {field: copy.deepcopy(task.get(field)) for field in fields}
+    if "branch_scopes" in task:
+        snapshot["branch_scopes"] = copy.deepcopy(task["branch_scopes"])
+    return snapshot
 
 
 def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
@@ -304,6 +354,9 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
         if schema_version == 2:
             required_task_fields = TASK_REQUIRED_FIELDS | TASK_IDENTITY_FIELDS
         _exact_keys(task, required_task_fields, TASK_OPTIONAL_FIELDS, label)
+        if schema_version == 2:
+            require("branch_scopes" not in task,
+                    "{}.branch_scopes is a schema-v1 claim extension".format(label))
         work_id = task.get("work_id")
         require(isinstance(work_id, str) and WORK_ID.fullmatch(work_id) is not None,
                 "{}.work_id is invalid".format(label))
@@ -323,8 +376,9 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
         require(work_id not in deps and len(deps) == len(set(deps)),
                 "{} has a self or duplicate dependency".format(work_id))
         if schema_version == 1:
-            require(task.get("branch") == "termrock-implementation",
-                    "{} must use termrock-implementation".format(work_id))
+            branch = task.get("branch")
+            require(isinstance(branch, str) and branch in {"termrock-implementation", REFERENCE_BRANCH},
+                    "{}.branch is unsupported for schema v1".format(work_id))
         else:
             branch = task.get("branch")
             require(branch is None or (isinstance(branch, str) and bool(branch.strip())
@@ -336,7 +390,15 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
                         "{}.{} must be a valid registry ID".format(work_id, field))
         require(isinstance(task.get("base_sha"), str) and SHA1.fullmatch(task["base_sha"]) is not None,
                 "{}.base_sha must be a full lowercase SHA-1".format(work_id))
-        _task_scopes(task)
+        primary_scopes = _task_scopes(task)
+        if schema_version == 1 and task["branch"] == REFERENCE_BRANCH:
+            require(primary_scopes == [REFERENCE_PACKAGE_SCOPE],
+                    "{} visual-baseline primary grant is limited to {}".format(
+                        work_id, REFERENCE_PACKAGE_SCOPE
+                    ))
+        branch_scopes = _validated_branch_scopes(task.get("branch_scopes", []), work_id)
+        require(task["branch"] not in {scope["branch"] for scope in branch_scopes},
+                "{} repeats its primary branch in branch_scopes".format(work_id))
         owner = _text(task.get("owner"), "{}.owner".format(work_id))
         reviewer = _text(task.get("reviewer"), "{}.reviewer".format(work_id))
         require(owner != reviewer, "{} owner and independent reviewer must differ".format(work_id))
@@ -363,6 +425,13 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
         if review_subject is not None:
             require(isinstance(review_subject, str) and SHA256.fullmatch(review_subject) is not None,
                     "{}.review_subject_sha256 must be a full lowercase SHA-256".format(work_id))
+        if schema_version == 1 and branch_scopes:
+            require(state != "verified",
+                    "{} cannot be verified by a candidate-only review subject while branch scopes are active".format(
+                        work_id
+                    ))
+            require(review_subject is None,
+                    "{}.review_subject_sha256 cannot bind additional branch scopes".format(work_id))
         if state == "verified":
             require(review_subject is not None,
                     "{}.review_subject_sha256 must be in accepted source before verification".format(work_id))
@@ -386,8 +455,15 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
             expected_snapshot_fields = CLAIM_SNAPSHOT_FIELDS
             if schema_version == 2:
                 expected_snapshot_fields = CLAIM_SNAPSHOT_V2_FIELDS
-            require(set(prior) == expected_snapshot_fields,
+            expected_snapshot_keys = {frozenset(expected_snapshot_fields)}
+            if schema_version == 1:
+                expected_snapshot_keys.add(frozenset(expected_snapshot_fields | CLAIM_SNAPSHOT_OPTIONAL_FIELDS))
+            require(frozenset(prior) in expected_snapshot_keys,
                     "{} claim snapshot has missing or unknown fields".format(history_label))
+            if schema_version == 1 and "branch_scopes" in prior:
+                prior_branch_scopes = _validated_branch_scopes(prior["branch_scopes"], history_label)
+                require(prior.get("branch") not in {scope["branch"] for scope in prior_branch_scopes},
+                        "{} repeats its primary branch in branch_scopes".format(history_label))
             if schema_version == 2:
                 for field in sorted(TASK_IDENTITY_FIELDS):
                     identity = prior.get(field)
@@ -470,12 +546,23 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
         for other in active[index + 1 :]:
             if schema_version == 2 and task["repository_id"] != other["repository_id"]:
                 continue
-            for scope in task["allowed_paths"]:
-                for other_scope in other["allowed_paths"]:
-                    require(not scopes_overlap(scope, other_scope),
-                            "active path conflict: {} ({}) overlaps {} ({})".format(
-                                task["work_id"], scope, other["work_id"], other_scope
-                            ))
+            task_grants = _task_branch_grants(task) if schema_version == 1 else [
+                (task.get("branch") or "", task["allowed_paths"])
+            ]
+            other_grants = _task_branch_grants(other) if schema_version == 1 else [
+                (other.get("branch") or "", other["allowed_paths"])
+            ]
+            for branch, scopes in task_grants:
+                for other_branch, other_scopes in other_grants:
+                    if schema_version == 1 and branch != other_branch:
+                        continue
+                    for scope in scopes:
+                        for other_scope in other_scopes:
+                            require(not scopes_overlap(scope, other_scope),
+                                    "active path conflict: {} {} ({}) overlaps {} {} ({})".format(
+                                        task["work_id"], branch, scope,
+                                        other["work_id"], other_branch, other_scope,
+                                    ))
     return records
 
 
@@ -522,6 +609,8 @@ def accept_record(
     proposed = copy.deepcopy(proposed_value)
     require("review_subject_sha256" not in proposed,
             "new claim cannot prebind a review subject; bind after entering review")
+    require("branch_scopes" not in proposed,
+            "new claim cannot preseed an additional branch scope; use amend-branch-scope")
     require("accepted_queue_revision" not in proposed and "claim_history" not in proposed,
             "new claim cannot supply acceptance revision or prior history")
     work_id = proposed.get("work_id")
@@ -667,6 +756,8 @@ def bind_review_subject_record(
             "review subject can only be bound while the task is in review")
     require(_task_token(task) == claim_token,
             "claim token does not match the current task claim")
+    require(not task.get("branch_scopes"),
+            "candidate-only review subject cannot bind an additional branch scope")
     require(task.get("review_subject_sha256") is None,
             "review subject is already bound; reopen or hand off before binding a new review round")
     require(current_subject_sha256 == expected_subject_sha256,
@@ -680,6 +771,158 @@ def bind_review_subject_record(
     )
     validate_records(records)
     return records
+
+
+def _accepted_branch_scope_plan(
+    records: Mapping[str, Any], plan_sha256: str, review_sha256: str,
+) -> dict[str, Any] | None:
+    # Accepted evidence pins local artifact bytes; it is queue policy data, not identity proof.
+    plan_task = next((task for task in records["tasks"] if task["work_id"] == "VIS-10"), None)
+    if plan_task is None:
+        return None
+    accepted: list[dict[str, Any]] = []
+    evidence_pattern = re.compile(
+        r"^Integrator acceptance: reviewed v1 branch-scope amendment plan (\S+) "
+        r"SHA-256 ([0-9a-f]{64}); independent review (\S+) SHA-256 ([0-9a-f]{64})\."
+    )
+    for evidence in plan_task.get("evidence", []):
+        if not isinstance(evidence, str):
+            continue
+        match = evidence_pattern.match(evidence)
+        if match is None or match.group(2) != plan_sha256 or match.group(4) != review_sha256:
+            continue
+        try:
+            plan_path = _registry_absolute_path(
+                match.group(1), "accepted VIS-10 branch-scope plan path"
+            )
+            review_path = _registry_absolute_path(
+                match.group(3), "accepted VIS-10 branch-scope review path"
+            )
+            plan_raw = _safe_read(
+                plan_path, "accepted VIS-10 branch-scope plan", max_bytes=256 * 1024
+            )
+            review_raw = _safe_read(
+                review_path, "accepted VIS-10 branch-scope plan review", max_bytes=256 * 1024
+            )
+        except (QueueError, OSError):
+            continue
+        if hashlib.sha256(plan_raw).hexdigest() != plan_sha256:
+            continue
+        if hashlib.sha256(review_raw).hexdigest() != review_sha256:
+            continue
+        try:
+            plan_text = plan_raw.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        json_blocks = re.findall(r"(?ms)^```json[ \t]*\n(.*?)\n```[ \t]*$", plan_text)
+        requests = []
+        for block in json_blocks:
+            try:
+                request = strict_json_loads(block.encode("utf-8"))
+            except QueueError:
+                continue
+            if isinstance(request, dict) and {
+                "expected_primary", "branch_scopes", "authorization_evidence"
+            }.issubset(request):
+                requests.append(request)
+        if len(requests) == 1:
+            accepted.append(requests[0])
+    return accepted[0] if len(accepted) == 1 else None
+
+
+def amend_branch_scope_record(
+    records_value: Any,
+    work_id: str,
+    claim_token: str,
+    amendment_value: Any,
+    expected_revision: int,
+) -> tuple[dict[str, Any], str]:
+    records = copy.deepcopy(validate_records(records_value))
+    _ensure_revision(records, expected_revision)
+    require(work_id == "VIS-02",
+            "branch-scope amendment is authorized only for VIS-02")
+    _text(claim_token, "claim token")
+    require(isinstance(amendment_value, dict), "branch-scope amendment must be an object")
+    _exact_keys(
+        amendment_value,
+        {"expected_primary", "branch_scopes", "authorization_evidence", "plan_sha256", "review_sha256"},
+        set(),
+        "branch-scope amendment",
+    )
+    expected_primary = amendment_value["expected_primary"]
+    require(isinstance(expected_primary, dict), "expected_primary must be an object")
+    primary_fields = {"owner", "reviewer", "priority", "branch", "base_sha", "allowed_paths"}
+    _exact_keys(expected_primary, primary_fields, set(), "expected_primary")
+    plan_sha256 = amendment_value["plan_sha256"]
+    review_sha256 = amendment_value["review_sha256"]
+    require(isinstance(plan_sha256, str) and SHA256.fullmatch(plan_sha256) is not None,
+            "plan_sha256 must be a full lowercase SHA-256")
+    require(isinstance(review_sha256, str) and SHA256.fullmatch(review_sha256) is not None,
+            "review_sha256 must be a full lowercase SHA-256")
+    accepted_plan = _accepted_branch_scope_plan(records, plan_sha256, review_sha256)
+    require(accepted_plan is not None,
+            "plan and review hashes are not bound to accepted VIS-10 evidence")
+    _exact_keys(
+        accepted_plan,
+        {"expected_primary", "branch_scopes", "authorization_evidence"},
+        set(),
+        "accepted branch-scope plan request",
+    )
+
+    replacement = _validated_branch_scopes(amendment_value["branch_scopes"], work_id)
+    accepted_scopes = _validated_branch_scopes(accepted_plan["branch_scopes"], work_id)
+    require(len(accepted_scopes) == 1,
+            "accepted VIS-10 plan must name exactly one visual-baseline branch grant")
+    accepted_base_sha = accepted_scopes[0]["base_sha"]
+    require(replacement in ([], accepted_scopes),
+            "branch-scope replacement differs from the accepted VIS-10 plan")
+
+    task = next((item for item in records["tasks"] if item["work_id"] == work_id), None)
+    require(task is not None, "unknown work ID {}".format(work_id))
+    require(task["state"] in {"claimed", "in_progress"},
+            "branch scopes can only be amended on a claimed or in-progress task")
+    require(_task_token(task) == claim_token,
+            "claim token does not match the current task claim")
+    require(task.get("review_subject_sha256") is None,
+            "branch scopes cannot change while a review subject is active")
+    for field in sorted(primary_fields):
+        require(task.get(field) == expected_primary[field],
+                "expected_primary.{} does not match the current task".format(field))
+    accepted_primary = accepted_plan["expected_primary"]
+    _exact_keys(
+        accepted_primary, primary_fields, set(), "accepted branch-scope primary assignment"
+    )
+    require(expected_primary == accepted_primary,
+            "expected_primary differs from the accepted VIS-10 plan")
+    for field, value in accepted_primary.items():
+        require(task.get(field) == value,
+                "VIS-02 {} differs from the accepted primary assignment".format(field))
+    current_scopes = _validated_branch_scopes(task.get("branch_scopes", []), work_id)
+    require(current_scopes in ([], accepted_scopes),
+            "existing visual-baseline grant differs from the accepted VIS-10 plan")
+    require(replacement != current_scopes, "branch-scope amendment is a no-op")
+
+    authorization_evidence = _text(
+        amendment_value["authorization_evidence"], "authorization_evidence"
+    )
+    require(authorization_evidence == accepted_plan["authorization_evidence"],
+            "authorization_evidence differs from the accepted VIS-10 plan")
+
+    previous_json = json.dumps(current_scopes, sort_keys=True, separators=(",", ":"))
+    replacement_json = json.dumps(replacement, sort_keys=True, separators=(",", ":"))
+    records["queue_revision"] += 1
+    task["branch_scopes"] = replacement
+    task["evidence"].append(authorization_evidence)
+    task["evidence"].append(
+        "amended branch scopes at queue revision {}: previous {}; replacement {}; "
+        "observed refs/heads/visual-baseline {}; accepted plan SHA-256 {}; independent review "
+        "SHA-256 {}".format(
+            records["queue_revision"], previous_json, replacement_json, accepted_base_sha,
+            plan_sha256, review_sha256,
+        )
+    )
+    validate_records(records)
+    return records, accepted_base_sha
 
 
 def reassign_record(
@@ -793,6 +1036,15 @@ def render_queue(records_value: Any) -> str:
             "",
             "Evidence: {}".format(_markdown_cell(task["evidence"])),
         ])
+        branch_scopes = _validated_branch_scopes(task.get("branch_scopes", []), task["work_id"])
+        if branch_scopes:
+            lines.extend(["", "Additional branch scopes:"])
+            for scope in branch_scopes:
+                lines.append("- `{}` / `{}`: {}".format(
+                    _markdown_cell(scope["branch"]),
+                    _markdown_cell(scope["base_sha"]),
+                    _markdown_cell(scope["allowed_paths"]),
+                ))
         handoff = task.get("handoff")
         if handoff is not None:
             lines.extend(["", "Last handoff: {} → {} by `{}`. Recorded next action at handoff: {}".format(
@@ -2331,19 +2583,139 @@ def _exclusive_lock(path: Path) -> Iterator[None]:
 
 
 def _git_subject(root: Path) -> tuple[str, str]:
+    environment = _git_registry_environment()
     try:
         branch = subprocess.run(
             ["git", "-C", str(root), "branch", "--show-current"],
-            check=True, capture_output=True, text=True,
+            check=True, capture_output=True, text=True, env=environment, stdin=subprocess.DEVNULL,
         ).stdout.strip()
         head = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--verify", "HEAD"],
-            check=True, capture_output=True, text=True,
+            check=True, capture_output=True, text=True, env=environment, stdin=subprocess.DEVNULL,
         ).stdout.strip()
     except (OSError, subprocess.CalledProcessError) as error:
         raise QueueError("cannot verify current Git subject: {}".format(error)) from error
     require(SHA1.fullmatch(head) is not None, "current HEAD is not a full lowercase SHA-1")
     return branch, head
+
+
+def _git_noninteractive_environment() -> dict[str, str]:
+    environment = _git_registry_environment()
+    environment["GIT_TERMINAL_PROMPT"] = "0"
+    environment["GCM_INTERACTIVE"] = "Never"
+    environment["SSH_ASKPASS_REQUIRE"] = "never"
+    environment.pop("SSH_ASKPASS", None)
+    return environment
+
+
+def _kill_reap_process_group(process: subprocess.Popen[bytes]) -> None:
+    cleanup_error: OSError | None = None
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    except OSError as error:
+        cleanup_error = error
+        try:
+            process.kill()
+        except OSError:
+            pass
+    try:
+        process.wait()
+    except OSError as error:
+        cleanup_error = cleanup_error or error
+    for stream in (process.stdout, process.stderr):
+        if stream is not None:
+            try:
+                stream.close()
+            except OSError as error:
+                cleanup_error = cleanup_error or error
+    if cleanup_error is not None:
+        raise QueueError("cannot clean up bounded Git reference probe: {}".format(cleanup_error))
+
+
+def _visual_baseline_branch_tip(root: Path) -> str:
+    stdout = bytearray()
+    stderr = bytearray()
+    total_bytes = 0
+    selector = selectors.DefaultSelector()
+    deadline = time.monotonic() + REFERENCE_PROBE_TIMEOUT_SECONDS
+    command = [
+        "git", "--no-replace-objects",
+        "-c", "credential.helper=",
+        "-c", "url.{}.insteadOf={}".format(REFERENCE_HTTPS_ORIGIN, REFERENCE_SSH_ORIGIN),
+        "-C", str(root), "ls-remote", "--exit-code", "--refs",
+        "origin", "refs/heads/visual-baseline",
+    ]
+    try:
+        process = subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=_git_noninteractive_environment(),
+            close_fds=True,
+            start_new_session=True,
+            bufsize=0,
+        )
+    except OSError as error:
+        selector.close()
+        raise QueueError("cannot start bounded visual-baseline reference probe: {}".format(error)) from error
+
+    streams = ((process.stdout, stdout), (process.stderr, stderr))
+    try:
+        for stream, _buffer in streams:
+            assert stream is not None
+            os.set_blocking(stream.fileno(), False)
+            selector.register(stream, selectors.EVENT_READ)
+        while selector.get_map() or process.poll() is None:
+            remaining = deadline - time.monotonic()
+            require(remaining > 0, "visual-baseline reference probe exceeded 10-second deadline")
+            if not selector.get_map():
+                time.sleep(min(remaining, 0.02))
+                continue
+            events = selector.select(remaining)
+            if not events:
+                require(time.monotonic() < deadline,
+                        "visual-baseline reference probe exceeded 10-second deadline")
+                continue
+            for key, _mask in events:
+                stream = key.fileobj
+                buffer = stdout if stream is process.stdout else stderr
+                read_limit = min(8192, MAX_REFERENCE_PROBE_BYTES - total_bytes + 1)
+                chunk = os.read(stream.fileno(), read_limit)
+                if not chunk:
+                    selector.unregister(stream)
+                    stream.close()
+                    continue
+                buffer.extend(chunk)
+                total_bytes += len(chunk)
+                require(total_bytes <= MAX_REFERENCE_PROBE_BYTES,
+                        "visual-baseline reference probe exceeded 4096-byte output cap")
+        remaining = deadline - time.monotonic()
+        require(remaining > 0, "visual-baseline reference probe exceeded 10-second deadline")
+        try:
+            return_code = process.wait(timeout=remaining)
+        except subprocess.TimeoutExpired as error:
+            raise QueueError("visual-baseline reference probe exceeded 10-second deadline") from error
+    except BaseException as error:
+        try:
+            _kill_reap_process_group(process)
+        except QueueError as cleanup_error:
+            raise QueueError("{}; {}".format(error, cleanup_error)) from error
+        raise
+    finally:
+        selector.close()
+        for stream, _buffer in streams:
+            if stream is not None and not stream.closed:
+                stream.close()
+
+    require(return_code == 0, "visual-baseline reference probe exited with status {}".format(return_code))
+    require(not stderr, "visual-baseline reference probe wrote to stderr")
+    match = REFERENCE_REF_OUTPUT.fullmatch(bytes(stdout))
+    require(match is not None,
+            "visual-baseline reference probe must return one exact SHA/ref line")
+    return match.group(1).decode("ascii")
 
 
 def _write_pair(records: Mapping[str, Any], tasks_path: Path, queue_path: Path) -> None:
@@ -2453,6 +2825,14 @@ def build_parser() -> argparse.ArgumentParser:
     bind_subject.add_argument("--expected-revision", required=True, type=int)
     bind_subject.add_argument("--claim-token", required=True)
     bind_subject.add_argument("--expected-subject-sha256", required=True)
+
+    amend_scope = subparsers.add_parser(
+        "amend-branch-scope", help="amend an accepted schema-v1 branch grant through revision CAS"
+    )
+    amend_scope.add_argument("work_id")
+    amend_scope.add_argument("--expected-revision", required=True, type=int)
+    amend_scope.add_argument("--claim-token", required=True)
+    amend_scope.add_argument("--record", required=True, help="reviewed branch-scope amendment JSON file")
 
     handoff = subparsers.add_parser("handoff", help="safely reassign an active or expired claim")
     handoff.add_argument("work_id")
@@ -2603,6 +2983,28 @@ def run(args: Sequence[str] | None = None) -> int:
             task = next(item for item in changed["tasks"] if item["work_id"] == options.work_id)
             print("bound review subject for {} at queue revision {}: {}".format(
                 options.work_id, changed["queue_revision"], task["review_subject_sha256"]
+            ))
+        elif options.command == "amend-branch-scope":
+            amendment = _load_json_input(options.record)
+
+            def update_branch_scope(current: Mapping[str, Any], _branch: str, _head: str) -> dict[str, Any]:
+                _ensure_revision(current, options.expected_revision)
+                changed, accepted_base_sha = amend_branch_scope_record(
+                    current, options.work_id, options.claim_token, amendment,
+                    options.expected_revision,
+                )
+                reference_tip = _visual_baseline_branch_tip(root)
+                require(reference_tip == accepted_base_sha,
+                        "visual-baseline branch tip changed from the accepted VIS-10 plan base SHA")
+                return changed
+
+            changed = _mutate(
+                options.expected_revision, update_branch_scope,
+                tasks_path=tasks_path, queue_path=queue_path,
+                repo_root=root, subject_reader=lambda: _git_subject(root),
+            )
+            print("amended branch scopes for {} at queue revision {}".format(
+                options.work_id, changed["queue_revision"]
             ))
         elif options.command == "handoff":
             payload = _load_json_input(options.record)
