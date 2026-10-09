@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 40,
+  "queue_revision": 41,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -1144,11 +1144,12 @@
       "reviewer": "/root/jackin_inventory_current_luna",
       "claim_token": "visibility-queuev2-root-to-coordination-q35-20261009-01",
       "expiry": "2026-10-09T06:00:00Z",
-      "state": "claimed",
+      "state": "in_progress",
       "evidence": [
         "Independent plan approval /private/tmp/termrock-vis10-queue-v2-plan-review.json SHA-256 bd9dbce82a27aa57608fde5d3870828765448daf53fc7a936e6cb405e3607aa0. Code prerequisite uses committed helper 8189; actual migration remains blocked until status v2 compatibility and separately qualified roots/preflight.",
         "Independent reviewed implementation scope accepted; live migration is not authorized by this transition.",
-        "Integrator acceptance: reviewed VIS10 scope-amendment plan /private/tmp/termrock-vis10-scope-amendment-plan-20261009-r2.md SHA-256 509b6cefae8e062477bbd647d9d55b3afbff77e98ec2b44d44160deb4017264b; independent review /private/tmp/termrock-vis10-scope-amendment-plan-review-luna-r2.json SHA-256 e5fb2a8d9bd474cf3c087b3ccab34c5140476f6640eaeb4a82ae0e1d49ec9574 approves this exact bounded workplan. This plan supersedes the prior handoff next_action only for the next implementation sequence. Preserve the existing VIS10 base, owner, reviewer, token, expiry, allowed paths, historical handoff object, and claim history. Implement only this schema-v2 scope-amendment increment in the existing three paths. No live migration, publication, history rewrite, or out-of-scope writes are authorized."
+        "Integrator acceptance: reviewed VIS10 scope-amendment plan /private/tmp/termrock-vis10-scope-amendment-plan-20261009-r2.md SHA-256 509b6cefae8e062477bbd647d9d55b3afbff77e98ec2b44d44160deb4017264b; independent review /private/tmp/termrock-vis10-scope-amendment-plan-review-luna-r2.json SHA-256 e5fb2a8d9bd474cf3c087b3ccab34c5140476f6640eaeb4a82ae0e1d49ec9574 approves this exact bounded workplan. This plan supersedes the prior handoff next_action only for the next implementation sequence. Preserve the existing VIS10 base, owner, reviewer, token, expiry, allowed paths, historical handoff object, and claim history. Implement only this schema-v2 scope-amendment increment in the existing three paths. No live migration, publication, history rewrite, or out-of-scope writes are authorized.",
+        "Integrator acceptance: reviewed v1 branch-scope amendment plan /private/tmp/termrock-vis02-branch-scope-amendment-plan-20261009-r3.md SHA-256 d81bcb0c87ebebbaee02bc8a1fa314e50068963f24e8846889e6a18a6b5a171c; independent review /private/tmp/termrock-vis02-branch-scope-amendment-plan-r3-review-luna.json SHA-256 d9578accb3177f3ba34bc382f5ddf1bfef40e242e0d0591e2980791fb68ac8f4. This exact bounded extension supersedes the prior schema-v2-only next increment. Keep VIS10 owner /root/coordination_luna, reviewer /root/jackin_inventory_current_luna, token, expiry, base, allowed paths, handoff, and claim history. Delegate only external implementation preparation to /root/reference_claim_luna in tools/visibility/queue.py, crates/termrock-visibility-tests/tests/queue_v2.rs, and docs/implementation/visibility/queue-v2.md; Root integrates. No live v2 migration, tag/release mutation, reference writes, or readiness promotion. Implement and verify the bounded v1 branch-scope CAS with Rust/Nextest tests before granting VIS02 reference scope."
       ],
       "handoff": {
         "handoff_at": "2026-10-09T04:14:47Z",
