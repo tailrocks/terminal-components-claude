@@ -1,0 +1,511 @@
+{
+  "record_type": "velnor_ca3ef_latest_source_gate_receipt_v1",
+  "status": "stopped_after_failure_timeout_or_count_mismatch",
+  "qualification": "NOT_QUALIFIED",
+  "execution_mode": "--execute",
+  "source_root": "/private/tmp/termrock-velnor-r6-current-rollout-source-ca3ef076-20261009",
+  "source_tree": "ca3ef07606236282a03ccd2a027b2f2efa4cb094",
+  "source_manifest_sha256": "59c676f80c00f4dd309fde4a476c4a3939121070cd01d295159cc3bbbeaaeb57",
+  "source_entries_verified_before": 2576,
+  "source_entries_verified_after": 2576,
+  "source_postcheck_error": null,
+  "post_command_errors": [],
+  "binary_collection_error": null,
+  "source_git_metadata": "absent; no commit, branch, or ref identity asserted",
+  "source_binding_sha256": "9c4078f429d042dcdecf11f06ae5e75d3a837312e76907e9e2cd8cb29c651db6",
+  "independent_impact_review_sha256": "a769c4c5e9e2e37cded19aaf2bd6c70876819387e398499fb0af62607a3685e8",
+  "cargo_home": "/private/tmp/termrock-velnor-r2-minimum-gate-20261009-luna-003/cargo-home",
+  "target_dir": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/target",
+  "timeout_seconds_total": 1200,
+  "offline": true,
+  "build_jobs": 2,
+  "test_threads": 1,
+  "selected_tests_expected": 27,
+  "command_count_expected": 12,
+  "historical_cases_carried_as_passes": 0,
+  "tools": {
+    "node": {
+      "path": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r3-20261009.jv8XTD/runtime/node-26.10.0/bin/node",
+      "version": "v26.10.0",
+      "sha256": "56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861"
+    },
+    "cargo": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d"
+    },
+    "rustc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+    },
+    "rustdoc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee"
+    },
+    "nextest": {
+      "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0"
+    },
+    "mise": {
+      "path": "/Users/donbeave/.local/bin/mise",
+      "sha256": "41c4028257d30f5f5742c99247c461f417143d6c7301f167a0c185247c8f206e",
+      "host_label": "2026.10.5",
+      "source_catalog_version": "2026.9.18; not asserted equal"
+    },
+    "rustup": {
+      "path": "/Users/donbeave/.cargo/bin/rustup",
+      "sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+      "settings_path": "/Users/donbeave/.rustup/settings.toml",
+      "settings_sha256": "330fa9551fdcb09ff5564342245015494650d90a13fa5a1d4441db706313a44c",
+      "explicit_toolchain": "1.98.1-aarch64-apple-darwin"
+    },
+    "cargo_home": "/private/tmp/termrock-velnor-r2-minimum-gate-20261009-luna-003/cargo-home",
+    "cargo_cache_receipt": {
+      "path": "/private/tmp/termrock-velnor-r2-minimum-gate-20261009-luna-003/receipt.json",
+      "sha256": "63d663c8bd05a0cb43f4452049b2e5b51baaaa06e7d8a852710179bad1b4b8e3"
+    },
+    "output_target": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/target"
+  },
+  "source_symlinks_verified_before": [
+    {
+      "path": ".github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": ".github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    },
+    {
+      "path": "CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "AGENTS.md",
+      "target_sha256": "c289f52a56e1566a06b3db0507fc5fe53da6fc79726d748c894d0eb28619fbfd"
+    },
+    {
+      "path": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/dogfood/preview/.github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/dogfood/preview/.github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    },
+    {
+      "path": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/empty-suite/preview/.github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/empty-suite/preview/.github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    },
+    {
+      "path": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/mbx-nextest/preview/.github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/mbx-nextest/preview/.github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    },
+    {
+      "path": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/minimal-cargo/preview/.github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/minimal-cargo/preview/.github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    },
+    {
+      "path": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/nested/preview/.github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/nested/preview/.github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    }
+  ],
+  "source_symlinks_verified_after": [
+    {
+      "path": ".github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": ".github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    },
+    {
+      "path": "CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "AGENTS.md",
+      "target_sha256": "c289f52a56e1566a06b3db0507fc5fe53da6fc79726d748c894d0eb28619fbfd"
+    },
+    {
+      "path": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/dogfood/preview/.github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/dogfood/preview/.github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    },
+    {
+      "path": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/empty-suite/preview/.github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/empty-suite/preview/.github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    },
+    {
+      "path": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/mbx-nextest/preview/.github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/mbx-nextest/preview/.github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    },
+    {
+      "path": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/minimal-cargo/preview/.github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/minimal-cargo/preview/.github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    },
+    {
+      "path": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/nested/preview/.github/CLAUDE.md",
+      "target": "AGENTS.md",
+      "resolved_target": "crates/apps/velnor-actions-cli/fixtures/opentofu-goldens/cases/nested/preview/.github/AGENTS.md",
+      "target_sha256": "4778fbe08a93634a2e5d2f4dfa53dceb2694697b5bd53aaf8cd1bc6eb164bde9"
+    }
+  ],
+  "fresh_cli_binary": {
+    "path": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/target/debug/velnor-actions",
+    "bytes": 59705024,
+    "sha256": "7c3243cb73b0b8d0c76e8f81633f631008d9ddcec86d65549cbf6caebafcd574"
+  },
+  "cli_binary_at_build": {
+    "path": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/target/debug/velnor-actions",
+    "bytes": 59705024,
+    "sha256": "7c3243cb73b0b8d0c76e8f81633f631008d9ddcec86d65549cbf6caebafcd574"
+  },
+  "results": [
+    {
+      "index": 1,
+      "label": "build_latest_velnor_actions_cli",
+      "kind": "build",
+      "package": null,
+      "test_ids": [],
+      "expected_tests": 0,
+      "filter": null,
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "-p",
+        "velnor-actions-cli",
+        "--bin",
+        "velnor-actions"
+      ],
+      "cwd": "/private/tmp/termrock-velnor-r6-current-rollout-source-ca3ef076-20261009",
+      "started_utc": "2026-10-09T02:04:22.725Z",
+      "finished_utc": "2026-10-09T02:05:25.871Z",
+      "pid": 70936,
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "launch_error": null,
+      "summary_lines": [],
+      "measured_counts": {
+        "executed": null,
+        "passed": null,
+        "failed": null
+      },
+      "expected_stdout_contains": null,
+      "counts_exact": true,
+      "output": {
+        "path": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/command-1.log",
+        "bytes": 31724,
+        "sha256": "93448b816b40f1eebc08a1fc9915863bd0845c5598af9a5c6c9416c9ebea49e8"
+      },
+      "status": "completed"
+    },
+    {
+      "index": 2,
+      "label": "capture_latest_cli_version",
+      "kind": "cli",
+      "package": null,
+      "test_ids": [],
+      "expected_tests": 0,
+      "filter": null,
+      "executable": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/target/debug/velnor-actions",
+      "argv": [
+        "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/target/debug/velnor-actions",
+        "--version"
+      ],
+      "cwd": "/private/tmp/termrock-velnor-r6-current-rollout-source-ca3ef076-20261009",
+      "started_utc": "2026-10-09T02:05:26.341Z",
+      "finished_utc": "2026-10-09T02:05:27.077Z",
+      "pid": 71827,
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "launch_error": null,
+      "summary_lines": [],
+      "measured_counts": {
+        "executed": null,
+        "passed": null,
+        "failed": null
+      },
+      "expected_stdout_contains": "velnor-actions 0.1.5",
+      "counts_exact": true,
+      "output": {
+        "path": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/command-2.log",
+        "bytes": 21,
+        "sha256": "f899ee546e44b5f7686c787c685f7acb2614aad620a3b4937d85f080765da8cc"
+      },
+      "status": "completed"
+    },
+    {
+      "index": 3,
+      "label": "contract_config_and_source_ref",
+      "kind": "nextest",
+      "package": "velnor-actions-contract-config",
+      "test_ids": [
+        "config::workflow::tests::additional_push_branches_are_validated_separately_from_default_branch",
+        "impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component"
+      ],
+      "expected_tests": 2,
+      "filter": "test(=config::workflow::tests::additional_push_branches_are_validated_separately_from_default_branch) | test(=impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component)",
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "velnor-actions-contract-config",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--no-tests",
+        "fail",
+        "--user-config-file",
+        "none",
+        "--ignore-default-filter",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--color",
+        "never",
+        "-E",
+        "test(=config::workflow::tests::additional_push_branches_are_validated_separately_from_default_branch) | test(=impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component)"
+      ],
+      "cwd": "/private/tmp/termrock-velnor-r6-current-rollout-source-ca3ef076-20261009",
+      "started_utc": "2026-10-09T02:05:27.308Z",
+      "finished_utc": "2026-10-09T02:05:47.304Z",
+      "pid": 71837,
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "launch_error": null,
+      "summary_lines": [
+        "Summary [   0.025s] 2 tests run: 2 passed, 87 skipped"
+      ],
+      "measured_counts": {
+        "executed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "expected_stdout_contains": null,
+      "counts_exact": true,
+      "output": {
+        "path": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/command-3.log",
+        "bytes": 2457,
+        "sha256": "5e26a81b2d54a9a6b6ba1623a8c339b4a26b8deb30322b7e8a6d6c69269d5794"
+      },
+      "status": "completed"
+    },
+    {
+      "index": 4,
+      "label": "artifact_matrix_and_reconciliation",
+      "kind": "nextest",
+      "package": "velnor-actions-contract-workflow",
+      "test_ids": [
+        "workflow::artifact_build::tests::plan::native_platform_matrices_select_only_the_declared_runner",
+        "workflow::artifact_build::tests::reconcile::reconciliation_rejects_missing_duplicate_failed_and_mismatched_results"
+      ],
+      "expected_tests": 2,
+      "filter": "test(=workflow::artifact_build::tests::plan::native_platform_matrices_select_only_the_declared_runner) | test(=workflow::artifact_build::tests::reconcile::reconciliation_rejects_missing_duplicate_failed_and_mismatched_results)",
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "velnor-actions-contract-workflow",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--no-tests",
+        "fail",
+        "--user-config-file",
+        "none",
+        "--ignore-default-filter",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--color",
+        "never",
+        "-E",
+        "test(=workflow::artifact_build::tests::plan::native_platform_matrices_select_only_the_declared_runner) | test(=workflow::artifact_build::tests::reconcile::reconciliation_rejects_missing_duplicate_failed_and_mismatched_results)"
+      ],
+      "cwd": "/private/tmp/termrock-velnor-r6-current-rollout-source-ca3ef076-20261009",
+      "started_utc": "2026-10-09T02:05:47.774Z",
+      "finished_utc": "2026-10-09T02:05:54.413Z",
+      "pid": 72141,
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "launch_error": null,
+      "summary_lines": [
+        "Summary [   0.030s] 2 tests run: 2 passed, 75 skipped"
+      ],
+      "measured_counts": {
+        "executed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "expected_stdout_contains": null,
+      "counts_exact": true,
+      "output": {
+        "path": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/command-4.log",
+        "bytes": 1552,
+        "sha256": "52f408c25e23e56f2fce4cf81b8139ef4f312fa0514c2273f4665ff8ce732f08"
+      },
+      "status": "completed"
+    },
+    {
+      "index": 5,
+      "label": "current_vcs_full_ref_rules",
+      "kind": "nextest",
+      "package": "velnor-actions-contract",
+      "test_ids": [
+        "vcs::tests::reference_accepts_git_valid_full_refs",
+        "vcs::tests::reference_rejects_git_invalid_and_special_names"
+      ],
+      "expected_tests": 2,
+      "filter": "test(=vcs::tests::reference_accepts_git_valid_full_refs) | test(=vcs::tests::reference_rejects_git_invalid_and_special_names)",
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "velnor-actions-contract",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--no-tests",
+        "fail",
+        "--user-config-file",
+        "none",
+        "--ignore-default-filter",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--color",
+        "never",
+        "-E",
+        "test(=vcs::tests::reference_accepts_git_valid_full_refs) | test(=vcs::tests::reference_rejects_git_invalid_and_special_names)"
+      ],
+      "cwd": "/private/tmp/termrock-velnor-r6-current-rollout-source-ca3ef076-20261009",
+      "started_utc": "2026-10-09T02:05:54.640Z",
+      "finished_utc": "2026-10-09T02:05:57.587Z",
+      "pid": 72345,
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "launch_error": null,
+      "summary_lines": [
+        "Summary [   0.030s] 2 tests run: 2 passed, 78 skipped"
+      ],
+      "measured_counts": {
+        "executed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "expected_stdout_contains": null,
+      "counts_exact": true,
+      "output": {
+        "path": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/command-5.log",
+        "bytes": 1326,
+        "sha256": "8024d718a1310ec18f4176f90efa708dbaf51e92d179c3a86f247741a0b64f69"
+      },
+      "status": "completed"
+    },
+    {
+      "index": 6,
+      "label": "provider_route_and_generation_template",
+      "kind": "nextest",
+      "package": "velnor-actions-orchestrator-generation",
+      "test_ids": [
+        "impl_schema2_artifact_build::both_provider_routing_is_rejected_for_artifact_tasks",
+        "generate::tests::preserved_template::edited_template_after_render_refuses_replacement",
+        "generate::tests::preserved_template::created_template_after_render_refuses_replacement",
+        "generate::tests::preserved_template::deleted_template_after_render_refuses_replacement",
+        "impl_preserved_template::absent_template_is_omitted_and_present_template_is_exact",
+        "impl_preserved_template::generate_replaces_the_tree_while_carrying_the_template",
+        "impl_preserved_template::invalid_template_fails_before_replacing_existing_github_tree",
+        "impl_preserved_template::template_parent_must_be_a_directory",
+        "impl_preserved_template::template_must_be_a_regular_file_and_within_size_limit",
+        "impl_preserved_template::template_path_symlinks_are_rejected"
+      ],
+      "expected_tests": 10,
+      "filter": "test(=impl_schema2_artifact_build::both_provider_routing_is_rejected_for_artifact_tasks) | test(=generate::tests::preserved_template::edited_template_after_render_refuses_replacement) | test(=generate::tests::preserved_template::created_template_after_render_refuses_replacement) | test(=generate::tests::preserved_template::deleted_template_after_render_refuses_replacement) | test(=impl_preserved_template::absent_template_is_omitted_and_present_template_is_exact) | test(=impl_preserved_template::generate_replaces_the_tree_while_carrying_the_template) | test(=impl_preserved_template::invalid_template_fails_before_replacing_existing_github_tree) | test(=impl_preserved_template::template_parent_must_be_a_directory) | test(=impl_preserved_template::template_must_be_a_regular_file_and_within_size_limit) | test(=impl_preserved_template::template_path_symlinks_are_rejected)",
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "velnor-actions-orchestrator-generation",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--no-tests",
+        "fail",
+        "--user-config-file",
+        "none",
+        "--ignore-default-filter",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--color",
+        "never",
+        "-E",
+        "test(=impl_schema2_artifact_build::both_provider_routing_is_rejected_for_artifact_tasks) | test(=generate::tests::preserved_template::edited_template_after_render_refuses_replacement) | test(=generate::tests::preserved_template::created_template_after_render_refuses_replacement) | test(=generate::tests::preserved_template::deleted_template_after_render_refuses_replacement) | test(=impl_preserved_template::absent_template_is_omitted_and_present_template_is_exact) | test(=impl_preserved_template::generate_replaces_the_tree_while_carrying_the_template) | test(=impl_preserved_template::invalid_template_fails_before_replacing_existing_github_tree) | test(=impl_preserved_template::template_parent_must_be_a_directory) | test(=impl_preserved_template::template_must_be_a_regular_file_and_within_size_limit) | test(=impl_preserved_template::template_path_symlinks_are_rejected)"
+      ],
+      "cwd": "/private/tmp/termrock-velnor-r6-current-rollout-source-ca3ef076-20261009",
+      "started_utc": "2026-10-09T02:05:58.037Z",
+      "finished_utc": "2026-10-09T02:06:48.368Z",
+      "pid": 72401,
+      "exit_code": 100,
+      "signal": null,
+      "timed_out": false,
+      "launch_error": null,
+      "summary_lines": [
+        "Summary [   1.496s] 10 tests run: 8 passed, 2 failed, 62 skipped"
+      ],
+      "measured_counts": {
+        "executed": 10,
+        "passed": 8,
+        "failed": 2
+      },
+      "expected_stdout_contains": null,
+      "counts_exact": false,
+      "output": {
+        "path": "/private/tmp/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/command-6.log",
+        "bytes": 31506,
+        "sha256": "c2d2f2aa60a0726931ee65c1a14d2c2d9dfdeb82542075727cc716de01b32052"
+      },
+      "status": "completed"
+    }
+  ],
+  "nonclaims": [
+    "The source is a Git-less archive of tree ca3ef07606236282a03ccd2a027b2f2efa4cb094. This gate does not assert a branch or commit identity; a later real commit must be checked to have this exact tree before branch-bound qualification.",
+    "Prior R3/R4/R6 test passes and the older R3 CLI binary are historical only and do not count for this source tree.",
+    "No CLI plan/generate, workflow generation, CI execution, artifact provenance, prerelease, tag, or publication is covered.",
+    "Mise host binary label 2026.10.5 differs from the source catalog constant 2026.9.18; no equality is claimed.",
+    "The runner uses no Python test driver, Git command, source edit, release, or publication."
+  ]
+}
