@@ -2792,3 +2792,571 @@ fn registry_check_v2_rejects_a_reference_pin_outside_tracking_ancestry() {
         "is not reachable from refs/remotes/origin/visual-baseline",
     );
 }
+
+struct ReviewSubjectFixture {
+    repository: TempRepo,
+    script: PathBuf,
+    tasks_path: PathBuf,
+    view_path: PathBuf,
+    subject_path: PathBuf,
+}
+
+impl ReviewSubjectFixture {
+    fn new() -> Self {
+        let repository = TempRepo::new().expect("create review-subject fixture repository");
+        let tool = repository
+            .copy_tool_exact(Tool::Queue)
+            .expect("copy exact queue CLI");
+        git(repository.root(), &["init", "--quiet"]);
+        git(
+            repository.root(),
+            &["checkout", "--quiet", "-b", CANDIDATE_BRANCH],
+        );
+        fs::write(repository.root().join("fixture-seed.txt"), b"review subject fixture\n")
+            .expect("write fixture seed");
+        git(repository.root(), &["add", "--all"]);
+        git_with_identity(
+            repository.root(),
+            &["commit", "--quiet", "-m", "review subject fixture base"],
+        );
+
+        let source_root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
+            .expect("resolve pinned source repository");
+        let source_tasks = fs::read(
+            source_root.join("docs/implementation/visibility/tasks.json"),
+        )
+        .expect("read accepted source task records");
+        let source_view = fs::read(source_root.join("WORK_QUEUE.md"))
+            .expect("read accepted generated queue view");
+        let tasks_path = repository
+            .root()
+            .join("docs/implementation/visibility/tasks.json");
+        let view_path = repository.root().join("WORK_QUEUE.md");
+        fs::create_dir_all(tasks_path.parent().expect("task parent"))
+            .expect("create fixture task directory");
+        fs::write(&tasks_path, source_tasks).expect("copy accepted task records");
+        fs::write(&view_path, source_view).expect("copy accepted queue view");
+
+        let subject_path = repository.root().join(
+            "docs/implementation/visibility/evidence/dco/review-subject-fixture.txt",
+        );
+        fs::create_dir_all(subject_path.parent().expect("subject parent"))
+            .expect("create accepted VIS-12 scope");
+        fs::write(&subject_path, b"first review subject\n")
+            .expect("write review subject file");
+
+        let fixture = Self {
+            repository,
+            script: tool.path,
+            tasks_path,
+            view_path,
+            subject_path,
+        };
+        assert_success(&fixture.run(&["check".to_owned()]));
+        let mut records = fixture.read_records();
+        let task = records["tasks"]
+            .as_array_mut()
+            .expect("task array")
+            .iter_mut()
+            .find(|task| task["work_id"] == "VIS-12")
+            .expect("accepted VIS-12 task exists");
+        task["state"] = json!("review");
+        task.as_object_mut()
+            .expect("VIS-12 object")
+            .remove("review_subject_sha256");
+        task.as_object_mut()
+            .expect("VIS-12 object")
+            .remove("review_record");
+        task.as_object_mut()
+            .expect("VIS-12 object")
+            .remove("review_record_sha256");
+        fs::write(
+            &fixture.tasks_path,
+            serde_json::to_vec_pretty(&records).expect("serialize review fixture records"),
+        )
+        .expect("install isolated review fixture records");
+        let render = fixture.run(&["render".to_owned()]);
+        assert_success(&render);
+        fs::write(&fixture.view_path, render.stdout).expect("refresh isolated fixture view");
+        fixture
+    }
+
+    fn run(&self, tail: &[String]) -> CliOutput {
+        let mut arguments = vec![
+            "--root".to_owned(),
+            path_text(self.repository.root()),
+        ];
+        arguments.extend_from_slice(tail);
+        run_cli(
+            &self.script,
+            &arguments,
+            self.repository.root(),
+            &[],
+            None,
+        )
+        .expect("run production queue CLI")
+    }
+
+    fn read_records(&self) -> Value {
+        serde_json::from_slice(
+            &fs::read(&self.tasks_path).expect("read fixture accepted records"),
+        )
+        .expect("parse fixture accepted records")
+    }
+
+    fn read_task(&self, work_id: &str) -> Value {
+        self.read_records()["tasks"]
+            .as_array()
+            .expect("task array")
+            .iter()
+            .find(|task| task["work_id"] == work_id)
+            .cloned()
+            .expect("fixture task exists")
+    }
+
+    fn revision(&self) -> u64 {
+        self.read_records()["queue_revision"]
+            .as_u64()
+            .expect("positive queue revision")
+    }
+
+    fn claim_token(&self) -> String {
+        self.read_task("VIS-12")["claim_token"]
+            .as_str()
+            .expect("VIS-12 claim token")
+            .to_owned()
+    }
+
+    fn subject_digest(&self) -> String {
+        let output = self.run(&["subject-digest".to_owned(), "VIS-12".to_owned()]);
+        assert_success(&output);
+        String::from_utf8(output.stdout)
+            .expect("subject digest is UTF-8")
+            .trim()
+            .to_owned()
+    }
+
+    fn bind(&self, revision: u64, token: &str, subject_sha256: &str) -> CliOutput {
+        self.run(&[
+            "bind-review-subject".to_owned(),
+            "VIS-12".to_owned(),
+            "--expected-revision".to_owned(),
+            revision.to_string(),
+            "--claim-token".to_owned(),
+            token.to_owned(),
+            "--expected-subject-sha256".to_owned(),
+            subject_sha256.to_owned(),
+        ])
+    }
+
+    fn transition(
+        &self,
+        state: &str,
+        revision: u64,
+        review: Option<(&Path, &str)>,
+    ) -> CliOutput {
+        let mut arguments = vec![
+            "transition".to_owned(),
+            "VIS-12".to_owned(),
+            state.to_owned(),
+            "--expected-revision".to_owned(),
+            revision.to_string(),
+            "--evidence".to_owned(),
+            format!("fixture transition to {state}"),
+        ];
+        if let Some((path, digest)) = review {
+            arguments.extend([
+                "--review-record".to_owned(),
+                path_text(path),
+                "--review-record-sha256".to_owned(),
+                digest.to_owned(),
+            ]);
+        }
+        self.run(&arguments)
+    }
+
+    fn review_receipt(&self, subject_sha256: &str, file_name: &str) -> (PathBuf, String) {
+        let reviewer = self.read_task("VIS-12")["reviewer"]
+            .as_str()
+            .expect("assigned reviewer")
+            .to_owned();
+        let bytes = serde_json::to_vec(&json!({
+            "reviewer": reviewer,
+            "decision": "approved",
+            "subject_sha256": subject_sha256,
+            "reviewed_at": "2026-10-09T00:00:00Z",
+            "evidence": "synthetic fixture review receipt"
+        }))
+        .expect("serialize synthetic review receipt");
+        let path = self.repository.root().join(file_name);
+        fs::write(&path, bytes.as_slice()).expect("write synthetic review receipt");
+        (path, sha256_hex(&bytes))
+    }
+
+    fn queue_files(&self) -> (Vec<u8>, Vec<u8>) {
+        (
+            fs::read(&self.tasks_path).expect("read task file snapshot"),
+            fs::read(&self.view_path).expect("read view file snapshot"),
+        )
+    }
+}
+
+fn verified_task_rows(records: &Value) -> Vec<(String, Value)> {
+    records["tasks"]
+        .as_array()
+        .expect("task array")
+        .iter()
+        .filter(|task| task["state"] == "verified")
+        .map(|task| {
+            (
+                task["work_id"].as_str().expect("verified work ID").to_owned(),
+                task.clone(),
+            )
+        })
+        .collect()
+}
+
+#[test]
+fn review_subject_binding_uses_revision_cas_and_preserves_existing_verified_records() {
+    let fixture = ReviewSubjectFixture::new();
+    let before_records = fixture.read_records();
+    let initial_revision = fixture.revision();
+    let old_verified = verified_task_rows(&before_records);
+    assert!(!old_verified.is_empty(), "q34 fixture retains verified claims");
+    assert_eq!(fixture.read_task("VIS-12")["state"], "review");
+    assert!(fixture.read_task("VIS-12").get("review_subject_sha256").is_none());
+    let token = fixture.claim_token();
+    let expected = fixture.subject_digest();
+    let unchanged = fixture.queue_files();
+
+    assert_error(
+        &fixture.bind(initial_revision.saturating_sub(1), &token, &expected),
+        "stale queue revision",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "stale CAS writes no queue files");
+    assert_error(
+        &fixture.bind(initial_revision, "wrong-claim-token", &expected),
+        "claim token does not match the current task claim",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "wrong token writes no queue files");
+    assert_error(
+        &fixture.bind(initial_revision, &token, "not-a-sha256"),
+        "expected subject SHA-256 must be a full lowercase SHA-256",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "invalid digest writes no queue files");
+
+    fs::write(&fixture.subject_path, b"changed after the digest read\n")
+        .expect("change allowed-path subject after digest read");
+    assert_error(
+        &fixture.bind(initial_revision, &token, &expected),
+        "current allowed-path digest does not match expected review subject",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "digest drift writes no queue files");
+
+    let current = fixture.subject_digest();
+    let accepted = fixture.bind(initial_revision, &token, &current);
+    assert_success(&accepted);
+    assert_eq!(fixture.revision(), initial_revision + 1);
+    assert_eq!(fixture.read_task("VIS-12")["review_subject_sha256"], current);
+    let current_snapshot = fixture.queue_files();
+    assert_error(
+        &fixture.bind(initial_revision + 1, &token, &current),
+        "review subject is already bound",
+    );
+    assert_eq!(fixture.queue_files(), current_snapshot, "duplicate bind writes no queue files");
+
+    let after_records = fixture.read_records();
+    let after_verified = verified_task_rows(&after_records);
+    assert_eq!(
+        after_verified, old_verified,
+        "binding VIS-12 must preserve every pre-existing verified task and receipt"
+    );
+}
+
+#[test]
+fn review_to_blocked_archives_subject_and_blocked_to_review_requires_rebinding() {
+    let fixture = ReviewSubjectFixture::new();
+    let initial_revision = fixture.revision();
+    let original_verified = verified_task_rows(&fixture.read_records());
+    let token = fixture.claim_token();
+    let old_subject = fixture.subject_digest();
+    assert_success(&fixture.bind(initial_revision, &token, &old_subject));
+    let (old_review_path, old_review_sha) = fixture.review_receipt(&old_subject, "old-review.json");
+
+    assert_success(&fixture.transition("blocked", initial_revision + 1, None));
+    let blocked = fixture.read_task("VIS-12");
+    assert_eq!(blocked["state"], "blocked");
+    assert!(blocked.get("review_subject_sha256").is_none());
+    assert!(blocked["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|entry| entry.as_str().unwrap().contains(&old_subject)
+            && entry.as_str().unwrap().contains("review -> blocked")));
+
+    fs::write(&fixture.subject_path, b"source after reviewer findings\n")
+        .expect("apply fixture correction while blocked");
+    assert_success(&fixture.transition("review", initial_revision + 2, None));
+    assert_eq!(fixture.read_task("VIS-12")["state"], "review");
+    assert!(fixture.read_task("VIS-12").get("review_subject_sha256").is_none());
+
+    let before_rejected_verify = fixture.queue_files();
+    assert_error(
+        &fixture.transition("verified", initial_revision + 3, Some((&old_review_path, &old_review_sha))),
+        "VIS-12.review_subject_sha256 must be recorded in accepted source before verification",
+    );
+    assert_eq!(fixture.queue_files(), before_rejected_verify);
+
+    let new_subject = fixture.subject_digest();
+    assert_ne!(new_subject, old_subject);
+    assert_success(&fixture.bind(initial_revision + 3, &token, &new_subject));
+    let before_old_receipt = fixture.queue_files();
+    assert_error(
+        &fixture.transition("verified", initial_revision + 4, Some((&old_review_path, &old_review_sha))),
+        "review subject does not match accepted subject binding",
+    );
+    assert_eq!(fixture.queue_files(), before_old_receipt);
+
+    let (new_review_path, new_review_sha) = fixture.review_receipt(&new_subject, "new-review.json");
+    assert_success(&fixture.transition(
+        "verified",
+        initial_revision + 4,
+        Some((&new_review_path, &new_review_sha)),
+    ));
+    assert_eq!(fixture.read_task("VIS-12")["state"], "verified");
+    let after_verified = verified_task_rows(&fixture.read_records());
+    let preserved: Vec<_> = after_verified
+        .into_iter()
+        .filter(|(work_id, _)| work_id != "VIS-12")
+        .collect();
+    assert_eq!(preserved, original_verified, "other verified claims remain unchanged");
+}
+
+#[test]
+fn binding_is_rejected_outside_review_without_writing_queue_files() {
+    let fixture = ReviewSubjectFixture::new();
+    let revision = fixture.revision();
+    let token = fixture.claim_token();
+    let subject = fixture.subject_digest();
+    assert_success(&fixture.transition("in_progress", revision, None));
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.bind(revision + 1, &token, &subject),
+        "review subject can only be bound while the task is in review",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "non-review binding writes no queue files");
+}
+
+#[test]
+fn legacy_subjects_are_archived_on_blocked_or_in_progress_review_reentry() {
+    for previous_state in ["blocked", "in_progress"] {
+        let fixture = ReviewSubjectFixture::new();
+        let mut records = fixture.read_records();
+        let task = records["tasks"]
+            .as_array_mut()
+            .expect("task array")
+            .iter_mut()
+            .find(|task| task["work_id"] == "VIS-12")
+            .expect("VIS-12 task");
+        let stale_subject = "c".repeat(64);
+        task["state"] = json!(previous_state);
+        task["review_subject_sha256"] = json!(stale_subject);
+        fs::write(
+            &fixture.tasks_path,
+            serde_json::to_vec_pretty(&records).expect("serialize legacy fixture records"),
+        )
+        .expect("install legacy record with a stale subject");
+        let rendered = fixture.run(&["render".to_owned()]);
+        assert_success(&rendered);
+        fs::write(&fixture.view_path, rendered.stdout)
+            .expect("refresh fixture queue view");
+
+        let revision = fixture.revision();
+        let token = fixture.claim_token();
+        let expected_transition = format!("{} -> review", previous_state);
+        let (old_receipt_path, old_receipt_sha) =
+            fixture.review_receipt(&stale_subject, "legacy-review.json");
+        let old_verified = verified_task_rows(&fixture.read_records());
+        assert_success(&fixture.transition("review", revision, None));
+        let reopened = fixture.read_task("VIS-12");
+        assert_eq!(reopened["state"], "review");
+        assert!(reopened.get("review_subject_sha256").is_none());
+        assert!(reopened["evidence"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|entry| entry.as_str().unwrap().contains(&stale_subject)
+                && entry.as_str().unwrap().contains(expected_transition.as_str())));
+
+        let before_old_receipt = fixture.queue_files();
+        assert_error(
+            &fixture.transition(
+                "verified",
+                revision + 1,
+                Some((&old_receipt_path, &old_receipt_sha)),
+            ),
+            "VIS-12.review_subject_sha256 must be recorded in accepted source before verification",
+        );
+        assert_eq!(fixture.queue_files(), before_old_receipt);
+
+        let new_subject = fixture.subject_digest();
+        assert_ne!(new_subject, stale_subject);
+        assert_success(&fixture.bind(revision + 1, &token, &new_subject));
+        let before_stale_receipt = fixture.queue_files();
+        assert_error(
+            &fixture.transition(
+                "verified",
+                revision + 2,
+                Some((&old_receipt_path, &old_receipt_sha)),
+            ),
+            "review subject does not match accepted subject binding",
+        );
+        assert_eq!(fixture.queue_files(), before_stale_receipt);
+
+        let (new_receipt_path, new_receipt_sha) =
+            fixture.review_receipt(&new_subject, "new-legacy-review.json");
+        assert_success(&fixture.transition(
+            "verified",
+            revision + 2,
+            Some((&new_receipt_path, &new_receipt_sha)),
+        ));
+        let after_verified = verified_task_rows(&fixture.read_records());
+        let preserved = after_verified
+            .into_iter()
+            .filter(|(work_id, _)| work_id != "VIS-12")
+            .collect::<Vec<_>>();
+        assert_eq!(preserved, old_verified, "prior verified rows remain unchanged");
+    }
+}
+
+#[test]
+fn review_to_in_progress_also_clears_the_subject_before_a_later_review() {
+    let fixture = ReviewSubjectFixture::new();
+    let initial_revision = fixture.revision();
+    let token = fixture.claim_token();
+    let subject = fixture.subject_digest();
+    assert_success(&fixture.bind(initial_revision, &token, &subject));
+    assert_success(&fixture.transition("in_progress", initial_revision + 1, None));
+    let reopened = fixture.read_task("VIS-12");
+    assert_eq!(reopened["state"], "in_progress");
+    assert!(reopened.get("review_subject_sha256").is_none());
+    assert!(reopened["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|entry| entry.as_str().unwrap().contains(&subject)
+            && entry.as_str().unwrap().contains("review -> in_progress")));
+
+    assert_success(&fixture.transition("review", initial_revision + 2, None));
+    assert_eq!(fixture.read_task("VIS-12")["state"], "review");
+    assert!(fixture.read_task("VIS-12").get("review_subject_sha256").is_none());
+}
+
+#[test]
+fn handoff_archives_bound_subject_in_prior_claim_evidence() {
+    let fixture = ReviewSubjectFixture::new();
+    let initial_revision = fixture.revision();
+    let token = fixture.claim_token();
+    let subject = fixture.subject_digest();
+    assert_success(&fixture.bind(initial_revision, &token, &subject));
+    let current = fixture.read_task("VIS-12");
+    let new_owner = "/root/review-subject-next";
+    let handoff = json!({
+        "handoff_at": "2026-10-09T00:30:00Z",
+        "handoff_by": "/root",
+        "from_owner": current["owner"],
+        "to_owner": new_owner,
+        "owner_released": true,
+        "coordinator_verified_stopped": false,
+        "worktree": path_text(fixture.repository.root()),
+        "git_status": "isolated synthetic test fixture",
+        "diff_sha256": "a".repeat(64),
+        "changed_paths": [],
+        "unpublished_commits": [],
+        "checks": [],
+        "next_action": "bind a new review subject after entering review"
+    });
+    let payload = json!({
+        "new_claim": {
+            "owner": new_owner,
+            "reviewer": current["reviewer"],
+            "claim_token": "visibility-review-subject-handoff-20261009-01",
+            "expiry": "2099-01-01T00:00:00Z"
+        },
+        "handoff": handoff
+    });
+    let payload_path = fixture.repository.root().join("handoff.json");
+    fs::write(
+        &payload_path,
+        serde_json::to_vec(&payload).expect("serialize handoff fixture"),
+    )
+    .expect("write handoff fixture");
+    let output = fixture.run(&[
+        "handoff".to_owned(),
+        "VIS-12".to_owned(),
+        "--expected-revision".to_owned(),
+        (initial_revision + 1).to_string(),
+        "--record".to_owned(),
+        path_text(&payload_path),
+    ]);
+    assert_success(&output);
+    let changed = fixture.read_task("VIS-12");
+    assert!(changed.get("review_subject_sha256").is_none());
+    let prior = changed["claim_history"]
+        .as_array()
+        .expect("claim history")
+        .last()
+        .expect("new prior claim entry");
+    let prior = &prior["claim"];
+    assert!(prior.get("review_subject_sha256").is_none());
+    assert!(prior["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|entry| entry.as_str().unwrap().contains(&subject)
+            && entry.as_str().unwrap().contains("before handoff")));
+}
+
+#[test]
+fn accept_rejects_a_claim_that_preseeds_review_subject() {
+    let fixture = ReviewSubjectFixture::new();
+    let initial_revision = fixture.revision();
+    let base = git_output(
+        fixture.repository.root(),
+        &["rev-parse", "--verify", "HEAD"],
+    );
+    let mut claim = fixture.read_task("VIS-12");
+    claim["work_id"] = json!("VIS-90");
+    claim["base_sha"] = json!(base);
+    claim["allowed_paths"] = json!(["docs/implementation/visibility/evidence/test-new-claim.txt"]);
+    claim["claim_token"] = json!("visibility-review-subject-prebind-20261009-01");
+    claim["owner"] = json!("/root/new-claim-owner");
+    claim["reviewer"] = json!("/root/technical_review");
+    claim["state"] = json!("claimed");
+    claim["expiry"] = json!("2099-01-01T00:00:00Z");
+    claim["evidence"] = json!(["synthetic accepted claim"]);
+    claim["handoff"] = Value::Null;
+    claim.as_object_mut()
+        .expect("claim object")
+        .remove("accepted_queue_revision");
+    claim.as_object_mut()
+        .expect("claim object")
+        .remove("claim_history");
+    claim["review_subject_sha256"] = json!("b".repeat(64));
+    let record_path = fixture.repository.root().join("prebound-claim.json");
+    fs::write(
+        &record_path,
+        serde_json::to_vec(&claim).expect("serialize prebound claim"),
+    )
+    .expect("write prebound claim");
+    let unchanged = fixture.queue_files();
+    let output = fixture.run(&[
+        "accept".to_owned(),
+        "--expected-revision".to_owned(),
+        initial_revision.to_string(),
+        "--record".to_owned(),
+        path_text(&record_path),
+    ]);
+    assert_error(&output, "new claim cannot prebind a review subject");
+    assert_eq!(fixture.queue_files(), unchanged, "rejected claim writes no queue files");
+}

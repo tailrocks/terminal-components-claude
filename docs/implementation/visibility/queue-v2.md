@@ -438,3 +438,50 @@ token, expiry, task state, or accepted revision. A pending path list grants no
 instruction packet, digest operation, transition, handoff, or write claim.
 Promotion and reviewer/scope amendment will use separate compare-and-swap
 operations after their release, review, registry, and overlap conditions pass.
+
+## Schema-v1 review-subject binding
+
+The schema-v1 queue has a narrow compare-and-swap operation for recording the
+subject that an assigned reviewer must inspect:
+
+```text
+python3 tools/visibility/queue.py --root <candidate-root> bind-review-subject <work-id> \
+  --expected-revision <queue-revision> \
+  --claim-token <current-claim-token> \
+  --expected-subject-sha256 <caller-observed-scope-digest>
+```
+
+The command uses the existing queue mutation lock and source/view write path. It
+requires the current schema-v1 queue revision, the current task claim token,
+task state `review`, and no active review-subject binding. While holding the
+queue lock, it reads the accepted task record, verifies the generated view and
+allowed filesystem scopes, computes the digest of the task's current allowed
+paths, and requires that digest to equal the caller's expected value. On
+success it stores that digest as `review_subject_sha256`, records the bind in
+task evidence, increments `queue_revision`, and regenerates the view. A second
+bind is rejected until the task leaves review or is handed off.
+
+The digest binds the observed allowed-path names and regular-file bytes at the
+time of the command. The queue lock does not lock task-owner file writes, so it
+is cooperative coordination rather than isolation or authentication. The
+claim token, reviewer name, and expected digest are queue data supplied by the
+integrator; they do not prove a person's identity. The final `verified`
+transition still requires the assigned reviewer's external review record,
+checks its raw-file SHA-256 and subject digest, and recomputes the current
+allowed-path digest. A changed scope fails verification.
+
+Newly accepted claims cannot prepopulate `review_subject_sha256`. Leaving
+`review` for `in_progress` or `blocked` archives any active digest in task
+evidence and clears the active field. Returning from `blocked` or
+`in_progress` to `review` does not restore it; the current subject must be
+bound again. Some older records can already have a digest while in
+`blocked` or `in_progress`. When such a record enters `review`, the transition
+archives and clears the stale digest and requires a fresh binding. A handoff
+similarly archives the digest in the prior claim's evidence before recording
+the prior snapshot, then clears the active field for the new claim. These rules
+preserve old verified records and prevent a reviewer receipt for a prior edit
+from verifying a changed subject.
+
+This operation is schema-v1 only. It does not perform registry qualification,
+schema migration, scope amendment, or task promotion. V2 records remain
+read-only, and their legacy review digests are not reinterpreted.

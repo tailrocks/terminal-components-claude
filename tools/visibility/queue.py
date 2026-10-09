@@ -520,6 +520,8 @@ def accept_record(
     _ensure_revision(records, expected_revision)
     require(isinstance(proposed_value, dict), "claim record must be an object")
     proposed = copy.deepcopy(proposed_value)
+    require("review_subject_sha256" not in proposed,
+            "new claim cannot prebind a review subject; bind after entering review")
     require("accepted_queue_revision" not in proposed and "claim_history" not in proposed,
             "new claim cannot supply acceptance revision or prior history")
     work_id = proposed.get("work_id")
@@ -618,9 +620,64 @@ def transition_record(
         task["review_record_sha256"] = actual_review_sha256
     elif review_record_raw is not None or review_record_sha256 is not None or current_subject_sha256 is not None:
         raise QueueError("review_record is only accepted when transitioning to verified")
+    if task["state"] == "review" and new_state in {"in_progress", "blocked"}:
+        archived_subject = task.pop("review_subject_sha256", None)
+        if archived_subject is not None:
+            task["evidence"].append(
+                "archived and cleared review subject SHA-256 {} on review -> {}; rebind required".format(
+                    archived_subject, new_state
+                )
+            )
+    elif task["state"] in {"in_progress", "blocked"} and new_state == "review":
+        archived_subject = task.pop("review_subject_sha256", None)
+        if archived_subject is not None:
+            task["evidence"].append(
+                "archived and cleared legacy review subject SHA-256 {} on {} -> review; rebind required".format(
+                    archived_subject, task["state"]
+                )
+            )
     task["state"] = new_state
     task["evidence"].append(evidence)
     records["queue_revision"] += 1
+    validate_records(records)
+    return records
+
+
+def bind_review_subject_record(
+    records_value: Any,
+    work_id: str,
+    claim_token: str,
+    expected_subject_sha256: str,
+    expected_revision: int,
+    *,
+    current_subject_sha256: str,
+) -> dict[str, Any]:
+    records = copy.deepcopy(validate_records(records_value))
+    _ensure_revision(records, expected_revision)
+    _text(claim_token, "claim token")
+    require(isinstance(expected_subject_sha256, str)
+            and SHA256.fullmatch(expected_subject_sha256) is not None,
+            "expected subject SHA-256 must be a full lowercase SHA-256")
+    require(isinstance(current_subject_sha256, str)
+            and SHA256.fullmatch(current_subject_sha256) is not None,
+            "current subject SHA-256 must be a full lowercase SHA-256")
+    task = next((item for item in records["tasks"] if item["work_id"] == work_id), None)
+    require(task is not None, "unknown work ID {}".format(work_id))
+    require(task["state"] == "review",
+            "review subject can only be bound while the task is in review")
+    require(_task_token(task) == claim_token,
+            "claim token does not match the current task claim")
+    require(task.get("review_subject_sha256") is None,
+            "review subject is already bound; reopen or hand off before binding a new review round")
+    require(current_subject_sha256 == expected_subject_sha256,
+            "current allowed-path digest does not match expected review subject")
+    task["review_subject_sha256"] = current_subject_sha256
+    records["queue_revision"] += 1
+    task["evidence"].append(
+        "bound review subject SHA-256 {} at queue revision {}".format(
+            current_subject_sha256, records["queue_revision"]
+        )
+    )
     validate_records(records)
     return records
 
@@ -655,6 +712,13 @@ def reassign_record(
     handoff = copy.deepcopy(_validate_handoff(handoff_value, "handoff"))
     require(handoff["from_owner"] == task["owner"] and handoff["to_owner"] == new_owner,
             "handoff owners do not match the current and new claim")
+    archived_subject = task.pop("review_subject_sha256", None)
+    if archived_subject is not None:
+        task["evidence"].append(
+            "archived and cleared review subject SHA-256 {} in prior claim evidence before handoff; rebind required".format(
+                archived_subject
+            )
+        )
     prior = _claim_snapshot(task)
     history = task.setdefault("claim_history", [])
     history.append({"claim": prior, "handoff": handoff})
@@ -2382,6 +2446,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="trusted caller's SHA-256 of the exact external review file bytes",
     )
 
+    bind_subject = subparsers.add_parser(
+        "bind-review-subject", help="bind the current review scope through revision compare-and-swap"
+    )
+    bind_subject.add_argument("work_id")
+    bind_subject.add_argument("--expected-revision", required=True, type=int)
+    bind_subject.add_argument("--claim-token", required=True)
+    bind_subject.add_argument("--expected-subject-sha256", required=True)
+
     handoff = subparsers.add_parser("handoff", help="safely reassign an active or expired claim")
     handoff.add_argument("work_id")
     handoff.add_argument("--expected-revision", required=True, type=int)
@@ -2512,6 +2584,26 @@ def run(args: Sequence[str] | None = None) -> int:
                 repo_root=root, subject_reader=lambda: _git_subject(root),
             )
             print("updated {} at queue revision {}".format(options.work_id, changed["queue_revision"]))
+        elif options.command == "bind-review-subject":
+            def update_review_subject(current: Mapping[str, Any], _branch: str, _head: str) -> dict[str, Any]:
+                task = next((item for item in current["tasks"] if item["work_id"] == options.work_id), None)
+                require(task is not None, "unknown work ID {}".format(options.work_id))
+                current_subject = scope_digest(root, task["allowed_paths"])
+                return bind_review_subject_record(
+                    current, options.work_id, options.claim_token,
+                    options.expected_subject_sha256, options.expected_revision,
+                    current_subject_sha256=current_subject,
+                )
+
+            changed = _mutate(
+                options.expected_revision, update_review_subject,
+                tasks_path=tasks_path, queue_path=queue_path,
+                repo_root=root, subject_reader=lambda: _git_subject(root),
+            )
+            task = next(item for item in changed["tasks"] if item["work_id"] == options.work_id)
+            print("bound review subject for {} at queue revision {}: {}".format(
+                options.work_id, changed["queue_revision"], task["review_subject_sha256"]
+            ))
         elif options.command == "handoff":
             payload = _load_json_input(options.record)
             require(isinstance(payload, dict) and set(payload) == {"new_claim", "handoff"},
