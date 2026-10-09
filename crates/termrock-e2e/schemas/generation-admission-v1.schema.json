@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "termrock-spec/visual-generation-admission-v1",
+  "title": "Explicit immutable-tag expected generation admission v1",
+  "type": "object",
+  "required": ["schema", "decision", "binding", "qualification_review"],
+  "properties": {
+    "schema": { "const": "termrock-spec/visual-generation-admission-v1" },
+    "decision": { "const": "admitted" },
+    "binding": { "$ref": "#/$defs/binding" },
+    "qualification_review": { "$ref": "#/$defs/evidence" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "evidence": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^/", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      },
+      "additionalProperties": false
+    },
+    "binding": {
+      "type": "object",
+      "required": ["generation", "oracle", "capture", "suite", "case", "renderer_sha256"],
+      "properties": {
+        "generation": {
+          "type": "object",
+          "required": ["id", "tree_sha256", "manifest_sha256"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "tree_sha256": { "$ref": "#/$defs/sha256" },
+            "manifest_sha256": { "$ref": "#/$defs/sha256" }
+          },
+          "additionalProperties": false
+        },
+        "oracle": {
+          "type": "object",
+          "required": ["tag_ref", "tag_object", "tag_commit", "source_snapshot_tree", "source_inputs_sha256", "build_environment_sha256", "builder_receipt_sha256", "executable_sha256", "validator_toolchain"],
+          "properties": {
+            "tag_ref": { "const": "refs/tags/visual-baseline" },
+            "tag_object": { "const": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5" },
+            "tag_commit": { "const": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b" },
+            "source_snapshot_tree": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+            "source_inputs_sha256": { "$ref": "#/$defs/sha256" },
+            "build_environment_sha256": { "$ref": "#/$defs/sha256" },
+            "builder_receipt_sha256": { "$ref": "#/$defs/sha256" },
+            "executable_sha256": { "$ref": "#/$defs/sha256" },
+            "validator_toolchain": { "$ref": "#/$defs/evidence" }
+          },
+          "additionalProperties": false
+        },
+        "capture": { "$ref": "#/$defs/evidence" },
+        "suite": {
+          "type": "object",
+          "required": ["revision", "digest", "case_set_digest", "profile_digest", "dependency_lock_sha256", "tuiscotti_revision"],
+          "properties": {
+            "revision": { "type": "string", "minLength": 1 },
+            "digest": { "$ref": "#/$defs/sha256" },
+            "case_set_digest": { "$ref": "#/$defs/sha256" },
+            "profile_digest": { "$ref": "#/$defs/sha256" },
+            "dependency_lock_sha256": { "$ref": "#/$defs/sha256" },
+            "tuiscotti_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+          },
+          "additionalProperties": false
+        },
+        "case": {
+          "type": "object",
+          "required": ["id", "input_program_sha256", "checkpoint_ids"],
+          "properties": {
+            "id": { "const": "HELP-HOLLA-004" },
+            "input_program_sha256": { "$ref": "#/$defs/sha256" },
+            "checkpoint_ids": { "const": ["00-boot", "01-help", "02-finder", "03-help-again"] }
+          },
+          "additionalProperties": false
+        },
+        "renderer_sha256": { "$ref": "#/$defs/sha256" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
