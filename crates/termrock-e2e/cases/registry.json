@@ -1,0 +1,751 @@
+{
+  "schema": "termrock-e2e/case-registry-v1",
+  "suite_revision": "termrock-e2e-2026-10-09.2",
+  "cases": [
+    {
+      "id": "HELP-HOLLA-004",
+      "app": "holla",
+      "binary": "holla",
+      "args": [
+        "--scenario",
+        "rust-dirty",
+        "--motion",
+        "paused",
+        "--frame",
+        "40",
+        "--color",
+        "truecolor"
+      ],
+      "geometry": {
+        "cols": 120,
+        "rows": 40
+      },
+      "color_path": "truecolor",
+      "legacy_snapshot_root": "holla/flows/help/overlay",
+      "screen": "finder",
+      "substep": "help-overlay",
+      "timeout_ms": 8000,
+      "environment": {
+        "HOLLA_NO_HISTORY": "1"
+      },
+      "steps": [
+        {
+          "op": "checkpoint",
+          "id": "00-boot",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "holla❯"
+            },
+            {
+              "kind": "contains",
+              "needle": "Type Search"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "boot.placeholder",
+              "kind": "contains",
+              "needle": "Search actions and resources…"
+            },
+            {
+              "id": "boot.finder_footer",
+              "kind": "contains",
+              "needle": "Type Search"
+            },
+            {
+              "id": "boot.disk_cursor",
+              "kind": "same_line",
+              "left": "› Inspect 12 GB of generat…",
+              "right": "12 GB generated artifacts"
+            },
+            {
+              "id": "boot.world",
+              "kind": "same_line",
+              "left": "In",
+              "right": "~/work/holla"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "f1"
+        },
+        {
+          "op": "checkpoint",
+          "id": "01-help",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Key reference"
+            }
+          ],
+          "legacy_snapshot_path": "holla/flows/help/overlay/120x40/truecolor",
+          "assertions": [
+            {
+              "id": "help.title_here",
+              "kind": "same_line",
+              "left": "Key reference",
+              "right": "Here"
+            },
+            {
+              "id": "help.finder_row",
+              "kind": "same_line",
+              "left": "Type",
+              "right": "search actions and resources together"
+            },
+            {
+              "id": "help.quit_row",
+              "kind": "same_line",
+              "left": "Ctrl+Q",
+              "right": "quit with confirmation"
+            },
+            {
+              "id": "help.footer",
+              "kind": "contains",
+              "needle": "↑↓ Scroll  Esc Close"
+            },
+            {
+              "id": "help.finder_footer_absent",
+              "kind": "absent",
+              "needle": "Type Search",
+              "requires": "boot.finder_footer"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "escape"
+        },
+        {
+          "op": "checkpoint",
+          "id": "02-finder",
+          "wait": [
+            {
+              "kind": "absent",
+              "needle": "Key reference"
+            },
+            {
+              "kind": "contains",
+              "needle": "Search actions and resources…"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "finder.placeholder_restored",
+              "kind": "contains",
+              "needle": "Search actions and resources…"
+            },
+            {
+              "id": "finder.quit_row_absent",
+              "kind": "absent",
+              "needle": "quit with confirmation",
+              "requires": "help.quit_row"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "f1"
+        },
+        {
+          "op": "checkpoint",
+          "id": "03-help-again",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Key reference"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "reopen.title_here",
+              "kind": "same_line",
+              "left": "Key reference",
+              "right": "Here"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "JACKIN-EDITOR-SAVE-CANCEL-120X40-TRUECOLOR",
+      "app": "jackin",
+      "binary": "jackin-preview",
+      "args": [
+        "--scenario",
+        "returning",
+        "--motion",
+        "paused",
+        "--frame",
+        "40",
+        "--color",
+        "truecolor"
+      ],
+      "geometry": {
+        "cols": 120,
+        "rows": 40
+      },
+      "color_path": "truecolor",
+      "legacy_snapshot_root": "jackin/editor/save_preview",
+      "screen": "journeys",
+      "substep": "editor-save-cancel",
+      "timeout_ms": 8000,
+      "steps": [
+        {
+          "op": "checkpoint",
+          "id": "00-manager",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "jackin❯"
+            },
+            {
+              "kind": "contains",
+              "needle": "Current directory"
+            }
+          ],
+          "legacy_snapshot_path": "jackin/scenarios/returning/120x40/truecolor",
+          "assertions": [
+            {
+              "id": "manager.chrome",
+              "kind": "contains",
+              "needle": "jackin❯"
+            },
+            {
+              "id": "manager.current_directory",
+              "kind": "contains",
+              "needle": "Current directory"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "e"
+        },
+        {
+          "op": "checkpoint",
+          "id": "01-editor",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Workspaces › payments-platform › edit"
+            }
+          ],
+          "legacy_snapshot_path": "jackin/editor/general/120x40/truecolor",
+          "assertions": [
+            {
+              "id": "editor.crumb",
+              "kind": "contains",
+              "needle": "Workspaces › payments-platform › edit"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "down"
+        },
+        {
+          "op": "press",
+          "key": "down"
+        },
+        {
+          "op": "press",
+          "key": "down"
+        },
+        {
+          "op": "press",
+          "key": "space"
+        },
+        {
+          "op": "checkpoint",
+          "id": "02-dirty",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "• 1 change"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "editor.dirty_count",
+              "kind": "contains",
+              "needle": "• 1 change"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "ctrl-s"
+        },
+        {
+          "op": "checkpoint",
+          "id": "03-save-preview",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Save workspace"
+            },
+            {
+              "kind": "contains",
+              "needle": "~ keep_awake true → false"
+            }
+          ],
+          "legacy_snapshot_path": "jackin/editor/save_preview/120x40/truecolor",
+          "assertions": [
+            {
+              "id": "preview.title",
+              "kind": "contains",
+              "needle": "Save workspace"
+            },
+            {
+              "id": "preview.keep_awake_diff",
+              "kind": "contains",
+              "needle": "~ keep_awake true → false"
+            },
+            {
+              "id": "preview.workspace_name",
+              "kind": "contains",
+              "needle": "payments-platform"
+            },
+            {
+              "id": "preview.change_count",
+              "kind": "contains",
+              "needle": "1 change"
+            },
+            {
+              "id": "preview.dirty_badge",
+              "kind": "contains",
+              "needle": "• 1 change"
+            },
+            {
+              "id": "preview.dirty_tab",
+              "kind": "contains",
+              "needle": "General •"
+            },
+            {
+              "id": "preview.cancel_focus",
+              "kind": "same_line",
+              "left": "▎Cancel",
+              "right": "Save"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "escape"
+        },
+        {
+          "op": "checkpoint",
+          "id": "04-cancelled",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Not saved · keep editing"
+            },
+            {
+              "kind": "contains",
+              "needle": "• 1 change"
+            },
+            {
+              "kind": "contains",
+              "needle": "Workspaces › payments-platform › edit"
+            },
+            {
+              "kind": "absent",
+              "needle": "Save workspace"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "cancel.status",
+              "kind": "contains",
+              "needle": "Not saved · keep editing"
+            },
+            {
+              "id": "cancel.dirty_count",
+              "kind": "contains",
+              "needle": "• 1 change"
+            },
+            {
+              "id": "cancel.editor_crumb",
+              "kind": "contains",
+              "needle": "Workspaces › payments-platform › edit"
+            },
+            {
+              "id": "cancel.preview_absent",
+              "kind": "absent",
+              "needle": "Save workspace",
+              "requires": "preview.title"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "ctrl-s"
+        },
+        {
+          "op": "checkpoint",
+          "id": "05-preview-reopened",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Save workspace"
+            },
+            {
+              "kind": "contains",
+              "needle": "~ keep_awake true → false"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "reopened.title",
+              "kind": "contains",
+              "needle": "Save workspace"
+            },
+            {
+              "id": "reopened.diff",
+              "kind": "contains",
+              "needle": "~ keep_awake true → false"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "escape"
+        },
+        {
+          "op": "checkpoint",
+          "id": "06-cancelled-again",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "• 1 change"
+            },
+            {
+              "kind": "contains",
+              "needle": "Workspaces › payments-platform › edit"
+            },
+            {
+              "kind": "absent",
+              "needle": "Save workspace"
+            },
+            {
+              "kind": "absent",
+              "needle": "~ keep_awake true → false"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "cancel_again.dirty_count",
+              "kind": "contains",
+              "needle": "• 1 change"
+            },
+            {
+              "id": "cancel_again.editor_crumb",
+              "kind": "contains",
+              "needle": "Workspaces › payments-platform › edit"
+            },
+            {
+              "id": "cancel_again.preview_absent",
+              "kind": "absent",
+              "needle": "Save workspace",
+              "requires": "reopened.title"
+            },
+            {
+              "id": "cancel_again.diff_absent",
+              "kind": "absent",
+              "needle": "~ keep_awake true → false",
+              "requires": "reopened.diff"
+            }
+          ]
+        }
+      ],
+      "environment": {}
+    },
+    {
+      "id": "SHOWCASE-DIALOG-001",
+      "app": "showcase",
+      "binary": "showcase",
+      "args": [
+        "--page",
+        "dialogs",
+        "--color",
+        "truecolor"
+      ],
+      "geometry": {
+        "cols": 120,
+        "rows": 40
+      },
+      "color_path": "truecolor",
+      "environment": {},
+      "steps": [
+        {
+          "op": "checkpoint",
+          "id": "00-dialogs-initial",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Open a dialog"
+            },
+            {
+              "kind": "contains",
+              "needle": "Delete branch…"
+            },
+            {
+              "kind": "contains",
+              "needle": "Nothing yet"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "initial.dialogs_panel",
+              "kind": "contains",
+              "needle": "Open a dialog"
+            },
+            {
+              "id": "initial.delete_branch_action",
+              "kind": "contains",
+              "needle": "Delete branch…"
+            },
+            {
+              "id": "initial.result_empty",
+              "kind": "contains",
+              "needle": "Nothing yet"
+            },
+            {
+              "id": "initial.dialog_closed",
+              "kind": "absent",
+              "needle": "Delete branch?",
+              "requires": "initial.dialogs_panel"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "d"
+        },
+        {
+          "op": "checkpoint",
+          "id": "dialog.open",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Delete branch?"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "dialog.title",
+              "kind": "contains",
+              "needle": "Delete branch?"
+            },
+            {
+              "id": "dialog.cancel",
+              "kind": "contains",
+              "needle": "Cancel"
+            },
+            {
+              "id": "dialog.confirm",
+              "kind": "contains",
+              "needle": "Delete branch"
+            }
+          ],
+          "legacy_snapshot_path": "showcase/flows/dialogs/destructive/120x40/truecolor"
+        },
+        {
+          "op": "press",
+          "key": "right"
+        },
+        {
+          "op": "press",
+          "key": "enter"
+        },
+        {
+          "op": "checkpoint",
+          "id": "dialog.confirmed",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Branch feat/rate-limit deleted"
+            },
+            {
+              "kind": "absent",
+              "needle": "Delete branch?"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "dialog.result",
+              "kind": "contains",
+              "needle": "Branch feat/rate-limit deleted"
+            },
+            {
+              "id": "dialog.closed",
+              "kind": "absent",
+              "needle": "Delete branch?",
+              "requires": "dialog.title"
+            }
+          ]
+        }
+      ],
+      "legacy_snapshot_root": "showcase/flows/dialogs/destructive",
+      "screen": "dialogs",
+      "substep": "destructive-dialog",
+      "timeout_ms": 8000
+    },
+    {
+      "id": "TABLEPRO-TABLE-001-120X40-TRUECOLOR",
+      "app": "tablepro",
+      "binary": "tablepro",
+      "args": [
+        "--connect",
+        "Production",
+        "--color",
+        "truecolor"
+      ],
+      "geometry": {
+        "cols": 120,
+        "rows": 40
+      },
+      "color_path": "truecolor",
+      "legacy_snapshot_root": "tablepro/table/data",
+      "screen": "table",
+      "substep": "orders-data-structure-right-edge",
+      "timeout_ms": 8000,
+      "environment": {},
+      "steps": [
+        {
+          "op": "checkpoint",
+          "id": "00-workbench",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Query 1"
+            },
+            {
+              "kind": "contains",
+              "needle": "Explorer"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "workbench.explorer-visible",
+              "kind": "contains",
+              "needle": "Explorer"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "down"
+        },
+        {
+          "op": "press",
+          "key": "down"
+        },
+        {
+          "op": "press",
+          "key": "down"
+        },
+        {
+          "op": "press",
+          "key": "down"
+        },
+        {
+          "op": "press",
+          "key": "down"
+        },
+        {
+          "op": "press",
+          "key": "enter"
+        },
+        {
+          "op": "checkpoint",
+          "id": "01-orders-data",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "public › orders"
+            },
+            {
+              "kind": "contains",
+              "needle": "10000"
+            }
+          ],
+          "legacy_snapshot_path": "tablepro/table/data/120x40/truecolor",
+          "assertions": [
+            {
+              "id": "data.orders-open",
+              "kind": "contains",
+              "needle": "public › orders"
+            },
+            {
+              "id": "data.first-order-number",
+              "kind": "contains",
+              "needle": "10000"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "ctrl-d"
+        },
+        {
+          "op": "checkpoint",
+          "id": "02-orders-structure",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Columns"
+            },
+            {
+              "kind": "contains",
+              "needle": "Foreign keys"
+            }
+          ],
+          "legacy_snapshot_path": "tablepro/table/structure/120x40/truecolor",
+          "assertions": [
+            {
+              "id": "structure.columns",
+              "kind": "contains",
+              "needle": "Columns"
+            },
+            {
+              "id": "structure.data-grid-left",
+              "kind": "absent",
+              "needle": "10000",
+              "requires": "data.first-order-number"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "ctrl-d"
+        },
+        {
+          "op": "press",
+          "key": "end"
+        },
+        {
+          "op": "checkpoint",
+          "id": "03-orders-right-edge",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "updated_at"
+            }
+          ],
+          "legacy_snapshot_path": "tablepro/table/scrolled_right/120x40/truecolor",
+          "assertions": [
+            {
+              "id": "right-edge.updated-at-visible",
+              "kind": "contains",
+              "needle": "updated_at"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
