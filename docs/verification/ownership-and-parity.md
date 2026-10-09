@@ -171,11 +171,10 @@ Rust test execution uses `cargo nextest`.
 Explicitly select the visual tests that the normal run ignores.
 Do not include capture/admission writers in that selection.
 
-## VER-010 — Documentation task boundary
+## VER-010 — Task boundary
 
-This document specifies future implementation gates.
-It does not add their code or install their workflows.
-The documentation task must report which checks already exist and which remain pending.
-
-For this task, verify document scope, links, schema consistency, claims, examples, and reviewer records.
-Known application defects remain implementation blockers, not reasons to expand the current write scope.
+These gates apply to the active implementation on `termrock-implementation`.
+This document does not by itself add code or install workflows.
+Source, tests, verification tools, configuration, and generated CI may change when required to satisfy these gates.
+A documentation-only commit still verifies documents only and does not count as implementation acceptance.
+Known application defects remain implementation blockers.

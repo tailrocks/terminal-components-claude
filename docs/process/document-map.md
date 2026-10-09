@@ -13,7 +13,7 @@ Do not paste a second complete specification beside the old one.
 | Existing path | Required change |
 | --- | --- |
 | `AGENTS.md` | Add component ownership and exact-subject review rules. Preserve repository conventions. |
-| `GOAL.md` | State the active documentation-only task. Preserve the later implementation goal through links. |
+| `GOAL.md` | State the active implementation task, including source, test, verification-tool, configuration, and generated-CI work. Do not restore an inactive implementation prompt or impose a model or provider choice. |
 | `README.md` | Explain the library and preview purpose. Link to the normal consumer examples. |
 | `SPECIFICATION.md` | Summarize the target. Link to canonical contracts instead of duplicating them. |
 | `CRATES.md`, `crate-map.json` | Preserve verified crate boundaries. Require functional ownership, not a package-count target. |
@@ -27,7 +27,7 @@ Do not paste a second complete specification beside the old one.
 | `docs/applications/*.md` | Describe real component compositions and fixture behavior. Do not define independent product redesigns. |
 | `docs/design/*.md` | Keep exact baseline defaults. Link customization to separately tested extensions. |
 | `docs/verification/*.md` | Distinguish conversion, integrity, execution, parity, ownership, and approval. |
-| `docs/implementation/*.md` | Add component-owned repair work and review gates. Keep implementation separate from this task. |
+| `docs/implementation/*.md` | Add component-owned repair work and review gates. Do not keep a documentation-only hold on those repairs. |
 | `refactoring-tasks/**` documents | Add per-work and per-commit review requirements. Reference canonical rules. |
 | Scoped `AGENTS.md` and `README.md` files | Remove conflicting permission for app-local rendering or review bypasses. |
 | `.github/pull_request_template.md` | Summarize commit receipts and separate documentation acceptance from runtime acceptance. |
@@ -50,8 +50,9 @@ Link to examples from application and component documents.
 
 Do not change implementation source to reconcile a documentation example.
 Do not alter executable verification data as a document cleanup.
-Do not change Cargo, CI, Mise, or baseline files during this task.
-Record such changes as explicit later tasks.
+Do not change expected output, tests, or thresholds to hide a regression.
+The active implementation task may change Rust source, tests, verification tools, configuration, and generated CI when required to finish the refactor.
+Do not modify frozen baseline artifacts (`baselines/**`) or retarget the `visual-baseline` tag.
 
 ## Coverage appendix
 
@@ -64,7 +65,7 @@ This appendix records the disposition of every merged requirement.
 | Requirement | Disposition | Home |
 | --- | --- | --- |
 | Agent entry rules | Merged | Root `AGENTS.md`. |
-| Documentation task | Merged | Root `GOAL.md`; mission preserved at `docs/implementation/implementation-goal.md`. |
+| Active implementation task | Merged | Root `GOAL.md`. `docs/implementation/implementation-goal.md` remains an inactive historical prompt and is not restored. |
 | Component-only composition (ARC-001..013) | Merged | `docs/architecture/component-composition.md`. |
 | Public signatures (current vs proposed) | Merged | `docs/api/public-api.md`; reconciliation note added. |
 | Type dictionary | Preserved | `docs/api/types.md` has no constructor signatures; no change needed. |
