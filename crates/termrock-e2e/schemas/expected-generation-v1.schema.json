@@ -26,7 +26,8 @@
       "minLength": 1
     },
     "case_id": {
-      "const": "HELP-HOLLA-004"
+      "type": "string",
+      "minLength": 1
     },
     "case_set_digest": {
       "type": "string",
@@ -200,435 +201,122 @@
     },
     "checkpoints": {
       "type": "array",
-      "minItems": 4,
-      "maxItems": 4,
-      "prefixItems": [
-        {
-          "type": "object",
-          "required": [
-            "id",
-            "observation_id",
-            "geometry",
-            "color_path",
-            "frame",
-            "png"
-          ],
-          "properties": {
-            "id": {
-              "const": "00-boot"
-            },
-            "observation_id": {
-              "type": "string",
-              "minLength": 1
-            },
-            "geometry": {
-              "type": "object",
-              "required": [
-                "cols",
-                "rows"
-              ],
-              "properties": {
-                "cols": {
-                  "const": 120
-                },
-                "rows": {
-                  "const": 40
-                }
-              },
-              "additionalProperties": false
-            },
-            "color_path": {
-              "const": "truecolor"
-            },
-            "frame": {
-              "type": "object",
-              "required": [
-                "path",
-                "sha256",
-                "bytes"
-              ],
-              "properties": {
-                "path": {
-                  "const": "checkpoints/00-boot/frame.json"
-                },
-                "sha256": {
-                  "type": "string",
-                  "pattern": "^[a-f0-9]{64}$"
-                },
-                "bytes": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 18446744073709551615
-                }
-              },
-              "additionalProperties": false
-            },
-            "png": {
-              "type": "object",
-              "required": [
-                "path",
-                "sha256",
-                "bytes",
-                "width",
-                "height",
-                "color_type",
-                "bit_depth"
-              ],
-              "properties": {
-                "path": {
-                  "const": "checkpoints/00-boot/screen.png"
-                },
-                "sha256": {
-                  "type": "string",
-                  "pattern": "^[a-f0-9]{64}$"
-                },
-                "bytes": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 18446744073709551615
-                },
-                "width": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 4294967295
-                },
-                "height": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 4294967295
-                },
-                "color_type": {
-                  "const": 2
-                },
-                "bit_depth": {
-                  "const": 8
-                }
-              },
-              "additionalProperties": false
-            }
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "observation_id",
+          "geometry",
+          "color_path",
+          "frame",
+          "png"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
           },
-          "additionalProperties": false
+          "observation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "geometry": {
+            "type": "object",
+            "required": [
+              "cols",
+              "rows"
+            ],
+            "properties": {
+              "cols": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              },
+              "rows": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "additionalProperties": false
+          },
+          "color_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frame": {
+            "type": "object",
+            "required": [
+              "path",
+              "sha256",
+              "bytes"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^checkpoints/[A-Za-z0-9][A-Za-z0-9._-]{0,127}/frame\\.json$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              }
+            },
+            "additionalProperties": false
+          },
+          "png": {
+            "type": "object",
+            "required": [
+              "path",
+              "sha256",
+              "bytes",
+              "width",
+              "height",
+              "color_type",
+              "bit_depth"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^checkpoints/[A-Za-z0-9][A-Za-z0-9._-]{0,127}/screen\\.png$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295
+              },
+              "color_type": {
+                "const": 2
+              },
+              "bit_depth": {
+                "const": 8
+              }
+            },
+            "additionalProperties": false
+          }
         },
-        {
-          "type": "object",
-          "required": [
-            "id",
-            "observation_id",
-            "geometry",
-            "color_path",
-            "frame",
-            "png"
-          ],
-          "properties": {
-            "id": {
-              "const": "01-help"
-            },
-            "observation_id": {
-              "type": "string",
-              "minLength": 1
-            },
-            "geometry": {
-              "type": "object",
-              "required": [
-                "cols",
-                "rows"
-              ],
-              "properties": {
-                "cols": {
-                  "const": 120
-                },
-                "rows": {
-                  "const": 40
-                }
-              },
-              "additionalProperties": false
-            },
-            "color_path": {
-              "const": "truecolor"
-            },
-            "frame": {
-              "type": "object",
-              "required": [
-                "path",
-                "sha256",
-                "bytes"
-              ],
-              "properties": {
-                "path": {
-                  "const": "checkpoints/01-help/frame.json"
-                },
-                "sha256": {
-                  "type": "string",
-                  "pattern": "^[a-f0-9]{64}$"
-                },
-                "bytes": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 18446744073709551615
-                }
-              },
-              "additionalProperties": false
-            },
-            "png": {
-              "type": "object",
-              "required": [
-                "path",
-                "sha256",
-                "bytes",
-                "width",
-                "height",
-                "color_type",
-                "bit_depth"
-              ],
-              "properties": {
-                "path": {
-                  "const": "checkpoints/01-help/screen.png"
-                },
-                "sha256": {
-                  "type": "string",
-                  "pattern": "^[a-f0-9]{64}$"
-                },
-                "bytes": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 18446744073709551615
-                },
-                "width": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 4294967295
-                },
-                "height": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 4294967295
-                },
-                "color_type": {
-                  "const": 2
-                },
-                "bit_depth": {
-                  "const": 8
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "id",
-            "observation_id",
-            "geometry",
-            "color_path",
-            "frame",
-            "png"
-          ],
-          "properties": {
-            "id": {
-              "const": "02-finder"
-            },
-            "observation_id": {
-              "type": "string",
-              "minLength": 1
-            },
-            "geometry": {
-              "type": "object",
-              "required": [
-                "cols",
-                "rows"
-              ],
-              "properties": {
-                "cols": {
-                  "const": 120
-                },
-                "rows": {
-                  "const": 40
-                }
-              },
-              "additionalProperties": false
-            },
-            "color_path": {
-              "const": "truecolor"
-            },
-            "frame": {
-              "type": "object",
-              "required": [
-                "path",
-                "sha256",
-                "bytes"
-              ],
-              "properties": {
-                "path": {
-                  "const": "checkpoints/02-finder/frame.json"
-                },
-                "sha256": {
-                  "type": "string",
-                  "pattern": "^[a-f0-9]{64}$"
-                },
-                "bytes": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 18446744073709551615
-                }
-              },
-              "additionalProperties": false
-            },
-            "png": {
-              "type": "object",
-              "required": [
-                "path",
-                "sha256",
-                "bytes",
-                "width",
-                "height",
-                "color_type",
-                "bit_depth"
-              ],
-              "properties": {
-                "path": {
-                  "const": "checkpoints/02-finder/screen.png"
-                },
-                "sha256": {
-                  "type": "string",
-                  "pattern": "^[a-f0-9]{64}$"
-                },
-                "bytes": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 18446744073709551615
-                },
-                "width": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 4294967295
-                },
-                "height": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 4294967295
-                },
-                "color_type": {
-                  "const": 2
-                },
-                "bit_depth": {
-                  "const": 8
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "id",
-            "observation_id",
-            "geometry",
-            "color_path",
-            "frame",
-            "png"
-          ],
-          "properties": {
-            "id": {
-              "const": "03-help-again"
-            },
-            "observation_id": {
-              "type": "string",
-              "minLength": 1
-            },
-            "geometry": {
-              "type": "object",
-              "required": [
-                "cols",
-                "rows"
-              ],
-              "properties": {
-                "cols": {
-                  "const": 120
-                },
-                "rows": {
-                  "const": 40
-                }
-              },
-              "additionalProperties": false
-            },
-            "color_path": {
-              "const": "truecolor"
-            },
-            "frame": {
-              "type": "object",
-              "required": [
-                "path",
-                "sha256",
-                "bytes"
-              ],
-              "properties": {
-                "path": {
-                  "const": "checkpoints/03-help-again/frame.json"
-                },
-                "sha256": {
-                  "type": "string",
-                  "pattern": "^[a-f0-9]{64}$"
-                },
-                "bytes": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 18446744073709551615
-                }
-              },
-              "additionalProperties": false
-            },
-            "png": {
-              "type": "object",
-              "required": [
-                "path",
-                "sha256",
-                "bytes",
-                "width",
-                "height",
-                "color_type",
-                "bit_depth"
-              ],
-              "properties": {
-                "path": {
-                  "const": "checkpoints/03-help-again/screen.png"
-                },
-                "sha256": {
-                  "type": "string",
-                  "pattern": "^[a-f0-9]{64}$"
-                },
-                "bytes": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 18446744073709551615
-                },
-                "width": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 4294967295
-                },
-                "height": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 4294967295
-                },
-                "color_type": {
-                  "const": 2
-                },
-                "bit_depth": {
-                  "const": 8
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        }
-      ],
-      "items": false
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false,
