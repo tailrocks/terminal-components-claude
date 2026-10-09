@@ -1,0 +1,94 @@
+{
+  "excluded_roots": [
+    "snapshots/**",
+    "baselines/**"
+  ],
+  "git_object_replacement_policy": "disabled-by-option-and-environment",
+  "oracle_lineage": {
+    "tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+    "tag_ref": "refs/tags/visual-baseline"
+  },
+  "path_blob_digest_algorithm": "sha256(sorted-raw-path-nul-git-blob-oid-lf-v1)",
+  "qualification_reason": "Blocked: source-facts-sha256=bc765653690ee7f3e26132ce8b404e57cf5706c45d36548b496c12e923f6e6a6; reference-ref=refs/remotes/origin/visual-baseline/b274dd57f4dd078ade6e424d546d83efbd2e8526; candidate-ref=refs/remotes/origin/termrock-implementation/1d797d41c8141fcbdc3f69d7f11eb8875ab54712; production-input closure and comparison with the separate immutable oracle tag remain unproven.",
+  "qualification_status": "blocked",
+  "recipe": "git-archive-excluding-parity-oracle-roots-v1",
+  "reference_branch": {
+    "membership": "verified-reachable",
+    "oid": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+    "ref": "refs/remotes/origin/visual-baseline",
+    "selected_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+  },
+  "run_id": "pair-178a-20261009-1052Z-r3",
+  "schema": "termrock-spec/parity-subject-source-inputs-v1",
+  "sources": {
+    "candidate": {
+      "archive_argv": [
+        "git",
+        "--no-replace-objects",
+        "archive",
+        "--format=tar",
+        "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "--",
+        ".",
+        ":(top,exclude)snapshots/**",
+        ":(top,exclude)baselines/**"
+      ],
+      "archive_member_count": 986,
+      "archive_sha256": "9d163609fa9c361e197130268be5ac3f507d7281d51ff24b6ccfc89f8fb72d3e",
+      "excluded_file_count": 75502,
+      "excluded_path_blob_map_sha256": "a819b6a5bcd97ae734cfdb27f0261a269824d8540a763eb5b120b1e1c6d4cc8b",
+      "excluded_roots": [
+        "snapshots/**",
+        "baselines/**"
+      ],
+      "git_ls_tree_stdout_sha256": "6ff85b8d90492febece7e50c4297e178e1daf9ca7e007e7f390a73a115a7ea7a",
+      "git_object_replacement_policy": "disabled-by-option-and-environment",
+      "included_file_count": 790,
+      "included_path_blob_map_sha256": "8c477a810d6d1394394f8d712b34df322a5db584b846873ef9e8e24eaa92aedf",
+      "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+      "path_blob_digest_algorithm": "sha256(sorted-raw-path-nul-git-blob-oid-lf-v1)",
+      "read_only": true,
+      "recipe": "git-archive-excluding-parity-oracle-roots-v1",
+      "role": "candidate",
+      "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "tracked_file_count": 76292,
+      "tracked_path_blob_map_sha256": "cb8205410b25645d021d3b2cd3e219e395aff6c4e4c879467e907080ec87ff10",
+      "tree_oid": "d184b8935e99748756180e19fdb84286d054991d"
+    },
+    "reference": {
+      "archive_argv": [
+        "git",
+        "--no-replace-objects",
+        "archive",
+        "--format=tar",
+        "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+        "--",
+        ".",
+        ":(top,exclude)snapshots/**",
+        ":(top,exclude)baselines/**"
+      ],
+      "archive_member_count": 1694,
+      "archive_sha256": "5bc4bcb8ae84c64b1062b1c14ea1ee08f3d1d5d350ca9aa690f47cf3f794183b",
+      "excluded_file_count": 30200,
+      "excluded_path_blob_map_sha256": "0666870bc8fcccb6e88cd6658b428be7cc470ba8df2101c1fc3ea80fec9b5283",
+      "excluded_roots": [
+        "snapshots/**",
+        "baselines/**"
+      ],
+      "git_ls_tree_stdout_sha256": "cad7082e5e3e52802f30e467e054fcbd2e8e4a2b6ebc93e93f9248f2c9516f9e",
+      "git_object_replacement_policy": "disabled-by-option-and-environment",
+      "included_file_count": 1481,
+      "included_path_blob_map_sha256": "f725226d49c2a9ea98553948a59dc11af0faa3ce2a8bd8c5b3822c8dbf2513fd",
+      "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+      "path_blob_digest_algorithm": "sha256(sorted-raw-path-nul-git-blob-oid-lf-v1)",
+      "read_only": true,
+      "recipe": "git-archive-excluding-parity-oracle-roots-v1",
+      "role": "reference",
+      "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+      "tracked_file_count": 31681,
+      "tracked_path_blob_map_sha256": "5b0174737006da7a32fc3529ca5c6fcd90ad596a382f7a8543c6d94a2ea279bd",
+      "tree_oid": "ff774280a5f1f30b649dc6f762d8c686b1b64c67"
+    }
+  }
+}
