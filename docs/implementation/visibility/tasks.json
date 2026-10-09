@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 64,
+  "queue_revision": 65,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -1873,6 +1873,40 @@
       "state": "claimed",
       "work_id": "VIS-17",
       "accepted_queue_revision": 64
+    },
+    {
+      "work_id": "VIS-18",
+      "requirement_ids": [
+        "VIS-T02",
+        "VIS-T03",
+        "VIS-V01"
+      ],
+      "priority": "P0",
+      "priority_reason": "Provide the bounded read-only audit needed to assess the 153 unmanifested Cargo registry source package roots observed after the actual VIS-06 R11 Holla build. This audit is a prerequisite input to the VIS-06 cache-provenance decision; it cannot change or qualify the original R11 result.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "allowed_paths": [
+        "crates/termrock-visibility-tests/tests/cache_source_audit.rs"
+      ],
+      "owner": "/root/branch_facts",
+      "reviewer": "/root/subjects_runner_review_luna",
+      "claim_token": "visibility-vis18-cache-source-audit-q64-0031d378-5d8d-46f6-8c54-420ca9b5dac6",
+      "expiry": "2026-10-10T06:00:00Z",
+      "state": "claimed",
+      "evidence": [
+        "Acceptance precondition: q64, queue revision 64, tasks.json SHA-256 f7d6509eed5ed64b1de2eb5e192fe94049bb08b5efef6db18cb1e3a809b89553, WORK_QUEUE.md SHA-256 51c88560f5630915e27123658d0187934c82d154335c073112eae2d0788f587e. The q64 publication record is /private/tmp/termrock-q64-vis17-root-proposal-20261010/publication.json, SHA-256 5ca18fbc3637c4b9bcbdbd482d8c2f73a3f56ad32becb77cf1905c3953408eb20, published commit eb9f2bb8cea0dafeb9f106325cabe955ef6c8381. Root must recheck the current queue revision, source branch, and canonical base before acceptance.",
+        "The base_sha is the canonical checkout anchor recorded in q64: 766ae1e925e32b4b28aa9100bb3fde5279aa223b. It is not the published q64 proposal commit or the external R14 source freeze; no Git identity is inferred for that external freeze.",
+        "The exact source fixture is /private/tmp/termrock-vis06-tag-linker-r2-20261010/source/candidate-r14-r11-response-fail-closed/crates/termrock-visibility-tests. Its R14 freeze record is /private/tmp/termrock-vis06-tag-linker-r2-20261010/freeze-r14-r11-response-fail-closed/freeze.json, SHA-256 143d290244fca513305917ef208b6fb9bbdbbcfab98e59384324df2ff48345ec. The freeze records 20 source files with tree digest 2cca2a085971778b4ba437b4c360249975f8c8a6d78d1b9daead1429b7353a9a and a nine-file standalone package with digest 75e0a945b2c7eb4c2bd7cbb0a5ad88551a83a74358b919b636e9a2b680c7ee37. The package file-hash list is pinned by SHA-256 ea0b62e941861fbc8dd8b0a07a461e491ef425c203b1d10ebf51e465360be9c9. Independent R14 source review: /private/tmp/termrock-vis06-tag-linker-r14-source-review-luna-r2-20261010.json, SHA-256 ecfb302d031d61b98cefd153ef658621db273a177f3b529bcc43f42414b79ccc; it is static source review only, and the R14 freeze says execution authorization was not granted.",
+        "The actual VIS-06 R11 runner result is /private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/attempt-01/runner-result.json, SHA-256 dbdf8853ed8b616c09209c096560194372a2713518f4a6676fa6f3585beccd73. Its independent actual-result review is /private/tmp/termrock-vis06-tag-r11-actual-review-luna-20261010.json, SHA-256 dcc0900899d7d6024e9b27bfcbb09f526a91e7f51c50f93eb4318ea23f0c8646. Preserve the recorded outcomes: product Holla build PASS and real linker exit 0; the selected test failed (0 passed, 1 failed, 16 filtered), capture and admission NOT_RUN, qualification BLOCKED, and protected_inputs_unchanged=false.",
+        "The R11 result records 7,231 unmanifested registry-source entries (6,054 files and 1,177 directories), including 153 new package roots proposed for this derivative audit. The prior cache preparation record is /private/tmp/termrock-vis06-tag-linker-r1-20261009/execution/tag-r4-20261009-ba912a28e055/cache-preparation.json, SHA-256 3200168cb388657b90009d49f938479ecfc8d4d023d6c998413ddacee548cb12; it binds 319 locked archive checksums and the frozen visual-baseline tag object/commit. The proposed audit must independently bind the exact R11 result, preparation receipt, and post-run cache; it must not rewrite either receipt or treat cache preparation as proof of extracted-source contents.",
+        "This claim authorizes one ignored Rust test source path only. The test must read the bound result, preparation evidence, lock-pinned archives, and observed post-run cache; stream gzip/TAR entries without extracting or writing to the cache; reject traversal, absolute or duplicate paths, links, special entries, wrong package roots, content/type/size mismatches, and uncovered unmanifested paths; allow only the exact seven-byte Cargo .cargo-ok marker; and write any derivative receipt to a fresh external output path. The test must not alter product snapshots or VIS-06/R11 records.",
+        "The q64 VIS-08 claim, owned by /root/rust_test_infrastructure, owns crates/termrock-visibility-tests/Cargo.toml and Cargo.lock under token visibility-rust-test-infrastructure-20261008-08. It is in_progress at q64; its recorded expiry is 2026-10-09T00:00:00Z, and expiry does not release that claim. The current owner has not accepted this audit dependency change. VIS-18 excludes manifest/lock paths and makes no source or dependency changes there. Any tar/flate2 dependency, lock update, and separate offline archive closure must be coordinated through the currently accepted owner or a separately accepted scope/handoff before audit execution.",
+        "dependencies is empty deliberately: VIS-18 is the audit prerequisite, so depending on VIS-06 would prevent the prerequisite from running. The source-only work may proceed independently; actual audit execution remains gated on separately reviewed VIS-08 dependency/cache preparation, exact input revalidation, and Root's execution authorization. No Cargo, Nextest, or test run is authorized by this claim.",
+        "The proposed owner /root/branch_facts confirmed availability for only the listed test path after acceptance. The proposed independent reviewer /root/subjects_runner_review_luna confirmed availability. Root remains the queue integrator and must perform the production CLI acceptance at the expected revision."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 65
     }
   ]
 }
