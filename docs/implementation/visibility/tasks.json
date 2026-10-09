@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 35,
+  "queue_revision": 38,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -31,10 +31,10 @@
         "README.md",
         "crates/termrock-visibility-tests/tests/status.rs"
       ],
-      "owner": "/root",
-      "reviewer": "/root/technical_review",
-      "claim_token": "visibility-status-root-handoff-20261009-0023Z-r2",
-      "expiry": "2026-10-09T04:00:00Z",
+      "owner": "/root/tag_capture_boundary_luna",
+      "reviewer": "/root/ci_parity_review_luna",
+      "claim_token": "visibility-status-root-to-tagcapture-q35-20261009-01",
+      "expiry": "2026-10-09T06:00:00Z",
       "state": "claimed",
       "evidence": [
         "Independent plan approval from /root/technical_review; exact staged review pending.",
@@ -43,21 +43,21 @@
         "Explicit owner release and independently reviewed handoff applied at revision 20; scope and base preserved; paired receipts and publication remain unqualified."
       ],
       "handoff": {
-        "handoff_at": "2026-10-09T00:23:20Z",
+        "handoff_at": "2026-10-09T04:14:47Z",
         "handoff_by": "/root",
-        "from_owner": "/root/status_recovery_luna",
-        "to_owner": "/root",
+        "from_owner": "/root",
+        "to_owner": "/root/tag_capture_boundary_luna",
         "owner_released": true,
         "coordinator_verified_stopped": false,
-        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch termrock-implementation; HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b.",
-        "git_status": "At 2026-10-09T00:23:20Z, read-only local tracking comparison reports termrock-implementation ahead 3 / behind 62 relative to cached origin/termrock-implementation. The three local-ahead commit IDs are listed in unpublished_commits. Accepted VIS-01 paths have five unstaged modifications and no staged changes; the worktree is dirty outside this claim. The cached tracking comparison is not a fresh remote query.",
-        "diff_sha256": "9be013e4840bc8e0e36b525e593f4de6480549989024007db81126ea3ff99287",
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; tree=b5701830ac45f93620b2f55da71862aacc549cd6",
+        "git_status": "At the q35 observation, local HEAD was 766ae1e925e32b4b28aa9100bb3fde5279aa223b. Prior Root handoff history records cached-tracking local-ahead IDs 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, and 766ae1e925e32b4b28aa9100bb3fde5279aa223b as unpublished ancestry. This is a prior cached observation, not a fresh remote query or full ancestry census. Preserve all three; attribution and publication status were not re-queried. Scope manifest SHA-256 b0cbca5cc4ac26073997122c24045b296c35ce26811855cbddcf1ad5aa646dca; staged scoped diff empty. Root reports no pending canonical writes/tests. No process-stop or global quiescence claim.",
+        "diff_sha256": "1710a00f3fbbe0fe8cc6d5c5269d83ef2f5c10d2dd603c7714e95a33e4fe4a06",
         "changed_paths": [
-          "STATUS.md",
-          "crates/termrock-visibility-tests/tests/status.rs",
-          "tools/visibility/README.md",
+          "tools/visibility/status.py",
           "tools/visibility/source-facts.json",
-          "tools/visibility/status.py"
+          "tools/visibility/README.md",
+          "STATUS.md",
+          "crates/termrock-visibility-tests/tests/status.rs"
         ],
         "unpublished_commits": [
           "186c28774ae6abe740fc7663a3db2e17444f086a",
@@ -66,29 +66,33 @@
         ],
         "checks": [
           {
-            "command": "Read-only queue snapshot at revision 27",
-            "result": "VIS-01 is in_progress, current owner /root/status_recovery_luna, reviewer /root/technical_review, token visibility-status-recovery-20261008-01, accepted base cc3ce8f6ac149aae..., and the original seven allowed paths. tasks.json SHA-256 4d96831584422500310575048cb5cea6c0fb073fb0ab0f1d36a0f26649c3f749; WORK_QUEUE.md SHA-256 31379d24cb5492bcd8122e50ba144fbf53e9ea498b47abbe1b81abcc6e00a1c1."
+            "command": "q35 source queue and accepted task preimage",
+            "result": "tasks.json SHA-256 99d139d2f6f58291af7399b1605a85e60811b29f2dd874b7c3e58c2363e0fcdf; WORK_QUEUE.md SHA-256 ef1867df55c9f9fc226e7c32d09fe8b06703c6d1b1e207e19ae117693f97cb49; VIS-01 compact record SHA-256 75dce364098515581cf8b71efb745f5748812a7630b79c788dc39a9f6ca82902; queue revision 35."
           },
           {
-            "command": "Read-only accepted-path diff against HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b",
-            "result": "Five modified paths: STATUS.md, crates/termrock-visibility-tests/tests/status.rs, tools/visibility/README.md, tools/visibility/source-facts.json, tools/visibility/status.py. No staged or untracked files in the accepted paths. Scoped diff is /private/tmp/termrock-vis01-root-handoff-q27-20261009T0023Z-r2/scoped.diff, SHA-256 9be013e4840bc8e0e36b525e593f4de6480549989024007db81126ea3ff99287."
+            "command": "owner release from Root in this task thread",
+            "result": "Root explicitly releases only these three scoped writer claims now: no pending canonical writes/tests in these scopes; external preparatory packets remain preserved, no repo ownership transferred until actual CAS."
           },
           {
-            "command": "Read-only local commit inventory at 2026-10-09T00:23:20Z",
-            "result": "The local branch is 3 ahead / 62 behind its cached origin tracking ref. The three local-ahead commit objects are 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, and 766ae1e925e32b4b28aa9100bb3fde5279aa223b. 186c287 is historical VIS-01 ancestry. f61abd3 and 766ae1e are out-of-scope crates/termrock-e2e commits. Root reports their source content already represented remotely through separately reviewed independent ancestry; that does not claim these local commit IDs themselves were published. This turn did not query the remote."
+            "command": "recipient availability (historical pre-q35 VIS-13 acceptance)",
+            "result": "Earlier message, timestamp not independently recorded, before q35 VIS-13 acceptance: “I have no accepted repository-write scope now. I can own the listed VIS-01 source/docs paths after the reviewed CAS is accepted; I will make no repo writes before then. Current work is only an external source-patch proposal, and I’ll keep its evidence paths aligned to the proposed evidence/reports/status-source-archive-20261009 claim.” This historical status is not treated as current."
           },
           {
-            "command": "R9 focused Rust status assertion gate and independent actual-run review",
-            "result": "Nextest ddda58e2-a5d3-45d9-857f-e01976ab7f30: one selected test passed, 35 skipped; shell and supervisor exited 0. Independent review /private/tmp/termrock-vis01-language-r9-assertion-fix-20261009-r3/independent-actual-run-review-technical-review.json, SHA-256 25e77831d1e5a1b99ba9537ca065617167fd5750b2ef801caa161fc7810145ad. The earlier 3-test run remains 2 passed / 1 failed; this is not presented as a full green suite."
+            "command": "independent reviewer assignment",
+            "result": "Assigned reviewer is /root/ci_parity_review_luna per Root direction; exact-payload review receipt required before CAS and recipient/reviewer availability is not inferred."
           },
           {
-            "command": "Actual owner-release evidence",
-            "result": "The owner release record /private/tmp/termrock-vis01-owner-release-20261009-r1.json, SHA-256 2c28277f3fff4219bc9ec9ab797fdd70df8a2bf0f4ea4e5e0ac98438518bf06b, records owner_released=true to /root. coordinator_verified_stopped=false; this payload supplies no coordinator-stop claim."
+            "command": "scoped source preimage manifest",
+            "result": "SHA-256 b0cbca5cc4ac26073997122c24045b296c35ce26811855cbddcf1ad5aa646dca; 7 path/file observations; rows in scope-manifests.json."
+          },
+          {
+            "command": "recipient availability (current after q35 VIS-13 acceptance)",
+            "result": "Confirmed in a current reply (timestamp not independently recorded): recipient can take the exact seven VIS-01 paths after CAS while retaining VIS-13. VIS-01 paths and VIS-13 docs/implementation/visibility/evidence/reports/** are disjoint. Recipient will make no VIS-01 repository writes before CAS; current R10 work is external only."
           }
         ],
-        "next_action": "Before CAS, re-read revision 27 and the task/WORK_QUEUE preimages, and verify no other live writer overlaps the seven accepted paths. If both still match, run the canonical schema-v1 queue handoff using --expected-revision 27 and this payload. Preserve the existing base and seven paths. The old token remains in claim history; the new claim uses a unique token. Abort on any preimage or overlap drift."
+        "next_action": "After exact-payload independent review and Root final preconditions, apply only the VIS-01 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift."
       },
-      "accepted_queue_revision": 28,
+      "accepted_queue_revision": 36,
       "claim_history": [
         {
           "claim": {
@@ -239,6 +243,83 @@
             ],
             "next_action": "Before CAS, re-read revision 27 and the task/WORK_QUEUE preimages, and verify no other live writer overlaps the seven accepted paths. If both still match, run the canonical schema-v1 queue handoff using --expected-revision 27 and this payload. Preserve the existing base and seven paths. The old token remains in claim history; the new claim uses a unique token. Abort on any preimage or overlap drift."
           }
+        },
+        {
+          "claim": {
+            "owner": "/root",
+            "reviewer": "/root/technical_review",
+            "branch": "termrock-implementation",
+            "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+            "allowed_paths": [
+              "tools/visibility/status.py",
+              "tools/visibility/tests/test_status.py",
+              "tools/visibility/source-facts.json",
+              "tools/visibility/README.md",
+              "STATUS.md",
+              "README.md",
+              "crates/termrock-visibility-tests/tests/status.rs"
+            ],
+            "claim_token": "visibility-status-root-handoff-20261009-0023Z-r2",
+            "expiry": "2026-10-09T04:00:00Z",
+            "state": "claimed",
+            "accepted_queue_revision": 28,
+            "evidence": [
+              "Independent plan approval from /root/technical_review; exact staged review pending.",
+              "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests.",
+              "User requires Rust-only tests. Preserve 12 existing status assertion groups in the accepted Rust module before removing Python tests; the receipt-reader contract remains pending.",
+              "Explicit owner release and independently reviewed handoff applied at revision 20; scope and base preserved; paired receipts and publication remain unqualified."
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-09T04:14:47Z",
+            "handoff_by": "/root",
+            "from_owner": "/root",
+            "to_owner": "/root/tag_capture_boundary_luna",
+            "owner_released": true,
+            "coordinator_verified_stopped": false,
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; tree=b5701830ac45f93620b2f55da71862aacc549cd6",
+            "git_status": "At the q35 observation, local HEAD was 766ae1e925e32b4b28aa9100bb3fde5279aa223b. Prior Root handoff history records cached-tracking local-ahead IDs 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, and 766ae1e925e32b4b28aa9100bb3fde5279aa223b as unpublished ancestry. This is a prior cached observation, not a fresh remote query or full ancestry census. Preserve all three; attribution and publication status were not re-queried. Scope manifest SHA-256 b0cbca5cc4ac26073997122c24045b296c35ce26811855cbddcf1ad5aa646dca; staged scoped diff empty. Root reports no pending canonical writes/tests. No process-stop or global quiescence claim.",
+            "diff_sha256": "1710a00f3fbbe0fe8cc6d5c5269d83ef2f5c10d2dd603c7714e95a33e4fe4a06",
+            "changed_paths": [
+              "tools/visibility/status.py",
+              "tools/visibility/source-facts.json",
+              "tools/visibility/README.md",
+              "STATUS.md",
+              "crates/termrock-visibility-tests/tests/status.rs"
+            ],
+            "unpublished_commits": [
+              "186c28774ae6abe740fc7663a3db2e17444f086a",
+              "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
+              "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
+            ],
+            "checks": [
+              {
+                "command": "q35 source queue and accepted task preimage",
+                "result": "tasks.json SHA-256 99d139d2f6f58291af7399b1605a85e60811b29f2dd874b7c3e58c2363e0fcdf; WORK_QUEUE.md SHA-256 ef1867df55c9f9fc226e7c32d09fe8b06703c6d1b1e207e19ae117693f97cb49; VIS-01 compact record SHA-256 75dce364098515581cf8b71efb745f5748812a7630b79c788dc39a9f6ca82902; queue revision 35."
+              },
+              {
+                "command": "owner release from Root in this task thread",
+                "result": "Root explicitly releases only these three scoped writer claims now: no pending canonical writes/tests in these scopes; external preparatory packets remain preserved, no repo ownership transferred until actual CAS."
+              },
+              {
+                "command": "recipient availability (historical pre-q35 VIS-13 acceptance)",
+                "result": "Earlier message, timestamp not independently recorded, before q35 VIS-13 acceptance: “I have no accepted repository-write scope now. I can own the listed VIS-01 source/docs paths after the reviewed CAS is accepted; I will make no repo writes before then. Current work is only an external source-patch proposal, and I’ll keep its evidence paths aligned to the proposed evidence/reports/status-source-archive-20261009 claim.” This historical status is not treated as current."
+              },
+              {
+                "command": "independent reviewer assignment",
+                "result": "Assigned reviewer is /root/ci_parity_review_luna per Root direction; exact-payload review receipt required before CAS and recipient/reviewer availability is not inferred."
+              },
+              {
+                "command": "scoped source preimage manifest",
+                "result": "SHA-256 b0cbca5cc4ac26073997122c24045b296c35ce26811855cbddcf1ad5aa646dca; 7 path/file observations; rows in scope-manifests.json."
+              },
+              {
+                "command": "recipient availability (current after q35 VIS-13 acceptance)",
+                "result": "Confirmed in a current reply (timestamp not independently recorded): recipient can take the exact seven VIS-01 paths after CAS while retaining VIS-13. VIS-01 paths and VIS-13 docs/implementation/visibility/evidence/reports/** are disjoint. Recipient will make no VIS-01 repository writes before CAS; current R10 work is external only."
+              }
+            ],
+            "next_action": "After exact-payload independent review and Root final preconditions, apply only the VIS-01 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift."
+          }
         }
       ]
     },
@@ -263,50 +344,58 @@
       "allowed_paths": [
         "crates/termrock-e2e/**"
       ],
-      "owner": "/root",
+      "owner": "/root/rust_test_infrastructure",
       "reviewer": "/root/controls_wrapper_review_luna",
-      "claim_token": "27f557b8-0e3b-4d7e-957e-8903b4feed92",
-      "expiry": "2026-10-09T04:00:00Z",
+      "claim_token": "visibility-e2e-root-to-rustinfra-q35-20261009-01",
+      "expiry": "2026-10-09T06:00:00Z",
       "state": "claimed",
       "evidence": [
         "Independent narrow pilot plan approved by /root/technical_review; exact staged review pending."
       ],
       "handoff": {
-        "handoff_at": "2026-10-09T00:29:36Z",
+        "handoff_at": "2026-10-09T04:14:47Z",
         "handoff_by": "/root",
-        "from_owner": "/root/suite_luna",
-        "to_owner": "/root",
+        "from_owner": "/root",
+        "to_owner": "/root/rust_test_infrastructure",
         "owner_released": true,
         "coordinator_verified_stopped": false,
-        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch termrock-implementation; local HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b",
-        "git_status": "Current q28 read-only inspection found no uncommitted, staged, or untracked change under VIS-02's crates/termrock-e2e/** scope (worktree and staged diff SHA-256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855). The local branch has three unpublished local-ahead commits relative to its cached origin tracking ref: 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, 766ae1e925e32b4b28aa9100bb3fde5279aa223b. The read-only path audit shows f61abd3dfba1b4f867a539ab18ed7e4760b24a18 and 766ae1e925e32b4b28aa9100bb3fde5279aa223b change files under crates/termrock-e2e/** and are in VIS-02 scope; they are out of scope only relative to VIS-01. 186c28774ae6abe740fc7663a3db2e17444f086a changes VIS-01 subject/status paths outside VIS-02 scope. The former owner's q27 release object separately recorded an empty worktree diff and empty unpublished_commits list; that raw object is preserved unchanged and its empty list is not treated as a comprehensive branch-ahead inventory. This Root-authored inventory does not attribute the commits to /root/suite_luna and does not claim the local commit objects are published.",
-        "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "changed_paths": [],
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; tree=b5701830ac45f93620b2f55da71862aacc549cd6",
+        "git_status": "At the q35 observation, local HEAD was 766ae1e925e32b4b28aa9100bb3fde5279aa223b. Prior Root handoff history records cached-tracking local-ahead IDs 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, and 766ae1e925e32b4b28aa9100bb3fde5279aa223b. For VIS-02 paths, f61abd3dfba1b4f867a539ab18ed7e4760b24a18 and 766ae1e925e32b4b28aa9100bb3fde5279aa223b are retained; 186c28774ae6abe740fc7663a3db2e17444f086a touches VIS-01 paths outside this scope and remains preserved in repository history. This is a prior cached observation, not a fresh remote query or full ancestry census; no attribution is made. Scope manifest SHA-256 c10c2c278d250389b0adb92478ec813e0bbc243ce41b64b237ed4c40a8a60bfe; staged scoped diff empty. Root reports no pending canonical writes/tests. No process-stop or global quiescence claim.",
+        "diff_sha256": "599d7fb1cf54095d26610c0dc3c745841953b25a5e2895d0e4c52e42cd9ce5eb",
+        "changed_paths": [
+          "crates/termrock-e2e/cases/registry.json",
+          "crates/termrock-e2e/tests/command_lane.rs",
+          "crates/termrock-e2e/tests/contract.rs"
+        ],
         "unpublished_commits": [
           "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
           "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
         ],
         "checks": [
           {
-            "command": "Current accepted queue snapshot: q28 tasks.json / WORK_QUEUE.md and VIS-02 record read-only",
-            "result": "tasks.json SHA-256 af5caeab0df2616dda0780b114aeba2a346642a166f9174293fafa3a51f47ab5; WORK_QUEUE.md SHA-256 fdfe7fc5a6786206d221ba1416f35268a6e91c53c42e9d47448b2aa6ae1c9ca2; queue revision 28. VIS-02 is unchanged from the q27 handoff snapshot: in_progress, owner /root/suite_luna, reviewer /root/technical_review, base cc3ce8f6ac149aaee406047c5180d1a658d6bb9c, allowed paths crates/termrock-e2e/**, dependencies empty, accepted_queue_revision 2."
+            "command": "q35 source queue and accepted task preimage",
+            "result": "tasks.json SHA-256 99d139d2f6f58291af7399b1605a85e60811b29f2dd874b7c3e58c2363e0fcdf; WORK_QUEUE.md SHA-256 ef1867df55c9f9fc226e7c32d09fe8b06703c6d1b1e207e19ae117693f97cb49; VIS-02 compact record SHA-256 ad414b447fa97a561301afd315a6150c31d148ffb72df48d10d977ca904104a1; queue revision 35."
           },
           {
-            "command": "Preserved q27 former-owner release object and its review",
-            "result": "Raw owner release object /private/tmp/termrock-vis02-owner-handoff-q27-20261009.json; SHA-256 8a5ba4666ab9052530842ecdb2a6461d6331e11791c7740ca1f36b302a0eae7d; independent review /private/tmp/termrock-vis02-owner-handoff-q27-review-20261009.json; SHA-256 cee858b721bbdaf42de7f93d0e30c8e1ed1dc52b7c45a5af455450d8cfb7f338. Its owner release remains true; coordinator_verified_stopped remains false. The exact original bytes are copied to owner-release-q27-original.json and are not rewritten."
+            "command": "owner release from Root in this task thread",
+            "result": "Root explicitly releases only these three scoped writer claims now: no pending canonical writes/tests in these scopes; external preparatory packets remain preserved, no repo ownership transferred until actual CAS."
           },
           {
-            "command": "Read-only Git scope/path audit captured in commit-scope-audit.json",
-            "result": "Repository / branch / HEAD: /Users/donbeave/Projects/tailrocks/terminal-components-claude / termrock-implementation / 766ae1e925e32b4b28aa9100bb3fde5279aa223b. Cached tracking is 62 behind / 3 ahead, not a fresh remote query. VIS-02 scoped status and both binary diffs are empty. The audit lists the exact changed paths for 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, and 766ae1e925e32b4b28aa9100bb3fde5279aa223b; f61abd3dfba1b4f867a539ab18ed7e4760b24a18 and 766ae1e925e32b4b28aa9100bb3fde5279aa223b touch the VIS-02 prefix, while 186c28774ae6abe740fc7663a3db2e17444f086a does not."
+            "command": "recipient availability",
+            "result": "Yes, I’m available for the exact crates/termrock-e2e/** scope after the actual reviewed VIS-02 CAS. It is disjoint from my earlier crates/termrock-visibility-tests/src/** scope. No writes before the CAS."
           },
           {
-            "command": "Source distinction from separate VIS-01 q27 correction proposal",
-            "result": "The separate VIS-01 proposal /private/tmp/termrock-vis01-root-handoff-q27-20261009T0023Z-r2/queue-v1-payload.json (SHA-256 a2e09a6938b009b6c72ae1d54ae0e219c904f81352e6690500d3afa1fb38212a) calls 186c28774ae6abe740fc7663a3db2e17444f086a historical VIS-01 ancestry and identifies f61abd3dfba1b4f867a539ab18ed7e4760b24a18/766ae1e925e32b4b28aa9100bb3fde5279aa223b as crates/termrock-e2e commits outside VIS-01's seven allowed paths. Those two commits are inside VIS-02's crates/termrock-e2e/** prefix. The source-content representation elsewhere is not treated as publication of these local commit IDs."
+            "command": "independent reviewer assignment",
+            "result": "Assigned reviewer remains /root/controls_wrapper_review_luna; exact-payload review receipt required before CAS."
+          },
+          {
+            "command": "scoped source preimage manifest",
+            "result": "SHA-256 c10c2c278d250389b0adb92478ec813e0bbc243ce41b64b237ed4c40a8a60bfe; 28 path/file observations; rows in scope-manifests.json."
           }
         ],
-        "next_action": "Before CAS, root rechecks queue revision and exact tasks/view hashes, VIS-02 task fields, current owner/runtime stop, active accepted writers, and this derived handoff payload. If any queue mutation intervenes, re-read and bind fresh preimages/revision; abort on VIS-02 task or scope drift."
+        "next_action": "After exact-payload independent review and Root final preconditions, apply only the VIS-02 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift."
       },
-      "accepted_queue_revision": 29,
+      "accepted_queue_revision": 37,
       "claim_history": [
         {
           "claim": {
@@ -359,6 +448,67 @@
               }
             ],
             "next_action": "Before CAS, root rechecks queue revision and exact tasks/view hashes, VIS-02 task fields, current owner/runtime stop, active accepted writers, and this derived handoff payload. If any queue mutation intervenes, re-read and bind fresh preimages/revision; abort on VIS-02 task or scope drift."
+          }
+        },
+        {
+          "claim": {
+            "owner": "/root",
+            "reviewer": "/root/controls_wrapper_review_luna",
+            "branch": "termrock-implementation",
+            "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+            "allowed_paths": [
+              "crates/termrock-e2e/**"
+            ],
+            "claim_token": "27f557b8-0e3b-4d7e-957e-8903b4feed92",
+            "expiry": "2026-10-09T04:00:00Z",
+            "state": "claimed",
+            "accepted_queue_revision": 29,
+            "evidence": [
+              "Independent narrow pilot plan approved by /root/technical_review; exact staged review pending."
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-09T04:14:47Z",
+            "handoff_by": "/root",
+            "from_owner": "/root",
+            "to_owner": "/root/rust_test_infrastructure",
+            "owner_released": true,
+            "coordinator_verified_stopped": false,
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; tree=b5701830ac45f93620b2f55da71862aacc549cd6",
+            "git_status": "At the q35 observation, local HEAD was 766ae1e925e32b4b28aa9100bb3fde5279aa223b. Prior Root handoff history records cached-tracking local-ahead IDs 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, and 766ae1e925e32b4b28aa9100bb3fde5279aa223b. For VIS-02 paths, f61abd3dfba1b4f867a539ab18ed7e4760b24a18 and 766ae1e925e32b4b28aa9100bb3fde5279aa223b are retained; 186c28774ae6abe740fc7663a3db2e17444f086a touches VIS-01 paths outside this scope and remains preserved in repository history. This is a prior cached observation, not a fresh remote query or full ancestry census; no attribution is made. Scope manifest SHA-256 c10c2c278d250389b0adb92478ec813e0bbc243ce41b64b237ed4c40a8a60bfe; staged scoped diff empty. Root reports no pending canonical writes/tests. No process-stop or global quiescence claim.",
+            "diff_sha256": "599d7fb1cf54095d26610c0dc3c745841953b25a5e2895d0e4c52e42cd9ce5eb",
+            "changed_paths": [
+              "crates/termrock-e2e/cases/registry.json",
+              "crates/termrock-e2e/tests/command_lane.rs",
+              "crates/termrock-e2e/tests/contract.rs"
+            ],
+            "unpublished_commits": [
+              "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
+              "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
+            ],
+            "checks": [
+              {
+                "command": "q35 source queue and accepted task preimage",
+                "result": "tasks.json SHA-256 99d139d2f6f58291af7399b1605a85e60811b29f2dd874b7c3e58c2363e0fcdf; WORK_QUEUE.md SHA-256 ef1867df55c9f9fc226e7c32d09fe8b06703c6d1b1e207e19ae117693f97cb49; VIS-02 compact record SHA-256 ad414b447fa97a561301afd315a6150c31d148ffb72df48d10d977ca904104a1; queue revision 35."
+              },
+              {
+                "command": "owner release from Root in this task thread",
+                "result": "Root explicitly releases only these three scoped writer claims now: no pending canonical writes/tests in these scopes; external preparatory packets remain preserved, no repo ownership transferred until actual CAS."
+              },
+              {
+                "command": "recipient availability",
+                "result": "Yes, I’m available for the exact crates/termrock-e2e/** scope after the actual reviewed VIS-02 CAS. It is disjoint from my earlier crates/termrock-visibility-tests/src/** scope. No writes before the CAS."
+              },
+              {
+                "command": "independent reviewer assignment",
+                "result": "Assigned reviewer remains /root/controls_wrapper_review_luna; exact-payload review receipt required before CAS."
+              },
+              {
+                "command": "scoped source preimage manifest",
+                "result": "SHA-256 c10c2c278d250389b0adb92478ec813e0bbc243ce41b64b237ed4c40a8a60bfe; 28 path/file observations; rows in scope-manifests.json."
+              }
+            ],
+            "next_action": "After exact-payload independent review and Root final preconditions, apply only the VIS-02 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift."
           }
         }
       ]
@@ -878,10 +1028,10 @@
         "crates/termrock-visibility-tests/tests/queue_v2.rs",
         "docs/implementation/visibility/queue-v2.md"
       ],
-      "owner": "/root",
+      "owner": "/root/coordination_luna",
       "reviewer": "/root/jackin_inventory_current_luna",
-      "claim_token": "visibility-registry-check-20261009-root-d1124db38db6eb5c247095732d03630d0a86a64db1f3227e",
-      "expiry": "2026-10-09T04:00:00Z",
+      "claim_token": "visibility-queuev2-root-to-coordination-q35-20261009-01",
+      "expiry": "2026-10-09T06:00:00Z",
       "state": "claimed",
       "evidence": [
         "Independent plan approval /private/tmp/termrock-vis10-queue-v2-plan-review.json SHA-256 bd9dbce82a27aa57608fde5d3870828765448daf53fc7a936e6cb405e3607aa0. Code prerequisite uses committed helper 8189; actual migration remains blocked until status v2 compatibility and separately qualified roots/preflight.",
@@ -889,50 +1039,48 @@
         "Integrator acceptance: reviewed VIS10 scope-amendment plan /private/tmp/termrock-vis10-scope-amendment-plan-20261009-r2.md SHA-256 509b6cefae8e062477bbd647d9d55b3afbff77e98ec2b44d44160deb4017264b; independent review /private/tmp/termrock-vis10-scope-amendment-plan-review-luna-r2.json SHA-256 e5fb2a8d9bd474cf3c087b3ccab34c5140476f6640eaeb4a82ae0e1d49ec9574 approves this exact bounded workplan. This plan supersedes the prior handoff next_action only for the next implementation sequence. Preserve the existing VIS10 base, owner, reviewer, token, expiry, allowed paths, historical handoff object, and claim history. Implement only this schema-v2 scope-amendment increment in the existing three paths. No live migration, publication, history rewrite, or out-of-scope writes are authorized."
       ],
       "handoff": {
-        "handoff_at": "2026-10-08T23:47:29.018Z",
-        "handoff_by": "/root/registry_check_luna",
-        "from_owner": "/root/registry_check_luna",
-        "to_owner": "/root",
+        "handoff_at": "2026-10-09T04:14:47Z",
+        "handoff_by": "/root",
+        "from_owner": "/root",
+        "to_owner": "/root/coordination_luna",
         "owner_released": true,
         "coordinator_verified_stopped": false,
-        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch termrock-implementation; local HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b",
-        "git_status": "Shared worktree is dirty outside this accepted task. Scoped status at preparation: M tools/visibility/queue.py; ?? crates/termrock-visibility-tests/tests/queue_v2.rs; ?? docs/implementation/visibility/queue-v2.md. The scoped staged diff is empty. This owner has not staged, committed, or otherwise changed these files after the stated observation. Preserve all three paths and all unrelated worktree/index changes.",
-        "diff_sha256": "de05a1a08fd00ac7af169c68ccf2ca14f3c45cea3034e257e69ddbd79a274a1f",
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; tree=b5701830ac45f93620b2f55da71862aacc549cd6",
+        "git_status": "At the q35 observation, local HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b is retained as an unpublished ancestry anchor, not as attribution to VIS-10 paths or an exhaustive inventory. Prior q35 history includes unsigned 186c28774ae6abe740fc7663a3db2e17444f086a outside PR #17 repair scope; preserve it separately. No fresh remote query or complete unpublished-ancestry census is claimed. Scope manifest SHA-256 c49d2fcd6235e1f46ad6a3438c843457d458f4b99c00e593d68cd04743206abb; staged scoped diff empty. Root reports no pending canonical writes/tests. No process-stop or global quiescence claim.",
+        "diff_sha256": "cc2a08445b1d7591cf6748e9ecb33ffd997775b261ebcb5793abed24cc8d4b15",
         "changed_paths": [
           "tools/visibility/queue.py",
           "crates/termrock-visibility-tests/tests/queue_v2.rs",
           "docs/implementation/visibility/queue-v2.md"
         ],
-        "unpublished_commits": [],
+        "unpublished_commits": [
+          "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
+        ],
         "checks": [
           {
-            "command": "Read-only q26 task record inspection and SHA-256",
-            "result": "Queue revision 26; VIS-10 owner /root/registry_check_luna, reviewer /root/jackin_inventory_current_luna, state in_progress, base 85b51da2e9832dba642abf7d64d032f848cade0e, accepted paths exactly the three paths listed above. tasks.json SHA-256 0ae8138b6d38124f562b29e30fdf6d349d1b14e79c71a4d15aa45ce420658d5b; WORK_QUEUE.md SHA-256 2f411170fa9e1c080dfc1f694d4899a7be7ea29a63adad07dbce43741a576d0a."
+            "command": "q35 source queue and accepted task preimage",
+            "result": "tasks.json SHA-256 99d139d2f6f58291af7399b1605a85e60811b29f2dd874b7c3e58c2363e0fcdf; WORK_QUEUE.md SHA-256 ef1867df55c9f9fc226e7c32d09fe8b06703c6d1b1e207e19ae117693f97cb49; VIS-10 compact record SHA-256 bf7f7999bb35789d5cd1403bdd26a509efa02a51a63f14d3f5210a92dd85a70c; queue revision 35."
           },
           {
-            "command": "GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1 GIT_NO_REPLACE_OBJECTS=1 git status --short --untracked-files=all -- tools/visibility/queue.py crates/termrock-visibility-tests/tests/queue_v2.rs docs/implementation/visibility/queue-v2.md",
-            "result": "M tools/visibility/queue.py; ?? crates/termrock-visibility-tests/tests/queue_v2.rs; ?? docs/implementation/visibility/queue-v2.md. This is a scoped worktree observation only; it does not cover accepted-writer overlap."
+            "command": "owner release from Root in this task thread",
+            "result": "Root explicitly releases only these three scoped writer claims now: no pending canonical writes/tests in these scopes; external preparatory packets remain preserved, no repo ownership transferred until actual CAS."
           },
           {
-            "command": "GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1 GIT_NO_REPLACE_OBJECTS=1 git diff --cached --binary --full-index --no-ext-diff -- the three accepted paths | shasum -a 256",
-            "result": "No staged changes; digest e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855."
+            "command": "recipient availability",
+            "result": "I have not been told by Root to take over VIS-10 write ownership yet; I am preparing an R5 bounded Rust gate without source edits. I can accept the exact three paths after Root completes the reviewed CAS/handoff and confirms transfer. Source remains frozen pending CAS."
           },
           {
-            "command": "Read-only complete scoped source snapshot against HEAD 766ae1e; see /private/tmp/termrock-vis10-foundation-three-paths-head766-v2.patch",
-            "result": "Combined tracked-plus-untracked scoped patch SHA-256 de05a1a08fd00ac7af169c68ccf2ca14f3c45cea3034e257e69ddbd79a274a1f; source file hashes queue.py bef3f27e20faab531fa5ae648fa4a76ee1344ed142b30ef56ca60573451ae1f1, queue_v2.rs e38d4b0b9e795b2aa9155d1dd30b31062b1774fc0798410ac90833902980a252, queue-v2.md 29b271de2a92c9c3d3a8d40400a808efa50f34866d558100a017efd4fa13aab1."
+            "command": "independent reviewer assignment",
+            "result": "Assigned reviewer remains /root/jackin_inventory_current_luna; exact-payload review receipt required before CAS."
           },
           {
-            "command": "Current owner release statement in this coordination turn",
-            "result": "I release VIS-10 ownership for handoff to /root. No running source-writing process or pending repository edit remains from me. I will make no further repository changes after this release. External review and diagnostic artifacts may continue; they do not modify the repository. The old claim token must no longer authorize edits after the accepted handoff CAS."
-          },
-          {
-            "command": "Cargo/test process scope",
-            "result": "The actual R10 Cargo child completed at 2026-10-08T23:39:45.887Z. This owner launched no Cargo or tests after that run. This is not a global process or accepted-writer audit; /root must independently verify before applying the handoff."
+            "command": "scoped source preimage manifest",
+            "result": "SHA-256 c49d2fcd6235e1f46ad6a3438c843457d458f4b99c00e593d68cd04743206abb; 3 path/file observations; rows in scope-manifests.json."
           }
         ],
-        "next_action": "Before applying, /root independently repeats the q26 revision and task/view hashes, current owner/token/base/three-path scope, full scoped and staged/untracked diff, accepted-writer overlap, reviewer availability, and current process stop checks. Abort on drift. If checks pass, apply only queue-v1 handoff at expected revision 26 using this exact {new_claim,handoff} payload. Preserve the accepted base, allowed paths, existing evidence and claim history; the new owner continues only within the three paths until a separate plan is accepted. Do not migrate schema v1, alter history, publish, or infer a same-owner renewal from this release."
+        "next_action": "After exact-payload independent review and Root final preconditions, apply only the VIS-10 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift."
       },
-      "accepted_queue_revision": 27,
+      "accepted_queue_revision": 38,
       "claim_history": [
         {
           "claim": {
@@ -1049,6 +1197,70 @@
               }
             ],
             "next_action": "Before applying, /root independently repeats the q26 revision and task/view hashes, current owner/token/base/three-path scope, full scoped and staged/untracked diff, accepted-writer overlap, reviewer availability, and current process stop checks. Abort on drift. If checks pass, apply only queue-v1 handoff at expected revision 26 using this exact {new_claim,handoff} payload. Preserve the accepted base, allowed paths, existing evidence and claim history; the new owner continues only within the three paths until a separate plan is accepted. Do not migrate schema v1, alter history, publish, or infer a same-owner renewal from this release."
+          }
+        },
+        {
+          "claim": {
+            "owner": "/root",
+            "reviewer": "/root/jackin_inventory_current_luna",
+            "branch": "termrock-implementation",
+            "base_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
+            "allowed_paths": [
+              "tools/visibility/queue.py",
+              "crates/termrock-visibility-tests/tests/queue_v2.rs",
+              "docs/implementation/visibility/queue-v2.md"
+            ],
+            "claim_token": "visibility-registry-check-20261009-root-d1124db38db6eb5c247095732d03630d0a86a64db1f3227e",
+            "expiry": "2026-10-09T04:00:00Z",
+            "state": "claimed",
+            "accepted_queue_revision": 27,
+            "evidence": [
+              "Independent plan approval /private/tmp/termrock-vis10-queue-v2-plan-review.json SHA-256 bd9dbce82a27aa57608fde5d3870828765448daf53fc7a936e6cb405e3607aa0. Code prerequisite uses committed helper 8189; actual migration remains blocked until status v2 compatibility and separately qualified roots/preflight.",
+              "Independent reviewed implementation scope accepted; live migration is not authorized by this transition.",
+              "Integrator acceptance: reviewed VIS10 scope-amendment plan /private/tmp/termrock-vis10-scope-amendment-plan-20261009-r2.md SHA-256 509b6cefae8e062477bbd647d9d55b3afbff77e98ec2b44d44160deb4017264b; independent review /private/tmp/termrock-vis10-scope-amendment-plan-review-luna-r2.json SHA-256 e5fb2a8d9bd474cf3c087b3ccab34c5140476f6640eaeb4a82ae0e1d49ec9574 approves this exact bounded workplan. This plan supersedes the prior handoff next_action only for the next implementation sequence. Preserve the existing VIS10 base, owner, reviewer, token, expiry, allowed paths, historical handoff object, and claim history. Implement only this schema-v2 scope-amendment increment in the existing three paths. No live migration, publication, history rewrite, or out-of-scope writes are authorized."
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-09T04:14:47Z",
+            "handoff_by": "/root",
+            "from_owner": "/root",
+            "to_owner": "/root/coordination_luna",
+            "owner_released": true,
+            "coordinator_verified_stopped": false,
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; tree=b5701830ac45f93620b2f55da71862aacc549cd6",
+            "git_status": "At the q35 observation, local HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b is retained as an unpublished ancestry anchor, not as attribution to VIS-10 paths or an exhaustive inventory. Prior q35 history includes unsigned 186c28774ae6abe740fc7663a3db2e17444f086a outside PR #17 repair scope; preserve it separately. No fresh remote query or complete unpublished-ancestry census is claimed. Scope manifest SHA-256 c49d2fcd6235e1f46ad6a3438c843457d458f4b99c00e593d68cd04743206abb; staged scoped diff empty. Root reports no pending canonical writes/tests. No process-stop or global quiescence claim.",
+            "diff_sha256": "cc2a08445b1d7591cf6748e9ecb33ffd997775b261ebcb5793abed24cc8d4b15",
+            "changed_paths": [
+              "tools/visibility/queue.py",
+              "crates/termrock-visibility-tests/tests/queue_v2.rs",
+              "docs/implementation/visibility/queue-v2.md"
+            ],
+            "unpublished_commits": [
+              "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
+            ],
+            "checks": [
+              {
+                "command": "q35 source queue and accepted task preimage",
+                "result": "tasks.json SHA-256 99d139d2f6f58291af7399b1605a85e60811b29f2dd874b7c3e58c2363e0fcdf; WORK_QUEUE.md SHA-256 ef1867df55c9f9fc226e7c32d09fe8b06703c6d1b1e207e19ae117693f97cb49; VIS-10 compact record SHA-256 bf7f7999bb35789d5cd1403bdd26a509efa02a51a63f14d3f5210a92dd85a70c; queue revision 35."
+              },
+              {
+                "command": "owner release from Root in this task thread",
+                "result": "Root explicitly releases only these three scoped writer claims now: no pending canonical writes/tests in these scopes; external preparatory packets remain preserved, no repo ownership transferred until actual CAS."
+              },
+              {
+                "command": "recipient availability",
+                "result": "I have not been told by Root to take over VIS-10 write ownership yet; I am preparing an R5 bounded Rust gate without source edits. I can accept the exact three paths after Root completes the reviewed CAS/handoff and confirms transfer. Source remains frozen pending CAS."
+              },
+              {
+                "command": "independent reviewer assignment",
+                "result": "Assigned reviewer remains /root/jackin_inventory_current_luna; exact-payload review receipt required before CAS."
+              },
+              {
+                "command": "scoped source preimage manifest",
+                "result": "SHA-256 c49d2fcd6235e1f46ad6a3438c843457d458f4b99c00e593d68cd04743206abb; 3 path/file observations; rows in scope-manifests.json."
+              }
+            ],
+            "next_action": "After exact-payload independent review and Root final preconditions, apply only the VIS-10 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift."
           }
         }
       ]

@@ -1,14 +1,14 @@
 # Work queue
 
 Generated from [accepted task records](docs/implementation/visibility/tasks.json).
-Queue revision: 35. Acceptance owner: `/root`.
+Queue revision: 38. Acceptance owner: `/root`.
 
 Highest open priority: **P0**.
 
 | Work | Requirements | Priority | State | Dependencies | Owner | Reviewer | Allowed paths |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| VIS-01 | VIS-A01, VIS-S01, VIS-S02, VIS-S03, VIS-S04, VIS-S05, VIS-S06, VIS-P02 | P0 | claimed | — | /root | /root/technical_review | tools/visibility/status.py, tools/visibility/tests/test_status.py, tools/visibility/source-facts.json, tools/visibility/README.md, STATUS.md, README.md, crates/termrock-visibility-tests/tests/status.rs |
-| VIS-02 | VIS-T01, VIS-T02, VIS-T03, VIS-T05, VIS-T06, VIS-T07, VIS-T08, VIS-T10, VIS-V01 | P0 | claimed | — | /root | /root/controls_wrapper_review_luna | crates/termrock-e2e/** |
+| VIS-01 | VIS-A01, VIS-S01, VIS-S02, VIS-S03, VIS-S04, VIS-S05, VIS-S06, VIS-P02 | P0 | claimed | — | /root/tag_capture_boundary_luna | /root/ci_parity_review_luna | tools/visibility/status.py, tools/visibility/tests/test_status.py, tools/visibility/source-facts.json, tools/visibility/README.md, STATUS.md, README.md, crates/termrock-visibility-tests/tests/status.rs |
+| VIS-02 | VIS-T01, VIS-T02, VIS-T03, VIS-T05, VIS-T06, VIS-T07, VIS-T08, VIS-T10, VIS-V01 | P0 | claimed | — | /root/rust_test_infrastructure | /root/controls_wrapper_review_luna | crates/termrock-e2e/** |
 | VIS-03 | VIS-A03, VIS-P05 | P0 | review | — | /root/showcase_owner | /root/technical_review | AGENTS.md, GOAL.md |
 | VIS-04 | VIS-B01, VIS-B02, VIS-B05, VIS-I06 | P0 | claimed | — | /root | /root/jackin_inventory_current_luna | tools/visibility/deferred.py, tools/visibility/tests/test_deferred.py, docs/implementation/visibility/evidence/deferred/**, crates/termrock-visibility-tests/tests/deferred.rs |
 | VIS-05 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | verified | — | /root/coordination_luna | /root/reference_luna | tools/visibility/queue.py, tools/visibility/tests/test_queue.py |
@@ -16,7 +16,7 @@ Highest open priority: **P0**.
 | VIS-07 | VIS-A01, VIS-V01 | P0 | in_progress | — | /root/language_review | /root/technical_review | docs/implementation/visibility/evidence/reviews/** |
 | VIS-08 | VIS-V01, VIS-P02 | P0 | in_progress | — | /root/rust_test_infrastructure | /root/technical_review | crates/termrock-visibility-tests/Cargo.toml, crates/termrock-visibility-tests/Cargo.lock, crates/termrock-visibility-tests/src/**, crates/termrock-visibility-tests/README.md |
 | VIS-09 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | in_progress | — | /root/rust_test_infrastructure | /root/technical_review | crates/termrock-visibility-tests/tests/queue.rs, tools/visibility/tests/test_queue.py |
-| VIS-10 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | claimed | — | /root | /root/jackin_inventory_current_luna | tools/visibility/queue.py, crates/termrock-visibility-tests/tests/queue_v2.rs, docs/implementation/visibility/queue-v2.md |
+| VIS-10 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | claimed | — | /root/coordination_luna | /root/jackin_inventory_current_luna | tools/visibility/queue.py, crates/termrock-visibility-tests/tests/queue_v2.rs, docs/implementation/visibility/queue-v2.md |
 | VIS-11 | VIS-I01, VIS-I02, VIS-I03, VIS-I04, VIS-I05, VIS-I06, VIS-I07, VIS-I08, VIS-I09, VIS-I10 | P0 | claimed | — | /root/status_recovery_luna | /root/technical_review | .github/workflows/**, .velnor/**, docs/implementation/visibility/evidence/ci/**, docs/implementation/visibility/evidence/tools/** |
 | VIS-12 | VIS-I05, VIS-P06, VIS-P07 | P0 | review | — | /root/coordination_luna | /root/technical_review | docs/implementation/visibility/evidence/dco/** |
 | VIS-13 | VIS-S06, VIS-P02 | P0 | claimed | — | /root/tag_capture_boundary_luna | /root/ci_parity_review_luna | docs/implementation/visibility/evidence/reports/** |
@@ -27,25 +27,25 @@ Highest open priority: **P0**.
 
 Priority reason: Publish source facts and show missing paired execution and the current CI failure.
 
-Claim token: `visibility-status-root-handoff-20261009-0023Z-r2`; accepted at queue revision 28; expires `2026-10-09T04:00:00Z`.
+Claim token: `visibility-status-root-to-tagcapture-q35-20261009-01`; accepted at queue revision 36; expires `2026-10-09T06:00:00Z`.
 
 Branch/base: `termrock-implementation` / `cc3ce8f6ac149aaee406047c5180d1a658d6bb9c`.
 
 Evidence: Independent plan approval from /root/technical_review; exact staged review pending., Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests., User requires Rust-only tests. Preserve 12 existing status assertion groups in the accepted Rust module before removing Python tests; the receipt-reader contract remains pending., Explicit owner release and independently reviewed handoff applied at revision 20; scope and base preserved; paired receipts and publication remain unqualified.
 
-Last handoff: /root/status_recovery_luna → /root by `/root`. Recorded next action at handoff: Before CAS, re-read revision 27 and the task/WORK_QUEUE preimages, and verify no other live writer overlaps the seven accepted paths. If both still match, run the canonical schema-v1 queue handoff using --expected-revision 27 and this payload. Preserve the existing base and seven paths. The old token remains in claim history; the new claim uses a unique token. Abort on any preimage or overlap drift.
+Last handoff: /root → /root/tag_capture_boundary_luna by `/root`. Recorded next action at handoff: After exact-payload independent review and Root final preconditions, apply only the VIS-01 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift.
 
 ### VIS-02
 
 Priority reason: A shared driver for real binaries is needed before visibility can be measured.
 
-Claim token: `27f557b8-0e3b-4d7e-957e-8903b4feed92`; accepted at queue revision 29; expires `2026-10-09T04:00:00Z`.
+Claim token: `visibility-e2e-root-to-rustinfra-q35-20261009-01`; accepted at queue revision 37; expires `2026-10-09T06:00:00Z`.
 
 Branch/base: `termrock-implementation` / `cc3ce8f6ac149aaee406047c5180d1a658d6bb9c`.
 
 Evidence: Independent narrow pilot plan approved by /root/technical_review; exact staged review pending.
 
-Last handoff: /root/suite_luna → /root by `/root`. Recorded next action at handoff: Before CAS, root rechecks queue revision and exact tasks/view hashes, VIS-02 task fields, current owner/runtime stop, active accepted writers, and this derived handoff payload. If any queue mutation intervenes, re-read and bind fresh preimages/revision; abort on VIS-02 task or scope drift.
+Last handoff: /root → /root/rust_test_infrastructure by `/root`. Recorded next action at handoff: After exact-payload independent review and Root final preconditions, apply only the VIS-02 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift.
 
 ### VIS-03
 
@@ -125,13 +125,13 @@ Last handoff: /root/coordination_luna → /root/rust_test_infrastructure by `/ro
 
 Priority reason: Implement the repository-aware amendment prerequisite before reference and isolated tool claims.
 
-Claim token: `visibility-registry-check-20261009-root-d1124db38db6eb5c247095732d03630d0a86a64db1f3227e`; accepted at queue revision 27; expires `2026-10-09T04:00:00Z`.
+Claim token: `visibility-queuev2-root-to-coordination-q35-20261009-01`; accepted at queue revision 38; expires `2026-10-09T06:00:00Z`.
 
 Branch/base: `termrock-implementation` / `85b51da2e9832dba642abf7d64d032f848cade0e`.
 
 Evidence: Independent plan approval /private/tmp/termrock-vis10-queue-v2-plan-review.json SHA-256 bd9dbce82a27aa57608fde5d3870828765448daf53fc7a936e6cb405e3607aa0. Code prerequisite uses committed helper 8189; actual migration remains blocked until status v2 compatibility and separately qualified roots/preflight., Independent reviewed implementation scope accepted; live migration is not authorized by this transition., Integrator acceptance: reviewed VIS10 scope-amendment plan /private/tmp/termrock-vis10-scope-amendment-plan-20261009-r2.md SHA-256 509b6cefae8e062477bbd647d9d55b3afbff77e98ec2b44d44160deb4017264b; independent review /private/tmp/termrock-vis10-scope-amendment-plan-review-luna-r2.json SHA-256 e5fb2a8d9bd474cf3c087b3ccab34c5140476f6640eaeb4a82ae0e1d49ec9574 approves this exact bounded workplan. This plan supersedes the prior handoff next_action only for the next implementation sequence. Preserve the existing VIS10 base, owner, reviewer, token, expiry, allowed paths, historical handoff object, and claim history. Implement only this schema-v2 scope-amendment increment in the existing three paths. No live migration, publication, history rewrite, or out-of-scope writes are authorized.
 
-Last handoff: /root/registry_check_luna → /root by `/root/registry_check_luna`. Recorded next action at handoff: Before applying, /root independently repeats the q26 revision and task/view hashes, current owner/token/base/three-path scope, full scoped and staged/untracked diff, accepted-writer overlap, reviewer availability, and current process stop checks. Abort on drift. If checks pass, apply only queue-v1 handoff at expected revision 26 using this exact {new_claim,handoff} payload. Preserve the accepted base, allowed paths, existing evidence and claim history; the new owner continues only within the three paths until a separate plan is accepted. Do not migrate schema v1, alter history, publish, or infer a same-owner renewal from this release.
+Last handoff: /root → /root/coordination_luna by `/root`. Recorded next action at handoff: After exact-payload independent review and Root final preconditions, apply only the VIS-10 handoff CAS at its expected queue revision. Preserve base, accepted paths, existing evidence, and claim_history. No source write authority transfers before CAS. Stop and rebind later steps on any drift.
 
 ### VIS-11
 
