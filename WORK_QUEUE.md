@@ -1,7 +1,7 @@
 # Work queue
 
 Generated from [accepted task records](docs/implementation/visibility/tasks.json).
-Queue revision: 38. Acceptance owner: `/root`.
+Queue revision: 39. Acceptance owner: `/root`.
 
 Highest open priority: **P0**.
 
@@ -12,7 +12,7 @@ Highest open priority: **P0**.
 | VIS-03 | VIS-A03, VIS-P05 | P0 | review | — | /root/showcase_owner | /root/technical_review | AGENTS.md, GOAL.md |
 | VIS-04 | VIS-B01, VIS-B02, VIS-B05, VIS-I06 | P0 | claimed | — | /root | /root/jackin_inventory_current_luna | tools/visibility/deferred.py, tools/visibility/tests/test_deferred.py, docs/implementation/visibility/evidence/deferred/**, crates/termrock-visibility-tests/tests/deferred.rs |
 | VIS-05 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | verified | — | /root/coordination_luna | /root/reference_luna | tools/visibility/queue.py, tools/visibility/tests/test_queue.py |
-| VIS-06 | VIS-T02, VIS-T03, VIS-V01 | P0 | in_progress | — | /root/tablepro_owner | /root/technical_review | tools/visibility/subjects.py, docs/implementation/visibility/evidence/subjects/**, crates/termrock-visibility-tests/tests/subjects.rs |
+| VIS-06 | VIS-T02, VIS-T03, VIS-V01 | P0 | claimed | — | /root/rust_test_execution | /root/subjects_runner_review_luna | tools/visibility/subjects.py, docs/implementation/visibility/evidence/subjects/**, crates/termrock-visibility-tests/tests/subjects.rs |
 | VIS-07 | VIS-A01, VIS-V01 | P0 | in_progress | — | /root/language_review | /root/technical_review | docs/implementation/visibility/evidence/reviews/** |
 | VIS-08 | VIS-V01, VIS-P02 | P0 | in_progress | — | /root/rust_test_infrastructure | /root/technical_review | crates/termrock-visibility-tests/Cargo.toml, crates/termrock-visibility-tests/Cargo.lock, crates/termrock-visibility-tests/src/**, crates/termrock-visibility-tests/README.md |
 | VIS-09 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | in_progress | — | /root/rust_test_infrastructure | /root/technical_review | crates/termrock-visibility-tests/tests/queue.rs, tools/visibility/tests/test_queue.py |
@@ -83,11 +83,13 @@ Evidence: Independent plan approved by /root/technical_review; atomic controls n
 
 Priority reason: Resolve and build actual release binaries from pinned source before paired observations.
 
-Claim token: `visibility-subjects-20261008-06`; accepted at queue revision 7; expires `2026-10-09T00:00:00Z`.
+Claim token: `visibility-subjects-root-to-rustinfra-q38-20261009-01`; accepted at queue revision 39; expires `2026-10-09T06:00:00Z`.
 
 Branch/base: `termrock-implementation` / `994706c6fb4a8d15fa0d5e937839fb07d0e02585`.
 
 Evidence: Independent subject-launcher plan approved by /root/technical_review; exact schema bound before implementation; actual builds not yet run., Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests.
+
+Last handoff: /root/tablepro_owner → /root/rust_test_execution by `/root`. Recorded next action at handoff: After independent review of this exact R2 packet and Root final q38/source precondition recheck, run only: GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1 GIT_NO_REPLACE_OBJECTS=1 python3 /Users/donbeave/Projects/tailrocks/terminal-components-claude/tools/visibility/queue.py handoff VIS-06 --expected-revision 38 --record /private/tmp/termrock-vis06-handoff-q38-r2-20261009-nCvN4E/handoff-record.json. The CLI successful CAS should create q39, append the prior claim snapshot plus this handoff, and set the new owner/reviewer/token/expiry; the old in_progress claim becomes claimed because dependencies are empty. Do not write source files before that CAS; stop and rebind on any revision/hash/preimage drift.
 
 ### VIS-07
 

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 38,
+  "queue_revision": 39,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -816,17 +816,129 @@
         "docs/implementation/visibility/evidence/subjects/**",
         "crates/termrock-visibility-tests/tests/subjects.rs"
       ],
-      "owner": "/root/tablepro_owner",
-      "reviewer": "/root/technical_review",
-      "claim_token": "visibility-subjects-20261008-06",
-      "expiry": "2026-10-09T00:00:00Z",
-      "state": "in_progress",
+      "owner": "/root/rust_test_execution",
+      "reviewer": "/root/subjects_runner_review_luna",
+      "claim_token": "visibility-subjects-root-to-rustinfra-q38-20261009-01",
+      "expiry": "2026-10-09T06:00:00Z",
+      "state": "claimed",
       "evidence": [
         "Independent subject-launcher plan approved by /root/technical_review; exact schema bound before implementation; actual builds not yet run.",
         "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests."
       ],
-      "handoff": null,
-      "accepted_queue_revision": 7
+      "handoff": {
+        "changed_paths": [
+          "crates/termrock-visibility-tests/tests/subjects.rs",
+          "docs/implementation/visibility/evidence/subjects/implementation-pilot-v1.json",
+          "tools/visibility/subjects.py"
+        ],
+        "checks": [
+          {
+            "command": "read q38 task and rendered queue preimage",
+            "result": "queue revision 38; tasks.json SHA-256 e34175d3a809eee7df07ed2059eb1e61a21aa4e450d58ed90514316f66f8e19d; WORK_QUEUE.md SHA-256 7129eb24f24bb96f0129c8f781d0b95254cc84d4362355bb0259f2df6cb10b3d; VIS-06 current owner/reviewer/token/base/state/scope/handoff/history are recorded in lifecycle-evidence.json"
+          },
+          {
+            "command": "git diff --no-color --no-ext-diff --binary --full-index HEAD -- tools/visibility/subjects.py docs/implementation/visibility/evidence/subjects/implementation-pilot-v1.json crates/termrock-visibility-tests/tests/subjects.rs",
+            "result": "Exactly 3 allowed regular files are modified in the worktree; SHA-256, mode, and index==HEAD rows are in lifecycle-evidence.json. This full-index binary diff projection is SHA-256 499cea930ec110227a4a73d09beecdcf095d5bbe15c23b2552509bd429040bcf. The earlier R1 receipt used the same command without --full-index and produced 76a8e782bbf05588620cd0112380bbaaccf8e5d27244cccfe44ccdd6e92cf071; the difference is Git diff output formatting."
+          },
+          {
+            "command": "read scoped old-owner runtime lifecycle",
+            "result": "Root accepted a coordinator-verified stop for agent thread 01a1196d-f558-7930-ad09-96f1089e9a6d; 36/36 turns and all 1092 recorded command executions are terminal. Exact runtime record IDs/times and limitations are in /private/tmp/termrock-vis06-handoff-q38-r1-20261009-k5gpxowx/lifecycle-evidence.json SHA-256 7066db960653ba5d063ab98ff7a95251c0c7603df427358d69adf721630d5d62. No owner release is claimed."
+          },
+          {
+            "command": "recipient availability",
+            "result": "At 2026-10-09T05:10:19Z, /root/rust_test_execution directly confirmed it can accept these exact three paths only after an independently reviewed q38→39 CAS and explicit Root assignment; it will make no VIS-06 source/evidence/queue writes before CAS."
+          },
+          {
+            "command": "independent reviewer availability",
+            "result": "As of 2026-10-09T05:10:19Z, /root/subjects_runner_review_luna has the corrected R2 packet and is actively reviewing its exact scope; the reviewer has made no pre-CAS VIS-06 source/evidence/queue writes."
+          }
+        ],
+        "coordinator_verified_stopped": true,
+        "diff_sha256": "499cea930ec110227a4a73d09beecdcf095d5bbe15c23b2552509bd429040bcf",
+        "from_owner": "/root/tablepro_owner",
+        "git_status": "q38 read-only observation: cached tracking ref says local ahead 3/behind 62 (no network refresh). Preserved local-only ancestry: 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, 766ae1e925e32b4b28aa9100bb3fde5279aa223b; no task attribution is inferred. The three VIS-06 allowed files have unstaged worktree modifications; their index blobs equal HEAD and scoped staged diff is empty. The exact full-index binary diff projection is SHA-256 499cea930ec110227a4a73d09beecdcf095d5bbe15c23b2552509bd429040bcf. The initial R1 preparation used the same command without --full-index and produced 76a8e782bbf05588620cd0112380bbaaccf8e5d27244cccfe44ccdd6e92cf071; the difference is Git diff object-ID formatting. Other dirty paths are outside this handoff snapshot and are not attributed to VIS-06.",
+        "handoff_at": "2026-10-09T04:56:05Z",
+        "handoff_by": "/root",
+        "next_action": "After independent review of this exact R2 packet and Root final q38/source precondition recheck, run only: GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1 GIT_NO_REPLACE_OBJECTS=1 python3 /Users/donbeave/Projects/tailrocks/terminal-components-claude/tools/visibility/queue.py handoff VIS-06 --expected-revision 38 --record /private/tmp/termrock-vis06-handoff-q38-r2-20261009-nCvN4E/handoff-record.json. The CLI successful CAS should create q39, append the prior claim snapshot plus this handoff, and set the new owner/reviewer/token/expiry; the old in_progress claim becomes claimed because dependencies are empty. Do not write source files before that CAS; stop and rebind on any revision/hash/preimage drift.",
+        "owner_released": false,
+        "stop_evidence": "Root-accepted scoped coordinator stop; see /private/tmp/termrock-vis06-handoff-q38-r1-20261009-k5gpxowx/lifecycle-evidence.json SHA-256 7066db960653ba5d063ab98ff7a95251c0c7603df427358d69adf721630d5d62. The receipt binds the old owner thread and all recorded owned-command executions; it explicitly does not claim owner release or model-worker PID proof.",
+        "to_owner": "/root/rust_test_execution",
+        "unpublished_commits": [
+          "186c28774ae6abe740fc7663a3db2e17444f086a",
+          "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
+          "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
+        ],
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; tree=b5701830ac45f93620b2f55da71862aacc549cd6"
+      },
+      "accepted_queue_revision": 39,
+      "claim_history": [
+        {
+          "claim": {
+            "owner": "/root/tablepro_owner",
+            "reviewer": "/root/technical_review",
+            "branch": "termrock-implementation",
+            "base_sha": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+            "allowed_paths": [
+              "tools/visibility/subjects.py",
+              "docs/implementation/visibility/evidence/subjects/**",
+              "crates/termrock-visibility-tests/tests/subjects.rs"
+            ],
+            "claim_token": "visibility-subjects-20261008-06",
+            "expiry": "2026-10-09T00:00:00Z",
+            "state": "in_progress",
+            "accepted_queue_revision": 7,
+            "evidence": [
+              "Independent subject-launcher plan approved by /root/technical_review; exact schema bound before implementation; actual builds not yet run.",
+              "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests."
+            ]
+          },
+          "handoff": {
+            "changed_paths": [
+              "crates/termrock-visibility-tests/tests/subjects.rs",
+              "docs/implementation/visibility/evidence/subjects/implementation-pilot-v1.json",
+              "tools/visibility/subjects.py"
+            ],
+            "checks": [
+              {
+                "command": "read q38 task and rendered queue preimage",
+                "result": "queue revision 38; tasks.json SHA-256 e34175d3a809eee7df07ed2059eb1e61a21aa4e450d58ed90514316f66f8e19d; WORK_QUEUE.md SHA-256 7129eb24f24bb96f0129c8f781d0b95254cc84d4362355bb0259f2df6cb10b3d; VIS-06 current owner/reviewer/token/base/state/scope/handoff/history are recorded in lifecycle-evidence.json"
+              },
+              {
+                "command": "git diff --no-color --no-ext-diff --binary --full-index HEAD -- tools/visibility/subjects.py docs/implementation/visibility/evidence/subjects/implementation-pilot-v1.json crates/termrock-visibility-tests/tests/subjects.rs",
+                "result": "Exactly 3 allowed regular files are modified in the worktree; SHA-256, mode, and index==HEAD rows are in lifecycle-evidence.json. This full-index binary diff projection is SHA-256 499cea930ec110227a4a73d09beecdcf095d5bbe15c23b2552509bd429040bcf. The earlier R1 receipt used the same command without --full-index and produced 76a8e782bbf05588620cd0112380bbaaccf8e5d27244cccfe44ccdd6e92cf071; the difference is Git diff output formatting."
+              },
+              {
+                "command": "read scoped old-owner runtime lifecycle",
+                "result": "Root accepted a coordinator-verified stop for agent thread 01a1196d-f558-7930-ad09-96f1089e9a6d; 36/36 turns and all 1092 recorded command executions are terminal. Exact runtime record IDs/times and limitations are in /private/tmp/termrock-vis06-handoff-q38-r1-20261009-k5gpxowx/lifecycle-evidence.json SHA-256 7066db960653ba5d063ab98ff7a95251c0c7603df427358d69adf721630d5d62. No owner release is claimed."
+              },
+              {
+                "command": "recipient availability",
+                "result": "At 2026-10-09T05:10:19Z, /root/rust_test_execution directly confirmed it can accept these exact three paths only after an independently reviewed q38→39 CAS and explicit Root assignment; it will make no VIS-06 source/evidence/queue writes before CAS."
+              },
+              {
+                "command": "independent reviewer availability",
+                "result": "As of 2026-10-09T05:10:19Z, /root/subjects_runner_review_luna has the corrected R2 packet and is actively reviewing its exact scope; the reviewer has made no pre-CAS VIS-06 source/evidence/queue writes."
+              }
+            ],
+            "coordinator_verified_stopped": true,
+            "diff_sha256": "499cea930ec110227a4a73d09beecdcf095d5bbe15c23b2552509bd429040bcf",
+            "from_owner": "/root/tablepro_owner",
+            "git_status": "q38 read-only observation: cached tracking ref says local ahead 3/behind 62 (no network refresh). Preserved local-only ancestry: 186c28774ae6abe740fc7663a3db2e17444f086a, f61abd3dfba1b4f867a539ab18ed7e4760b24a18, 766ae1e925e32b4b28aa9100bb3fde5279aa223b; no task attribution is inferred. The three VIS-06 allowed files have unstaged worktree modifications; their index blobs equal HEAD and scoped staged diff is empty. The exact full-index binary diff projection is SHA-256 499cea930ec110227a4a73d09beecdcf095d5bbe15c23b2552509bd429040bcf. The initial R1 preparation used the same command without --full-index and produced 76a8e782bbf05588620cd0112380bbaaccf8e5d27244cccfe44ccdd6e92cf071; the difference is Git diff object-ID formatting. Other dirty paths are outside this handoff snapshot and are not attributed to VIS-06.",
+            "handoff_at": "2026-10-09T04:56:05Z",
+            "handoff_by": "/root",
+            "next_action": "After independent review of this exact R2 packet and Root final q38/source precondition recheck, run only: GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1 GIT_NO_REPLACE_OBJECTS=1 python3 /Users/donbeave/Projects/tailrocks/terminal-components-claude/tools/visibility/queue.py handoff VIS-06 --expected-revision 38 --record /private/tmp/termrock-vis06-handoff-q38-r2-20261009-nCvN4E/handoff-record.json. The CLI successful CAS should create q39, append the prior claim snapshot plus this handoff, and set the new owner/reviewer/token/expiry; the old in_progress claim becomes claimed because dependencies are empty. Do not write source files before that CAS; stop and rebind on any revision/hash/preimage drift.",
+            "owner_released": false,
+            "stop_evidence": "Root-accepted scoped coordinator stop; see /private/tmp/termrock-vis06-handoff-q38-r1-20261009-k5gpxowx/lifecycle-evidence.json SHA-256 7066db960653ba5d063ab98ff7a95251c0c7603df427358d69adf721630d5d62. The receipt binds the old owner thread and all recorded owned-command executions; it explicitly does not claim owner release or model-worker PID proof.",
+            "to_owner": "/root/rust_test_execution",
+            "unpublished_commits": [
+              "186c28774ae6abe740fc7663a3db2e17444f086a",
+              "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
+              "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
+            ],
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; tree=b5701830ac45f93620b2f55da71862aacc549cd6"
+          }
+        }
+      ]
     },
     {
       "work_id": "VIS-07",
