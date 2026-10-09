@@ -2962,6 +2962,31 @@ impl ReviewSubjectFixture {
         ])
     }
 
+    fn reviewer_handoff(
+        &self,
+        work_id: &str,
+        revision: u64,
+        token: &str,
+        expected_reviewer: &str,
+        new_reviewer: &str,
+        evidence: &str,
+    ) -> CliOutput {
+        self.run(&[
+            "reviewer-handoff".to_owned(),
+            work_id.to_owned(),
+            "--expected-revision".to_owned(),
+            revision.to_string(),
+            "--claim-token".to_owned(),
+            token.to_owned(),
+            "--expected-reviewer".to_owned(),
+            expected_reviewer.to_owned(),
+            "--new-reviewer".to_owned(),
+            new_reviewer.to_owned(),
+            "--evidence".to_owned(),
+            evidence.to_owned(),
+        ])
+    }
+
     fn transition(
         &self,
         state: &str,
@@ -3184,6 +3209,270 @@ fn append_evidence_rejects_lower_priority_work_without_writes() {
         "cannot append evidence for lower priority P1 while P0 remains open",
     );
     assert_eq!(fixture.queue_files(), unchanged, "priority rejection writes no queue files");
+}
+
+#[test]
+fn reviewer_handoff_preserves_claim_and_expired_expiry_while_changing_reviewer() {
+    let fixture = ReviewSubjectFixture::new();
+    let before = fixture.read_records();
+    let revision = fixture.revision();
+    let task = fixture.read_task("VIS-08");
+    let token = task["claim_token"].as_str().unwrap().to_owned();
+    let old_reviewer = task["reviewer"].as_str().unwrap();
+    let new_reviewer = "/root/subjects_runner_review_luna";
+    let evidence = "synthetic reviewer replacement evidence";
+
+    assert_eq!(task["owner"], "/root/rust_test_infrastructure");
+    assert_eq!(task["state"], "in_progress");
+    assert_eq!(task["expiry"], "2026-10-09T00:00:00Z");
+    let output = fixture.reviewer_handoff(
+        "VIS-08", revision, &token, old_reviewer, new_reviewer, evidence,
+    );
+    assert_success(&output);
+
+    let mut expected = before;
+    expected["queue_revision"] = json!(revision + 1);
+    let changed = expected["tasks"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|item| item["work_id"] == "VIS-08")
+        .unwrap();
+    changed["reviewer"] = json!(new_reviewer);
+    changed["evidence"].as_array_mut().unwrap().push(json!(format!(
+        "reviewer handoff at queue revision {}: {} -> {}; {}",
+        revision + 1,
+        old_reviewer,
+        new_reviewer,
+        evidence
+    )));
+    assert_eq!(fixture.read_records(), expected,
+        "only reviewer, audit evidence, and queue revision may change");
+    assert_success(&fixture.run(&["check".to_owned()]));
+}
+
+#[test]
+fn reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes() {
+    let fixture = ReviewSubjectFixture::new();
+    let revision = fixture.revision();
+    let task = fixture.read_task("VIS-08");
+    let token = task["claim_token"].as_str().unwrap().to_owned();
+    let owner = task["owner"].as_str().unwrap().to_owned();
+    let old_reviewer = task["reviewer"].as_str().unwrap().to_owned();
+    let existing = task["evidence"][0].as_str().unwrap().to_owned();
+    let unchanged = fixture.queue_files();
+    let valid_new = "/root/subjects_runner_review_luna";
+
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08", revision.saturating_sub(1), &token,
+            &old_reviewer, valid_new, "synthetic replacement",
+        ),
+        "stale queue revision",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08", revision, "wrong-token", &old_reviewer,
+            valid_new, "synthetic replacement",
+        ),
+        "claim token does not match the current task claim",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08", revision, &token, "/root/stale-reviewer",
+            valid_new, "synthetic replacement",
+        ),
+        "assigned reviewer does not match expected reviewer",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08", revision, &token, &old_reviewer,
+            &old_reviewer, "synthetic replacement",
+        ),
+        "new reviewer must differ from assigned reviewer",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08", revision, &token, &old_reviewer, "", "synthetic replacement",
+        ),
+        "new reviewer must be nonempty text",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08", revision, &token, &old_reviewer, &owner,
+            "synthetic replacement",
+        ),
+        "new reviewer must differ from current owner",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08", revision, &token, &old_reviewer,
+            "/root/invalid\nreviewer", "synthetic replacement",
+        ),
+        "new reviewer must be a single-line identity",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08", revision, &token, &old_reviewer, valid_new, "  \t  ",
+        ),
+        "reviewer handoff evidence must be nonempty text",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08", revision, &token, &old_reviewer, valid_new, &existing,
+        ),
+        "reviewer handoff evidence entry already exists",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+}
+
+#[test]
+fn reviewer_handoff_rejects_reused_reason_without_writes() {
+    let fixture = ReviewSubjectFixture::new();
+    let task = fixture.read_task("VIS-08");
+    let token = task["claim_token"].as_str().unwrap().to_owned();
+    let first_reviewer = task["reviewer"].as_str().unwrap().to_owned();
+    let second_reviewer = "/root/subjects_runner_review_luna";
+    let third_reviewer = "/root/ci_parity_review_luna";
+    let reason = "same reviewer handoff rationale";
+    assert_success(&fixture.reviewer_handoff(
+        "VIS-08", fixture.revision(), &token, &first_reviewer, second_reviewer, reason,
+    ));
+
+    let after_first_handoff = fixture.queue_files();
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08", fixture.revision(), &token, second_reviewer, third_reviewer, reason,
+        ),
+        "reviewer handoff evidence entry already exists",
+    );
+    assert_eq!(fixture.queue_files(), after_first_handoff,
+        "reused reviewer handoff reason writes no queue files");
+}
+
+#[test]
+fn reviewer_handoff_rejects_review_state_without_writes() {
+    let fixture = ReviewSubjectFixture::new();
+    let mut records = fixture.read_records();
+    let task = records["tasks"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|item| item["work_id"] == "VIS-08")
+        .unwrap();
+    task["state"] = json!("review");
+    task.as_object_mut().unwrap().remove("review_subject_sha256");
+    task.as_object_mut().unwrap().remove("review_record");
+    task.as_object_mut().unwrap().remove("review_record_sha256");
+    fs::write(
+        &fixture.tasks_path,
+        serde_json::to_vec_pretty(&records).expect("serialize review-state fixture"),
+    )
+    .expect("install review-state fixture records");
+    let rendered = fixture.run(&["render".to_owned()]);
+    assert_success(&rendered);
+    fs::write(&fixture.view_path, rendered.stdout).expect("refresh review-state fixture view");
+
+    let task = fixture.read_task("VIS-08");
+    let revision = fixture.revision();
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08",
+            revision,
+            task["claim_token"].as_str().unwrap(),
+            task["reviewer"].as_str().unwrap(),
+            "/root/subjects_runner_review_luna",
+            "synthetic review-state control",
+        ),
+        "reviewer handoff requires a claimed, in-progress, or blocked task",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "review-state rejection writes no queue files");
+}
+
+#[test]
+fn reviewer_handoff_rejects_lower_priority_work_without_writes() {
+    let fixture = ReviewSubjectFixture::new();
+    let mut records = fixture.read_records();
+    let task = records["tasks"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|item| item["work_id"] == "VIS-08")
+        .unwrap();
+    task["priority"] = json!("P1");
+    task["priority_reason"] = json!("synthetic lower-priority reviewer handoff control");
+    assert!(records["tasks"].as_array().unwrap().iter().any(|item|
+        item["state"] != "verified" && item["priority"] == "P0"));
+    fs::write(
+        &fixture.tasks_path,
+        serde_json::to_vec_pretty(&records).expect("serialize lower-priority fixture"),
+    )
+    .expect("install lower-priority fixture records");
+    let rendered = fixture.run(&["render".to_owned()]);
+    assert_success(&rendered);
+    fs::write(&fixture.view_path, rendered.stdout).expect("refresh lower-priority fixture view");
+
+    let revision = fixture.revision();
+    let task = fixture.read_task("VIS-08");
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08",
+            revision,
+            task["claim_token"].as_str().unwrap(),
+            task["reviewer"].as_str().unwrap(),
+            "/root/subjects_runner_review_luna",
+            "synthetic lower-priority reviewer handoff",
+        ),
+        "cannot append evidence for lower priority P1 while P0 remains open",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "priority rejection writes no queue files");
+}
+
+#[test]
+fn reviewer_handoff_rejects_a_stale_review_subject_without_writes() {
+    let fixture = ReviewSubjectFixture::new();
+    let mut records = fixture.read_records();
+    let task = records["tasks"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|item| item["work_id"] == "VIS-08")
+        .unwrap();
+    task["review_subject_sha256"] = json!("d".repeat(64));
+    fs::write(
+        &fixture.tasks_path,
+        serde_json::to_vec_pretty(&records).expect("serialize stale subject fixture"),
+    )
+    .expect("install stale subject fixture records");
+    let rendered = fixture.run(&["render".to_owned()]);
+    assert_success(&rendered);
+    fs::write(&fixture.view_path, rendered.stdout).expect("refresh stale subject fixture view");
+
+    let task = fixture.read_task("VIS-08");
+    let revision = fixture.revision();
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.reviewer_handoff(
+            "VIS-08",
+            revision,
+            task["claim_token"].as_str().unwrap(),
+            task["reviewer"].as_str().unwrap(),
+            "/root/subjects_runner_review_luna",
+            "synthetic stale subject control",
+        ),
+        "reviewer handoff cannot change an active review subject",
+    );
+    assert_eq!(fixture.queue_files(), unchanged, "stale subject rejection writes no queue files");
 }
 
 #[test]
