@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 33,
+  "queue_revision": 34,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -408,61 +408,65 @@
         "docs/implementation/visibility/evidence/deferred/**",
         "crates/termrock-visibility-tests/tests/deferred.rs"
       ],
-      "owner": "/root/current_branch_comparison_luna",
-      "reviewer": "/root/holla_owner",
-      "claim_token": "visibility-deferred-recovery-20261008-04",
-      "expiry": "2026-10-09T00:00:00Z",
+      "owner": "/root",
+      "reviewer": "/root/jackin_inventory_current_luna",
+      "claim_token": "visibility-deferred-root-q33-20261009-01",
+      "expiry": "2026-10-09T06:00:00Z",
       "state": "claimed",
       "evidence": [
         "Independent plan approved by /root/technical_review; build slot not granted yet.",
         "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests."
       ],
       "handoff": {
-        "handoff_at": "2026-10-08T10:44:03Z",
-        "handoff_by": "/root",
-        "from_owner": "/root/deferred_execution",
-        "to_owner": "/root/current_branch_comparison_luna",
-        "owner_released": false,
-        "coordinator_verified_stopped": true,
-        "stop_evidence": "Coordinator-only supervised stop proposal, not owner release. Bind to /private/tmp/termrock-vis04-supervised-handoff-prerequisites-20261008.json SHA-256 4650769494555fb01709bf0d9b7c3b30b560fcd4de98cae7c329cb3b9f3b9997. Root repeated q23 task/path hashes and scoped status; its deferred_execution roster query returned no listed owner. Root's bounded process scan found Cargo PID 69312, parent 28736, elapsed 02:12, cwd /private/tmp/repo-scan-pr1.oefGGx/repo; no arguments or environment were read. This is an external worktree, not VIS-04 execution. The audit's bounded snapshots found no matching process names, stable VIS-04 source hashes, no tracked or staged scoped diff, and one independently reviewed untracked mapping file. These observations support a supervised stop only for this accepted scope; they do not prove owner acknowledgment, OS-level isolation, or global process absence.",
-        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch termrock-implementation; HEAD 186c28774ae6abe740fc7663a3db2e17444f086a; accepted base cc3ce8f6ac149aaee406047c5180d1a658d6bb9c.",
-        "git_status": "Accepted VIS-04 scope at q23: one untracked docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md with SHA-256 e77ebc09f91cdb37b26b9096252a3212da784085238d1e5f32bf8198e96a5e9d; no other scoped worktree status. Tracked HEAD-to-worktree and index diffs are empty. Base-to-HEAD history contains 37 additions and 12,448 insertions, already present at local HEAD. tools/visibility/tests/test_deferred.py is absent from the worktree and index. No accepted base, local HEAD, or history change is proposed.",
-        "diff_sha256": "5b271781d62376502a5deaa7eb21ab278012fb9a5156fd579c0e570c4ab2ba4b",
+        "handoff_at": "2026-10-09T01:34:09Z",
+        "handoff_by": "/root/current_branch_comparison_luna",
+        "from_owner": "/root/current_branch_comparison_luna",
+        "to_owner": "/root",
+        "owner_released": true,
+        "coordinator_verified_stopped": false,
+        "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; accepted_base=cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+        "git_status": "q33 scoped observation: tracked unstaged modifications are tools/visibility/deferred.py and crates/termrock-visibility-tests/tests/deferred.rs; staged scoped diff is empty; two untracked evidence files are listed in changed_paths; tools/visibility/tests/test_deferred.py is absent. Current scope preimages match the q29 owner-release snapshot. The full worktree contains unrelated changes. Owner confirmation says no VIS-04 allowed-path writes/tests since release; it does not claim process quiescence.",
+        "diff_sha256": "03aa4c73051f724d016b8836a1d5c4da781562f273a1fcb54ddabfcddfe923a2",
         "changed_paths": [
-          "docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md"
+          "crates/termrock-visibility-tests/tests/deferred.rs",
+          "docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md",
+          "docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json",
+          "tools/visibility/deferred.py"
         ],
         "unpublished_commits": [
-          "186c28774ae6abe740fc7663a3db2e17444f086a (preserve current local tip and history; STATUS.md records it as unpublished and missing the exact DCO trailer)"
+          "186c28774ae6abe740fc7663a3db2e17444f086a",
+          "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
+          "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
         ],
         "checks": [
           {
-            "command": "Root's q23 recheck of VIS-04 record, source hashes, scoped status, and roster",
-            "result": "Root reports q23 and hashes unchanged, the only accepted-scope worktree item remains the reviewed mapping document, and the deferred_execution roster query returned no listed owner."
+            "command": "q29 owner-release JSON SHA-256 and owner-release attestation",
+            "result": "SHA-256 24285d419b97ada9df2d61668a1d6f181a9bd1fc87e22397f417e01a1d11f5b3; owner /root/current_branch_comparison_luna released VIS-04 token visibility-deferred-recovery-20261008-04 to /root at 2026-10-09T01:34:09Z; queue_write_performed=false."
           },
           {
-            "command": "Root's bounded process metadata scan",
-            "result": "Found Cargo PID 69312, PPID 28736, elapsed 02:12, working directory /private/tmp/repo-scan-pr1.oefGGx/repo. No args or environment inspected. This is external to the target worktree and is recorded separately; no global no-Cargo claim."
+            "command": "q33 read-only queue check",
+            "result": "queue revision 33; 12 accepted task(s); highest open priority P0."
           },
           {
-            "command": "Scoped Git status and diff, repeated by the auditor with GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1",
-            "result": "HEAD-to-worktree tracked diff and staged diff are both empty (SHA-256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855). One untracked mapping file remains (SHA-256 e77ebc09f91cdb37b26b9096252a3212da784085238d1e5f32bf8198e96a5e9d); its no-index binary patch digest is 5b271781d62376502a5deaa7eb21ab278012fb9a5156fd579c0e570c4ab2ba4b."
+            "command": "q33 task/view/input hashes",
+            "result": "tasks.json SHA-256 1f79f5ab8443e6e54f52ba215828eb8066acbf3fa0d3ebddc1d4acb62261e0ed; WORK_QUEUE.md SHA-256 bd725a82755f27f8f3a7d8ed9db8db4e64f5c63fd2f0a326853090666242f2cc; STATUS.md SHA-256 0905cf8aafb0d1b67f062789b5068ea2bcc1bf2dfa120fe599edc10ef408de05; source-facts.json SHA-256 819e0c2481fc6fc721bec4ddfddad88c5332b8fdb69416804f57cbb0728ef965; queue.py SHA-256 f77276e08dfaa9f5d10cfd53069592333c795e4415c899a0ce0fb30a2dbb32ac."
           },
           {
-            "command": "Accepted-base-to-HEAD scoped history",
-            "result": "Accepted base is an ancestor. Base tree has no files under accepted VIS-04 paths; 37 additions / 12,448 insertions are already present at local HEAD, binary diff SHA-256 633958faffb41878be79820729ff030ad30642fffe830c8ceb43a4c8a1fdc542."
+            "command": "q33 VIS-04 accepted record compared with q29 release snapshot",
+            "result": "Current task compact JSON SHA-256 e09b31c5b67345ba6e3459129637b2d034ffbe637e58835254b5d8754af9ae76 equals q29 task_record_snapshot_sha256 e09b31c5b67345ba6e3459129637b2d034ffbe637e58835254b5d8754af9ae76; existing evidence array SHA-256 b9a0007bcf316943a011aad76cb77e42c6f4937b18064f7ab120614c2cf0bfaa; current claim_history SHA-256 9fd26681186c32a529218c81f27bd6fbc097cd56abe08b6e56432a605b57b4bc."
           },
           {
-            "command": "Historical deferred receipt",
-            "result": "Receipt 34e64f00be0a76bc66de5d8feaaa4d2328b900a15b966ad747848faad9748018 records 23 executed, 23 failed, 0 passed; it is a historical dirty-worktree red result, not a current pass."
+            "command": "GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1 scoped status and source preimages",
+            "result": "Current branch/HEAD termrock-implementation/766ae1e925e32b4b28aa9100bb3fde5279aa223b; scoped staged diff empty; 5/5 scope path observations match q29; current scope diff SHA-256 03aa4c73051f724d016b8836a1d5c4da781562f273a1fcb54ddabfcddfe923a2."
           },
           {
-            "command": "Independent handoff payload review",
-            "result": "Pending. This exact record and its expected effect must be approved before root repeats final CAS preconditions. Any changed field or handoff timestamp requires review of the changed exact record."
+            "command": "current owner confirmation",
+            "result": "Owner reconfirmed release hash 24285d419b97ada9df2d61668a1d6f181a9bd1fc87e22397f417e01a1d11f5b3 remains valid, no VIS-04 allowed-path writes/tests since release, current writes only external Velnor gate artifacts; no global process-quiescence claim."
           }
         ],
-        "next_action": "After independent approval and root's final CAS checks, transfer the in-progress VIS-04 assignment to the proposed owner without changing base, allowed paths, or historical claim/evidence. The queue CLI will set the successor state to claimed. Continue from current local history; preserve the historical 23-fail result as red evidence and do not claim a current pass."
+        "next_action": "Before any CAS, Root re-reads q33 revision, tasks.json and WORK_QUEUE.md hashes, VIS-04 current claim token/scope, exact scoped file preimages, branch/HEAD, active path conflicts, and owner-release hash. If unchanged, apply only the queue.py handoff CAS at expected revision 33. Preserve the exact accepted base, four allowed path strings, requirement and priority fields, existing evidence, existing claim history, and all other task records. No source/build/test claim is implied."
       },
-      "accepted_queue_revision": 24,
+      "accepted_queue_revision": 34,
       "claim_history": [
         {
           "claim": {
@@ -529,6 +533,77 @@
               }
             ],
             "next_action": "After independent approval and root's final CAS checks, transfer the in-progress VIS-04 assignment to the proposed owner without changing base, allowed paths, or historical claim/evidence. The queue CLI will set the successor state to claimed. Continue from current local history; preserve the historical 23-fail result as red evidence and do not claim a current pass."
+          }
+        },
+        {
+          "claim": {
+            "owner": "/root/current_branch_comparison_luna",
+            "reviewer": "/root/holla_owner",
+            "branch": "termrock-implementation",
+            "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+            "allowed_paths": [
+              "tools/visibility/deferred.py",
+              "tools/visibility/tests/test_deferred.py",
+              "docs/implementation/visibility/evidence/deferred/**",
+              "crates/termrock-visibility-tests/tests/deferred.rs"
+            ],
+            "claim_token": "visibility-deferred-recovery-20261008-04",
+            "expiry": "2026-10-09T00:00:00Z",
+            "state": "claimed",
+            "accepted_queue_revision": 24,
+            "evidence": [
+              "Independent plan approved by /root/technical_review; build slot not granted yet.",
+              "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests."
+            ]
+          },
+          "handoff": {
+            "handoff_at": "2026-10-09T01:34:09Z",
+            "handoff_by": "/root/current_branch_comparison_luna",
+            "from_owner": "/root/current_branch_comparison_luna",
+            "to_owner": "/root",
+            "owner_released": true,
+            "coordinator_verified_stopped": false,
+            "worktree": "/Users/donbeave/Projects/tailrocks/terminal-components-claude; branch=termrock-implementation; HEAD=766ae1e925e32b4b28aa9100bb3fde5279aa223b; accepted_base=cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+            "git_status": "q33 scoped observation: tracked unstaged modifications are tools/visibility/deferred.py and crates/termrock-visibility-tests/tests/deferred.rs; staged scoped diff is empty; two untracked evidence files are listed in changed_paths; tools/visibility/tests/test_deferred.py is absent. Current scope preimages match the q29 owner-release snapshot. The full worktree contains unrelated changes. Owner confirmation says no VIS-04 allowed-path writes/tests since release; it does not claim process quiescence.",
+            "diff_sha256": "03aa4c73051f724d016b8836a1d5c4da781562f273a1fcb54ddabfcddfe923a2",
+            "changed_paths": [
+              "crates/termrock-visibility-tests/tests/deferred.rs",
+              "docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md",
+              "docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json",
+              "tools/visibility/deferred.py"
+            ],
+            "unpublished_commits": [
+              "186c28774ae6abe740fc7663a3db2e17444f086a",
+              "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
+              "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
+            ],
+            "checks": [
+              {
+                "command": "q29 owner-release JSON SHA-256 and owner-release attestation",
+                "result": "SHA-256 24285d419b97ada9df2d61668a1d6f181a9bd1fc87e22397f417e01a1d11f5b3; owner /root/current_branch_comparison_luna released VIS-04 token visibility-deferred-recovery-20261008-04 to /root at 2026-10-09T01:34:09Z; queue_write_performed=false."
+              },
+              {
+                "command": "q33 read-only queue check",
+                "result": "queue revision 33; 12 accepted task(s); highest open priority P0."
+              },
+              {
+                "command": "q33 task/view/input hashes",
+                "result": "tasks.json SHA-256 1f79f5ab8443e6e54f52ba215828eb8066acbf3fa0d3ebddc1d4acb62261e0ed; WORK_QUEUE.md SHA-256 bd725a82755f27f8f3a7d8ed9db8db4e64f5c63fd2f0a326853090666242f2cc; STATUS.md SHA-256 0905cf8aafb0d1b67f062789b5068ea2bcc1bf2dfa120fe599edc10ef408de05; source-facts.json SHA-256 819e0c2481fc6fc721bec4ddfddad88c5332b8fdb69416804f57cbb0728ef965; queue.py SHA-256 f77276e08dfaa9f5d10cfd53069592333c795e4415c899a0ce0fb30a2dbb32ac."
+              },
+              {
+                "command": "q33 VIS-04 accepted record compared with q29 release snapshot",
+                "result": "Current task compact JSON SHA-256 e09b31c5b67345ba6e3459129637b2d034ffbe637e58835254b5d8754af9ae76 equals q29 task_record_snapshot_sha256 e09b31c5b67345ba6e3459129637b2d034ffbe637e58835254b5d8754af9ae76; existing evidence array SHA-256 b9a0007bcf316943a011aad76cb77e42c6f4937b18064f7ab120614c2cf0bfaa; current claim_history SHA-256 9fd26681186c32a529218c81f27bd6fbc097cd56abe08b6e56432a605b57b4bc."
+              },
+              {
+                "command": "GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1 scoped status and source preimages",
+                "result": "Current branch/HEAD termrock-implementation/766ae1e925e32b4b28aa9100bb3fde5279aa223b; scoped staged diff empty; 5/5 scope path observations match q29; current scope diff SHA-256 03aa4c73051f724d016b8836a1d5c4da781562f273a1fcb54ddabfcddfe923a2."
+              },
+              {
+                "command": "current owner confirmation",
+                "result": "Owner reconfirmed release hash 24285d419b97ada9df2d61668a1d6f181a9bd1fc87e22397f417e01a1d11f5b3 remains valid, no VIS-04 allowed-path writes/tests since release, current writes only external Velnor gate artifacts; no global process-quiescence claim."
+              }
+            ],
+            "next_action": "Before any CAS, Root re-reads q33 revision, tasks.json and WORK_QUEUE.md hashes, VIS-04 current claim token/scope, exact scoped file preimages, branch/HEAD, active path conflicts, and owner-release hash. If unchanged, apply only the queue.py handoff CAS at expected revision 33. Preserve the exact accepted base, four allowed path strings, requirement and priority fields, existing evidence, existing claim history, and all other task records. No source/build/test claim is implied."
           }
         }
       ]

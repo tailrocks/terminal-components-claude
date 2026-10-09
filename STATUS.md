@@ -152,14 +152,14 @@ No compatible previous complete required-set run is recorded, so trend changes a
 
 ## Next work
 
-Highest open priority: **P0**, from accepted queue revision 33.
+Highest open priority: **P0**, from accepted queue revision 34.
 
 | Work | State | Owner | Reviewer | Priority reason |
 | --- | --- | --- | --- | --- |
 | VIS-01 | claimed | /root | /root/technical_review | Publish source facts and show missing paired execution and the current CI failure. |
 | VIS-02 | claimed | /root | /root/controls_wrapper_review_luna | A shared driver for real binaries is needed before visibility can be measured. |
 | VIS-03 | review | /root/showcase_owner | /root/technical_review | Direct agents to the visibility tasks and accepted work paths before further product refactoring. |
-| VIS-04 | claimed | /root/current_branch_comparison_luna | /root/holla_owner | Run the deferred assertions and preserve their failure results. |
+| VIS-04 | claimed | /root | /root/jackin_inventory_current_luna | Run the deferred assertions and preserve their failure results. |
 | VIS-06 | in_progress | /root/tablepro_owner | /root/technical_review | Resolve and build actual release binaries from pinned source before paired observations. |
 | VIS-07 | in_progress | /root/language_review | /root/technical_review | Keep actual independent review and commit bindings in repository evidence. |
 | VIS-08 | in_progress | /root/rust_test_infrastructure | /root/technical_review | Use Rust tests to preserve and verify the reporting, queue, deferred, and binary-build requirements. |

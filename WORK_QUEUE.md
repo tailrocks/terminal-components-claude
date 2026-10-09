@@ -1,7 +1,7 @@
 # Work queue
 
 Generated from [accepted task records](docs/implementation/visibility/tasks.json).
-Queue revision: 33. Acceptance owner: `/root`.
+Queue revision: 34. Acceptance owner: `/root`.
 
 Highest open priority: **P0**.
 
@@ -10,7 +10,7 @@ Highest open priority: **P0**.
 | VIS-01 | VIS-A01, VIS-S01, VIS-S02, VIS-S03, VIS-S04, VIS-S05, VIS-S06, VIS-P02 | P0 | claimed | — | /root | /root/technical_review | tools/visibility/status.py, tools/visibility/tests/test_status.py, tools/visibility/source-facts.json, tools/visibility/README.md, STATUS.md, README.md, crates/termrock-visibility-tests/tests/status.rs |
 | VIS-02 | VIS-T01, VIS-T02, VIS-T03, VIS-T05, VIS-T06, VIS-T07, VIS-T08, VIS-T10, VIS-V01 | P0 | claimed | — | /root | /root/controls_wrapper_review_luna | crates/termrock-e2e/** |
 | VIS-03 | VIS-A03, VIS-P05 | P0 | review | — | /root/showcase_owner | /root/technical_review | AGENTS.md, GOAL.md |
-| VIS-04 | VIS-B01, VIS-B02, VIS-B05, VIS-I06 | P0 | claimed | — | /root/current_branch_comparison_luna | /root/holla_owner | tools/visibility/deferred.py, tools/visibility/tests/test_deferred.py, docs/implementation/visibility/evidence/deferred/**, crates/termrock-visibility-tests/tests/deferred.rs |
+| VIS-04 | VIS-B01, VIS-B02, VIS-B05, VIS-I06 | P0 | claimed | — | /root | /root/jackin_inventory_current_luna | tools/visibility/deferred.py, tools/visibility/tests/test_deferred.py, docs/implementation/visibility/evidence/deferred/**, crates/termrock-visibility-tests/tests/deferred.rs |
 | VIS-05 | VIS-P02, VIS-P03, VIS-P04, VIS-P05, VIS-V01 | P0 | verified | — | /root/coordination_luna | /root/reference_luna | tools/visibility/queue.py, tools/visibility/tests/test_queue.py |
 | VIS-06 | VIS-T02, VIS-T03, VIS-V01 | P0 | in_progress | — | /root/tablepro_owner | /root/technical_review | tools/visibility/subjects.py, docs/implementation/visibility/evidence/subjects/**, crates/termrock-visibility-tests/tests/subjects.rs |
 | VIS-07 | VIS-A01, VIS-V01 | P0 | in_progress | — | /root/language_review | /root/technical_review | docs/implementation/visibility/evidence/reviews/** |
@@ -60,13 +60,13 @@ Evidence: Narrow instruction plan approved by /root/technical_review; runtime di
 
 Priority reason: Run the deferred assertions and preserve their failure results.
 
-Claim token: `visibility-deferred-recovery-20261008-04`; accepted at queue revision 24; expires `2026-10-09T00:00:00Z`.
+Claim token: `visibility-deferred-root-q33-20261009-01`; accepted at queue revision 34; expires `2026-10-09T06:00:00Z`.
 
 Branch/base: `termrock-implementation` / `cc3ce8f6ac149aaee406047c5180d1a658d6bb9c`.
 
 Evidence: Independent plan approved by /root/technical_review; build slot not granted yet., Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests.
 
-Last handoff: /root/deferred_execution → /root/current_branch_comparison_luna by `/root`. Recorded next action at handoff: After independent approval and root's final CAS checks, transfer the in-progress VIS-04 assignment to the proposed owner without changing base, allowed paths, or historical claim/evidence. The queue CLI will set the successor state to claimed. Continue from current local history; preserve the historical 23-fail result as red evidence and do not claim a current pass.
+Last handoff: /root/current_branch_comparison_luna → /root by `/root/current_branch_comparison_luna`. Recorded next action at handoff: Before any CAS, Root re-reads q33 revision, tasks.json and WORK_QUEUE.md hashes, VIS-04 current claim token/scope, exact scoped file preimages, branch/HEAD, active path conflicts, and owner-release hash. If unchanged, apply only the queue.py handoff CAS at expected revision 33. Preserve the exact accepted base, four allowed path strings, requirement and priority fields, existing evidence, existing claim history, and all other task records. No source/build/test claim is implied.
 
 ### VIS-05
 
