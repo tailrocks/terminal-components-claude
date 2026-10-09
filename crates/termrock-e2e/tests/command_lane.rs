@@ -913,7 +913,8 @@ pub mod executor {
         pub bytes: u64,
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, Deserialize)]
+    #[serde(deny_unknown_fields)]
     pub struct ExecutionEnvelope {
         /// Child variables only. `SpawnParams::env_clear` ensures nothing
         /// else is inherited; the backend's required `SHELL` is overridden.
@@ -3272,6 +3273,110 @@ pub struct RestorationReceipt {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
+    use executor::{ArtifactSink, DirectoryArtifactSink, ExecutionEnvelope, TermpaneFactory, TuiscottiRecorder};
+    #[cfg(unix)]
+    use sha2::{Digest, Sha256};
+    #[cfg(unix)]
+    use std::collections::BTreeSet;
+    #[cfg(unix)]
+    use std::fs;
+    #[cfg(unix)]
+    use std::path::PathBuf;
+    #[cfg(unix)]
+    use termrock_e2e::COMPILED_SUITE_SHA256;
+
+    #[cfg(unix)]
+    const RUN03_CASE_PATH_ENV: &str = "TERMROCK_E2E_RUN03_PAIR_CASE_PATH";
+    #[cfg(unix)]
+    const RUN03_CASE_SHA_ENV: &str = "TERMROCK_E2E_RUN03_PAIR_CASE_SHA256";
+    #[cfg(unix)]
+    const RUN03_CASE_SCHEMA: &str = "termrock-e2e/run03-pair-case-v1";
+    #[cfg(unix)]
+    const RUN03_CASE_MAX_BYTES: u64 = 512 * 1024;
+    #[cfg(unix)]
+    const RUN03_REFERENCE_COMMIT: &str = "b274dd57f4dd078ade6e424d546d83efbd2e8526";
+    #[cfg(unix)]
+    const RUN03_CANDIDATE_COMMIT: &str = "1d797d41c8141fcbdc3f69d7f11eb8875ab54712";
+
+    #[cfg(unix)]
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Run03PairCase {
+        schema: String,
+        compiled_suite_sha256: String,
+        artifact_root: PathBuf,
+        subjects: Vec<Run03Subject>,
+        environments: BTreeMap<String, ExecutionEnvelope>,
+    }
+
+    #[cfg(unix)]
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Run03Subject {
+        role: String,
+        source_manifest: PathBuf,
+        source_manifest_sha256: String,
+        source_root: PathBuf,
+        source_commit: String,
+        toolchain: String,
+        target_triple: String,
+        executable: PathBuf,
+        executable_sha256: String,
+    }
+
+    #[cfg(unix)]
+    impl Run03Subject {
+        fn into_frozen(self) -> FrozenCommandSubject {
+            let role = match self.role.as_str() {
+                "reference" => "reference",
+                "candidate" => "candidate",
+                other => panic!("unsupported RUN03 subject role {other:?}"),
+            };
+            FrozenCommandSubject {
+                role,
+                source_manifest: self.source_manifest,
+                source_manifest_sha256: self.source_manifest_sha256,
+                source_root: self.source_root,
+                source_commit: self.source_commit,
+                toolchain: self.toolchain,
+                target_triple: self.target_triple,
+                executable: self.executable,
+                executable_sha256: self.executable_sha256,
+            }
+        }
+    }
+
+    #[cfg(unix)]
+    fn read_run03_case() -> (Run03PairCase, String) {
+        let path = std::env::var_os(RUN03_CASE_PATH_ENV)
+            .map(PathBuf::from)
+            .unwrap_or_else(|| panic!("{RUN03_CASE_PATH_ENV} is required; refusing to launch without a frozen pair case"));
+        assert!(path.is_absolute(), "RUN03 pair case path must be absolute");
+        let metadata = fs::symlink_metadata(&path)
+            .unwrap_or_else(|error| panic!("inspect RUN03 pair case {}: {error}", path.display()));
+        assert!(metadata.file_type().is_file(), "RUN03 pair case must be a regular non-symlink file");
+        assert!(metadata.len() <= RUN03_CASE_MAX_BYTES, "RUN03 pair case exceeds the 512 KiB input bound");
+        let bytes = fs::read(&path)
+            .unwrap_or_else(|error| panic!("read RUN03 pair case {}: {error}", path.display()));
+        assert!(bytes.len() as u64 <= RUN03_CASE_MAX_BYTES, "RUN03 pair case grew beyond the 512 KiB input bound");
+        let expected_sha = std::env::var(RUN03_CASE_SHA_ENV)
+            .unwrap_or_else(|_| panic!("{RUN03_CASE_SHA_ENV} is required; refusing to use an unpinned pair case"));
+        assert!(expected_sha.len() == 64 && expected_sha.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()),
+            "RUN03 pair case SHA-256 must be lowercase hexadecimal");
+        let actual_sha = format!("{:x}", Sha256::digest(&bytes));
+        assert_eq!(actual_sha, expected_sha, "RUN03 pair case bytes differ from their supplied digest");
+        let case = serde_json::from_slice::<Run03PairCase>(&bytes)
+            .unwrap_or_else(|error| panic!("parse strict RUN03 pair case {}: {error}", path.display()));
+        (case, actual_sha)
+    }
+
+    #[cfg(unix)]
+    fn assert_run03_layer(run: &executor::RunEvidence, layer: Layer, expected: Status) {
+        assert_eq!(run.invocation.layers[&layer].status, expected,
+            "{} {:?} {:?}: {}", run.invocation.role, run.invocation.kind, layer,
+            run.invocation.layers[&layer].reason);
+    }
 
     fn command_subject(role: &'static str, binary: &str) -> FrozenCommandSubject {
         FrozenCommandSubject {
@@ -3515,6 +3620,103 @@ mod tests {
         assert!(native_command_selection("RUN-02", &subject).unwrap_err().contains("selects binary"));
         assert_eq!(command_row_index("RUN-07").unwrap(), 6);
         assert!(command_row_index("RUN-08").unwrap_err().contains("unknown native command ID"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    #[ignore = "requires a SHA-pinned frozen reference/candidate pair case and Root-authorized PTY launch"]
+    fn run03_frozen_holla_pair_uses_the_shared_native_pty_program() {
+        let (case, case_sha256) = read_run03_case();
+        assert_eq!(case.schema, RUN03_CASE_SCHEMA, "unsupported RUN03 pair-case schema");
+        assert_eq!(case.compiled_suite_sha256, COMPILED_SUITE_SHA256,
+            "RUN03 pair case was prepared for a different compiled shared-suite revision");
+        assert_eq!(case.subjects.len(), 2, "RUN03 requires exactly one frozen reference and candidate");
+
+        let roles = case.subjects.iter().map(|subject| subject.role.as_str()).collect::<BTreeSet<_>>();
+        assert_eq!(roles, BTreeSet::from(["candidate", "reference"]),
+            "RUN03 pair case must bind exactly the reference and candidate roles");
+        assert_eq!(case.environments.keys().map(String::as_str).collect::<BTreeSet<_>>(), roles,
+            "RUN03 pair case must supply one execution envelope for each frozen role");
+
+        let subjects = case.subjects.into_iter().map(Run03Subject::into_frozen).collect::<Vec<_>>();
+        for subject in &subjects {
+            assert_eq!(subject.source_manifest, subject.source_root.join("Cargo.toml"),
+                "{} manifest must be the pinned source root manifest", subject.role);
+            let expected_commit = match subject.role {
+                "reference" => RUN03_REFERENCE_COMMIT,
+                "candidate" => RUN03_CANDIDATE_COMMIT,
+                other => panic!("unsupported frozen RUN03 role {other:?}"),
+            };
+            assert_eq!(subject.source_commit, expected_commit, "{} source commit changed", subject.role);
+            assert_eq!(case.environments[subject.role].artifact_root, case.artifact_root,
+                "{} execution envelope and paired artifact root differ", subject.role);
+        }
+
+        let protected_roots = subjects.iter().map(|subject| subject.source_root.clone()).collect::<Vec<_>>();
+        let mut sink = DirectoryArtifactSink::new(&case.artifact_root, &protected_roots)
+            .unwrap_or_else(|error| panic!("validate RUN03 external artifact root: {error}"));
+        let (receipt, evidence) = executor::execute_run03_pair(
+            &subjects,
+            &case.environments,
+            &TermpaneFactory,
+            &mut TuiscottiRecorder,
+            &mut sink,
+        ).unwrap_or_else(|error| panic!("RUN03 preflight failed before pair execution: {error}"));
+
+        let output = serde_json::json!({
+            "schema": "termrock-e2e/run03-pair-evidence-v1",
+            "case_sha256": case_sha256,
+            "compiled_suite_sha256": COMPILED_SUITE_SHA256,
+            "receipt": &receipt,
+            "runs": &evidence,
+        });
+        let output_bytes = serde_json::to_vec_pretty(&output).expect("serialize RUN03 pair evidence");
+        sink.store("RUN-03/pair-evidence.json", &output_bytes)
+            .unwrap_or_else(|error| panic!("persist RUN03 pair evidence before assertions: {error}"));
+
+        assert_eq!(evidence.len(), 4, "RUN03 must retain both root-command and direct-executable invocations per role");
+        let expected_kinds = [InvocationKind::ExactRootCommand, InvocationKind::DirectExecutableDiagnostic];
+        for role in ["reference", "candidate"] {
+            let subject = subjects.iter().find(|subject| subject.role == role).unwrap();
+            for kind in expected_kinds {
+                let mut matching = evidence.iter().filter(|run| run.invocation.role == role && run.invocation.kind == kind);
+                let run = matching.next().unwrap_or_else(|| panic!("missing RUN03 {role} {kind:?} evidence"));
+                assert!(matching.next().is_none(), "duplicate RUN03 {role} {kind:?} evidence");
+                let expected_argv = match kind {
+                    InvocationKind::ExactRootCommand => vec!["cargo", "run", "--release", "--bin", "holla"]
+                        .into_iter().map(str::to_owned).collect::<Vec<_>>(),
+                    InvocationKind::DirectExecutableDiagnostic => vec![subject.executable.display().to_string()],
+                };
+                assert_eq!(run.invocation.argv, expected_argv, "RUN03 command argv changed");
+                assert_eq!(run.invocation.cwd, subject.source_root, "RUN03 command cwd changed");
+                assert_run03_layer(run, Layer::Build, if kind == InvocationKind::ExactRootCommand { Status::Pass } else { Status::NotApplicable });
+                for layer in [Layer::Launch, Layer::FirstFrame, Layer::Interaction, Layer::Exit, Layer::Cleanup] {
+                    assert_run03_layer(run, layer, Status::Pass);
+                }
+                assert_run03_layer(run, Layer::Restoration, Status::Blocked);
+                assert_run03_layer(run, Layer::Visual, Status::Blocked);
+                assert_run03_layer(run, Layer::Ownership, if role == "reference" { Status::NotApplicable } else { Status::Blocked });
+
+                assert_eq!(run.checkpoints.iter().map(|item| item.id.as_str()).collect::<Vec<_>>(),
+                    ["00-root", "01-help", "02-root-restored"], "RUN03 checkpoint order changed");
+                assert!(run.checkpoints.iter().all(|item| item.status == Status::Pass),
+                    "RUN03 checkpoint failed for {role} {kind:?}");
+                assert_eq!(run.inputs.iter().map(|item| item.key.as_str()).collect::<Vec<_>>(),
+                    ["f1", "escape", "ctrl-c"], "RUN03 key sequence changed");
+                assert!(run.inputs.iter().all(|item| item.attempted && item.write_status == "written_and_recorded"),
+                    "RUN03 input was not written and recorded for {role} {kind:?}");
+                let exit = run.exit.as_ref().unwrap_or_else(|| panic!("RUN03 exit status missing for {role} {kind:?}"));
+                assert!(exit.success && exit.code == 0 && !exit.signal_present && exit.stream == "clean_eof",
+                    "RUN03 direct child did not exit successfully: {exit:?}");
+                assert_eq!(run.restoration.host_terminal_state, "not_observed",
+                    "RUN03 must retain the parent-terminal restoration evidence gap");
+            }
+        }
+
+        let row = &receipt.rows[command_row_index("RUN-03").unwrap()];
+        assert_eq!(row.exact_command, "cargo run --release --bin holla");
+        assert_eq!(row.status, Status::Blocked,
+            "RUN03 aggregate stays blocked while restoration, visual admission, and candidate ownership are unproven");
     }
 }
 
