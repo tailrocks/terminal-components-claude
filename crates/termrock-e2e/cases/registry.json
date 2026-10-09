@@ -6,57 +6,164 @@
       "id": "HELP-HOLLA-004",
       "app": "holla",
       "binary": "holla",
-      "args": ["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40", "--color", "truecolor"],
-      "geometry": {"cols": 120, "rows": 40},
+      "args": [
+        "--scenario",
+        "rust-dirty",
+        "--motion",
+        "paused",
+        "--frame",
+        "40",
+        "--color",
+        "truecolor"
+      ],
+      "geometry": {
+        "cols": 120,
+        "rows": 40
+      },
       "color_path": "truecolor",
       "legacy_snapshot_root": "holla/flows/help/overlay",
       "screen": "finder",
       "substep": "help-overlay",
       "timeout_ms": 8000,
-      "environment": {"HOLLA_NO_HISTORY": "1"},
+      "environment": {
+        "HOLLA_NO_HISTORY": "1"
+      },
       "steps": [
         {
           "op": "checkpoint",
           "id": "00-boot",
-          "wait": [{"kind": "contains", "needle": "holla❯"}, {"kind": "contains", "needle": "Type Search"}],
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "holla❯"
+            },
+            {
+              "kind": "contains",
+              "needle": "Type Search"
+            }
+          ],
           "assertions": [
-            {"id": "boot.placeholder", "kind": "contains", "needle": "Search actions and resources…"},
-            {"id": "boot.finder_footer", "kind": "contains", "needle": "Type Search"},
-            {"id": "boot.disk_cursor", "kind": "same_line", "left": "› Inspect 12 GB of generat…", "right": "12 GB generated artifacts"},
-            {"id": "boot.world", "kind": "same_line", "left": "In", "right": "~/work/holla"}
+            {
+              "id": "boot.placeholder",
+              "kind": "contains",
+              "needle": "Search actions and resources…"
+            },
+            {
+              "id": "boot.finder_footer",
+              "kind": "contains",
+              "needle": "Type Search"
+            },
+            {
+              "id": "boot.disk_cursor",
+              "kind": "same_line",
+              "left": "› Inspect 12 GB of generat…",
+              "right": "12 GB generated artifacts"
+            },
+            {
+              "id": "boot.world",
+              "kind": "same_line",
+              "left": "In",
+              "right": "~/work/holla"
+            }
           ]
         },
-        {"op": "press", "key": "f1"},
+        {
+          "op": "press",
+          "key": "f1"
+        },
         {
           "op": "checkpoint",
           "id": "01-help",
-          "wait": [{"kind": "contains", "needle": "Key reference"}],
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Key reference"
+            }
+          ],
           "legacy_snapshot_path": "holla/flows/help/overlay/120x40/truecolor",
           "assertions": [
-            {"id": "help.title_here", "kind": "same_line", "left": "Key reference", "right": "Here"},
-            {"id": "help.finder_row", "kind": "same_line", "left": "Type", "right": "search actions and resources together"},
-            {"id": "help.quit_row", "kind": "same_line", "left": "Ctrl+Q", "right": "quit with confirmation"},
-            {"id": "help.footer", "kind": "contains", "needle": "↑↓ Scroll  Esc Close"},
-            {"id": "help.finder_footer_absent", "kind": "absent", "needle": "Type Search", "requires": "boot.finder_footer"}
+            {
+              "id": "help.title_here",
+              "kind": "same_line",
+              "left": "Key reference",
+              "right": "Here"
+            },
+            {
+              "id": "help.finder_row",
+              "kind": "same_line",
+              "left": "Type",
+              "right": "search actions and resources together"
+            },
+            {
+              "id": "help.quit_row",
+              "kind": "same_line",
+              "left": "Ctrl+Q",
+              "right": "quit with confirmation"
+            },
+            {
+              "id": "help.footer",
+              "kind": "contains",
+              "needle": "↑↓ Scroll  Esc Close"
+            },
+            {
+              "id": "help.finder_footer_absent",
+              "kind": "absent",
+              "needle": "Type Search",
+              "requires": "boot.finder_footer"
+            }
           ]
         },
-        {"op": "press", "key": "escape"},
+        {
+          "op": "press",
+          "key": "escape"
+        },
         {
           "op": "checkpoint",
           "id": "02-finder",
-          "wait": [{"kind": "absent", "needle": "Key reference"}, {"kind": "contains", "needle": "Search actions and resources…"}],
+          "wait": [
+            {
+              "kind": "absent",
+              "needle": "Key reference"
+            },
+            {
+              "kind": "contains",
+              "needle": "Search actions and resources…"
+            }
+          ],
           "assertions": [
-            {"id": "finder.placeholder_restored", "kind": "contains", "needle": "Search actions and resources…"},
-            {"id": "finder.quit_row_absent", "kind": "absent", "needle": "quit with confirmation", "requires": "help.quit_row"}
+            {
+              "id": "finder.placeholder_restored",
+              "kind": "contains",
+              "needle": "Search actions and resources…"
+            },
+            {
+              "id": "finder.quit_row_absent",
+              "kind": "absent",
+              "needle": "quit with confirmation",
+              "requires": "help.quit_row"
+            }
           ]
         },
-        {"op": "press", "key": "f1"},
+        {
+          "op": "press",
+          "key": "f1"
+        },
         {
           "op": "checkpoint",
           "id": "03-help-again",
-          "wait": [{"kind": "contains", "needle": "Key reference"}],
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Key reference"
+            }
+          ],
           "assertions": [
-            {"id": "reopen.title_here", "kind": "same_line", "left": "Key reference", "right": "Here"}
+            {
+              "id": "reopen.title_here",
+              "kind": "same_line",
+              "left": "Key reference",
+              "right": "Here"
+            }
           ]
         }
       ]
@@ -195,6 +302,32 @@
               "id": "preview.keep_awake_diff",
               "kind": "contains",
               "needle": "~ keep_awake true → false"
+            },
+            {
+              "id": "preview.workspace_name",
+              "kind": "contains",
+              "needle": "payments-platform"
+            },
+            {
+              "id": "preview.change_count",
+              "kind": "contains",
+              "needle": "1 change"
+            },
+            {
+              "id": "preview.dirty_badge",
+              "kind": "contains",
+              "needle": "• 1 change"
+            },
+            {
+              "id": "preview.dirty_tab",
+              "kind": "contains",
+              "needle": "General •"
+            },
+            {
+              "id": "preview.cancel_focus",
+              "kind": "same_line",
+              "left": "▎Cancel",
+              "right": "Save"
             }
           ]
         },
@@ -244,6 +377,86 @@
               "kind": "absent",
               "needle": "Save workspace",
               "requires": "preview.title"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "ctrl-s"
+        },
+        {
+          "op": "checkpoint",
+          "id": "05-preview-reopened",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "Save workspace"
+            },
+            {
+              "kind": "contains",
+              "needle": "~ keep_awake true → false"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "reopened.title",
+              "kind": "contains",
+              "needle": "Save workspace"
+            },
+            {
+              "id": "reopened.diff",
+              "kind": "contains",
+              "needle": "~ keep_awake true → false"
+            }
+          ]
+        },
+        {
+          "op": "press",
+          "key": "escape"
+        },
+        {
+          "op": "checkpoint",
+          "id": "06-cancelled-again",
+          "wait": [
+            {
+              "kind": "contains",
+              "needle": "• 1 change"
+            },
+            {
+              "kind": "contains",
+              "needle": "Workspaces › payments-platform › edit"
+            },
+            {
+              "kind": "absent",
+              "needle": "Save workspace"
+            },
+            {
+              "kind": "absent",
+              "needle": "~ keep_awake true → false"
+            }
+          ],
+          "assertions": [
+            {
+              "id": "cancel_again.dirty_count",
+              "kind": "contains",
+              "needle": "• 1 change"
+            },
+            {
+              "id": "cancel_again.editor_crumb",
+              "kind": "contains",
+              "needle": "Workspaces › payments-platform › edit"
+            },
+            {
+              "id": "cancel_again.preview_absent",
+              "kind": "absent",
+              "needle": "Save workspace",
+              "requires": "reopened.title"
+            },
+            {
+              "id": "cancel_again.diff_absent",
+              "kind": "absent",
+              "needle": "~ keep_awake true → false",
+              "requires": "reopened.diff"
             }
           ]
         }
