@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 63,
+  "queue_revision": 64,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -1835,6 +1835,44 @@
       ],
       "handoff": null,
       "accepted_queue_revision": 63
+    },
+    {
+      "allowed_paths": [
+        "crates/termrock-visibility-publisher/src/repository_writer.rs",
+        "crates/termrock-visibility-publisher/src/bin/status-publish.rs",
+        "crates/termrock-visibility-publisher/tests/impl_status_publish.rs"
+      ],
+      "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "branch": "termrock-implementation",
+      "claim_token": "visibility-vis17-rust-trusted-status-writer-q63-182c6fb9-f49e-4479-80a2-09a13ecc5d54",
+      "dependencies": [],
+      "evidence": [
+        "External proposal only. Root must re-read the production queue at the expected revision and accept this exact direct claim with the existing production CLI; no queue file or WORK_QUEUE view was changed by the proposer.",
+        "Queue precondition is q63: tasks.json SHA-256 2311eb551d3bcc327939393fd50dc7cfefd05e1dc6ead77f1c6979f84cb99f40, published queue commit e551cf777210a4ddb65503f92473a87c0761d8df. The publication record is /private/tmp/termrock-q63-vis16-root-proposal-20261010/publication.json, SHA-256 7a7817a1b4b9ef122ce9cf903543837f49dfeb35db7fe7a3d20db8531cb037d1.",
+        "The claim base_sha is the actual canonical checkout anchor 766ae1e925e32b4b28aa9100bb3fde5279aa223b. The implementation source is separately published at 4e72874628a95a5c7d1a9284762c83c927c42825, tree 21e4b5ef5e3b5c19deec7ea4a40d36796e22ddf6; do not present these identities as the same tree. Source publication record /private/tmp/termrock-vis14-tls-root-proposal-20261010/publication.json SHA-256 22f19e8b460ab586808c74e2d2ff4c2ba6287fb61ecbc9d7a9f525b29c762dae.",
+        "VIS-14 owns Cargo.toml, Cargo.lock, src/lib.rs, src/api.rs, src/observer.rs, and tests/impl_observer_ingest.rs. VIS-16 owns only src/bin/observer-ingest.rs and tests/observer_ingest_cli.rs. VIS-01 owns STATUS.md. VIS-11 owns .github/workflows/**. This claim is limited to the three new non-overlapping Rust paths listed above.",
+        "The current transport source review /private/tmp/termrock-vis14-tls-transport-proposal-independent-review-observer-20261010.json SHA-256 103d6357860c10cdb95e2585c9ba49d6c9b94344b717061caf29f9fc5d4f83a2 reports three separate successful source gates: 10 TLS tests, 16 ingestion tests, and one diagnostic case. This is source-commit-only evidence, not full-workspace, live API, writer, or publication qualification. The older VIS-14 R7 TLS result with 3 passed and 7 failed remains historical and is not erased.",
+        "The existing status Rust integration suite is at /private/tmp/termrock-vis01-reference-status-generator-rust-r7/project/crates/termrock-visibility-tests/tests/status.rs SHA-256 199ecf8749847520a24d41b107fed36513f3fcf6c7e39b684a01029553e10ea2. Its helper at src/lib.rs SHA-256 96a6d3e8aea50b464444b598e2ee53b639548712fbfdbb8a0b5a39405c44a247 launches python3 tools/visibility/status.py; it is not a Rust remote writer.",
+        "The focused status R7 result /private/tmp/termrock-vis01-reference-status-generator-rust-r7/runner/result-r7/run-result.json SHA-256 36322cc3799a25e463ac246992f707a0a925dd3d7b4ba9573f71a5fc46a215fa and independent review /private/tmp/termrock-vis01-reference-status-generator-r7-actual-result-review-ci-parity-luna.json SHA-256 1119dad703e2cbd7fbb07fda6b1c05823dfd6aa48d6dfa2d227dcc5fa1c1b188 confirm 2 selected passes and 47 skipped, product qualification NOT_ASSERTED. Selected cases were bounded_execution_receipts_render_partial_results_without_ready_claims and current_ci_snapshot_binds_each_gate_and_keeps_products_not_run.",
+        "Existing stale/history assertions are present but were not selected in the reviewed R7 run: source_history_accepts_four_predecessors_and_rejects_malformed_bindings; rejects_misbound_latest_ci_publication_and_historical_execution; current_ci_source_pair_run_head_workflow_and_url_mismatches_are_rejected; rejects_changed_current_observation_evidence_pin; rejects_a_stale_source_evidence_archive_manifest_pin; rejects_missing_archived_current_observation_input; and missing_or_failed_reference_query_is_unknown_not_zero. No current test proves a publication run-number cursor or remote ref CAS.",
+        "The required writer tests must reject an untrusted workflow source SHA/event/ref/repository, mismatched run identity, stale source/report pin, stale expected branch tip, duplicate or older (workflow_id, run_number, run_attempt), and write/API failures before publication success. A valid target product conclusion=failure must still publish with product and observer/publisher status fields kept separate. A fresh write must change only the two fixed publication targets, update the ref with force=false, and never retry or rebase.",
+        "This code claim does not authorize writes to STATUS.md, the proposed cursor data path docs/implementation/visibility/evidence/status-publication.json, any .github workflow, or any Git ref. VIS-01 target ownership/path authority and VIS-11 exact generated trusted caller/publisher workflow bytes, event/ref contract, and least-privilege permissions must be accepted separately before live publishing. VIS-16 caller/event allowlist remains PENDING exact generated producer bytes and CI-parity review.",
+        "The existing reqwest 0.13.5 and serde_json dependency closure in the published 4e728 source is sufficient. No Cargo.toml or Cargo.lock edit is proposed. Required Rust controls use the actual status-publish process and production reqwest client against a bounded local TLS fake server; they do not make live GitHub requests."
+      ],
+      "expiry": "2026-10-10T06:00:00Z",
+      "handoff": null,
+      "owner": "/root/reference_claim_luna",
+      "priority": "P0",
+      "priority_reason": "Implement a bounded Rust status publication command with trusted-run validation and optimistic ref update controls. This claim covers code and fake-transport tests only.",
+      "requirement_ids": [
+        "VIS-I07",
+        "VIS-I08",
+        "VIS-I09"
+      ],
+      "reviewer": "/root/ci_parity_review_luna",
+      "state": "claimed",
+      "work_id": "VIS-17",
+      "accepted_queue_revision": 64
     }
   ]
 }
