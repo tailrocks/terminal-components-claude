@@ -1,0 +1,34 @@
+{
+  "schema": "termrock-root-publication-observation/v1",
+  "observed_at": "2026-10-09T08:22:00.393Z",
+  "commit": "1d66f444f5962414b7c33734fa37376471e5f853",
+  "parent": "019ed576147b6dbcae7f35288697774927a9113b",
+  "tree": "0ae9e285e8f771b8e250c63bf80f902d112dcd95",
+  "proposal_manifest_sha256": "60cd1f7ff83a90032f8a32a30ef31074756657a4c4f84d95735b0d3c8259b127",
+  "postcommit_review_sha256": "3bebb31d6cefc07798df299a121dbfa921bdafaec470f7c6d4fc0170f0835c77",
+  "push": {
+    "session_id": 44694,
+    "exit": 0,
+    "mode": "ordinary fast-forward",
+    "remote_readback": "1d66f444f5962414b7c33734fa37376471e5f853"
+  },
+  "scope": {
+    "modified": 4,
+    "archive_added": 60
+  },
+  "preserved": {
+    "local_head": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+    "index_sha256": "bdb1c1ea3935936eeaaaa4dadd3728f4490c4e2b20bbdc8f7decf8e7be633ed8",
+    "fixture_worktree_sha256": "771b3dff1fbf53a60d9b90ae6cc3934bc411bb3ef953bfbda31b5fb2dfca360c"
+  },
+  "conclusions": {
+    "visibility_complete": "NOT_RUN",
+    "refactor_ready": "NOT_READY",
+    "deferred": "22 PASS / 1 FAIL",
+    "paired_visual": "NOT_RUN"
+  },
+  "limitations": [
+    "Report commit differs from measured product source pair; no new product measurement.",
+    "Existing generated CI workflow remains oversized and invalid."
+  ]
+}
