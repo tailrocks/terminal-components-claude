@@ -1,0 +1,104 @@
+{
+  "schema": "termrock-vis11-r5-focused-gate-review/v1",
+  "verdict": "READY_FOR_ROOT_EXECUTION_DECISION",
+  "qualification": "NOT_QUALIFIED",
+  "packet": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010",
+    "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/evidence/gate-packet-r5.json",
+    "sha256": "355d47d05e8690d8d7da3d51d7efeb6a9494686954ca597d203426957be29302",
+    "runner_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/runner-r5.cjs",
+    "runner_sha256": "19a4a61c29c7b32911bb8094cbc1c412cff38729884486ee5c954dab1ae78362",
+    "request_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/evidence/runner-review-request-r5.json",
+    "request_sha256": "70eacc66bc26f062ab894fb3f22c7a71382d4fde57e445a700b41550fd1969c8",
+    "runner_delta_sha256": "1a49b4deac8984477b26a05a77ce00d84b620f2aa0fc14ce357e3f7c263e5a15",
+    "sha256sums_sha256": "3e7001c37f6b64720dafe25cf6b60366d28dadaf1520925600088a3c206b3b43"
+  },
+  "preflight": {
+    "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/evidence/preflight-r5.stdout.json",
+    "stdout_sha256": "f8070c033b67d39e7275032cdb89cb3781ed9c923d04cb83c582adf6b424790d",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "status": "READY_FOR_INDEPENDENT_REVIEW_AND_ROOT_EXECUTION_DECISION_NOT_RUN",
+    "node_check_exit_code": 0,
+    "no_cargo_nextest_tests_build_or_cli_spawned": true
+  },
+  "source": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source",
+    "inventory_sha256": "30174295d3026dc8f979493c20191cf2a9a817ab87eb9468aefa28a83cc5e46f",
+    "entry_count": 3457,
+    "files": 2608,
+    "directories": 842,
+    "symlinks": 7,
+    "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "test_source_map_sha256": "1f27a139413e915e82304eb756661ea7a30f0f70d05c87d55036f4978a2ce3f2",
+    "selected_ids": [
+      "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+      "impl_schema2_routing::schema2_workflows_match_expected_bytes"
+    ],
+    "identity": "Git-less external snapshot; no source commit identity claimed"
+  },
+  "source_review_bindings": {
+    "ci_parity_review_path": "/private/tmp/termrock-vis11-tool-fixture-admission-r4-source-review-ci-parity.json",
+    "ci_parity_review_sha256": "1b31190ac35695fbd735b106482fbfd0a70ceb6905bc538c02d0b71c10fb110a",
+    "luna_source_review_path": "/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-independent-review-luna-20261010.json",
+    "luna_source_review_sha256": "c5f26250fef8ab0f114ad8d15507d7091b5a290d1a67a33d46d2d0e77bb99d48",
+    "author_rustfmt_erratum_path": "/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010-review-erratum.json",
+    "author_rustfmt_erratum_sha256": "6f612c62d2577e9a134dfa249ef5aead02258c41ce30cde623891b40722e85da",
+    "formatting_status": "not verified clean: author reports rustfmt --check returned nonzero with incomplete raw output"
+  },
+  "execution_profile_review": {
+    "r4_to_r5_runner_delta": "Only TASK_ROOT, packet path/hash, source root constant, and schema identity changed. Runtime/control code is unchanged from the reviewed R4 runner.",
+    "source_identity_binding": "Runner checks packet.source.root equals pinned SOURCE and rehashes the complete inventory, modes, symlink targets, Cargo.lock, selected source files, and exact test function lines.",
+    "nextest": {
+      "package": "velnor-actions-orchestrator-generation",
+      "binary": "impl_schema2_routing",
+      "selected_count": 2,
+      "locked": true,
+      "offline": true,
+      "build_jobs": 2,
+      "test_threads": 1,
+      "no_tests_fail": true,
+      "retries": 0,
+      "exact_filter_ids": [
+        "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+        "impl_schema2_routing::schema2_workflows_match_expected_bytes"
+      ]
+    },
+    "runtime_cache": {
+      "cargo_home": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home",
+      "archive_manifest_sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+      "registry_source_index_closure_sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+      "archives": 406,
+      "source_index_files": 20133,
+      "source_index_directories": 3666,
+      "derived_source_index_bytes": 441286079,
+      "mutable_global_cache": "observed separately; not counted as immutable offline input"
+    },
+    "tools": "Exact Cargo/Rust/Nextest/Node 26.11/Mise and helper pins unchanged from R4 and rehashed in preflight.",
+    "resource_bounds": {
+      "deadline_ms": 1200000,
+      "combined_output_bytes": 4194304,
+      "term_grace_ms": 15000,
+      "close_grace_ms": 10000,
+      "build_jobs": 2,
+      "test_threads": 1
+    },
+    "outputs": {
+      "execution": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/execution",
+      "target": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/target",
+      "both_absent_at_preflight": true,
+      "both_absent_on_independent_review": true,
+      "run_root_contains_only_runner": true
+    }
+  },
+  "preserved_r4_failure": {
+    "receipt_sha256": "47121c127d2d30e5b492fbf7418ceb756ee6a58f26d9c6e8d299713cf705820f",
+    "log_sha256": "9f2f2eab47683014cce164b71eb66d685011773b2be1a8531633e478342dfe06",
+    "selected": 2,
+    "executed": 2,
+    "passed": 0,
+    "failed": 2,
+    "status": "preserved_not_qualified"
+  },
+  "reviewer_execution": "No --execute, Cargo, Nextest, test, build, or CLI was run. No qualification is claimed."
+}

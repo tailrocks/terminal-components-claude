@@ -1,0 +1,44 @@
+{
+  "schema": "independent-source-delta-review/v1",
+  "reviewer": "ci_parity_review_luna",
+  "verdict": "READY",
+  "scope": "VIS-01 R5-to-R6 one-file compile fix only; static review, no execution",
+  "request": {
+    "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/source-review-request.json",
+    "sha256": "b286f4920f83e6856b86c5db2a509ee0969183255d0c5e8c3a18b2e37dc7842b"
+  },
+  "source_freeze": {
+    "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/source-freeze.json",
+    "sha256": "6356d5a3e37ca5705d70ba6d1c0d8203e65121777c383c391a1fb92039003317",
+    "base_commit": "882d5162ab6c838cc03ef35ee65df6b53ffe50f0",
+    "base_tree": "bef0248d3df09bb832e1c219aca310725f0ba6d6",
+    "parent_freeze_sha256": "b60026ab91d39961027c435a274108d3f837671b7394724c2f3f9cbac8d29fc1",
+    "parent_file_sha256": "4ad3430141a9102de5cc59c5c533eb2b5b2580ce2278a8a7d34eef916569a226",
+    "candidate_file_sha256": "7b6944410974d2e6608ae205d0707ddfa6c8718c613675220e0a682e883cf584",
+    "delta_patch_sha256": "a1c16313df97770a1bb4220302ec5daece5ee80f1633a2d495deb1c72ce65732",
+    "changed_paths_exactly": [
+      "crates/termrock-visibility-tests/tests/status.rs"
+    ]
+  },
+  "compile_diagnosis": {
+    "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/compile-diagnosis.json",
+    "sha256": "9a7237981e698e991896f79f5a9b0412ba89948ef0d63910383698fc23681a85",
+    "prior_attempt_tests_started": 0,
+    "literal_errors": [
+      {"literal": "37985833303", "field": "run.id", "error": "i32 literal overflow"},
+      {"literal": "102925783239", "field": "run.check_suite_id", "error": "i32 literal overflow"},
+      {"literal": "102925783239", "field": "failed_suite.id", "error": "i32 literal overflow"}
+    ]
+  },
+  "review_findings": {
+    "diff_changes_only_three_literals_by_adding_u64_suffix": true,
+    "numeric_values_preserved": true,
+    "json_fields_and_assertions_unchanged": true,
+    "production_source_unchanged": true,
+    "no_unrelated_fixture_changes": true
+  },
+  "limits": [
+    "No Cargo, Nextest, or tests were run by the reviewer.",
+    "This review confirms the narrow type-correction logic but does not claim that the suite compiles or passes after the change."
+  ]
+}

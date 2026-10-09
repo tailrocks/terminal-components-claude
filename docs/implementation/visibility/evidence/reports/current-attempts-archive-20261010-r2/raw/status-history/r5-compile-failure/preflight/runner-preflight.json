@@ -1,0 +1,45 @@
+{
+  "schema": "termrock.nextest-runner-preflight.v1",
+  "result": "PREFLIGHT_READY_NO_CARGO",
+  "runner_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/runner.cjs",
+  "runner_sha256": "ed3eac871208455a5eb8deb087969d41c7d915ddf530ea2497f8741b53711a25",
+  "runplan_sha256": "fcf0d07797be669008236c700ada85781d010510c2988987de1039dfc9124985",
+  "source_manifest_sha256": "d1e0f7323350dfa27807d79d337ab0f39c0f8641bf03d86977abc5a6a622b212",
+  "test_names_sha256": "ebcd2adeede88c96e667840c5971ab103090c6bf0fc4faab9c857e231f1f56cb",
+  "cache_closure_sha256": "ebaa2272db4f51932240fa178697d5a5186c3661887aca802ee632de561f255b",
+  "packet_checksums_sha256": "5ff253930d54ae8401ef2c5854c077bdf5e36e9d75ac87f08bf3fcc88f3a1ebb",
+  "review_request_sha256": "b8beda016dc28c8f216efde046d0e5c15b3cca77d32c6452bf4e851cf172abb8",
+  "cargo_spawned": false,
+  "nextest_spawned": false,
+  "tests_run": false,
+  "network_used": false,
+  "selected_cases_expected_from_source": 53,
+  "target_selectors": {
+    "package": "termrock-visibility-tests",
+    "test": "status"
+  },
+  "build_dependencies": [
+    {
+      "name": "fixture",
+      "selection_role": "build_dependency_only",
+      "source_unit_test_count": 1,
+      "source_unit_test_names": [
+        "nextest_signal_parser_accepts_only_a_guaranteed_terminating_signal"
+      ],
+      "selected_unit_test_count": 0,
+      "artifact_path": "debug/fixture",
+      "artifact_mode": "0755",
+      "dep_info_path": "debug/fixture.d"
+    }
+  ],
+  "source_digest": "07a45a30e6870044094cd21ed716bab81e7da0ba067eb05048e13fc467e52257",
+  "tool_digest": "af1dbb9644fd7443ffdba5d4ea6f26da51dc8a8cbf4dae61c955ffc08c612668",
+  "cache_digest": "5f2251cbedcf17cf8fe7ea2d67beba2144e9528a8a889f8990ed80fdae304e25",
+  "target_root": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/target",
+  "target_digest": "db30512e74ec244d03b874ef8082e912ba8178133875c62c759f10b2ec454cd6",
+  "target_entries": 1,
+  "target_file_bytes": 0,
+  "new_target_artifacts_absent": true,
+  "output_root_absent": true,
+  "created_at": "2026-10-09T22:07:06.762Z"
+}

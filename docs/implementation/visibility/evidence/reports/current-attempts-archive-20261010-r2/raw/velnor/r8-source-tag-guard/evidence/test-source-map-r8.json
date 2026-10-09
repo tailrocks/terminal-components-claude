@@ -1,0 +1,16 @@
+{
+  "schema": "termrock.vis11.r5-fixture-focused-test-map/v1",
+  "source_tree_sha256": "1ef2c7e6929f96c0c12ffcbb675162490d677c31d43a1fe0fd1c2330b03ec115",
+  "selected_count": 1,
+  "tests": [
+    {
+      "id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+      "package": "velnor-actions-orchestrator-generation",
+      "binary": "impl_schema2_routing",
+      "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_schema2_routing.rs",
+      "function": "schema2_workflows_match_expected_bytes",
+      "line": 142,
+      "source_sha256": "d6f347f6e3ac3b2e160d020dca1c87fe60db23852dfd311ca6e5f8e423610e77"
+    }
+  ]
+}

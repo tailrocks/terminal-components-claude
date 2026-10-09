@@ -1,0 +1,216 @@
+{
+  "schema": "termrock.vis11.fixture-focused-nextest-review-request/v1",
+  "verdict_requested": "READY_FOR_ROOT_EXECUTION_DECISION or CHANGES_REQUIRED",
+  "scope": "Read-only review of the R8 one-test runner/packet/preflight after the R5 actual failure and the source-test-only fix. Confirm exact one-ID selector, fresh roots, source and cache closure, bounded execution, and preserved prior results. Do not execute Cargo, Nextest, tests, build, or CLI.",
+  "packet": {
+    "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/evidence/gate-packet-r8.json",
+    "bytes": 27058,
+    "sha256": "e94e4a9125bb7581be92078184391592f2827a84683afc65a6fe8e1b8e25ce86",
+    "mode": "600"
+  },
+  "runner": {
+    "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/run-root/runner-r8.cjs",
+    "bytes": 35394,
+    "sha256": "d4e17fbe95f10cea93382c6b8b3dc574aa6efcd05c737819de37e7ec9e61991c",
+    "mode": "700"
+  },
+  "source": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r5-source-tag-guard-luna-20261010/source",
+    "full_tree": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/evidence/source-inventory-r8.json",
+      "bytes": 755306,
+      "sha256": "1ef2c7e6929f96c0c12ffcbb675162490d677c31d43a1fe0fd1c2330b03ec115",
+      "mode": "600"
+    },
+    "test_source_map": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/evidence/test-source-map-r8.json",
+      "bytes": 662,
+      "sha256": "85374ec31275621fc688390bcbaa3ec1188e79827ad25d97b3abd989d9c5897b",
+      "mode": "600"
+    },
+    "entry_count": 3457,
+    "counts": {
+      "file": 2608,
+      "directory": 842,
+      "symlink": 7
+    },
+    "cargo_lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "changed_path": "crates/services/velnor-actions-orchestrator-generation/tests/schema2_generator_release_snapshots.rs",
+    "preimage_sha256": "dcbef7bc01b8a644a98e3e5171b65ab8175d46922d2e22627cd28d4b817c8167",
+    "candidate_sha256": "c4fc520489392c7abfd9856903a5675ab295534a80ee6687beb377a49378f1b5",
+    "source_review": {
+      "reviewer": "ci_parity_review_luna",
+      "path": "/private/tmp/termrock-vis11-tool-fixture-admission-r5-source-tag-guard-review-ci-parity.json",
+      "sha256": "74df2804858ee25f655b0f03f4e3207eb123500cfa5e9a16bc62e37809fd6761",
+      "verdict": "READY_SOURCE_ONLY"
+    }
+  },
+  "selected": {
+    "package": "velnor-actions-orchestrator-generation",
+    "binary": "impl_schema2_routing",
+    "count": 1,
+    "ids": [
+      "impl_schema2_routing::schema2_workflows_match_expected_bytes"
+    ],
+    "selector": "test(=impl_schema2_routing::schema2_workflows_match_expected_bytes)",
+    "options": [
+      "--locked",
+      "--offline",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--no-tests",
+      "fail",
+      "--user-config-file",
+      "none",
+      "--ignore-default-filter",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--color",
+      "never"
+    ],
+    "argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "nextest",
+      "run",
+      "--locked",
+      "--offline",
+      "-p",
+      "velnor-actions-orchestrator-generation",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--no-tests",
+      "fail",
+      "--user-config-file",
+      "none",
+      "--ignore-default-filter",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--color",
+      "never",
+      "-E",
+      "test(=impl_schema2_routing::schema2_workflows_match_expected_bytes)"
+    ]
+  },
+  "preflight": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/evidence/preflight-r8.stdout.json",
+      "bytes": 7717,
+      "sha256": "28d440e7f05c8c6487acde626443761ed04b9a99001cff7aef33f76636c4d537",
+      "mode": "644"
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/evidence/preflight-r8.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "644"
+    },
+    "exit_code": 0,
+    "status": "READY_FOR_INDEPENDENT_REVIEW_AND_ROOT_EXECUTION_DECISION_NOT_RUN",
+    "execution_absent": true,
+    "target_absent_and_fresh": true,
+    "no_cargo_or_nextest_spawned": true
+  },
+  "runtime": {
+    "cargo_home": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home",
+    "archive_manifest": {
+      "label": "cache_archive_manifest",
+      "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-cache-manifest-r2.json",
+      "sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+      "bytes": 64890,
+      "mode": "600"
+    },
+    "source_index_closure": {
+      "label": "cache_source_index_closure",
+      "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-cache-consumed-input-closure-r2.json",
+      "sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+      "bytes": 5448365,
+      "mode": "600"
+    },
+    "target_dir": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/run-root/target",
+    "deadline_ms": 1200000,
+    "term_grace_ms": 15000,
+    "close_grace_ms": 10000,
+    "combined_output_bytes": 4194304,
+    "build_jobs": 2,
+    "test_threads": 1,
+    "clean_environment": true
+  },
+  "prior_results": {
+    "r5": {
+      "packet_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/evidence/gate-packet-r5.json",
+      "packet_sha256": "355d47d05e8690d8d7da3d51d7efeb6a9494686954ca597d203426957be29302",
+      "runner_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/runner-r5.cjs",
+      "runner_sha256": "19a4a61c29c7b32911bb8094cbc1c412cff38729884486ee5c954dab1ae78362",
+      "receipt_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/execution/receipt.json",
+      "receipt_sha256": "3b6029e2f8e2b66ccc6bf2afdd3a2f9998ade04e783edc627d132a68a1cd3e56",
+      "command_log_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/execution/command-1.log",
+      "command_log_sha256": "341522870d9c759a6072b6385d4d38c504fea0dc2aca14ba1f46aaeb72797119",
+      "selected": 2,
+      "executed": 2,
+      "passed": 1,
+      "failed": 1,
+      "pass_id": "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+      "failed_id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+      "failure_interpretation": "The R5 generated source-tag workflow contains the correct escaped Bash push event and exact tag-ref checks. The snapshot assertion searched for stale unquoted/unexpanded text. R6 narrows to the corrected failed test; R5 PASS is retained and not rerun."
+    },
+    "historical_r4": {
+      "packet_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/evidence/gate-packet-r5.json",
+      "packet_sha256": "355d47d05e8690d8d7da3d51d7efeb6a9494686954ca597d203426957be29302",
+      "runner_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/runner-r5.cjs",
+      "runner_sha256": "19a4a61c29c7b32911bb8094cbc1c412cff38729884486ee5c954dab1ae78362",
+      "receipt_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/execution/receipt.json",
+      "receipt_sha256": "3b6029e2f8e2b66ccc6bf2afdd3a2f9998ade04e783edc627d132a68a1cd3e56",
+      "command_log_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/execution/command-1.log",
+      "command_log_sha256": "341522870d9c759a6072b6385d4d38c504fea0dc2aca14ba1f46aaeb72797119",
+      "selected": 2,
+      "executed": 2,
+      "passed": 1,
+      "failed": 1,
+      "pass_id": "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+      "failed_id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+      "failure_interpretation": "The R5 generated source-tag workflow contains the correct escaped Bash push event and exact tag-ref checks. The snapshot assertion searched for stale unquoted/unexpanded text. R6 narrows to the corrected failed test; R5 PASS is retained and not rerun."
+    },
+    "preflight_failures": [
+      {
+        "packet_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r6-source-tag-guard-luna-20261010/evidence/gate-packet-r6.json",
+        "packet_sha256": "56e3fdf83c8c2b1cba449355cd2ec638e081d698a1458eaff10ff88d3a38d76b",
+        "runner_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r6-source-tag-guard-luna-20261010/run-root/runner-r6.cjs",
+        "runner_sha256": "cea7205937bb323d6aa3fb22ddb0aa6b6ab0672ec27aabc061d6a36c0d4afd30",
+        "stdout_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r6-source-tag-guard-luna-20261010/evidence/preflight-r6.stdout.json",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 0,
+        "stderr_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r6-source-tag-guard-luna-20261010/evidence/preflight-r6.stderr.txt",
+        "stderr_sha256": "1e8f85d5749296cf865375b110a80dc7fff614a4c153062d14a09985a12a807c",
+        "stderr_bytes": 1099,
+        "exit_code": 2,
+        "reason": "Runner packet-schema literal remained at R5 while packet declared R6; fail-closed before tools/test invocation, output directory remained absent."
+      },
+      {
+        "packet_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r7-source-tag-guard-luna-20261010/evidence/gate-packet-r7.json",
+        "packet_sha256": "5009b8fd441ed32b1f5eb682b7ee47765a7c028301603458f99ff9665f43fd13",
+        "runner_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r7-source-tag-guard-luna-20261010/run-root/runner-r7.cjs",
+        "runner_sha256": "a9ec9e5125a3ef2290b1c642a37830fb5e6f8da08df33fc258070e46e4d8f0c1",
+        "stdout_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r7-source-tag-guard-luna-20261010/evidence/preflight-r7.stdout.json",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 0,
+        "stderr_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r7-source-tag-guard-luna-20261010/evidence/preflight-r7.stderr.txt",
+        "stderr_sha256": "0b874d1ad0cc8fcd7915c9a7eb1fe38538bcbf9796966d71da35ffa63ad1a1e6",
+        "stderr_bytes": 1187,
+        "exit_code": 2,
+        "reason": "Static source closure rejected one inventory-row byte-count mismatch for the changed helper (manifest 5749; actual 5835); no Cargo/Nextest or output directory."
+      }
+    ],
+    "qualification": "NOT_QUALIFIED"
+  },
+  "claims": {
+    "author_preflight": "Node --check and static --preflight only; no Cargo/Nextest/tests/build/CLI.",
+    "expected": "One selected Rust test, exactly one row and one summary, 1 run/1 pass/0 fail.",
+    "qualification": "NOT_QUALIFIED"
+  }
+}
