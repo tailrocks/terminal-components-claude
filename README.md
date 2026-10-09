@@ -1,4 +1,6 @@
-# Junie TUI — a Ratatui design system and its first real application
+# Junie terminal user interface (TUI) — a Ratatui design system and its first real application
+
+**Verification status:** [STATUS.md](STATUS.md).
 
 Four binaries share one library:
 
@@ -12,23 +14,23 @@ Four binaries share one library:
   plans, and TablePlus' Safe Mode levels. It runs against a deterministic
   in-memory demo database (no drivers), so every flow is reproducible.
 - **`jackin-preview`** — an interactive, fully simulated redesign of the
-  Jackin agent-container CLI (built from a read-only reading of its source): the
+  Jackin agent-container CLI (based on a read-only review of its source): the
   Construct intro and outro rituals, the host Workspace Manager, the Create
   Workspace prelude, the Workspace Editor, Global Settings, the Account &
   Usage Center, the launch cockpit and a Capsule terminal multiplexer. Every
   scenario is a fixture world with a virtual clock, so any frame can be
   reproduced. It never touches the real Jackin CLI, containers, 1Password or
   provider APIs.
-- **`holla`** — a context-adaptive action launcher ("this folder, this
-  host, right now") as a deterministic preview: one finder that ranks the
-  actions and resources of the priority stack (mise, Git and GitHub, Docker,
-  `btm`, disk and cleanup, PostgreSQL, Rust and nextest, SSH) around the
-  working directory with a reason on every row, scope on every row, a
-  preview that says what will run and where, two-gate target-bound
-  confirmation for destructive work, dependency-graph plans with optional
-  branches and failure propagation, and named activities that survive
-  navigation. Every stack system is an in-memory fixture; no command is ever
-  spawned, and a finished run changes the in-memory world it claimed to.
+- **`holla`** — a context-adaptive action launcher ("this folder, this host,
+  right now") presented as a deterministic preview. Its finder ranks actions
+  and resources from the priority stack (mise, Git and GitHub, Docker, `btm`,
+  disk and cleanup, PostgreSQL, Rust and nextest, and SSH) around the working
+  directory. Each row shows its reason and scope. The preview explains what
+  will run and where. Destructive work requires two-gate, target-bound
+  confirmation. Plans show dependency graphs, optional branches, and failure
+  propagation. Named activities persist as users navigate. Every stack system
+  is an in-memory fixture. Holla never spawns commands. A completed run changes
+  the in-memory world it claims to change.
   Concept and notes live in `docs/product/`; `src/bin/holla/README.md`
   carries the per-scenario verification table.
 
@@ -336,7 +338,7 @@ src/bin/showcase   pages/ (one per component + two composed screens), app.rs she
 src/bin/tablepro   db.rs (demo catalog + row generator), sql.rs (tokens, statements, safety tiers, runner, EXPLAIN),
                    model.rs (history, completion, switcher index), tabs.rs (table / query / history tabs),
                    workbench.rs, connections.rs, app.rs (modals, safety gate, chords), app_tests.rs
-tests/visual_baseline  the tuisnap snapshot-baseline suite (PTY captures of all four binaries)
+tests/visual_baseline  the tuisnap snapshot-baseline suite (pseudo-terminal (PTY) captures of all four binaries)
 ```
 
 Widgets are plain state structs with `render(area, buf, ctx)` — which draws

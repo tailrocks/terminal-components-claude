@@ -1,0 +1,142 @@
+{
+  "schema": "termrock-evidence-file-hashes/v1",
+  "includes_self": false,
+  "files": [
+    {
+      "path": "contract-source/deferred-reasons-9deb66b.json",
+      "bytes": 3138,
+      "sha256": "90a08a85047f0b30fa159ec6a2779375db37472d734199d74b097f5edcdd9d9d"
+    },
+    {
+      "path": "contract-source/deferred.py",
+      "bytes": 52726,
+      "sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0"
+    },
+    {
+      "path": "contract-source/deferred.rs",
+      "bytes": 62489,
+      "sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d"
+    },
+    {
+      "path": "provenance/launch.sh",
+      "bytes": 175,
+      "sha256": "ee2fc1f463e8348c6777b6ddd14ffeeb577fac8a69b251ac0f47a1c2ea725c47"
+    },
+    {
+      "path": "provenance/preflight.json",
+      "bytes": 2412,
+      "sha256": "30d1f5e8a948f0e56fb8feaaa9961b5a39ec98987515d04992b425508210a4f8"
+    },
+    {
+      "path": "provenance/preflight/receipt.json",
+      "bytes": 19048,
+      "sha256": "25099b58461a0341c17176606ec3ade9c9b516baad4e0e74f88646eb3c94ba5b"
+    },
+    {
+      "path": "provenance/record-ledger.cjs",
+      "bytes": 4000,
+      "sha256": "17bc0642b4daee1d8f0985a3f8bba1eca0b18c8c3786b2c0f06ae468fc5e90f6"
+    },
+    {
+      "path": "provenance/reviews/v3-static-review.json",
+      "bytes": 4050,
+      "sha256": "40888d5d3bb4af6d20f92dc6d31008510cd39a04420324d8b638f1aa28ed1cd5"
+    },
+    {
+      "path": "provenance/run-controls.cjs",
+      "bytes": 22902,
+      "sha256": "310d4ab8a689f45b19ae5ef40cd276c85fe658de039db6f7c57627d08412d267"
+    },
+    {
+      "path": "provenance/runplan.json",
+      "bytes": 17537,
+      "sha256": "1e80f9232545a41f3685857603d1d033d2b529878cb9efd443da1d034617b149"
+    },
+    {
+      "path": "provenance/source-manifest.json",
+      "bytes": 97183,
+      "sha256": "aeea57da7e576c174e768e12876fe6303c4880c49ce826dacf2e448407a327cb"
+    },
+    {
+      "path": "provenance/stable-case-map.json",
+      "bytes": 6423,
+      "sha256": "4b15961a374db0ed0aba07692fd8ee827c1c17b17adad7d4be61b5890a6574bd"
+    },
+    {
+      "path": "provenance/static-preflight.json",
+      "bytes": 3253,
+      "sha256": "3417eb080af2dfe74f8a33afda4d2ef89b514d4db3145b98d23633b1586cdc19"
+    },
+    {
+      "path": "provenance/test-names.json",
+      "bytes": 995,
+      "sha256": "0ed0c5112c3c4090c3455dc710b12336db242ecfa62d479d163c9d2c54e21f65"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3484,
+      "sha256": "ac2ecd357d079f544595987fd4e932a60eea45583f8999a5f0e86d18c799402c"
+    },
+    {
+      "path": "runs/2026-10-09T03-04-14-975Z-10bae096/actual-independent-review-luna.json",
+      "bytes": 6126,
+      "sha256": "8d397a4d2fb9e866e197792bf4eafd4c09e30fb66d9709b8b22523e83242eaf4"
+    },
+    {
+      "path": "runs/2026-10-09T03-04-14-975Z-10bae096/ledger-record.json",
+      "bytes": 8873,
+      "sha256": "485142854f3569909c0d8980de58a4e2f2f863eaf522982a027638d9496853ff"
+    },
+    {
+      "path": "runs/2026-10-09T03-04-14-975Z-10bae096/nextest-list.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "runs/2026-10-09T03-04-14-975Z-10bae096/nextest-list.stdout.json",
+      "bytes": 15683,
+      "sha256": "da0409aa2057ef2b7572a6d710ec60525aac59f182e4bd958f6620837b130967"
+    },
+    {
+      "path": "runs/2026-10-09T03-04-14-975Z-10bae096/nextest-run.stderr.log",
+      "bytes": 24398,
+      "sha256": "b1dc48563cbe3d7ab38d532b794121f6a3609cfe2d7f1d5f7cf0cbb5e898956c"
+    },
+    {
+      "path": "runs/2026-10-09T03-04-14-975Z-10bae096/nextest-run.stdout.jsonl",
+      "bytes": 6927,
+      "sha256": "bc842d9264dffa93dd6f68ad04b83b2604753f4571f702e42e1f9f6ec34fb800"
+    },
+    {
+      "path": "runs/2026-10-09T03-04-14-975Z-10bae096/receipt.json",
+      "bytes": 30111,
+      "sha256": "c6fec50571f45a875c375bf5668e4f1b8754eb9ac87ec9aa98c95590c79e1929"
+    }
+  ],
+  "external_artifacts": [
+    {
+      "role": "S1d product source archive",
+      "path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/s1d-source.tar",
+      "bytes": 13957120,
+      "sha256": "a042bfc9e3a861660709fc345937c4ef2cecbebe6bb08c0646fafcdab7643edb",
+      "copied": false
+    },
+    {
+      "role": "extracted S1d source tree",
+      "path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/source",
+      "file_count": 481,
+      "copied": false
+    },
+    {
+      "role": "compiled Cargo target",
+      "path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/target",
+      "copied": false,
+      "estimated_size_note": "about 1.9 GB from root's post-build observation"
+    },
+    {
+      "role": "private Cargo registry/cache",
+      "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
+      "copied": false
+    }
+  ]
+}

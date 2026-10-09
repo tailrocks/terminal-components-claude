@@ -1,0 +1,27 @@
+{
+  "schema": "termrock-publication/v1",
+  "commit": "b9e34b13ef47401865f1511b9babaab6e020eedc",
+  "parent": "169380c7d6a4cff9f1c43ecef592abc715e6df6a",
+  "tree": "3d7c68dcf6724799c38aefb774ac25447ea630b3",
+  "review": {
+    "path": "/private/tmp/termrock-vis10-foundation-commit-review-technical.json",
+    "sha256": "1130dab37c276cae272a57973f209591720ac1d77d1539cd1db8fe5dde6c19f3"
+  },
+  "push": {
+    "branch": "termrock-implementation",
+    "normal_fast_forward": true,
+    "exit_code": 0,
+    "session": 16244,
+    "remote_api_confirmed": true
+  },
+  "local_head": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+  "real_index_sha256": "bdb1c1ea3935936eeaaaa4dadd3728f4490c4e2b20bbdc8f7decf8e7be633ed8",
+  "checks": {
+    "historical_source_matched_pass": 20,
+    "current_selected_rust_pass": 1,
+    "not_run": 29,
+    "wrapper_exit_125_preserved": true
+  },
+  "visibility_complete": false,
+  "refactor_ready": false
+}

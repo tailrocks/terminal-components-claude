@@ -1,0 +1,115 @@
+{
+  "record_type": "independent_read_only_actual_holla_diagnostic_journey_review",
+  "reviewer": "technical_review",
+  "reviewed_at_utc": "2026-10-08T20:22:48Z",
+  "verdict": "REVIEWED_DIAGNOSTIC_EVIDENCE_ONLY",
+  "scope": "One HELP-HOLLA-004 run using the current a914 suite and the prebuilt source-pinned candidate/reference Holla binaries. This review verifies the recorded run and its artifact hashes; it does not establish parity, compliance, overall readiness, API/ownership coverage, or qualification.",
+  "subject": {
+    "seal_path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/final-seal.json",
+    "seal_sha256": "c2f75d9387a639d7afd05dd4c269f88ef760ab063ca1b6a2c3b635470938ac89",
+    "run_id": "holla-diagnostic-journey-vis06-a914-20261009-05",
+    "nextest_run_id": "be22e745-da96-47ba-880f-eb00605352a6"
+  },
+  "raw_execution": {
+    "command": "cargo nextest run --manifest-path crates/termrock-e2e/Cargo.toml --test holla_help_overlay --locked --offline --build-jobs 2 --test-threads 1 --user-config-file none --retries 0 --no-fail-fast --no-tests fail --success-output final --run-ignored only -E test(=holla_help_overlay)",
+    "raw_stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/logs/nextest.stdout.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "raw_stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/logs/nextest.stderr.raw",
+      "sha256": "4b4003541ba0098c791eafde824451925c5ea84ddb754de1a6d329df6020c254",
+      "bytes": 3449
+    },
+    "exit_code": 100,
+    "summary": "1 test run: 0 passed, 1 failed, 1 skipped",
+    "selected_test": "termrock-e2e::holla_help_overlay holla_help_overlay",
+    "assertion_outcome": "The test failed at tests/holla_help_overlay.rs:24-37 because receipt_has_blocking_result found eight BLOCKED visual checks. The raw panic states exact comparison remains blocked because no shared expected generation was supplied. The PTY interaction assertions passed; this is not evidence of a visual FAIL or PASS."
+  },
+  "suite_identity": {
+    "revision": "termrock-e2e-2026-10-08.1",
+    "digest": "a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0",
+    "case_set_digest": "790d9f2aa375b67ab5c99290433f5cd5bb8a1e385a7a9b9fe9c9d8ec4cdba9cb",
+    "profile_digest": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+    "dependency_lock_sha256": "7d2811ca72f03c2c1946f302e53f10cda65225df466236d9c867333b41453bce",
+    "test_binary_sha256": "4070018e0229ffcaf6ce2ca9b86cf58e811d07d1f5d7bec7280639c2f622b94e",
+    "suite_review_receipt": {
+      "path": "/private/tmp/termrock-a914-diagnostic-suite-review-20261009.json",
+      "sha256": "345ca6075dc3ed2206517a9651faab8ce9feb9bac6eaeb2954566ffad248e238"
+    }
+  },
+  "source_pair_and_binaries": {
+    "candidate": {
+      "source_commit": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+      "builder_receipt_sha256": "b55d7015e364d04702fa0ac47ea556558db631522743f6c1bb5b8a40cae46ae3",
+      "executable_sha256_expected_and_rehashed": "af7bdeca543603e5ce75110fc521dba6ab84d6e51f4a15666b2ab037a9f6cdec"
+    },
+    "reference": {
+      "source_commit": "b682cb26d68b353aeeccf9e51653eddf097b39f5",
+      "builder_receipt_sha256": "36a3ecc889335577a8fb95d5d11e3ffc8949fdd9a0ae05db4cb9de59e5c6877e",
+      "executable_sha256_expected_and_rehashed": "07f6a793d2af38896873a00c9883855217dbb23610aa2a49779a9915e14e435c"
+    },
+    "actual_build_review": {
+      "path": "/private/tmp/termrock-vis06-actual-holla-build-review-20261009.json",
+      "sha256": "b48b6f8083e97d03a258220e6743180e1d6e8c76ae6270d59d5ac628fc4c7259",
+      "separate_nextest_run": "supervises_real_holla_pair_build: 1 passed, 15 skipped",
+      "actual_product_builds": "Two separate release cargo builds, one per source-pinned subject, each recorded exit 0; the Holla journey itself used those prebuilt executables."
+    },
+    "checkpoint_counter_interpretation": "The receipt's 8 PASS build rows are per-checkpoint executable-hash checks, not eight Cargo builds. Its 8 PASS launch rows are per-checkpoint ledger rows, not eight process launches. In the reviewed run_case implementation (lib.rs hash b922f700…9986a), the loop visits two subjects and calls launch once per subject, then emits build/launch check rows for each of four checkpoints. Thus the journey corresponds to two Tuiscotti PTY launches; the two Cargo product builds are the separate run above."
+  },
+  "checkpoint_and_assertion_results": {
+    "case_id": "HELP-HOLLA-004",
+    "checkpoint_ids_per_subject": ["00-boot", "01-help", "02-finder", "03-help-again"],
+    "same_registry_case_and_step_sequence_for_both_subjects": true,
+    "checks_total": 80,
+    "status_counts": {"PASS": 56, "BLOCKED": 8, "NOT_APPLICABLE": 16},
+    "pass_dimensions": {
+      "build_hash_checks": 8,
+      "launch_checks": 8,
+      "first_frame": 8,
+      "interaction": 32
+    },
+    "blocked_dimensions": {"visual": 8},
+    "not_applicable_dimensions": {"exit": 8, "restoration": 8},
+    "interaction_breakdown": "Per subject, the registry defines 12 assertion IDs across the four checkpoints. The receipt contains those 12 passing assertion rows plus four passing checkpoint-level interaction summary rows, hence 16 interaction rows per subject and 32 total.",
+    "not_applicable_scope": "The 16 NOT_APPLICABLE rows are exit and restoration checks: this case does not exit the root TUI and runs in isolated PTYs without asserting parent terminal restoration. They are not API/ownership checks and cannot waive other required command, API, ownership, or readiness obligations. API/ownership is not adjudicated by this single-case receipt."
+  },
+  "artifact_audit": {
+    "actual_receipt_path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/outputs/holla-paired-receipt.json",
+    "actual_receipt_sha256": "8fa7329ffad3130f03f1c3025bc7e47807c927e66bff61b3c45b52f778619882",
+    "actual_receipt_bytes": 115436,
+    "artifact_observations": 80,
+    "role_checkpoint_pairs": 8,
+    "unique_formats_per_pair": 10,
+    "formats": ["ansi", "ascii", "ascii_loss_json", "frame_json", "html", "manifest_json", "observations_json", "png", "png_fidelity_json", "txt"],
+    "hash_and_size_verification": "Independently recomputed SHA-256 and byte count for all 80 artifact paths; all matched the receipt, with zero mismatches. Each role/checkpoint pair had exactly the ten unique formats listed.",
+    "final_runner_receipt": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/final-receipt.json",
+      "sha256": "e89a0165415c1b6dde43ad2a4ce961fb26b757af69673860af37555178d4bd18"
+    },
+    "postflight": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/postflight.json",
+      "sha256": "4522f7f2eef5ac5538a5aa9f3d51ce47fa326003b15047b3abd74195f52d6768"
+    },
+    "runner_result": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/runner-result.json",
+      "sha256": "1b4b5582db54eabe5a29eff3747f75bd3fe6fcc032015c1e064a97618f95f20d"
+    }
+  },
+  "diagnostic_trust_boundary": {
+    "trust_record_path": "/private/tmp/termrock-rust-tool-test-execution/holla-write-policy-preflight-vis06-a914-20261009-02/trust/trust.json",
+    "trust_record_sha256": "b3a8414fb0661a44f92b0d134fa03dbdcd5f244f1cae15d15189df22568a7865",
+    "input_acceptance_path": "/private/tmp/termrock-rust-tool-test-execution/holla-write-policy-preflight-vis06-a914-20261009-02/diagnostic-input-acceptance.json",
+    "input_acceptance_sha256": "eabb7ed7165d5cd8427378c5ecadeeab72da34c942244cafd27442a61208c1aa",
+    "expected_generation": null,
+    "corpus_admission": "NOT RUN",
+    "visual_comparison": "BLOCKED",
+    "overall_qualification": "BLOCKED"
+  },
+  "limitations": [
+    "This is one Holla case and two selected source commits, not the four-app matrix, the seven-command inventory, or full required API/ownership coverage.",
+    "No expected generation was supplied, so no visual PASS or FAIL was produced; all eight paired checkpoint visual records are BLOCKED.",
+    "This evidence does not establish parity, application acceptance, overall readiness, compliance, or milestone qualification."
+  ]
+}
