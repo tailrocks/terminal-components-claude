@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 47,
+  "queue_revision": 48,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -1609,6 +1609,45 @@
       ],
       "handoff": null,
       "accepted_queue_revision": 35
+    },
+    {
+      "work_id": "VIS-14",
+      "requirement_ids": [
+        "VIS-I07",
+        "VIS-I08",
+        "VIS-I09"
+      ],
+      "priority": "P0",
+      "priority_reason": "Provide bounded read-only Rust ingestion that resolves main-CI and observer identities, distinguishes failures/missing or cancelled work, and validates observer artifacts as inert data. This is an independently useful prerequisite to trusted report projection; it does not publish STATUS or write Git refs.",
+      "dependencies": [],
+      "branch": "termrock-implementation",
+      "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "allowed_paths": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/termrock-visibility-publisher/Cargo.toml",
+        "crates/termrock-visibility-publisher/src/lib.rs",
+        "crates/termrock-visibility-publisher/src/api.rs",
+        "crates/termrock-visibility-publisher/src/observer.rs",
+        "crates/termrock-visibility-publisher/tests/impl_observer_ingest.rs"
+      ],
+      "owner": "/root/jackin_inventory_current_luna",
+      "reviewer": "/root/observer_code_review_luna",
+      "claim_token": "visibility-vis14-t1-readonly-ingest-q47-20261009-1007z",
+      "expiry": "2026-10-09T13:00:00Z",
+      "state": "claimed",
+      "evidence": [
+        "Scope is exactly T1_READ_ONLY_INGEST in the accepted publisher split plan; the seven allowed paths above are the seven plan paths with descriptive '(new)' and '(workspace membership only)' annotations removed.",
+        "Accepted plan: /private/tmp/termrock-vis11-reusable-publisher-split-r2-20261009/plan.json (SHA-256 d038e674baa6d69c22b05ad22a836183c262bb3605a0353ac44b0ac5c34e7b3f).",
+        "Independent plan review READY: /private/tmp/termrock-vis11-reusable-publisher-split-r2-review-observer-20261009.json (SHA-256 3af09e15f6ee96d02730557253461ddceb3b40b0cac2d0ec785202f81857fb22).",
+        "T1 is read-only: it has no Git Data write endpoint, no STATUS/report projection, and does not check out, extract, or execute candidate source or artifact content.",
+        "The empty dependency list permits bounded ingestion work to start independently. V1 and initial T1 may run in parallel on their disjoint accepted path sets; the caller-identity test and T1 closure remain pending until V2 supplies the exact reviewed caller bytes. Do not mark VIS-14 verified or close T1 before binding those bytes.",
+        "Root Cargo.toml is limited to workspace membership and root Cargo.lock to the locked T1 dependencies, exactly as scoped by the reviewed plan. A nested standalone workspace would require a separate crate Cargo.lock outside the seven paths, so it is not selected under this exact claim. No source edit or Cargo command may occur before Root accepts this claim.",
+        "Queue overlap source: q47 tasks snapshot /private/tmp/termrock-vis02-q47-publication-proposal-fd9165-20261009/after/q47-tasks.json (SHA-256 178551e7546be481f33149834711ea18e5fb4ee40af4e8a9fb6d03dc03847d97) and WORK_QUEUE snapshot /private/tmp/termrock-vis02-q47-publication-proposal-fd9165-20261009/after/q47-WORK_QUEUE.md (SHA-256 59885ad044a1a92a5e21a00d825c0719929e90f7d133a2735583551d65f00489); actual q47 Root publication record /private/tmp/termrock-q47-root-publication-20261009.json (SHA-256 7fa526b1e53b4de0e2df2bf87e5a27d8e546710abb20d41ad2bb5122f38eca15) records commit and remote readback fa95b5acb6ad95150c8d6e7ce1f7e80a58a7f522. The one-file source-pin proposal /private/tmp/termrock-vis02-q48-pin-proposals-20261009/q47-pin-r1/proposal.json (SHA-256 d8333a9dbc6e146d34dfb5a6b160b29832ae8e5d3e193d9cbfa0f6fbfad701d2) changed only crates/termrock-e2e/src/lib.rs; its actual publication record /private/tmp/termrock-vis02-pin-root-publication-20261009.json (SHA-256 0e53bfc0c08b2e217a4ae47551689add33d4667bf9cb838cbcb65f93107c7c6e) records commit and remote readback 6a6ba79616b948b38b3c23317860290c96edb631, so it does not overlap these seven paths. At q47 the snapshot contains 13 tasks and no VIS-14; no existing scope includes root Cargo.toml, root Cargo.lock, or the new publisher crate. Root must re-read the live queue and recheck overlap immediately before acceptance. These external snapshots are evidence, not accepted queue authority.",
+        "Root's queue acceptance requires this claim's base_sha to match the actual local checkout HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b. That is the acceptance checkout anchor, not a claim that it is the published source-facts tip. The source plan's published termrock pin is commit 6a6ba79616b948b38b3c23317860290c96edb631, recorded at /private/tmp/termrock-vis02-pin-root-publication-20261009.json (SHA-256 0e53bfc0c08b2e217a4ae47551689add33d4667bf9cb838cbcb65f93107c7c6e), a child of fa95b5acb6ad95150c8d6e7ce1f7e80a58a7f522. Comparing only the seven allowed paths at local base 766 and published source pin 6a: Cargo.toml is blob b8b7f80d574ff4388fd638a046b410aad1bcd582 at both; Cargo.lock is blob 2d50e18232ef0541d7e5f85262ad6cbeb7c9c031 at both; the five new publisher crate paths are absent at both. This limited path comparison shows the scoped preimages match; it does not claim the full trees match. If Root accepts this claim, implementation must start from the actual published 6a source tree and recheck these seven scoped preimages before editing."
+      ],
+      "handoff": null,
+      "accepted_queue_revision": 48
     }
   ]
 }
