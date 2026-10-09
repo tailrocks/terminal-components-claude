@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 56,
+  "queue_revision": 58,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -932,10 +932,11 @@
       "reviewer": "/root/subjects_runner_review_luna",
       "claim_token": "visibility-subjects-root-to-rustinfra-q38-20261009-01",
       "expiry": "2026-10-09T06:00:00Z",
-      "state": "claimed",
+      "state": "in_progress",
       "evidence": [
         "Independent subject-launcher plan approved by /root/technical_review; exact schema bound before implementation; actual builds not yet run.",
-        "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests."
+        "Integrator amended the scope at queue revision 14 for the user requirement: all test code and execution use Rust and cargo nextest. Preserve prior assertions before removing Python tests.",
+        "Root accepts design-only immutable-tag instrumentation plan 657674cf5a6ea6fdd5ae23cc822ecd75d16797280e4ae43a6955c9dd256cffbb and errata with independent review 851cb9722e1c970d85df2f4a724f40f98be5b474bc31dabf48832ca5d958d20e. Existing VIS-06 owner may implement only scoped helper, Rust tests and evidence shim in external frozen views. No Cargo, compiler, linker, PTY, expected admission or execution approval. Preserve canonical fixture/index/tag and perform focused source review before Root execution."
       ],
       "handoff": {
         "changed_paths": [
@@ -1500,7 +1501,7 @@
       "branch": "termrock-implementation",
       "base_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
       "expiry": "2026-10-10T12:00:00Z",
-      "state": "claimed",
+      "state": "in_progress",
       "handoff": {
         "handoff_at": "2026-10-09T11:52:00Z",
         "handoff_by": "/root/current_branch_comparison_luna",
@@ -1563,7 +1564,8 @@
         "Independent source review found the R6 comparator actively resolves prepare() from the old ca3ef Cargo dependency while its receipt may select a newer Velnor source. Preserve all existing claims and required legacy tasks; no comparator parity or tool qualification is accepted.",
         "Root accepts external comparator Cargo binding addendum /private/tmp/termrock-vis11-r6-comparator-cargo-source-binding-plan-addendum-r1-20261009.md SHA-256 6dd6dfeb2d9ba4ddfcda8dcec704b51b74a674f8ef0fca2d9a5a5baa9ddc1210 and independent review /private/tmp/termrock-vis11-r6-comparator-cargo-source-binding-plan-review-luna-r1-20261009/review.json SHA-256 4a8abba3707b9e9c4203b3a2914189558ccf0f981c4a01e23a656ac2dc55c742. Existing owner /root/current_branch_comparison_luna may add Cargo.toml to the three previously accepted external R6 paths only. Bind the comparator executable digest, actual Cargo-resolved generator package path and compilation-relevant source closure, reviewed Velnor producer artifacts, and exact invocation receipt digest through the measured Root runner. Freeze selected immutable generator inputs before build. No source build, comparator execution, generated workflow parity, release, or readiness is accepted by this plan.",
         "Focused V1 external plan review only: plan /private/tmp/termrock-vis11-v1-callee-contract-plan-r7-20261009/plan.json SHA256 70f8bc1ab302d47f1ca747283874b1626c4c67bc27eb1c40c0e56b80bb26b3c9; independent review c8372c2355ecd0f853552c2f4980db6b91a5b17a90535472bdd8466f821625a1. Exact eight upstream paths, owner /root/subjects_runner_review_luna, reviewer /root/velnor_current_refs_luna. No source implementation, Rust execution, or tool qualification claimed.",
-        "Root accepts reviewed V1 external implementation plan 70f8bc1ab302d47f1ca747283874b1626c4c67bc27eb1c40c0e56b80bb26b3c9 and independent review c8372c2355ecd0f853552c2f4980db6b91a5b17a90535472bdd8466f821625a1. /root/subjects_runner_review_luna may implement only its eight listed upstream paths in a distinct external copy of reviewed R3 inventory 612bbbcf127a64ee4e44d709aea92dbf3d688140a944bdb69e54a72153065319; /root/velnor_current_refs_luna reviews. Existing VIS-11 assignment and token remain. V1 excludes observer, caller generation, live reporting, CAS, releases and Cargo execution. Root alone executes Cargo; actual implementation and tests remain NOT_RUN."
+        "Root accepts reviewed V1 external implementation plan 70f8bc1ab302d47f1ca747283874b1626c4c67bc27eb1c40c0e56b80bb26b3c9 and independent review c8372c2355ecd0f853552c2f4980db6b91a5b17a90535472bdd8466f821625a1. /root/subjects_runner_review_luna may implement only its eight listed upstream paths in a distinct external copy of reviewed R3 inventory 612bbbcf127a64ee4e44d709aea92dbf3d688140a944bdb69e54a72153065319; /root/velnor_current_refs_luna reviews. Existing VIS-11 assignment and token remain. V1 excludes observer, caller generation, live reporting, CAS, releases and Cargo execution. Root alone executes Cargo; actual implementation and tests remain NOT_RUN.",
+        "Root accepts four-path Velnor trigger-contract plan 715a79c0ccb313d2a06cf90a9e2c83c1bbf6fa338ac6deaaf374ed5a4e53d029 with independent review 03f61e033584df5cbc5b0d44568475b6e214e743bdbe34f6b7a2c41e9e0bab8c. Delegate coordination_luna edits only four literal paths in the external R3 successor; retain SourceTag provenance and push CI lookup. Existing VIS-11 owner and claim remain; no execution or release approval."
       ],
       "accepted_queue_revision": 51,
       "claim_history": [
