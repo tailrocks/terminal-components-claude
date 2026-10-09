@@ -1,39 +1,231 @@
-# Initial visibility status
+# Visibility status reporter
 
-source-facts.json holds measured source identities and current CI observations.
-status.py renders the root STATUS.md from that file and the accepted task records
-in docs/implementation/visibility/tasks.json. It does not execute a product,
-infer a result from a checklist, or consume a paired run receipt. A run receipt
-is a record of execution results tied to an exact source pair and required test
-set. Until a later accepted change adds validated run receipts, product result
-rows must remain NOT_RUN.
+Source-facts schema version 2 preserves the original source pair and its
+CI/DCO observations, then records later source observations and the local
+checkout separately. `source_observation_history` retains the five
+previous source snapshots in order, including their exact CI captures or an
+explicit `null` when no capture exists. CI and DCO checks apply only to their
+recorded head SHAs. Source observations, repository gates, and product results
+remain separate.
 
-The source facts were collected on 2026-10-08 through these read-only commands:
+The retained 931 branch API record uses the legacy `updated_at` field. Its
+recorded command extracts `.commit.commit.committer.date`, which is commit
+metadata rather than the branch last-update time. New source records name this
+value `commit_committer_at` and store an unknown branch last-update time as an
+explicit `null`.
 
-    git rev-parse HEAD
-    gh api repos/tailrocks/terminal-components-claude/branches/termrock-implementation --jq .commit.sha
-    gh api repos/tailrocks/terminal-components-claude/branches/visual-baseline --jq .commit.sha
-    gh api repos/tailrocks/terminal-components-claude/git/ref/tags/visual-baseline --jq .object
-    git rev-parse 'refs/tags/visual-baseline^{}'
-    gh run view 37721476033 --repo tailrocks/terminal-components-claude --json headSha,conclusion,status,workflowName,createdAt,jobs,url
-    gh api repos/tailrocks/terminal-components-claude/actions/runs/37721476033/jobs --jq .total_count
-    gh api repos/tailrocks/terminal-components-claude/actions/runs/37721476033/artifacts --jq .total_count
-    gh api repos/tailrocks/terminal-components-claude/check-runs/113129904697 --jq '{id, name, status, conclusion, head_sha, details_url, output: .output.summary}'
-    mise current --quiet
-    mise exec -- cargo nextest --version
-    python3 --version
+`status.py` renders the root `STATUS.md` from source facts, accepted task
+records in `docs/implementation/visibility/tasks.json`, and the narrowly
+supported execution observations described below. It does not execute a
+product or infer a result from a checklist. Exact root-command rows stay
+`NOT_RUN` unless evidence records that exact command.
 
-The remote candidate branch matched the local candidate HEAD. The remote
-visual-baseline branch was recorded separately; its SHA was not compared with
-local candidate HEAD. The visual-baseline annotated tag object and peeled commit
-matched the frozen identities in the root instructions. CI run
-[37721476033](https://github.com/tailrocks/terminal-components-claude/actions/runs/37721476033)
-failed on the measured candidate SHA before any job or artifact was recorded.
-Its run-page annotation states: “Workflow file exceeds the maximum allowed size
-of 500 KB.” The DCO check is a separate repository gate. Neither observation is
-a product test result.
-The listed tool versions are available in this environment only; their presence
-does not show that a product check ran.
+## Recorded baseline
+
+The original recorded source pair is candidate
+`85b51da2e9832dba642abf7d64d032f848cade0e` and reference
+`5f6e52f31861f9f4281f1db264ab012457b9bc2e`. Its observation time is not
+separately recorded. CI run
+[37736017446](https://github.com/tailrocks/terminal-components-claude/actions/runs/37736017446)
+failed before any job or artifact was recorded. Its run-page annotation reports
+that the workflow file exceeds the 500 KB limit. DCO check `113175645948`
+reported two sign-off problems. Both are historical repository observations,
+not product test results. Older README versions listed run `37721476033` and
+check `113129904697`; those IDs were superseded before this source-facts
+recording.
+
+The visual-baseline branch and immutable tag are recorded separately. The
+tag object and peeled commit remain the identities in `source-facts.json`.
+The installed Python, Rust, and cargo-nextest versions describe the environment;
+they do not show that a product check ran.
+
+## Previous source observations
+
+The source facts retain these previous observations in order. Each CI
+capture is bound to the candidate and reference SHAs in its row. The e22
+observation is source-only and has an explicit `current_ci_observation: null`.
+
+- Candidate `931bbba00bad43de79731912f48e29fe88751cb8` / reference
+  `68d98ac99238c8580464f238a65b0f862ecc3dbd`, observed at
+  `2026-10-08T08:18:00Z`; superseded at `2026-10-08T10:05:21Z`. Its API CI
+  capture was recorded at `08:33:53Z` (manifest SHA-256
+  `96fab9bbb37943d69c27e9e57d6b053ac7674de5bff2ca5f5f3087429e226d50`) and
+  provider page capture at `09:02:19Z` (manifest SHA-256
+  `f1eb6e6dc17014481e898b750053e29f278fcf39f70738c5d851e73d0e695e80`). Run
+  `37747564884` failed before jobs or artifacts. The reference API query
+  completed successfully and returned zero matching runs. DCO checks
+  `113212666161` and `113195062894` reported two and fourteen sign-off problems.
+- Candidate `bebb60a7948f9ee190483c48545d6bc35c5437df` / reference
+  `68d98ac99238c8580464f238a65b0f862ecc3dbd`, observed at
+  `2026-10-08T10:05:21Z`; superseded at `2026-10-08T10:13:57Z`. Its API capture
+  ended at `10:04:14Z` (manifest SHA-256
+  `3f419da7b1b4be673f550c68601f10e9ca9605fddb05bce0e4353349062c529f`); its
+  provider page was captured at `10:03:39Z`. Run `37758149777` failed with zero
+  jobs and zero artifacts. The reference API query completed successfully and
+  returned zero matching runs. DCO checks `113247788492` and `113195062894`
+  reported two and fourteen sign-off problems.
+- Candidate `e22d54708fe58670d92c2dac7c1ace6c97fac164` / reference
+  `68d98ac99238c8580464f238a65b0f862ecc3dbd`, observed by the branch API at
+  `2026-10-08T10:13:57Z`; superseded at `2026-10-08T10:19:24Z`. The source
+  record preserves the returned heads and commit committer dates. The API did
+  not supply branch last-update time.
+- Candidate `cee7e2e307514e49a70d8b8fcb028923ccdc7322` / reference
+  `68d98ac99238c8580464f238a65b0f862ecc3dbd`, selected by explicit refs fetch
+  at `2026-10-08T10:19:24Z`; superseded at `2026-10-08T15:11:33Z`. Its fetch
+  record is `/private/tmp/termrock-fixed-source-pair-20261008-101924.json`
+  (SHA-256 `6645a0d40d4777d8fc8af0f74e64bf2c701986ed9bf2d5d30aa1d73a82e1db3c`).
+  Its commit committer dates were `2026-10-08T17:17:11+07:00` and
+  `2026-10-08T14:13:13+07:00`; they are metadata, and branch last-update time
+  is unknown. The API and provider capture manifest is
+  `/private/tmp/termrock-ci-fixed-pair.20261008-102210Z/manifest.json`
+  (SHA-256 `819ee505aeceb2d4f55de56e6845765c6f3189dee01be605ed694bdd19f005a1`).
+  It records candidate run `37762481719` as failure with zero jobs and zero
+  artifacts, a reference query with zero matching runs, and DCO checks
+  `113262062732` / `113195062894` with two / fourteen sign-off problems. The
+  provider page's workflow-size annotation and 537,470-byte workflow (SHA-256
+  `607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24`) are
+  historical evidence, not product results.
+- Candidate `1ea1c17707f0a8f1639af506be179013d5e2d52a` / reference
+  `b682cb26d68b353aeeccf9e51653eddf097b39f5`, observed at
+  `2026-10-08T15:11:33Z`; superseded at `2026-10-08T23:25:02Z`. Candidate run
+  `37793991551` failed with zero jobs and zero artifacts; the reference query
+  returned zero runs. DCO checks `113368579050` / `113326850483` reported two
+  / fourteen sign-off problems. The provider page recorded the 500 KB
+  workflow-size annotation. This capture applies only to this historical pair
+  (fetch record SHA-256
+  `367121e3eb643453d46d33b598388752c41b1c5fa23e9c099e751c280e0568aa`).
+
+The 931 record retains the earlier candidate tip
+`b07540df4f7a97fcca8c4d3396102651be459503`, which was relayed without a
+retained fetch time or API response. It carries no test or product
+qualification.
+
+## Current fixed source pair and CI/DCO snapshot
+
+The selected comparison pair is candidate
+`1d797d41c8141fcbdc3f69d7f11eb8875ab54712` and reference
+`b274dd57f4dd078ade6e424d546d83efbd2e8526`, observed at
+`2026-10-08T23:25:02Z`. The branch API supplied the commit heads and committer
+timestamps; it did not supply branch-update timestamps. A later HTTPS refs
+fetch was reported to verify that both local remote-tracking refs matched this
+pair at `2026-10-08T23:30:54Z`. The fetch output was not preserved, and the
+branch last-update time remains unknown. Commit committer dates are metadata,
+not branch-update times. The source-facts record is
+`/private/tmp/termrock-vis06-current-source-facts-20261008T233054Z-luna.json`
+(SHA-256 `fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d`).
+This is a fixed comparison snapshot, not a claim that these refs remain the
+latest remote branch tips.
+
+The exact-head CI/DCO snapshot was captured at
+`2026-10-08T23:30:54Z`. Candidate run
+[37858314774](https://github.com/tailrocks/terminal-components-claude/actions/runs/37858314774)
+failed with zero jobs. Artifact count was not queried and is UNKNOWN; the
+failure cause was not captured. The exact-head reference Actions query
+succeeded and returned zero matching runs. Candidate DCO check `113587796998`
+reported two sign-off problems; reference DCO is NOT_CAPTURED. Product
+execution remains NOT_RUN. The captured source-facts record did not preserve
+the raw GitHub response bodies, so these results are local observations rather
+than a portable API capture.
+
+## Report publication observations
+
+The root publication record reports commit
+`b9e34b13ef47401865f1511b9babaab6e020eedc` as a normal fast-forward from
+`169380c7d6a4cff9f1c43ecef592abc715e6df6a` (tree
+`3d7c68dcf6724799c38aefb774ac25447ea630b3`) with three queue, test, and
+documentation paths. Its postcommit review matched the local commit tree and
+publication record, but could not independently refresh the remote branch
+tip. This administrative publication is separate from product execution.
+Publication record `/private/tmp/termrock-vis10-foundation-publication-20261009.json`
+(SHA-256 `6dbaf2e84e7befa9e6eda15f6a4885f706e657d33496bd4f1aa4d36dc64912c2`);
+postcommit review `/private/tmp/termrock-vis10-foundation-postcommit-review-technical.json`
+(SHA-256 `5591df8eeeb9250f7cc50135d5cdb0ed11d3b569e7f6f591b0fcac63e1a0edd5`).
+
+| Publication commit | Actions run | Result | Jobs | Artifacts | Failure cause | Product execution |
+| --- | --- | --- | ---: | ---: | --- | --- |
+| `169380c7d6a4cff9f1c43ecef592abc715e6df6a` | [37862074205](https://github.com/tailrocks/terminal-components-claude/actions/runs/37862074205) | completed / failure | 0 | UNKNOWN_NOT_QUERIED | UNKNOWN_NOT_CAPTURED | NOT_RUN |
+| `b9e34b13ef47401865f1511b9babaab6e020eedc` | [37864720297](https://github.com/tailrocks/terminal-components-claude/actions/runs/37864720297) | completed / failure | 0 | UNKNOWN_NOT_QUERIED | UNKNOWN_NOT_CAPTURED | NOT_RUN |
+
+The P169 run was created at `2026-10-08T23:55:22Z`; the b9 run was created at
+`2026-10-09T00:25:40Z`. Their manifests bind each run to its exact publication
+commit: P169 SHA-256
+`10ecf34f05dad57d128f273f78cadaebac1089e25d037d688a292d5dced33cd4`, and b9
+SHA-256 `591bf6e3de2c7aedbd68d5e59c822a5f3c4b32b5c7b5adcd7b4f159a3ba5104b`.
+Neither run provides product checks on the selected 1d/b274 pair; their
+artifact counts and failure causes are unknown.
+
+## Historical bounded execution observations
+
+`source-facts.json` includes a provisional
+`termrock-status-execution-observations-v1` record nested under the superseded
+1ea/b682 source pair. This narrow reader supports
+the pinned deferred Nextest seal/case files and one paired Holla diagnostic
+receipt with its sealed harness run and independent review records. It checks
+raw JSON SHA-256 values, strict JSON, source-pair identity, event-to-case-map
+counts, the exact Holla check ID/dimension set, the eight role/checkpoint by ten
+format artifact matrix, and the review records' matching pins. It accepts and
+renders each supported row status, including `FAIL` and `NOT_RUN`; a failure
+row remains visible as a failure. For Holla, the expected and actual executable
+SHA-256 and builder-receipt SHA-256 must agree across the paired receipt, the
+journey review, and the separate build review before build hash rows are shown.
+The nested builder receipt's source commit must match the role's selected
+source, and its target triple must match the paired receipt's build record.
+It does not execute a product or treat these partial observations as a complete
+required set.
+
+The historical deferred subset recorded 22 passing and 1 failing test of 23;
+the failed row is `BD-21` / `W13-05`. The Holla `HELP-HOLLA-004` diagnostic recorded
+56 PASS, 8 visual BLOCKED, and 16 exit/restoration NOT_APPLICABLE checks across
+candidate and reference. It covers one case at 120×40 with truecolor, not the
+full application inventory. The actual Holla harness assertion failed after
+its visual checks were BLOCKED; the report preserves that state as BLOCKED
+rather than relabeling it FAIL.
+
+The execution records and independent reviews are under `/private/tmp` and are
+local-only until their evidence files are archived with the repository. The
+reader opens evidence JSON one path component at a time without following
+symlinks below `/private/tmp` or the report root. It rehashes the JSON record
+files; artifact-file hash/size verification is attributed to the pinned
+independent Holla review. API, ownership, the active common
+required set, exact root commands, and overall readiness remain incomplete.
+The proposed R5 denominator is not treated as an accepted required set.
+
+The fetch and capture records are stored under `/private/tmp` outside this
+repository. Their hashes identify the reviewed local inputs, but the files are
+provisional until archived and are not CI-portable by those paths. Later branch
+observations remain separate and do not silently advance the selected pair.
+
+The latest local checkout observation is commit
+`766ae1e925e32b4b28aa9100bb3fde5279aa223b` with tree
+`b5701830ac45f93620b2f55da71862aacc549cd6`. `git show -s --format='%G?' HEAD`
+returned `N`, meaning no Git cryptographic signature was recorded. Separately,
+the read-only trailer parser found the exact
+`Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` line in that commit
+message. Publication status is NOT_RECORDED; the observation does not assert a
+clean worktree or index. The earlier f61 checkout and its DCO observation are
+retained in local checkout history. These observations are separate from the
+remote CI/DCO checks above.
+
+## Local package and reporter controls
+
+`source-facts.json` includes a historical local E2E package observation bound
+to commit `f61abd3dfba1b4f867a539ab18ed7e4760b24a18` and tree
+`15b0c9c2b24b773844a99c84b3839b4e98ef101f`. That record identifies 21 files with package
+SHA-256 `f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361`.
+Its gate ran one non-product registry/precondition contract test; it did not run
+the Holla journey. The historical Holla receipt uses suite SHA-256
+`a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0`, which
+differs from f307. The f307 Holla product result remains NOT_RUN.
+
+The status reporter control observation reconciles 35 unique test identities
+as 26 + 7 + 1 + 1 across the reviewed R4/R6/R7/R9 source revisions and exact
+failed-test reruns. Those outcomes are not one full green run and are not
+product readiness evidence. The package, contract-gate, and reporter-control
+records remain local-only until their evidence files are accepted and archived.
+
+The reporter does not fetch GitHub. It verifies the pinned execution JSON
+records when rendering local partial observations; it does not rehash the
+artifact files named inside the paired Holla receipt.
 
 ## Generate and check
 
@@ -42,29 +234,29 @@ Run the report CLI from the repository root with Python 3.9 or later:
     python3 tools/visibility/status.py --write
     python3 tools/visibility/status.py --check
 
-Run its black-box CLI contract tests with Rust nextest:
+Run the black-box CLI contract tests with Rust nextest:
 
     mise exec -- cargo nextest run --manifest-path crates/termrock-visibility-tests/Cargo.toml --test status --locked
 
 The `--role reference` option renders the same measured pair, result rows, and
-accepted task records with `visual-baseline` as the local role. Keep the source
-facts and accepted task records mirrored read-only on the reference branch. Its
-work-queue links point back to the candidate branch. The default role is
-`candidate`; `--write` writes the role selected for the current checkout.
+accepted task records with `visual-baseline` as the local role. Keep source
+facts and accepted task records mirrored read-only on the reference branch.
+The default role is `candidate`; `--write` writes the role selected for the
+current checkout.
 
 Ready has its own result column. It is separate from build, launch, first frame,
-input and interaction, exit, restoration, visual, and ownership results. If no
-current run receipt is present, the product result is NOT_RUN; NOT_RUN is a
-result status, not a run-receipt status.
+input and interaction, exit, restoration, visual, and ownership results. The
+exact root-command rows remain `NOT_RUN`; the Holla case-specific rows display
+their recorded partial statuses separately.
 
---check is read-only and requires byte-for-byte agreement. The renderer has no
-publication credentials, does not update the task records or work queue, and
-does not write anything except STATUS.md when called with --write.
+`--check` is read-only and requires byte-for-byte agreement. The reporter has no
+publication credentials, does not update task records or the work queue, and
+writes only `STATUS.md` when called with `--write`.
 
 ## Current limits
 
-This first increment reports the measured source pair and an honest NOT_RUN
-state. It does not implement the validated receipt reader, complete case
-registry, freshness rejection for run receipts, trend calculation, component
-checkpoint pages, or trusted publication. Those results stay unmeasured until
-those mechanisms have their own accepted work and evidence.
+This increment reads only the two pinned, reviewed execution record shapes
+listed above. It does not validate an accepted complete case registry or active
+required set, enforce monotonic receipt freshness, calculate trends, produce
+component checkpoint pages, or publish reports. Those results remain
+incomplete until their records and evidence are accepted.
