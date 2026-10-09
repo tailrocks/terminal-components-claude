@@ -1,0 +1,21 @@
+{
+  "schema": "termrock-ci-current-observation/v1",
+  "head": "f0a05fa55d4fd09b19be63d51f512d4c32076f67",
+  "base": "81a8bf15cd3042f80649e2b48fed479829518dbd",
+  "mergeable": false,
+  "mergeable_state": "dirty",
+  "pr_tool": "c5743c",
+  "run": {
+    "id": 37954103945,
+    "status": "completed",
+    "conclusion": "failure",
+    "api_tool": "7b6d91",
+    "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37954103945",
+    "page": "/private/tmp/termrock-pr17-f0a-run37954103945-page-20261009.html",
+    "sha256": "21fd2bc7bcf5926f992254238664eba6cc60b12588969334adba28f725fe1b37",
+    "annotation": "Workflow file exceeds the maximum allowed size of 500 KB.",
+    "annotation_check_tool": "0c3d96"
+  },
+  "visibility": "INCOMPLETE",
+  "refactor": "NOT_READY"
+}
