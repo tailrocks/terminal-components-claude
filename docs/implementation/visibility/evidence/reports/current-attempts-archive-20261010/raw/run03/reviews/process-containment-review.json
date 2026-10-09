@@ -1,0 +1,43 @@
+{
+  "schema": "termrock-review/run03-r7-process-containment-cause-v1",
+  "verdict": "CONTAINMENT_CAUSE_UNRESOLVED_FROM_PRESERVED_ROW_DATA; REFUSAL_TO_SIGNAL_WAS_CORRECT",
+  "read_only": true,
+  "no_current_pid_queries_or_signals": true,
+  "bindings": {
+    "test_source": {
+      "path": "/private/tmp/termrock-vis02-run03-caller-r1-20261009/candidate/crates/termrock-e2e/tests/command_lane.rs",
+      "sha256": "c8b27dc512a751d39a1263aa0678d25ec364d9621b21be3bb4ee38831a99f611"
+    },
+    "termpane_session_source": {
+      "path": "/Users/donbeave/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/termpane-0.1.0/src/session.rs",
+      "sha256": "bb65406bd16f4b87b5156aea5ade420a03b472d4862da5fcce92e3776e5beb91"
+    },
+    "portable_pty_unix_source": {
+      "path": "/Users/donbeave/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/portable-pty-0.9.0/src/unix.rs",
+      "sha256": "14c85213b32074d71c8af334531fd027d6a0558dee830282620c88bab056c4b3"
+    },
+    "pair_evidence": {
+      "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/pair-evidence.json",
+      "sha256": "edbf0997737ab83136509c2d963e87b25dcb337c9f22041fe03433cd1ead4d6b"
+    }
+  },
+  "observed_initial_identity": {
+    "reference_exact_root": {"pid": 32202, "pgid": 32202, "sid": 32202, "basis": "TermpaneFactory captured process group successfully; source rejects unless getpgid(pid)==getsid(pid)==pid"},
+    "reference_direct_diagnostic": {"pid": 32378, "pgid": 32378, "sid": 32378, "basis": "same successful identity guard"},
+    "candidate_exact_root": {"pid": 32514, "pgid": 32514, "sid": 32514, "basis": "same successful identity guard"},
+    "candidate_direct_diagnostic": {"pid": 32561, "pgid": 32561, "sid": 32561, "basis": "same successful identity guard"}
+  },
+  "cleanup_observations": {
+    "reference_exact_root": {"survivor_pids": [32202], "signalled_pids": [], "state": "Unverified", "reason": "process-group ID contains a foreign session; refusing to signal reused IDs", "exit": "unavailable after PTY wait timeout"},
+    "reference_direct_diagnostic": {"survivor_pids": [32378], "signalled_pids": [], "state": "Unverified", "reason": "process-group ID contains a foreign session; refusing to signal reused IDs", "exit": "unavailable after PTY wait timeout"},
+    "candidate_exact_root": {"survivor_pids": [], "signalled_pids": [], "state": "Verified", "exit_code": 0},
+    "candidate_direct_diagnostic": {"survivor_pids": [], "signalled_pids": [], "state": "Verified", "exit_code": 0}
+  },
+  "analysis": [
+    "The PTY backend's Unix child pre-exec calls setsid(), so the direct child starts as session and process-group leader. The test captures PID/PGID/SID and checks equality before proceeding.",
+    "Cleanup filters a ps snapshot by the owned numeric PGID. If any matching row has a different SID, it returns Unverified before per-row start-token verification or any signal. The serialized evidence retains only survivor PIDs, not the foreign row's SID/start token or complete ps output.",
+    "Ordinary descendants inherit the owned session. A descendant entering a new session has a separate process group and is not a legitimate member of the old owned group. The foreign-session condition therefore indicates an identity-integrity/reuse or snapshot inconsistency, but these artifacts do not distinguish PGID reuse/race from inconsistent ps identity observation.",
+    "Termpane close completed and joined the PTY workers. Its close path then kills/reaps its direct Child handle; this is distinct from sweeping/signalling the process group. Reference exit and group containment remain blocked."
+  ],
+  "boundary": "Preserve the existing no-signal safety refusal. Do not infer a numeric cleanup SID, direct-child exit, reference product success, or candidate qualification from the available serialized records."
+}

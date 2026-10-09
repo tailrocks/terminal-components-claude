@@ -1,0 +1,224 @@
+{
+  "schema": "termrock-vis06-r15-r11-readonly-verification-result/v1",
+  "conclusion": "READ_ONLY_R11_EVIDENCE_VERIFICATION_INCOMPLETE_OR_FAILED",
+  "preflight": {
+    "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/preflight.json",
+    "sha256": "22b7f3fd51cb984d6931482408333ffaf3134462f24645b4db0832c556b8330b"
+  },
+  "root_grant": {
+    "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/root-launch-grant.json",
+    "sha256": "ba22221011c909fb6e350246cd7658d15d926a8e5de7c6f3af5748f94138ae9c",
+    "bytes": 970
+  },
+  "runner_sha256": "08767121038bd4ac8df7c15cebf8fbf1015199fd14ad64b279d1086906382151",
+  "started_at_utc": "2026-10-09T19:54:02.995Z",
+  "completed_at_utc": "2026-10-09T19:54:19.384Z",
+  "command": {
+    "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "nextest",
+      "run",
+      "--manifest-path",
+      "/private/tmp/termrock-vis06-tag-linker-r2-20261010/source/candidate-r15-r11-count-19/crates/termrock-visibility-tests/Cargo.toml",
+      "--test",
+      "subjects",
+      "--locked",
+      "--offline",
+      "--profile",
+      "default",
+      "--run-ignored",
+      "only",
+      "-E",
+      "test(verifies_existing_r11_tag_linker_stage_output_read_only)",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--user-config-file",
+      "none",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--no-tests",
+      "fail",
+      "--success-output",
+      "final"
+    ],
+    "cwd": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/source/candidate-r15-r11-count-19/crates/termrock-visibility-tests"
+  },
+  "child": {
+    "pid": 34271,
+    "exit_code": 0,
+    "signal": null,
+    "spawn_error": null,
+    "timed_out": false,
+    "elapsed_ms": 16138,
+    "close_observed": true,
+    "forced_kill_sent": false,
+    "owned_process_group_gone": true
+  },
+  "raw_streams": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/logs/nextest.stdout.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384,
+      "bytes_observed": 0,
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/logs/nextest.stderr.raw",
+      "bytes": 4273,
+      "sha256": "6b77ee59d82c8367d5e1e6545bbdeaf7502c6e4460d314cf30852440156cf4c7",
+      "mode": 384,
+      "bytes_observed": 4273,
+      "truncated": false
+    }
+  },
+  "nextest": {
+    "run_ids": [
+      "3ab8b110-d6f0-47f0-9104-7ecf1b922711"
+    ],
+    "terminal_rows": [
+      {
+        "status": "PASS",
+        "ordinal": 1,
+        "denominator": 1,
+        "test": "verifies_existing_r11_tag_linker_stage_output_read_only",
+        "raw": "        PASS [   6.540s] (1/1) termrock-visibility-tests::subjects verifies_existing_r11_tag_linker_stage_output_read_only"
+      },
+      {
+        "status": "PASS",
+        "ordinal": 1,
+        "denominator": 1,
+        "test": "verifies_existing_r11_tag_linker_stage_output_read_only",
+        "raw": "        PASS [   6.540s] (1/1) termrock-visibility-tests::subjects verifies_existing_r11_tag_linker_stage_output_read_only"
+      }
+    ],
+    "summaries": [
+      {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 17,
+        "raw": "     Summary [   6.540s] 1 test run: 1 passed, 17 skipped"
+      }
+    ],
+    "marker_count": 1,
+    "marker": {
+      "admission_status": "NOT_RUN",
+      "application_launch_performed": false,
+      "cache_postflight": {
+        "global_cache_after_sha256": "87ce0f96386206a6dd5be4de6c0b6d678cf61fba3d86d084e383778fc37c796e",
+        "global_cache_before_sha256": "8d8b0181d6d7225e9218daed14f24d1d0e938e1249f2426aa129ba5fc66d7ec6",
+        "global_cache_metadata_changed": true,
+        "protected_inputs_unchanged": false,
+        "unmanifested_registry_src_directories": 1177,
+        "unmanifested_registry_src_files": 6054
+      },
+      "capture_status": "NOT_RUN",
+      "evidence_files_written": false,
+      "expected_generation": null,
+      "external_state_changed": false,
+      "final_executable_path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle/aarch64-apple-darwin/release/holla",
+      "final_executable_sha256": "1144faa1760536fec08a2ac3c82242e41d85617ebf497e85b600353e3ed2c90f",
+      "independent_actual_review_sha256": "dcc0900899d7d6024e9b27bfcbb09f526a91e7f51c50f93eb4318ea23f0c8646",
+      "linked_by_ld_pid": 95127,
+      "linker_output_path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle/aarch64-apple-darwin/release/deps/holla-39f36ec75299fd19",
+      "linker_output_sha256": "1144faa1760536fec08a2ac3c82242e41d85617ebf497e85b600353e3ed2c90f",
+      "original_nextest_result": "FAILED",
+      "original_selected_case": "supervises_real_frozen_tag_holla_build",
+      "parent_clang_pid": 95124,
+      "product_build_result": "PASS",
+      "qualification": "BLOCKED",
+      "real_ld_exit_code": 0,
+      "run_id": "tag-r11-fresh-target",
+      "runner_result_sha256": "dbdf8853ed8b616c09209c096560194372a2713518f4a6676fa6f3585beccd73",
+      "verification": "R11_HOLLA_LINK_OUTPUT_MATCHES_BUILDER_ARTIFACT"
+    },
+    "marker_valid": true
+  },
+  "target": {
+    "path": "/private/tmp/termrock-vis06-nextest-target-r15-r11-count-19-readonly-r7",
+    "before": {
+      "path": "/private/tmp/termrock-vis06-nextest-target-r15-r11-count-19-readonly-r7",
+      "mode": 448,
+      "dev": "16777234",
+      "ino": "89223248"
+    },
+    "after": {
+      "root": {
+        "path": "/private/tmp/termrock-vis06-nextest-target-r15-r11-count-19-readonly-r7",
+        "mode": 448,
+        "dev": "16777234",
+        "ino": "89223248"
+      },
+      "deps_root": {
+        "path": "/private/tmp/termrock-vis06-nextest-target-r15-r11-count-19-readonly-r7/debug/deps",
+        "mode": 493,
+        "dev": "16777234",
+        "ino": "89223257"
+      },
+      "valid": true,
+      "binary": {
+        "path": "/private/tmp/termrock-vis06-nextest-target-r15-r11-count-19-readonly-r7/debug/deps/subjects-3cf48d02d7f82b25",
+        "bytes": 4754584,
+        "sha256": "b4c4a35b17a85714b09f6457e5d626886c27c8bc0620db8fda9aa473c738b200",
+        "mode": 493
+      },
+      "dep_info": {
+        "path": "/private/tmp/termrock-vis06-nextest-target-r15-r11-count-19-readonly-r7/debug/deps/subjects-3cf48d02d7f82b25.d",
+        "bytes": 1827,
+        "sha256": "fdd92bd38c066ad56790a7caa9ea006b66ca0ed56d33e50c4d96675d259ec11a",
+        "manifest_dir_is_r15": true,
+        "includes_subjects_test": true,
+        "subjects_dependency_tokens": [
+          "tests/subjects.rs",
+          "tests/../../../docs/implementation/visibility/evidence/subjects/tag-holla-linker-trace-r1/tag_linker_test_support.rs",
+          "tests/../../../docs/implementation/visibility/evidence/subjects/tag-holla-linker-trace-r1/ldshim.rs",
+          "tests/../../../docs/implementation/visibility/evidence/subjects/tag-holla-linker-trace-r1/clangwrap.rs",
+          "tests/../../../docs/implementation/visibility/evidence/subjects/tag-holla-linker-trace-r1/trace_common.rs"
+        ],
+        "includes_linker_helper": true
+      }
+    },
+    "identity_continuity": {
+      "matches": true,
+      "expected": {
+        "path": "/private/tmp/termrock-vis06-nextest-target-r15-r11-count-19-readonly-r7",
+        "mode": 448,
+        "dev": "16777234",
+        "ino": "89223248"
+      },
+      "observed": {
+        "path": "/private/tmp/termrock-vis06-nextest-target-r15-r11-count-19-readonly-r7",
+        "mode": 448,
+        "dev": "16777234",
+        "ino": "89223248"
+      }
+    }
+  },
+  "source_evidence_tools_unchanged": true,
+  "cargo_home_reuse": {
+    "path": "/private/tmp/termrock-vis06-cargo-home-tag-r4-20261009-ba912a28e055",
+    "historical_cache_qualification": "NOT_CLAIMED",
+    "global_cache_before_sha256": "39e8c72a1364d9cca910f3d6d159a7c8a3087d4835fd9e8bd5d213ea118d7223",
+    "global_cache_after_sha256": "5ac118a95b0779d8a38dec2433d1d3a728fbc1ff36dc0b5e8576d4f749314ce5",
+    "global_cache_changed": true
+  },
+  "postflight_snapshot_error": null,
+  "scope": {
+    "selected_test": "verifies_existing_r11_tag_linker_stage_output_read_only",
+    "original_r11_result": "FAILED; product build PASS; qualification BLOCKED",
+    "this_test_product_build": "NOT_RUN",
+    "application_launch": "NOT_RUN",
+    "capture": "NOT_RUN",
+    "admission": "NOT_RUN",
+    "expected_generation": null,
+    "evidence_files_written_by_test": false
+  },
+  "gate_valid": false,
+  "postflight_errors": [
+    "exact selected Nextest terminal row missing or invalid"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "termrock-review/run03-r8-reconstruction-collector-v1",
+  "verdict": "READY_FOR_READONLY_FAILURE_RECONSTRUCTION",
+  "collector": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r8-reconstruction-20261010/collector.cjs",
+    "sha256": "435864759f8749053791787f1a05d380317a8e7635fd8bfcaae92bc7d51846ad"
+  },
+  "readme": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r8-reconstruction-20261010/README.md",
+    "sha256": "a2ef6e0f063c3ddfa45bd248f9102e607e675d97429fbe361b725a2b181d2348"
+  },
+  "scope": "Static review only; collector was not executed; no Cargo, Nextest, product executable, or PTY was started.",
+  "checks": [
+    "All pinned R7 runner, raw stdout/stderr, process event, preflight, postflight, invocation, plan, and Nextest-config hashes match the collector constants.",
+    "The collector has no child-process import or process-launch path; it reads pinned files and uses exclusive creation for one new reconstruction report.",
+    "The 48-record JSON+ event accounting is internally consistent: 1 suite start, 1 suite terminal, 23 starts, 22 ignored terminals, and exactly one selected failed terminal. Names are checked against the pinned R7 runner inventory, and the failure is cross-checked against the exact run ID, human summary, assertion text, and child-close event.",
+    "The code preserves the selected Rust test as failed, preserves the original missing final receipt and runner parser bug, and labels its report as reconstructed rather than the original receipt. It does not convert either failure to a pass.",
+    "The pinned preflight and postflight tool snapshots were independently inspected and match for Cargo, rustc, rustdoc, Nextest, and Node path/hash/version."
+  ],
+  "limitations": [
+    "The collector's recomputed inputStable predicate does not directly compare the pre/post tools objects. The exact frozen snapshots do match, so this does not change the current reconstruction; retain the caveat if the collector is reused with different inputs.",
+    "The wrapper exit code 1 is labeled as Root-observed; it is not reconstructed from the Nextest child-close event alone."
+  ],
+  "result_boundary": "This validates only reconstruction of the existing failed R7 test result and wrapper receipt-construction failure. It is not a test pass, product qualification, parity result, corpus admission, or a substitute for the original receipt."
+}

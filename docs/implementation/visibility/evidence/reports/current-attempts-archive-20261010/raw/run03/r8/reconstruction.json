@@ -1,0 +1,690 @@
+{
+  "schema": "termrock-e2e/run03-post-run-raw-result-reconstruction/v2",
+  "status": "RECONSTRUCTED_FROM_FROZEN_R7_RAW_OUTPUTS; NOT_THE_ORIGINAL_RUNNER_RECEIPT",
+  "collector": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r8-reconstruction-20261010/collector.cjs",
+    "sha256": "435864759f8749053791787f1a05d380317a8e7635fd8bfcaae92bc7d51846ad",
+    "node": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+    "node_sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+    "operation": "read-only validation of existing raw files; writes only this reconstruction report; no child process is started"
+  },
+  "original_attempt": {
+    "runner_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/runner.cjs",
+    "runner_sha256": "59e72b0fc46f19e56a95329bfbe3d5aa3aa49bf496295a59850b24565563172f",
+    "gate_root": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate",
+    "original_final_receipt_present": false,
+    "runner_failure": "Receipt construction references runJson.tests.started, but parseLibtestJsonPlus returns test_events. The run therefore lacks its original final receipt. Root observed wrapper exit 1 after the child closed."
+  },
+  "rust_test_result": {
+    "nextest_run_id": "9b39b03b-ff0e-43d7-b8f9-166459c6d507",
+    "selected_test_executed": true,
+    "selected_test_outcome": "failed",
+    "exact_one_test_pass": false,
+    "selected_test_name": "termrock-e2e::command_lane$command::tests::run03_frozen_holla_pair_uses_the_shared_native_pty_program",
+    "selected_exec_time_seconds": 52.176968625,
+    "selected_failure_excerpt": "\nthread 'command::tests::run03_frozen_holla_pair_uses_the_shared_native_pty_program' (111500067) panicked at tests/command_lane.rs:3376:9:\nassertion `left == right` failed: reference ExactRootCommand Interaction: the command's frozen input and checkpoint program ran in order; negative assertions required earlier positive checkpoints\n  left: Fail\n right: Pass\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+    "structured_suite": {
+      "event": "failed",
+      "passed": 0,
+      "failed": 1,
+      "ignored": 1,
+      "measured": 0
+    },
+    "structured_events": {
+      "total": 48,
+      "suite_started": 1,
+      "suite_terminal_failed": 1,
+      "test_started_inventory": 23,
+      "test_ignored_terminals": 22,
+      "selected_failed_terminal": 1
+    },
+    "stderr_summary": {
+      "selected_run_count": 1,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 22,
+      "elapsed_seconds": 52.18
+    }
+  },
+  "process": {
+    "child_exit_code": 100,
+    "child_signal": null,
+    "timed_out": false,
+    "process_audit_clean": true,
+    "input_stable_recomputed": true,
+    "artifact_inventory": {
+      "root": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts",
+      "mode": 448,
+      "entries": [
+        {
+          "path": "RUN-03",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/candidate",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/00-root",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/00-root/ansi.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 13248,
+          "sha256": "24af35f2d4a60b5e093c44f31348e720b2747fad4a51dcb9ae580f70a4de61bc"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/00-root/ascii-loss.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 14522,
+          "sha256": "fcbe1eb6d87c7fc8937b4df089a36d0a51bcedeb65abfd3accb636d2c6534a0a"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/00-root/ascii.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 2761,
+          "sha256": "23e48f102551932fd8e5f658d73bfe457f2ffaf76e4264f9bbb6f40d60106acc"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/00-root/capture.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1216,
+          "sha256": "5a0fc6b4b158d2e9a47f1a40ff970b65490299ea42871e1ecb8b4da05fc1788d"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/00-root/frame.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1279149,
+          "sha256": "8a3c891ff122fb49d8876e09efc4683476b3f8e69514ffe84fa98fba19326681"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/00-root/html.html",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 571209,
+          "sha256": "8fafd6e57fe7e02da1b42efa096f813c334da45b572fd39f69559e7930264b96"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/00-root/live-text.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 3061,
+          "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/00-root/screen.png",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 405847,
+          "sha256": "a97571fd2e07b6e5f7535a2f1692285504cbf4c730dd5515dcab52001964800f"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/00-root/screen.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 3061,
+          "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/application.raw",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 15949,
+          "sha256": "29d7dfd6009ff565a492ac5feb2095a30272512363254c581e437858291a842e"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/build.raw",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1200,
+          "sha256": "a53f1568727f9c47307b08460e48e59c5622c7985fb5b4f2ba791ee8e3ba6d6c"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/inputs.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 446,
+          "sha256": "44c8c49572135ba7e5ab6b30a2cffa06cd4a6973194faca7f0423c139c90d317"
+        },
+        {
+          "path": "RUN-03/candidate/cargo-run/launch.raw",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 17286,
+          "sha256": "97a4b835191b6cdb1fcb9f359330a966c94f3a22cd00637023db24b61e8f9179"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/00-root",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/00-root/ansi.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 13248,
+          "sha256": "24af35f2d4a60b5e093c44f31348e720b2747fad4a51dcb9ae580f70a4de61bc"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/00-root/ascii-loss.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 14522,
+          "sha256": "fcbe1eb6d87c7fc8937b4df089a36d0a51bcedeb65abfd3accb636d2c6534a0a"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/00-root/ascii.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 2761,
+          "sha256": "23e48f102551932fd8e5f658d73bfe457f2ffaf76e4264f9bbb6f40d60106acc"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/00-root/capture.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1216,
+          "sha256": "4e06d2642c66da7c2f66d60f68f1fb4114a916f2afffa121308c4d9f325ced1b"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/00-root/frame.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1279149,
+          "sha256": "8a3c891ff122fb49d8876e09efc4683476b3f8e69514ffe84fa98fba19326681"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/00-root/html.html",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 571209,
+          "sha256": "8fafd6e57fe7e02da1b42efa096f813c334da45b572fd39f69559e7930264b96"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/00-root/live-text.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 3061,
+          "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/00-root/screen.png",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 405847,
+          "sha256": "a97571fd2e07b6e5f7535a2f1692285504cbf4c730dd5515dcab52001964800f"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/00-root/screen.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 3061,
+          "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/application.raw",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 15681,
+          "sha256": "03aa22cf2b72679cf1e0e38f0967fbf4dba186a2998b5d4aa6deafc10c61f1b7"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/inputs.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 446,
+          "sha256": "44c8c49572135ba7e5ab6b30a2cffa06cd4a6973194faca7f0423c139c90d317"
+        },
+        {
+          "path": "RUN-03/candidate/direct-executable/launch.raw",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 15681,
+          "sha256": "03aa22cf2b72679cf1e0e38f0967fbf4dba186a2998b5d4aa6deafc10c61f1b7"
+        },
+        {
+          "path": "RUN-03/pair-evidence.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 106804,
+          "sha256": "edbf0997737ab83136509c2d963e87b25dcb337c9f22041fe03433cd1ead4d6b"
+        },
+        {
+          "path": "RUN-03/reference",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/reference/cargo-run",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/00-root",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/00-root/ansi.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 13248,
+          "sha256": "24af35f2d4a60b5e093c44f31348e720b2747fad4a51dcb9ae580f70a4de61bc"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/00-root/ascii-loss.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 14522,
+          "sha256": "fcbe1eb6d87c7fc8937b4df089a36d0a51bcedeb65abfd3accb636d2c6534a0a"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/00-root/ascii.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 2761,
+          "sha256": "23e48f102551932fd8e5f658d73bfe457f2ffaf76e4264f9bbb6f40d60106acc"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/00-root/capture.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1210,
+          "sha256": "aace2f67ea0c7d9fe08705fe4300f55c1367a036328e1c747a6da108671a1a69"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/00-root/frame.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1279148,
+          "sha256": "61b8bcf2f8689acc7048218407181106c85e43d960d3bfff5abadaf50fc105af"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/00-root/html.html",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 571289,
+          "sha256": "63301eaa7a2d996baa1df3807d17cc1a26293ccb4785443601f6b4c2bc0cf28d"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/00-root/live-text.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 3061,
+          "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/00-root/screen.png",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 405908,
+          "sha256": "ffc5c586c62b4499f509e55d8c8fbf549f6801db7c7d8ac2b2267bfcbb2f9de7"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/00-root/screen.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 3061,
+          "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/01-help",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/01-help/ansi.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 18935,
+          "sha256": "1634918be835d6b3c95a21d14a1955b3b255393d8249387d36c4298b7f2ff726"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/01-help/ascii-loss.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 30200,
+          "sha256": "fcc0fd6708afbf921a26e869b9dc54ea0571c738eeb148848aa2d4d78fc7cce3"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/01-help/ascii.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 4032,
+          "sha256": "1f9b28bdb97dd092bf89960f1715c873764d6d042026b89cace00894859b6e39"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/01-help/capture.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1216,
+          "sha256": "9a7297cf0997cbb9c98f85ade806746ad15eeb97434cbfedf0d15b34865efe0b"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/01-help/frame.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1284482,
+          "sha256": "9654897519dbc22d4d8541ee65de6d1f64d3e39cf6f9fa0646123bf08f522d55"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/01-help/html.html",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 792191,
+          "sha256": "2dce52fa39cec45673058c3e9d3056187a42d935304ff0241a4d50854fe44438"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/01-help/live-text.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 4650,
+          "sha256": "24bce0562d633680258d1ccd010fb4e1255bd776ca1871c0417e9e05dd46ceab"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/01-help/screen.png",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 554507,
+          "sha256": "4100baace30599a86604ee5ab0bd414725c2c891e427687a230363dd411e3a67"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/01-help/screen.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 4650,
+          "sha256": "24bce0562d633680258d1ccd010fb4e1255bd776ca1871c0417e9e05dd46ceab"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/application.raw",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 34954,
+          "sha256": "d9a5184fa68afa3ec86bcb0f8ae734b7c6f188f06d7109d804339998eede9443"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/build.raw",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1204,
+          "sha256": "c00774f0c8cbfe9b2295b2e4207c0c19cf269aa346cd14824cc95c5e28030a1b"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/inputs.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 433,
+          "sha256": "2efd15037ab993bf9cd26dc3129d1a957c8b00b69004d6a7787edf9b5283457f"
+        },
+        {
+          "path": "RUN-03/reference/cargo-run/launch.raw",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 36295,
+          "sha256": "d9a9ad79a046b2c09136e0a4c1cd7f53e94b3f61a3eefa222af780b6d7f7279a"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/00-root",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/00-root/ansi.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 13248,
+          "sha256": "24af35f2d4a60b5e093c44f31348e720b2747fad4a51dcb9ae580f70a4de61bc"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/00-root/ascii-loss.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 14522,
+          "sha256": "fcbe1eb6d87c7fc8937b4df089a36d0a51bcedeb65abfd3accb636d2c6534a0a"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/00-root/ascii.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 2761,
+          "sha256": "23e48f102551932fd8e5f658d73bfe457f2ffaf76e4264f9bbb6f40d60106acc"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/00-root/capture.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1210,
+          "sha256": "40857b5816eae5dd247af1b66dbbc50ba3dca272138ccf4da292069948ed2a24"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/00-root/frame.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1279148,
+          "sha256": "61b8bcf2f8689acc7048218407181106c85e43d960d3bfff5abadaf50fc105af"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/00-root/html.html",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 571289,
+          "sha256": "63301eaa7a2d996baa1df3807d17cc1a26293ccb4785443601f6b4c2bc0cf28d"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/00-root/live-text.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 3061,
+          "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/00-root/screen.png",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 405908,
+          "sha256": "ffc5c586c62b4499f509e55d8c8fbf549f6801db7c7d8ac2b2267bfcbb2f9de7"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/00-root/screen.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 3061,
+          "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/01-help",
+          "kind": "directory",
+          "mode": 493,
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/01-help/ansi.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 18935,
+          "sha256": "defa2adcd18d6dfa480d5751aa2fad1cbd47860a3a10cfda3338ffd75916e8e6"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/01-help/ascii-loss.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 30200,
+          "sha256": "4d5838e081fc5b680f566545b22e13150312978040be16d899d0a27670d8f14c"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/01-help/ascii.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 4032,
+          "sha256": "1f9b28bdb97dd092bf89960f1715c873764d6d042026b89cace00894859b6e39"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/01-help/capture.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1216,
+          "sha256": "f4c5b7503a4a05564d1ad92a75b723256934d3b062f7a6bcc676a9f8641d5902"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/01-help/frame.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 1284482,
+          "sha256": "0d3acd0bc847a424920fa87a0bc47cadf9c33d1a2d1e4beb5da5fb6048cddbae"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/01-help/html.html",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 792187,
+          "sha256": "63a4dcd88c035365c9cc4b82762a50b1c0771f917109223295ffcb7fccfd1122"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/01-help/live-text.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 4650,
+          "sha256": "cbc87187fd739154a1dbbfd486e4e76ae091ea67f9c835bfa0f120e980854c0f"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/01-help/screen.png",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 554505,
+          "sha256": "bebf7dfbb7c60f6ab475757f3c693b934d774d8a58caa71fba8e7e74aaa30ba5"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/01-help/screen.txt",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 4650,
+          "sha256": "cbc87187fd739154a1dbbfd486e4e76ae091ea67f9c835bfa0f120e980854c0f"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/application.raw",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 34837,
+          "sha256": "57bb8c6457f911d54eb0691d330b4a759bd40fbf10e4e319cda1596d08131279"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/inputs.json",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 433,
+          "sha256": "2efd15037ab993bf9cd26dc3129d1a957c8b00b69004d6a7787edf9b5283457f"
+        },
+        {
+          "path": "RUN-03/reference/direct-executable/launch.raw",
+          "kind": "file",
+          "mode": 420,
+          "bytes": 34837,
+          "sha256": "57bb8c6457f911d54eb0691d330b4a759bd40fbf10e4e319cda1596d08131279"
+        }
+      ],
+      "inventory_sha256": "af63a77bed77711adb6f750520286c7465b4e4be37593998914d60acc985b889"
+    }
+  },
+  "raw_inputs": {
+    "runner": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/runner.cjs",
+      "sha256": "59e72b0fc46f19e56a95329bfbe3d5aa3aa49bf496295a59850b24565563172f",
+      "bytes": 56518
+    },
+    "stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/stdout.log",
+      "sha256": "68217fa41a5b466418c8ab14b77fbfdfc93af1fbaf23179beea39060990c8dc4",
+      "bytes": 7879
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/stderr.log",
+      "sha256": "0df7b0798e87c80ca88a1df5cef30498a11b6a8d38068583a9600164b64c97b6",
+      "bytes": 3131
+    },
+    "events": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/process-events.jsonl",
+      "sha256": "da442e9019f63438a8ab0785cbfe05e92ad6eb6728c7063c65870b5a8c3e3227",
+      "bytes": 1270
+    },
+    "gate_preflight": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/preflight.json",
+      "sha256": "7db0b00d8baa174c31c0ed0dab6dabdac74ca89feb88b8b662d34fe14fcb7119",
+      "bytes": 165788
+    },
+    "postflight": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/postflight.json",
+      "sha256": "e9b8f98391548730912a0b36ce139117cc8fe73621ce935ee4aaf24e7c242cde",
+      "bytes": 179531
+    },
+    "read_only_preflight": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/preflight/preflight.json",
+      "sha256": "48914b1283fb510032cc3af9b55af63a9b23f9897dc3bfd4e17298f6fda1239c",
+      "bytes": 164937
+    },
+    "invocation": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/invocation.json",
+      "sha256": "aaa37567d44c8d504c896879188deeccee1109008f00c5beb4f3f2dec18f9cd4",
+      "bytes": 13870
+    },
+    "plan": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/run03-pty-plan.md",
+      "sha256": "f63e1decaa87dbe385bfc783b5ea696a89998d6b3a60976ad46c74b9f68cb3d3",
+      "bytes": 6708
+    },
+    "nextest_config": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/nextest.toml",
+      "sha256": "e23b9a2ac6b5cee14b3ece7294e82482d8e3bf6ba23a84e442f96bf2ee37f122",
+      "bytes": 107
+    }
+  },
+  "interpretation": "The selected Rust caller executed and failed its reference interaction assertion. Nextest recorded one failed selected test and 22 skipped tests. The original Node runner also failed while constructing its receipt. This reconstruction preserves both failures; it does not convert either to a pass."
+}

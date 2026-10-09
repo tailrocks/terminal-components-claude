@@ -1,0 +1,36 @@
+{
+  "schema": "termrock-review/run03-r7-cause-analysis-v1",
+  "verdict": "FAILURE_CLASSIFIED_WITH_SEPARATE_CONTAINMENT_BLOCK",
+  "read_only": true,
+  "reviewer_execution": "No Cargo, Nextest, product executable, or PTY was run during this review.",
+  "bindings": {
+    "nextest_stderr_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/stderr.log",
+    "nextest_stderr_sha256": "0df7b0798e87c80ca88a1df5cef30498a11b6a8d38068583a9600164b64c97b6",
+    "nextest_run_id": "9b39b03b-ff0e-43d7-b8f9-166459c6d507",
+    "test_source_path": "/private/tmp/termrock-vis02-run03-caller-r1-20261009/candidate/crates/termrock-e2e/tests/command_lane.rs",
+    "test_source_sha256": "c8b27dc512a751d39a1263aa0678d25ec364d9621b21be3bb4ee38831a99f611",
+    "case_path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/case.json",
+    "case_sha256": "90e42f6ad19bb4eef28d3a2d1438f43d1296f41c225e3b950f08711e7baf7612",
+    "pair_evidence_path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/pair-evidence.json",
+    "pair_evidence_sha256": "edbf0997737ab83136509c2d963e87b25dcb337c9f22041fe03433cd1ead4d6b"
+  },
+  "findings": [
+    {
+      "id": "reference-hidden-cursor-position-mismatch",
+      "observed": "The failing assertion is the reference ExactRootCommand Interaction layer. Reference 00-root passes. At 01-help, live and replay text hashes both equal 24bce0562d633680258d1ccd010fb4e1255bd776ca1871c0417e9e05dd46ceab, and both cursors are invisible; live cursor is (106,39), replay cursor is (0,0). The recorder's comparator checks x/y unconditionally, so it labels the checkpoint failed despite matching text and invisibility.",
+      "effect": "Because 01-help is required by the following Escape checkpoint, Escape is withheld; Ctrl-C is still sent. This produces the selected interaction-layer assertion failure.",
+      "classification": "The evidence isolates the assertion mismatch to the live-versus-replay cursor-position contract, not to the configured text readiness predicates. It does not by itself establish whether the hidden position should be product-significant."
+    },
+    {
+      "id": "candidate-root-hidden-cursor-mismatch",
+      "observed": "Candidate 00-root live/replay text hashes both equal 51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259. Both candidate cursors are invisible, but live is (120,39) and replay is (0,0), so the same unconditional coordinate comparison marks it failed and blocks F1/Escape.",
+      "classification": "Separately, the cross-role live observation differs in cursor visibility at 00-root: reference is visible at (3,4), candidate is invisible at (120,39). Preserve this as an observed UI-state difference; the R7 result does not determine whether it is intended or a defect."
+    },
+    {
+      "id": "reference-process-containment-block",
+      "observed": "Both reference invocations report the child still alive at exit wait and cleanup unverified because the process-group snapshot contains a foreign session; cleanup refuses to signal potentially reused IDs. Candidate invocations exit 0 and report the child process group empty.",
+      "classification": "This is a separate harness containment/exit uncertainty. It prevents a clean reference lifecycle claim; it is not evidence that the reference product exited successfully or that the candidate is globally qualified."
+    }
+  ],
+  "overall_boundary": "Preserve the selected Rust test as failed (0 passed, 1 failed, 22 skipped), candidate and reference observations separately, and both reference containment blocks. No corpus admission, visual approval, paired parity, or product qualification follows."
+}

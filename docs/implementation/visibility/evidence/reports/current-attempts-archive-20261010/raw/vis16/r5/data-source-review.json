@@ -1,0 +1,31 @@
+{
+  "schema": "termrock.vis16.observer-ingest-nextest-r5-data-source-review.r1",
+  "verdict": "READY_FOR_ROOT_NO_CARGO_PREFLIGHT_AND_EXECUTION_DECISION",
+  "packet": "/private/tmp/termrock-vis16-observer-ingest-nextest-r5-diagnostic-20261010",
+  "bindings": {
+    "review_request_sha256": "03c4f45fe182449f66305626182a4ef06af88d09be7561c413a9ca2ae317c63c",
+    "runplan_sha256": "6767da647266ecabeda5c8ca70053fee081ec6f9c5dc9b214f9f01bc03058a97",
+    "source_manifest_sha256": "7078143953554352a3850ec32f741b74db1ded06a6dab029cd91432be7834dff",
+    "test_names_sha256": "f167d80a7a867364735db1df3207836d7dd8a799427030e7fd15b35e064c2541",
+    "runner_sha256": "d22705499678f79f155281e987a0fc0dd51b9a3a420e506c310c4618eae0e309",
+    "sha256sums_sha256": "1a9f2c932e458062de9553d66d900384c26ed6ccdcffb2921d52d3d9e758a863",
+    "r4_source_review_sha256": "c352b5875916c5299ec77555149e0540811cd80d06c5109b3e551101aed9b489",
+    "r3_actual_result_sha256": "299b6510192349547983190d0e9754305893d1f62cae79c06e1f5d8ee5ae5300",
+    "r3_actual_review_sha256": "fa5dc18a5ae54bd1e5eefb82064371528e4ef48e39e0306f367fd534bb6dcb0a",
+    "r3_target_after_snapshot_sha256": "ed927671a447225356e9016e8fa3624d76c334c2843d321c0299c32e3cef4c31",
+    "target_seed_preparation_sha256": "92258f8d4caad3ae072a1abbfc901a7c87e45df200fd33c7458ad535438bcf2a",
+    "target_seed_removals_sha256": "b6ab8456e91a634a84c1788e245e7507e60e792b00a7a686c26d924f12152653",
+    "target_seed_excludes_sha256": "90e6b758d8b3c0e8c2be802b5720823c576bbcf210424dbc227baa31acfc855d"
+  },
+  "review": {
+    "source_and_tests": "R5 carries the exact R3 runner bytes and the R4 source-only diagnostic review. All nine R4 build-input paths/hashes are unchanged in R5 and match the current frozen source root; only the selected test file differs from R3/R4. test-names.json matches R3/R4 and contains the same seven cases. The exact argv selects --bin observer-ingest and --test observer_ingest_cli with no name filter; it is not a full-workspace or live-publisher qualification run.",
+    "target_seed": "The R3 target-after snapshot binds 4,979 entries and 727,538,285 regular-file bytes. R5 uses a distinct private target copy. I recomputed the runner's targetArtifactCandidates selector against that R3 snapshot: all 286 returned file rows, including path/kind/mode/size/SHA, exactly match target-seed-removals.json and target-seed-excludes.txt; all 286 paths are absent in the private R5 target copy. The preparation record points to the R3 snapshot, uses a separate destination, and records original R3 target not mutated. This review did not claim a new full R3 target rescan; Root's exact no-Cargo preflight remains required to capture the current R5 target state and zero candidate artifacts immediately before any spawn.",
+    "execution_contract": "The runplan pins locked/offline Nextest, two build jobs, one test thread, zero retries, a 600-second timeout, 5-second termination grace, 1-second post-kill grace, and 16 MiB combined output cap under a clean allowlisted environment. The R5 output root is absent and the preflight directory is empty. The runplan requires Root's exact pinned no-Cargo preflight before any execution.",
+    "historical_status_and_limits": "R3's actual 7-case result remains exit 100 with six passed and one failed. The R3 receipt's preparation-era NOT_RUN field and the R3 actual-review request-hash mislabel are both carried as explicit metadata caveats; original evidence remains unchanged. R4's diagnostic is source-reviewed only and synthetic. Production policy remains None, so this packet cannot qualify live collection or publication.",
+    "checksum_audit": "All nine entries in the packet SHA256SUMS verify. The source manifest's nine build inputs were independently checked against the frozen R4 source tree."
+  },
+  "limitations": [
+    "No Cargo, Nextest, preflight, tests, network, or live credentials were used for this review.",
+    "The target-seed preparation record is not a substitute for the exact R5 runner preflight; Root must review that fresh preflight before deciding on execution."
+  ]
+}

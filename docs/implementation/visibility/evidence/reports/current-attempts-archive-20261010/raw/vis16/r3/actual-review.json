@@ -1,0 +1,46 @@
+{
+  "schema": "termrock-vis16-observer-ingest-r3-actual-review-v1",
+  "verdict": "FAILURE_CONFIRMED_CAUSE_NOT_ISOLATED",
+  "scope": "read-only review of one frozen VIS-16 R3 actual result and static comparison of its test fixture against the pinned handler and ingestion validators; no rerun, edits, Cargo, or tests",
+  "bindings": {
+    "review_request_sha256": "6f592f0bacccbf18d8eda4b42a94eb1c839afe384b6c97bf4508336ccab9a5f6",
+    "runner_sha256": "d22705499678f79f155281e987a0fc0dd51b9a3a420e506c310c4618eae0e309",
+    "runplan_sha256": "eb62b961b53b6f0f2638271ec3522cabe42a0402be75d72bf6533a6daba7cc1f",
+    "source_manifest_sha256": "13d2929044f77967e19f701fe5bf204e950afbe83871e622cd19abafe48ee0fe",
+    "test_names_sha256": "f167d80a7a867364735db1df3207836d7dd8a799427030e7fd15b35e064c2541",
+    "final_receipt_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r3-20261010/output/final-receipt.json",
+    "final_receipt_sha256": "299b6510192349547983190d0e9754305893d1f62cae79c06e1f5d8ee5ae5300",
+    "stdout_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r3-20261010/output/nextest.stdout.jsonl",
+    "stdout_sha256": "85506c5fc96f362936956b202cf226ed70f89c9f6c8d8f973693d54711895727",
+    "stderr_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r3-20261010/output/nextest.stderr.log",
+    "stderr_sha256": "c386522bc1a8f7dabb7c7903116191eeed12d85aec834d8169bd723cfa0b685b",
+    "source_bin_sha256": "e56c46ff2f47005ffee35b363aa5e31d49223a8def756ca865abdb90cd2bf4c1",
+    "source_test_sha256": "3f01eb521beecaae8fb2775443a41c0c47a69059c5ca5a2619f30ca1440a43d9"
+  },
+  "observed": {
+    "cargo_nextest_exit": 100,
+    "selected_started": 7,
+    "passed": 6,
+    "failed": 1,
+    "ignored": 0,
+    "failed_test": "handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name",
+    "failure_location": "tests/observer_ingest_cli.rs:208:84",
+    "panic": "called Result::unwrap() on Err(CliError(\"strict observer ingestion failed\"))",
+    "elapsed_ms": 4796,
+    "timed_out": false,
+    "source_stable_before_after": true,
+    "packet_input_changes": []
+  },
+  "static_analysis": {
+    "fixture_and_visible_checks_match": [
+      "caller/target/observer IDs and attempts are 100/1, 42/2, and 300/3; selected workflow IDs, paths, repository, push event, branch and shared lowercase SHA values agree",
+      "the observer artifact name contains the observer ID and attempt as required",
+      "target facts, one returned job, measured state, scope strings, source-state shape, product_execution NOT_RUN, optional fields, and report schema version conform to visible validate_observer_report predicates",
+      "the two workflow-content responses use the expected path/ref and trusted source-byte SHA-256 pin",
+      "the handcrafted one-member stored ZIP's visible local/central/EOCD fields, CRC, size, report member name, artifact size and archive digest are consistent with the decoder checks"
+    ],
+    "raw_failure_diagnostic_limit": "The stderr exposes only the deliberately sanitized CliError. The source maps every IngestError (including API, artifact, ZIP/JSON and report-validation errors) to the same text, so the exact internal variant/stage is not present in the receipt or raw streams.",
+    "result_interpretation": "The panic occurs at the happy-path unwrap after run_with_transport returns Err. No test assertion after that call ran. The raw record does not establish which internal IngestError caused it; static checks did not find a concrete fixture mismatch.",
+    "recommendation": "Do not change the fixture or relax validation on this evidence. First obtain a narrow test-only diagnostic that preserves the internal error variant or marks the last completed ingestion stage, then make only a demonstrated fixture correction if that diagnostic identifies one."
+  }
+}
