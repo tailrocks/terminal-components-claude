@@ -152,7 +152,7 @@ No compatible previous complete required-set run is recorded, so trend changes a
 
 ## Next work
 
-Highest open priority: **P0**, from accepted queue revision 31.
+Highest open priority: **P0**, from accepted queue revision 33.
 
 | Work | State | Owner | Reviewer | Priority reason |
 | --- | --- | --- | --- | --- |
@@ -166,7 +166,7 @@ Highest open priority: **P0**, from accepted queue revision 31.
 | VIS-09 | in_progress | /root/rust_test_infrastructure | /root/technical_review | Preserve all queue assertions in Rust tests before further queue changes. |
 | VIS-10 | claimed | /root | /root/jackin_inventory_current_luna | Implement the repository-aware amendment prerequisite before reference and isolated tool claims. |
 | VIS-11 | claimed | /root/status_recovery_luna | /root/technical_review | The user explicitly requested repair of PR #17 CI/CD; preserve required visibility and product gates. |
-| VIS-12 | claimed | /root/coordination_luna | /root/technical_review | The user explicitly authorized limited DCO commit repairs and guarded force push for PR #17. |
+| VIS-12 | review | /root/coordination_luna | /root/technical_review | The user explicitly authorized limited DCO commit repairs and guarded force push for PR #17. |
 
 See [WORK_QUEUE.md](WORK_QUEUE.md) for dependencies and claim details.
 
