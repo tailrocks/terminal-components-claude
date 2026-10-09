@@ -5,6 +5,15 @@ use termrock_e2e::{
     builder_receipt_digest, deferred_row_count, registry, suite_digest, validate_subject_manifest,
 };
 
+fn holla_case() -> termrock_e2e::Case {
+    registry()
+        .expect("registry parses")
+        .cases
+        .into_iter()
+        .find(|case| case.id == "HELP-HOLLA-004")
+        .expect("Holla pilot remains registered")
+}
+
 #[test]
 fn registry_contains_four_seed_cases_and_holla_checkpointed_preconditions() {
     let registry = registry().expect("registry parses");
@@ -91,6 +100,240 @@ fn registry_contains_four_seed_cases_and_holla_checkpointed_preconditions() {
 }
 
 #[test]
+fn step_input_schema_deserializes_supported_events_and_rejects_unknown_variants() {
+    use termrock_e2e::Step;
+
+    let steps: Vec<Step> = serde_json::from_value(serde_json::json!([
+        {"op":"key_event", "key":"ctrl-a", "kind":"down"},
+        {"op":"key_event", "key":"ctrl-a", "kind":"repeat"},
+        {"op":"key_event", "key":"ctrl-a", "kind":"up"},
+        {"op":"text", "text":"typed text"},
+        {"op":"paste", "text":"pasted text"},
+        {"op":"mouse", "input":{"action":"click", "button":"left", "x":1, "y":2}},
+        {"op":"mouse", "input":{"action":"down", "button":"middle", "x":1, "y":2}},
+        {"op":"mouse", "input":{"action":"release", "x":1, "y":2}},
+        {"op":"mouse", "input":{"action":"move", "x":1, "y":2}},
+        {"op":"mouse", "input":{"action":"drag", "button":"right", "x":1, "y":2}},
+        {"op":"mouse", "input":{"action":"wheel", "direction":"down", "x":1, "y":2}},
+        {"op":"resize", "cols":72, "rows":20},
+        {"op":"expect_exit", "code":0}
+    ]))
+    .expect("all declared input events deserialize");
+    assert_eq!(steps.len(), 13);
+
+    assert!(serde_json::from_value::<Step>(serde_json::json!({
+        "op":"key_event", "key":"a", "kind":"press"
+    }))
+    .is_err());
+    assert!(serde_json::from_value::<Step>(serde_json::json!({
+        "op":"resize", "cols":80, "rows":24, "unchecked":true
+    }))
+    .is_err());
+    assert!(serde_json::from_value::<Step>(serde_json::json!({
+        "op":"mouse", "input":{"action":"release", "x":1, "y":2, "button":"left"}
+    }))
+    .is_err());
+}
+
+#[test]
+fn step_input_contract_validates_bounds_order_and_process_exit() {
+    use termrock_e2e::{KeyEventKind, MouseButton, MouseInput, Step, WheelDirection};
+
+    let mut valid = holla_case();
+    let events = [
+        Step::Resize { cols: 73, rows: 21 },
+        Step::KeyEvent {
+            key: "a".to_string(),
+            kind: KeyEventKind::Down,
+        },
+        Step::KeyEvent {
+            key: "a".to_string(),
+            kind: KeyEventKind::Repeat,
+        },
+        Step::KeyEvent {
+            key: "a".to_string(),
+            kind: KeyEventKind::Up,
+        },
+        Step::Text {
+            text: "text".to_string(),
+        },
+        Step::Paste {
+            text: "paste".to_string(),
+        },
+        Step::Mouse {
+            input: MouseInput::Click {
+                button: MouseButton::Left,
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+        Step::Mouse {
+            input: MouseInput::Down {
+                button: MouseButton::Middle,
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+        Step::Mouse {
+            input: MouseInput::Release {
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+        Step::Mouse {
+            input: MouseInput::Move {
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+        Step::Mouse {
+            input: MouseInput::Drag {
+                button: MouseButton::Right,
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+        Step::Mouse {
+            input: MouseInput::Wheel {
+                direction: WheelDirection::Down,
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+    ];
+    valid.steps.splice(1..1, events);
+    valid.steps.push(Step::ExpectExit { code: 0 });
+    termrock_e2e::validate_case_contract(&valid)
+        .expect("valid events, resized coordinates, and final exit are accepted");
+
+    let mut invalid_key = holla_case();
+    invalid_key.steps.insert(
+        1,
+        Step::KeyEvent {
+            key: String::new(),
+            kind: KeyEventKind::Down,
+        },
+    );
+    assert!(
+        termrock_e2e::validate_case_contract(&invalid_key)
+            .unwrap_err()
+            .contains("invalid key chord")
+    );
+
+    let mut invalid_paste = holla_case();
+    invalid_paste.steps.insert(
+        1,
+        Step::Paste {
+            text: "prefix\u{1b}[200~payload".to_string(),
+        },
+    );
+    assert!(
+        termrock_e2e::validate_case_contract(&invalid_paste)
+            .unwrap_err()
+            .contains("bracketed-paste delimiter")
+    );
+
+    let mut invalid_resize = holla_case();
+    invalid_resize.steps.insert(
+        1,
+        Step::Resize {
+            cols: 1001,
+            rows: 24,
+        },
+    );
+    assert!(
+        termrock_e2e::validate_case_contract(&invalid_resize)
+            .unwrap_err()
+            .contains("invalid resize target")
+    );
+
+    let mut minimum_geometry = holla_case();
+    minimum_geometry.geometry = termrock_e2e::Geometry { cols: 1, rows: 1 };
+    termrock_e2e::validate_case_contract(&minimum_geometry)
+        .expect("Tuiscotti minimum geometry is accepted");
+    let mut maximum_geometry = holla_case();
+    maximum_geometry.geometry = termrock_e2e::Geometry {
+        cols: 1000,
+        rows: 1000,
+    };
+    termrock_e2e::validate_case_contract(&maximum_geometry)
+        .expect("Tuiscotti maximum geometry is accepted");
+    let mut zero_geometry = holla_case();
+    zero_geometry.geometry = termrock_e2e::Geometry { cols: 0, rows: 1 };
+    assert!(
+        termrock_e2e::validate_case_contract(&zero_geometry)
+            .unwrap_err()
+            .contains("outside Tuiscotti range")
+    );
+
+    let mut invalid_mouse = holla_case();
+    invalid_mouse.steps.splice(
+        1..1,
+        [
+            Step::Resize { cols: 73, rows: 21 },
+            Step::Mouse {
+                input: MouseInput::Move {
+                    x: 73,
+                    y: 20,
+                    modifiers: Default::default(),
+                },
+            },
+        ],
+    );
+    assert!(
+        termrock_e2e::validate_case_contract(&invalid_mouse)
+            .unwrap_err()
+            .contains("outside current geometry")
+    );
+
+    let mut no_checkpoint = holla_case();
+    no_checkpoint
+        .steps
+        .retain(|step| !matches!(step, Step::Checkpoint { .. }));
+    assert!(
+        termrock_e2e::validate_case_contract(&no_checkpoint)
+            .unwrap_err()
+            .contains("has no checkpoints")
+    );
+
+    let mut exit_before_checkpoint = holla_case();
+    exit_before_checkpoint
+        .steps
+        .insert(0, Step::ExpectExit { code: 0 });
+    assert!(
+        termrock_e2e::validate_case_contract(&exit_before_checkpoint)
+            .unwrap_err()
+            .contains("must follow at least one checkpoint")
+    );
+
+    let mut exit_not_last = holla_case();
+    exit_not_last.steps.push(Step::ExpectExit { code: 0 });
+    exit_not_last.steps.push(Step::Text {
+        text: "after-exit".to_string(),
+    });
+    assert!(
+        termrock_e2e::validate_case_contract(&exit_not_last)
+            .unwrap_err()
+            .contains("steps after expect_exit")
+    );
+
+    let mut duplicate_exit = holla_case();
+    duplicate_exit.steps.push(Step::ExpectExit { code: 0 });
+    duplicate_exit.steps.push(Step::ExpectExit { code: 1 });
+    assert!(
+        termrock_e2e::validate_case_contract(&duplicate_exit)
+            .unwrap_err()
+            .contains("more than one expect_exit step")
+    );
+}
+
+#[test]
 fn showcase_dialog_journey_starts_with_initial_frame_and_preserves_assertions() {
     let registry = registry().expect("registry parses");
     let case = registry
@@ -122,7 +365,7 @@ fn showcase_dialog_journey_starts_with_initial_frame_and_preserves_assertions() 
         .iter()
         .filter_map(|step| match step {
             termrock_e2e::Step::Checkpoint { id, .. } => Some(id.as_str()),
-            termrock_e2e::Step::Press { .. } => None,
+            _ => None,
         })
         .collect::<Vec<_>>();
     assert_eq!(
@@ -154,7 +397,7 @@ fn showcase_dialog_journey_starts_with_initial_frame_and_preserves_assertions() 
                 termrock_e2e::Step::Checkpoint { assertions, .. } => assertions
                     .iter()
                     .find(|assertion| assertion.id == id),
-                termrock_e2e::Step::Press { .. } => None,
+                _ => None,
             })
             .unwrap_or_else(|| panic!("original assertion {id} remains"));
         assert_eq!(assertion.kind, kind, "assertion {id} keeps its kind");
@@ -186,7 +429,7 @@ fn jackin_save_preview_registry_preserves_reopen_and_second_cancel() {
         .iter()
         .filter_map(|step| match step {
             termrock_e2e::Step::Checkpoint { id, .. } => Some(id.as_str()),
-            termrock_e2e::Step::Press { .. } => None,
+            _ => None,
         })
         .collect::<Vec<_>>();
     assert_eq!(
@@ -207,13 +450,13 @@ fn jackin_save_preview_registry_preserves_reopen_and_second_cancel() {
         .iter()
         .filter_map(|step| match step {
             termrock_e2e::Step::Press { key } => Some(key.as_str()),
-            termrock_e2e::Step::Checkpoint { .. } => None,
+            _ => None,
         })
         .collect::<Vec<_>>();
     assert_eq!(
         presses,
         vec![
-            "e", "down", "down", "down", "space", "ctrl-s", "escape", "ctrl-s", "escape",
+            "e", "down", "down", "down", "space", "ctrl+s", "escape", "ctrl+s", "escape",
         ]
     );
 
@@ -743,6 +986,27 @@ fn expected_generation_v1_schema_is_closed_and_pins_checkpoint_files() {
         "valid expected-generation fixture rejected: {manifest}"
     );
 
+    let mut maximum_file_bytes = valid_expected_generation_manifest();
+    for file_kind in ["frame", "png"] {
+        maximum_file_bytes["checkpoints"][0][file_kind]["bytes"] =
+            serde_json::json!(u64::MAX);
+    }
+    assert!(
+        validator.is_valid(&maximum_file_bytes),
+        "the exact u64 byte-count ceiling must remain valid"
+    );
+    let serialized_maximum =
+        serde_json::to_string(&maximum_file_bytes).expect("serialize u64 boundary fixture");
+    assert!(serialized_maximum.contains("18446744073709551615"));
+    let above_u64_maximum = serde_json::from_str::<serde_json::Value>(
+        &serialized_maximum.replace("18446744073709551615", "18446744073709551616"),
+    )
+    .expect("parse just-over-u64 schema fixture");
+    assert!(
+        !validator.is_valid(&above_u64_maximum),
+        "a file byte count above u64::MAX must be rejected"
+    );
+
     let mut missing = manifest.clone();
     missing.as_object_mut().unwrap().remove("oracle");
     assert!(!validator.is_valid(&missing));
@@ -752,13 +1016,31 @@ fn expected_generation_v1_schema_is_closed_and_pins_checkpoint_files() {
     assert!(!validator.is_valid(&unexpected));
 
     let mut duplicate_checkpoint = manifest.clone();
-    duplicate_checkpoint["checkpoints"][1]["id"] = serde_json::json!("00-boot");
+    duplicate_checkpoint["checkpoints"][1] = duplicate_checkpoint["checkpoints"][0].clone();
     assert!(!validator.is_valid(&duplicate_checkpoint));
 
     let mut moved_checkpoint_file = manifest;
     moved_checkpoint_file["checkpoints"][0]["png"]["path"] =
         serde_json::json!("checkpoints/00-boot/other.png");
     assert!(!validator.is_valid(&moved_checkpoint_file));
+
+    let mut resized_other_case = valid_expected_generation_manifest();
+    resized_other_case["case_id"] = serde_json::json!("SHOWCASE-DIALOG-001");
+    resized_other_case["checkpoints"][0]["geometry"] =
+        serde_json::json!({"cols": 73, "rows": 21});
+    resized_other_case["checkpoints"][0]["color_path"] = serde_json::json!("truecolor");
+    assert!(
+        validator.is_valid(&resized_other_case),
+        "generic schema should admit bounded values; Rust binds them to the selected case"
+    );
+
+    let mut outside_backend_range = resized_other_case;
+    outside_backend_range["checkpoints"][0]["geometry"]["cols"] = serde_json::json!(1001);
+    assert!(!validator.is_valid(&outside_backend_range));
+
+    let mut below_backend_range = valid_expected_generation_manifest();
+    below_backend_range["checkpoints"][0]["geometry"]["rows"] = serde_json::json!(0);
+    assert!(!validator.is_valid(&below_backend_range));
 }
 
 #[test]
