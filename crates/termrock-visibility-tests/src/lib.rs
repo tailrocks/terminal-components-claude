@@ -21,7 +21,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 #[cfg(unix)]
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 #[cfg(unix)]
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
@@ -41,6 +41,11 @@ const MAX_CAPTURE_BYTES: usize = 8 * 1024 * 1024;
 #[cfg(unix)]
 const CHILD_POLL_INTERVAL: Duration = Duration::from_millis(10);
 static TEMP_PROBE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+#[cfg(unix)]
+fn deadline_has_elapsed(now: Instant, deadline: Instant) -> bool {
+    now >= deadline
+}
 
 /// A production visibility tool that a Rust test can launch as a CLI.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -250,6 +255,16 @@ impl CliOutput {
     }
 }
 
+/// One captured command result, including a parent signal requested during capture.
+#[cfg(unix)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CapturedCommand {
+    /// Captured child output and ordinary child termination facts.
+    pub output: CliOutput,
+    /// Parent signal that requested cancellation, if any.
+    pub cancellation_signal: Option<i32>,
+}
+
 /// Runs a production Python CLI through `python3`, without a shell or import.
 ///
 /// Environment values override the inherited process environment. An optional
@@ -316,11 +331,44 @@ struct CapturedPipe {
 
 #[cfg(unix)]
 fn run_captured_command(
-    mut command: Command,
+    command: Command,
     stdin: Option<&[u8]>,
     timeout: Duration,
     output_limit: usize,
 ) -> io::Result<CliOutput> {
+    run_captured_command_with_cancel(command, stdin, timeout, output_limit, None)
+        .map(|captured| captured.output)
+}
+
+/// Runs an explicit command with bounded output and optional parent-signal cancellation.
+///
+/// The command runs in a private process group. When `cancellation_signal` becomes
+/// nonzero, the group is killed and the direct child is reaped through the same
+/// cleanup path as a timeout. The returned signal is separate from the child's
+/// exit/signal status. Each output stream retains at most 8 MiB.
+#[cfg(unix)]
+pub fn run_command_with_cancellation(
+    command: Command,
+    timeout: Duration,
+    cancellation_signal: Option<&AtomicI32>,
+) -> io::Result<CapturedCommand> {
+    run_captured_command_with_cancel(
+        command,
+        None,
+        timeout,
+        MAX_CAPTURE_BYTES,
+        cancellation_signal,
+    )
+}
+
+#[cfg(unix)]
+fn run_captured_command_with_cancel(
+    mut command: Command,
+    stdin: Option<&[u8]>,
+    timeout: Duration,
+    output_limit: usize,
+    cancellation_signal: Option<&AtomicI32>,
+) -> io::Result<CapturedCommand> {
     let started = Instant::now();
     let deadline = started.checked_add(timeout).ok_or_else(|| {
         io::Error::new(io::ErrorKind::InvalidInput, "command timeout is too large")
@@ -430,6 +478,28 @@ fn run_captured_command(
 
     let mut timed_out = false;
     loop {
+        let requested_signal = cancellation_signal.and_then(|signal| {
+            let value = signal.load(Ordering::Acquire);
+            (value > 0).then_some(value)
+        });
+        if let Some(signal) = requested_signal {
+            cancelled.store(true, Ordering::Release);
+            // The unreaped leader reserves its process-group ID while descendants
+            // are terminated, matching the timeout cleanup ordering below.
+            terminate_process_group(child.id());
+            let output = collect_capture(
+                child.wait(),
+                stdout_reader,
+                stderr_reader,
+                stdin_writer,
+                false,
+            )?;
+            return Ok(CapturedCommand {
+                output,
+                cancellation_signal: Some(signal),
+            });
+        }
+
         let child_exited = match child_exited_without_reaping(&child) {
             Ok(exited) => exited,
             Err(error) => {
@@ -447,20 +517,12 @@ fn run_captured_command(
         let pipes_finished = stdout_reader.is_finished()
             && stderr_reader.is_finished()
             && stdin_writer.as_ref().is_none_or(JoinHandle::is_finished);
-        if child_exited && pipes_finished {
-            // The child remains an unreaped zombie until wait(), reserving its
-            // process-group ID through this final group cleanup.
-            terminate_process_group(child.id());
-            return collect_capture(
-                child.wait(),
-                stdout_reader,
-                stderr_reader,
-                stdin_writer,
-                timed_out,
-            );
-        }
 
-        if Instant::now() >= deadline {
+        // Judge completion at a single observation point, after both the
+        // child and its pipes have been checked. If that observation is at or
+        // beyond the deadline, timeout wins even when all work is now done.
+        let observed_at = Instant::now();
+        if deadline_has_elapsed(observed_at, deadline) {
             timed_out = true;
             cancelled.store(true, Ordering::Release);
             // `child_exited_without_reaping` deliberately leaves the leader
@@ -474,8 +536,30 @@ fn run_captured_command(
                 stderr_reader,
                 stdin_writer,
                 timed_out,
-            );
+            )
+            .map(|output| CapturedCommand {
+                output,
+                cancellation_signal: None,
+            });
         }
+
+        if child_exited && pipes_finished {
+            // The child remains an unreaped zombie until wait(), reserving its
+            // process-group ID through this final group cleanup.
+            terminate_process_group(child.id());
+            return collect_capture(
+                child.wait(),
+                stdout_reader,
+                stderr_reader,
+                stdin_writer,
+                timed_out,
+            )
+            .map(|output| CapturedCommand {
+                output,
+                cancellation_signal: None,
+            });
+        }
+
         thread::sleep(CHILD_POLL_INTERVAL.min(deadline.saturating_duration_since(Instant::now())));
     }
 }
@@ -1294,6 +1378,51 @@ mod tests {
         assert!(output.timed_out);
         assert_eq!(output.exit_code, None);
         assert_eq!(output.signal, Some(libc::SIGKILL));
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn command_runner_deadline_boundary_is_expired() {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        assert!(!super::deadline_has_elapsed(
+            deadline - Duration::from_nanos(1),
+            deadline
+        ));
+        assert!(super::deadline_has_elapsed(deadline, deadline));
+        assert!(super::deadline_has_elapsed(
+            deadline + Duration::from_nanos(1),
+            deadline
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn command_runner_cancellation_kills_group_and_reaps_child() -> io::Result<()> {
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicI32, Ordering};
+
+        let cancellation = Arc::new(AtomicI32::new(0));
+        let signal_sender = Arc::clone(&cancellation);
+        let sender = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(50));
+            signal_sender.store(libc::SIGTERM, Ordering::Release);
+        });
+        let mut command = Command::new("/bin/sleep");
+        command.arg("30");
+        let captured = super::run_captured_command_with_cancel(
+            command,
+            None,
+            Duration::from_secs(5),
+            1024,
+            Some(&cancellation),
+        )?;
+        sender.join().expect("signal sender thread should complete");
+
+        assert_eq!(captured.cancellation_signal, Some(libc::SIGTERM));
+        assert!(!captured.output.timed_out);
+        assert_eq!(captured.output.signal, Some(libc::SIGKILL));
+        assert!(!captured.output.success());
         Ok(())
     }
 
