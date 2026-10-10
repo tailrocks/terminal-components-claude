@@ -4,6 +4,8 @@
 //! repository tree, then launch each script as a command-line program. They do
 //! not import Python modules or run Python test drivers.
 
+pub mod nextest_result;
+
 use std::env;
 #[cfg(unix)]
 use std::ffi::CString;
