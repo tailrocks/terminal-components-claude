@@ -1,0 +1,105 @@
+{
+  "schema": "termrock.vis04.deferred-23-actual-result/v1",
+  "result": "EXECUTED_23_ONE_ASSERTION_FAILURE",
+  "source": {
+    "commit": "5a49b6922b896460b2e9f0ed38cf9ce3d6aa088e",
+    "tree": "56f1a8483421ede75a959e14a8f97fcf39fc53f3",
+    "archive_sha256": "9e3146671332ffc8c7e85adfd0b4ab9ba0e569c72564fb94dedde3bb796ae70e",
+    "manifest_sha256": "396b2722afad217841f6540d33c304f372d42bf982958ab74457c250c761e01a",
+    "files_verified_before": 500,
+    "files_verified_after": 500
+  },
+  "selection": {
+    "selected": 23,
+    "normal": 22,
+    "registered_ignored": 1,
+    "ignored_name": "w13_filter_wide_trail_cells_clear",
+    "list_exit_code": 0,
+    "list_stdout_sha256": "e0d45a4e3c4a261f542252e0d994a041e358169a3e4930912784cb4d9d0dae0d",
+    "selection_verification_path": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/list-selection-verified.json",
+    "selection_verification_sha256": "bffdf317cec8fdaeee174493d38eaa7b360d6391324b88f467b85d00fd1e9f23",
+    "selection_matches_expected_names": true
+  },
+  "execution": {
+    "cargo_nextest_exit_code": 100,
+    "wrapper_exit_code": 1,
+    "signal": null,
+    "timed_out": false,
+    "output_cap_exceeded": false,
+    "duration_ms": 1860.347625,
+    "started_at": "2026-10-10T07:24:58.940Z",
+    "ended_at": "2026-10-10T07:25:00.802Z",
+    "stdout_bytes": 6932,
+    "stdout_sha256": "a0a696c2e43ded7bbe18c28122a0fbe89aa13c94880886ec0804acf27f8c071b",
+    "stderr_bytes": 15232,
+    "stderr_sha256": "8e88d566bffbf0ef5a9cd15b5b06f36688355acc6b404f242825ffb1ee5f86ad",
+    "target_path": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/target",
+    "target_reused_from_list": true,
+    "offline": true,
+    "build_jobs": 2,
+    "test_threads": 1,
+    "retries": 0,
+    "expected_failure_treatment": "none"
+  },
+  "events": {
+    "json_lines": 50,
+    "suite_started": 2,
+    "suite_failed": 1,
+    "suite_ok": 1,
+    "test_started": 23,
+    "test_ok": 22,
+    "test_failed": 1,
+    "incomplete": 0,
+    "unique_tests": 23
+  },
+  "failure": {
+    "name": "termrock-conformance::control_states$w13_filter_wide_trail_cells_clear",
+    "registered_as_ignored": true,
+    "actually_started": true,
+    "event": "failed",
+    "source_line": 6137,
+    "observed": "W13-05 assertion failed: an earlier-paint glyph leaked into 旧日本; observed cells include 旧, 界, 日, y, 本.",
+    "no_failure_inversion": true
+  },
+  "first_attempts": [
+    {
+      "attempt": "R1 native command startup",
+      "receipt": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/run-executor-receipt.json",
+      "receipt_sha256": "350f1e01bbe3a450646e653f900e4bd6059b4eda9be28fbaeca9a84caf36f59e",
+      "exit_code": 95,
+      "tests_executed": 0,
+      "error_stderr_sha256": "93f527c9bc302895be4790c48d0a99671d03cadd567d900b48e33bcc8fa39fd3"
+    },
+    {
+      "attempt": "R2 wrapper before child spawn",
+      "receipt": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/runner-r2-prespawn-failure.json",
+      "receipt_sha256": "129fa74ac1fff3c0eb07001bd7186858c5f13ccb114c1d83555ce6cd4c51a728",
+      "tests_executed": 0,
+      "runner_r2_sha256": "ed101619f98affa0259888090ebf2f3c86d4cca8546b24a73d48f1aa49f7cc3f"
+    }
+  ],
+  "evidence": {
+    "list_receipt_path": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/list-executor-receipt.json",
+    "list_receipt_sha256": "b771eaafba9d7c5dfd97dcad0e6e337feb04057bb3fff6acb06298f49e268d9f",
+    "run_receipt_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/run-root/receipt.json",
+    "run_receipt_sha256": "f513ada4a33146514928ded313ac556f0a36d8c67804713b4379d4579b12653b",
+    "raw_stdout_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/run-root/nextest-run.stdout.jsonl",
+    "raw_stderr_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/run-root/nextest-run.stderr.log",
+    "plan_r2_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/runplan-r2.json",
+    "plan_r2_sha256": "066894c54be92dae184c2c9414790f370c9deeab359537a6fa0a16e3dcbcf295",
+    "addendum_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/retry-addendum.json",
+    "addendum_sha256": "fa3a3b148f56c2477ae3c6a957301395b56b1f0e70473d4ac767889837e9bced",
+    "runner_r3_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/runner-r3.cjs",
+    "runner_r3_sha256": "2bc7d615cddd775df1c9ce23fc2595ceea1654296ab626a0e52b4217fc7ff31d",
+    "independent_r2_review_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-independent-review-current_branch_comparison_luna-20261010.json",
+    "independent_r2_review_sha256": "1fabdc407e56b18d8d50fdf4726a3f649c94600221eff94d7799266c2f6dedf2",
+    "independent_r3_delta_review_path": "/private/tmp/termrock-vis04-deferred-23-run-r3-runner-delta-review-current_branch_comparison_luna-20261010.json",
+    "independent_r3_delta_review_sha256": "1ab8b382424e9e928ac2a0ddc27a9323e8f43e6ccdc16a06ff987d714cc926d1"
+  },
+  "limitations": [
+    "This is one selected-control run, not full suite or product-wide qualification.",
+    "The Cargo cache was a mutable, unverified candidate; offline mode was enforced, but no before/after cache snapshot is claimed.",
+    "No separate post-kill process-group disappearance polling is recorded; direct child close was observed.",
+    "Nextest emitted two suite event envelopes; exact per-test starts and terminal events independently cover all 23 selected names."
+  ]
+}

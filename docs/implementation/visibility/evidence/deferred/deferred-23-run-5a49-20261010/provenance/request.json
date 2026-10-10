@@ -1,0 +1,55 @@
+{
+  "schema": "termrock.vis04.deferred-23-request/v1",
+  "status": "PREPARED_FOR_INDEPENDENT_REVIEW",
+  "execution": "NOT_RUN",
+  "qualification": "NOT_QUALIFIED",
+  "purpose": "Request the exact current-source deferred Rust control-state list and red/green Nextest run; this request contains no result and performs no admission or report write.",
+  "source": {
+    "commit": "5a49b6922b896460b2e9f0ed38cf9ce3d6aa088e",
+    "tree": "56f1a8483421ede75a959e14a8f97fcf39fc53f3",
+    "archive_path": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/source-archive.tar",
+    "archive_sha256": "9e3146671332ffc8c7e85adfd0b4ab9ba0e569c72564fb94dedde3bb796ae70e",
+    "source_root": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/source-root",
+    "source_manifest_sha256": "396b2722afad217841f6540d33c304f372d42bf982958ab74457c250c761e01a"
+  },
+  "selection": {
+    "inventory_sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+    "selection_file_sha256": "03e1e994ebe6c817d99772a0ff6a475563b39345ab758b454850ac29542c9752",
+    "row_count": 23,
+    "case_reference_count": 25,
+    "selected_test_count": 23,
+    "normal_test_count": 22,
+    "ignored_test_count": 1,
+    "ignored_test": "BD-21 / w13_filter_wide_trail_cells_clear",
+    "all_statuses": "NOT_RUN",
+    "expected_failure_treatment": "none"
+  },
+  "package": {
+    "manifest_sha256": "4d2b924566c74131adc9e4d57c3dad7ffd03fc487120683f1f8296c8d4f3c8d6",
+    "workspace_lock_sha256": "a43fdf2640e4934ecb60289c215363298b5932effdc9f161495269159f1f917e",
+    "package": "termrock-conformance",
+    "target": "control_states"
+  },
+  "runplan": {
+    "path": "runplan.json",
+    "sha256": "6bdc37c785375026f69038fdbac403c39ef6cab92075003979ce190a7346619a"
+  },
+  "cache": {
+    "path": "/private/tmp/termrock-vis11-diagnostic-cargo-fill-e0bc-r3-luna-20261010/run-root/cargo-home",
+    "plan_sha256": "435475ef77d75bfe319f7347eb041b92178617d100117885b7e390c155884c49",
+    "lock_closure_sha256": "e83935e120b76bd2e0cbba0f1728b28daf274810cf8c7c1590dda8633dc1d683",
+    "status": "MUTABLE_CANDIDATE_NOT_VALIDATED_FOR_THIS_TARGET"
+  },
+  "execution_authority": {
+    "owner": "/root",
+    "preparer": "/root/jackin_inventory_current_luna",
+    "reviewer_requested": "/root/current_branch_comparison_luna",
+    "must_recheck_active_vis04_lease": true,
+    "execution_authorized_by_this_packet": false
+  },
+  "review_scope": "Source identity, archive scope, exact selected names/filter/ignored handling, tool and lock pins, offline cache limitations, and no-writer/no-xfail semantics.",
+  "output_root": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root",
+  "no_execution_claim": true,
+  "known_source_note": "control_states.rs line 24 has a stale header claiming 24 ignored tests and 26 case references; executable source and current registry instead establish 23 rows, 25 case references, and one ignored selected case (W13-05 / BD-21). Do not silently repair the product source as part of this request.",
+  "cache_note": "The request binds the mutable VIS-11 R3 Cargo-home candidate and its root lock row count, not a fresh complete-cache snapshot. The later Root-owned offline list/run must capture current cache identity and fail without network if any required package is absent."
+}

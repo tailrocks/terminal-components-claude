@@ -1,0 +1,172 @@
+{
+  "schema": "termrock.vis04.deferred-23-result-archive/v1",
+  "status": "PREPARED_FOR_INDEPENDENT_ARCHIVE_REVIEW",
+  "source_identity": {
+    "commit": "5a49b6922b896460b2e9f0ed38cf9ce3d6aa088e",
+    "tree": "56f1a8483421ede75a959e14a8f97fcf39fc53f3",
+    "source_archive_sha256": "9e3146671332ffc8c7e85adfd0b4ab9ba0e569c72564fb94dedde3bb796ae70e",
+    "source_manifest_sha256": "396b2722afad217841f6540d33c304f372d42bf982958ab74457c250c761e01a",
+    "source_archive_included": false,
+    "source_tree_included": false
+  },
+  "observed_result": {
+    "selected": 23,
+    "passed": 22,
+    "failed": 1,
+    "incomplete": 0,
+    "ignored_registered_and_run": 1,
+    "nextest_exit": 100,
+    "wrapper_exit": 1,
+    "failed_test": "termrock-conformance::control_states$w13_filter_wide_trail_cells_clear",
+    "failure_line": 6137,
+    "qualification": "NOT_CLAIMED"
+  },
+  "limits": [
+    "Cargo cache was mutable and not rehashed; no cache immutability or closure claim.",
+    "Single selected-control run; not full-suite or product-wide qualification.",
+    "No product assertion changes or expected-failure inversion.",
+    "No separate post-kill process-group disappearance poll was captured."
+  ],
+  "intended_repository_prefix": "docs/implementation/visibility/evidence/deferred/deferred-23-run-5a49-20261010/",
+  "file_count": 23,
+  "files": [
+    {
+      "path": "attempts/00-initial-startup-failure/nextest.stderr.log",
+      "sha256": "93f527c9bc302895be4790c48d0a99671d03cadd567d900b48e33bcc8fa39fd3",
+      "size_bytes": 115,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/nextest-run.stderr.log"
+    },
+    {
+      "path": "attempts/00-initial-startup-failure/runner-receipt.json",
+      "sha256": "350f1e01bbe3a450646e653f900e4bd6059b4eda9be28fbaeca9a84caf36f59e",
+      "size_bytes": 4591,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/run-executor-receipt.json"
+    },
+    {
+      "path": "attempts/01-runner-pre-spawn-failure/runner-observation.json",
+      "sha256": "129fa74ac1fff3c0eb07001bd7186858c5f13ccb114c1d83555ce6cd4c51a728",
+      "size_bytes": 1168,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/runner-r2-prespawn-failure.json"
+    },
+    {
+      "path": "attempts/01-runner-pre-spawn-failure/runner-r2.cjs",
+      "sha256": "ed101619f98affa0259888090ebf2f3c86d4cca8546b24a73d48f1aa49f7cc3f",
+      "size_bytes": 9531,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/runner-r2.cjs"
+    },
+    {
+      "path": "attempts/02-list/executor-receipt.json",
+      "sha256": "b771eaafba9d7c5dfd97dcad0e6e337feb04057bb3fff6acb06298f49e268d9f",
+      "size_bytes": 4283,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/list-executor-receipt.json"
+    },
+    {
+      "path": "attempts/02-list/nextest.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/nextest-list.stderr.log"
+    },
+    {
+      "path": "attempts/02-list/nextest.stdout.json",
+      "sha256": "e0d45a4e3c4a261f542252e0d994a041e358169a3e4930912784cb4d9d0dae0d",
+      "size_bytes": 15700,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/nextest-list.stdout.json"
+    },
+    {
+      "path": "attempts/02-list/selection-verified.json",
+      "sha256": "bffdf317cec8fdaeee174493d38eaa7b360d6391324b88f467b85d00fd1e9f23",
+      "size_bytes": 2755,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/list-selection-verified.json"
+    },
+    {
+      "path": "attempts/03-actual-run/actual-result-summary.json",
+      "sha256": "62b3068bc4d097e492d304a3fb66fd28f040172bc44d8ada85bb87d634e8c851",
+      "size_bytes": 5524,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/actual-result-luna.json"
+    },
+    {
+      "path": "attempts/03-actual-run/nextest-receipt.json",
+      "sha256": "f513ada4a33146514928ded313ac556f0a36d8c67804713b4379d4579b12653b",
+      "size_bytes": 7135,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/run-root/receipt.json"
+    },
+    {
+      "path": "attempts/03-actual-run/nextest.stderr.log",
+      "sha256": "8e88d566bffbf0ef5a9cd15b5b06f36688355acc6b404f242825ffb1ee5f86ad",
+      "size_bytes": 15232,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/run-root/nextest-run.stderr.log"
+    },
+    {
+      "path": "attempts/03-actual-run/nextest.stdout.jsonl",
+      "sha256": "a0a696c2e43ded7bbe18c28122a0fbe89aa13c94880886ec0804acf27f8c071b",
+      "size_bytes": 6932,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/run-root/nextest-run.stdout.jsonl"
+    },
+    {
+      "path": "attempts/03-actual-run/runner-r3.cjs",
+      "sha256": "2bc7d615cddd775df1c9ce23fc2595ceea1654296ab626a0e52b4217fc7ff31d",
+      "size_bytes": 9537,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/runner-r3.cjs"
+    },
+    {
+      "path": "provenance/request.json",
+      "sha256": "b349e04784722da09c8b8acebbc018a879951020f5d14e163493967014b1c991",
+      "size_bytes": 3309,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/request.json"
+    },
+    {
+      "path": "provenance/retry-addendum.json",
+      "sha256": "fa3a3b148f56c2477ae3c6a957301395b56b1f0e70473d4ac767889837e9bced",
+      "size_bytes": 3032,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/retry-addendum.json"
+    },
+    {
+      "path": "provenance/runplan-initial.json",
+      "sha256": "6bdc37c785375026f69038fdbac403c39ef6cab92075003979ce190a7346619a",
+      "size_bytes": 12535,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/runplan.json"
+    },
+    {
+      "path": "provenance/runplan-retry-r2.json",
+      "sha256": "066894c54be92dae184c2c9414790f370c9deeab359537a6fa0a16e3dcbcf295",
+      "size_bytes": 13662,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/runplan-r2.json"
+    },
+    {
+      "path": "provenance/source-manifest.json",
+      "sha256": "396b2722afad217841f6540d33c304f372d42bf982958ab74457c250c761e01a",
+      "size_bytes": 125609,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/source-manifest.json"
+    },
+    {
+      "path": "README.md",
+      "sha256": "c4e7d9be420f14ada5a9d570ea74761cd7da9f0d9a1b18cab6514236f8ccdad6",
+      "size_bytes": 3482,
+      "copied_from": null
+    },
+    {
+      "path": "reviews/actual-result-review.json",
+      "sha256": "37dcaf6cd58598b3baa631db5105021461be92f1c3b4508ae6ebe12f793b6cd9",
+      "size_bytes": 3782,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-actual-result-review-current_branch_comparison_luna-20261010.json"
+    },
+    {
+      "path": "reviews/retry-plan-review.json",
+      "sha256": "1fabdc407e56b18d8d50fdf4726a3f649c94600221eff94d7799266c2f6dedf2",
+      "size_bytes": 2677,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r2-independent-review-current_branch_comparison_luna-20261010.json"
+    },
+    {
+      "path": "reviews/runner-delta-review.json",
+      "sha256": "1ab8b382424e9e928ac2a0ddc27a9323e8f43e6ccdc16a06ff987d714cc926d1",
+      "size_bytes": 1639,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-run-r3-runner-delta-review-current_branch_comparison_luna-20261010.json"
+    },
+    {
+      "path": "selection/test-names.json",
+      "sha256": "03e1e994ebe6c817d99772a0ff6a475563b39345ab758b454850ac29542c9752",
+      "size_bytes": 12444,
+      "copied_from": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/test-names.json"
+    }
+  ]
+}

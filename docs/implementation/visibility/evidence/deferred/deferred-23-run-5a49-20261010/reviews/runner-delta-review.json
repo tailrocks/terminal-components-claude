@@ -1,0 +1,25 @@
+{
+  "schema": "termrock.independent-static-delta-review/v1",
+  "reviewer": "/root/current_branch_comparison_luna",
+  "verdict": "READY_STATIC_DELTA_REVIEW_ONLY",
+  "packet": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010",
+  "pins": {
+    "runplan_r2_sha256": "066894c54be92dae184c2c9414790f370c9deeab359537a6fa0a16e3dcbcf295",
+    "retry_addendum_sha256": "fa3a3b148f56c2477ae3c6a957301395b56b1f0e70473d4ac767889837e9bced",
+    "runner_r2_sha256": "ed101619f98affa0259888090ebf2f3c86d4cca8546b24a73d48f1aa49f7cc3f",
+    "runner_r3_sha256": "2bc7d615cddd775df1c9ce23fc2595ceea1654296ab626a0e52b4217fc7ff31d",
+    "prior_static_review_sha256": "1fabdc407e56b18d8d50fdf4726a3f649c94600221eff94d7799266c2f6dedf2"
+  },
+  "finding": "The R2→R3 runner diff is exactly one field lookup: plan.tools.nextest.path becomes plan.tools.cargo_nextest.path. The frozen R2 plan's tools object contains cargo_nextest and no nextest key, so the correction fixes the deterministic pre-spawn TypeError while retaining the same pinned executable digest check.",
+  "preserved_evidence": {
+    "r2_plan_sha256_unchanged": "066894c54be92dae184c2c9414790f370c9deeab359537a6fa0a16e3dcbcf295",
+    "r1_native_exit": 95,
+    "r1_tests_executed": 0,
+    "r1_receipt_sha256": "350f1e01bbe3a450646e653f900e4bd6059b4eda9be28fbaeca9a84caf36f59e",
+    "r1_stderr_sha256": "93f527c9bc302895be4790c48d0a99671d03cadd567d900b48e33bcc8fa39fd3"
+  },
+  "limits": [
+    "The R2/R3 output root was absent at review time; R3 execution remains NOT_RUN and qualification is not established.",
+    "The reviewer did not run Cargo, Nextest, tests, or the runner."
+  ]
+}

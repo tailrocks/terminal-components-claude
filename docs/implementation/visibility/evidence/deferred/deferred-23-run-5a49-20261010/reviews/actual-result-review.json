@@ -1,0 +1,71 @@
+{
+  "schema": "termrock.vis04.deferred-23-independent-actual-review/v1",
+  "reviewer": "/root/current_branch_comparison_luna",
+  "verdict": "ACTUAL_RESULT_CONFIRMED_ONE_ASSERTION_FAILURE",
+  "review_mode": "read-only; no Cargo, Nextest, rerun, source edit, or cache mutation",
+  "bindings": {
+    "actual_result_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/actual-result-luna.json",
+    "actual_result_sha256": "62b3068bc4d097e492d304a3fb66fd28f040172bc44d8ada85bb87d634e8c851",
+    "run_receipt_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/run-root/receipt.json",
+    "run_receipt_sha256": "f513ada4a33146514928ded313ac556f0a36d8c67804713b4379d4579b12653b",
+    "stdout_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/run-root/nextest-run.stdout.jsonl",
+    "stdout_sha256": "a0a696c2e43ded7bbe18c28122a0fbe89aa13c94880886ec0804acf27f8c071b",
+    "stderr_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/run-root/nextest-run.stderr.log",
+    "stderr_sha256": "8e88d566bffbf0ef5a9cd15b5b06f36688355acc6b404f242825ffb1ee5f86ad",
+    "runplan_path": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/runplan-r2.json",
+    "runplan_sha256": "066894c54be92dae184c2c9414790f370c9deeab359537a6fa0a16e3dcbcf295",
+    "retry_addendum_sha256": "fa3a3b148f56c2477ae3c6a957301395b56b1f0e70473d4ac767889837e9bced",
+    "runner_r3_sha256": "2bc7d615cddd775df1c9ce23fc2595ceea1654296ab626a0e52b4217fc7ff31d"
+  },
+  "raw_jsonl_reconciliation": {
+    "line_count": 50,
+    "suite_started": 2,
+    "suite_ok": 1,
+    "suite_failed": 1,
+    "test_started": 23,
+    "test_ok": 22,
+    "test_failed": 1,
+    "test_incomplete": 0,
+    "unique_test_names": 23,
+    "sole_failed_test": "termrock-conformance::control_states$w13_filter_wide_trail_cells_clear"
+  },
+  "failure": {
+    "event": "failed",
+    "source_line": 6137,
+    "stderr_sha256": "8e88d566bffbf0ef5a9cd15b5b06f36688355acc6b404f242825ffb1ee5f86ad",
+    "assertion": "W13-05: no earlier-paint glyph may leak into 旧日本",
+    "observed_cells": [" ", " ", " ", "旧", "界", "日", "y", "本", " ", " "],
+    "classification": "selected registered-ignored regression case executed and failed an assertion; no failure inversion"
+  },
+  "execution": {
+    "nextest_exit_code": 100,
+    "wrapper_exit_code": 1,
+    "signal": null,
+    "timed_out": false,
+    "output_cap_exceeded": false,
+    "duration_ms": 1860.347625,
+    "selected": 23,
+    "passed": 22,
+    "failed": 1,
+    "incomplete": 0
+  },
+  "source_and_limits": {
+    "commit": "5a49b6922b896460b2e9f0ed38cf9ce3d6aa088e",
+    "tree": "56f1a8483421ede75a959e14a8f97fcf39fc53f3",
+    "archive_sha256": "9e3146671332ffc8c7e85adfd0b4ab9ba0e569c72564fb94dedde3bb796ae70e",
+    "manifest_sha256": "396b2722afad217841f6540d33c304f372d42bf982958ab74457c250c761e01a",
+    "source_files_verified_before_after": 500,
+    "offline": true,
+    "target_reused_from_selection_list": true,
+    "cache_status": "mutable candidate; no before/after cache integrity claim",
+    "qualification": "not qualified; this is one selected-control run, not full-suite or product-wide qualification"
+  },
+  "prior_failures_preserved": [
+    {"attempt": "R1 startup", "exit_code": 95, "tests_executed": 0, "receipt_sha256": "350f1e01bbe3a450646e653f900e4bd6059b4eda9be28fbaeca9a84caf36f59e"},
+    {"attempt": "R2 wrapper pre-spawn", "tests_executed": 0, "receipt_sha256": "129fa74ac1fff3c0eb07001bd7186858c5f13ccb114c1d83555ce6cd4c51a728"}
+  ],
+  "limitations": [
+    "Nextest emitted two suite event envelopes; the 23 distinct starts and 23 terminal events reconcile all selected names.",
+    "No separate post-kill process-group disappearance polling was recorded; direct child close was observed."
+  ]
+}

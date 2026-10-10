@@ -1,0 +1,217 @@
+{
+  "schema": "termrock.vis04.deferred-nextest-runplan/v1",
+  "status": "PREPARED_NOT_RUN",
+  "source": {
+    "commit": "5a49b6922b896460b2e9f0ed38cf9ce3d6aa088e",
+    "tree": "56f1a8483421ede75a959e14a8f97fcf39fc53f3",
+    "source_root": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/source-root",
+    "source_archive_sha256": "9e3146671332ffc8c7e85adfd0b4ab9ba0e569c72564fb94dedde3bb796ae70e",
+    "source_manifest": "source-manifest.json"
+  },
+  "selection": {
+    "test_names_file": "test-names.json",
+    "selected_count": 23,
+    "case_reference_count": 25,
+    "one_ignored": "BD-21 / w13_filter_wide_trail_cells_clear",
+    "all_rows_not_run": true,
+    "filterset": "package(=termrock-conformance) & binary(=control_states) & (test(=w01_brand_press_paints_distinct_from_hover) | test(=w02_button_disabled_suppresses_focus_gutter) | test(=w03_checkbox_compact_markers) | test(=w03_checkbox_checked_focus_hover_independent) | test(=w04_toggle_compact_markers) | test(=w05_radio_per_option_disabled) | test(=w05_radio_no_horizontal) | test(=w06_chipbar_closable_keyboard_dead) | test(=w06_chipbar_close_press_then_reorder_or_delete) | test(=w08_input_masked_clicks_follow_display) | test(=w08_input_down_only_does_not_edit) | test(=w08_input_navigation_paste_begins_editing) | test(=w08_input_external_change_is_not_silently_overwritten) | test(=w09_area_nav_enter_begins_without_newline) | test(=w09_area_nav_page_home_end_scroll_without_editing) | test(=w09_area_wheel_holds_past_caret_until_it_moves) | test(=w10_select_popup_edge_fade) | test(=w11_form_busy_enter_submit_blocked) | test(=w13_filter_backspace_removes_grapheme) | test(=w13_filter_wide_trail_cells_clear) | test(=w13_filter_reseed_selects_first_eligible) | test(=w16_steps_running_spinner_cycles_phases) | test(=w17_tabs_focused_pressed_bold)) - test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write|rebuild_review_html)/)",
+    "writer_exclusion": "test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write|rebuild_review_html)/)",
+    "expected_failure_treatment": "none"
+  },
+  "tools": {
+    "rustup": {
+      "path": "/Users/donbeave/.cargo/bin/rustup",
+      "sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a"
+    },
+    "cargo": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d"
+    },
+    "rustc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+    },
+    "rustdoc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee"
+    },
+    "cargo_nextest": {
+      "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+      "version_from_mise_toml": "0.9.146"
+    }
+  },
+  "package": {
+    "workspace_manifest": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/source-root/Cargo.toml",
+    "workspace_lock": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/source-root/Cargo.lock",
+    "workspace_lock_sha256": "a43fdf2640e4934ecb60289c215363298b5932effdc9f161495269159f1f917e",
+    "package_name": "termrock-conformance",
+    "target_name": "control_states"
+  },
+  "cargo_home_candidate": {
+    "path": "/private/tmp/termrock-vis11-diagnostic-cargo-fill-e0bc-r3-luna-20261010/run-root/cargo-home",
+    "mutable": true,
+    "cache_plan_sha256": "435475ef77d75bfe319f7347eb041b92178617d100117885b7e390c155884c49",
+    "cache_closure_sha256": "e83935e120b76bd2e0cbba0f1728b28daf274810cf8c7c1590dda8633dc1d683",
+    "claim": "candidate only; no current cache snapshot or conformance closure verification"
+  },
+  "run_root": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root",
+  "output_paths": {
+    "list_stdout": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/nextest-list.stdout.json",
+    "list_stderr": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/nextest-list.stderr.log",
+    "run_stdout": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/nextest-run.stdout.jsonl",
+    "run_stderr": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/nextest-run.stderr.log",
+    "receipt": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/receipt.json",
+    "target_dir": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/target",
+    "home": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/home",
+    "tmp": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/tmp"
+  },
+  "environment": {
+    "inherited": false,
+    "values": {
+      "PATH": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/usr/bin:/bin",
+      "CARGO_HOME": "/private/tmp/termrock-vis11-diagnostic-cargo-fill-e0bc-r3-luna-20261010/run-root/cargo-home",
+      "CARGO_TARGET_DIR": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/target",
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_NET_OFFLINE": "true",
+      "CARGO_TERM_COLOR": "never",
+      "HOME": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/home",
+      "TMPDIR": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/tmp",
+      "TMP": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/tmp",
+      "TEMP": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/run-root/tmp",
+      "RUSTUP_HOME": "/Users/donbeave/.rustup",
+      "RUSTUP_TOOLCHAIN": "1.98.1-aarch64-apple-darwin",
+      "RUSTC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "RUSTDOC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "GIT_CONFIG_GLOBAL": "/dev/null",
+      "GIT_CONFIG_NOSYSTEM": "1",
+      "GIT_OPTIONAL_LOCKS": "0",
+      "GIT_NO_LAZY_FETCH": "1",
+      "GIT_TERMINAL_PROMPT": "0",
+      "GIT_NO_REPLACE_OBJECTS": "1",
+      "LC_ALL": "C.UTF-8",
+      "LANG": "C.UTF-8",
+      "TZ": "UTC",
+      "TERM": "dumb"
+    }
+  },
+  "commands": [
+    {
+      "id": "exact-selection-list",
+      "cwd": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/source-root",
+      "executable": "/Users/donbeave/.cargo/bin/rustup",
+      "argv": [
+        "run",
+        "1.98.1",
+        "cargo",
+        "nextest",
+        "list",
+        "--locked",
+        "--user-config-file",
+        "none",
+        "--package",
+        "termrock-conformance",
+        "--test",
+        "control_states",
+        "--run-ignored",
+        "all",
+        "--ignore-default-filter",
+        "--color",
+        "never",
+        "--show-progress",
+        "none",
+        "--filterset",
+        "package(=termrock-conformance) & binary(=control_states) & (test(=w01_brand_press_paints_distinct_from_hover) | test(=w02_button_disabled_suppresses_focus_gutter) | test(=w03_checkbox_compact_markers) | test(=w03_checkbox_checked_focus_hover_independent) | test(=w04_toggle_compact_markers) | test(=w05_radio_per_option_disabled) | test(=w05_radio_no_horizontal) | test(=w06_chipbar_closable_keyboard_dead) | test(=w06_chipbar_close_press_then_reorder_or_delete) | test(=w08_input_masked_clicks_follow_display) | test(=w08_input_down_only_does_not_edit) | test(=w08_input_navigation_paste_begins_editing) | test(=w08_input_external_change_is_not_silently_overwritten) | test(=w09_area_nav_enter_begins_without_newline) | test(=w09_area_nav_page_home_end_scroll_without_editing) | test(=w09_area_wheel_holds_past_caret_until_it_moves) | test(=w10_select_popup_edge_fade) | test(=w11_form_busy_enter_submit_blocked) | test(=w13_filter_backspace_removes_grapheme) | test(=w13_filter_wide_trail_cells_clear) | test(=w13_filter_reseed_selects_first_eligible) | test(=w16_steps_running_spinner_cycles_phases) | test(=w17_tabs_focused_pressed_bold)) - test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write|rebuild_review_html)/)",
+        "--cargo-quiet",
+        "--message-format",
+        "json"
+      ],
+      "network": "disabled by CARGO_NET_OFFLINE=true",
+      "timeout_ms": 600000,
+      "combined_output_cap_bytes": 16777216,
+      "expected": {
+        "one_target": "termrock-conformance::control_states",
+        "selected_count": 23,
+        "normal_count": 22,
+        "ignored_count": 1,
+        "ignored_id": "BD-21"
+      }
+    },
+    {
+      "id": "exact-selection-run",
+      "cwd": "/private/tmp/termrock-vis04-deferred-23-request-luna-20261010/source-root",
+      "executable": "/Users/donbeave/.cargo/bin/rustup",
+      "argv": [
+        "run",
+        "1.98.1",
+        "cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--user-config-file",
+        "none",
+        "--package",
+        "termrock-conformance",
+        "--test",
+        "control_states",
+        "--run-ignored",
+        "all",
+        "--ignore-default-filter",
+        "--color",
+        "never",
+        "--show-progress",
+        "none",
+        "--filterset",
+        "package(=termrock-conformance) & binary(=control_states) & (test(=w01_brand_press_paints_distinct_from_hover) | test(=w02_button_disabled_suppresses_focus_gutter) | test(=w03_checkbox_compact_markers) | test(=w03_checkbox_checked_focus_hover_independent) | test(=w04_toggle_compact_markers) | test(=w05_radio_per_option_disabled) | test(=w05_radio_no_horizontal) | test(=w06_chipbar_closable_keyboard_dead) | test(=w06_chipbar_close_press_then_reorder_or_delete) | test(=w08_input_masked_clicks_follow_display) | test(=w08_input_down_only_does_not_edit) | test(=w08_input_navigation_paste_begins_editing) | test(=w08_input_external_change_is_not_silently_overwritten) | test(=w09_area_nav_enter_begins_without_newline) | test(=w09_area_nav_page_home_end_scroll_without_editing) | test(=w09_area_wheel_holds_past_caret_until_it_moves) | test(=w10_select_popup_edge_fade) | test(=w11_form_busy_enter_submit_blocked) | test(=w13_filter_backspace_removes_grapheme) | test(=w13_filter_wide_trail_cells_clear) | test(=w13_filter_reseed_selects_first_eligible) | test(=w16_steps_running_spinner_cycles_phases) | test(=w17_tabs_focused_pressed_bold)) - test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write|rebuild_review_html)/)",
+        "--cargo-quiet",
+        "--no-tests",
+        "fail",
+        "--no-fail-fast",
+        "--retries",
+        "0",
+        "--test-threads",
+        "1",
+        "--flaky-result",
+        "fail",
+        "--failure-output",
+        "immediate-final",
+        "--final-status-level",
+        "all",
+        "--no-output-indent",
+        "--message-format",
+        "libtest-json-plus",
+        "--message-format-version",
+        "0.1"
+      ],
+      "network": "disabled by CARGO_NET_OFFLINE=true",
+      "timeout_ms": 1800000,
+      "combined_output_cap_bytes": 16777216,
+      "expected": {
+        "terminal_outcome_count": 23,
+        "executed_count": 23,
+        "expected_failure_treatment": "none",
+        "ignored_test_must_execute": "BD-21",
+        "all_failures_remain_failures": true
+      }
+    }
+  ],
+  "ordering": [
+    "validate source-root files against source-manifest.json and archive SHA",
+    "root verifies an active VIS-04 execution lease and current source claim",
+    "run exact-selection-list and require exactly 23 selections with one ignored BD-21",
+    "run exact-selection-run only after list contract passes",
+    "record all 23 outcomes; do not invert failures or update queue/admission state"
+  ],
+  "side_effects": {
+    "repository_writes": false,
+    "queue_or_admission_writes": false,
+    "network": false,
+    "output_only_under_run_root": true
+  },
+  "limits": [
+    "No run or list command has been executed for this packet.",
+    "CARGO_HOME is mutable and has not been rehashed for this target; use offline mode and record cache misses as failures.",
+    "The source archive omits non-crate baselines/reports and Git metadata; it includes every crate workspace member plus direct compile-time ownership JSON.",
+    "A current Root-owned VIS-04 lease is required before any execution."
+  ]
+}

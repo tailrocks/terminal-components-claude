@@ -1,0 +1,26 @@
+{
+  "schema": "termrock.independent-static-review/v1",
+  "reviewer": "/root/current_branch_comparison_luna",
+  "verdict": "READY_STATIC_REVIEW_ONLY",
+  "packet": "/private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010",
+  "pins": {
+    "runplan_r2_sha256": "066894c54be92dae184c2c9414790f370c9deeab359537a6fa0a16e3dcbcf295",
+    "retry_addendum_sha256": "fa3a3b148f56c2477ae3c6a957301395b56b1f0e70473d4ac767889837e9bced",
+    "runner_r2_sha256": "ed101619f98affa0259888090ebf2f3c86d4cca8546b24a73d48f1aa49f7cc3f",
+    "original_plan_sha256": "6bdc37c785375026f69038fdbac403c39ef6cab92075003979ce190a7346619a",
+    "selection_receipt_sha256": "bffdf317cec8fdaeee174493d38eaa7b360d6391324b88f467b85d00fd1e9f23",
+    "source_manifest_sha256": "396b2722afad217841f6540d33c304f372d42bf982958ab74457c250c761e01a",
+    "source_archive_sha256": "9e3146671332ffc8c7e85adfd0b4ab9ba0e569c72564fb94dedde3bb796ae70e"
+  },
+  "findings": [
+    "R2 run argv is byte-for-byte equal to the predecessor's reviewed exact-selection-run argv; the filter is unchanged and names 23 exact tests. The verified list receipt reports exactly those 23 selections, including only the intended ignored BD-21 case.",
+    "The predecessor failure receipt is bound and records native exit 95, zero stdout/test events, and the pinned stderr explaining the missing NEXTEST_EXPERIMENTAL_LIBTEST_JSON=1 requirement. R2 adds that value, preserves offline/jobs/tool settings, and uses fresh R2 HOME/TMP/TMPDIR and run-output paths. No other environment differences were observed except those fresh paths and the required variable.",
+    "The runner pins the predecessor plan, test-name file, source manifest/archive, and rustup/Cargo/rustc/Nextest binaries; it rejects a changed argv/filter, requires the verified selection receipt, checks the preserved startup failure, requires the R2 output root to be absent, and verifies source file hashes/modes before and after the child.",
+    "The reviewed list target exists and is explicitly reused. The cache is accurately classified as mutable, candidate-only, offline, and not rehashed; this review does not establish cache completeness or test qualification.",
+    "The R2 run root was absent at review time. No Cargo, Nextest, test, build, or CLI execution was performed by the reviewer."
+  ],
+  "limits": [
+    "This is a static readiness review only; execution remains NOT_RUN and results remain NOT_QUALIFIED until Root-authorized execution and actual-result review.",
+    "The supervisor records direct-child close after TERM/KILL but does not separately poll for process-group disappearance; no claim of independent PGID cleanup verification is made."
+  ]
+}

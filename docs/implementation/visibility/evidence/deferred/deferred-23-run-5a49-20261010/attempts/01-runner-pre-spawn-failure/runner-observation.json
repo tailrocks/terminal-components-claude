@@ -1,0 +1,19 @@
+{
+  "schema": "termrock.vis04.executor-pre-spawn-observation/v1",
+  "status": "RUNNER_PRESPAWN_ERROR",
+  "observed_from": "functions.exec tool result chunk af85e0",
+  "command": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node /private/tmp/termrock-vis04-deferred-23-run-r2-luna-20261010/runner-r2.cjs",
+  "exit_code": 1,
+  "error": "TypeError: Cannot read properties of undefined (reading path) at runner-r2.cjs:33:32; plan.tools.nextest was undefined.",
+  "cause": "Runplan tool key is cargo_nextest, not nextest.",
+  "child_spawned": false,
+  "cargo_or_test_command_spawned": false,
+  "tests_executed": 0,
+  "output_root_created": false,
+  "raw_stderr_file": null,
+  "limitation": "The wrapper exception was returned in the tool result; no separate raw stderr file was written.",
+  "runner_r2_sha256": "ed101619f98affa0259888090ebf2f3c86d4cca8546b24a73d48f1aa49f7cc3f",
+  "runplan_sha256": "066894c54be92dae184c2c9414790f370c9deeab359537a6fa0a16e3dcbcf295",
+  "addendum_sha256": "fa3a3b148f56c2477ae3c6a957301395b56b1f0e70473d4ac767889837e9bced",
+  "runner_r3_successor_sha256": "2bc7d615cddd775df1c9ce23fc2595ceea1654296ab626a0e52b4217fc7ff31d"
+}
