@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import os
 import re
+import shlex
 import stat
 import sys
 from datetime import datetime
@@ -67,6 +68,18 @@ HOLLA_ARTIFACT_FORMATS = (
 )
 STATUS_ORDER = ("PASS", "FAIL", "BLOCKED", "NOT_RUN", "NOT_APPLICABLE")
 EXECUTION_ATTEMPT_HISTORY_SCHEMA = "termrock-status-execution-attempt-history/v1"
+PRODUCT_PHASE_OBSERVATIONS_SCHEMA = "termrock-status-product-phase-observations/v1"
+PRODUCT_PHASE_ARCHIVE_SCHEMA = "termrock-vis13-raw-attempt-archive/v1"
+PRODUCT_PHASE_ARCHIVE_PREFIX = (
+    "docs/implementation/visibility/evidence/reports/"
+)
+PRODUCT_PHASE_ARCHIVE_MAX_MEMBERS = 512
+PRODUCT_PHASE_ARCHIVE_MAX_BYTES = 64 * 1024 * 1024
+PRODUCT_PHASE_NAMES = (
+    "build", "launch", "first_frame", "interaction", "exit", "restoration",
+    "visual", "ownership", "cleanup",
+)
+PRODUCT_PHASE_DISPLAY_NAMES = PRODUCT_PHASE_NAMES[:-1]
 EXECUTION_ATTEMPT_LANES = {
     "ci_provider": "candidate_commit",
     "paired_nextest": "candidate_reference_pair",
@@ -3982,6 +3995,313 @@ def render_execution_attempt_history(
     ])
 
 
+def _product_archive_path(value: Any, label: str) -> str:
+    require(isinstance(value, str) and value,
+            "{}.path must be nonempty text".format(label))
+    require("\\" not in value,
+            "{}.path must use normalized repository separators".format(label))
+    path = Path(value)
+    require(not path.is_absolute() and path.as_posix() == value
+            and bool(path.parts)
+            and all(part not in {"", ".", ".."} for part in path.parts),
+            "{}.path must be a normalized repository-relative path".format(label))
+    require(value.startswith(PRODUCT_PHASE_ARCHIVE_PREFIX),
+            "{}.path must remain under the reports evidence root".format(label))
+    return value
+
+
+def _product_phase_status(layers: Mapping[str, Any]) -> str:
+    statuses = [layers[name]["status"] for name in PRODUCT_PHASE_DISPLAY_NAMES]
+    if "FAIL" in statuses:
+        return "NOT_READY"
+    if "BLOCKED" in statuses:
+        return "NOT_READY"
+    if "NOT_RUN" in statuses:
+        return "NOT_RUN"
+    if all(status == "NOT_APPLICABLE" for status in statuses):
+        return "NOT_APPLICABLE"
+    return "READY"
+
+
+def validate_product_phase_observations(
+    value: Any,
+    queue_module: Any,
+) -> Sequence[Mapping[str, Any]]:
+    """Validate a bounded historical phase view from the immutable reports archive."""
+    if value is None:
+        return []
+    require(isinstance(value, dict)
+            and set(value) == {
+                "schema", "scope", "source_pair", "archive_manifest", "commands",
+            }
+            and value.get("schema") == PRODUCT_PHASE_OBSERVATIONS_SCHEMA
+            and value.get("scope") == "HISTORICAL",
+            "unsupported product phase observations schema, scope, or fields")
+
+    pair = value.get("source_pair")
+    require(isinstance(pair, dict)
+            and set(pair) == {"candidate_commit", "reference_commit"},
+            "product phase source_pair has missing or unknown fields")
+    candidate_commit = sha(pair.get("candidate_commit"),
+                           "product phase candidate commit")
+    reference_commit = sha(pair.get("reference_commit"),
+                           "product phase reference commit")
+    # This row describes an immutable historical pair. Its role records below
+    # must match this pair, but later remote tips and current observations may
+    # advance or be absent without invalidating the archived result.
+
+    manifest_pin = value.get("archive_manifest")
+    require(isinstance(manifest_pin, dict)
+            and set(manifest_pin) == {"path", "sha256", "bytes"},
+            "product phase archive manifest pin has missing or unknown fields")
+    manifest_path = _product_archive_path(
+        manifest_pin.get("path"), "product phase archive manifest",
+    )
+    require(Path(manifest_path).name == "MANIFEST.json",
+            "product phase archive manifest must be named MANIFEST.json")
+    manifest_size = manifest_pin.get("bytes")
+    require(type(manifest_size) is int and 0 < manifest_size <= 1024 * 1024,
+            "product phase archive manifest byte count is outside its bound")
+    manifest_raw = read_pinned_bytes(manifest_pin, "product phase archive manifest")
+    require(len(manifest_raw) == manifest_size,
+            "product phase archive manifest byte count does not match its pin")
+    try:
+        manifest = queue_module.strict_json_loads(manifest_raw)
+    except Exception as error:
+        raise ValueError("product phase archive manifest is not strict JSON: {}".format(error)) from error
+    require(isinstance(manifest, dict)
+            and set(manifest) == {
+                "schema", "increment", "source_baseline", "files", "file_count",
+                "total_bytes", "limits",
+            }
+            and manifest.get("schema") == PRODUCT_PHASE_ARCHIVE_SCHEMA,
+            "unsupported product phase archive manifest schema or fields")
+    archive_name = Path(manifest_path).parent.name
+    require(isinstance(manifest.get("increment"), str)
+            and manifest["increment"] == archive_name,
+            "product phase archive manifest increment does not match its directory")
+    require(isinstance(manifest.get("source_baseline"), dict),
+            "product phase archive source baseline must be an object")
+    limits = manifest.get("limits")
+    require(isinstance(limits, list) and 0 < len(limits) <= 32
+            and all(isinstance(item, str) and item.strip() for item in limits),
+            "product phase archive limits must be a bounded list of descriptions")
+    members = manifest.get("files")
+    require(isinstance(members, list)
+            and 0 < len(members) <= PRODUCT_PHASE_ARCHIVE_MAX_MEMBERS,
+            "product phase archive member count is outside its bound")
+    require(type(manifest.get("file_count")) is int
+            and manifest["file_count"] == len(members),
+            "product phase archive file_count does not match its members")
+    total_bytes = 0
+    member_by_path: dict[str, Mapping[str, Any]] = {}
+    for index, member in enumerate(members):
+        label = "product phase archive files[{}]".format(index)
+        require(isinstance(member, dict)
+                and set(member) == {"path", "source_path", "bytes", "sha256", "description"},
+                "{} has missing or unknown fields".format(label))
+        member_path = _product_archive_path(member.get("path"), label)
+        require(member_path.startswith(Path(manifest_path).parent.as_posix() + "/"),
+                "{} is outside the pinned archive directory".format(label))
+        require(isinstance(member.get("source_path"), str)
+                and member["source_path"].strip()
+                and isinstance(member.get("description"), str)
+                and member["description"].strip(),
+                "{} source_path and description are required".format(label))
+        member_size = member.get("bytes")
+        require(type(member_size) is int and 0 <= member_size <= MAX_EXECUTION_EVIDENCE_BYTES,
+                "{}.bytes is outside its bound".format(label))
+        member_sha = sha256(member.get("sha256"), "{}.sha256".format(label))
+        require(member_path not in member_by_path,
+                "product phase archive repeats a member path")
+        member_by_path[member_path] = member
+        total_bytes += member_size
+        require(total_bytes <= PRODUCT_PHASE_ARCHIVE_MAX_BYTES,
+                "product phase archive exceeds its aggregate byte bound")
+    require(type(manifest.get("total_bytes")) is int
+            and manifest["total_bytes"] == total_bytes,
+            "product phase archive total_bytes does not match its members")
+
+    commands = value.get("commands")
+    require(isinstance(commands, list) and len(commands) == 1,
+            "product phase observations must contain exactly one registered command")
+    observation = commands[0]
+    require(isinstance(observation, dict)
+            and set(observation) == {"command_id", "exact_command", "pair_evidence"},
+            "product phase command has missing or unknown fields")
+    command_id = observation.get("command_id")
+    expected_commands = dict(COMMANDS)
+    require(command_id == "RUN-03"
+            and expected_commands.get(command_id) == observation.get("exact_command"),
+            "product phase command differs from the registered RUN-03 command")
+    pair_pin = observation.get("pair_evidence")
+    require(isinstance(pair_pin, dict)
+            and set(pair_pin) == {"path", "sha256", "bytes"},
+            "product phase pair evidence pin has missing or unknown fields")
+    pair_path = _product_archive_path(pair_pin.get("path"), "product phase pair evidence")
+    archive_directory = Path(manifest_path).parent.as_posix()
+    require(pair_path.startswith(archive_directory + "/"),
+            "product phase pair evidence is outside the pinned archive directory")
+    pair_size = pair_pin.get("bytes")
+    require(type(pair_size) is int and 0 < pair_size <= MAX_EXECUTION_EVIDENCE_BYTES,
+            "product phase pair evidence byte count is outside its bound")
+    member = member_by_path.get(pair_path)
+    require(member is not None,
+            "product phase pair evidence is not listed in the archive manifest")
+    require(member["bytes"] == pair_size and member["sha256"] == pair_pin.get("sha256"),
+            "product phase pair evidence pin differs from its archive member")
+    pair_raw = read_pinned_bytes(pair_pin, "product phase pair evidence")
+    require(len(pair_raw) == pair_size,
+            "product phase pair evidence byte count does not match its pin")
+    try:
+        pair_evidence = queue_module.strict_json_loads(pair_raw)
+    except Exception as error:
+        raise ValueError("product phase pair evidence is not strict JSON: {}".format(error)) from error
+    require(isinstance(pair_evidence, dict)
+            and set(pair_evidence) == {
+                "case_sha256", "compiled_suite_sha256", "receipt", "runs", "schema",
+            }
+            and pair_evidence.get("schema") == "termrock-e2e/run03-pair-evidence-v1",
+            "unsupported RUN-03 pair-evidence schema or fields")
+    sha256(pair_evidence.get("case_sha256"), "RUN-03 case digest")
+    sha256(pair_evidence.get("compiled_suite_sha256"), "RUN-03 compiled-suite digest")
+    require(isinstance(pair_evidence.get("runs"), list)
+            and len(pair_evidence["runs"]) <= 32,
+            "RUN-03 pair-evidence runs must be a bounded list")
+    receipt = pair_evidence.get("receipt")
+    require(isinstance(receipt, dict)
+            and set(receipt) == {"rows", "schema"}
+            and receipt.get("schema") == "termrock-spec/visibility-command-lane-v1",
+            "unsupported RUN-03 command-lane receipt schema or fields")
+    rows = receipt.get("rows")
+    require(isinstance(rows, list) and 0 < len(rows) <= 32,
+            "RUN-03 receipt rows must be a bounded nonempty list")
+    row_ids = [row.get("id") for row in rows if isinstance(row, dict)]
+    require(len(row_ids) == len(rows)
+            and all(isinstance(row_id, str) and row_id for row_id in row_ids)
+            and len(set(row_ids)) == len(row_ids),
+            "RUN-03 receipt row IDs must be unique nonempty text")
+    matching_rows = [row for row in rows if row.get("id") == command_id]
+    require(len(matching_rows) == 1,
+            "RUN-03 evidence must contain exactly one RUN-03 row")
+    row = matching_rows[0]
+    require(set(row) == {
+                "candidate", "direct_executable_diagnostics", "exact_command", "id",
+                "reference", "status",
+            }
+            and row.get("exact_command") == observation["exact_command"]
+            and row.get("status") in STATUS_ORDER,
+            "RUN-03 row has invalid fields, command, or status")
+    require(isinstance(row.get("direct_executable_diagnostics"), list)
+            and len(row["direct_executable_diagnostics"]) <= 32,
+            "RUN-03 diagnostics must be a bounded list")
+
+    validated_roles: dict[str, Mapping[str, Any]] = {}
+    for role, source_commit in (
+        ("candidate", candidate_commit), ("reference", reference_commit),
+    ):
+        record = row.get(role)
+        require(isinstance(record, dict)
+                and set(record) == {
+                    "argv", "cwd", "kind", "layers", "pre_command_executable_sha256",
+                    "role", "source_commit", "source_manifest", "source_manifest_sha256",
+                },
+                "RUN-03 {} role record has missing or unknown fields".format(role))
+        require(record.get("role") == role
+                and record.get("kind") == "ExactRootCommand"
+                and record.get("source_commit") == source_commit
+                and record.get("argv") == shlex.split(observation["exact_command"]),
+                "RUN-03 {} role does not bind the exact command and source".format(role))
+        require(isinstance(record.get("cwd"), str) and record["cwd"]
+                and isinstance(record.get("source_manifest"), str)
+                and record["source_manifest"],
+                "RUN-03 {} role paths are required".format(role))
+        sha256(record.get("source_manifest_sha256"),
+               "RUN-03 {} source manifest digest".format(role))
+        sha256(record.get("pre_command_executable_sha256"),
+               "RUN-03 {} executable digest".format(role))
+        layers = record.get("layers")
+        require(isinstance(layers, dict) and set(layers) == set(PRODUCT_PHASE_NAMES),
+                "RUN-03 {} role must contain exactly the nine recorded layers".format(role))
+        validated_layers: dict[str, Mapping[str, Any]] = {}
+        for name in PRODUCT_PHASE_NAMES:
+            layer = layers[name]
+            require(isinstance(layer, dict)
+                    and set(layer) == {"evidence", "reason", "status"}
+                    and layer.get("status") in STATUS_ORDER,
+                    "RUN-03 {} layer {} has invalid fields or status".format(role, name))
+            require(isinstance(layer.get("reason"), str) and layer["reason"].strip()
+                    and isinstance(layer.get("evidence"), list)
+                    and len(layer["evidence"]) <= 32
+                    and all(isinstance(item, str) for item in layer["evidence"]),
+                    "RUN-03 {} layer {} reason or evidence is invalid".format(role, name))
+            validated_layers[name] = layer
+        validated_roles[role] = validated_layers
+    all_statuses = [
+        layer["status"] for role in validated_roles.values() for layer in role.values()
+    ]
+    expected_row_status = (
+        "FAIL" if "FAIL" in all_statuses else (
+            "BLOCKED" if "BLOCKED" in all_statuses else (
+                "NOT_RUN" if "NOT_RUN" in all_statuses else (
+                    "NOT_APPLICABLE" if all(
+                        status == "NOT_APPLICABLE" for status in all_statuses
+                    ) else "PASS"
+                )
+            )
+        )
+    )
+    require(row["status"] == expected_row_status,
+            "RUN-03 row status does not match its recorded layers")
+    return [{
+        "command_id": command_id,
+        "exact_command": observation["exact_command"],
+        "source_pair": pair,
+        "candidate_layers": validated_roles["candidate"],
+        "reference_layers": validated_roles["reference"],
+        "candidate_readiness": _product_phase_status(validated_roles["candidate"]),
+        "reference_readiness": _product_phase_status(validated_roles["reference"]),
+        "pair_status": row["status"],
+        "pair_evidence": pair_pin,
+    }]
+
+
+def render_required_command_rows(
+    observations: Sequence[Mapping[str, Any]],
+) -> str:
+    phase_by_command = {item["command_id"]: item for item in observations}
+    rows = []
+    for run_id, command in COMMANDS:
+        phase = phase_by_command.get(run_id)
+        if phase is None:
+            rows.append(
+                "| {} | {} | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_APPLICABLE; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN |"
+                .format(run_id, command)
+            )
+            continue
+        source_pair = phase["source_pair"]
+        historical_command = (
+            "{} (historical pair: candidate `{}`; reference `{}`)".format(
+                command, source_pair["candidate_commit"], source_pair["reference_commit"],
+            )
+        )
+        cells = []
+        for dimension in PRODUCT_PHASE_DISPLAY_NAMES:
+            cells.append("Reference: {}; Candidate: {}".format(
+                phase["reference_layers"][dimension]["status"],
+                phase["candidate_layers"][dimension]["status"],
+            ))
+        cells.append(
+            "Current: NOT_RUN; historical required: Reference {}; Candidate {}".format(
+                phase["reference_readiness"], phase["candidate_readiness"],
+            )
+        )
+        rows.append("| {} | {} | {} |".format(
+            run_id, historical_command, " | ".join(cells),
+        ))
+    return "\n".join(rows)
+
+
 def validate_facts(facts: Any) -> Mapping[str, Any]:
     require(isinstance(facts, dict) and facts.get("schema_version") == 2,
             "unsupported source-facts schema; expected version 2")
@@ -4265,6 +4585,9 @@ def render_status(
     current_status_observations = validate_current_status_observations(
         facts.get("current_status_observations"), latest, authority, queue_module
     )
+    product_phase_observations = validate_product_phase_observations(
+        facts.get("product_phase_observations"), queue_module,
+    )
     execution_attempt_history = validate_execution_attempt_history(
         facts.get("execution_attempt_history"), latest, authority, queue_module,
     )
@@ -4429,12 +4752,7 @@ def render_status(
         dco_findings = "{} commits are reported with sign-off problems.".format(
             affected_commits
         )
-    command_rows = "\n".join(
-        "| {} | {} | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_APPLICABLE; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN |".format(
-            run_id, command
-        )
-        for run_id, command in COMMANDS
-    )
+    command_rows = render_required_command_rows(product_phase_observations)
     holla = next(
         (item for item in execution_observations if item["kind"] == "holla_diagnostic"),
         None,
