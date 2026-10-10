@@ -8482,126 +8482,17 @@ impl App {
         }
 
         if self.help_open {
-            let palette = HistoricalPalette::new(ui);
-            let normal_canvas = palette.primary_on_canvas;
-            let bold_canvas = palette.primary_on_canvas_bold;
-            let muted_normal = palette.muted_on_canvas;
-            let muted_bold = palette
-                .muted_on_canvas
-                .add_modifier(termrock::author::Modifier::BOLD);
-
-            let container_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                ui.fill(cell, normal_canvas);
-                match cell.width {
-                    72 => {
-                        ui.paint_str(Rect::new(3, cell.y, 5, 1), "     ", bold_canvas);
-                        ui.paint_str(Rect::new(17, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(24, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(34, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(45, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(57, cell.y, 1, 1), " ", bold_canvas);
-                    }
-                    80 => {
-                        ui.paint_str(Rect::new(1, cell.y, 5, 1), "     ", bold_canvas);
-                        ui.paint_str(Rect::new(15, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(22, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(31, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(43, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(55, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(64, cell.y, 1, 1), " ", bold_canvas);
-                    }
-                    100 => {
-                        ui.paint_str(Rect::new(4, cell.y, 5, 1), "     ", bold_canvas);
-                        ui.paint_str(Rect::new(18, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(25, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(33, cell.y, 3, 1), "   ", bold_canvas);
-                        ui.paint_str(Rect::new(67, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(79, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(87, cell.y, 1, 1), " ", bold_canvas);
-                    }
-                    120 => {
-                        ui.paint_str(Rect::new(14, cell.y, 5, 1), "     ", bold_canvas);
-                        ui.paint_str(Rect::new(28, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(35, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(43, cell.y, 3, 1), "   ", bold_canvas);
-                        ui.paint_str(Rect::new(77, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(89, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(97, cell.y, 1, 1), " ", bold_canvas);
-                    }
-                    160 => {
-                        ui.paint_str(Rect::new(34, cell.y, 5, 1), "     ", bold_canvas);
-                        ui.paint_str(Rect::new(48, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(55, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(63, cell.y, 3, 1), "   ", bold_canvas);
-                        ui.paint_str(Rect::new(97, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(109, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(117, cell.y, 1, 1), " ", bold_canvas);
-                    }
-                    _ => {}
-                }
-            };
-
-            let action_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                let cell_w = cell.width;
-                let scr_w = ui.full().width;
-                if cell_w == 6 {
-                    match scr_w {
-                        72 => {
-                            ui.paint_str(Rect::new(cell.x, cell.y, 4, 1), "Scro", muted_normal);
-                            ui.paint_str(
-                                Rect::new(cell.x.saturating_add(4), cell.y, 2, 1),
-                                "ll",
-                                muted_bold,
-                            );
-                        }
-                        80 => {
-                            ui.paint_str(Rect::new(cell.x, cell.y, 1, 1), "S", muted_bold);
-                            ui.paint_str(
-                                Rect::new(cell.x.saturating_add(1), cell.y, 5, 1),
-                                "croll",
-                                muted_normal,
-                            );
-                        }
-                        100 | 120 | 160 => {
-                            ui.paint_str(Rect::new(cell.x, cell.y, 4, 1), "Scro", muted_normal);
-                            ui.paint_str(
-                                Rect::new(cell.x.saturating_add(4), cell.y, 1, 1),
-                                "l",
-                                muted_bold,
-                            );
-                            ui.paint_str(
-                                Rect::new(cell.x.saturating_add(5), cell.y, 1, 1),
-                                "l",
-                                muted_normal,
-                            );
-                        }
-                        _ => {
-                            ui.paint_str(cell, "Scroll", muted_normal);
-                        }
-                    }
-                } else if cell_w == 5 {
-                    match scr_w {
-                        100 | 120 | 160 => {
-                            ui.paint_str(Rect::new(cell.x, cell.y, 4, 1), "Clos", muted_normal);
-                            ui.paint_str(
-                                Rect::new(cell.x.saturating_add(4), cell.y, 1, 1),
-                                "e",
-                                muted_bold,
-                            );
-                        }
-                        _ => {
-                            ui.paint_str(cell, "Close", muted_normal);
-                        }
-                    }
-                } else {
-                    ui.paint_str(cell, "", muted_normal);
-                }
-            };
-
-            HintBar::new(APP.sub("hint"), &self.hint_layers.help)
-                .slot(Part::CONTAINER, &container_slot)
-                .slot(Part::ACTION, &action_slot)
-                .draw(ui, area);
+            // Tag `draw` paints the screen footer, then the help modal, then
+            // this footer. The second fill keeps the screen key-chip weight
+            // in the gaps. Help hints are Scroll and Close; no width slot
+            // rewrites those labels.
+            let under = self.manager_hints();
+            let mut under_bar = HintBar::new(APP.sub("hint"), &under);
+            if self.world.arbiter.discovery.is_err() {
+                under_bar = under_bar.status(Status::Warning);
+            }
+            under_bar.draw(ui, area);
+            HintBar::new(APP.sub("hint"), &self.hint_layers.help).draw(ui, area);
             return;
         }
 
@@ -10116,16 +10007,22 @@ mod tests {
 mod paint_contract_tests {
     use super::*;
     fn frozen_row(path: &str) -> String {
+        frozen_lines(path).into_iter().next().unwrap_or_default()
+    }
+
+    fn frozen_last(path: &str) -> String {
+        frozen_lines(path).pop().unwrap_or_default()
+    }
+
+    fn frozen_lines(path: &str) -> Vec<String> {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../..")
             .join(path);
-        std::fs::read_to_string(root)
+        std::fs::read_to_string(&root)
             .unwrap_or_else(|err| panic!("read {path}: {err}"))
             .lines()
-            .next()
-            .unwrap_or("")
-            .trim_end()
-            .to_string()
+            .map(|line| line.trim_end().to_string())
+            .collect()
     }
 
     #[test]
@@ -10373,6 +10270,64 @@ mod paint_contract_tests {
             Color::Rgb(77, 77, 77),
             "a secondary tab line dims to faint, not ghost"
         );
+    }
+
+    #[test]
+    fn help_footer_is_owned_by_hint_bar() {
+        use termrock::Theme;
+        use termrock_test_support::Harness;
+        for (w, h, path) in [
+            (
+                72,
+                20,
+                "baselines/tuiscotti-v1/jackin/manager/help-overlay/72x20/truecolor.txt",
+            ),
+            (
+                80,
+                24,
+                "baselines/tuiscotti-v1/jackin/manager/help-overlay/80x24/truecolor.txt",
+            ),
+            (
+                100,
+                30,
+                "baselines/tuiscotti-v1/jackin/manager/help-overlay/100x30/truecolor.txt",
+            ),
+            (
+                120,
+                40,
+                "baselines/tuiscotti-v1/jackin/manager/help-overlay/120x40/truecolor.txt",
+            ),
+            (
+                160,
+                50,
+                "baselines/tuiscotti-v1/jackin/manager/help-overlay/160x50/truecolor.txt",
+            ),
+        ] {
+            let mut harness = Harness::new(
+                App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
+                Theme::junie(),
+                w,
+                h,
+            );
+            let _ = harness.key(KeyCode::Char('?'));
+            let y = h - 1;
+            let footer = harness.row(y).trim_end().to_string();
+            assert_eq!(footer, frozen_last(path), "{w}x{h} help footer");
+            assert!(
+                footer.contains("Scroll") && footer.contains("Close"),
+                "{footer}"
+            );
+            let scroll_x = (0..w).find(|x| {
+                harness.cell(*x, y).symbol() == "S"
+                    && harness.cell(x.saturating_add(1), y).symbol() == "c"
+            });
+            let scroll_x = scroll_x.expect("Scroll on the footer row");
+            assert_eq!(
+                harness.cell(scroll_x, y).fg,
+                termrock::Color::Rgb(128, 128, 128),
+                "stock KeyHint paints Scroll"
+            );
+        }
     }
 
     #[test]
