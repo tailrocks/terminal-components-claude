@@ -1207,6 +1207,42 @@ mod tests {
     /// before the row edge (`tag:list.rs:318-324`, `tag:tree.rs:637`,
     /// `tag:steps.rs:314`).
     #[test]
+    fn focused_tree_meta_patch_keeps_secondary_fg() {
+        let page = paint_with(
+            &Theme::junie(),
+            Family::TREE,
+            StateFlags::FOCUSED,
+            Rect::new(0, 0, 20, 1),
+            |row| {
+                row.meta_patched(
+                    "1 running",
+                    &StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+                );
+            },
+        );
+        let cell = page.cell((10, 0)).expect("meta cell");
+        let cell = if cell.symbol() == "1" {
+            cell
+        } else {
+            let mut found = None;
+            for x in 8..20 {
+                if page.cell((x, 0)).is_some_and(|c| c.symbol() == "1") {
+                    found = page.cell((x, 0));
+                    break;
+                }
+            }
+            found.expect("meta '1' cell")
+        };
+        assert_eq!(
+            cell.style().fg,
+            Some(ratatui_core::style::Color::from_u32(0xb3b3b3)),
+            "symbol={} style={:?}",
+            cell.symbol(),
+            cell.style()
+        );
+    }
+
+    #[test]
     fn row_ui_meta_is_dropped_all_or_none() {
         // room for the label, the gap and the meta
         let page = paint(Rect::new(0, 0, 12, 1), |r| {
