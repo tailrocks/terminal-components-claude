@@ -7914,10 +7914,11 @@ impl App {
         };
         self.draw_capsule_panes(ui, pane_area);
         if self.capsule_tab_title_dialog {
-            ui.paint_str(
+            paint_owned_lines(
+                ui,
+                APP.sub("capsule.rename"),
                 Rect::new(area.x.saturating_add(2), area.y.saturating_add(1), 30, 1),
-                "Change tab title",
-                ui.surface_style(),
+                &["Change tab title"],
             );
         }
         if self.inspect.instance.is_some() {
@@ -7927,32 +7928,33 @@ impl App {
                 area.width.saturating_sub(4),
                 area.height.saturating_sub(4),
             );
-            let lines = if self.inspect_files {
-                vec![
-                    "Inspect changes · files".to_owned(),
-                    "src/main.rs".to_owned(),
-                    "src/lib.rs".to_owned(),
-                    "Tab · open diff".to_owned(),
+            let lines: &[&str] = if self.inspect_files {
+                &[
+                    "Inspect changes · files",
+                    "src/main.rs",
+                    "src/lib.rs",
+                    "Tab · open diff",
                 ]
             } else if self.inspect_detail {
-                vec![
-                    "Inspect changes · src/main.rs".to_owned(),
-                    "@@ -1,4 +1,4 @@".to_owned(),
-                    "│ - old configuration".to_owned(),
-                    "│ + new configuration".to_owned(),
+                &[
+                    "Inspect changes · src/main.rs",
+                    "@@ -1,4 +1,4 @@",
+                    "│ - old configuration",
+                    "│ + new configuration",
                 ]
             } else {
-                vec![
-                    "Inspect changes · choose a file".to_owned(),
-                    "src/main.rs".to_owned(),
-                    "src/lib.rs".to_owned(),
+                &[
+                    "Inspect changes · choose a file",
+                    "src/main.rs",
+                    "src/lib.rs",
                 ]
             };
-            paint_lines(ui, inspect_area, &lines);
+            paint_owned_lines(ui, APP.sub("capsule.inspect"), inspect_area, lines);
         }
         if self.capsule_usage {
-            paint_lines(
+            paint_owned_lines(
                 ui,
+                APP.sub("capsule.usage"),
                 Rect::new(
                     area.x.saturating_add(2),
                     area.y.saturating_add(4),
@@ -7968,10 +7970,11 @@ impl App {
             );
         }
         if self.capsule_prefix {
-            ui.paint_str(
+            paint_owned_lines(
+                ui,
+                APP.sub("capsule.prefix.commands"),
                 Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
-                "prefix… New tab · Split right · Copy selection · Detach",
-                ui.surface_style(),
+                &["prefix… New tab · Split right · Copy selection · Detach"],
             );
         }
     }
@@ -8054,15 +8057,18 @@ impl App {
         }
 
         if self.capsule_prefix {
-            ui.paint_str(
+            let text = "prefix… New tab · Split right · Detach";
+            let w = text.chars().count() as u16;
+            paint_owned_lines(
+                ui,
+                APP.sub("capsule.prefix.banner"),
                 Rect::new(
                     area.x.saturating_add(9),
                     area.y,
-                    area.width.saturating_sub(9),
+                    w.min(area.width.saturating_sub(9)),
                     1,
                 ),
-                "prefix… New tab · Split right · Detach",
-                palette.primary_on_canvas,
+                &[text],
             );
         }
 
@@ -10077,6 +10083,36 @@ fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {
         }
         ui.paint_str(Rect::new(area.x, y, area.width, 1), line.as_ref(), style);
     }
+}
+
+/// One bare list owns these shell rows. The canvas patch is the same
+/// primary-on-canvas fill the shell already painted behind them.
+fn paint_owned_lines(ui: &mut Ui<'_>, id: Id, area: Rect, lines: &[&str]) {
+    if area.is_empty() || lines.is_empty() {
+        return;
+    }
+    const PARTS: [(Part, StylePatch); 2] = [
+        (
+            Part::CONTAINER,
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(Surface::Canvas)),
+        ),
+        (
+            Part::LABEL,
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(Surface::Canvas)),
+        ),
+    ];
+    let state = ListState::default();
+    List::new(id)
+        .bare(true)
+        .patch_part(&PARTS)
+        .row(|line: &&str, row| {
+            row.label_patched(line, &PARTS[1].1);
+        })
+        .draw(ui, area, &state, lines);
 }
 
 impl Default for App {
