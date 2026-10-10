@@ -646,6 +646,351 @@ fn write_attempt_json(
     write_attempt_artifact(fixture, name, &bytes, "json")
 }
 
+
+const PROVIDER_ARCHIVE_DIR: &str =
+    "docs/implementation/visibility/evidence/reports/provider-observations-test";
+const PROVIDER_SOURCE_SHA: &str = "3333333333333333333333333333333333333333";
+const PROVIDER_SOURCE_TREE: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+fn write_provider_capture(
+    fixture: &StatusFixture,
+    prefix: &str,
+    name: &str,
+    bytes: &[u8],
+    files: &mut Vec<serde_json::Value>,
+) -> serde_json::Value {
+    let member_path = format!("raw/{prefix}/{name}");
+    let repo_path = format!("{PROVIDER_ARCHIVE_DIR}/{member_path}");
+    let path = fixture.repo.root().join(&repo_path);
+    fs::create_dir_all(path.parent().expect("provider member parent"))
+        .expect("create provider archive member directory");
+    fs::write(path, bytes).expect("write provider archive member");
+    files.push(serde_json::json!({
+        "path": member_path,
+        "source_path": format!("/fixture/provider/{prefix}/raw-api/{name}"),
+        "bytes": bytes.len(),
+        "sha256": sha256_hex(bytes),
+        "source_mode": "600",
+        "description": format!("synthetic provider capture {name}"),
+    }));
+    serde_json::json!({
+        "path": repo_path,
+        "sha256": sha256_hex(bytes),
+        "bytes": bytes.len(),
+    })
+}
+
+fn write_provider_json_capture(
+    fixture: &StatusFixture,
+    prefix: &str,
+    name: &str,
+    value: &serde_json::Value,
+    files: &mut Vec<serde_json::Value>,
+) -> serde_json::Value {
+    let bytes = serde_json::to_vec(value).expect("serialize provider capture JSON");
+    write_provider_capture(fixture, prefix, name, &bytes, files)
+}
+
+fn provider_observation(
+    fixture: &StatusFixture,
+    files: &mut Vec<serde_json::Value>,
+    prefix: &str,
+    run_id: &str,
+    run_attempt: u64,
+    created_at: &str,
+    observed_at: &str,
+    scope: &str,
+) -> serde_json::Value {
+    let run_number = run_id.parse::<u64>().expect("numeric fixture run ID");
+    let suite_id = run_number + 1000;
+    let dco_id = run_number + 2000;
+    let workflow_path = ".github/workflows/ci.yml";
+    let run_url = format!(
+        "https://github.com/tailrocks/terminal-components-claude/actions/runs/{run_id}"
+    );
+    let run_api_url = format!(
+        "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/{run_id}"
+    );
+    let workflow_api_url =
+        "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/workflows/349610291";
+    let suite_runs_url = format!(
+        "https://api.github.com/repos/tailrocks/terminal-components-claude/check-suites/{suite_id}/check-runs"
+    );
+    let workflow = serde_json::json!({
+        "id": 349610291,
+        "name": "CI",
+        "path": workflow_path,
+        "state": "active",
+        "url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/workflows/349610291"
+    });
+    let run = serde_json::json!({
+        "id": run_number,
+        "run_attempt": run_attempt,
+        "workflow_id": 349610291,
+        "name": workflow_path,
+        "head_branch": "termrock-implementation",
+        "head_sha": PROVIDER_SOURCE_SHA,
+        "status": "completed",
+        "conclusion": "failure",
+        "event": "push",
+        "created_at": created_at,
+        "html_url": run_url,
+        "url": run_api_url,
+        "workflow_url": workflow_api_url,
+        "path": workflow_path,
+        "check_suite_id": suite_id,
+        "head_commit": {
+            "id": PROVIDER_SOURCE_SHA,
+            "tree_id": PROVIDER_SOURCE_TREE
+        }
+    });
+    let check_suites = serde_json::json!({
+        "total_count": 1,
+        "check_suites": [{
+            "id": suite_id,
+            "head_sha": PROVIDER_SOURCE_SHA,
+            "head_branch": "termrock-implementation",
+            "status": "completed",
+            "conclusion": "failure",
+            "latest_check_runs_count": 0,
+            "check_runs_url": suite_runs_url
+        }]
+    });
+    let suite_check_runs = serde_json::json!({
+        "total_count": 0,
+        "check_runs": []
+    });
+    let check_runs = serde_json::json!({
+        "total_count": 1,
+        "check_runs": [{
+            "id": dco_id,
+            "name": "DCO",
+            "head_sha": PROVIDER_SOURCE_SHA,
+            "status": "completed",
+            "conclusion": "success"
+        }]
+    });
+    let jobs = serde_json::json!({"total_count": 0, "jobs": []});
+    let artifacts = serde_json::json!({"total_count": 0, "artifacts": []});
+    let headers = b"HTTP/2 403\r\ncontent-type: application/json\r\n\r\n";
+    let body = br#"{"message":"Must have admin rights to Repository.","status":"403"}"#;
+
+    let workflow_capture =
+        write_provider_json_capture(fixture, prefix, "workflow.json", &workflow, files);
+    let run_capture =
+        write_provider_json_capture(fixture, prefix, "run.json", &run, files);
+    let suites_capture =
+        write_provider_json_capture(fixture, prefix, "check-suites.json", &check_suites, files);
+    let suite_runs_capture = write_provider_json_capture(
+        fixture, prefix, "suite-check-runs.json", &suite_check_runs, files,
+    );
+    let checks_capture =
+        write_provider_json_capture(fixture, prefix, "check-runs.json", &check_runs, files);
+    let jobs_capture =
+        write_provider_json_capture(fixture, prefix, "jobs.json", &jobs, files);
+    let artifacts_capture =
+        write_provider_json_capture(fixture, prefix, "artifacts.json", &artifacts, files);
+    let log_headers_capture =
+        write_provider_capture(fixture, prefix, "run-logs.headers", headers, files);
+    let log_body_capture =
+        write_provider_capture(fixture, prefix, "run-logs.body", body, files);
+
+    serde_json::json!({
+        "sequence": 1,
+        "observed_at": observed_at,
+        "scope": scope,
+        "source_binding": {
+            "kind": "candidate_commit",
+            "branch": "termrock-implementation",
+            "commit_sha": PROVIDER_SOURCE_SHA,
+            "tree_sha": PROVIDER_SOURCE_TREE
+        },
+        "captures": {
+            "workflow": workflow_capture,
+            "run": run_capture,
+            "check_suites": suites_capture,
+            "suite_check_runs": suite_runs_capture,
+            "check_runs": checks_capture,
+            "jobs": jobs_capture,
+            "artifacts": artifacts_capture,
+            "run_logs_headers": log_headers_capture,
+            "run_logs_body": log_body_capture
+        }
+    })
+}
+
+fn provider_observations_bundle(
+    fixture: &StatusFixture,
+    observations: Vec<serde_json::Value>,
+    files: Vec<serde_json::Value>,
+) -> serde_json::Value {
+    let manifest = serde_json::json!({
+        "schema": "termrock-status-provider-capture-archive/v1",
+        "increment": "provider-observations-test",
+        "status": "FIXTURE",
+        "source_baseline": {"note": "synthetic provider observation fixture"},
+        "files": files
+    });
+    let manifest_raw = serde_json::to_vec(&manifest).expect("serialize provider manifest");
+    let manifest_path = format!("{PROVIDER_ARCHIVE_DIR}/MANIFEST.json");
+    fixture
+        .repo
+        .write_file(Path::new(&manifest_path), &manifest_raw)
+        .expect("write provider archive manifest");
+    serde_json::json!({
+        "schema": "termrock-status-provider-observations/v1",
+        "archive_manifest": {
+            "path": manifest_path,
+            "sha256": sha256_hex(&manifest_raw),
+            "bytes": manifest_raw.len()
+        },
+        "observations": observations
+    })
+}
+
+#[test]
+fn provider_observation_accepts_zero_jobs_and_forbidden_logs_without_cause_inference() {
+    let fixture = StatusFixture::new();
+    let mut files = Vec::new();
+    let observation = provider_observation(
+        &fixture,
+        &mut files,
+        "current-38016983578",
+        "38016983578",
+        1,
+        "2026-10-10T02:26:42Z",
+        "2026-10-10T02:43:00Z",
+        "CURRENT",
+    );
+    let bundle = provider_observations_bundle(&fixture, vec![observation], files);
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+    facts["provider_observations"] = bundle;
+    write_json_facts(&fixture, &facts);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
+    let report = output_text(&output);
+    let row = report.lines()
+        .find(|line| line.contains("38016983578"))
+        .expect("current provider observation is rendered");
+    assert!(row.contains("CURRENT"));
+    assert!(row.contains("failure; event push; 0 jobs; 0 artifacts"));
+    assert!(row.contains("logs HTTP 403; workflow cause NOT_EXPOSED"));
+    assert!(!row.contains("Must have admin rights to Repository."));
+    assert!(row.contains("DCO check"));
+    assert!(report.contains("These hash-pinned provider records describe workflow metadata and log access."));
+    assert!(report.contains("Refactor / Ready | NOT_RUN"));
+    assert!(report.contains("Visibility / Complete | NOT_RUN"));
+    assert!(!row.contains("500 KB"));
+    assert!(!row.contains("537470 bytes"));
+    assert!(report.contains("37721476033"));
+    assert!(report.contains(FAILURE_REASON));
+}
+
+#[test]
+fn provider_observation_rejects_source_drift_archive_tampering_and_out_of_order_rows() {
+    let fixture = StatusFixture::new();
+    let mut files = Vec::new();
+    let observation = provider_observation(
+        &fixture,
+        &mut files,
+        "current-38016983578",
+        "38016983578",
+        1,
+        "2026-10-10T02:26:42Z",
+        "2026-10-10T02:43:00Z",
+        "CURRENT",
+    );
+    let bundle = provider_observations_bundle(&fixture, vec![observation.clone()], files);
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+    facts["provider_observations"] = bundle.clone();
+
+    facts["provider_observations"]["observations"][0]["source_binding"]["commit_sha"] =
+        serde_json::json!("5555555555555555555555555555555555555555");
+    write_json_facts(&fixture, &facts);
+    let source_drift = fixture.run(&[]);
+    assert_eq!(source_drift.exit_code, Some(2));
+    assert!(error_text(&source_drift).contains("run fields do not match its source binding"));
+
+    facts["provider_observations"] = bundle.clone();
+    let run_path = facts["provider_observations"]["observations"][0]["captures"]["run"]["path"]
+        .as_str().expect("run evidence path");
+    fs::write(fixture.repo.root().join(run_path), b"{\"tampered\":true}")
+        .expect("tamper pinned provider response");
+    write_json_facts(&fixture, &facts);
+    let tampered = fixture.run(&[]);
+    assert_eq!(tampered.exit_code, Some(2));
+    assert!(error_text(&tampered).contains("bytes do not match the recorded SHA-256"));
+
+    let fixture = StatusFixture::new();
+    let mut files = Vec::new();
+    let observation = provider_observation(
+        &fixture,
+        &mut files,
+        "current-38016983578",
+        "38016983578",
+        1,
+        "2026-10-10T02:26:42Z",
+        "2026-10-10T02:43:00Z",
+        "CURRENT",
+    );
+    let mut bundle = provider_observations_bundle(&fixture, vec![observation], files);
+    let manifest_path = bundle["archive_manifest"]["path"]
+        .as_str().expect("provider archive manifest path");
+    let manifest_file = fixture.repo.root().join(manifest_path);
+    let mut manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(&manifest_file).expect("read provider archive manifest"),
+    ).expect("parse provider archive manifest");
+    manifest["schema"] = serde_json::json!("termrock-vis13-raw-attempt-archive/v1");
+    let manifest_bytes = serde_json::to_vec(&manifest).expect("serialize colliding manifest");
+    fs::write(&manifest_file, &manifest_bytes).expect("write colliding manifest");
+    bundle["archive_manifest"]["sha256"] = serde_json::json!(sha256_hex(&manifest_bytes));
+    bundle["archive_manifest"]["bytes"] = serde_json::json!(manifest_bytes.len());
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+    facts["provider_observations"] = bundle;
+    write_json_facts(&fixture, &facts);
+    let colliding_schema = fixture.run(&[]);
+    assert_eq!(colliding_schema.exit_code, Some(2));
+    assert!(error_text(&colliding_schema)
+        .contains("provider archive manifest identity or fields are malformed"));
+
+    let fixture = StatusFixture::new();
+    let mut files = Vec::new();
+    let mut historical = provider_observation(
+        &fixture,
+        &mut files,
+        "historical-38016983577",
+        "38016983577",
+        1,
+        "2026-10-10T02:25:00Z",
+        "2026-10-10T02:43:01Z",
+        "HISTORICAL",
+    );
+    historical["sequence"] = serde_json::json!(1);
+    let mut current = provider_observation(
+        &fixture,
+        &mut files,
+        "current-38016983578",
+        "38016983578",
+        1,
+        "2026-10-10T02:26:42Z",
+        "2026-10-10T02:43:00Z",
+        "CURRENT",
+    );
+    current["sequence"] = serde_json::json!(2);
+    let bundle = provider_observations_bundle(&fixture, vec![historical, current], files);
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+    facts["provider_observations"] = bundle;
+    write_json_facts(&fixture, &facts);
+    let out_of_order = fixture.run(&[]);
+    assert_eq!(out_of_order.exit_code, Some(2));
+    assert!(error_text(&out_of_order).contains("timestamps are out of order"));
+}
+
 const PRODUCT_PHASE_ARCHIVE_DIR: &str =
     "docs/implementation/visibility/evidence/reports/current-attempts-archive-test";
 const PRODUCT_PHASE_MANIFEST_PATH: &str =
@@ -1843,6 +2188,10 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(
         facts.get("product_phase_observations").is_none(),
         "checked-in source facts must exercise absent optional product phases"
+    );
+    assert!(
+        facts.get("provider_observations").is_none(),
+        "checked-in source facts must exercise absent optional provider observations"
     );
 
     let output = fixture.run(&[]);
