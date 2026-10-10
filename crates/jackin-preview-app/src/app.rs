@@ -10319,6 +10319,63 @@ mod paint_contract_tests {
     }
 
     #[test]
+    fn inspect_narrow_header_drops_the_crumb_and_wide_roster_stays_on_the_card() {
+        use termrock::{Color, Theme};
+        use termrock_test_support::Harness;
+        let mut narrow = Harness::new(
+            App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
+            Theme::junie(),
+            72,
+            20,
+        );
+        let _ = narrow.key(KeyCode::Down);
+        let _ = narrow.key(KeyCode::Char(' '));
+        let _ = narrow.key(KeyCode::Down);
+        let _ = narrow.key(KeyCode::Char('i'));
+        let header = narrow.row(0);
+        assert!(
+            !header.contains("payments-platform"),
+            "the 72-column crumb does not fit: {header}"
+        );
+        assert!(header.contains("jackin"), "the menu row stays: {header}");
+
+        let mut wide = Harness::new(
+            App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
+            Theme::junie(),
+            160,
+            50,
+        );
+        let _ = wide.key(KeyCode::Down);
+        let _ = wide.key(KeyCode::Char(' '));
+        let _ = wide.key(KeyCode::Down);
+        let _ = wide.key(KeyCode::Char('i'));
+        let (rx, ry) = wide
+            .find("payments-platform · the-architect")
+            .expect("roster instance");
+        assert_eq!(
+            wide.cell(rx, ry).bg,
+            Color::Rgb(17, 17, 17),
+            "an unfocused roster row stays on the card"
+        );
+        let (px, py) = wide.find("pane 1").expect("pane row");
+        let marker = px.saturating_sub(2);
+        assert_eq!(wide.cell(marker, py).symbol(), "›");
+        assert_eq!(marker, 55, "the pane marker keeps the tag column");
+        assert_eq!(wide.cell(marker, py).bg, Color::Rgb(17, 17, 17));
+        let gutter = wide.cell(marker.saturating_sub(2), py);
+        assert_eq!(
+            gutter.fg, gutter.bg,
+            "the unfocused pane gutter stays invisible"
+        );
+        let (tx, ty) = wide.find("Mix").expect("tab label");
+        assert_eq!(
+            wide.cell(tx, ty).fg,
+            Color::Rgb(77, 77, 77),
+            "a secondary tab line dims to faint, not ghost"
+        );
+    }
+
+    #[test]
     fn host_header_facts_are_owned_by_status_bar() {
         use termrock::{PartRef, Theme};
         use termrock_test_support::Harness;

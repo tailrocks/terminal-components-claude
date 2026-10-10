@@ -1493,15 +1493,40 @@ impl ManagerScreen {
                                 let row = &detail_rows[ri];
                                 match row {
                                     DetailRow::Pane { text, .. } => {
+                                        // Tag row: gutter at `inner.x - 1` with
+                                        // fg copied from the card, text at
+                                        // `r.x + 2`. A card's `cx` is already
+                                        // one cell in, so the text starts at
+                                        // `cx + 1` and the gutter is two back.
+                                        // An unfocused gutter is invisible
+                                        // (fg == bg) so the modal dim leaves it.
+                                        let text_x = cx.saturating_add(1);
+                                        let gutter = resolve_style(
+                                            ui,
+                                            Role::Surface(Surface::Surface),
+                                            Role::Surface(Surface::Surface),
+                                            false,
+                                        );
+                                        if text_x >= 2 {
+                                            ui.paint_str(
+                                                Rect::new(text_x.saturating_sub(2), yy, 1, 1),
+                                                " ",
+                                                gutter,
+                                            );
+                                        }
                                         ui.paint_str(
-                                            Rect::new(cx + 2, yy, cw.saturating_sub(3), 1),
-                                            &truncate(text, cw.saturating_sub(3)),
+                                            Rect::new(text_x, yy, cw.saturating_sub(2), 1),
+                                            &truncate(text, cw.saturating_sub(2)),
                                             palette.card_primary,
                                         );
                                     }
                                     DetailRow::Text(text, tone) => {
                                         let style = match tone {
                                             Role::Danger => palette.card_danger,
+                                            Role::Warning => palette.card_warning,
+                                            Role::Fg(FgStep::Secondary) => palette.card_secondary,
+                                            Role::Fg(FgStep::Primary) => palette.card_primary,
+                                            Role::Fg(FgStep::Faint) => palette.card_faint,
                                             _ => palette.card_muted,
                                         };
                                         ui.paint_str(
@@ -1603,8 +1628,13 @@ impl ManagerScreen {
                     );
                     let is_selected =
                         state.selected_row() == &ManagerRowKey::Instance(i.id.clone());
+                    // Tag `Theme::row`: the accent fill is only the focused
+                    // row. A selected roster row that does not hold the
+                    // keyboard stays on the card surface. The modal dim
+                    // maps any other fill to overlay.
+                    let tint = is_selected && focused;
                     let row_rect = Rect::new(inner.x.saturating_sub(1), y, inner.width + 1, 3);
-                    if is_selected {
+                    if tint {
                         ui.fill(row_rect, palette.primary_on_accent_tint_bold);
                     }
                     let header = format!(
@@ -1613,7 +1643,7 @@ impl ManagerScreen {
                         role_label(world, &i.role),
                         i.agent.label()
                     );
-                    let style = if is_selected {
+                    let style = if tint {
                         palette.accent_on_accent_tint_bold
                     } else {
                         palette.card_primary
@@ -1638,7 +1668,7 @@ impl ManagerScreen {
                     ui.paint_str(
                         Rect::new(inner.x + 3, y + 1, inner.width.saturating_sub(3), 1),
                         &truncate(&live, inner.width.saturating_sub(3)),
-                        if is_selected {
+                        if tint {
                             palette.muted_on_accent_tint
                         } else {
                             palette.card_muted
@@ -1648,7 +1678,7 @@ impl ManagerScreen {
                     ui.paint_str(
                         Rect::new(inner.x + 3, y + 2, inner.width.saturating_sub(3), 1),
                         &truncate(&acc_line, inner.width.saturating_sub(3)),
-                        if is_selected {
+                        if tint {
                             palette.muted_on_accent_tint
                         } else {
                             palette.card_muted

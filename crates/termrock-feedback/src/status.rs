@@ -660,6 +660,12 @@ impl<'a> StatusBar<'a> {
     }
 
     /// Columns the whole strip needs under `keep`.
+    ///
+    /// Tag `segments::render` charges every kept segment `width + sep` and
+    /// then adds 2. Within-group `(n - 1) * gap`, the gap between groups,
+    /// and `edge * 2` are one separator short of that total. The extra gap
+    /// is that separator, so a singleton drops at the same width the tag
+    /// drops it.
     fn needed(&self, keep: Keep, metrics: ItemMetrics, gap: u16, edge: u16, lead: u16) -> u16 {
         let ws = Group::ALL.map(|g| self.group_columns(g, keep, metrics, gap));
         let present = ws.iter().filter(|w| **w > 0).count().min(3) as u16;
@@ -668,6 +674,7 @@ impl<'a> StatusBar<'a> {
             .saturating_add(present.saturating_sub(1).saturating_mul(gap))
             .saturating_add(edge.saturating_mul(2))
             .saturating_add(lead)
+            .saturating_add(if present > 0 { gap } else { 0 })
     }
 
     /// Which items survive at `total` columns.
@@ -1112,6 +1119,23 @@ mod tests {
             "exactly the strongest left item survives"
         );
         assert_eq!(keep.first().copied(), Some(0b1));
+    }
+
+    #[test]
+    fn a_singleton_pays_the_separator_the_tag_charges() {
+        // 37 columns is the inspect crumb. Width 40 fits `width + edge*2`
+        // and drops `width + edge*2 + sep`, which is the tag's bill.
+        const CRUMB: [StatusItem<'static>; 1] =
+            [StatusItem::new("Workspaces › payments-platform › 7f3a").priority(7)];
+        let bar = StatusBar::new(Id::root("t")).right(&CRUMB);
+        assert_eq!(CRUMB[0].columns(TEST_METRICS), 37);
+        let dropped = bar.survivors(40, TEST_METRICS, 2, 1, 0);
+        assert_eq!(dropped.get(2).copied(), Some(0), "the crumb does not fit");
+        const SHORT: [StatusItem<'static>; 1] = [StatusItem::new("Workspaces").priority(7)];
+        let kept = StatusBar::new(Id::root("t"))
+            .right(&SHORT)
+            .survivors(40, TEST_METRICS, 2, 1, 0);
+        assert_eq!(kept.get(2).copied(), Some(0b1));
     }
 
     #[test]
