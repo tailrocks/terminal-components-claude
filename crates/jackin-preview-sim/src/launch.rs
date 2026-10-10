@@ -206,6 +206,25 @@ pub struct LaunchRun {
     pub cancelled: bool,
 }
 
+impl LaunchRun {
+    /// Whether the Construct stage has published the container name.
+    ///
+    /// The name is chosen when the run is created. The info dialog shows it
+    /// only after the tag's `ContainerReady` event, which fires six ticks
+    /// into Construct.
+    pub fn container_ready(&self) -> bool {
+        let construct = Stage::Construct.index();
+        if self
+            .states
+            .get(construct)
+            .is_some_and(|state| matches!(state, StepState::Done | StepState::Skipped))
+        {
+            return true;
+        }
+        self.current == Some(construct) && self.tick.saturating_sub(self.stage_start) >= 6
+    }
+}
+
 /// Fixture Docker build output (ANSI-like markup handled by the viewer).
 pub const BUILD_LOG: [&str; 44] = [
     "#1 [internal] load build definition from Dockerfile.derived",

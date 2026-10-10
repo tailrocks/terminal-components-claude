@@ -21,6 +21,7 @@ use crate::theme::PaintStyle;
 use crate::theme::{Family, GlyphRole, Role, Slot, StyleDefaults, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use ratatui_core::layout::Rect;
+use ratatui_core::style::Modifier;
 
 /// A borrowed value displayed by an interactive property row.
 ///
@@ -831,11 +832,18 @@ impl<'a> PropsList<'a> {
                 width: 2.min(content.width),
                 height: 1,
             };
-            ui.paint_str(
-                gutter_area,
-                if row_focused { "▎ " } else { "  " },
-                gutter.style,
-            );
+            // One cell. The following cell stays the row fill: bold primary
+            // on the cursor row, resting primary elsewhere. Painting `"▎ "`
+            // in the focus colour stains that pad.
+            let mark = Rect {
+                width: 1.min(gutter_area.width),
+                ..gutter_area
+            };
+            if row_focused {
+                ui.paint_str(mark, "▎", gutter.style.add_modifier(Modifier::BOLD));
+            } else if !mark.is_empty() {
+                ui.paint_str(mark, " ", gutter.style);
+            }
 
             let label = self
                 .ov

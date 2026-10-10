@@ -4841,12 +4841,40 @@ impl App {
         result
     }
 
+    fn draw_cockpit_info(&self, ui: &mut Ui<'_>, area: Rect) {
+        crate::screens::cockpit::CockpitScreen::draw_info(
+            ui,
+            area,
+            &self.world,
+            self.selected_role(),
+            self.cockpit_debug_open,
+            &self.cockpit_info_props,
+            self.launch
+                .as_ref()
+                .filter(|run| run.container_ready())
+                .map(|run| run.container.as_str()),
+        );
+    }
+
     fn update_cockpit_info(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        for intent in cx.intents(crate::screens::cockpit::INFO_LAYER) {
+            if matches!(intent, Intent::Layer(LayerEvent::Dismissed(_))) {
+                self.cockpit_info_open = false;
+                self.status = None;
+                return Response::changed();
+            }
+        }
+        if !cx.is_open(crate::screens::cockpit::INFO_LAYER) {
+            self.cockpit_info_open = false;
+            self.status = None;
+            return Response::changed();
+        }
         if self.cockpit_info_focus_pending {
             self.cockpit_info_focus_pending = false;
             cx.focus(crate::screens::cockpit::INFO_PROPS);
         }
-        let role = self.selected_role().to_owned();
+        let full_role = self.selected_role();
+        let role = full_role.rsplit('/').next().unwrap_or(full_role).to_owned();
         let ws_name = self
             .world
             .workspaces
@@ -4855,8 +4883,8 @@ impl App {
         let container = self
             .launch
             .as_ref()
-            .map(|run| run.container.clone())
-            .filter(|container| !container.is_empty());
+            .filter(|run| run.container_ready())
+            .map(|run| run.container.clone());
         let debug = self.cockpit_debug_open;
         let target = format!("{role} into workspace {ws_name}");
         let telemetry = "run run-202609030914-b5df -> otlp://collector.internal:4317".to_owned();
@@ -4886,6 +4914,7 @@ impl App {
         let closed = close.activated();
         result |= close.erase();
         if closed {
+            cx.close_layer(crate::screens::cockpit::INFO_LAYER, Some(ActionKey::CLOSE));
             self.cockpit_info_open = false;
             self.status = None;
             result |= Response::changed();
@@ -5915,11 +5944,15 @@ impl App {
                 self.cockpit_info_open = !self.cockpit_info_open;
                 if self.cockpit_info_open {
                     self.cockpit_info_props = PropsState::default();
-                    // Deferred: focusing during command dispatch re-dispatches
-                    // the same command on the settle pass and toggles back.
+                    // Focusing during this command re-dispatches `i` and
+                    // toggles the dialog shut. The layer opens now; focus
+                    // lands on the next update.
+                    let spec = LayerSpec::modal(crate::screens::cockpit::INFO_LAYER);
+                    cx.open_layer(crate::screens::cockpit::INFO_LAYER, spec);
                     self.cockpit_info_focus_pending = true;
                     self.status = Some("Debug info".into());
                 } else {
+                    cx.close_layer(crate::screens::cockpit::INFO_LAYER, None);
                     self.status = None;
                 }
                 Some(Response::changed())
@@ -7515,20 +7548,6 @@ impl App {
             self.cockpit_debug_open,
             self.launch.as_ref(),
         );
-        if self.cockpit_info_open {
-            crate::screens::cockpit::CockpitScreen::draw_info(
-                ui,
-                area,
-                &self.world,
-                self.selected_role(),
-                self.cockpit_debug_open,
-                &self.cockpit_info_props,
-                self.launch
-                    .as_ref()
-                    .map(|run| run.container.as_str())
-                    .filter(|container| !container.is_empty()),
-            );
-        }
         if self.cockpit_failure_open
             && let Some(run) = self.launch.as_ref()
             && let Some(failure) = run.failure.as_ref()
@@ -9266,6 +9285,14 @@ impl App {
             dialog.draw(ui, area, &self.preview_dialog, |ui, page| {
                 Props::rich(&rows).draw(ui, page);
             })
+        });
+        let screen = ui.full();
+        let _ = ui.layer(crate::screens::cockpit::INFO_LAYER, |ui, _area| {
+            // Modal layers resolve on Overlay. The tag info card is the
+            // elevated plane, painted after the backdrop dim.
+            ui.with_surface(termrock::Surface::Elevated, |ui| {
+                self.draw_cockpit_info(ui, screen);
+            });
         });
         let _ = ui.layer(ABOUT_DIALOG, |ui, area| {
             self.draw_about_dialog(ui, area);

@@ -339,9 +339,18 @@ impl Ui<'_> {
                 match fade_mix(cell.fg, container, keep) {
                     FadeOutcome::Blended(color) => cell.fg = color,
                     FadeOutcome::ApplyDim if outer => cell.modifier |= Modifier::DIM,
+                    // Tag `fade_row` sets DIM on every non-RGB outer cell,
+                    // including a gutter whose foreground equals the row
+                    // background. `fade_mix` leaves that pair Unchanged so
+                    // callers can tell a real blend from a blank; the outer
+                    // edge still has to record the modifier.
+                    FadeOutcome::Unchanged if outer && !matches!(cell.fg, Color::Rgb(_, _, _)) => {
+                        cell.modifier |= Modifier::DIM;
+                    }
                     // Reduced-color text can collapse onto the row background.
-                    // Dim it only when the authored RGB fade would have changed
-                    // the glyph. An already-black cell stays undimmed.
+                    // Dim it when the authored RGB fade would have changed
+                    // the glyph. An already-black cell on an inner edge stays
+                    // undimmed.
                     FadeOutcome::Unchanged if semantic_dim => cell.modifier |= Modifier::DIM,
                     FadeOutcome::Unchanged | FadeOutcome::ApplyDim => {}
                 }
@@ -889,6 +898,44 @@ mod tests {
         assert!(
             !bottom.modifier.contains(Modifier::DIM),
             "the cursor row on the lower edge stays undimmed"
+        );
+    }
+
+    #[test]
+    fn scroll_edge_dims_a_blank_reduced_color_gutter() {
+        let theme = Theme::junie().downgrade(ColorLevel::Ansi256);
+        let area = Rect::new(0, 0, 4, 6);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let style = ui.paint_patch(
+                &crate::theme::StylePatch::new()
+                    .set_fg(Role::CurrentSurface)
+                    .set_bg(Role::CurrentSurface),
+            );
+            ui.fill(area, style);
+            let mut state = ScrollState::new(20);
+            state.set_viewport(usize::from(area.height));
+            ui.scroll_edges(area, &state);
+        }
+        let edge = page.cell(Position::new(0, 5)).expect("outer edge");
+        let middle = page.cell(Position::new(0, 2)).expect("middle");
+        assert!(
+            !matches!(edge.fg, Color::Rgb(_, _, _)),
+            "the probe must stay on a reduced palette"
+        );
+        assert_eq!(edge.fg, edge.bg, "the gutter foreground matches its row");
+        assert!(
+            edge.modifier.contains(Modifier::DIM),
+            "a blank reduced-color gutter on the outer edge is dimmed"
+        );
+        assert!(
+            !middle.modifier.contains(Modifier::DIM),
+            "a blank cell off the outer edge stays undimmed"
         );
     }
 

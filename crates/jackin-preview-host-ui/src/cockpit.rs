@@ -28,6 +28,7 @@ pub const RETRY: Id = ROOT.sub("retry");
 /// Cockpit-to-Capsule transition surface.
 pub const HANDOFF: Id = ROOT.sub("handoff");
 /// Debug info props list.
+pub const INFO_LAYER: Id = ROOT.sub("info");
 pub const INFO_PROPS: Id = ROOT.sub("info-props");
 /// Debug info close action.
 pub const INFO_CLOSE: Id = ROOT.sub("info-close");
@@ -739,14 +740,7 @@ impl CockpitScreen {
         props: &PropsState,
         container: Option<&str>,
     ) {
-        let w = 66.min(area.width.saturating_sub(4));
-        let h = 11.min(area.height.saturating_sub(2));
-        let modal_area = Rect::new(
-            area.x + area.width.saturating_sub(w) / 2,
-            area.y + area.height.saturating_sub(h) / 2,
-            w,
-            h,
-        );
+        let role = role.rsplit('/').next().unwrap_or(role);
         let ws_name = world
             .workspaces
             .first()
@@ -760,15 +754,60 @@ impl CockpitScreen {
             debug,
             telemetry_val.as_str(),
         );
+        let w = 66.min(area.width.saturating_sub(4));
+        let h = 11.min(area.height.saturating_sub(2));
+        let modal = Rect::new(
+            area.x + area.width.saturating_sub(w) / 2,
+            area.y + area.height.saturating_sub(h) / 2,
+            w,
+            h,
+        );
 
+        // The framed token insets by 3. The tag info dialog keeps one pad
+        // cell beside the border, then the 2-cell focus gutter.
+        // Focus supplies the strong border and the bold title. Clearing the
+        // gutter leaves the title rule a plain `─`.
+        const INFO_CHROME: [(Part, StylePatch); 2] = [
+            (
+                Part::CONTAINER,
+                StylePatch::new().set_bg(Role::Surface(termrock::Surface::Elevated)),
+            ),
+            (
+                Part::GUTTER,
+                StylePatch {
+                    glyph: termrock::Slot::Clear,
+                    ..StylePatch::new()
+                },
+            ),
+        ];
+        // Labels drop the cursor-row bold. Values keep it.
+        const INFO_ROWS: [(Part, StylePatch); 2] = [
+            (
+                Part::CONTAINER,
+                StylePatch::new().set_bg(Role::Surface(termrock::Surface::Elevated)),
+            ),
+            (Part::META, StylePatch::new().remove(Modifier::BOLD)),
+        ];
         Panel::new(ROOT.sub("debug-info"))
             .kind(PanelKind::Framed)
             .title("Debug info")
             .meta("read-only")
-            .draw(ui, modal_area, |ui, body| {
-                PropsList::new(INFO_PROPS).draw(
+            .focused(true)
+            .patch_part(&INFO_CHROME)
+            .inner_inset(termrock::Insets {
+                l: 2,
+                t: 1,
+                r: 1,
+                b: 1,
+            })
+            .draw(ui, modal, |ui, body| {
+                // Tag props start one cell left of the 3-column inset and
+                // stop two cells before the right border, so the dimmed
+                // plane stays visible beside the frame.
+                let props_w = body.width.saturating_sub(2);
+                PropsList::new(INFO_PROPS).patch_part(&INFO_ROWS).draw(
                     ui,
-                    Rect::new(body.x, body.y, body.width, rows.len().min(9) as u16),
+                    Rect::new(body.x, body.y, props_w, rows.len().min(9) as u16),
                     props,
                     &rows,
                 );
