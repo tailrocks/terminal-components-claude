@@ -5,7 +5,7 @@ use termrock::author::{
     Family, FgStep, Id, Modifier, PaintStyle, Part, Role, StateFlags, StyleDefaults, StylePatch,
     Surface, Ui, Variant,
 };
-use termrock::{Button, Checkbox};
+use termrock::{Button, Checkbox, GlyphRole, ItemKey, List, ListState};
 
 pub use jackin_preview_presentation::prelude::PreludeState;
 
@@ -177,108 +177,111 @@ impl PreludeScreen {
             prelude.source(),
             palette.primary_on_field,
         );
-        ui.register_focus_only(FILE_LIST, termrock::author::Focusability::Focusable);
-
-        // File list
+        // File list. A narrow dialog shows four of the six rows, so the
+        // list overflows and its scrollbar and scroll fade appear. A wide
+        // dialog shows every row, so the same list leaves them whole.
         let list_y = y + 6;
-        let is_narrow = dialog.width < 76;
-        let list_h: u16 = if is_narrow { 4 } else { 6 };
+        let list_h: u16 = if dialog.width < 76 { 4 } else { 6 };
 
-        let items: &[(&str, &str, bool, bool)] = &[
-            ("..", "parent", true, true),
-            ("crates/", "6 items", true, false),
-            ("docs/", "adr", true, false),
-            ("scripts/", "3 items", true, false),
-            ("Cargo.toml", "1 h", false, false),
-            ("README.md", "3 d", false, false),
-        ];
-
-        let meta_end_x = if is_narrow {
-            dialog.right().saturating_sub(5)
-        } else {
-            dialog.right().saturating_sub(4)
-        };
-
-        let dark_gap = resolve_style(
-            ui,
-            Role::Surface(Surface::Elevated),
-            Role::Surface(Surface::Elevated),
-            false,
-        );
-        for (idx, (name, meta, selectable, is_selected)) in
-            items.iter().take(list_h as usize).enumerate()
-        {
-            let row_y = list_y + idx as u16;
-            let meta_w = meta.chars().count() as u16;
-            let meta_x = meta_end_x.saturating_sub(meta_w);
-            let pad_w = (meta_x.saturating_sub(x + 3)) as usize;
-            let pad_content = pad_w.saturating_sub(2 + name.chars().count());
-            let text = format!("  {name}{:<pad_content$}", "");
-            if *is_selected {
-                ui.paint_str(Rect::new(x + 2, row_y, 1, 1), "▎", palette.accent_bold);
-                ui.paint_str(
-                    Rect::new(x + 3, row_y, meta_x.saturating_sub(x + 3), 1),
-                    &text,
-                    palette.primary_bold,
-                );
-                ui.paint_str(
-                    Rect::new(meta_x, row_y, meta_w, 1),
-                    meta,
-                    palette.muted_bold,
-                );
-                ui.paint_str(
-                    Rect::new(meta_end_x, row_y, 1, 1),
-                    " ",
-                    palette.primary_bold,
-                );
-            } else if *selectable {
-                ui.paint_str(Rect::new(x + 2, row_y, 1, 1), " ", dark_gap);
-                ui.paint_str(
-                    Rect::new(x + 3, row_y, meta_x.saturating_sub(x + 3), 1),
-                    &text,
-                    palette.primary,
-                );
-                ui.paint_str(Rect::new(meta_x, row_y, meta_w, 1), meta, palette.muted);
-                ui.paint_str(Rect::new(meta_end_x, row_y, 1, 1), " ", palette.primary);
-            } else {
-                ui.paint_str(Rect::new(x + 2, row_y, 1, 1), " ", dark_gap);
-                ui.paint_str(
-                    Rect::new(x + 3, row_y, meta_x.saturating_sub(x + 3), 1),
-                    &text,
-                    palette.disabled,
-                );
-                ui.paint_str(Rect::new(meta_x, row_y, meta_w, 1), meta, palette.disabled);
-                ui.paint_str(Rect::new(meta_end_x, row_y, 1, 1), " ", palette.disabled);
-            }
+        struct SourceFile {
+            name: &'static str,
+            meta: &'static str,
+            selectable: bool,
+            selected: bool,
         }
-
-        let fade_right = if is_narrow {
-            // Scrollbar at right edge of list. It stays outside the fade so
-            // the track glyph is not blended with the overflowing row.
-            let sb_col = dialog.right().saturating_sub(4);
-            ui.paint_str(Rect::new(sb_col, list_y, 1, 1), "┃", palette.primary);
-            ui.paint_str(Rect::new(sb_col, list_y + 1, 1, 1), "┃", palette.primary);
-            let dim_border = resolve_style(
-                ui,
-                Role::BorderSubtle,
-                Role::Surface(Surface::Elevated),
-                false,
-            );
-            ui.paint_str(Rect::new(sb_col, list_y + 2, 1, 1), "│", dim_border);
-            ui.paint_str(Rect::new(sb_col, list_y + 3, 1, 1), "│", dim_border);
-            sb_col
-        } else {
-            dialog.right()
-        };
-        // Six directory rows, four of them visible on the narrow dialog.
-        // `scroll_edges` owns the overflow fade (outer keep 0.55). A wide
-        // dialog shows every row, so the same call leaves them whole.
-        let mut scroll = termrock::ScrollState::new(items.len());
-        scroll.set_viewport(usize::from(list_h));
-        ui.scroll_edges(
-            Rect::new(x + 2, list_y, fade_right.saturating_sub(x + 2), list_h),
-            &scroll,
-        );
+        let items = [
+            SourceFile {
+                name: "..",
+                meta: "parent",
+                selectable: true,
+                selected: true,
+            },
+            SourceFile {
+                name: "crates/",
+                meta: "6 items",
+                selectable: true,
+                selected: false,
+            },
+            SourceFile {
+                name: "docs/",
+                meta: "adr",
+                selectable: true,
+                selected: false,
+            },
+            SourceFile {
+                name: "scripts/",
+                meta: "3 items",
+                selectable: true,
+                selected: false,
+            },
+            SourceFile {
+                name: "Cargo.toml",
+                meta: "1 h",
+                selectable: false,
+                selected: false,
+            },
+            SourceFile {
+                name: "README.md",
+                meta: "3 d",
+                selectable: false,
+                selected: false,
+            },
+        ];
+        let list_x = x + 2;
+        let list_right = dialog.right().saturating_sub(3);
+        let list_area = Rect::new(list_x, list_y, list_right.saturating_sub(list_x), list_h);
+        let elevated = Role::Surface(Surface::Elevated);
+        let label_bold = StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(elevated)
+            .add(Modifier::BOLD);
+        let meta_bold = StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(elevated)
+            .add(Modifier::BOLD);
+        let disabled = StylePatch::new()
+            .set_fg(Role::BorderStrong)
+            .set_bg(elevated)
+            .remove(Modifier::BOLD);
+        let marker_bold = StylePatch::new()
+            .set_glyph(GlyphRole::FocusBar)
+            .set_fg(Role::Accent)
+            .add(Modifier::BOLD);
+        const PARTS: [(Part, StylePatch); 2] = [
+            (
+                Part::CONTAINER,
+                StylePatch::new().set_bg(Role::CurrentSurface),
+            ),
+            (
+                Part::THUMB,
+                StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+            ),
+        ];
+        let mut list_state = ListState::default();
+        list_state.set_cursor(0, ItemKey::index(0));
+        list_state.choose(Some(ItemKey::index(0)));
+        let reject_disabled = |item: &SourceFile| !item.selectable;
+        List::new(FILE_LIST)
+            .bare(true)
+            .focused(true)
+            .patch_part(&PARTS)
+            .disabled_item(&reject_disabled)
+            .row(|item: &SourceFile, row| {
+                if item.selected {
+                    row.marker_patched(GlyphRole::FocusBar, &marker_bold);
+                    row.label_patched(&format!(" {}", item.name), &label_bold);
+                    row.meta_patched(item.meta, &meta_bold);
+                } else if item.selectable {
+                    row.gutter();
+                    row.label(&format!("  {}", item.name));
+                    row.meta(item.meta);
+                } else {
+                    row.gutter();
+                    row.label_patched(&format!("  {}", item.name), &disabled);
+                    row.meta_patched(item.meta, &disabled);
+                }
+            })
+            .draw(ui, list_area, &list_state, &items);
 
         // Checkbox: Mount read-only at bottom - 5
         let chk_y = dialog.bottom().saturating_sub(5);

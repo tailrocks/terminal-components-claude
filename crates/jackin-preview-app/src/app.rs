@@ -10185,6 +10185,20 @@ mod paint_contract_tests {
             Color::Rgb(151, 151, 152),
             "the overflowing row fades through scroll_edges"
         );
+        let (sx, sy) = narrow.find("..").expect("selected source row");
+        let marker = narrow.cell(sx - 3, sy);
+        assert_eq!(marker.symbol(), "▎", "List marker owns the chosen row");
+        assert_eq!(marker.fg, Color::Rgb(72, 224, 84));
+        assert!(
+            marker.modifier.contains(termrock::Modifier::BOLD),
+            "chosen marker keeps the accent bold"
+        );
+        let (ux, uy) = narrow.find("crates/").expect("unfaded source row");
+        assert_eq!(
+            narrow.cell(ux, uy).fg,
+            Color::Rgb(255, 255, 255),
+            "only the overflowing row fades"
+        );
         let wide = open(120, 40);
         let (x, y) = wide.find("scripts/").expect("wide file list");
         assert_eq!(

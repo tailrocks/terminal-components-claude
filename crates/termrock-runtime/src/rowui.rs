@@ -216,6 +216,21 @@ impl<'u> RowUi<'u> {
         let r = self
             .ui
             .style(self.family, self.variant, Part::MARKER, self.flags);
+        self.paint_marker(g, r);
+    }
+
+    /// Paint the marker with an instance patch over the recipe.
+    ///
+    /// Placement matches [`marker`](Self::marker). The patch speaks only
+    /// where it is set, so a bold override keeps the recipe glyph and colour.
+    pub fn marker_patched(&mut self, g: GlyphRole, p: &StylePatch) {
+        let r = self
+            .ui
+            .style_patched(self.family, self.variant, Part::MARKER, self.flags, p);
+        self.paint_marker(g, r);
+    }
+
+    fn paint_marker(&mut self, g: GlyphRole, r: crate::theme::Resolved) {
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, Part::MARKER, r);
