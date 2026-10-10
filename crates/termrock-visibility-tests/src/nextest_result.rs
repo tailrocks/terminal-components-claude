@@ -1240,6 +1240,8 @@ struct HumanSummary {
     failed: Option<u64>,
     skipped: Option<u64>,
     child_harness: bool,
+    nested_test_output: bool,
+    malformed_output_context: bool,
     ignored: Option<u64>,
     measured: Option<u64>,
     filtered_out: Option<u64>,
@@ -1338,7 +1340,7 @@ impl RunResult {
             .map(|summary| {
                 json!({
                     "stream":summary.stream,
-                    "domain":if summary.child_harness {"child_harness"} else {"nextest"},
+                    "domain":if summary.malformed_output_context {"malformed_output_context"} else if summary.nested_test_output {"nested_child_harness"} else if summary.child_harness {"child_harness"} else {"nextest"},
                     "run_count":summary.run_count.map(|value|value.to_string()),
                     "passed":summary.passed.map(|value|value.to_string()),
                     "failed":summary.failed.map(|value|value.to_string()),
@@ -1893,14 +1895,34 @@ fn validate_suite_aggregates(
 }
 
 fn compare_human_summaries(result: &mut RunResult) {
+    for summary in result
+        .diagnostics
+        .iter()
+        .filter(|summary| summary.malformed_output_context)
+    {
+        result.contradictions.push(format!(
+            "Nextest output block is malformed near: {}",
+            summary.source_line
+        ));
+    }
     let child_summaries = result
         .diagnostics
         .iter()
-        .filter(|summary| summary.child_harness)
+        .filter(|summary| summary.child_harness && !summary.nested_test_output)
         .collect::<Vec<_>>();
+    let has_nested_child_summaries = result
+        .diagnostics
+        .iter()
+        .any(|summary| summary.nested_test_output);
     if result.machine_state != "verified" {
         result.child_harness_summary_check = if child_summaries.is_empty() {
-            ChildHarnessSummaryCheck::not_present()
+            if has_nested_child_summaries {
+                ChildHarnessSummaryCheck::unverified(
+                    "nested child-harness summaries are test output, not suite summaries",
+                )
+            } else {
+                ChildHarnessSummaryCheck::not_present()
+            }
         } else {
             ChildHarnessSummaryCheck::unverified(
                 "structured run results are unavailable for comparison",
@@ -1962,7 +1984,13 @@ fn compare_human_summaries(result: &mut RunResult) {
     }
 
     if child_summaries.is_empty() {
-        result.child_harness_summary_check = ChildHarnessSummaryCheck::not_present();
+        result.child_harness_summary_check = if has_nested_child_summaries {
+            ChildHarnessSummaryCheck::unverified(
+                "nested child-harness summaries are test output, not suite summaries",
+            )
+        } else {
+            ChildHarnessSummaryCheck::not_present()
+        };
         return;
     }
     if child_summaries.len() != 1 || result.suites.len() != 1 {
@@ -2028,39 +2056,116 @@ fn split_lines(bytes: &[u8]) -> Vec<String> {
 
 fn parse_human_diagnostics(lines: &[String], stream: &'static str) -> Vec<HumanSummary> {
     let mut summaries = Vec::new();
+    let mut in_nextest_test_output = false;
     for line in lines {
         let trimmed = line.trim();
-        if let Some((run_count, passed, failed, skipped)) = parse_nextest_summary(trimmed) {
-            summaries.push(HumanSummary {
-                stream,
-                run_count: Some(run_count),
-                passed: Some(passed),
-                failed,
-                skipped,
-                child_harness: false,
-                ignored: None,
-                measured: None,
-                filtered_out: None,
-                source_line: trimmed.to_owned(),
-            });
-        } else if let Some((passed, failed, ignored, measured, filtered_out)) =
+        if in_nextest_test_output
+            && trimmed.starts_with("────────")
+            && line.starts_with(trimmed)
+        {
+            in_nextest_test_output = false;
+            continue;
+        }
+        if trimmed.starts_with("output ─") {
+            in_nextest_test_output = true;
+            continue;
+        }
+        if let Some((passed, failed, ignored, measured, filtered_out)) =
             parse_harness_summary(trimmed)
         {
-            summaries.push(HumanSummary {
+            summaries.push(human_harness_summary(
                 stream,
-                run_count: None,
-                passed: Some(passed),
-                failed: Some(failed),
-                skipped: None,
-                child_harness: true,
-                ignored: Some(ignored),
-                measured: Some(measured),
-                filtered_out: Some(filtered_out),
-                source_line: trimmed.to_owned(),
-            });
+                trimmed,
+                (passed, failed, ignored, measured, filtered_out),
+                in_nextest_test_output,
+            ));
+            continue;
+        }
+        if let Some((run_count, passed, failed, skipped)) = parse_nextest_summary(trimmed) {
+            if in_nextest_test_output {
+                let mut summary = human_nextest_summary(
+                    stream, trimmed, run_count, passed, failed, skipped,
+                );
+                summary.malformed_output_context = true;
+                summaries.push(summary);
+            } else {
+                summaries.push(human_nextest_summary(
+                    stream, trimmed, run_count, passed, failed, skipped,
+                ));
+            }
         }
     }
+    if in_nextest_test_output {
+        summaries.push(malformed_output_marker(
+            stream,
+            "unterminated Nextest test-output block",
+        ));
+    }
     summaries
+}
+
+fn human_nextest_summary(
+    stream: &'static str,
+    source_line: &str,
+    run_count: u64,
+    passed: u64,
+    failed: Option<u64>,
+    skipped: Option<u64>,
+) -> HumanSummary {
+    HumanSummary {
+        stream,
+        run_count: Some(run_count),
+        passed: Some(passed),
+        failed,
+        skipped,
+        child_harness: false,
+        nested_test_output: false,
+        malformed_output_context: false,
+        ignored: None,
+        measured: None,
+        filtered_out: None,
+        source_line: source_line.to_owned(),
+    }
+}
+
+fn human_harness_summary(
+    stream: &'static str,
+    source_line: &str,
+    counts: (u64, u64, u64, u64, u64),
+    nested_test_output: bool,
+) -> HumanSummary {
+    let (passed, failed, ignored, measured, filtered_out) = counts;
+    HumanSummary {
+        stream,
+        run_count: None,
+        passed: Some(passed),
+        failed: Some(failed),
+        skipped: None,
+        child_harness: true,
+        nested_test_output,
+        malformed_output_context: false,
+        ignored: Some(ignored),
+        measured: Some(measured),
+        filtered_out: Some(filtered_out),
+        source_line: source_line.to_owned(),
+    }
+}
+
+fn malformed_output_marker(stream: &'static str, source_line: &str) -> HumanSummary {
+    HumanSummary {
+        stream,
+        run_count: None,
+        passed: None,
+        failed: None,
+        skipped: None,
+        child_harness: false,
+        nested_test_output: false,
+        malformed_output_context: true,
+        ignored: None,
+        measured: None,
+        filtered_out: None,
+        source_line: source_line.to_owned(),
+    }
 }
 
 fn parse_nextest_summary(line: &str) -> Option<(u64, u64, Option<u64>, Option<u64>)> {
@@ -3593,6 +3698,83 @@ mod tests {
         assert_eq!(
             result["run"]["human_diagnostics"][1]["domain"],
             "child_harness"
+        );
+        assert!(
+            !result["run"]["same_domain_contradictions"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(result["acceptance"], "blocked");
+    }
+
+    #[test]
+    fn nested_failed_test_summary_is_not_compared_to_nextest_suite_aggregate() {
+        let mut events = event_lines(&fixture_run(0));
+        for event in &mut events {
+            match (event["type"].as_str(), event["event"].as_str()) {
+                (Some("test"), Some("ok"))
+                    if event["name"] == "pkg::bin$case_8" =>
+                {
+                    event["event"] = json!("failed");
+                }
+                (Some("suite"), Some("ok")) => {
+                    event["event"] = json!("failed");
+                    event["passed"] = json!(8);
+                    event["failed"] = json!(1);
+                }
+                _ => {}
+            }
+        }
+        let stderr = concat!(
+            "FAIL [0.01s] pkg case_8\n  output ───\n\n",
+            "    running 1 test\n",
+            "    test result: FAILED. 0 passed; 1 failed; 0 ignored; ",
+            "0 measured; 16 filtered out; finished in 0.00s\n\n",
+            "────────────\n",
+            "     Summary [0.01s] 9 tests run: 8 passed, 1 failed, 0 skipped\n",
+        );
+        let run = process(
+            run_bytes(&events),
+            stderr.as_bytes().to_vec(),
+            Termination::Exited(100),
+        );
+        let result = base_evaluation(&run);
+
+        assert_eq!(result["run"]["machine_state"], "verified");
+        assert_eq!(result["run"]["selected_tests"].as_array().unwrap().len(), 9);
+        assert_eq!(result["run"]["all_selected_passed"], false);
+        assert_eq!(result["run"]["human_diagnostics"].as_array().unwrap().len(), 2);
+        assert_eq!(result["run"]["human_diagnostics"][0]["domain"], "nested_child_harness");
+        assert_eq!(result["run"]["human_diagnostics"][1]["domain"], "nextest");
+        assert_eq!(result["run"]["same_domain_contradictions"].as_array().unwrap().len(), 0);
+        assert_eq!(
+            result["run"]["child_harness_summary_check"]["state"],
+            "unverified"
+        );
+        assert_eq!(result["processes"]["run"]["termination"]["exit_code"], 100);
+        assert_eq!(result["acceptance"], "blocked");
+    }
+
+    #[test]
+    fn unclosed_nextest_output_block_cannot_hide_a_human_summary() {
+        let stderr = concat!(
+            "FAIL [0.01s] pkg case_8\n  output ───\n\n",
+            "    test result: FAILED. 0 passed; 1 failed; 0 ignored; ",
+            "0 measured; 16 filtered out; finished in 0.00s\n",
+            "     Summary [0.01s] 9 tests run: 9 passed, 0 failed, 0 skipped\n",
+        );
+        let run = success_process(fixture_run(0), stderr.as_bytes().to_vec());
+        let result = base_evaluation(&run);
+
+        assert_eq!(result["run"]["machine_state"], "verified");
+        assert_eq!(result["run"]["all_selected_passed"], true);
+        assert!(
+            result["run"]["human_diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|summary| summary["domain"] == "malformed_output_context")
         );
         assert!(
             !result["run"]["same_domain_contradictions"]
