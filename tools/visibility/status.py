@@ -79,6 +79,28 @@ PROVIDER_OBSERVATIONS_SCHEMA = "termrock-status-provider-observations/v1"
 # Provider captures use a stricter, provider-specific manifest shape than the
 # shared VIS-13 raw-attempt archive consumed by product-phase observations.
 PROVIDER_ARCHIVE_SCHEMA = "termrock-status-provider-capture-archive/v1"
+PROVIDER_POLL_OBSERVATIONS_SCHEMA = "termrock-status-provider-observations/v2"
+PROVIDER_POLL_VARIANT = "workflow_run_poll"
+PROVIDER_POLL_ARCHIVE_SCHEMA = "termrock-status-provider-poll-archive/v1"
+PROVIDER_POLL_CAPTURE_FILENAMES = {
+    "summary": "observation.json",
+    "checksums": "SHA256SUMS",
+    "pull_request": "pull-17.json",
+    "candidate_ref": "head-termrock-implementation.json",
+    "commit": "commit-object.json",
+    "run_api": "run-api.json",
+    "run_view": "run-view.json",
+    "jobs_api": "run-jobs-api.json",
+    "jobs_api_stderr": "run-jobs-api.stderr",
+    "artifacts_api": "run-artifacts-api.json",
+    "run_log_stdout": "run-log.txt",
+    "run_log_stderr": "run-log.stderr",
+    "dco_checks": "check-runs-retry.json",
+}
+PROVIDER_POLL_JSON_ROLES = {
+    "summary", "pull_request", "candidate_ref", "commit", "run_api",
+    "run_view", "jobs_api", "artifacts_api", "dco_checks",
+}
 PROVIDER_CAPTURE_ROLES = {
     "workflow", "run", "check_suites", "suite_check_runs", "check_runs",
     "jobs", "artifacts", "run_logs_headers", "run_logs_body",
@@ -3571,7 +3593,11 @@ def validate_current_status_observations(
 
 
 
-def _provider_archive_members(pin: Any, queue_module: Any) -> tuple[str, Mapping[str, Mapping[str, Any]]]:
+def _provider_archive_members(
+    pin: Any,
+    queue_module: Any,
+    archive_schema: str = PROVIDER_ARCHIVE_SCHEMA,
+) -> tuple[str, Mapping[str, Mapping[str, Any]]]:
     require(isinstance(pin, dict) and set(pin) == {"path", "sha256", "bytes"},
             "provider archive manifest pin has missing or unknown fields")
     manifest_path = _product_archive_path(pin.get("path"), "provider archive manifest")
@@ -3589,7 +3615,7 @@ def _provider_archive_members(pin: Any, queue_module: Any) -> tuple[str, Mapping
         raise ValueError("provider archive manifest is not strict JSON: {}".format(error)) from error
     require(isinstance(manifest, dict)
             and set(manifest) == {"schema", "increment", "status", "source_baseline", "files"}
-            and manifest.get("schema") == PROVIDER_ARCHIVE_SCHEMA
+            and manifest.get("schema") == archive_schema
             and isinstance(manifest.get("increment"), str)
             and manifest["increment"] == Path(manifest_path).parent.name
             and isinstance(manifest.get("status"), str)
@@ -3675,12 +3701,347 @@ def _read_provider_capture(
     return value
 
 
+def _read_provider_poll_capture(
+    pin: Any,
+    role: str,
+    archive_root: str,
+    member_by_path: Mapping[str, Mapping[str, Any]],
+    queue_module: Any,
+) -> Any:
+    label = "provider poll capture {}".format(role)
+    require(role in PROVIDER_POLL_CAPTURE_FILENAMES,
+            "{} is not a supported provider poll role".format(label))
+    require(isinstance(pin, dict) and set(pin) == {"path", "sha256", "bytes"},
+            "{} pin has missing or unknown fields".format(label))
+    path = _product_archive_path(pin.get("path"), label)
+    require(path.startswith(archive_root + "/"),
+            "{} is outside its pinned archive".format(label))
+    member = member_by_path.get(path)
+    require(member is not None
+            and member.get("bytes") == pin.get("bytes")
+            and member.get("sha256") == pin.get("sha256"),
+            "{} is not bound to its archive member".format(label))
+    expected_filename = PROVIDER_POLL_CAPTURE_FILENAMES[role]
+    require(Path(path).name == expected_filename
+            and Path(member["source_path"]).name == expected_filename,
+            "{} filename does not match its role".format(label))
+    size = pin.get("bytes")
+    require(type(size) is int and 0 <= size <= MAX_EXECUTION_EVIDENCE_BYTES,
+            "{} byte count is outside its bound".format(label))
+    raw = read_pinned_bytes(pin, label)
+    require(len(raw) == size, "{} byte count does not match its pin".format(label))
+    if role not in PROVIDER_POLL_JSON_ROLES:
+        return raw
+    try:
+        return queue_module.strict_json_loads(raw)
+    except Exception as error:
+        raise ValueError("{} is not strict JSON: {}".format(label, error)) from error
+
+
+def _validate_provider_poll_checksum_closure(
+    raw: bytes,
+    archive_root: str,
+    member_by_path: Mapping[str, Mapping[str, Any]],
+    excluded_paths: set[str],
+) -> int:
+    try:
+        lines = raw.decode("ascii").splitlines()
+    except UnicodeDecodeError as error:
+        raise ValueError("provider poll SHA256SUMS is not ASCII") from error
+    sums: dict[str, str] = {}
+    for index, line in enumerate(lines):
+        match = re.fullmatch(r"([0-9a-f]{64})  ([A-Za-z0-9._-]+)", line)
+        require(match is not None,
+                "provider poll SHA256SUMS line {} is malformed".format(index + 1))
+        digest, filename = match.groups()
+        require(filename not in sums,
+                "provider poll SHA256SUMS repeats a member")
+        sums[filename] = digest
+    archive_files: dict[str, str] = {}
+    prefix = archive_root + "/"
+    for path, member in member_by_path.items():
+        if not path.startswith(prefix):
+            continue
+        relative = path[len(prefix):]
+        if path in excluded_paths:
+            continue
+        require(relative.startswith("raw/"),
+                "provider poll archive member is outside the raw closure")
+        filename = Path(relative).name
+        require(filename not in archive_files,
+                "provider poll archive repeats a raw filename")
+        archive_files[filename] = str(member["sha256"])
+    require(set(sums) == set(archive_files),
+            "provider poll SHA256SUMS does not cover the exact raw archive members")
+    for filename, digest in sums.items():
+        require(archive_files[filename] == digest,
+                "provider poll SHA256SUMS differs from its archive member")
+    return len(sums)
+
+
+def validate_provider_poll_observations(
+    value: Any,
+    latest: Mapping[str, Any],
+    queue_module: Any,
+) -> Sequence[Mapping[str, Any]]:
+    """Validate historical provider poll records without inventing endpoint results."""
+    require(isinstance(value, dict)
+            and set(value) == {"schema", "archive_manifest", "observations"}
+            and value.get("schema") == PROVIDER_POLL_OBSERVATIONS_SCHEMA,
+            "unsupported provider poll observations schema or fields")
+    archive_root, member_by_path = _provider_archive_members(
+        value.get("archive_manifest"), queue_module,
+        archive_schema=PROVIDER_POLL_ARCHIVE_SCHEMA,
+    )
+    observations = value.get("observations")
+    require(isinstance(observations, list) and 0 < len(observations) <= 100,
+            "provider poll observations must contain 1 to 100 rows")
+    validated: list[Mapping[str, Any]] = []
+    seen_run_attempts: set[tuple[str, int]] = set()
+    previous_observed_at: Optional[str] = None
+    expected_captures = set(PROVIDER_POLL_CAPTURE_FILENAMES)
+    for index, observation in enumerate(observations):
+        label = "provider poll observations[{}]".format(index)
+        require(isinstance(observation, dict)
+                and set(observation) == {
+                    "sequence", "observed_at", "scope", "kind",
+                    "source_binding", "captures",
+                }
+                and observation.get("kind") == PROVIDER_POLL_VARIANT,
+                "{} has missing, unknown, or unsupported variant fields".format(label))
+        sequence = observation.get("sequence")
+        require(type(sequence) is int and sequence == index + 1,
+                "{}.sequence must be contiguous and start at 1".format(label))
+        observed_at = timestamp(observation.get("observed_at"), "{}.observed_at".format(label))
+        require(previous_observed_at is None or observed_at >= previous_observed_at,
+                "provider poll observation timestamps are out of order")
+        previous_observed_at = observed_at
+        require(observation.get("scope") == "HISTORICAL",
+                "{} must remain HISTORICAL".format(label))
+        binding = observation.get("source_binding")
+        require(isinstance(binding, dict)
+                and set(binding) == {"kind", "branch", "commit_sha", "tree_sha"}
+                and binding.get("kind") == "candidate_commit"
+                and isinstance(binding.get("branch"), str)
+                and binding["branch"].strip(),
+                "{}.source_binding has invalid fields".format(label))
+        source_commit = sha(binding.get("commit_sha"), "{}.source_binding.commit_sha".format(label))
+        source_tree = sha(binding.get("tree_sha"), "{}.source_binding.tree_sha".format(label))
+        require(binding["branch"] == latest["candidate_remote"]["branch"],
+                "{}.source_binding is not on the candidate branch".format(label))
+        captures = observation.get("captures")
+        require(isinstance(captures, dict) and set(captures) == expected_captures,
+                "{}.captures must pin the exact poll evidence roles".format(label))
+        capture_paths = [capture.get("path") for capture in captures.values()
+                         if isinstance(capture, dict)]
+        require(len(capture_paths) == len(expected_captures)
+                and all(isinstance(path, str) for path in capture_paths)
+                and len(set(capture_paths)) == len(expected_captures),
+                "{}.captures must use a unique path for each role".format(label))
+        raw = {
+            role: _read_provider_poll_capture(
+                captures[role], role, archive_root, member_by_path, queue_module,
+            )
+            for role in expected_captures
+        }
+        closure_count = _validate_provider_poll_checksum_closure(
+            raw["checksums"], archive_root, member_by_path, {
+                captures["checksums"]["path"], captures["summary"]["path"],
+            },
+        )
+
+        summary = raw["summary"]
+        require(isinstance(summary, dict)
+                and summary.get("schema") == "termrock-live-pr-observation/v1"
+                and summary.get("repository") == REPOSITORY,
+                "{}.summary is not a supported repository observation".format(label))
+        summary_time = timestamp(
+            summary.get("observed_at_utc"), "{}.summary.observed_at_utc".format(label),
+        )
+        require(summary_time == observed_at,
+                "{}.observed_at differs from its pinned observation".format(label))
+        pull = summary.get("pull_request")
+        require(isinstance(pull, dict)
+                and pull.get("number") == 17
+                and pull.get("head_ref") == binding["branch"]
+                and pull.get("requested_head_sha") == source_commit
+                and pull.get("observed_head_sha") == source_commit
+                and pull.get("remote_head_ref_sha") == source_commit
+                and pull.get("head_commit_tree_sha") == source_tree,
+                "{}.summary pull-request identity differs from its source binding".format(label))
+        summary_ci = summary.get("current_ci_observation")
+        require(isinstance(summary_ci, dict)
+                and summary_ci.get("workflow_run_id") is not None,
+                "{}.summary current CI observation is malformed".format(label))
+
+        pull_raw = raw["pull_request"]
+        pull_head = pull_raw.get("head") if isinstance(pull_raw, dict) else None
+        pull_base = pull_raw.get("base") if isinstance(pull_raw, dict) else None
+        require(isinstance(pull_head, dict) and isinstance(pull_base, dict)
+                and pull_raw.get("number") == 17
+                and pull_head.get("ref") == binding["branch"]
+                and pull_head.get("sha") == source_commit
+                and pull_raw.get("base", {}).get("ref") == pull.get("base_ref")
+                and pull_raw.get("base", {}).get("sha") == pull.get("observed_base_sha"),
+                "{}.pull_request capture differs from its summary".format(label))
+        candidate_ref = raw["candidate_ref"]
+        require(isinstance(candidate_ref, dict)
+                and candidate_ref.get("ref") == "refs/heads/" + binding["branch"]
+                and isinstance(candidate_ref.get("object"), dict)
+                and candidate_ref["object"].get("type") == "commit"
+                and candidate_ref["object"].get("sha") == source_commit,
+                "{}.candidate_ref capture differs from its source binding".format(label))
+        commit = raw["commit"]
+        commit_body = commit.get("commit") if isinstance(commit, dict) else None
+        commit_tree = commit_body.get("tree") if isinstance(commit_body, dict) else None
+        require(isinstance(commit, dict) and isinstance(commit_tree, dict)
+                and commit.get("sha") == source_commit
+                and commit_tree.get("sha") == source_tree,
+                "{}.commit capture differs from its source binding".format(label))
+
+        run = raw["run_api"]
+        run_view = raw["run_view"]
+        require(isinstance(run, dict) and isinstance(run_view, dict),
+                "{}.run captures must be JSON objects".format(label))
+        run_id = run.get("id")
+        run_attempt = run.get("run_attempt")
+        require(type(run_id) is int and run_id > 0
+                and type(run_attempt) is int and run_attempt > 0,
+                "{}.run ID and attempt must be positive integers".format(label))
+        run_key = (str(run_id), run_attempt)
+        require(run_key not in seen_run_attempts,
+                "provider poll observations repeat a run attempt")
+        seen_run_attempts.add(run_key)
+        run_url = "https://github.com/{}/actions/runs/{}".format(REPOSITORY, run_id)
+        run_api_url = "https://api.github.com/repos/{}/actions/runs/{}".format(REPOSITORY, run_id)
+        workflow_id = run.get("workflow_id")
+        created_at = timestamp(run.get("created_at"), "{}.run.created_at".format(label))
+        require(run.get("url") == run_api_url
+                and run.get("html_url") == run_url
+                and run.get("head_branch") == binding["branch"]
+                and run.get("head_sha") == source_commit
+                and run.get("status") == "completed"
+                and run.get("conclusion") == "failure"
+                and run.get("event") == "push"
+                and run.get("path") == CURRENT_CI_WORKFLOW
+                and type(workflow_id) is int and workflow_id > 0
+                and run_view.get("databaseId") == run_id
+                and run_view.get("headBranch") == binding["branch"]
+                and run_view.get("headSha") == source_commit
+                and run_view.get("status") == run["status"]
+                and run_view.get("conclusion") == run["conclusion"]
+                and run_view.get("event") == run["event"]
+                and run_view.get("createdAt") == created_at
+                and run_view.get("workflowName") == "CI"
+                and run_view.get("url") == run_url
+                and run.get("created_at") == summary_ci.get("created_at")
+                and run_id == summary_ci.get("workflow_run_id")
+                and run.get("run_number") == summary_ci.get("workflow_run_number")
+                and workflow_id == summary_ci.get("workflow_id")
+                and summary_ci.get("workflow_name") == run_view.get("workflowName")
+                and run.get("event") == summary_ci.get("event")
+                and run.get("head_sha") == summary_ci.get("head_sha")
+                and run.get("status") == summary_ci.get("status")
+                and run.get("conclusion") == summary_ci.get("conclusion")
+                and created_at <= observed_at,
+                "{}.run records do not reconcile with source, poll, and run-view".format(label))
+        timestamp(run_view.get("updatedAt"), "{}.run_view.updatedAt".format(label))
+        visible_jobs = run_view.get("jobs")
+        require(isinstance(visible_jobs, list)
+                and visible_jobs == []
+                and summary_ci.get("jobs_visible_in_gh_run_view") == len(visible_jobs),
+                "{}.run_view job visibility differs from its summary".format(label))
+
+        jobs_error = raw["jobs_api"]
+        require(isinstance(jobs_error, dict)
+                and set(jobs_error) == {"message", "documentation_url", "status"}
+                and jobs_error.get("message") == "Not Found"
+                and jobs_error.get("status") == "404"
+                and isinstance(jobs_error.get("documentation_url"), str)
+                and jobs_error["documentation_url"].startswith("https://docs.github.com/rest")
+                and b"Not Found (HTTP 404)" in raw["jobs_api_stderr"]
+                and summary_ci.get("jobs_api") == "HTTP 404 Not Found",
+                "{}.jobs_api must remain an API error, not a zero-job result".format(label))
+        artifacts = raw["artifacts_api"]
+        require(isinstance(artifacts, dict)
+                and set(artifacts) == {"total_count", "artifacts"}
+                and type(artifacts.get("total_count")) is int
+                and artifacts["total_count"] == len(artifacts.get("artifacts", []))
+                and artifacts["total_count"] == 0
+                and summary_ci.get("artifacts_total_count") == artifacts["total_count"],
+                "{}.artifacts capture differs from its summary".format(label))
+        require(raw["run_log_stdout"] == b""
+                and raw["run_log_stderr"].strip() == b"failed to get run log: log not found"
+                and summary_ci.get("logs") == "not found; no log body returned"
+                and summary_ci.get("provider_failure_cause") == "NOT_EXPOSED",
+                "{}.log capture must preserve unavailable body and unknown cause".format(label))
+
+        checks = raw["dco_checks"]
+        require(isinstance(checks, dict)
+                and type(checks.get("total_count")) is int
+                and isinstance(checks.get("check_runs"), list)
+                and checks["total_count"] == len(checks["check_runs"]),
+                "{}.dco_checks capture is malformed".format(label))
+        dco_checks = [
+            check for check in checks["check_runs"]
+            if isinstance(check, dict) and check.get("name") == "DCO"
+        ]
+        require(len(dco_checks) == 1
+                and dco_checks[0].get("head_sha") == source_commit
+                and dco_checks[0].get("status") == "completed"
+                and dco_checks[0].get("conclusion") == "success",
+                "{}.DCO result is missing, duplicated, or not bound to this source".format(label))
+        summary_checks = summary.get("checks")
+        require(isinstance(summary_checks, dict)
+                and summary_checks.get("dco") == "PASS"
+                and summary_checks.get("check_runs_count") == checks["total_count"],
+                "{}.summary DCO observation differs from its raw check capture".format(label))
+
+        raw_closure = summary.get("raw_closure")
+        checksum_capture = captures["checksums"]
+        require(isinstance(raw_closure, dict)
+                and set(raw_closure) == {"path", "sha256", "entries", "entry_scope"}
+                and raw_closure.get("path") == "SHA256SUMS"
+                and raw_closure.get("sha256") == checksum_capture.get("sha256")
+                and raw_closure.get("entries") == closure_count
+                and raw_closure.get("entry_scope") == "Every file under raw/; checksum file itself is excluded.",
+                "{}.summary raw closure differs from its pinned manifest".format(label))
+        validated.append({
+            "_provider_variant": PROVIDER_POLL_VARIANT,
+            "sequence": sequence,
+            "observed_at": observed_at,
+            "scope": "HISTORICAL",
+            "source_binding": binding,
+            "run_id": str(run_id),
+            "run_attempt": run_attempt,
+            "run_url": run_url,
+            "event": run["event"],
+            "status": run["status"],
+            "conclusion": run["conclusion"],
+            "cli_visible_job_count": len(visible_jobs),
+            "jobs_api_error_status_field": jobs_error["status"],
+            "artifact_count": artifacts["total_count"],
+            "log_http_status": "NOT_CAPTURED",
+            "log_availability": "NOT_FOUND",
+            "provider_failure_cause": "NOT_EXPOSED",
+            "dco": {
+                "status": dco_checks[0]["status"],
+                "conclusion": dco_checks[0]["conclusion"],
+            },
+            "archive_manifest": value["archive_manifest"],
+            "captures": captures,
+        })
+    return validated
+
+
 def validate_provider_observations(
     value: Any, latest: Mapping[str, Any], queue_module: Any,
 ) -> Sequence[Mapping[str, Any]]:
     """Validate ordered provider run captures without treating them as product tests."""
     if value is None:
         return []
+    if isinstance(value, dict) and value.get("schema") == PROVIDER_POLL_OBSERVATIONS_SCHEMA:
+        return validate_provider_poll_observations(value, latest, queue_module)
     require(isinstance(value, dict)
             and set(value) == {"schema", "archive_manifest", "observations"}
             and value.get("schema") == PROVIDER_OBSERVATIONS_SCHEMA,
@@ -3954,6 +4315,8 @@ def render_provider_observations(
 ) -> str:
     if not observations:
         return ""
+    if observations[0].get("_provider_variant") == PROVIDER_POLL_VARIANT:
+        return render_provider_poll_observations(observations)
     rows = []
     tick = chr(96)
     for item in observations:
@@ -3992,6 +4355,54 @@ def render_provider_observations(
         "These hash-pinned provider records describe workflow metadata and log access. They are not product-test receipts. The provider response recorded zero jobs. An HTTP error while fetching logs does not establish the workflow failure cause. This section does not promote product readiness.",
         "",
         "| # | Scope | Source binding | Run | Provider and log observation |",
+        "| --- | --- | --- | --- | --- |",
+        *rows,
+        "",
+    ])
+
+
+def render_provider_poll_observations(
+    observations: Sequence[Mapping[str, Any]],
+) -> str:
+    rows = []
+    tick = chr(96)
+    for item in observations:
+        binding = item["source_binding"]
+        dco_text = "DCO {} / {}".format(
+            item["dco"]["status"], item["dco"]["conclusion"],
+        )
+        evidence_text = "; ".join(
+            "{} {}{}{}".format(role, tick, pin["sha256"][:12], tick)
+            for role, pin in sorted(item["captures"].items())
+        )
+        manifest = item["archive_manifest"]
+        rows.append(
+            "| {} | HISTORICAL | {}{}{} / {}{}{} (tree {}{}{}) | "
+            "[{}]({}) attempt {}; {} / {}; event {}; CLI-visible jobs {}; "
+            "jobs API error status field {}; artifacts {}; logs body {}; "
+            "log HTTP status {}; failure cause {}; {} | archive {} "
+            "{}{}{}; captures {} |".format(
+                item["sequence"], tick, binding["branch"], tick,
+                tick, binding["commit_sha"], tick, tick, binding["tree_sha"], tick,
+                item["run_id"], item["run_url"], item["run_attempt"],
+                item["status"], item["conclusion"], item["event"],
+                item["cli_visible_job_count"], item["jobs_api_error_status_field"],
+                item["artifact_count"], item["log_availability"],
+                item["log_http_status"], item["provider_failure_cause"], dco_text,
+                cell(manifest["path"]), tick, manifest["sha256"][:12], tick,
+                evidence_text,
+            )
+        )
+    return "\n".join([
+        "## Provider workflow poll observations",
+        "",
+        "These hash-pinned historical polls preserve what the provider and CLI exposed. "
+        "A CLI-visible zero-job list is distinct from a jobs API error; the error does "
+        "not establish a jobs count. Missing log bodies have no recorded HTTP status, "
+        "and the provider failure cause remains NOT_EXPOSED. This section does not "
+        "promote current CI or product readiness.",
+        "",
+        "| # | Scope | Source binding | Run and provider observations | Evidence |",
         "| --- | --- | --- | --- | --- |",
         *rows,
         "",
