@@ -28,6 +28,7 @@ pub const MAX_CAPTURE_BYTES: u64 = 8 * 1024 * 1024;
 const MAX_MACHINE_EVENTS: usize = 100_000;
 const MAX_V2_SELECTED_TESTS: usize = 1024;
 const MAX_V2_TARGETS: usize = 64;
+const MAX_V2_OMITTED_IGNORED_TESTS: u64 = 1024;
 
 /// A request, capture, or protocol error. Errors are deliberately plain text so
 /// the thin CLI can report them without inventing another serialization layer.
@@ -864,6 +865,7 @@ fn capture_json(capture: &CaptureBytes) -> Value {
 struct ListResult {
     test_count: u64,
     inventory: BTreeMap<String, u64>,
+    omitted_ignored_by_binary: BTreeMap<String, u64>,
     runtime_aliases: BTreeMap<String, TargetIdentity>,
     matched_selection: bool,
 }
@@ -922,8 +924,10 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
         .as_object()
         .ok_or_else(|| ReaderError("list.rust-suites must be an object".into()))?;
     let mut inventory = BTreeMap::new();
+    let mut omitted_ignored_by_binary = BTreeMap::new();
     let mut runtime_aliases = BTreeMap::new();
     let mut total_cases = 0u64;
+    let mut total_omitted_ignored = 0u64;
     for (suite_key, suite_value) in suites {
         let suite = suite_value
             .as_object()
@@ -977,6 +981,12 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
                 "duplicate binary identity in list: {binary_id}"
             )));
         }
+        let selected_names = selection
+            .tests
+            .iter()
+            .filter(|test| test.identity.binary_id == binary_id)
+            .map(|test| test.identity.test_name.as_str())
+            .collect::<BTreeSet<_>>();
         for expected in selection
             .tests
             .iter()
@@ -1024,6 +1034,80 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
                 )));
             }
         }
+        if selection.protocol == ProtocolVersion::V2 {
+            let mut omitted_ignored = 0u64;
+            for (test_name, testcase) in testcases {
+                if selected_names.contains(test_name.as_str()) {
+                    continue;
+                }
+                let context = format!("list testcase {binary_id}${test_name}");
+                let testcase = testcase
+                    .as_object()
+                    .ok_or_else(|| ReaderError(format!("{context} must be an object")))?;
+                if let Some(case_kind) = testcase.get("kind") {
+                    if case_kind.as_str() != Some("test") {
+                        return Err(ReaderError(format!("{context} kind must be test")));
+                    }
+                }
+                let ignored = bool_field(testcase, "ignored", &context)?
+                    .ok_or_else(|| ReaderError(format!("{context}.ignored must be boolean")))?;
+                let filter_match = required(testcase, "filter-match", &context)?
+                    .as_object()
+                    .ok_or_else(|| {
+                        ReaderError(format!("{context}.filter-match must be an object"))
+                    })?;
+                ensure_keys(
+                    filter_match,
+                    &["status", "reason"],
+                    &format!("{context}.filter-match"),
+                )?;
+                let filter_status =
+                    string_field(filter_match, "status", &format!("{context}.filter-match"))?;
+                let filter_reason = filter_match
+                    .get("reason")
+                    .map(|value| {
+                        value.as_str().ok_or_else(|| {
+                            ReaderError(format!("{context}.filter-match.reason must be a string"))
+                        })
+                    })
+                    .transpose()?;
+                match filter_status {
+                    "mismatch" if ignored && filter_reason == Some("ignored") => {
+                        omitted_ignored = omitted_ignored.checked_add(1).ok_or_else(|| {
+                            ReaderError("omitted ignored inventory count overflows u64".into())
+                        })?;
+                        total_omitted_ignored =
+                            total_omitted_ignored.checked_add(1).ok_or_else(|| {
+                                ReaderError("omitted ignored inventory count overflows u64".into())
+                            })?;
+                        if total_omitted_ignored > MAX_V2_OMITTED_IGNORED_TESTS {
+                            return Err(ReaderError(format!(
+                                "omitted ignored inventory exceeds {MAX_V2_OMITTED_IGNORED_TESTS} tests"
+                            )));
+                        }
+                    }
+                    "mismatch" if filter_reason == Some("ignored") => {
+                        return Err(ReaderError(format!(
+                            "{context} has ignored filter reason without ignored=true"
+                        )));
+                    }
+                    "mismatch" => {}
+                    "matches" => {
+                        return Err(ReaderError(format!(
+                            "unselected testcase matches the trusted filter: {binary_id}${test_name}"
+                        )));
+                    }
+                    _ => {
+                        return Err(ReaderError(format!(
+                            "{context} has an unsupported filter-match status"
+                        )));
+                    }
+                }
+            }
+            if omitted_ignored > 0 {
+                omitted_ignored_by_binary.insert(binary_id.to_owned(), omitted_ignored);
+            }
+        }
     }
     if total_cases != test_count {
         return Err(ReaderError(format!(
@@ -1058,6 +1142,7 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
     Ok(ListResult {
         test_count,
         inventory,
+        omitted_ignored_by_binary,
         runtime_aliases,
         matched_selection: true,
     })
@@ -1199,6 +1284,7 @@ struct RunResult {
     machine_state: &'static str,
     tests: BTreeMap<String, String>,
     suites: BTreeMap<String, (u64, SuiteCounts)>,
+    omitted_ignored_count: u64,
     diagnostics: Vec<HumanSummary>,
     contradictions: Vec<String>,
     child_harness_summary_check: ChildHarnessSummaryCheck,
@@ -1213,6 +1299,7 @@ impl RunResult {
             machine_state: state,
             tests: BTreeMap::new(),
             suites: BTreeMap::new(),
+            omitted_ignored_count: 0,
             diagnostics: Vec::new(),
             contradictions: Vec::new(),
             child_harness_summary_check: ChildHarnessSummaryCheck::unverified(
@@ -1355,6 +1442,9 @@ fn parse_machine_run(
     selection: &Selection,
     list: Option<&ListResult>,
 ) -> RunResult {
+    let omitted_ignored_count = list
+        .map(|result| result.omitted_ignored_by_binary.values().copied().sum())
+        .unwrap_or(0);
     let expected_by_event: BTreeMap<String, &ExpectedTest> = selection
         .tests
         .iter()
@@ -1482,7 +1572,15 @@ fn parse_machine_run(
                     errors.push(format!("unexpected suite in run output: {binary_id}"));
                     continue;
                 };
-                if metadata.test_count != Some(*expected_count)
+                let omitted_ignored = list
+                    .and_then(|result| result.omitted_ignored_by_binary.get(&binary_id))
+                    .copied()
+                    .unwrap_or(0);
+                let Some(expected_suite_count) = expected_count.checked_add(omitted_ignored) else {
+                    errors.push(format!("suite test_count overflows for {binary_id}"));
+                    continue;
+                };
+                if metadata.test_count != Some(expected_suite_count)
                     || metadata.package != *expected_package
                     || metadata.kind != *expected_kind
                 {
@@ -1499,7 +1597,7 @@ fn parse_machine_run(
                         suite_states.insert(
                             binary_id.clone(),
                             SuiteState {
-                                test_count: *expected_count,
+                                test_count: expected_suite_count,
                                 terminal: None,
                                 closed: false,
                             },
@@ -1640,7 +1738,7 @@ fn parse_machine_run(
             ));
         }
     }
-    validate_suite_aggregates(&mut errors, &test_states, &suite_states, selection);
+    validate_suite_aggregates(&mut errors, &test_states, &suite_states, selection, list);
     let mut tests = BTreeMap::new();
     for (name, state) in &test_states {
         if let Some(outcome) = &state.terminal {
@@ -1652,10 +1750,16 @@ fn parse_machine_run(
     for (binary_id, state) in &suite_states {
         if let Some((_, counts)) = &state.terminal {
             if let Some(listed_count) = list.and_then(|value| value.inventory.get(binary_id)) {
-                if counts.filtered_out > *listed_count {
+                let run_inventory_count = state.test_count.checked_add(counts.filtered_out);
+                let inventory_mismatch = if selection.protocol == ProtocolVersion::V2 {
+                    run_inventory_count != Some(*listed_count)
+                } else {
+                    counts.filtered_out > *listed_count
+                };
+                if inventory_mismatch {
                     count_anomalies.push(format!(
-                        "filtered_out {} exceeds listed inventory {} for {}",
-                        counts.filtered_out, listed_count, binary_id
+                        "run count {} plus filtered_out {} does not match listed inventory {} for {}",
+                        state.test_count, counts.filtered_out, listed_count, binary_id,
                     ));
                 }
             }
@@ -1674,6 +1778,7 @@ fn parse_machine_run(
         },
         tests,
         suites,
+        omitted_ignored_count,
         diagnostics: Vec::new(),
         contradictions: Vec::new(),
         child_harness_summary_check: ChildHarnessSummaryCheck::unverified(
@@ -1731,6 +1836,7 @@ fn validate_suite_aggregates(
     tests: &BTreeMap<String, TestState>,
     suites: &BTreeMap<String, SuiteState>,
     selection: &Selection,
+    list: Option<&ListResult>,
 ) {
     for (binary_id, suite) in suites {
         let Some((event, counts)) = &suite.terminal else {
@@ -1764,7 +1870,16 @@ fn validate_suite_aggregates(
                 "suite outcome counts do not equal test_count for {binary_id}"
             ));
         }
-        if observed != [counts.passed, counts.failed, counts.ignored] || counts.measured != 0 {
+        let omitted_ignored = list
+            .and_then(|result| result.omitted_ignored_by_binary.get(binary_id))
+            .copied()
+            .unwrap_or(0);
+        let observed_ignored = observed[2].checked_add(omitted_ignored);
+        if observed[0] != counts.passed
+            || observed[1] != counts.failed
+            || observed_ignored != Some(counts.ignored)
+            || counts.measured != 0
+        {
             errors.push(format!(
                 "suite counts disagree with terminal test records for {binary_id}"
             ));
@@ -1803,11 +1918,13 @@ fn compare_human_summaries(result: &mut RunResult) {
         .values()
         .map(|(_, counts)| counts.failed)
         .try_fold(0u64, u64::checked_add);
-    let expected_skipped = result
+    let expected_filtered = result
         .suites
         .values()
         .map(|(_, counts)| counts.filtered_out)
         .try_fold(0u64, u64::checked_add);
+    let expected_skipped =
+        expected_filtered.and_then(|filtered| filtered.checked_add(result.omitted_ignored_count));
     let expected_run_count = u64::try_from(result.tests.len()).ok();
     for summary in result
         .diagnostics
@@ -2325,6 +2442,76 @@ mod tests {
         run_bytes(&events)
     }
 
+    fn v2_ignored_inventory_fixture() -> (Selection, Request, Value, Vec<Value>) {
+        let targets = vec![v2_target("pkg", "pkg::status", "test")];
+        let mut selection_value = v2_status_selection_json(3, targets.clone());
+        selection_value["run_ignored"] = json!("all");
+        let selection = parse_selection(&serde_json::to_vec(&selection_value).unwrap()).unwrap();
+        let mut request_value = v2_status_request_json(3, targets);
+        request_value["invocation"]["run_ignored"] = json!("all");
+        let request = parse_request(&serde_json::to_vec(&request_value).unwrap()).unwrap();
+
+        let mut list = v2_status_list_value(3);
+        let testcases = list["rust-suites"]["pkg::status"]["testcases"]
+            .as_object_mut()
+            .unwrap();
+        testcases.insert(
+            "yaml::share::tests::write_edge_corpus_for_external_psych_roundtrip".into(),
+            json!({
+                "kind":"test",
+                "ignored":true,
+                "filter-match":{"status":"mismatch","reason":"ignored"},
+            }),
+        );
+        for index in 0..206 {
+            testcases.insert(
+                format!("filtered_{index}"),
+                json!({
+                    "kind":"test",
+                    "ignored":false,
+                    "filter-match":{"status":"mismatch","reason":"expression"},
+                }),
+            );
+        }
+        list["test-count"] = json!(210);
+
+        let mut events = event_lines(&v2_status_run_bytes(3));
+        events[0]["test_count"] = json!(4);
+        let terminal = events.last_mut().unwrap();
+        terminal["ignored"] = json!(1);
+        terminal["filtered_out"] = json!(206);
+        (selection, request, list, events)
+    }
+
+    fn v2_ignored_run_bytes(events: &[Value], skipped: u64) -> Vec<u8> {
+        let mut bytes = run_bytes(events);
+        bytes.extend_from_slice(
+            format!("\nSummary [0.01s] 3 tests run: 3 passed, 0 failed, {skipped} skipped\n")
+                .as_bytes(),
+        );
+        bytes.extend_from_slice(
+            b"test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 206 filtered out; finished in 0.01s\n",
+        );
+        bytes
+    }
+
+    fn evaluate_v2_ignored_fixture(
+        selection: &Selection,
+        request: &Request,
+        list: &Value,
+        events: &[Value],
+        skipped: u64,
+    ) -> Value {
+        evaluate(
+            &request.invocation,
+            selection,
+            &"a".repeat(64),
+            &success_process(serde_json::to_vec(list).unwrap(), Vec::new()),
+            &success_process(v2_ignored_run_bytes(events, skipped), Vec::new()),
+            &success_process(Vec::new(), Vec::new()),
+        )
+    }
+
     fn v2_capture_reference(name: &str) -> Value {
         json!({
             "stdout":{
@@ -2522,6 +2709,7 @@ mod tests {
         ListResult {
             test_count: 9,
             inventory: BTreeMap::from([("pkg::bin".to_owned(), 9)]),
+            omitted_ignored_by_binary: BTreeMap::new(),
             runtime_aliases: BTreeMap::new(),
             matched_selection: true,
         }
@@ -2796,6 +2984,195 @@ mod tests {
         assert!(selected
             .iter()
             .any(|test| { test["identity"] == "pkg$case_0_0" && test["outcome"] == "ok" }));
+    }
+
+    #[test]
+    fn v2_reconciles_one_inventory_declared_ignored_test_without_run_event() {
+        let (selection, request, list, events) = v2_ignored_inventory_fixture();
+        let report = evaluate_v2_ignored_fixture(&selection, &request, &list, &events, 207);
+
+        assert_eq!(report["acceptance"], "accepted");
+        assert_eq!(report["list"]["state"], "verified");
+        assert_eq!(report["run"]["machine_state"], "verified");
+        assert_eq!(report["run"]["selected_tests"].as_array().unwrap().len(), 3);
+        assert_eq!(report["run"]["suites"][0]["test_count"], "4");
+        assert_eq!(report["run"]["suites"][0]["ignored"], "1");
+        assert_eq!(report["run"]["suites"][0]["filtered_out"], "206");
+        assert_eq!(report["run"]["human_diagnostics"][0]["run_count"], "3");
+        assert_eq!(report["run"]["human_diagnostics"][0]["skipped"], "207");
+        assert_eq!(
+            report["run"]["child_harness_summary_check"]["state"],
+            "matched"
+        );
+        assert_eq!(report["processes"]["run"]["success"], true);
+    }
+
+    #[test]
+    fn v2_rejects_untrusted_ignored_inventory_rows_and_count_mismatch() {
+        let (selection, _, list, _) = v2_ignored_inventory_fixture();
+
+        let mut wrong_count = list.clone();
+        wrong_count["test-count"] = json!(209);
+        assert!(
+            validate_list_value(&wrong_count, &selection)
+                .unwrap_err()
+                .to_string()
+                .contains("does not match 210 testcase entries")
+        );
+
+        let mut nonignored_match = list.clone();
+        nonignored_match["test-count"] = json!(211);
+        nonignored_match["rust-suites"]["pkg::status"]["testcases"]
+            .as_object_mut()
+            .unwrap()
+            .insert(
+                "unselected_match".into(),
+                json!({
+                    "kind":"test",
+                    "ignored":false,
+                    "filter-match":{"status":"matches"},
+                }),
+            );
+        assert!(
+            validate_list_value(&nonignored_match, &selection)
+                .unwrap_err()
+                .to_string()
+                .contains("unselected testcase matches the trusted filter")
+        );
+
+        let mut mislabeled_ignored = list.clone();
+        mislabeled_ignored["rust-suites"]["pkg::status"]["testcases"]
+            ["yaml::share::tests::write_edge_corpus_for_external_psych_roundtrip"]["ignored"] =
+            json!(false);
+        assert!(
+            validate_list_value(&mislabeled_ignored, &selection)
+                .unwrap_err()
+                .to_string()
+                .contains("ignored filter reason without ignored=true")
+        );
+
+        let mut too_many_ignored = list.clone();
+        let testcases = too_many_ignored["rust-suites"]["pkg::status"]["testcases"]
+            .as_object_mut()
+            .unwrap();
+        for index in 0..=MAX_V2_OMITTED_IGNORED_TESTS {
+            testcases.insert(
+                format!("ignored_{index}"),
+                json!({
+                    "kind":"test",
+                    "ignored":true,
+                    "filter-match":{"status":"mismatch","reason":"ignored"},
+                }),
+            );
+        }
+        too_many_ignored["test-count"] = json!(1235);
+        assert!(validate_list_value(&too_many_ignored, &selection)
+            .unwrap_err()
+            .to_string()
+            .contains("omitted ignored inventory exceeds 1024 tests"));
+
+        assert_eq!(selection.run_ignored, "all");
+    }
+
+    #[test]
+    fn v2_keeps_selected_event_set_exact_and_rejects_ignored_writer_event() {
+        let (selection, _, list_value, events) = v2_ignored_inventory_fixture();
+        let list = validate_list_value(&list_value, &selection).unwrap();
+
+        let mut missing_selected = events.clone();
+        missing_selected.retain(|event| event["name"] != "pkg::status$status_case_0");
+        let missing = parse_machine_run(
+            &split_lines(&run_bytes(&missing_selected)),
+            &selection,
+            Some(&list),
+        );
+        assert_eq!(missing.machine_state, "invalid");
+        assert!(
+            missing
+                .errors
+                .iter()
+                .any(|error| error.contains("selected test was not started"))
+        );
+
+        let mut missing_terminal = events.clone();
+        missing_terminal.retain(|event| {
+            !(event["type"] == "test"
+                && event["event"] == "ok"
+                && event["name"] == "pkg::status$status_case_1")
+        });
+        let missing = parse_machine_run(
+            &split_lines(&run_bytes(&missing_terminal)),
+            &selection,
+            Some(&list),
+        );
+        assert_eq!(missing.machine_state, "invalid");
+        assert!(
+            missing
+                .errors
+                .iter()
+                .any(|error| error.contains("selected test has no terminal outcome"))
+        );
+
+        let mut unselected_writer = events.clone();
+        unselected_writer.insert(
+            unselected_writer.len() - 1,
+            json!({"type":"test","event":"started","name":"pkg::status$yaml::share::tests::write_edge_corpus_for_external_psych_roundtrip"}),
+        );
+        let writer = parse_machine_run(
+            &split_lines(&run_bytes(&unselected_writer)),
+            &selection,
+            Some(&list),
+        );
+        assert_eq!(writer.machine_state, "invalid");
+        assert!(
+            writer
+                .errors
+                .iter()
+                .any(|error| error.contains(
+                    "unexpected test start: pkg::status$yaml::share::tests::write_edge_corpus_for_external_psych_roundtrip"
+                ))
+        );
+    }
+
+    #[test]
+    fn v2_blocks_suite_inventory_and_human_summary_count_mismatches() {
+        let (selection, request, list_value, events) = v2_ignored_inventory_fixture();
+        let list = validate_list_value(&list_value, &selection).unwrap();
+
+        let mut wrong_suite_count = events.clone();
+        wrong_suite_count[0]["test_count"] = json!(3);
+        let mismatch = parse_machine_run(
+            &split_lines(&run_bytes(&wrong_suite_count)),
+            &selection,
+            Some(&list),
+        );
+        assert_eq!(mismatch.machine_state, "invalid");
+        assert!(
+            mismatch
+                .errors
+                .iter()
+                .any(|error| error.contains("suite test_count mismatch"))
+        );
+
+        let mut wrong_filter_count = events.clone();
+        wrong_filter_count.last_mut().unwrap()["filtered_out"] = json!(205);
+        let mismatch = parse_machine_run(
+            &split_lines(&run_bytes(&wrong_filter_count)),
+            &selection,
+            Some(&list),
+        );
+        assert_eq!(mismatch.machine_state, "verified");
+        assert!(!mismatch.count_anomalies.is_empty());
+
+        let report = evaluate_v2_ignored_fixture(&selection, &request, &list_value, &events, 206);
+        assert_eq!(report["run"]["machine_state"], "verified");
+        assert_eq!(report["acceptance"], "blocked");
+        assert!(
+            !report["run"]["same_domain_contradictions"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
