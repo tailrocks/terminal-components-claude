@@ -4,7 +4,7 @@
 //! the public facade when the shell paints it, while this module keeps the
 //! exact virtual-frame contracts used by the preview and its tests.
 
-use termrock::{Buffer, Color, Rect, Style, Surface, Theme};
+use termrock::{Buffer, Color, Rect, Style, Surface, Theme, Ui};
 
 use jackin_preview_domain::scenario::Motion;
 
@@ -700,11 +700,13 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, t: &Theme) {
     }
     let x = area.right().saturating_sub(n + 2);
     let y = area.bottom().saturating_sub(1);
-    let empty_st = Style::new().bg(t.bg(Surface::Canvas)).fg(t.color.fg[0]);
+    // Background only. An unset foreground keeps the warp colour, so an
+    // accent streak under the pad stays an accent space.
+    let clear = Style::new().bg(t.bg(Surface::Canvas));
     for xx in x.saturating_sub(1)..area.right() {
         if let Some(cell) = buf.cell_mut((xx, y)) {
             cell.set_symbol(" ");
-            cell.set_style(empty_st);
+            cell.set_style(clear);
         }
     }
     let ks = Style::new()
@@ -769,6 +771,18 @@ fn phrase_at(tick: u64) -> Option<(usize, usize)> {
         start += len;
     }
     None
+}
+
+/// Paint the intro on the live buffer and record each cell's role.
+pub fn render_intro_ui(ui: &mut Ui<'_>, area: Rect, state: &IntroState) {
+    let theme = ui.theme_ref().clone();
+    ui.paint_retained(area, |buf| render_intro(buf, area, state, &theme));
+}
+
+/// Paint the outro on the live buffer and record each cell's role.
+pub fn render_outro_ui(ui: &mut Ui<'_>, area: Rect, state: &OutroState) {
+    let theme = ui.theme_ref().clone();
+    ui.paint_retained(area, |buf| render_outro(buf, area, state, &theme));
 }
 
 /// Render the intro at `state.tick`.
@@ -896,6 +910,25 @@ mod tests {
         );
         assert_eq!(format_universe_duration(45), "45 seconds");
         assert_eq!(format_universe_duration(450), "7 minutes 30 seconds");
+    }
+
+    #[test]
+    fn warp_hint_pad_keeps_the_accent_streak() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 100, 30);
+        let mut buf = Buffer::empty(area);
+        let state = IntroState::new(Motion::Full, 300);
+        render_intro(&mut buf, area, &state, &theme);
+        let cell = buf.cell((98, 29)).expect("hint pad");
+        assert_eq!(cell.symbol(), " ");
+        assert_eq!(cell.fg, theme.color.accent);
+        let tail = buf.cell((99, 29)).expect("hint tail");
+        assert_eq!(tail.symbol(), " ");
+        assert_eq!(tail.fg, theme.color.fg[0]);
+        let key = buf.cell((88, 29)).expect("hint key");
+        assert_eq!(key.symbol(), "E");
+        assert_eq!(key.fg, theme.color.fg[2]);
+        assert!(key.modifier.contains(termrock::Modifier::BOLD));
     }
 
     #[test]

@@ -573,6 +573,36 @@ impl Ui<'_> {
         (self.buffer(), clip)
     }
 
+    /// Run `paint` on the current buffer, then record each cell's colour as a
+    /// role. Unlike [`raw`](Self::raw), this does not clear roles first, and
+    /// it does not change the glyphs `paint` wrote.
+    pub fn paint_retained(&mut self, area: Rect, paint: impl FnOnce(&mut Buffer)) {
+        paint(self.buffer());
+        let theme = self.theme.clone();
+        let area = area.intersection(self.clip);
+        let samples: Vec<(ratatui_core::layout::Position, Color, Style)> = {
+            let buf: &Buffer = match self.target {
+                Target::Page => self.page,
+                Target::Layer(i) => match self.frame.layers.active().get(i) {
+                    Some(d) => &d.buf,
+                    None => self.page,
+                },
+            };
+            area.positions()
+                .filter_map(|pos| buf.cell(pos).map(|cell| (pos, cell.fg, cell.style())))
+                .collect()
+        };
+        for (pos, fg, style) in samples {
+            let recorded = crate::theme::PaintStyle::bound(
+                style,
+                Some(retained_fg_role(&theme, fg)),
+                Some(retained_bg_role(&theme, style.bg.unwrap_or(Color::Reset))),
+                crate::theme::Surface::Canvas,
+            );
+            self.mark(pos, Some(recorded));
+        }
+    }
+
     /// Read-only access to the buffer and the current clip rect without
     /// marking cells as written or erasing semantic roles.
     pub fn peek(&self) -> (&Buffer, Rect) {
@@ -759,6 +789,45 @@ fn authored_rgb(theme: &Theme, role: Role, surface: Surface) -> Option<Color> {
         Role::OnAccent => tokens.on_accent,
         _ => return None,
     })
+}
+
+fn retained_fg_role(theme: &crate::theme::Theme, fg: Color) -> crate::theme::Role {
+    if fg == theme.color.accent {
+        return crate::theme::Role::Accent;
+    }
+    // The phrase pill paints `on_accent` (`#19191c`), which is not on the
+    // ladder. Recording it as primary makes a later dim treat it as blended
+    // text and replace it with ghost.
+    if fg == theme.color.on_accent {
+        return crate::theme::Role::OnAccent;
+    }
+    match theme.color.fg.iter().position(|candidate| *candidate == fg) {
+        Some(0) => crate::theme::Role::Fg(FgStep::Primary),
+        Some(1) => crate::theme::Role::Fg(FgStep::Secondary),
+        Some(2) => crate::theme::Role::Fg(FgStep::Muted),
+        Some(3) => crate::theme::Role::Fg(FgStep::Faint),
+        Some(_) => crate::theme::Role::Fg(FgStep::Ghost),
+        None => crate::theme::Role::Fg(FgStep::Primary),
+    }
+}
+
+fn retained_bg_role(theme: &crate::theme::Theme, bg: Color) -> crate::theme::Role {
+    use crate::theme::{Role, Surface};
+    if bg == theme.color.accent {
+        return Role::Accent;
+    }
+    for surface in [
+        Surface::Canvas,
+        Surface::Surface,
+        Surface::Elevated,
+        Surface::Overlay,
+        Surface::Popover,
+    ] {
+        if bg == theme.bg(surface) {
+            return Role::Surface(surface);
+        }
+    }
+    Role::Surface(Surface::Canvas)
 }
 
 const FADE_OUTER_KEEP: f32 = 0.55;

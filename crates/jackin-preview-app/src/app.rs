@@ -7068,9 +7068,7 @@ impl App {
     }
 
     fn draw_intro(&self, ui: &mut Ui<'_>, area: Rect) {
-        let theme = ui.theme_ref();
-        let (buf, _) = ui.raw();
-        jackin_preview_presentation::rain::render_intro(buf, area, &self.intro, theme);
+        jackin_preview_presentation::rain::render_intro_ui(ui, area, &self.intro);
     }
 
     pub(super) fn historical_span_style(
@@ -7145,13 +7143,11 @@ impl App {
     }
 
     fn draw_outro(&self, ui: &mut Ui<'_>, area: Rect) {
-        let theme = ui.theme_ref();
-        let (buf, _) = ui.raw();
         if let Some(outro) = &self.outro {
-            jackin_preview_presentation::rain::render_outro(buf, area, outro, theme);
+            jackin_preview_presentation::rain::render_outro_ui(ui, area, outro);
         } else {
             let outro = OutroState::new(self.motion, None, 0);
-            jackin_preview_presentation::rain::render_outro(buf, area, &outro, theme);
+            jackin_preview_presentation::rain::render_outro_ui(ui, area, &outro);
         }
     }
 
