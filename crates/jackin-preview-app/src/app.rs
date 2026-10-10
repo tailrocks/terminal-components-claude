@@ -2053,12 +2053,14 @@ impl App {
     }
 
     const CANCEL_ACTIONS: [Action<'static>; 2] = [
-        Action::quiet(ActionKey::CANCEL, "Cancel"),
+        Action::new(ActionKey::CANCEL, "Cancel"),
         Action::danger(ActionKey::CONFIRM, "Cancel launch"),
     ];
 
     fn cockpit_cancel_dialog() -> Dialog<'static> {
-        Dialog::confirm(
+        // Destructive: confirm stays danger text on the overlay. `confirm()`
+        // would force that key to a filled primary button.
+        Dialog::destructive(
             CANCEL_DIALOG,
             "Cancel the launch?",
             "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
@@ -5939,11 +5941,9 @@ impl App {
                     && !self.cockpit_failure_open =>
             {
                 self.cockpit_debug_open = !self.cockpit_debug_open;
-                if self.cockpit_debug_open {
-                    self.status = Some("run-2026".into());
-                } else {
-                    self.status = None;
-                }
+                // The run id is the chrome chip, not footer status. A status
+                // string shifts the hint row and repeats the id on the right.
+                self.status = None;
                 Some(Response::changed())
             }
             CMD_EXIT_DIALOG if self.route == Route::Capsule => {
@@ -6978,7 +6978,8 @@ impl App {
         let crumb = format!("Launch › {workspace} › the-architect");
 
         let stage_text = if let Some(run) = &self.launch {
-            format!("{}/11 stages", run.current.map_or(1, |idx| idx + 1))
+            let (done, _) = run.counts();
+            format!("{done}/11 stages")
         } else {
             "2/11 stages".to_owned()
         };
@@ -7007,7 +7008,7 @@ impl App {
         let right_segs = [
             HeaderSegment {
                 text: &stage_text,
-                style: palette.secondary_on_canvas,
+                style: palette.muted_on_canvas,
                 priority: 6,
                 padded: false,
             },
@@ -7015,7 +7016,9 @@ impl App {
                 text: "? help",
                 style: palette.muted_on_canvas,
                 priority: 4,
-                padded: false,
+                // Clickable in the tag, so the muted run includes the
+                // surrounding spaces. Dim then walks those spaces to ghost.
+                padded: true,
             },
         ];
 
@@ -8899,13 +8902,29 @@ impl App {
         }
 
         if matches!(self.route, Route::Cockpit | Route::Launch) {
+            let modal =
+                self.cockpit_cancel_confirm || self.cockpit_info_open || self.cockpit_failure_open;
+            // Tag `draw` paints the screen footer, then the modal, then the
+            // modal footer. The second fill keeps key-chip bold, so action
+            // cells that land on the screen keys stay weighted.
+            if modal {
+                let under = crate::screens::cockpit::CockpitScreen::hints(
+                    self.cockpit.log_open,
+                    false,
+                    false,
+                );
+                HintBar::new(APP.sub("hint"), &under).draw(ui, area);
+            }
             let hints = crate::screens::cockpit::CockpitScreen::hints(
                 self.cockpit.log_open,
                 self.cockpit_cancel_confirm,
                 self.cockpit_failure_open || self.cockpit_info_open,
             );
+            // The cancel, info, and failure dialogs are the status. The tag
+            // footer under those modals does not repeat it on the right.
+            let status = if modal { None } else { self.status.as_deref() };
             HintBar::new(APP.sub("hint"), &hints)
-                .status_text(self.status.as_deref())
+                .status_text(status)
                 .draw(ui, area);
             return;
         }

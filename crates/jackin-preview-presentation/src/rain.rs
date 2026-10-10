@@ -560,6 +560,70 @@ pub const fn handoff_stage(frame: u64) -> HandoffStage {
 /// Number of handoff frames.
 pub const HANDOFF_LEN: u64 = 12;
 
+/// Role-preserving atmosphere for a live `Ui`.
+///
+/// The buffer painter drops fg roles, so a later modal dim restyles the
+/// field as backdrop text. This path records primary-on-canvas; a trace
+/// whose painted color is not primary is treated as blended and kept.
+pub fn paint_bound(
+    ui: &mut termrock::Ui<'_>,
+    area: Rect,
+    exclude: &[Rect],
+    t_local: u64,
+    running: bool,
+    frozen: bool,
+) {
+    let theme = ui.theme_ref();
+    let surface = Surface::Canvas;
+    for x in area.left()..area.right() {
+        if pct(mix(x as u64, 11, 0)) >= 18 {
+            continue;
+        }
+        let m = mix(x as u64, 12, 0);
+        let period_t = 2 + m % 2;
+        let trail = 6 + (m >> 8) % 5;
+        let gap = 6 + (m >> 16) % 19;
+        let period = u64::from(area.height) + trail + gap;
+        let phase = (m >> 24) % period;
+        let signal = (m >> 40).is_multiple_of(10);
+        let head = (t_local / period_t + phase) % period;
+        let head_y = head as i64 - gap as i64;
+        for y in area.top()..area.bottom() {
+            if exclude
+                .iter()
+                .any(|r| r.contains(termrock::Position::new(x, y)))
+            {
+                continue;
+            }
+            let age = head_y - i64::from(y - area.y);
+            if !(0..=3).contains(&age) {
+                continue;
+            }
+            let tone = if age == 0 {
+                if signal && running && !frozen && t_local >= 15 {
+                    Tone::Accent
+                } else {
+                    Tone::Ladder(1)
+                }
+            } else {
+                Tone::Ladder(0)
+            };
+            let tone = if t_local < 15 { Tone::Ladder(0) } else { tone };
+            let Some(st) = style(theme, tone, 0) else {
+                continue;
+            };
+            let paint = termrock::PaintStyle::bound(
+                st,
+                Some(termrock::Role::Fg(termrock::FgStep::Primary)),
+                Some(termrock::Role::Surface(surface)),
+                surface,
+            );
+            let glyph = glyph(x as u64, y as u64, t_local >> 3).to_string();
+            ui.paint_str(Rect::new(x, y, 1, 1), &glyph, paint);
+        }
+    }
+}
+
 /// Restrained signal field behind the launch cockpit: ghost/faint bodies,
 /// at most one accent head per column, frozen on failure.
 pub fn paint_atmosphere(

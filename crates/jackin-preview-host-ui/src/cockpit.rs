@@ -5,7 +5,9 @@ use termrock::author::{FgStep, Modifier, Role, StylePatch, Ui};
 use termrock::controls::{Brand, Button, Panel, PanelKind};
 use termrock::layout::Track;
 use termrock::navigation::{List, ListState};
-use termrock::{Hint, HintKey, HintLayer, Id, ItemKey, PropsList, PropsRow, PropsState, width};
+use termrock::{
+    Hint, HintKey, HintLayer, Id, ItemKey, Part, PropsList, PropsRow, PropsState, truncate, width,
+};
 
 use jackin_preview_presentation::rain::{HANDOFF_LEN, HandoffStage, handoff_stage};
 use jackin_preview_sim::launch::{LaunchFailure, LaunchRun, Stage};
@@ -211,6 +213,75 @@ struct StageItem {
 pub struct CockpitScreen;
 
 impl CockpitScreen {
+    fn paint_rain(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        exclude: &[Rect],
+        t_local: u64,
+        running: bool,
+        frozen: bool,
+    ) {
+        jackin_preview_presentation::rain::paint_bound(ui, area, exclude, t_local, running, frozen);
+    }
+
+    /// One truncated label on the canvas. The list is only as wide as the
+    /// text, so cells past the ellipsis keep the row cleared behind it.
+    fn paint_truncated(ui: &mut Ui<'_>, id: Id, x: u16, y: u16, text: &str, fg: Role) {
+        let w = width(text) as u16;
+        if w == 0 {
+            return;
+        }
+        const CANVAS_ROW: [(Part, StylePatch); 1] = [(
+            Part::CONTAINER,
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(termrock::Surface::Canvas)),
+        )];
+        let state = ListState::default();
+        let patch = StylePatch::new().set_fg(fg);
+        List::new(id)
+            .bare(true)
+            .patch_part(&CANVAS_ROW)
+            .row(|_: &(), row| {
+                row.label_patched(text, &patch);
+            })
+            .draw(ui, Rect::new(x, y, w, 1), &state, &[()]);
+    }
+
+    /// One centered identity line. Bare so the string starts at the centered
+    /// column; a marker gutter would shift it three cells right.
+    fn paint_centered_line(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        id: Id,
+        y: u16,
+        text: &str,
+        patch: &StylePatch,
+    ) {
+        let n = width(text) as u16;
+        let columns = area.width;
+        if n == 0 || columns == 0 {
+            return;
+        }
+        // Wider than the viewport: the tag truncates with an ellipsis at the
+        // left edge instead of letting the screen clip the last glyph.
+        let shown;
+        let (x, w) = if n > columns {
+            shown = truncate(text, columns);
+            (area.x, columns)
+        } else {
+            shown = text.to_owned();
+            (area.x + area.width.saturating_sub(n) / 2, n)
+        };
+        let state = ListState::default();
+        List::new(id)
+            .bare(true)
+            .row(|_: &(), row| {
+                row.label_patched(&shown, patch);
+            })
+            .draw(ui, Rect::new(x, y, w.max(1), 1), &state, &[()]);
+    }
+
     /// Render the main Cockpit surface.
     pub fn draw(
         ui: &mut Ui<'_>,
@@ -225,47 +296,73 @@ impl CockpitScreen {
             .workspaces
             .first()
             .map_or("payments-platform", |w| w.name.as_str());
+        // Display the role's short name. The stored key is `namespace/name`.
+        let role = role.rsplit('/').next().unwrap_or(role);
 
-        // Narrow viewports recenter the frozen 120-wide geometry: at 120+
-        // columns the shift is zero and every rect below matches byte-for-byte.
-        let dx = (area.width as i16 - 120).min(0) / 2;
-        let sx = |x: u16| x.saturating_add_signed(dx).max(area.x);
+        // Tag `cockpit.rs` centers the identity block on the live width and
+        // paints the atmosphere behind it. The rail is 44 columns, clamped
+        // when the viewport cannot hold that plus the side margin.
+        let rail_w = 44u16.min(area.width.saturating_sub(4));
+        let rail_x = area.x + area.width.saturating_sub(rail_w) / 2;
+        let ident_y = area.y.saturating_add(1);
+        let rail_h = 11u16.min(area.height.saturating_sub(9));
+        let rail_y = ident_y.saturating_add(5);
+        let tick = run.map(|r| r.tick).unwrap_or(0);
+        let running = run.is_some_and(|r| !r.is_terminal());
+        let frozen = run.is_some_and(|r| r.failure.is_some() || r.cancelled);
+        let exclude = [
+            Rect::new(
+                rail_x.saturating_sub(2),
+                ident_y,
+                rail_w.saturating_add(4),
+                rail_h.saturating_add(6),
+            ),
+            Rect::new(area.x, area.bottom().saturating_sub(3), area.width, 3),
+        ];
+        // Paint through `paint_str` so the page keeps the roles `dim_layer`
+        // walks. `Ui::raw` would drop those roles and the modal would restyle
+        // the whole frame as backdrop text.
+        Self::paint_rain(ui, area, &exclude, tick, running, frozen);
 
-        // 1. Centered jackin❯ brand
-        let _ = Brand::new(ROOT.sub("brand"), "jackin❯").draw(ui, Rect::new(sx(55), 3, 9, 1));
+        // 1. Centered jackin❯ brand. The wordmark rect is the 9-cell
+        // " jackin❯ " run the tag centers; the glyph sits one cell in.
+        let brand_w = 9u16;
+        let brand_x = area.x + area.width.saturating_sub(brand_w) / 2;
+        let _ = Brand::new(ROOT.sub("brand"), "jackin❯")
+            .draw(ui, Rect::new(brand_x, ident_y, brand_w, 1));
 
-        // 2. Identity line 4: title
+        // 2–4. Identity lines. Bare lists: the tag centers the string itself,
+        // with no marker gutter.
         let head = format!("Loading {role} into workspace {ws_name}");
-        let ident1_state = ListState::default();
-        List::new(ROOT.sub("ident-title"))
-            .row(|_, row| {
-                let p = StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .add(Modifier::BOLD);
-                row.label_patched(&head, &p);
-            })
-            .draw(ui, Rect::new(sx(33), 4, 54, 1), &ident1_state, &[()]);
-
-        // 3. Identity line 5: agent / account
-        let ident2_state = ListState::default();
-        List::new(ROOT.sub("ident-agent"))
-            .row(|_, row| {
-                let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                row.label_patched(
-                    "Claude Code · Anthropic / Claude · account Claude · Work (session choice)",
-                    &p,
-                );
-            })
-            .draw(ui, Rect::new(sx(20), 5, 80, 1), &ident2_state, &[()]);
-
-        // 4. Identity line 6: stage progress summary
-        let ident3_state = ListState::default();
-        List::new(ROOT.sub("ident-stage"))
-            .row(|_, row| {
-                let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                row.label_patched("stage 3 of 11 · Credentials · 2 done · 0 skipped", &p);
-            })
-            .draw(ui, Rect::new(sx(33), 6, 52, 1), &ident3_state, &[()]);
+        let title_patch = StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD);
+        Self::paint_centered_line(
+            ui,
+            area,
+            ROOT.sub("ident-title"),
+            ident_y.saturating_add(1),
+            &head,
+            &title_patch,
+        );
+        let agent_patch = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
+        Self::paint_centered_line(
+            ui,
+            area,
+            ROOT.sub("ident-agent"),
+            ident_y.saturating_add(2),
+            "Claude Code · Anthropic / Claude · account Claude · Work (session choice)",
+            &agent_patch,
+        );
+        let stage_patch = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+        Self::paint_centered_line(
+            ui,
+            area,
+            ROOT.sub("ident-stage"),
+            ident_y.saturating_add(3),
+            "stage 3 of 11 · Credentials · 2 done · 0 skipped",
+            &stage_patch,
+        );
 
         // 5. 11-stage launch rail
         let stages = [
@@ -360,81 +457,124 @@ impl CockpitScreen {
         ];
 
         let rail_state = ListState::default();
+        // Tag `StepRail` right-aligns the meta to `row.right() - 1`, and the
+        // scrollbar (when the 11 rows exceed the viewport) narrows that row.
+        // The list is bare and exactly `rail_w` wide so that scrollbar lands
+        // on the rail's last column. A wider rect pushed it one cell past
+        // the rail, and the modal kept that swapped edge.
+        let has_sb = stages.len() > usize::from(rail_h);
+        let row_w = rail_w - u16::from(has_sb);
         List::new(STAGES)
+            .bare(true)
             .row(|item: &StageItem, row| {
+                // Prefix is 6 columns (pad, glyph, number). The name track
+                // stops where the meta begins, so the pad before a short
+                // status stays the row fill.
+                let mw = width(item.status) as u16;
+                let name_w = if mw == 0 {
+                    row_w.saturating_sub(6)
+                } else {
+                    row_w.saturating_sub(mw).saturating_sub(7)
+                };
                 let mut cols = row.columns_with_gap(
                     &[
+                        Track::Fixed(1),
+                        Track::Fixed(2),
                         Track::Fixed(3),
-                        Track::Fixed(3),
-                        Track::Fixed(32),
-                        Track::Fixed(6),
+                        Track::Fixed(name_w),
+                        Track::Fixed(mw),
                     ],
                     0,
                 );
-
-                if item.is_accent {
+                let pad = StylePatch::new().set_fg(Role::CurrentSurface);
+                cols.cell(0).patch(&pad).text(" ");
+                if !item.glyph.is_empty() {
                     let p_accent = StylePatch::new().set_fg(Role::Accent);
-                    let glyph_str = format!(" {} ", item.glyph);
-                    let text = if item.glyph.is_empty() {
-                        "   "
-                    } else {
-                        glyph_str.as_str()
-                    };
-                    cols.cell(0).patch(&p_accent).text(text);
-                } else {
-                    cols.cell(0).text("   ");
+                    cols.cell(1).patch(&p_accent).text(item.glyph);
                 }
 
                 if item.is_current {
                     let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                    cols.cell(1).patch(&p_sec).text(&format!("{} ", item.num));
+                    cols.cell(2).patch(&p_sec).text(item.num);
                     let p_bold = StylePatch::new()
                         .set_fg(Role::Fg(FgStep::Primary))
                         .add(Modifier::BOLD);
-                    cols.cell(2).patch(&p_bold).text(item.name);
+                    cols.cell(3).patch(&p_bold).text(item.name);
                 } else if item.is_accent {
                     let p_faint = StylePatch::new().set_fg(Role::BorderStrong);
-                    cols.cell(1).patch(&p_faint).text(&format!("{} ", item.num));
+                    cols.cell(2).patch(&p_faint).text(item.num);
                     let p_sec = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                    cols.cell(2).patch(&p_sec).text(item.name);
-                    cols.cell(3).patch(&p_faint).text(item.status);
+                    cols.cell(3).patch(&p_sec).text(item.name);
+                    if !item.status.is_empty() {
+                        cols.cell(4).patch(&p_faint).text(item.status);
+                    }
                 } else {
                     let p_faint = StylePatch::new().set_fg(Role::BorderStrong);
-                    cols.cell(1).patch(&p_faint).text(&format!("{} ", item.num));
+                    cols.cell(2).patch(&p_faint).text(item.num);
                     let p_muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                    cols.cell(2).patch(&p_muted).text(item.name);
-                    cols.cell(3).patch(&p_faint).text(item.status);
+                    cols.cell(3).patch(&p_muted).text(item.name);
+                    if !item.status.is_empty() {
+                        cols.cell(4).patch(&p_faint).text(item.status);
+                    }
                 }
             })
-            // The 44-cell rail plus the List's 3-cell gutter and 1-cell
-            // margin; content starts at the reference rail column.
-            .draw(ui, Rect::new(sx(35), 8, 48, 11), &rail_state, &stages);
+            .draw(
+                ui,
+                Rect::new(rail_x, rail_y, rail_w, rail_h),
+                &rail_state,
+                &stages,
+            );
 
         // Bottom chrome row: two rows above the body bottom (tag `ay`).
         let chrome_y = area.bottom().saturating_sub(2);
 
-        // 6. Credentials projection line under stage rail. Short viewports
-        // drop it (with the quota line) rather than collide with the
-        // bottom chrome (tag `cockpit.rs:890`: `y + 1 < bottom - 3`).
-        if 21 < chrome_y {
-            let cred_state = ListState::default();
-            List::new(ACCOUNT_LINE)
-                .row(|_, row| {
-                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
-                    row.label_patched(
-                        "credentials  5 accounts · Claude · Work (1Password) · Claude · Personal · Codex · P…",
-                        &p,
+        // 6. Credentials projection under the rail. The tag fills both rows
+        // from the canvas first (so rain cannot show through), then truncates
+        // each line to the live width. Short viewports drop the pair rather
+        // than collide with the bottom chrome (`y + 1 < bottom - 3`).
+        let cred_y = rail_y.saturating_add(rail_h).saturating_add(1);
+        if cred_y.saturating_add(1) < area.bottom().saturating_sub(3)
+            && let Some((line, detail)) = credential_projection(world)
+        {
+            let x = rail_x.saturating_sub(4);
+            let wdt = area.right().saturating_sub(x.saturating_add(2));
+            // A bare list fills its rect with the canvas before any label,
+            // which clears rain on both rows without a preview paint call.
+            const CANVAS_ROW: [(Part, StylePatch); 1] = [(
+                Part::CONTAINER,
+                StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(termrock::Surface::Canvas)),
+            )];
+            let clear_state = ListState::default();
+            List::new(ACCOUNT_LINE.sub("clear"))
+                .bare(true)
+                .patch_part(&CANVAS_ROW)
+                .row(|_: &(), row| {
+                    row.label_patched("", &StylePatch::new());
+                })
+                .draw(
+                    ui,
+                    Rect::new(area.x, cred_y, area.width, 2),
+                    &clear_state,
+                    &[()],
+                );
+            if wdt > 0 {
+                let shown = truncate(&line, wdt);
+                Self::paint_truncated(ui, ACCOUNT_LINE, x, cred_y, &shown, Role::Fg(FgStep::Muted));
+                let detail_w = wdt.saturating_sub(13);
+                if detail_w > 0 {
+                    let detail_shown = truncate(&detail, detail_w);
+                    Self::paint_truncated(
+                        ui,
+                        ACCOUNT_LINE.sub("quota"),
+                        x.saturating_add(13),
+                        cred_y.saturating_add(1),
+                        &detail_shown,
+                        Role::Fg(FgStep::Secondary),
                     );
-                })
-                .draw(ui, Rect::new(sx(34), 20, 84, 1), &cred_state, &[()]);
-
-            let quota_state = ListState::default();
-            List::new(ACCOUNT_LINE.sub("quota"))
-                .row(|_, row| {
-                    let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                    row.label_patched("quota readable · session choice", &p);
-                })
-                .draw(ui, Rect::new(sx(47), 21, 31, 1), &quota_state, &[()]);
+                }
+            }
         }
 
         // 7. Bottom status line. A terminal failure replaces the live
@@ -503,30 +643,47 @@ impl CockpitScreen {
                     );
             }
         } else {
+            let activity = "⠋ Resolving credentials…";
             let status_state = ListState::default();
             List::new(ROOT.sub("status"))
+                .bare(true)
                 .row(|_, row| {
                     let p = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                    row.label_patched("⠋ Resolving credentials…", &p);
+                    row.label_patched(activity, &p);
                 })
                 .draw(
                     ui,
-                    Rect::new(area.x.saturating_add(1), chrome_y, 24, 1),
+                    Rect::new(
+                        area.x.saturating_add(1),
+                        chrome_y,
+                        width(activity) as u16,
+                        1,
+                    ),
                     &status_state,
                     &[()],
                 );
         }
 
         if debug {
+            // Tag paints ` {run_id} ` ending one cell before the right edge,
+            // with no marker gutter. The id itself is the `d` wait target.
+            let chip = " run-202609030914-b5df ";
+            let cw = width(chip) as u16;
             let debug_state = ListState::default();
             List::new(ROOT.sub("debug-chip"))
+                .bare(true)
                 .row(|_, row| {
                     let p = StylePatch::new().set_fg(Role::Warning);
-                    row.label_patched(" run-202609030914-b5df ", &p);
+                    row.label_patched(chip, &p);
                 })
                 .draw(
                     ui,
-                    Rect::new(area.right().saturating_sub(24), chrome_y, 23, 1),
+                    Rect::new(
+                        area.right().saturating_sub(cw.saturating_add(1)),
+                        chrome_y,
+                        cw,
+                        1,
+                    ),
                     &debug_state,
                     &[()],
                 );
@@ -845,6 +1002,64 @@ impl CockpitScreen {
             }
         }
     }
+}
+
+/// The launch fixture's credential projection.
+///
+/// Workspace 1 hands the container every ready effective account. The session
+/// starts on `acct-claude-work`, so that account keeps its source annotation
+/// and the others stay titles. The line is truncated at paint time.
+fn credential_projection(world: &World) -> Option<(String, String)> {
+    let workspace = world
+        .workspaces
+        .iter()
+        .find(|workspace| workspace.id == 1)?;
+    let ids: Vec<String> = workspace
+        .effective_accounts(&world.accounts)
+        .into_iter()
+        .filter(|entry| entry.usable.is_ready())
+        .map(|entry| entry.id)
+        .collect();
+    const SELECTED: &str = "acct-claude-work";
+    // Annotate the session account only when the workspace already hands it
+    // to the container. A missing id must not be invented, and must not
+    // drop the ready accounts.
+    let selected_in = ids.iter().any(|id| id == SELECTED);
+    let primary_id = if selected_in {
+        SELECTED
+    } else {
+        ids.first().map(String::as_str)?
+    };
+    let primary = world.accounts.get(primary_id)?;
+    let primary_label = if selected_in {
+        format!("{} ({})", primary.title(), primary.source.origin_label())
+    } else {
+        primary.title()
+    };
+    let others = ids
+        .iter()
+        .filter(|id| id.as_str() != primary_id)
+        .filter_map(|id| world.accounts.get(id).map(|account| account.title()))
+        .collect::<Vec<_>>()
+        .join(" · ");
+    let count = ids.len();
+    let noun = if count == 1 { "account" } else { "accounts" };
+    let origin = if others.is_empty() {
+        format!("{count} {noun} · {primary_label}")
+    } else {
+        format!("{count} {noun} · {primary_label} · {others}")
+    };
+    let level = primary
+        .validation
+        .level()
+        .map(|level| level.label())
+        .unwrap_or("quota readable");
+    // Work is enabled beside the inherited default, so the tag calls the
+    // choice a session pick rather than the resolver's level.
+    Some((
+        format!("credentials  {origin}"),
+        format!("{level} · session choice"),
+    ))
 }
 
 #[cfg(test)]
