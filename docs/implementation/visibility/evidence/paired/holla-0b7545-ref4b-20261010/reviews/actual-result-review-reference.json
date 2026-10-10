@@ -1,0 +1,108 @@
+{
+  "schema": "termrock-review/holla-paired-run-actual-result/v1",
+  "reviewed_at": "2026-10-10T07:50:51Z",
+  "reviewer": "/root/reference_claim_luna",
+  "verdict": "READY_ACTUAL_RESULT_REVIEW_BLOCKED",
+  "scope": "Read-only verification of the pinned historical HELP-HOLLA-004 paired run and its captured result; no rerun, Cargo, trust creation, corpus admission, or product readiness claim.",
+  "bindings": {
+    "request": {
+      "path": "/private/tmp/termrock-vis06-holla-paired-run-r3-20261010/capture-request.json",
+      "sha256": "d23f77641056f469b61c47f29041ff352a8967548251e68ddb232b5b7bd628a6"
+    },
+    "remap_plan": {
+      "path": "/private/tmp/termrock-vis06-holla-paired-run-r3-20261010/remap-plan.json",
+      "sha256": "0581c098f92a690d1fb3531db09efb6696b1fb3b7315a8109dfb7b814f000d96"
+    },
+    "capture_result": {
+      "path": "/private/tmp/termrock-vis06-holla-paired-run-r3-20261010/execution/capture/result.json",
+      "sha256": "1e296da952ae13d79ee2948e193cc1d9501ab33f6a2a0572a8f8bd9994d231ce"
+    },
+    "stdout": {
+      "path": "/private/tmp/termrock-vis06-holla-paired-run-r3-20261010/execution/capture/stdout.raw",
+      "sha256": "addda944a841f9e8226acd2336a31dd3b4fc380ce31bc7bc5a5c9741fa3858fa",
+      "bytes": 2667,
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis06-holla-paired-run-r3-20261010/execution/capture/stderr.raw",
+      "sha256": "d040d2c92b1395c2b47485eaed38890cab30c2cdaeb581259ee5b95e6a87cece",
+      "bytes": 2505,
+      "truncated": false
+    },
+    "paired_receipt": {
+      "path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/paired-holla-receipt.json",
+      "sha256": "ab202f9e2fe5e57dc6764c4ef4c30f1fdd1628cdf3439644ae0f5677afeb23cc"
+    },
+    "subject_manifest": {
+      "path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/subject-manifest.json",
+      "sha256": "9fb567c6548f6f7d4f4f821694b2ad45fb653efafdd1040523f622dedf0a340b"
+    },
+    "trust_record": {
+      "path": "/private/tmp/termrock-vis06-holla-paired-run-r1-20261010/trust/trust-record.json",
+      "sha256": "ecfdaec8f4ebc947532399e0654ba84094ef8482ce02609ab2825e0c18a30e63"
+    },
+    "test_binary": {
+      "path": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/deps/shared_journeys-75a38fc8a0088043",
+      "sha256": "e762809681c8047dd141a9e647275c9bde490036531d1e0ed786197514641863"
+    },
+    "test_binary_dep_info": {
+      "path": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/deps/shared_journeys-75a38fc8a0088043.d",
+      "sha256": "a866423456de12aa4c04cca393e46cae599b889fb8eccabc26743b544667ce66"
+    },
+    "preflight_result_review": {
+      "path": "/private/tmp/termrock-vis06-holla-preflight-r4-policy-result-review-luna-20261010.json",
+      "sha256": "7757e5a4fcb49a8fdb9654db63a7a252aaddca60359b185d23ca11738d69daba"
+    }
+  },
+  "execution": {
+    "run_id": "holla-historical-0b7545-ref4b-r1-20261010",
+    "case_id": "HELP-HOLLA-004",
+    "candidate_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "reference_commit": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "expected_generation": null,
+    "trust_status": "accepted",
+    "write_policy_sha256": "88182dd9ade3efd9d77eff820736a9c40adca328bef473e71787edf1ec5bf86c",
+    "nextest_version": "0.9.146",
+    "selected_test": "termrock-e2e::shared_journeys$holla_help_overlay_004",
+    "target_remap_parent_matches_preflight_bundle": true,
+    "collector_outcome": "complete",
+    "child_exit_code": 100,
+    "child_signal": null,
+    "timed_out": false,
+    "parent_signal": null,
+    "raw_streams_truncated": false
+  },
+  "result": {
+    "selected_test_started": 1,
+    "selected_test_terminal_failed": 1,
+    "summary": "1 test run: 0 passed, 1 failed; 3 filtered",
+    "checks_total": 80,
+    "check_status_counts": {
+      "PASS": 56,
+      "BLOCKED": 8,
+      "NOT_APPLICABLE": 16,
+      "FAIL": 0
+    },
+    "dimensions": {
+      "build": {"PASS": 8},
+      "launch": {"PASS": 8},
+      "first_frame": {"PASS": 8},
+      "interaction": {"PASS": 32},
+      "visual": {"BLOCKED": 8},
+      "exit": {"NOT_APPLICABLE": 8},
+      "restoration": {"NOT_APPLICABLE": 8}
+    },
+    "failure_reason": "The harness acceptance-readiness assertion failed because no shared expected generation was supplied; exact visual comparison remained blocked for both roles.",
+    "corpus_admission": "NOT_RUN",
+    "product_readiness": "NOT_ESTABLISHED"
+  },
+  "artifact_validation": {
+    "paired_receipt_artifact_count": 80,
+    "all_artifact_paths_within_write_root": true,
+    "all_artifact_sizes_and_sha256_match_receipt": true,
+    "build_evidence_files_verified": 4,
+    "trust_record_sha256_matches": true,
+    "canonical_and_remapped_test_binary_match_pinned_sha256": true,
+    "dep_info_sha256_matches_pinned_sha256": true
+  }
+}

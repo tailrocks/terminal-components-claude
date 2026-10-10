@@ -1,0 +1,229 @@
+{
+  "build_evidence": {
+    "build_environment": {
+      "path": "build-environment.json",
+      "sha256": "72bddeda282b5cf7b70babec3bc3e9b8d7b53e864ddb547ad8934b5e3d183c91"
+    },
+    "source_inputs": {
+      "path": "source-inputs.json",
+      "sha256": "0d619ac72a7036560a5283c63b6ff4ba28c7172d18d77894b3db424c9945eaac"
+    }
+  },
+  "expected_generation": null,
+  "run_id": "holla-historical-0b7545-ref4b-r1-20261010",
+  "schema": "termrock-spec/parity-subject-manifest-v2",
+  "subjects": [
+    {
+      "actual_output_root": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference",
+      "build": {
+        "default_features": true,
+        "features": [],
+        "package_id": "path+file:///private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/source/reference#junie-tui@0.1.0",
+        "profile": "release",
+        "target_name": "holla",
+        "target_triple": "aarch64-apple-darwin",
+        "toolchain": "1.98.1"
+      },
+      "build_inputs": {
+        "cargo_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "executed_argv": [
+          "/Users/donbeave/.cargo/bin/rustup",
+          "run",
+          "1.98.1",
+          "cargo",
+          "build",
+          "--release",
+          "--locked",
+          "--offline",
+          "--jobs",
+          "2",
+          "--color",
+          "never",
+          "--message-format=json-render-diagnostics",
+          "--manifest-path",
+          "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/source/reference/Cargo.toml",
+          "--package",
+          "junie-tui@0.1.0",
+          "--bin",
+          "holla",
+          "--target",
+          "aarch64-apple-darwin",
+          "--target-dir",
+          "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/targets/reference"
+        ],
+        "host_triple": "aarch64-apple-darwin",
+        "lock_sha256": "3edfd7975cfe1449aad4b30d65dbbcb9d695f01dfd3e1eb9025ed346f0a94460",
+        "manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7",
+        "mise_config": {
+          "path": null,
+          "present": false,
+          "sha256": null
+        },
+        "rustc_version": "rustc 1.98.1 (48a229cea 2026-09-01)"
+      },
+      "builder_receipt": {
+        "cargo_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "default_features": true,
+        "executable_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/targets/reference/aarch64-apple-darwin/release/holla",
+        "executable_sha256": "d9dd6eb44daa25851e8461e39641c5494cc4ce206445cd044e85f5c517eac7c9",
+        "executed_argv": [
+          "/Users/donbeave/.cargo/bin/rustup",
+          "run",
+          "1.98.1",
+          "cargo",
+          "build",
+          "--release",
+          "--locked",
+          "--offline",
+          "--jobs",
+          "2",
+          "--color",
+          "never",
+          "--message-format=json-render-diagnostics",
+          "--manifest-path",
+          "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/source/reference/Cargo.toml",
+          "--package",
+          "junie-tui@0.1.0",
+          "--bin",
+          "holla",
+          "--target",
+          "aarch64-apple-darwin",
+          "--target-dir",
+          "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/targets/reference"
+        ],
+        "host_triple": "aarch64-apple-darwin",
+        "lock_sha256": "3edfd7975cfe1449aad4b30d65dbbcb9d695f01dfd3e1eb9025ed346f0a94460",
+        "manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7",
+        "mise_config": {
+          "path": null,
+          "present": false,
+          "sha256": null
+        },
+        "package_id": "path+file:///private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/source/reference#junie-tui@0.1.0",
+        "profile": "release",
+        "requested_features": [],
+        "rustc_version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+        "schema": "termrock-spec/parity-subject-build-receipt-v1",
+        "sha256": "e8fd2571e5c9b512197580fcbd1aca61c8fbe6cecc69cab570655f82ff502cef",
+        "source_commit": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+        "target_name": "holla",
+        "target_triple": "aarch64-apple-darwin",
+        "toolchain": "1.98.1"
+      },
+      "builder_receipt_sha256": "e8fd2571e5c9b512197580fcbd1aca61c8fbe6cecc69cab570655f82ff502cef",
+      "executable": {
+        "path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/targets/reference/aarch64-apple-darwin/release/holla",
+        "sha256": "d9dd6eb44daa25851e8461e39641c5494cc4ce206445cd044e85f5c517eac7c9"
+      },
+      "role": "reference",
+      "source_commit": "4b473a98a8641a9dae8dbf9c31c0c94b15465496"
+    },
+    {
+      "actual_output_root": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate",
+      "build": {
+        "default_features": true,
+        "features": [],
+        "package_id": "path+file:///private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/source/candidate/crates/holla#0.1.0",
+        "profile": "release",
+        "target_name": "holla",
+        "target_triple": "aarch64-apple-darwin",
+        "toolchain": "1.98.1"
+      },
+      "build_inputs": {
+        "cargo_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "executed_argv": [
+          "/Users/donbeave/.cargo/bin/rustup",
+          "run",
+          "1.98.1",
+          "cargo",
+          "build",
+          "--release",
+          "--locked",
+          "--offline",
+          "--jobs",
+          "2",
+          "--color",
+          "never",
+          "--message-format=json-render-diagnostics",
+          "--manifest-path",
+          "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/source/candidate/Cargo.toml",
+          "--package",
+          "holla@0.1.0",
+          "--bin",
+          "holla",
+          "--target",
+          "aarch64-apple-darwin",
+          "--target-dir",
+          "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/targets/candidate"
+        ],
+        "host_triple": "aarch64-apple-darwin",
+        "lock_sha256": "a43fdf2640e4934ecb60289c215363298b5932effdc9f161495269159f1f917e",
+        "manifest_sha256": "ee499e5448f4d051bccc3ecfe8b7fcb361dfd7c66c2a18a3ec52ac148f481963",
+        "mise_config": {
+          "path": "mise.toml",
+          "present": true,
+          "sha256": "3f569040bce80a0a18acbdca439a658871edb98585195294a26dd190926245e9"
+        },
+        "rustc_version": "rustc 1.98.1 (48a229cea 2026-09-01)"
+      },
+      "builder_receipt": {
+        "cargo_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "default_features": true,
+        "executable_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/targets/candidate/aarch64-apple-darwin/release/holla",
+        "executable_sha256": "a00f19664acd52ddfcb16c153d785f385bae3a68dd1c076e25f0ea44d2d5b897",
+        "executed_argv": [
+          "/Users/donbeave/.cargo/bin/rustup",
+          "run",
+          "1.98.1",
+          "cargo",
+          "build",
+          "--release",
+          "--locked",
+          "--offline",
+          "--jobs",
+          "2",
+          "--color",
+          "never",
+          "--message-format=json-render-diagnostics",
+          "--manifest-path",
+          "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/source/candidate/Cargo.toml",
+          "--package",
+          "holla@0.1.0",
+          "--bin",
+          "holla",
+          "--target",
+          "aarch64-apple-darwin",
+          "--target-dir",
+          "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/targets/candidate"
+        ],
+        "host_triple": "aarch64-apple-darwin",
+        "lock_sha256": "a43fdf2640e4934ecb60289c215363298b5932effdc9f161495269159f1f917e",
+        "manifest_sha256": "ee499e5448f4d051bccc3ecfe8b7fcb361dfd7c66c2a18a3ec52ac148f481963",
+        "mise_config": {
+          "path": "mise.toml",
+          "present": true,
+          "sha256": "3f569040bce80a0a18acbdca439a658871edb98585195294a26dd190926245e9"
+        },
+        "package_id": "path+file:///private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/source/candidate/crates/holla#0.1.0",
+        "profile": "release",
+        "requested_features": [],
+        "rustc_version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+        "schema": "termrock-spec/parity-subject-build-receipt-v1",
+        "sha256": "94c72207c195561abcf6c6cd8b2b843b237d9b348e62f15d62efc21cca061817",
+        "source_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+        "target_name": "holla",
+        "target_triple": "aarch64-apple-darwin",
+        "toolchain": "1.98.1"
+      },
+      "builder_receipt_sha256": "94c72207c195561abcf6c6cd8b2b843b237d9b348e62f15d62efc21cca061817",
+      "executable": {
+        "path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/targets/candidate/aarch64-apple-darwin/release/holla",
+        "sha256": "a00f19664acd52ddfcb16c153d785f385bae3a68dd1c076e25f0ea44d2d5b897"
+      },
+      "role": "candidate",
+      "source_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f"
+    }
+  ],
+  "suite_revision": "termrock-e2e-2026-10-09.2",
+  "suite_sha256": "b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d"
+}

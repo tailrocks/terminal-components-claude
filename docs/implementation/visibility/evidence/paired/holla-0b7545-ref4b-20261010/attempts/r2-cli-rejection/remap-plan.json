@@ -1,0 +1,70 @@
+{
+  "state": "PREPARED_AWAITING_INDEPENDENT_REVIEW",
+  "historical_pair": {
+    "candidate": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "reference": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "expected_generation": null
+  },
+  "subject_manifest": {
+    "path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/subject-manifest.json",
+    "sha256": "9fb567c6548f6f7d4f4f821694b2ad45fb653efafdd1040523f622dedf0a340b"
+  },
+  "trust": {
+    "path": "/private/tmp/termrock-vis06-holla-paired-run-r1-20261010/trust/trust-record.json",
+    "sha256": "ecfdaec8f4ebc947532399e0654ba84094ef8482ce02609ab2825e0c18a30e63",
+    "reference_review": "/private/tmp/termrock-vis06-holla-paired-run-r1-trust-review-luna-20261010.json",
+    "reference_review_sha256": "491a52e71a0cd65f7229bc5d684d693b56365b60ec12d2a3187c55ca9e7c69f4"
+  },
+  "preflight": {
+    "request_review": "/private/tmp/termrock-vis06-holla-preflight-r4-request-review-luna-20261010.json",
+    "request_review_sha256": "0171d78ca046e43f581bcf36b430a9d9924e93c8416b2c626905a3229e22a3df",
+    "result_review": "/private/tmp/termrock-vis06-holla-preflight-r4-policy-result-review-luna-20261010.json",
+    "result_review_sha256": "7757e5a4fcb49a8fdb9654db63a7a252aaddca60359b185d23ca11738d69daba",
+    "write_policy_sha256": "88182dd9ade3efd9d77eff820736a9c40adca328bef473e71787edf1ec5bf86c"
+  },
+  "reused_nextest_metadata": {
+    "binaries_request": "/private/tmp/termrock-vis06-holla-nextest-reuse-r2-20261010/binaries-only/capture-request.json",
+    "binaries_request_sha256": "6950a9f0e144e3b9f3dc0c74083a1a6131b21abed9d7823a60d2c771fa9c6304",
+    "binaries_result": "/private/tmp/termrock-vis06-holla-nextest-reuse-r2-20261010/binaries-only/execution/capture/result.json",
+    "binaries_result_sha256": "020e9706f17cbb2a6cd4dfd6aff45a217c6975b44bd5045c5bc9ec8747592323",
+    "binaries_stdout": "/private/tmp/termrock-vis06-holla-nextest-reuse-r2-20261010/binaries-only/execution/capture/stdout.raw",
+    "binaries_stdout_sha256": "8a1e43d7e7080ecde52fd6664bf7aba15b69cd523dfaad0d46fcec75d216ed31",
+    "cargo_request": "/private/tmp/termrock-vis06-holla-nextest-reuse-r1-20261010/cargo-metadata/capture-request.json",
+    "cargo_request_sha256": "83b3378000869dded0f3eea43abf531ff8f5e6d1d26631f563ed8a4214dfae87",
+    "cargo_result": "/private/tmp/termrock-vis06-holla-nextest-reuse-r1-20261010/cargo-metadata/execution/capture/result.json",
+    "cargo_result_sha256": "e9d8ffc285aa297561b6c57b82da64bdc88619e5888f195570ee0945b50c38ec",
+    "cargo_stdout": "/private/tmp/termrock-vis06-holla-nextest-reuse-r1-20261010/cargo-metadata/execution/capture/stdout.raw",
+    "cargo_stdout_sha256": "d3becace29e9a9eea510c7126c5e609b709bc103ba4d41ff0814ccf34d1bcec5",
+    "external_nextest_config": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-list-r2-20261010/nextest-config.toml",
+    "external_nextest_config_sha256": "9cb6ed5a384c852af824e76747510ba952b47a44d3883a2d902e396e902f3ef8"
+  },
+  "test_artifact": {
+    "binary_name": "shared_journeys-75a38fc8a0088043",
+    "binary_sha256": "e762809681c8047dd141a9e647275c9bde490036531d1e0ed786197514641863",
+    "depinfo_sha256": "a866423456de12aa4c04cca393e46cae599b889fb8eccabc26743b544667ce66",
+    "depinfo_source": "tests/shared_journeys.rs",
+    "compiled_suite_sha256": "b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d"
+  },
+  "target_dir_remap": {
+    "original_target_directory": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-list-r2-20261010/execution/target",
+    "remap_root": "/private/tmp/termrock-vis06-holla-paired-run-r2-20261010/target-remap",
+    "remapped_deps_path": "/private/tmp/termrock-vis06-holla-paired-run-r2-20261010/target-remap/aarch64-apple-darwin/debug/deps",
+    "deps_symlink_target": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/deps",
+    "remapped_binary_path": "/private/tmp/termrock-vis06-holla-paired-run-r2-20261010/target-remap/aarch64-apple-darwin/debug/deps/shared_journeys-75a38fc8a0088043",
+    "canonical_binary_path": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/deps/shared_journeys-75a38fc8a0088043",
+    "canonical_test_binary_parent": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/deps",
+    "test_binary_parent_matches_preflight_bundle": true
+  },
+  "write_roots": {
+    "write_root": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write",
+    "candidate": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate",
+    "reference": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference",
+    "receipt": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/paired-holla-receipt.json"
+  },
+  "request_path": "/private/tmp/termrock-vis06-holla-paired-run-r2-20261010/capture-request.json",
+  "request_sha256": "3ad6be249d55c354c4a4dab15bfbcc7a4c073e28c7a199fd99ab6002fe52f64d",
+  "request_timeout_ms": 900000,
+  "no_generation_admission_env": true,
+  "no_cargo_in_run_path": "PATH contains only system directories; run consumes pinned Nextest binaries metadata and Cargo metadata",
+  "no_test_execution_yet": true
+}

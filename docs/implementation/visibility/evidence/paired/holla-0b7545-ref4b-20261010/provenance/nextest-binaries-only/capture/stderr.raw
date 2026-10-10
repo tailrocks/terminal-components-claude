@@ -1,0 +1,22 @@
+warning: unused variable: `builder_run_path`
+    --> src/lib.rs:1956:5
+     |
+1956 |     builder_run_path: &Path,
+     |     ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_builder_run_path`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `git_object_replacement_policy` is never read
+    --> src/lib.rs:1035:5
+     |
+1015 | struct BuilderRunEvidence {
+     |        ------------------ field in this struct
+...
+1035 |     git_object_replacement_policy: String,
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `BuilderRunEvidence` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `termrock-e2e` (lib) generated 2 warnings (run `cargo fix --lib -p termrock-e2e` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.49s

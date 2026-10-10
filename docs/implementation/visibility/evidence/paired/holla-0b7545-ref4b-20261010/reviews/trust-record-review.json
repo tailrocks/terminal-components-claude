@@ -1,0 +1,106 @@
+{
+  "checks": [
+    {
+      "check": "trust_is_regular_0400_file",
+      "detail": "0o400",
+      "passed": true
+    },
+    {
+      "check": "trust_schema_and_exact_struct_fields",
+      "detail": null,
+      "passed": true
+    },
+    {
+      "check": "required_expected_generation_is_null",
+      "detail": null,
+      "passed": true
+    },
+    {
+      "check": "subject_manifest_path_and_hash",
+      "detail": "9fb567c6548f6f7d4f4f821694b2ad45fb653efafdd1040523f622dedf0a340b",
+      "passed": true
+    },
+    {
+      "check": "builder_run_path_and_hash",
+      "detail": "4b4d5b2cc3e68cf1a9794ea34c83987462302fb09e480ff0183aa5ff7e1658c7",
+      "passed": true
+    },
+    {
+      "check": "suite_digest_matches_compiled_current_manifest",
+      "detail": null,
+      "passed": true
+    },
+    {
+      "check": "case_profile_lock_digests_match",
+      "detail": null,
+      "passed": true
+    },
+    {
+      "check": "suite_source_files_match_case_profile_lock",
+      "detail": null,
+      "passed": true
+    },
+    {
+      "check": "candidate_and_reference_commit_receipt_pairs_match_manifest",
+      "detail": null,
+      "passed": true
+    },
+    {
+      "check": "suite_binary_hashes_match_both_immutable_artifacts",
+      "detail": {
+        "8f7199bb1f9df9de15e677f97ac610262d2c2391fe0e41995e6226f071af263a": "holla_help_overlay-459bcdbd3e599fd4",
+        "e762809681c8047dd141a9e647275c9bde490036531d1e0ed786197514641863": "shared_journeys-75a38fc8a0088043"
+      },
+      "passed": true
+    },
+    {
+      "check": "preflight_review_pin_matches_receipt",
+      "detail": "7757e5a4fcb49a8fdb9654db63a7a252aaddca60359b185d23ca11738d69daba",
+      "passed": true
+    },
+    {
+      "check": "write_policy_matches_successful_preflight",
+      "detail": "88182dd9ade3efd9d77eff820736a9c40adca328bef473e71787edf1ec5bf86c",
+      "passed": true
+    },
+    {
+      "check": "policy_subject_and_output_roots_are_reviewed",
+      "detail": null,
+      "passed": true
+    },
+    {
+      "check": "review_scope_does_not_claim_execution",
+      "detail": null,
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "This review validates trust-record schema and bindings for the exact historical suite and reviewed write policy.",
+    "It does not review a paired-run invocation, authorize execution, or establish product/PTy/capture/admission qualification.",
+    "No Holla app, PTY, or paired journey was run as part of this review."
+  ],
+  "preflight_result": {
+    "path": "/private/tmp/termrock-vis06-holla-preflight-r4-20261010/execution/capture/result.json",
+    "policy_sha256": "88182dd9ade3efd9d77eff820736a9c40adca328bef473e71787edf1ec5bf86c",
+    "sha256": "af9da59254e7d17991bd47b04b466889d39cf32a440f709eb0505aba6fa9a913",
+    "state": "prepared_only"
+  },
+  "preflight_review": {
+    "path": "/private/tmp/termrock-vis06-holla-preflight-r4-policy-result-review-luna-20261010.json",
+    "sha256": "7757e5a4fcb49a8fdb9654db63a7a252aaddca60359b185d23ca11738d69daba",
+    "verdict": "READY_FOR_CALLER_TRUST_PREPARATION_ONLY"
+  },
+  "reviewed_trust": {
+    "bytes": 1836,
+    "mode": "0400",
+    "path": "/private/tmp/termrock-vis06-holla-paired-run-r1-20261010/trust/trust-record.json",
+    "sha256": "ecfdaec8f4ebc947532399e0654ba84094ef8482ce02609ab2825e0c18a30e63"
+  },
+  "schema": "termrock-independent-review/holla-caller-trust-record/v1",
+  "subject_pair": {
+    "candidate": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "expected_generation": null,
+    "reference": "4b473a98a8641a9dae8dbf9c31c0c94b15465496"
+  },
+  "verdict": "READY_FOR_PAIRED_RUN_REQUEST_REVIEW"
+}

@@ -1,0 +1,62 @@
+{
+  "schema": "termrock-holla-paired-evidence-provenance/v1",
+  "archive_state": "DRAFT_PENDING_ARCHIVE_REVIEW",
+  "historical_pair": {
+    "candidate_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "candidate_binary_sha256": "a00f19664acd52ddfcb16c153d785f385bae3a68dd1c076e25f0ea44d2d5b897",
+    "reference_commit": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "reference_binary_sha256": "d9dd6eb44daa25851e8461e39641c5494cc4ce206445cd044e85f5c517eac7c9",
+    "expected_generation": null,
+    "subject_manifest_sha256": "9fb567c6548f6f7d4f4f821694b2ad45fb653efafdd1040523f622dedf0a340b",
+    "caller_trust_sha256": "ecfdaec8f4ebc947532399e0654ba84094ef8482ce02609ab2825e0c18a30e63"
+  },
+  "historical_suite": {
+    "repository_tree": "c962085b9c9e6b80ddba31d8c82e01c8d2e97179",
+    "suite_digest": "b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d",
+    "test_binary_name": "shared_journeys-75a38fc8a0088043",
+    "test_binary_sha256": "e762809681c8047dd141a9e647275c9bde490036531d1e0ed786197514641863",
+    "dependency_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+    "case_id": "HELP-HOLLA-004",
+    "test_name": "holla_help_overlay_004"
+  },
+  "integration_snapshot_comparison": {
+    "commit": "706fd4fdb0473cb9348039d0ce35182a089d0223",
+    "termrock_e2e_tree": "6c45dc171e689988957dae363e01a8afbacb0828",
+    "historical_suite_tree": "c962085b9c9e6b80ddba31d8c82e01c8d2e97179",
+    "trees_match": false,
+    "note": "The captured Holla journey is historical; this archive does not claim execution against the integration snapshot suite tree."
+  },
+  "actual_run": {
+    "request_sha256": "d23f77641056f469b61c47f29041ff352a8967548251e68ddb232b5b7bd628a6",
+    "native_exit_code": 100,
+    "timeout_ms": 900000,
+    "run_duration_seconds": 111.203473333,
+    "receipt_sha256": "ab202f9e2fe5e57dc6764c4ef4c30f1fdd1628cdf3439644ae0f5677afeb23cc",
+    "checks": {
+      "PASS": 56,
+      "BLOCKED": 8,
+      "NOT_APPLICABLE": 16,
+      "FAIL": 0
+    },
+    "interaction_pass_count_by_role": {
+      "candidate": 16,
+      "reference": 16
+    },
+    "visual_blocked_count_by_role": {
+      "candidate": 4,
+      "reference": 4
+    },
+    "expected_generation": null,
+    "corpus_admission": "NOT_RUN",
+    "product_readiness": "NOT_ESTABLISHED"
+  },
+  "startup_failure": {
+    "attempt": "R2 Nextest rejected package/test selectors with supplied binaries metadata before test execution.",
+    "request_sha256": "3ad6be249d55c354c4a4dab15bfbcc7a4c073e28c7a199fd99ab6002fe52f64d",
+    "result_sha256": "5d9b3fa9519e426022e2aaf9993fd920243f56fc2511797b24516035fe9da7a7",
+    "native_exit_code": 2
+  },
+  "excluded_payloads": [
+    "Candidate/reference Holla executables and shared_journeys test binary are represented by receipt-bound SHA-256 identities but are not copied into this small evidence archive."
+  ]
+}
