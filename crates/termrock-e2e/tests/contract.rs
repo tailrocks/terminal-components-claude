@@ -601,9 +601,13 @@ fn coverage_metadata_binds_the_complete_inventory_without_inventing_results() {
         .find(|case| case.id == "HELP-HOLLA-004")
         .expect("pilot remains registered")
         .clone();
-    let coverage =
-        termrock_e2e::coverage_receipt(&parsed, &case_set, &"3".repeat(64), &"4".repeat(64))
-            .expect("coverage metadata builds");
+    let coverage = termrock_e2e::coverage_receipt(
+        &parsed,
+        &case_set,
+        &"3".repeat(64),
+        &"4".repeat(64),
+    )
+    .expect("coverage metadata builds");
 
     assert_eq!(coverage.schema, "termrock-e2e/coverage-metadata-v1");
     assert_eq!(coverage.registered_case_count, 4);
@@ -638,15 +642,13 @@ fn coverage_metadata_binds_the_complete_inventory_without_inventing_results() {
         assert_ne!(case.selection_status, "PASS");
     }
     assert_eq!(coverage.deferred.len(), 23);
-    assert!(
-        coverage
-            .deferred
-            .iter()
-            .all(|row| row.inventory_status == "NOT_RUN"
-                && row.paired_observation == "NOT_DECLARED"
-                && !row.owner.trim().is_empty()
-                && !row.cases.is_empty())
-    );
+    assert!(coverage
+        .deferred
+        .iter()
+        .all(|row| row.inventory_status == "NOT_RUN"
+            && row.paired_observation == "NOT_DECLARED"
+            && !row.owner.trim().is_empty()
+            && !row.cases.is_empty()));
 }
 
 #[test]
@@ -657,11 +659,9 @@ fn assertions_reject_branch_or_subject_selection_data() {
             wait[0].needle = "refs/heads/main".to_string();
         }
     }
-    assert!(
-        termrock_e2e::validate_case_contract(&case)
-            .unwrap_err()
-            .contains("not branch-neutral")
-    );
+    assert!(termrock_e2e::validate_case_contract(&case)
+        .unwrap_err()
+        .contains("not branch-neutral"));
 
     let mut case = holla_case();
     for step in &mut case.steps {
@@ -669,11 +669,9 @@ fn assertions_reject_branch_or_subject_selection_data() {
             assertions[0].needle = Some("origin/visual-baseline".to_string());
         }
     }
-    assert!(
-        termrock_e2e::validate_case_contract(&case)
-            .unwrap_err()
-            .contains("not branch-neutral")
-    );
+    assert!(termrock_e2e::validate_case_contract(&case)
+        .unwrap_err()
+        .contains("not branch-neutral"));
 
     let mut case = holla_case();
     for step in &mut case.steps {
@@ -682,11 +680,9 @@ fn assertions_reject_branch_or_subject_selection_data() {
             break;
         }
     }
-    assert!(
-        termrock_e2e::validate_case_contract(&case)
-            .unwrap_err()
-            .contains("not branch-neutral")
-    );
+    assert!(termrock_e2e::validate_case_contract(&case)
+        .unwrap_err()
+        .contains("not branch-neutral"));
 }
 
 #[cfg(unix)]
@@ -736,7 +732,10 @@ fn launcher_handoff_has_verified_executable_and_suite_case_profile_digests() {
     };
     let handoff =
         termrock_e2e::prepare_launcher_handoff(&manifest, "HELP-HOLLA-004").expect("handoff");
-    assert_eq!(handoff.schema, "termrock-spec/parity-launcher-handoff-v1");
+    assert_eq!(
+        handoff.schema,
+        "termrock-spec/parity-launcher-handoff-v1"
+    );
     assert_eq!(handoff.trust_status, "UNVERIFIED_AT_HANDOFF");
     assert_eq!(handoff.suite_sha256, suite_digest().expect("suite digest"));
     assert_eq!(
@@ -745,10 +744,8 @@ fn launcher_handoff_has_verified_executable_and_suite_case_profile_digests() {
     );
     assert_eq!(
         handoff.profile_sha256,
-        termrock_e2e::sha256_file(
-            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("profile.json")
-        )
-        .expect("profile digest")
+        termrock_e2e::sha256_file(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("profile.json"))
+            .expect("profile digest")
     );
     assert_eq!(handoff.case_id, "HELP-HOLLA-004");
     assert_eq!(handoff.binary, "holla");
@@ -756,11 +753,7 @@ fn launcher_handoff_has_verified_executable_and_suite_case_profile_digests() {
     for subject in &handoff.subjects {
         assert_eq!(
             subject.executable.expected_sha256,
-            subject
-                .executable
-                .actual_sha256
-                .as_deref()
-                .expect("verified")
+            subject.executable.actual_sha256.as_deref().expect("verified")
         );
         assert!(subject.executable_len > 0);
         #[cfg(unix)]
@@ -790,7 +783,8 @@ fn launcher_handoff_has_verified_executable_and_suite_case_profile_digests() {
     fs::write(&candidate_path, b"changed-binary").expect("replace candidate bytes");
     fs::set_permissions(&candidate_path, std::fs::Permissions::from_mode(0o755))
         .expect("retain execute permission");
-    let stale = termrock_e2e::prepare_launcher_handoff(&manifest, "HELP-HOLLA-004").unwrap_err();
+    let stale = termrock_e2e::prepare_launcher_handoff(&manifest, "HELP-HOLLA-004")
+        .unwrap_err();
     assert!(
         stale.contains("candidate executable digest mismatch")
             && !stale.contains("reference executable digest mismatch"),
@@ -804,7 +798,8 @@ fn launcher_handoff_has_verified_executable_and_suite_case_profile_digests() {
     fs::write(&candidate_path, b"real-candidate-binary").expect("restore candidate bytes");
     fs::set_permissions(&candidate_path, std::fs::Permissions::from_mode(0o755))
         .expect("restore candidate execute permission");
-    let blocked = termrock_e2e::prepare_launcher_handoff(&manifest, "HELP-HOLLA-004").unwrap_err();
+    let blocked = termrock_e2e::prepare_launcher_handoff(&manifest, "HELP-HOLLA-004")
+        .unwrap_err();
     assert!(
         blocked.contains("no execute permission bit"),
         "unexpected permission error: {blocked}"
