@@ -4488,6 +4488,11 @@ impl App {
                 result |= Response::changed();
             }
             result |= checkbox.erase();
+            result |= crate::screens::prelude::PreludeScreen::update(
+                cx,
+                &mut self.prelude_ui,
+                &mut self.prelude,
+            );
         }
         result
     }
@@ -6996,12 +7001,7 @@ impl App {
             full.height.saturating_sub(2),
         );
         ui.fill(stage, bg);
-        crate::screens::prelude::PreludeScreen::draw(
-            ui,
-            full,
-            &self.prelude,
-            self.prelude_ui.read_only,
-        );
+        crate::screens::prelude::PreludeScreen::draw(ui, full, &self.prelude, &self.prelude_ui);
     }
 
     /// Tag `draw_frame` fills the whole frame with the base pair first
