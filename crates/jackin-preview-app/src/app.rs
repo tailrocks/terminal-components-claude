@@ -9233,21 +9233,8 @@ impl App {
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
-        if (ui.full().width, ui.full().height) == (120, 40)
-            && self.motion == Motion::Paused
-            && (self.world.scenario == Scenario::Returning
-                || self.world.scenario == Scenario::FirstUse
-                || self.world.scenario == Scenario::HardCases)
-            && matches!(self.route, Route::Editor | Route::Cockpit | Route::Launch)
-            && !self.manager_quit_confirm
-            && !self.help_open
-            && !self.manager_menu_state.is_open()
-            && !self.manager_menu_open
-            && !self.manager_inspect_open
-            && !self.editor.preview_open
-        {
-            return;
-        }
+        // Closed layers skip their closure, so a paused 120×40 frame uses the
+        // same overlay path as every other size. Open overlays still paint.
         // `Ui::layer` skips the closure for closed layers: build overlay
         // content inside so hidden overlays cost nothing per frame.
         let quit_dialog = self.manager_quit_dialog();
