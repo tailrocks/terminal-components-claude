@@ -13,8 +13,11 @@ use std::path::{Path, PathBuf};
 use serde_json::{Map, Value, json};
 
 pub const REQUEST_SCHEMA: &str = "termrock-nextest-reader-request/v1";
+pub const REQUEST_SCHEMA_V2: &str = "termrock-nextest-reader-request/v2";
 pub const SELECTION_SCHEMA: &str = "termrock-nextest-selection/v1";
+pub const SELECTION_SCHEMA_V2: &str = "termrock-nextest-selection/v2";
 pub const REPORT_SCHEMA: &str = "termrock-nextest-reader-report/v1";
+pub const REPORT_SCHEMA_V2: &str = "termrock-nextest-reader-report/v2";
 pub const PINNED_NEXTEST_VERSION: &str = "0.9.146";
 pub const PINNED_MESSAGE_FORMAT: &str = "libtest-json-plus";
 pub const PINNED_MESSAGE_FORMAT_VERSION: &str = "0.1";
@@ -23,6 +26,8 @@ pub const MAX_REQUEST_BYTES: u64 = 1024 * 1024;
 pub const MAX_SELECTION_BYTES: u64 = 1024 * 1024;
 pub const MAX_CAPTURE_BYTES: u64 = 8 * 1024 * 1024;
 const MAX_MACHINE_EVENTS: usize = 100_000;
+const MAX_V2_SELECTED_TESTS: usize = 1024;
+const MAX_V2_TARGETS: usize = 64;
 
 /// A request, capture, or protocol error. Errors are deliberately plain text so
 /// the thin CLI can report them without inventing another serialization layer.
@@ -72,6 +77,15 @@ struct Invocation {
     filter_args: Vec<String>,
     run_ignored: String,
     run_id: Option<String>,
+    protocol: ProtocolVersion,
+    expected_test_count: Option<usize>,
+    targets: Vec<TargetIdentity>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProtocolVersion {
+    V1,
+    V2,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -86,6 +100,13 @@ struct TestIdentity {
     binary_id: String,
     kind: String,
     test_name: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+struct TargetIdentity {
+    package: String,
+    binary_id: String,
+    kind: String,
 }
 
 impl TestIdentity {
@@ -110,6 +131,9 @@ struct Selection {
     filter_args: Vec<String>,
     run_ignored: String,
     tests: Vec<ExpectedTest>,
+    protocol: ProtocolVersion,
+    expected_test_count: Option<usize>,
+    targets: Vec<TargetIdentity>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -145,13 +169,7 @@ pub fn read_files(
         ));
     }
     let selection = parse_selection(&selection_bytes)?;
-    if request.invocation.filter_args != selection.filter_args
-        || request.invocation.run_ignored != selection.run_ignored
-    {
-        return Err(ReaderError(
-            "invocation filter policy does not match the trusted selection".into(),
-        ));
-    }
+    validate_request_selection(&request.invocation, &selection)?;
     let list = load_process(&request.list)?;
     let run = load_process(&request.run)?;
     let wrapper = load_process(&request.wrapper)?;
@@ -163,6 +181,33 @@ pub fn read_files(
         &run,
         &wrapper,
     ))
+}
+
+fn validate_request_selection(
+    invocation: &Invocation,
+    selection: &Selection,
+) -> Result<(), ReaderError> {
+    if invocation.protocol != selection.protocol {
+        return Err(ReaderError(
+            "request and selection schema versions do not match".into(),
+        ));
+    }
+    if invocation.filter_args != selection.filter_args
+        || invocation.run_ignored != selection.run_ignored
+    {
+        return Err(ReaderError(
+            "invocation filter policy does not match the trusted selection".into(),
+        ));
+    }
+    if invocation.protocol == ProtocolVersion::V2
+        && (invocation.expected_test_count != selection.expected_test_count
+            || invocation.targets != selection.targets)
+    {
+        return Err(ReaderError(
+            "invocation targets/count do not match the trusted selection".into(),
+        ));
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -190,26 +235,46 @@ fn parse_request(bytes: &[u8]) -> Result<Request, ReaderError> {
             "wrapper_capture",
         ],
     )?;
-    if string_field(object, "schema", "request")? != REQUEST_SCHEMA {
-        return Err(ReaderError("unsupported request schema".into()));
-    }
-    let invocation_object = object_with_keys(
-        required(object, "invocation", "request")?,
-        "invocation",
-        &[
-            "nextest_version",
-            "message_format",
-            "message_format_version",
-            "libtest_json_enabled",
-            "retries",
-            "stress",
-            "partition",
-            "machine_stream",
-            "filter_args",
-            "run_ignored",
-            "run_id",
-        ],
-    )?;
+    let protocol = match string_field(object, "schema", "request")? {
+        REQUEST_SCHEMA => ProtocolVersion::V1,
+        REQUEST_SCHEMA_V2 => ProtocolVersion::V2,
+        _ => return Err(ReaderError("unsupported request schema".into())),
+    };
+    let invocation_fields_v1 = [
+        "nextest_version",
+        "message_format",
+        "message_format_version",
+        "libtest_json_enabled",
+        "retries",
+        "stress",
+        "partition",
+        "machine_stream",
+        "filter_args",
+        "run_ignored",
+        "run_id",
+    ];
+    let invocation_fields_v2 = [
+        "nextest_version",
+        "message_format",
+        "message_format_version",
+        "libtest_json_enabled",
+        "retries",
+        "stress",
+        "partition",
+        "machine_stream",
+        "filter_args",
+        "run_ignored",
+        "run_id",
+        "expected_test_count",
+        "targets",
+    ];
+    let invocation_value = required(object, "invocation", "request")?;
+    let invocation_allowed_fields: &[&str] = match protocol {
+        ProtocolVersion::V1 => &invocation_fields_v1,
+        ProtocolVersion::V2 => &invocation_fields_v2,
+    };
+    let invocation_object =
+        object_with_keys(invocation_value, "invocation", invocation_allowed_fields)?;
     require_exact_string(
         invocation_object,
         "nextest_version",
@@ -248,10 +313,15 @@ fn parse_request(bytes: &[u8]) -> Result<Request, ReaderError> {
         }
     };
     let filter_args = string_array_field(invocation_object, "filter_args", "invocation")?;
-    if filter_args.is_empty() || filter_args.iter().any(String::is_empty) {
-        return Err(ReaderError(
-            "invocation filter_args must be nonempty strings".into(),
-        ));
+    if (protocol == ProtocolVersion::V1 && filter_args.is_empty())
+        || filter_args.iter().any(String::is_empty)
+    {
+        let message = if protocol == ProtocolVersion::V1 {
+            "invocation filter_args must be nonempty strings"
+        } else {
+            "invocation filter_args must contain only nonempty strings"
+        };
+        return Err(ReaderError(message.into()));
     }
     let run_ignored = string_field(invocation_object, "run_ignored", "invocation")?;
     if !matches!(run_ignored, "default" | "only" | "all") {
@@ -263,12 +333,22 @@ fn parse_request(bytes: &[u8]) -> Result<Request, ReaderError> {
     if run_id.as_deref().is_some_and(str::is_empty) {
         return Err(ReaderError("run_id must be nonempty when present".into()));
     }
+    let (expected_test_count, targets) = match protocol {
+        ProtocolVersion::V1 => (None, Vec::new()),
+        ProtocolVersion::V2 => (
+            Some(parse_expected_test_count(invocation_object, "invocation")?),
+            parse_targets(invocation_object, "invocation")?,
+        ),
+    };
     Ok(Request {
         invocation: Invocation {
             machine_stream,
             filter_args,
             run_ignored: run_ignored.to_owned(),
             run_id,
+            protocol,
+            expected_test_count,
+            targets,
         },
         list: parse_process_reference(
             required(object, "list_capture", "request")?,
@@ -285,19 +365,45 @@ fn parse_request(bytes: &[u8]) -> Result<Request, ReaderError> {
 fn parse_selection(bytes: &[u8]) -> Result<Selection, ReaderError> {
     let value: Value = serde_json::from_slice(bytes)
         .map_err(|error| ReaderError(format!("invalid selection JSON: {error}")))?;
-    let object = object_with_keys(
-        &value,
-        "selection",
-        &["schema", "filter_args", "run_ignored", "tests"],
-    )?;
-    if string_field(object, "schema", "selection")? != SELECTION_SCHEMA {
+    let value_object = value
+        .as_object()
+        .ok_or_else(|| ReaderError("selection must be an object".into()))?;
+    let selection_fields_v1 = ["schema", "filter_args", "run_ignored", "tests"];
+    let selection_fields_v2 = [
+        "schema",
+        "filter_args",
+        "run_ignored",
+        "expected_test_count",
+        "targets",
+        "tests",
+    ];
+    let schema = value_object.get("schema").and_then(Value::as_str);
+    let protocol = if schema == Some(SELECTION_SCHEMA_V2) {
+        ProtocolVersion::V2
+    } else {
+        ProtocolVersion::V1
+    };
+    let selection_allowed_fields: &[&str] = match protocol {
+        ProtocolVersion::V1 => &selection_fields_v1,
+        ProtocolVersion::V2 => &selection_fields_v2,
+    };
+    let object = object_with_keys(&value, "selection", selection_allowed_fields)?;
+    let schema = string_field(object, "schema", "selection")?;
+    if (protocol == ProtocolVersion::V1 && schema != SELECTION_SCHEMA)
+        || (protocol == ProtocolVersion::V2 && schema != SELECTION_SCHEMA_V2)
+    {
         return Err(ReaderError("unsupported selection schema".into()));
     }
     let filter_args = string_array_field(object, "filter_args", "selection")?;
-    if filter_args.is_empty() || filter_args.iter().any(String::is_empty) {
-        return Err(ReaderError(
-            "selection filter_args must be nonempty strings".into(),
-        ));
+    if (protocol == ProtocolVersion::V1 && filter_args.is_empty())
+        || filter_args.iter().any(String::is_empty)
+    {
+        let message = if protocol == ProtocolVersion::V1 {
+            "selection filter_args must be nonempty strings"
+        } else {
+            "selection filter_args must contain only nonempty strings"
+        };
+        return Err(ReaderError(message.into()));
     }
     let run_ignored = string_field(object, "run_ignored", "selection")?;
     if !matches!(run_ignored, "default" | "only" | "all") {
@@ -306,11 +412,27 @@ fn parse_selection(bytes: &[u8]) -> Result<Selection, ReaderError> {
         ));
     }
     let test_values = array_field(object, "tests", "selection")?;
-    if test_values.len() != EXPECTED_SELECTED_TESTS {
-        return Err(ReaderError(format!(
-            "selection must contain exactly {EXPECTED_SELECTED_TESTS} test identities"
-        )));
-    }
+    let (expected_test_count, targets) = match protocol {
+        ProtocolVersion::V1 => {
+            if test_values.len() != EXPECTED_SELECTED_TESTS {
+                return Err(ReaderError(format!(
+                    "selection must contain exactly {EXPECTED_SELECTED_TESTS} test identities"
+                )));
+            }
+            (None, Vec::new())
+        }
+        ProtocolVersion::V2 => {
+            let expected = parse_expected_test_count(object, "selection")?;
+            if usize::try_from(expected).ok() != Some(test_values.len()) {
+                return Err(ReaderError(format!(
+                    "selection expected_test_count {expected} does not match {} test identities",
+                    test_values.len()
+                )));
+            }
+            let targets = parse_targets(object, "selection")?;
+            (Some(expected), targets)
+        }
+    };
     let mut tests = Vec::with_capacity(test_values.len());
     let mut identities = BTreeSet::new();
     for (index, value) in test_values.iter().enumerate() {
@@ -344,6 +466,21 @@ fn parse_selection(bytes: &[u8]) -> Result<Selection, ReaderError> {
                 "{context} has an invalid package/binary/test identity"
             )));
         }
+        if protocol == ProtocolVersion::V2 {
+            let target_matches = targets
+                .iter()
+                .filter(|target| {
+                    target.package == identity.package
+                        && target.binary_id == identity.binary_id
+                        && target.kind == identity.kind
+                })
+                .count();
+            if target_matches != 1 {
+                return Err(ReaderError(format!(
+                    "{context} must belong to exactly one declared target"
+                )));
+            }
+        }
         let ignored = bool_field(item, "ignored", &context)?
             .ok_or_else(|| ReaderError(format!("{context}.ignored must be boolean")))?;
         let filter_match_status = nonempty_string_field(item, "filter_match_status", &context)?;
@@ -368,12 +505,89 @@ fn parse_selection(bytes: &[u8]) -> Result<Selection, ReaderError> {
             filter_match_status,
         });
     }
+    if protocol == ProtocolVersion::V2 {
+        for target in &targets {
+            if !tests.iter().any(|test| {
+                test.identity.package == target.package
+                    && test.identity.binary_id == target.binary_id
+                    && test.identity.kind == target.kind
+            }) {
+                return Err(ReaderError(format!(
+                    "declared target {} has no selected identities",
+                    target.binary_id
+                )));
+            }
+        }
+    }
     tests.sort_by(|left, right| left.identity.cmp(&right.identity));
     Ok(Selection {
         filter_args,
         run_ignored: run_ignored.to_owned(),
         tests,
+        protocol,
+        expected_test_count,
+        targets,
     })
+}
+
+fn parse_expected_test_count(
+    object: &Map<String, Value>,
+    context: &str,
+) -> Result<usize, ReaderError> {
+    let count = u64_field(object, "expected_test_count", context)?;
+    if !(1..=MAX_V2_SELECTED_TESTS as u64).contains(&count) {
+        return Err(ReaderError(format!(
+            "{context}.expected_test_count must be between 1 and {MAX_V2_SELECTED_TESTS}"
+        )));
+    }
+    usize::try_from(count)
+        .map_err(|_| ReaderError(format!("{context}.expected_test_count exceeds usize")))
+}
+
+fn parse_targets(
+    object: &Map<String, Value>,
+    context: &str,
+) -> Result<Vec<TargetIdentity>, ReaderError> {
+    let values = array_field(object, "targets", context)?;
+    if values.is_empty() || values.len() > MAX_V2_TARGETS {
+        return Err(ReaderError(format!(
+            "{context}.targets must contain between 1 and {MAX_V2_TARGETS} entries"
+        )));
+    }
+    let mut targets = Vec::with_capacity(values.len());
+    let mut unique = BTreeSet::new();
+    let mut binary_ids = BTreeSet::new();
+    for (index, value) in values.iter().enumerate() {
+        let target_context = format!("{context}.targets[{index}]");
+        let item = object_with_keys(value, &target_context, &["package", "binary_id", "kind"])?;
+        let target = TargetIdentity {
+            package: nonempty_string_field(item, "package", &target_context)?,
+            binary_id: nonempty_string_field(item, "binary_id", &target_context)?,
+            kind: nonempty_string_field(item, "kind", &target_context)?,
+        };
+        let prefix = format!("{}::", target.package);
+        if (!target.binary_id.starts_with(&prefix) && target.binary_id != target.package)
+            || (target.binary_id.starts_with(&prefix)
+                && target.binary_id[prefix.len()..].is_empty())
+            || !matches!(target.kind.as_str(), "test" | "lib" | "example" | "bench")
+        {
+            return Err(ReaderError(format!(
+                "{target_context} has an invalid package/binary/kind identity"
+            )));
+        }
+        if !unique.insert(target.clone()) {
+            return Err(ReaderError(format!(
+                "{target_context} duplicates a declared target"
+            )));
+        }
+        if !binary_ids.insert(target.binary_id.clone()) {
+            return Err(ReaderError(format!(
+                "{target_context} duplicates a target binary identity"
+            )));
+        }
+        targets.push(target);
+    }
+    Ok(targets)
 }
 
 fn parse_process_reference(value: &Value, context: &str) -> Result<ProcessReference, ReaderError> {
@@ -578,8 +792,8 @@ fn evaluate(
             Value::Bool(process_is_success(run)),
         );
     }
-    json!({
-        "schema": REPORT_SCHEMA,
+    let mut report = json!({
+        "schema": if invocation.protocol == ProtocolVersion::V1 { REPORT_SCHEMA } else { REPORT_SCHEMA_V2 },
         "nextest_version": PINNED_NEXTEST_VERSION,
         "message_format": PINNED_MESSAGE_FORMAT,
         "message_format_version": PINNED_MESSAGE_FORMAT_VERSION,
@@ -590,7 +804,31 @@ fn evaluate(
         "list": list_json,
         "run": run_json,
         "acceptance": if accepted {"accepted"} else {"blocked"},
-    })
+    });
+    if invocation.protocol == ProtocolVersion::V2 {
+        let object = report
+            .as_object_mut()
+            .expect("reader report root is always an object");
+        object.insert(
+            "expected_test_count".into(),
+            json!(selection.expected_test_count.expect("v2 count is required")),
+        );
+        object.insert(
+            "targets".into(),
+            json!(
+                selection
+                    .targets
+                    .iter()
+                    .map(|target| json!({
+                        "package":target.package,
+                        "binary_id":target.binary_id,
+                        "kind":target.kind,
+                    }))
+                    .collect::<Vec<_>>()
+            ),
+        );
+    }
+    report
 }
 
 fn process_is_success(process: &ProcessBytes) -> bool {
@@ -696,6 +934,15 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
                 "list suite key does not match binary-id: {suite_key}"
             )));
         }
+        if selection.protocol == ProtocolVersion::V2
+            && !selection.targets.iter().any(|target| {
+                target.package == package && target.binary_id == binary_id && target.kind == kind
+            })
+        {
+            return Err(ReaderError(format!(
+                "list contains an undeclared target: {binary_id}"
+            )));
+        }
         let testcases = required(suite, "testcases", &format!("list suite {suite_key}"))?
             .as_object()
             .ok_or_else(|| {
@@ -773,6 +1020,21 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
                 "selected binary is missing from list: {}",
                 expected.identity.binary_id
             )));
+        }
+    }
+    if selection.protocol == ProtocolVersion::V2 {
+        for target in &selection.targets {
+            if !inventory.contains_key(&target.binary_id) {
+                return Err(ReaderError(format!(
+                    "declared target is missing from list: {}",
+                    target.binary_id
+                )));
+            }
+        }
+        if inventory.len() != selection.targets.len() {
+            return Err(ReaderError(
+                "list target inventory does not match the trusted target set".into(),
+            ));
         }
     }
     Ok(ListResult {
@@ -1889,6 +2151,255 @@ mod tests {
         bytes
     }
 
+    fn v2_target(package: &str, binary_id: &str, kind: &str) -> Value {
+        json!({"package":package,"binary_id":binary_id,"kind":kind})
+    }
+
+    fn v2_status_selection_json(count: usize, targets: Vec<Value>) -> Value {
+        let tests = (0..count)
+            .map(|index| {
+                json!({
+                    "package":"pkg",
+                    "binary_id":"pkg::status",
+                    "kind":"test",
+                    "test_name":format!("status_case_{index}"),
+                    "ignored":false,
+                    "filter_match_status":"matches",
+                })
+            })
+            .collect::<Vec<_>>();
+        json!({
+            "schema":SELECTION_SCHEMA_V2,
+            "filter_args":[],
+            "run_ignored":"default",
+            "expected_test_count":count,
+            "targets":targets,
+            "tests":tests,
+        })
+    }
+
+    fn v2_status_list_value(count: usize) -> Value {
+        let testcases = (0..count)
+            .map(|index| {
+                (
+                    format!("status_case_{index}"),
+                    json!({
+                        "kind":"test",
+                        "ignored":false,
+                        "filter-match":{"status":"matches"},
+                    }),
+                )
+            })
+            .collect::<Map<_, _>>();
+        json!({
+            "test-count":count,
+            "rust-suites":{
+                "pkg::status":{
+                    "package-name":"pkg",
+                    "binary-id":"pkg::status",
+                    "binary-name":"status",
+                    "kind":"test",
+                    "status":"listed",
+                    "testcases":testcases,
+                }
+            }
+        })
+    }
+
+    fn v2_status_run_bytes(count: usize) -> Vec<u8> {
+        let mut events = vec![json!({
+            "type":"suite",
+            "event":"started",
+            "test_count":count,
+            "nextest":{"crate":"pkg","test_binary":"status","kind":"test"},
+        })];
+        for index in 0..count {
+            let name = format!("pkg::status$status_case_{index}");
+            events.push(json!({"type":"test","event":"started","name":name}));
+            events.push(json!({
+                "type":"test",
+                "event":"ok",
+                "name":name,
+                "exec_time":0.001,
+            }));
+        }
+        events.push(json!({
+            "type":"suite",
+            "event":"ok",
+            "passed":count,
+            "failed":0,
+            "ignored":0,
+            "measured":0,
+            "filtered_out":0,
+            "exec_time":0.1,
+            "nextest":{"crate":"pkg","test_binary":"status","kind":"test"},
+        }));
+        run_bytes(&events)
+    }
+
+    fn v2_capture_reference(name: &str) -> Value {
+        json!({
+            "stdout":{
+                "path":format!("/tmp/{name}.stdout"),
+                "byte_length":0,
+                "sha256":crate::sha256_hex(&[]),
+                "truncated":false,
+            },
+            "stderr":{
+                "path":format!("/tmp/{name}.stderr"),
+                "byte_length":0,
+                "sha256":crate::sha256_hex(&[]),
+                "truncated":false,
+            },
+            "termination":{"kind":"exited","exit_code":0},
+        })
+    }
+
+    fn v2_capture_reference_for(
+        stdout_path: &Path,
+        stdout: &[u8],
+        stderr_path: &Path,
+        stderr: &[u8],
+    ) -> Value {
+        json!({
+            "stdout":{
+                "path":stdout_path.to_string_lossy(),
+                "byte_length":stdout.len(),
+                "sha256":crate::sha256_hex(stdout),
+                "truncated":false,
+            },
+            "stderr":{
+                "path":stderr_path.to_string_lossy(),
+                "byte_length":stderr.len(),
+                "sha256":crate::sha256_hex(stderr),
+                "truncated":false,
+            },
+            "termination":{"kind":"exited","exit_code":0},
+        })
+    }
+
+    fn v2_status_request_json(count: usize, targets: Vec<Value>) -> Value {
+        json!({
+            "schema":REQUEST_SCHEMA_V2,
+            "invocation":{
+                "nextest_version":PINNED_NEXTEST_VERSION,
+                "message_format":PINNED_MESSAGE_FORMAT,
+                "message_format_version":PINNED_MESSAGE_FORMAT_VERSION,
+                "libtest_json_enabled":true,
+                "retries":0,
+                "stress":"none",
+                "partition":"none",
+                "machine_stream":"stdout",
+                "filter_args":[],
+                "run_ignored":"default",
+                "run_id":"run-v2-test",
+                "expected_test_count":count,
+                "targets":targets,
+            },
+            "list_capture":v2_capture_reference("list"),
+            "run_capture":v2_capture_reference("run"),
+            "wrapper_capture":v2_capture_reference("wrapper"),
+        })
+    }
+
+    fn v2_multi_target_fixture() -> (Vec<Value>, Value, Value, Vec<u8>) {
+        let specs = [
+            ("pkg", "pkg::pkg", "lib", "pkg", 35usize),
+            ("pkg", "pkg::flood", "test", "flood", 35usize),
+            ("pkg", "pkg::tui", "test", "tui", 36usize),
+            ("pkg", "pkg::tui_shell", "test", "tui_shell", 36usize),
+        ];
+        let targets = specs
+            .iter()
+            .map(|(package, binary_id, kind, _, _)| v2_target(package, binary_id, kind))
+            .collect::<Vec<_>>();
+        let mut tests = Vec::new();
+        let mut suites = Map::new();
+        let mut events = Vec::new();
+        for (target_index, (package, binary_id, kind, binary, count)) in specs.iter().enumerate() {
+            let mut testcases = Map::new();
+            for index in 0..*count {
+                let test_name = format!("case_{target_index}_{index}");
+                tests.push(json!({
+                    "package":package,
+                    "binary_id":binary_id,
+                    "kind":kind,
+                    "test_name":test_name,
+                    "ignored":false,
+                    "filter_match_status":"matches",
+                }));
+                testcases.insert(
+                    test_name.clone(),
+                    json!({
+                        "kind":"test",
+                        "ignored":false,
+                        "filter-match":{"status":"matches"},
+                    }),
+                );
+            }
+            suites.insert(
+                (*binary_id).into(),
+                json!({
+                    "package-name":package,
+                    "binary-id":binary_id,
+                    "binary-name":binary,
+                    "kind":kind,
+                    "status":"listed",
+                    "testcases":testcases,
+                }),
+            );
+            events.push(json!({
+                "type":"suite",
+                "event":"started",
+                "test_count":count,
+                "nextest":{"crate":package,"test_binary":binary,"kind":kind},
+            }));
+            for index in 0..*count {
+                let name = format!("{binary_id}$case_{target_index}_{index}");
+                events.push(json!({"type":"test","event":"started","name":name}));
+                events.push(json!({
+                    "type":"test",
+                    "event":"ok",
+                    "name":name,
+                    "exec_time":0.001,
+                }));
+            }
+            events.push(json!({
+                "type":"suite",
+                "event":"ok",
+                "passed":count,
+                "failed":0,
+                "ignored":0,
+                "measured":0,
+                "filtered_out":0,
+                "exec_time":0.1,
+                "nextest":{"crate":package,"test_binary":binary,"kind":kind},
+            }));
+        }
+        let selection = json!({
+            "schema":SELECTION_SCHEMA_V2,
+            "filter_args":[],
+            "run_ignored":"default",
+            "expected_test_count":142,
+            "targets":targets,
+            "tests":tests,
+        });
+        let list = json!({"test-count":142,"rust-suites":suites});
+        (
+            specs_to_targets(&specs),
+            selection,
+            list,
+            run_bytes(&events),
+        )
+    }
+
+    fn specs_to_targets(specs: &[(&str, &str, &str, &str, usize)]) -> Vec<Value> {
+        specs
+            .iter()
+            .map(|(package, binary_id, kind, _, _)| v2_target(package, binary_id, kind))
+            .collect()
+    }
+
     fn process(stdout: Vec<u8>, stderr: Vec<u8>, termination: Termination) -> ProcessBytes {
         ProcessBytes {
             stdout: CaptureBytes {
@@ -1913,6 +2424,9 @@ mod tests {
             filter_args: vec!["exact-selected-set".into()],
             run_ignored: "all".into(),
             run_id: None,
+            protocol: ProtocolVersion::V1,
+            expected_test_count: None,
+            targets: Vec::new(),
         }
     }
 
@@ -2088,6 +2602,142 @@ mod tests {
             bytes.push(b'\n');
         }
         bytes
+    }
+
+    #[test]
+    fn v2_accepts_empty_filter_and_exact_59_case_status_selection() {
+        let targets = vec![v2_target("pkg", "pkg::status", "test")];
+        let selection_bytes =
+            serde_json::to_vec(&v2_status_selection_json(59, targets.clone())).unwrap();
+        let capture_dir = tempfile::Builder::new()
+            .prefix("nextest-v2-captures-")
+            .tempdir()
+            .unwrap();
+        let request_path = capture_dir.path().join("request.json");
+        let selection_path = capture_dir.path().join("selection.json");
+        let list_stdout = serde_json::to_vec(&v2_status_list_value(59)).unwrap();
+        let run_stdout = v2_status_run_bytes(59);
+        let empty = Vec::new();
+        let files = [
+            ("list.stdout", list_stdout.as_slice()),
+            ("list.stderr", empty.as_slice()),
+            ("run.stdout", run_stdout.as_slice()),
+            ("run.stderr", empty.as_slice()),
+            ("wrapper.stdout", empty.as_slice()),
+            ("wrapper.stderr", empty.as_slice()),
+        ];
+        for (name, bytes) in files {
+            std::fs::write(capture_dir.path().join(name), bytes).unwrap();
+        }
+        let mut request_value = v2_status_request_json(59, targets);
+        request_value["list_capture"] = v2_capture_reference_for(
+            &capture_dir.path().join("list.stdout"),
+            &list_stdout,
+            &capture_dir.path().join("list.stderr"),
+            &empty,
+        );
+        request_value["run_capture"] = v2_capture_reference_for(
+            &capture_dir.path().join("run.stdout"),
+            &run_stdout,
+            &capture_dir.path().join("run.stderr"),
+            &empty,
+        );
+        request_value["wrapper_capture"] = v2_capture_reference_for(
+            &capture_dir.path().join("wrapper.stdout"),
+            &empty,
+            &capture_dir.path().join("wrapper.stderr"),
+            &empty,
+        );
+        std::fs::write(&selection_path, &selection_bytes).unwrap();
+        std::fs::write(&request_path, serde_json::to_vec(&request_value).unwrap()).unwrap();
+        let report = read_files(
+            &request_path,
+            &selection_path,
+            &crate::sha256_hex(&selection_bytes),
+        )
+        .unwrap();
+        assert_eq!(report["schema"], REPORT_SCHEMA_V2);
+        assert_eq!(report["acceptance"], "accepted");
+        assert_eq!(report["selection_count"], "59");
+        assert_eq!(report["expected_test_count"], 59);
+        assert_eq!(report["targets"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn v2_rejects_empty_selection() {
+        let targets = vec![v2_target("pkg", "pkg::status", "test")];
+        let empty = v2_status_selection_json(0, targets.clone());
+        let error = parse_selection(&serde_json::to_vec(&empty).unwrap()).unwrap_err();
+        assert!(error.to_string().contains("between 1 and 1024"));
+    }
+
+    #[test]
+    fn v2_rejects_oversized_selection() {
+        let targets = vec![v2_target("pkg", "pkg::status", "test")];
+        let oversized = v2_status_selection_json(1025, targets.clone());
+        let error = parse_selection(&serde_json::to_vec(&oversized).unwrap()).unwrap_err();
+        assert!(error.to_string().contains("between 1 and 1024"));
+    }
+
+    #[test]
+    fn v2_accepts_142_selected_identities_across_four_targets() {
+        let (targets, selection_value, list_value, run_bytes) = v2_multi_target_fixture();
+        let selection = parse_selection(&serde_json::to_vec(&selection_value).unwrap()).unwrap();
+        assert_eq!(selection.tests.len(), 142);
+        assert_eq!(selection.targets.len(), 4);
+        let request =
+            parse_request(&serde_json::to_vec(&v2_status_request_json(142, targets)).unwrap())
+                .unwrap();
+        validate_request_selection(&request.invocation, &selection).unwrap();
+        let list = success_process(serde_json::to_vec(&list_value).unwrap(), Vec::new());
+        assert_eq!(evaluate_list(&list, &selection).unwrap().inventory.len(), 4);
+        let report = evaluate(
+            &request.invocation,
+            &selection,
+            &"a".repeat(64),
+            &list,
+            &success_process(run_bytes, Vec::new()),
+            &success_process(Vec::new(), Vec::new()),
+        );
+        assert_eq!(report["acceptance"], "accepted");
+        assert_eq!(report["selection_count"], "142");
+        assert_eq!(report["targets"].as_array().unwrap().len(), 4);
+    }
+
+    #[test]
+    fn v2_rejects_count_and_target_mismatches() {
+        let selected_target = v2_target("pkg", "pkg::status", "test");
+        let second_target = v2_target("pkg", "pkg::other", "test");
+
+        let mut count_mismatch = v2_status_selection_json(59, vec![selected_target.clone()]);
+        count_mismatch["expected_test_count"] = json!(60);
+        let error = parse_selection(&serde_json::to_vec(&count_mismatch).unwrap()).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("does not match 59 test identities")
+        );
+
+        let selection_bytes =
+            serde_json::to_vec(&v2_status_selection_json(59, vec![selected_target.clone()]))
+                .unwrap();
+        let selection = parse_selection(&selection_bytes).unwrap();
+        let request = parse_request(
+            &serde_json::to_vec(&v2_status_request_json(59, vec![second_target.clone()])).unwrap(),
+        )
+        .unwrap();
+        assert!(
+            validate_request_selection(&request.invocation, &selection)
+                .unwrap_err()
+                .to_string()
+                .contains("targets/count do not match")
+        );
+
+        let selection_with_empty_target =
+            v2_status_selection_json(59, vec![selected_target, second_target]);
+        let error = parse_selection(&serde_json::to_vec(&selection_with_empty_target).unwrap())
+            .unwrap_err();
+        assert!(error.to_string().contains("has no selected identities"));
     }
 
     #[test]
