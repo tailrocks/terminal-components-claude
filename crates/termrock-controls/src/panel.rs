@@ -98,8 +98,8 @@ const META_FAINT: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Faint))
 ///
 /// ## Parts
 /// `CONTAINER` (the fill), `GUTTER` (the container focus bar), `TITLE`,
-/// `DETAIL` (the right-aligned meta), `BADGE` (padded, before meta), `BORDER`
-/// (framed only).
+/// `ICON` (the mark immediately after a flush title), `DETAIL` (the
+/// right-aligned meta), `BADGE` (padded, before meta), `BORDER` (framed only).
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` reach every part. `.slot` is honoured for
@@ -124,6 +124,11 @@ pub struct Panel<'a> {
     id: Id,
     kind: PanelKind,
     title: Option<&'a str>,
+    /// Painted immediately after a flush title. Empty marks are absent.
+    title_mark: Option<&'a str>,
+    /// The title string owns its padding, so the frame does not add a
+    /// blank cell on either side of the run.
+    title_flush: bool,
     meta: Option<&'a str>,
     badge: Option<&'a str>,
     focused: bool,
@@ -138,6 +143,8 @@ impl fmt::Debug for Panel<'_> {
             .field("id", &self.id)
             .field("kind", &self.kind)
             .field("title", &self.title)
+            .field("title_mark", &self.title_mark)
+            .field("title_flush", &self.title_flush)
             .field("meta", &self.meta)
             .field("badge", &self.badge)
             .field("focused", &self.focused)
@@ -154,6 +161,7 @@ impl<'a> Panel<'a> {
         Part::CONTAINER,
         Part::GUTTER,
         Part::TITLE,
+        Part::ICON,
         Part::DETAIL,
         Part::BADGE,
         Part::BORDER,
@@ -165,6 +173,8 @@ impl<'a> Panel<'a> {
             id,
             kind: PanelKind::Card,
             title: None,
+            title_mark: None,
+            title_flush: false,
             meta: None,
             badge: None,
             focused: false,
@@ -190,6 +200,30 @@ impl<'a> Panel<'a> {
     #[must_use]
     pub const fn title(mut self, t: &'a str) -> Self {
         self.title = Some(t);
+        self
+    }
+
+    /// A mark painted immediately after the title, with no gap.
+    ///
+    /// The title run becomes flush: the frame does not add a blank cell
+    /// before the title or between the title and the mark. Styled by
+    /// [`Part::ICON`]. An empty mark is absent and does not change padding.
+    #[must_use]
+    pub const fn title_mark(mut self, mark: &'a str) -> Self {
+        if mark.is_empty() {
+            self.title_mark = None;
+        } else {
+            self.title_mark = Some(mark);
+            self.title_flush = true;
+        }
+        self
+    }
+
+    /// The title string owns its padding. A framed panel does not add a
+    /// blank cell on either side of the title.
+    #[must_use]
+    pub const fn title_flush(mut self, yes: bool) -> Self {
+        self.title_flush = yes;
         self
     }
 
@@ -347,12 +381,14 @@ impl<'a> Panel<'a> {
     /// can never disagree about when the badge fits.
     fn badge_lane_width(&self) -> Option<u16> {
         let title_w = self.title.map_or(0, crate::text::width);
+        let mark_w = self.title_mark.map_or(0, crate::text::width);
         let meta_w = self.meta.map_or(0, crate::text::width);
         let badge_w = self.badge.map(crate::text::width)?;
         // Head starts two cells in and ends before the corner. Each framed
         // text run reserves its existing border padding.
         Some(
             title_w
+                .saturating_add(mark_w)
                 .saturating_add(meta_w)
                 .saturating_add(badge_w)
                 .saturating_add(7)
@@ -379,7 +415,10 @@ impl<'a> Panel<'a> {
         };
         let chrome_w = side.saturating_mul(2);
         let chrome_h = top.saturating_add(1);
-        let title_w = self.title.map_or(0, crate::text::width);
+        let title_w = self
+            .title
+            .map_or(0, crate::text::width)
+            .saturating_add(self.title_mark.map_or(0, crate::text::width));
         let meta_w = self.meta.map_or(0, crate::text::width);
         let head = title_w
             .saturating_add(meta_w)
@@ -477,6 +516,72 @@ impl<'a> Panel<'a> {
         });
     }
 
+    /// Paint a flush title at `x` and, when set, the mark on the next cell.
+    /// Returns the columns consumed. `max_w` covers the title and the mark.
+    fn paint_flushed_title(
+        &self,
+        ui: &mut Ui<'_>,
+        head: Rect,
+        x: u16,
+        max_w: u16,
+        live: StateFlags,
+    ) -> u16 {
+        let Some(title) = self.title else {
+            return 0;
+        };
+        let mark = self.title_mark.filter(|mark| !mark.is_empty());
+        let mark_w = mark.map(crate::text::width).unwrap_or(0);
+        let room = max_w.saturating_sub(mark_w);
+        let shown = crate::text::truncate(title, room);
+        let tw = crate::text::width(&shown);
+        let title_style = self.ov.style(
+            ui,
+            self.id,
+            Family::PANEL,
+            Variant::DEFAULT,
+            Part::TITLE,
+            live,
+        );
+        if tw > 0 {
+            ui.paint_str(
+                Rect {
+                    x,
+                    y: head.y,
+                    width: tw,
+                    height: 1,
+                },
+                &shown,
+                title_style.style,
+            );
+        }
+        let mut used = tw;
+        if let Some(mark) = mark {
+            let mw = mark_w.min(max_w.saturating_sub(used));
+            if mw > 0 {
+                let icon = self.ov.style(
+                    ui,
+                    self.id,
+                    Family::PANEL,
+                    Variant::DEFAULT,
+                    Part::ICON,
+                    live,
+                );
+                ui.paint_str(
+                    Rect {
+                        x: x.saturating_add(used),
+                        y: head.y,
+                        width: mw,
+                        height: 1,
+                    },
+                    mark,
+                    icon.style,
+                );
+                used = used.saturating_add(mw);
+            }
+        }
+        used
+    }
+
     /// The head row: focus gutter, title, badge and right-aligned meta.
     fn head(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, fill: crate::theme::PaintStyle) {
         let head = first_row(area);
@@ -566,6 +671,8 @@ impl<'a> Panel<'a> {
             };
             if let Some(f) = ov.slot_for(Part::TITLE) {
                 f(ui, rect);
+            } else if self.title_flush {
+                self.paint_flushed_title(ui, head, text_x, rect.width, live);
             } else {
                 let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::TITLE, live);
                 paint_label(ui, rect, t, pad, s.style);
@@ -635,39 +742,49 @@ impl<'a> Panel<'a> {
         // end). It stays unused for construction-time metas.
         let mut title_gap: Option<(crate::theme::PaintStyle, u16, u16)> = None;
         if let Some(t) = self.title {
-            let room = if meta_w > 0 {
-                span_w.saturating_sub(meta_w + 1 + pad.saturating_mul(2))
+            if self.title_flush {
+                let available = if meta_w > 0 {
+                    span_w.saturating_sub(meta_w + 1)
+                } else {
+                    span_w
+                };
+                let used = self.paint_flushed_title(ui, head, text_x, available, live);
+                cx = text_x.saturating_add(used);
             } else {
-                span_w.saturating_sub(pad.saturating_mul(2))
-            };
-            let t_trunc = crate::text::truncate(t, room);
-            let tw = crate::text::width(&t_trunc);
-            let rect = Rect {
-                x: text_x.saturating_add(pad),
-                y: head.y,
-                width: tw,
-                height: 1,
-            };
-            if let Some(f) = ov.slot_for(Part::TITLE) {
-                f(ui, rect);
-            } else {
-                let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::TITLE, live);
-                if pad == 1 {
-                    ui.fill(cell_at(head, text_x), s.style);
+                let room = if meta_w > 0 {
+                    span_w.saturating_sub(meta_w + 1 + pad.saturating_mul(2))
+                } else {
+                    span_w.saturating_sub(pad.saturating_mul(2))
+                };
+                let t_trunc = crate::text::truncate(t, room);
+                let tw = crate::text::width(&t_trunc);
+                let rect = Rect {
+                    x: text_x.saturating_add(pad),
+                    y: head.y,
+                    width: tw,
+                    height: 1,
+                };
+                if let Some(f) = ov.slot_for(Part::TITLE) {
+                    f(ui, rect);
+                } else {
+                    let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::TITLE, live);
+                    if pad == 1 {
+                        ui.fill(cell_at(head, text_x), s.style);
+                    }
+                    ui.paint_str(rect, &t_trunc, s.style);
+                    if pad == 1 {
+                        ui.fill(cell_at(head, rect.right()), s.style);
+                    }
+                    let first_room = span_w.saturating_sub(pad.saturating_mul(2));
+                    let full_end = text_x
+                        .saturating_add(crate::text::width(t).min(first_room))
+                        .saturating_add(pad.saturating_mul(2));
+                    title_gap = Some((s.style, rect.right().saturating_add(pad), full_end));
                 }
-                ui.paint_str(rect, &t_trunc, s.style);
-                if pad == 1 {
-                    ui.fill(cell_at(head, rect.right()), s.style);
-                }
-                let first_room = span_w.saturating_sub(pad.saturating_mul(2));
-                let full_end = text_x
-                    .saturating_add(crate::text::width(t).min(first_room))
+                cx = text_x
+                    .saturating_add(tw)
                     .saturating_add(pad.saturating_mul(2));
-                title_gap = Some((s.style, rect.right().saturating_add(pad), full_end));
             }
-            cx = text_x
-                .saturating_add(tw)
-                .saturating_add(pad.saturating_mul(2));
         }
         let mut right = text_x.saturating_add(span_w);
         let mut meta_x: Option<u16> = None;
@@ -1012,6 +1129,7 @@ mod tests {
                 let mut p = Panel::new(ID)
                     .kind(PanelKind::Framed)
                     .title("Files")
+                    .title_mark("●")
                     .meta("12")
                     .badge("EDIT")
                     .focused(true);
@@ -1089,6 +1207,27 @@ mod tests {
             plain,
             "a slot on Part::CONTAINER changes cells, and `## Overrides` says it does not"
         );
+    }
+
+    #[test]
+    fn flush_title_puts_the_mark_on_the_next_cell() {
+        let area = Rect::new(0, 0, 24, 5);
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            Panel::new(ID)
+                .kind(PanelKind::Framed)
+                .title(" hi ")
+                .title_flush(true)
+                .title_mark("●")
+                .draw(ui, area, |_, inner| inner);
+        })
+        .commit_presented();
+        assert_eq!(buf.cell((2, 0)).map(|cell| cell.symbol()), Some(" "));
+        assert_eq!(buf.cell((3, 0)).map(|cell| cell.symbol()), Some("h"));
+        assert_eq!(buf.cell((4, 0)).map(|cell| cell.symbol()), Some("i"));
+        assert_eq!(buf.cell((5, 0)).map(|cell| cell.symbol()), Some(" "));
+        assert_eq!(buf.cell((6, 0)).map(|cell| cell.symbol()), Some("●"));
     }
 
     /// Q67-owed (T4-O1): an unpatched meta paints faint. The historical

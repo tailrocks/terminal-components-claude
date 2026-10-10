@@ -320,6 +320,12 @@ fn container_like(m: &mut PartMap<PartRecipe>) {
         StateFlags::FOCUSED,
         p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
     );
+    part(
+        m,
+        Part::ICON,
+        p().set_fg(Role::Fg(FgStep::Secondary))
+            .remove(Modifier::BOLD),
+    );
     part(m, Part::GUTTER, p()).when(
         StateFlags::FOCUSED,
         p().set_glyph(GlyphRole::FocusBar).set_fg(Role::Focus),

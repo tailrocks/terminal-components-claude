@@ -7581,38 +7581,6 @@ impl App {
         }
     }
 
-    /// Border patch for the focused pane frame (bright, never bold).
-    const CAPSULE_BORDER_FOCUSED: [(Part, StylePatch); 2] = [
-        (
-            Part::BORDER,
-            StylePatch::new()
-                .set_fg(Role::BorderStrong)
-                .remove(Modifier::BOLD),
-        ),
-        (
-            Part::DETAIL,
-            StylePatch::new()
-                .set_fg(Role::BorderStrong)
-                .remove(Modifier::BOLD),
-        ),
-    ];
-
-    /// Border patch for unfocused pane frames (subtle, never bold).
-    const CAPSULE_BORDER_UNFOCUSED: [(Part, StylePatch); 2] = [
-        (
-            Part::BORDER,
-            StylePatch::new()
-                .set_fg(Role::BorderSubtle)
-                .remove(Modifier::BOLD),
-        ),
-        (
-            Part::DETAIL,
-            StylePatch::new()
-                .set_fg(Role::BorderSubtle)
-                .remove(Modifier::BOLD),
-        ),
-    ];
-
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
         ui.fill(area, ui.surface_style());
         let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
@@ -7808,65 +7776,56 @@ impl App {
         let Some((_, (label_run, glyph))) = frame.titles.get(&pane_id) else {
             return;
         };
-        let palette = HistoricalPalette::new(ui);
-        let text_style = if focused {
-            palette.primary_on_canvas_bold
+        let title_patch = if focused {
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(Surface::Canvas))
+                .add(Modifier::BOLD)
         } else {
-            palette.secondary_on_canvas
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .set_bg(Role::Surface(Surface::Canvas))
+                .remove(Modifier::BOLD)
         };
-        let glyph_style = if focused {
-            let role = Self::capsule_title_glyph_focused(pane.state());
-            let patch = StylePatch::new().set_fg(role).remove(Modifier::BOLD);
-            palette.secondary_on_canvas.patch(ui.paint_patch(&patch))
+        let icon_fg = if focused {
+            Self::capsule_title_glyph_focused(pane.state())
         } else {
-            palette.secondary_on_canvas
+            Role::Fg(FgStep::Secondary)
         };
-        let title_prop = if glyph.is_empty() {
-            label_run.clone()
+        let icon_patch = StylePatch::new()
+            .set_fg(icon_fg)
+            .set_bg(Role::Surface(Surface::Canvas))
+            .remove(Modifier::BOLD);
+        let border_fg = if focused {
+            Role::BorderStrong
         } else {
-            format!("{label_run}{glyph}")
+            Role::BorderSubtle
         };
-        let border_patch = if focused {
-            &Self::CAPSULE_BORDER_FOCUSED
-        } else {
-            &Self::CAPSULE_BORDER_UNFOCUSED
-        };
-        let pane_width = pane_area.width;
-        let label_width = label_run.chars().count() as u16;
+        let parts = [
+            (
+                Part::BORDER,
+                StylePatch::new().set_fg(border_fg).remove(Modifier::BOLD),
+            ),
+            (
+                Part::DETAIL,
+                StylePatch::new().set_fg(border_fg).remove(Modifier::BOLD),
+            ),
+            (Part::TITLE, title_patch),
+            (Part::ICON, icon_patch),
+        ];
         let mut panel = Panel::new(Self::capsule_viewport_id(pane_id))
             .kind(PanelKind::Framed)
-            .title(title_prop.as_str())
+            .title(label_run.as_str())
+            .title_flush(true)
+            .title_mark(glyph)
             .inner_inset(Insets::all(1))
-            .patch_part(border_patch);
+            .patch_part(&parts);
         if ctx.tab.zoomed == Some(pane_id) {
             panel = panel.meta("zoomed");
         }
-        panel
-            .slot(Part::TITLE, &|ui: &mut Ui<'_>, rect: Rect| {
-                // The stock framed title pads both sides; the frozen run has
-                // no trailing blank after the glyph, so the TITLE part slot
-                // paints the exact two-style run, clipped to the head span.
-                let start_x = rect.x.saturating_sub(1);
-                let end_x = pane_area.x.saturating_add(pane_width.saturating_sub(2));
-                let text_end = start_x.saturating_add(label_width).min(end_x);
-                if text_end > start_x {
-                    ui.paint_str(
-                        Rect::new(start_x, rect.y, text_end.saturating_sub(start_x), 1),
-                        label_run.as_str(),
-                        text_style,
-                    );
-                }
-                if !glyph.is_empty() && end_x > text_end {
-                    ui.paint_str(
-                        Rect::new(text_end, rect.y, end_x.saturating_sub(text_end), 1),
-                        glyph,
-                        glyph_style,
-                    );
-                }
-            })
-            .draw(ui, pane_area, |ui, inner| {
-                draw_content(ui, inner);
-            });
+        panel.draw(ui, pane_area, |ui, inner| {
+            draw_content(ui, inner);
+        });
     }
 
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
