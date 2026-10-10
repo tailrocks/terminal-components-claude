@@ -1,0 +1,807 @@
+{
+  "schema": "termrock-evidence-archive-file-manifest/v1",
+  "state": "DRAFT_PENDING_ARCHIVE_REVIEW",
+  "archive_relative_path": "docs/implementation/visibility/evidence/paired/holla-0b7545-ref4b-20261010/",
+  "file_count": 114,
+  "total_bytes": 21280776,
+  "files": [
+    {
+      "path": "PROVENANCE.json",
+      "bytes": 2879,
+      "sha256": "10cc3eeaaf9393cc2f7f36e995ab07a46b34d6e3c58269fceec980316e66ede9",
+      "kind": "archive-provenance",
+      "source_path": null
+    },
+    {
+      "path": "README.md",
+      "bytes": 2703,
+      "sha256": "5c8d5527784c805a13b8c982baf6e2beefd58e7f7235417b58aca403f8a23700",
+      "kind": "archive-description",
+      "source_path": null
+    },
+    {
+      "path": "attempts/r2-cli-rejection/capture/result.json",
+      "bytes": 2131,
+      "sha256": "5d9b3fa9519e426022e2aaf9993fd920243f56fc2511797b24516035fe9da7a7",
+      "kind": "startup-failure-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r2-20261010/execution/capture/result.json"
+    },
+    {
+      "path": "attempts/r2-cli-rejection/capture/stderr.raw",
+      "bytes": 1072,
+      "sha256": "9c17c8d1f4b33ad02b0f1d85390ab2f330f54b19b3745eb897e573044189922b",
+      "kind": "startup-failure-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r2-20261010/execution/capture/stderr.raw"
+    },
+    {
+      "path": "attempts/r2-cli-rejection/capture/stdout.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "startup-failure-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r2-20261010/execution/capture/stdout.raw"
+    },
+    {
+      "path": "attempts/r2-cli-rejection/remap-plan.json",
+      "bytes": 5364,
+      "sha256": "bf02e5e64d076198fe62f1419ee39c2eb8443b0ce344e3b217aa91062cc1dd6d",
+      "kind": "startup-failure-request",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r2-20261010/remap-plan.json"
+    },
+    {
+      "path": "attempts/r2-cli-rejection/request.json",
+      "bytes": 3737,
+      "sha256": "3ad6be249d55c354c4a4dab15bfbcc7a4c073e28c7a199fd99ab6002fe52f64d",
+      "kind": "startup-failure-request",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r2-20261010/capture-request.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/120x40/truecolor/ansi",
+      "bytes": 18842,
+      "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/120x40/truecolor/ansi"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/120x40/truecolor/ascii",
+      "bytes": 4019,
+      "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/120x40/truecolor/ascii"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/120x40/truecolor/ascii.loss.json",
+      "bytes": 29455,
+      "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/120x40/truecolor/ascii.loss.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/120x40/truecolor/frame.json",
+      "bytes": 1284301,
+      "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/120x40/truecolor/frame.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/120x40/truecolor/html",
+      "bytes": 787462,
+      "sha256": "4f54fb79745ed0d4054664f1aa8aac212f8c9dd9604c12190b10488c123b4eae",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/120x40/truecolor/html"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/120x40/truecolor/manifest.json",
+      "bytes": 3762,
+      "sha256": "66736bbaf0f94cba53de8b7380d0df0eafe7bfb05f442c99882562e39da096e0",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/120x40/truecolor/manifest.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/120x40/truecolor/observations.json",
+      "bytes": 2022,
+      "sha256": "f7562665f9691eb7e618fd7901906360d06681e15c05a7ae89b431a24b1eb87b",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/120x40/truecolor/observations.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/120x40/truecolor/png",
+      "bytes": 551174,
+      "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/120x40/truecolor/png"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/120x40/truecolor/png.fidelity.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/120x40/truecolor/txt",
+      "bytes": 4621,
+      "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/120x40/truecolor/txt"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/boot/120x40/truecolor/ansi",
+      "bytes": 13319,
+      "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/boot/120x40/truecolor/ansi"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/boot/120x40/truecolor/ascii",
+      "bytes": 2646,
+      "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/boot/120x40/truecolor/ascii"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/boot/120x40/truecolor/ascii.loss.json",
+      "bytes": 13774,
+      "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/boot/120x40/truecolor/ascii.loss.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/boot/120x40/truecolor/frame.json",
+      "bytes": 1279138,
+      "sha256": "868c25f8aba0e075b8c82825e6b0e17a56c594945db4f1039da0b0f5e3f55953",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/boot/120x40/truecolor/frame.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/boot/120x40/truecolor/html",
+      "bytes": 586502,
+      "sha256": "04152ab213bb9463ea2209f6cde0b1447b118cff36d1173ad0e9d7e4ca0c8061",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/boot/120x40/truecolor/html"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/boot/120x40/truecolor/manifest.json",
+      "bytes": 3774,
+      "sha256": "09c9bc675a4dd97abcc020826f1d3b54f143b184e19ea7df18b4a61ebf02a401",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/boot/120x40/truecolor/manifest.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/boot/120x40/truecolor/observations.json",
+      "bytes": 1984,
+      "sha256": "83d478bd75ba34e92b6528536f9c977bac4d283defbc64176ff205f3dc471d8d",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/boot/120x40/truecolor/observations.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/boot/120x40/truecolor/png",
+      "bytes": 417641,
+      "sha256": "d63ea1a7b755a9325a1bcc4aea52e1d229c9fd7468027592552646df541ccac4",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/boot/120x40/truecolor/png"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/boot/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/boot/120x40/truecolor/png.fidelity.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/boot/120x40/truecolor/txt",
+      "bytes": 2930,
+      "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/boot/120x40/truecolor/txt"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/closed/120x40/truecolor/ansi",
+      "bytes": 13319,
+      "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/closed/120x40/truecolor/ansi"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/closed/120x40/truecolor/ascii",
+      "bytes": 2646,
+      "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/closed/120x40/truecolor/ascii"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/closed/120x40/truecolor/ascii.loss.json",
+      "bytes": 13774,
+      "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/closed/120x40/truecolor/ascii.loss.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/closed/120x40/truecolor/frame.json",
+      "bytes": 1279138,
+      "sha256": "868c25f8aba0e075b8c82825e6b0e17a56c594945db4f1039da0b0f5e3f55953",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/closed/120x40/truecolor/frame.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/closed/120x40/truecolor/html",
+      "bytes": 586506,
+      "sha256": "396c9a0d7013dbab15b5cf11abd40796f13666b6bac4a55da92ff179f4cd490a",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/closed/120x40/truecolor/html"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/closed/120x40/truecolor/manifest.json",
+      "bytes": 3796,
+      "sha256": "3e3fd0dca3debe9a2f93e4b20bfb046380608ff44a06c243abc62d8c6c0f9f54",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/closed/120x40/truecolor/manifest.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/closed/120x40/truecolor/observations.json",
+      "bytes": 1986,
+      "sha256": "dcdfd0680349094310505481149fb502f95568def9cea00de59686f1e82103a6",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/closed/120x40/truecolor/observations.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/closed/120x40/truecolor/png",
+      "bytes": 417641,
+      "sha256": "d63ea1a7b755a9325a1bcc4aea52e1d229c9fd7468027592552646df541ccac4",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/closed/120x40/truecolor/png"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/closed/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/closed/120x40/truecolor/png.fidelity.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/closed/120x40/truecolor/txt",
+      "bytes": 2930,
+      "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/closed/120x40/truecolor/txt"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/ansi",
+      "bytes": 18842,
+      "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/ansi"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/ascii",
+      "bytes": 4019,
+      "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/ascii"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/ascii.loss.json",
+      "bytes": 29455,
+      "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/ascii.loss.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/frame.json",
+      "bytes": 1284301,
+      "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/frame.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/html",
+      "bytes": 787474,
+      "sha256": "a5bd850b0c561d8e8d93bef3f596e66bfef7516ac75793ca754a825e4bb47060",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/html"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/manifest.json",
+      "bytes": 3819,
+      "sha256": "337aaed60b61caef1a5d230e235e98dc089ecd10953ea32a8201e5ac114f278b",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/manifest.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/observations.json",
+      "bytes": 1989,
+      "sha256": "6c3b39ff6c714d9bb725e71ea389acc091fac3967ee4be366111fb765093b905",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/observations.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/png",
+      "bytes": 551174,
+      "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/png"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/png.fidelity.json"
+    },
+    {
+      "path": "captures/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/txt",
+      "bytes": 4621,
+      "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/candidate/holla/finder/help-overlay/reopened/120x40/truecolor/txt"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/120x40/truecolor/ansi",
+      "bytes": 18842,
+      "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/120x40/truecolor/ansi"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/120x40/truecolor/ascii",
+      "bytes": 4019,
+      "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/120x40/truecolor/ascii"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/120x40/truecolor/ascii.loss.json",
+      "bytes": 29455,
+      "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/120x40/truecolor/ascii.loss.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/120x40/truecolor/frame.json",
+      "bytes": 1284301,
+      "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/120x40/truecolor/frame.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/120x40/truecolor/html",
+      "bytes": 787462,
+      "sha256": "4f54fb79745ed0d4054664f1aa8aac212f8c9dd9604c12190b10488c123b4eae",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/120x40/truecolor/html"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/120x40/truecolor/manifest.json",
+      "bytes": 3762,
+      "sha256": "66736bbaf0f94cba53de8b7380d0df0eafe7bfb05f442c99882562e39da096e0",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/120x40/truecolor/manifest.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/120x40/truecolor/observations.json",
+      "bytes": 2022,
+      "sha256": "f7562665f9691eb7e618fd7901906360d06681e15c05a7ae89b431a24b1eb87b",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/120x40/truecolor/observations.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/120x40/truecolor/png",
+      "bytes": 551174,
+      "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/120x40/truecolor/png"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/120x40/truecolor/png.fidelity.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/120x40/truecolor/txt",
+      "bytes": 4621,
+      "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/120x40/truecolor/txt"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/boot/120x40/truecolor/ansi",
+      "bytes": 13319,
+      "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/boot/120x40/truecolor/ansi"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/boot/120x40/truecolor/ascii",
+      "bytes": 2646,
+      "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/boot/120x40/truecolor/ascii"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/boot/120x40/truecolor/ascii.loss.json",
+      "bytes": 13774,
+      "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/boot/120x40/truecolor/ascii.loss.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/boot/120x40/truecolor/frame.json",
+      "bytes": 1279137,
+      "sha256": "c7da81c312bbd306bb2ddfd5e7ede508a11b02af0439d1bac4b795ba1e9517bb",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/boot/120x40/truecolor/frame.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/boot/120x40/truecolor/html",
+      "bytes": 586582,
+      "sha256": "3e65fadb63db66cc02a230c5bc885c659c74f9fe1b463de431e01fd0728744ef",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/boot/120x40/truecolor/html"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/boot/120x40/truecolor/manifest.json",
+      "bytes": 3772,
+      "sha256": "7028a7c916ad8202a52d5e72f423c4fb28eaa2bd012e6d7b5ac6ee5d3f92cc2f",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/boot/120x40/truecolor/manifest.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/boot/120x40/truecolor/observations.json",
+      "bytes": 1981,
+      "sha256": "a17c99097f90e7cc0db7a656183284afdbcea87d9543749cff2e5f4806e7b363",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/boot/120x40/truecolor/observations.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/boot/120x40/truecolor/png",
+      "bytes": 417702,
+      "sha256": "1285c0a1a589769cb75b979e26d6ffdd8e1d36cfde629221d99ae801db43db7e",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/boot/120x40/truecolor/png"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/boot/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/boot/120x40/truecolor/png.fidelity.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/boot/120x40/truecolor/txt",
+      "bytes": 2930,
+      "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/boot/120x40/truecolor/txt"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/closed/120x40/truecolor/ansi",
+      "bytes": 13319,
+      "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/closed/120x40/truecolor/ansi"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/closed/120x40/truecolor/ascii",
+      "bytes": 2646,
+      "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/closed/120x40/truecolor/ascii"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/closed/120x40/truecolor/ascii.loss.json",
+      "bytes": 13774,
+      "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/closed/120x40/truecolor/ascii.loss.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/closed/120x40/truecolor/frame.json",
+      "bytes": 1279137,
+      "sha256": "c7da81c312bbd306bb2ddfd5e7ede508a11b02af0439d1bac4b795ba1e9517bb",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/closed/120x40/truecolor/frame.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/closed/120x40/truecolor/html",
+      "bytes": 586586,
+      "sha256": "0bb6cf67b2f5683eef9271511e2052657fd397db9533525029d8e32048c627b4",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/closed/120x40/truecolor/html"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/closed/120x40/truecolor/manifest.json",
+      "bytes": 3794,
+      "sha256": "31c96d164b787df1923a8eb986da2bd2082828af894d79f5f84fbd5e47cc7b61",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/closed/120x40/truecolor/manifest.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/closed/120x40/truecolor/observations.json",
+      "bytes": 1983,
+      "sha256": "b3b04ffc809564e3bb0562dbf6549cc913e6cc63be5a4f3172dbc8d6194ff86e",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/closed/120x40/truecolor/observations.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/closed/120x40/truecolor/png",
+      "bytes": 417702,
+      "sha256": "1285c0a1a589769cb75b979e26d6ffdd8e1d36cfde629221d99ae801db43db7e",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/closed/120x40/truecolor/png"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/closed/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/closed/120x40/truecolor/png.fidelity.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/closed/120x40/truecolor/txt",
+      "bytes": 2930,
+      "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/closed/120x40/truecolor/txt"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/reopened/120x40/truecolor/ansi",
+      "bytes": 18842,
+      "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/reopened/120x40/truecolor/ansi"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/reopened/120x40/truecolor/ascii",
+      "bytes": 4019,
+      "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/reopened/120x40/truecolor/ascii"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/reopened/120x40/truecolor/ascii.loss.json",
+      "bytes": 29455,
+      "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/reopened/120x40/truecolor/ascii.loss.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/reopened/120x40/truecolor/frame.json",
+      "bytes": 1284301,
+      "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/reopened/120x40/truecolor/frame.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/reopened/120x40/truecolor/html",
+      "bytes": 787474,
+      "sha256": "a5bd850b0c561d8e8d93bef3f596e66bfef7516ac75793ca754a825e4bb47060",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/reopened/120x40/truecolor/html"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/reopened/120x40/truecolor/manifest.json",
+      "bytes": 3819,
+      "sha256": "337aaed60b61caef1a5d230e235e98dc089ecd10953ea32a8201e5ac114f278b",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/reopened/120x40/truecolor/manifest.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/reopened/120x40/truecolor/observations.json",
+      "bytes": 1989,
+      "sha256": "6c3b39ff6c714d9bb725e71ea389acc091fac3967ee4be366111fb765093b905",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/reopened/120x40/truecolor/observations.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/reopened/120x40/truecolor/png",
+      "bytes": 551174,
+      "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/reopened/120x40/truecolor/png"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/reopened/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/reopened/120x40/truecolor/png.fidelity.json"
+    },
+    {
+      "path": "captures/reference/holla/finder/help-overlay/reopened/120x40/truecolor/txt",
+      "bytes": 4621,
+      "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24",
+      "kind": "captured-output",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/reference/holla/finder/help-overlay/reopened/120x40/truecolor/txt"
+    },
+    {
+      "path": "provenance/caller-trust-record.json",
+      "bytes": 1836,
+      "sha256": "ecfdaec8f4ebc947532399e0654ba84094ef8482ce02609ab2825e0c18a30e63",
+      "kind": "caller-trust",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r1-20261010/trust/trust-record.json"
+    },
+    {
+      "path": "provenance/cargo-metadata/capture/result.json",
+      "bytes": 1453,
+      "sha256": "e9d8ffc285aa297561b6c57b82da64bdc88619e5888f195570ee0945b50c38ec",
+      "kind": "metadata-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r1-20261010/cargo-metadata/execution/capture/result.json"
+    },
+    {
+      "path": "provenance/cargo-metadata/capture/stderr.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "metadata-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r1-20261010/cargo-metadata/execution/capture/stderr.raw"
+    },
+    {
+      "path": "provenance/cargo-metadata/capture/stdout.raw",
+      "bytes": 1038822,
+      "sha256": "d3becace29e9a9eea510c7126c5e609b709bc103ba4d41ff0814ccf34d1bcec5",
+      "kind": "metadata-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r1-20261010/cargo-metadata/execution/capture/stdout.raw"
+    },
+    {
+      "path": "provenance/cargo-metadata/request.json",
+      "bytes": 1812,
+      "sha256": "83b3378000869dded0f3eea43abf531ff8f5e6d1d26631f563ed8a4214dfae87",
+      "kind": "metadata-request",
+      "source_path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r1-20261010/cargo-metadata/capture-request.json"
+    },
+    {
+      "path": "provenance/nextest-binaries-only/capture/result.json",
+      "bytes": 1950,
+      "sha256": "020e9706f17cbb2a6cd4dfd6aff45a217c6975b44bd5045c5bc9ec8747592323",
+      "kind": "metadata-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r2-20261010/binaries-only/execution/capture/result.json"
+    },
+    {
+      "path": "provenance/nextest-binaries-only/capture/stderr.raw",
+      "bytes": 1011,
+      "sha256": "579932272d9bbd4d482852bfb94bbd8ab5f8f24f93260e8ac652447042d03559",
+      "kind": "metadata-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r2-20261010/binaries-only/execution/capture/stderr.raw"
+    },
+    {
+      "path": "provenance/nextest-binaries-only/capture/stdout.raw",
+      "bytes": 2384,
+      "sha256": "8a1e43d7e7080ecde52fd6664bf7aba15b69cd523dfaad0d46fcec75d216ed31",
+      "kind": "metadata-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r2-20261010/binaries-only/execution/capture/stdout.raw"
+    },
+    {
+      "path": "provenance/nextest-binaries-only/request.json",
+      "bytes": 2426,
+      "sha256": "6950a9f0e144e3b9f3dc0c74083a1a6131b21abed9d7823a60d2c771fa9c6304",
+      "kind": "metadata-request",
+      "source_path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r2-20261010/binaries-only/capture-request.json"
+    },
+    {
+      "path": "provenance/nextest-default-config.toml",
+      "bytes": 70,
+      "sha256": "9cb6ed5a384c852af824e76747510ba952b47a44d3883a2d902e396e902f3ef8",
+      "kind": "nextest-config",
+      "source_path": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-list-r2-20261010/nextest-config.toml"
+    },
+    {
+      "path": "provenance/preflight-r4/capture/result.json",
+      "bytes": 1291,
+      "sha256": "af9da59254e7d17991bd47b04b466889d39cf32a440f709eb0505aba6fa9a913",
+      "kind": "preflight-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-preflight-r4-20261010/execution/capture/result.json"
+    },
+    {
+      "path": "provenance/preflight-r4/capture/stderr.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "preflight-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-preflight-r4-20261010/execution/capture/stderr.raw"
+    },
+    {
+      "path": "provenance/preflight-r4/capture/stdout.raw",
+      "bytes": 14139,
+      "sha256": "0b766f9251353243110a01fc67ce9a705b1db7492e5b2a60dbd8dca47739bcba",
+      "kind": "preflight-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-preflight-r4-20261010/execution/capture/stdout.raw"
+    },
+    {
+      "path": "provenance/preflight-r4/request.json",
+      "bytes": 2618,
+      "sha256": "558b05e1484c321649256c8ed754983d834f9683e56e1193356ca70b80bfeb3f",
+      "kind": "preflight-request",
+      "source_path": "/private/tmp/termrock-vis06-holla-preflight-r4-20261010/capture-request.json"
+    },
+    {
+      "path": "provenance/shared_journeys.d",
+      "bytes": 392,
+      "sha256": "a866423456de12aa4c04cca393e46cae599b889fb8eccabc26743b544667ce66",
+      "kind": "compiled-target-depinfo",
+      "source_path": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/deps/shared_journeys-75a38fc8a0088043.d"
+    },
+    {
+      "path": "provenance/subject-manifest.json",
+      "bytes": 10314,
+      "sha256": "9fb567c6548f6f7d4f4f821694b2ad45fb653efafdd1040523f622dedf0a340b",
+      "kind": "subject-manifest",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/subject-manifest.json"
+    },
+    {
+      "path": "reviews/actual-result-review-reference.json",
+      "bytes": 4973,
+      "sha256": "5d464d272ebe122e78d93011f01959e2c10b4f356c40bee17314ba956829ddf6",
+      "kind": "independent-review",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r3-actual-result-review-reference-claim-luna-20261010.json"
+    },
+    {
+      "path": "reviews/binaries-metadata-request-review.json",
+      "bytes": 1995,
+      "sha256": "a15298337a137f42864be3d28405fd5582947a8e4e04a57d0925831bc985f13e",
+      "kind": "independent-review",
+      "source_path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r2-request-review-luna-20261010.json"
+    },
+    {
+      "path": "reviews/preflight-request-review.json",
+      "bytes": 4522,
+      "sha256": "0171d78ca046e43f581bcf36b430a9d9924e93c8416b2c626905a3229e22a3df",
+      "kind": "independent-review",
+      "source_path": "/private/tmp/termrock-vis06-holla-preflight-r4-request-review-luna-20261010.json"
+    },
+    {
+      "path": "reviews/preflight-result-review.json",
+      "bytes": 5023,
+      "sha256": "7757e5a4fcb49a8fdb9654db63a7a252aaddca60359b185d23ca11738d69daba",
+      "kind": "independent-review",
+      "source_path": "/private/tmp/termrock-vis06-holla-preflight-r4-policy-result-review-luna-20261010.json"
+    },
+    {
+      "path": "reviews/trust-record-review.json",
+      "bytes": 3587,
+      "sha256": "491a52e71a0cd65f7229bc5d684d693b56365b60ec12d2a3187c55ca9e7c69f4",
+      "kind": "independent-review",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r1-trust-review-luna-20261010.json"
+    },
+    {
+      "path": "run/capture/result.json",
+      "bytes": 2082,
+      "sha256": "1e296da952ae13d79ee2948e193cc1d9501ab33f6a2a0572a8f8bd9994d231ce",
+      "kind": "native-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r3-20261010/execution/capture/result.json"
+    },
+    {
+      "path": "run/capture/stderr.raw",
+      "bytes": 2505,
+      "sha256": "d040d2c92b1395c2b47485eaed38890cab30c2cdaeb581259ee5b95e6a87cece",
+      "kind": "native-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r3-20261010/execution/capture/stderr.raw"
+    },
+    {
+      "path": "run/capture/stdout.raw",
+      "bytes": 2667,
+      "sha256": "addda944a841f9e8226acd2336a31dd3b4fc380ce31bc7bc5a5c9741fa3858fa",
+      "kind": "native-capture",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r3-20261010/execution/capture/stdout.raw"
+    },
+    {
+      "path": "run/paired-holla-receipt.json",
+      "bytes": 112723,
+      "sha256": "ab202f9e2fe5e57dc6764c4ef4c30f1fdd1628cdf3439644ae0f5677afeb23cc",
+      "kind": "paired-run-receipt",
+      "source_path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/capture-write/paired-holla-receipt.json"
+    },
+    {
+      "path": "run/remap-plan.json",
+      "bytes": 6586,
+      "sha256": "0581c098f92a690d1fb3531db09efb6696b1fb3b7315a8109dfb7b814f000d96",
+      "kind": "run-request",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r3-20261010/remap-plan.json"
+    },
+    {
+      "path": "run/request.json",
+      "bytes": 3663,
+      "sha256": "d23f77641056f469b61c47f29041ff352a8967548251e68ddb232b5b7bd628a6",
+      "kind": "run-request",
+      "source_path": "/private/tmp/termrock-vis06-holla-paired-run-r3-20261010/capture-request.json"
+    }
+  ]
+}

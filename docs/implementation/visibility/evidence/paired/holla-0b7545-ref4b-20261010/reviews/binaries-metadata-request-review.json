@@ -1,0 +1,35 @@
+{
+  "checks": {
+    "config_sha256": "9cb6ed5a384c852af824e76747510ba952b47a44d3883a2d902e396e902f3ef8",
+    "metadata_only_not_test_execution": true,
+    "r1_failed_result_sha256": "34d2ca476f887ab482c4fb222b13061284eb68e77752d84466e799ed7111c2d0",
+    "r1_failure_preserved": true,
+    "r2_outputs_absent": true,
+    "request_sha256": "6950a9f0e144e3b9f3dc0c74083a1a6131b21abed9d7823a60d2c771fa9c6304",
+    "shared_cache_mutability_disclosed": true,
+    "source_tool_cache_and_artifact_pins_verified": true
+  },
+  "config": {
+    "content": "default profile only; no stale visual_baseline or holla_pty overrides",
+    "path": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-list-r2-20261010/nextest-config.toml",
+    "sha256": "9cb6ed5a384c852af824e76747510ba952b47a44d3883a2d902e396e902f3ef8"
+  },
+  "execution_scope": "cargo-nextest list --list-type binaries-only for historical termrock-e2e/shared_journeys, plus prebuilt-target metadata only",
+  "limitations": [
+    "Review only; no Cargo or Nextest command was run by reviewer.",
+    "This request does not run Holla tests or PTY and does not alter caller trust or expected-generation admission.",
+    "The existing target may be checked incrementally and the shared Cargo cache is mutable; no immutability claim is made."
+  ],
+  "reviewed_request": {
+    "path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r2-20261010/binaries-only/capture-request.json",
+    "sha256": "6950a9f0e144e3b9f3dc0c74083a1a6131b21abed9d7823a60d2c771fa9c6304"
+  },
+  "schema": "termrock-independent-review/holla-nextest-binaries-only-request/v1",
+  "superseded_failed_attempt": {
+    "exit_code": 96,
+    "note": "preserved; historical config named selectors absent from shared_journeys",
+    "path": "/private/tmp/termrock-vis06-holla-nextest-reuse-r1-20261010/binaries-only/execution/capture/result.json",
+    "sha256": "34d2ca476f887ab482c4fb222b13061284eb68e77752d84466e799ed7111c2d0"
+  },
+  "verdict": "READY_FOR_METADATA_ONLY_EXECUTION"
+}

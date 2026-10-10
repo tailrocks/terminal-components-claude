@@ -1,0 +1,82 @@
+{
+  "schema": "termrock-independent-review/holla-preflight-result/v1",
+  "verdict": "READY_FOR_CALLER_TRUST_PREPARATION_ONLY",
+  "review_scope": "Independent review of the bounded read-only Holla policy preflight result and its historical suite/artifact bindings. This is not product execution, PTY qualification, trust creation, capture, or expected-generation admission.",
+  "request_review": {
+    "path": "/private/tmp/termrock-vis06-holla-preflight-r4-request-review-luna-20261010.json",
+    "sha256": "0171d78ca046e43f581bcf36b430a9d9924e93c8416b2c626905a3229e22a3df"
+  },
+  "request": {
+    "path": "/private/tmp/termrock-vis06-holla-preflight-r4-20261010/capture-request.json",
+    "sha256": "558b05e1484c321649256c8ed754983d834f9683e56e1193356ca70b80bfeb3f",
+    "schema": "termrock-command-capture-request/v1",
+    "capture_tool_sha256": "5564b7749faba78d18cc060dd8e34f4d753ae6c5cbf55457d4a5e220a84f93e8",
+    "argv": [
+      "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/deps/holla_help_overlay-459bcdbd3e599fd4",
+      "--exact",
+      "holla_write_policy_preflight",
+      "--nocapture",
+      "--ignored"
+    ]
+  },
+  "execution": {
+    "result_path": "/private/tmp/termrock-vis06-holla-preflight-r4-20261010/execution/capture/result.json",
+    "result_sha256": "af9da59254e7d17991bd47b04b466889d39cf32a440f709eb0505aba6fa9a913",
+    "child_exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "stdout_path": "/private/tmp/termrock-vis06-holla-preflight-r4-20261010/execution/capture/stdout.raw",
+    "stdout_bytes": 14139,
+    "stdout_sha256": "0b766f9251353243110a01fc67ce9a705b1db7492e5b2a60dbd8dca47739bcba",
+    "stderr_path": "/private/tmp/termrock-vis06-holla-preflight-r4-20261010/execution/capture/stderr.raw",
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "single_preflight_record_bytes": 13949,
+    "single_preflight_record_sha256": "ce3eb34fc7639b11d60133178b874503d1c0e69de0c426a285d9934c420bdb24"
+  },
+  "reviewed_preflight_record": {
+    "schema": "termrock-spec/parity-write-policy-preflight-v1",
+    "state": "prepared_only",
+    "case_id": "HELP-HOLLA-004",
+    "suite_revision": "termrock-e2e-2026-10-09.2",
+    "suite_sha256": "b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d",
+    "case_set_digest": "adaed1eacba161ea992b9ccdfaf8e510770f4efd7e8053cb1e4b4e077e7ee652",
+    "profile_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+    "cargo_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+    "expected_generation": null,
+    "helper_test_binary_sha256": "8f7199bb1f9df9de15e677f97ac610262d2c2391fe0e41995e6226f071af263a",
+    "helper_test_depinfo_sha256": "d02911e260f3795491297e25d6a7b538fa9fba62b54f527567254f000a5b798a",
+    "policy_sha256": "88182dd9ade3efd9d77eff820736a9c40adca328bef473e71787edf1ec5bf86c",
+    "test_binary_parent": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/deps",
+    "trust_record_state": "required_absent"
+  },
+  "historical_suite_binding": {
+    "candidate_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "reference_commit": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "common_termrock_e2e_tree": "c962085b9c9e6b80ddba31d8c82e01c8d2e97179",
+    "list_request_sha256": "597b55f384d7e8edf3f666478ce5fde009dcfc146b95f81665bac31bfe77f2b7",
+    "list_result_sha256": "c8f4d0a5bec18f43034ea8e4902d62233cb6beb4cbd12163282bad533f46d581",
+    "list_stdout_sha256": "0334c053165508274d703c946bd676910f266a4d49b7aea03e101c72be06e116",
+    "selected_suite": "termrock-e2e::shared_journeys",
+    "selected_test_count": 4,
+    "holla_case_test": "holla_help_overlay_004",
+    "shared_journeys_binary_sha256": "e762809681c8047dd141a9e647275c9bde490036531d1e0ed786197514641863",
+    "shared_journeys_depinfo_sha256": "a866423456de12aa4c04cca393e46cae599b889fb8eccabc26743b544667ce66",
+    "artifact_copy_receipt_sha256": "d6d50c8b668c3f70e65fb30f620f3897880122cd057f6e539b3a723c03809198"
+  },
+  "path_and_policy_checks": {
+    "artifact_bundle_read_only": true,
+    "helper_and_shared_journeys_share_test_binary_parent": true,
+    "protected_roots_include_both_subject_sources_and_built_artifacts_and_oracle": true,
+    "actual_output_roots_are_empty_after_preflight": true,
+    "trust_record_remains_absent": true,
+    "receipt_destination_remains_absent": true,
+    "preflight_capture_outputs_are_complete_and_untruncated": true
+  },
+  "limitations": [
+    "The R1 and R2 preflight failures remain preserved; this receipt covers only R4.",
+    "This preflight establishes a prepared write policy for the exact historical pair and common test-binary parent only.",
+    "No Holla app binary was launched, no PTY or shared journey ran, no capture was made, and no trust or expected data was written or admitted.",
+    "Trust creation and any product execution require their own exact reviewed request and authorization."
+  ]
+}

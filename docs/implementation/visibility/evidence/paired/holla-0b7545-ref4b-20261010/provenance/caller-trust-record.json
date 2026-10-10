@@ -1,0 +1,38 @@
+{
+  "schema": "termrock-spec/parity-trust-record-v2",
+  "suite": {
+    "digest": "b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d",
+    "case_set_digest": "adaed1eacba161ea992b9ccdfaf8e510770f4efd7e8053cb1e4b4e077e7ee652",
+    "profile_digest": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+    "dependency_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+    "review_receipt_sha256": "7757e5a4fcb49a8fdb9654db63a7a252aaddca60359b185d23ca11738d69daba",
+    "test_binary_sha256": [
+      "8f7199bb1f9df9de15e677f97ac610262d2c2391fe0e41995e6226f071af263a",
+      "e762809681c8047dd141a9e647275c9bde490036531d1e0ed786197514641863"
+    ]
+  },
+  "subjects": [
+    {
+      "role": "candidate",
+      "source_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+      "builder_receipt_sha256": "94c72207c195561abcf6c6cd8b2b843b237d9b348e62f15d62efc21cca061817"
+    },
+    {
+      "role": "reference",
+      "source_commit": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+      "builder_receipt_sha256": "e8fd2571e5c9b512197580fcbd1aca61c8fbe6cecc69cab570655f82ff502cef"
+    }
+  ],
+  "expected_generation": null,
+  "build_evidence": {
+    "subject_manifest": {
+      "path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/subject-manifest.json",
+      "sha256": "9fb567c6548f6f7d4f4f821694b2ad45fb653efafdd1040523f622dedf0a340b"
+    },
+    "builder_run": {
+      "path": "/private/tmp/termrock-vis06-holla-historical-0b7545-ref4b-run-r1-20261010/subjects/holla-historical-0b7545-ref4b-r1-20261010/run.json",
+      "sha256": "4b4d5b2cc3e68cf1a9794ea34c83987462302fb09e480ff0183aa5ff7e1658c7"
+    }
+  },
+  "write_policy_sha256": "88182dd9ade3efd9d77eff820736a9c40adca328bef473e71787edf1ec5bf86c"
+}

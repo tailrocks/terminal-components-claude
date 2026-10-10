@@ -1,0 +1,64 @@
+{
+  "schema": "termrock-independent-review/holla-preflight-request/v1",
+  "verdict": "READY_FOR_READ_ONLY_PREFLIGHT_ONLY",
+  "review_scope": "Static review of the exact bounded invocation that runs holla_write_policy_preflight. This does not authorize or establish a trust record, Holla product launch, PTY journey, capture, expected-generation admission, or qualification.",
+  "request": {
+    "path": "/private/tmp/termrock-vis06-holla-preflight-r4-20261010/capture-request.json",
+    "sha256": "558b05e1484c321649256c8ed754983d834f9683e56e1193356ca70b80bfeb3f",
+    "schema": "termrock-command-capture-request/v1",
+    "field_count": 8,
+    "capture_tool_path": "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+    "capture_tool_sha256": "5564b7749faba78d18cc060dd8e34f4d753ae6c5cbf55457d4a5e220a84f93e8",
+    "timeout_ms": 300000
+  },
+  "historical_suite": {
+    "candidate_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "reference_commit": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "common_termrock_e2e_tree": "c962085b9c9e6b80ddba31d8c82e01c8d2e97179",
+    "suite_revision": "termrock-e2e-2026-10-09.2",
+    "suite_sha256": "b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d",
+    "expected_generation": null
+  },
+  "test_artifact_pair": {
+    "copy_receipt_path": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/artifact-copy-receipt.json",
+    "copy_receipt_sha256": "d6d50c8b668c3f70e65fb30f620f3897880122cd057f6e539b3a723c03809198",
+    "common_parent": "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/deps",
+    "helper_test_binary_sha256": "8f7199bb1f9df9de15e677f97ac610262d2c2391fe0e41995e6226f071af263a",
+    "helper_test_depinfo_sha256": "d02911e260f3795491297e25d6a7b538fa9fba62b54f527567254f000a5b798a",
+    "helper_test_depinfo_source": "tests/holla_help_overlay.rs",
+    "shared_journeys_binary_sha256": "e762809681c8047dd141a9e647275c9bde490036531d1e0ed786197514641863",
+    "shared_journeys_depinfo_sha256": "a866423456de12aa4c04cca393e46cae599b889fb8eccabc26743b544667ce66",
+    "bundle_directory_mode": "0555",
+    "binary_mode": "0555",
+    "depinfo_mode": "0444"
+  },
+  "preflight_contract": {
+    "exact_test_argv": [
+      "/private/tmp/termrock-vis06-e2e-historical-0b7545-ref4b-artifact-pair-r1-20261010/deps/holla_help_overlay-459bcdbd3e599fd4",
+      "--exact",
+      "holla_write_policy_preflight",
+      "--nocapture",
+      "--ignored"
+    ],
+    "source_behavior": "The ignored test calls prepare_holla_help_overlay_preflight and prints its prepared_only receipt. Source inspection confirms this helper reads and validates the suite, subject executables, expected_generation=null, trust absence, write policy, and capture paths; it does not run the product, PTY journey, create a capture, write trust, or admit expected data.",
+    "test_binary_parent_binding": "The helper and shared_journeys binaries are in the same immutable artifact-pair/deps directory; this preserves the test_binary_parent included in the policy digest for the later shared_journeys execution.",
+    "trust_record": "The request names the separate trust-record path; it was absent at review time.",
+    "write_paths": "The actual output roots are the empty capture-write/candidate and capture-write/reference directories. The receipt destination is capture-write/paired-holla-receipt.json. The protected roots include both historical source roots, both built Holla artifact roots, and the paired-run oracle. These paths are disjoint from the preflight capture outputs and from trust storage.",
+    "fresh_outputs": "The stdout, stderr, and result outputs are in the new r4 capture directory and were absent at review time; HOME and TMPDIR are private r4 directories.",
+    "execution_state": "NOT_RUN_BY_REVIEWER"
+  },
+  "checks": {
+    "request_hash_and_schema": true,
+    "artifact_hashes_and_shared_parent": true,
+    "source_and_historical_suite_bindings": true,
+    "protected_and_write_path_separation": true,
+    "fresh_capture_outputs": true,
+    "read_only_helper_scope": true
+  },
+  "limitations": [
+    "This review is for the one read-only policy preflight invocation only.",
+    "The earlier r1/r2 preflight attempts remain failures and are not upgraded by this review.",
+    "A successful preflight result still requires separate review before a caller-trust record is created.",
+    "No final shared_journeys case was run or qualified by this review."
+  ]
+}

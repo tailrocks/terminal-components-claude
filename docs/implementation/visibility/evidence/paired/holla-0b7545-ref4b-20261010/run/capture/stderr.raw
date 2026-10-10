@@ -1,0 +1,34 @@
+────────────
+ Nextest run ID e92b63d7-126d-4745-853f-3fce72ed148a with nextest profile: default
+    Starting 1 test across 1 binary (3 tests skipped)
+        FAIL [ 111.203s] termrock-e2e::shared_journeys holla_help_overlay_004
+  output ───
+
+    running 1 test
+    test holla_help_overlay_004 has been running for over 60 seconds
+
+    thread 'holla_help_overlay_004' (116705106) panicked at tests/shared_journeys.rs:24:9:
+    case HELP-HOLLA-004 is not acceptance-ready:
+    candidate:HELP-HOLLA-004:00-boot:visual=BLOCKED (no shared expected generation was supplied; exact cell, cursor, and decoded-pixel comparison remains blocked (alias: none))
+    candidate:HELP-HOLLA-004:01-help:visual=BLOCKED (no shared expected generation was supplied; exact cell, cursor, and decoded-pixel comparison remains blocked (alias: holla/flows/help/overlay/120x40/truecolor))
+    candidate:HELP-HOLLA-004:02-finder:visual=BLOCKED (no shared expected generation was supplied; exact cell, cursor, and decoded-pixel comparison remains blocked (alias: none))
+    candidate:HELP-HOLLA-004:03-help-again:visual=BLOCKED (no shared expected generation was supplied; exact cell, cursor, and decoded-pixel comparison remains blocked (alias: none))
+    reference:HELP-HOLLA-004:00-boot:visual=BLOCKED (no shared expected generation was supplied; exact cell, cursor, and decoded-pixel comparison remains blocked (alias: none))
+    reference:HELP-HOLLA-004:01-help:visual=BLOCKED (no shared expected generation was supplied; exact cell, cursor, and decoded-pixel comparison remains blocked (alias: holla/flows/help/overlay/120x40/truecolor))
+    reference:HELP-HOLLA-004:02-finder:visual=BLOCKED (no shared expected generation was supplied; exact cell, cursor, and decoded-pixel comparison remains blocked (alias: none))
+    reference:HELP-HOLLA-004:03-help-again:visual=BLOCKED (no shared expected generation was supplied; exact cell, cursor, and decoded-pixel comparison remains blocked (alias: none))
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    test holla_help_overlay_004 ... FAILED
+
+    failures:
+
+    failures:
+        holla_help_overlay_004
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 111.18s
+
+
+────────────
+     Summary [ 111.204s] 1 test run: 0 passed, 1 failed, 3 skipped
+        FAIL [ 111.203s] termrock-e2e::shared_journeys holla_help_overlay_004
+error: test run failed
