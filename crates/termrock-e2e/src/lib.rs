@@ -35,6 +35,10 @@ const WRITE_ROOT_ENV: &str = "TERMROCK_E2E_WRITE_ROOT";
 const PROTECTED_ROOTS_ENV: &str = "TERMROCK_E2E_PROTECTED_ROOTS";
 const TAG_BUILD_EVIDENCE_PATH_ENV: &str = "TERMROCK_E2E_ORACLE_BUILD_RECEIPT";
 const TAG_BUILD_EVIDENCE_SHA_ENV: &str = "TERMROCK_E2E_ORACLE_BUILD_RECEIPT_SHA256";
+const TAG_NORMALIZED_BUILD_ADDENDUM_PATH_ENV: &str =
+    "TERMROCK_E2E_ORACLE_NORMALIZED_BUILD_ADDENDUM";
+const TAG_NORMALIZED_BUILD_ADDENDUM_SHA_ENV: &str =
+    "TERMROCK_E2E_ORACLE_NORMALIZED_BUILD_ADDENDUM_SHA256";
 const TAG_ACTUAL_ROOT_ENV: &str = "TERMROCK_E2E_ORACLE_ACTUAL_ROOT";
 const TAG_SOURCE_VALIDATOR_PATH_ENV: &str = "TERMROCK_VIS06_SUBJECTS_PY";
 const TAG_SOURCE_REPOSITORY_ENV: &str = "TERMROCK_VIS06_GIT_REPOSITORY";
@@ -43,14 +47,21 @@ const TAG_VALIDATOR_TOOLCHAIN_SHA_ENV: &str = "TERMROCK_VIS06_VALIDATOR_TOOLCHAI
 const GENERATION_ADMISSION_PATH_ENV: &str = "TERMROCK_E2E_GENERATION_ADMISSION";
 const GENERATION_ADMISSION_SHA_ENV: &str = "TERMROCK_E2E_GENERATION_ADMISSION_SHA256";
 const TAG_SOURCE_VALIDATOR_SHA256: &str =
-    "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853";
+    "2e695ce9a79fb3dbdb56e5ccbb109b5f0f4c6e0da0acda6ba34c2a20649767a7";
 const TAG_VALIDATOR_TOOLCHAIN_SCHEMA: &str = "termrock-spec/visual-tag-validator-toolchain-v1";
 const TAG_VALIDATOR_HELPER_TRANSPORT: &str = "checked-source-absolute-git-dispatch-v1";
 const TAG_VALIDATED_IDENTITY_SCHEMA: &str = "termrock-spec/visual-tag-holla-validated-identity-v1";
+const TAG_NORMALIZED_EXISTING_BUILD_IDENTITY_SCHEMA: &str =
+    "termrock-spec/visual-tag-holla-normalized-existing-build-identity-v2";
+const TAG_NORMALIZED_EXISTING_BUILD_ORIGIN_SCHEMA: &str =
+    "termrock-spec/visual-tag-holla-normalized-existing-build-origin-v2";
 const TAG_CAPTURE_PREFLIGHT_SCHEMA: &str = "termrock-spec/parity-oracle-capture-preflight-v1";
 pub const ORACLE_CAPTURE_RECEIPT_SCHEMA: &str = "termrock-spec/parity-oracle-capture-receipt-v1";
+pub const ORACLE_CAPTURE_RECEIPT_SCHEMA_V2: &str = "termrock-spec/parity-oracle-capture-receipt-v2";
 pub const ORACLE_CAPTURE_RECEIPT_SCHEMA_JSON: &str =
     include_str!("../schemas/oracle-capture-receipt-v1.schema.json");
+pub const ORACLE_CAPTURE_RECEIPT_SCHEMA_V2_JSON: &str =
+    include_str!("../schemas/oracle-capture-receipt-v2.schema.json");
 const TAG_BUILD_EVIDENCE_SCHEMA: &str = "termrock-spec/visual-tag-holla-build-evidence-v1";
 pub const WRITE_POLICY_SCHEMA: &str = "termrock-spec/parity-write-policy-v2";
 pub const COMPILED_SUITE_SHA256: &str = env!("TERMROCK_E2E_COMPILED_SUITE_SHA256");
@@ -729,6 +740,119 @@ pub struct TagValidatedIdentity {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+struct TagNormalizedExecutableV2 {
+    path: PathBuf,
+    sha256: String,
+    size_bytes: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct TagNormalizedBuildEnvironmentV2 {
+    origin_result_sha256: String,
+    origin_invocation_sha256: String,
+    environment: BTreeMap<String, BuildEnvironmentFacts>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct TagNormalizedExistingBuildIdentityV2 {
+    schema: String,
+    run_id: String,
+    normalization_addendum: TagValidatedEvidenceReference,
+    build_result: TagValidatedEvidenceReference,
+    build_plan: TagValidatedEvidenceReference,
+    invocation: TagValidatedEvidenceReference,
+    cargo_stdout: TagValidatedEvidenceReference,
+    cargo_stderr: TagValidatedEvidenceReference,
+    process_events: TagValidatedEvidenceReference,
+    cache_copy_receipt: TagValidatedEvidenceReference,
+    cache_source_manifest: TagValidatedEvidenceReference,
+    cache_row_reconciliation: TagValidatedEvidenceReference,
+    cache_row_review: TagValidatedEvidenceReference,
+    source_cache_identity_addendum: TagValidatedEvidenceReference,
+    build_result_review: TagValidatedEvidenceReference,
+    oracle_lineage: TagOracleLineage,
+    source_snapshot: TagValidatedSourceSnapshot,
+    metadata_target: TagMetadataTargetEvidence,
+    build_artifact_root: PathBuf,
+    build: BuildFacts,
+    executable: TagNormalizedExecutableV2,
+    build_inputs: BuildInputs,
+    build_environment: TagNormalizedBuildEnvironmentV2,
+    product_build: String,
+    source_payload: String,
+    locked_cache_payload: String,
+    environment_integrity: String,
+    execution_anchor_status: String,
+    qualification: QualificationEvidence,
+    capture_status: String,
+    admission_status: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+enum TagCaptureValidatedIdentity {
+    V1(TagValidatedIdentity),
+    NormalizedExistingV2(TagNormalizedExistingBuildIdentityV2),
+}
+
+impl TagCaptureValidatedIdentity {
+    fn source_snapshot(&self) -> &TagValidatedSourceSnapshot {
+        match self {
+            Self::V1(identity) => &identity.source_snapshot,
+            Self::NormalizedExistingV2(identity) => &identity.source_snapshot,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct NormalizedExistingBuildOriginV2 {
+    schema: String,
+    normalization_addendum: EvidenceReference,
+    build_result: EvidenceReference,
+}
+
+#[derive(Clone, Debug)]
+struct TagCaptureSubject {
+    role: String,
+    executable: Executable,
+    actual_output_root: PathBuf,
+}
+
+trait CaptureSubject {
+    fn capture_role(&self) -> &str;
+    fn capture_executable(&self) -> &Executable;
+    fn capture_actual_output_root(&self) -> &Path;
+}
+
+impl CaptureSubject for Subject {
+    fn capture_role(&self) -> &str {
+        &self.role
+    }
+    fn capture_executable(&self) -> &Executable {
+        &self.executable
+    }
+    fn capture_actual_output_root(&self) -> &Path {
+        &self.actual_output_root
+    }
+}
+
+impl CaptureSubject for TagCaptureSubject {
+    fn capture_role(&self) -> &str {
+        &self.role
+    }
+    fn capture_executable(&self) -> &Executable {
+        &self.executable
+    }
+    fn capture_actual_output_root(&self) -> &Path {
+        &self.actual_output_root
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 struct TagOracleLineage {
     tag_ref: String,
     tag_object: String,
@@ -744,8 +868,10 @@ pub struct OracleCaptureReceipt {
     pub run_id: String,
     pub state: String,
     pub oracle_identity: OracleCaptureIdentity,
-    pub builder_evidence: EvidenceReference,
-    pub builder_run: EvidenceReference,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub builder_evidence: Option<EvidenceReference>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub builder_run: Option<EvidenceReference>,
     pub validator_helper: EvidenceReference,
     pub suite: SuiteIdentity,
     pub case: CaseCaptureIdentity,
@@ -781,7 +907,7 @@ pub struct TagCapturePreflight {
     run_id: String,
     case: CaseCaptureIdentity,
     suite: SuiteIdentity,
-    tag_identity: TagValidatedIdentity,
+    tag_identity: TagCaptureValidatedIdentity,
     validator_helper: TagValidatedEvidenceReference,
     validator_execution: TagValidatorExecutionEvidence,
     environment: EnvironmentReceipt,
@@ -807,7 +933,10 @@ pub struct OracleCaptureIdentity {
     pub source_snapshot_included_file_count: u64,
     pub build_artifact_root: PathBuf,
     pub build: BuildFacts,
-    pub builder_receipt_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub builder_receipt_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub normalized_existing_build_origin: Option<NormalizedExistingBuildOriginV2>,
     pub source_inputs_sha256: String,
     pub build_environment_sha256: String,
     pub executable: ExecutableReceipt,
@@ -840,15 +969,23 @@ pub struct CheckpointCaptureIdentity {
 
 #[derive(Clone, Debug)]
 struct LoadedTagBuildEvidence {
-    record: TagBuilderEvidence,
-    identity: TagValidatedIdentity,
+    identity: TagCaptureValidatedIdentity,
+    run_id: String,
+    oracle_lineage: TagOracleLineage,
+    build: BuildFacts,
+    source_inputs_sha256: String,
+    build_environment_sha256: String,
+    builder_receipt_sha256: Option<String>,
+    builder_evidence: Option<EvidenceReference>,
+    builder_run: Option<EvidenceReference>,
+    normalized_existing_build_origin: Option<NormalizedExistingBuildOriginV2>,
     validator_helper: TagValidatedEvidenceReference,
     validator_execution: TagValidatorExecutionEvidence,
     path: PathBuf,
     sha256: String,
     source_snapshot_root: PathBuf,
     build_artifact_root: PathBuf,
-    subject: Subject,
+    subject: TagCaptureSubject,
 }
 
 #[derive(Clone, Debug)]
@@ -2938,14 +3075,15 @@ fn load_write_policy_input() -> Result<WritePolicyInput, String> {
     })
 }
 
-fn resolve_write_policy_with_evidence(
+fn resolve_write_policy_with_evidence<S: CaptureSubject>(
     input: WritePolicyInput,
-    subjects: &[Subject],
+    subjects: &[S],
     expected_root: Option<&Path>,
     trust_record_path: Option<&Path>,
     evidence: Option<&LoadedEvidenceContext>,
     test_binary: &Path,
     tag_builder_evidence_path: Option<&Path>,
+    normalized_existing_build_origin: Option<&NormalizedExistingBuildOriginV2>,
 ) -> Result<WritePolicyReceipt, String> {
     let resolved_write_root =
         resolve_existing_directory_without_symlinks(&input.write_root, WRITE_ROOT_ENV)?;
@@ -2961,7 +3099,7 @@ fn resolve_write_policy_with_evidence(
     let resolved_receipt_path = resolve_path_for_overlap(&receipt_path, "run receipt")?;
     let subject_roles = subjects
         .iter()
-        .map(|subject| subject.role.as_str())
+        .map(|subject| subject.capture_role())
         .collect::<Vec<_>>();
     let mut protected_roots =
         canonical_caller_protected_roots_for(input.protected_roots, &subject_roles)?;
@@ -3073,16 +3211,28 @@ fn resolve_write_policy_with_evidence(
             "generation_admission_evidence",
             &capture.path,
         )?;
-        push_protected_external_file(
-            &mut protected_roots,
-            "generation_admission_evidence",
-            Path::new(&capture.receipt.builder_evidence.path),
-        )?;
-        push_protected_external_file(
-            &mut protected_roots,
-            "generation_admission_evidence",
-            Path::new(&capture.receipt.builder_run.path),
-        )?;
+        for reference in [
+            capture.receipt.builder_evidence.as_ref(),
+            capture.receipt.builder_run.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            push_protected_external_file(
+                &mut protected_roots,
+                "generation_admission_evidence",
+                Path::new(&reference.path),
+            )?;
+        }
+        if let Some(origin) = &capture.receipt.oracle_identity.normalized_existing_build_origin {
+            for reference in [&origin.normalization_addendum, &origin.build_result] {
+                push_protected_external_file(
+                    &mut protected_roots,
+                    "generation_admission_evidence",
+                    Path::new(&reference.path),
+                )?;
+            }
+        }
         push_protected_external_file(
             &mut protected_roots,
             "generation_admission_evidence",
@@ -3168,37 +3318,33 @@ fn resolve_write_policy_with_evidence(
 
     let mut resolved_actual_output_roots = resolve_actual_output_roots(subjects)?;
     for subject in subjects {
-        let executable_parent = subject
-            .executable
+        let role = subject.capture_role();
+        let executable = subject.capture_executable();
+        let executable_parent = executable
             .path
             .parent()
-            .ok_or_else(|| format!("{} executable has no parent directory", subject.role))?;
+            .ok_or_else(|| format!("{role} executable has no parent directory"))?;
         let resolved_executable_parent =
             resolve_existing_directory(executable_parent, "subject executable parent")?;
-        let canonical_executable = fs::canonicalize(&subject.executable.path).map_err(|error| {
+        let canonical_executable = fs::canonicalize(&executable.path).map_err(|error| {
             format!(
-                "canonicalize {} executable {}: {error}",
-                subject.role,
-                subject.executable.path.display()
+                "canonicalize {role} executable {}: {error}",
+                executable.path.display()
             )
         })?;
         let artifact_root = protected_roots
             .iter()
-            .find(|root| {
-                root.kind == "subject_artifact" && root.role.as_deref() == Some(&subject.role)
-            })
+            .find(|root| root.kind == "subject_artifact" && root.role.as_deref() == Some(role))
             .ok_or_else(|| {
                 format!(
-                    "{PROTECTED_ROOTS_ENV} must include subject_artifact for {}",
-                    subject.role
+                    "{PROTECTED_ROOTS_ENV} must include subject_artifact for {role}"
                 )
             })?;
         let resolved_artifact_root =
             resolve_path_for_overlap(&artifact_root.path, "artifact root")?;
         let Some(artifact_directory) = resolved_artifact_root.directory.as_ref() else {
             return Err(format!(
-                "protected artifact root for {} is not an existing directory",
-                subject.role
+                "protected artifact root for {role} is not an existing directory"
             ));
         };
         let resolved_executable = resolve_path_for_overlap(&canonical_executable, "executable")?;
@@ -3206,17 +3352,43 @@ fn resolve_write_policy_with_evidence(
             || !path_is_within_directory(artifact_directory, &resolved_executable)
         {
             return Err(format!(
-                "{} executable directory {} is outside its protected artifact root {}",
-                subject.role,
+                "{role} executable directory {} is outside its protected artifact root {}",
                 resolved_executable_parent.path.display(),
                 artifact_root.path.display()
             ));
         }
         protected_roots.push(protected_root(
             "subject_executable_parent",
-            Some(subject.role.clone()),
+            Some(role.to_string()),
             resolved_executable_parent.path,
         )?);
+    }
+    if let Some(origin) = normalized_existing_build_origin {
+        for (label, reference) in [
+            ("normalized-build addendum", &origin.normalization_addendum),
+            ("normalized-build result", &origin.build_result),
+        ] {
+            let evidence_path = canonical_existing_regular_file_without_symlinks(
+                Path::new(&reference.path),
+                label,
+            )?;
+            if sha256_file(&evidence_path)? != reference.sha256 {
+                return Err(format!("{label} digest changed before write-policy setup"));
+            }
+            let evidence_parent = evidence_path
+                .parent()
+                .ok_or_else(|| format!("{label} has no parent"))?;
+            let evidence_parent = canonical_existing_directory_without_symlinks(
+                evidence_parent,
+                &format!("{label} parent"),
+            )?;
+            protected_roots.push(protected_root(label, None, evidence_path)?);
+            protected_roots.push(protected_root(
+                &format!("{label} parent"),
+                None,
+                evidence_parent,
+            )?);
+        }
     }
     resolved_actual_output_roots.sort_by(|left, right| left.0.cmp(&right.0));
     let mut actual_output_roots = resolved_actual_output_roots
@@ -3387,6 +3559,7 @@ fn resolve_write_policy(
         Some(&trust_source.canonical_path),
         None,
         test_binary,
+        None,
         None,
     )
 }
@@ -3854,8 +4027,8 @@ fn validate_trust_record(
     Ok(receipt_sha256)
 }
 
-fn validate_actual_output_roots(
-    subjects: &[Subject],
+fn validate_actual_output_roots<S: CaptureSubject>(
+    subjects: &[S],
     expected_root: Option<&Path>,
 ) -> Result<(), String> {
     let roots = resolve_actual_output_roots(subjects)?;
@@ -3874,16 +4047,16 @@ fn validate_actual_output_roots(
     Ok(())
 }
 
-fn resolve_actual_output_roots(
-    subjects: &[Subject],
+fn resolve_actual_output_roots<S: CaptureSubject>(
+    subjects: &[S],
 ) -> Result<Vec<(String, ResolvedDirectory)>, String> {
     let mut roots = Vec::with_capacity(subjects.len());
     for subject in subjects {
         roots.push((
-            subject.role.clone(),
+            subject.capture_role().to_string(),
             resolve_existing_directory_without_symlinks(
-                &subject.actual_output_root,
-                &format!("{} actual output root", subject.role),
+                subject.capture_actual_output_root(),
+                &format!("{} actual output root", subject.capture_role()),
             )?,
         ));
     }
@@ -4390,6 +4563,7 @@ pub fn prepare_holla_help_overlay_preflight() -> Result<WritePolicyPreflightRece
         Some(&evidence),
         &test_binary_path,
         None,
+        None,
     )?;
     validate_case_capture_paths(case, &write_policy.actual_output_roots)?;
 
@@ -4704,6 +4878,141 @@ fn execute_tag_source_validator(
     ))
 }
 
+fn run_normalized_existing_tag_source_validator(
+    addendum_path: &Path,
+    expected_addendum_sha256: &str,
+) -> Result<
+    (
+        TagNormalizedExistingBuildIdentityV2,
+        TagValidatedEvidenceReference,
+        TagValidatorExecutionEvidence,
+    ),
+    String,
+> {
+    let helper_path = std::env::var_os(TAG_SOURCE_VALIDATOR_PATH_ENV)
+        .map(PathBuf::from)
+        .ok_or_else(|| format!("{TAG_SOURCE_VALIDATOR_PATH_ENV} is required"))?;
+    let repository = std::env::var_os(TAG_SOURCE_REPOSITORY_ENV)
+        .map(PathBuf::from)
+        .ok_or_else(|| format!("{TAG_SOURCE_REPOSITORY_ENV} is required"))?;
+    if !helper_path.is_absolute() || !repository.is_absolute() || !addendum_path.is_absolute() {
+        return Err("normalized tag validator inputs must use absolute paths".to_string());
+    }
+    require_sha256(TAG_NORMALIZED_BUILD_ADDENDUM_SHA_ENV, expected_addendum_sha256)?;
+    let (toolchain, toolchain_reference) = load_caller_pinned_tag_validator_toolchain()?;
+    let helper_path = canonical_existing_regular_file_without_symlinks(
+        &helper_path,
+        "pinned immutable-tag source validator",
+    )?;
+    let helper_bytes = fs::read(&helper_path)
+        .map_err(|error| format!("read pinned immutable-tag source validator: {error}"))?;
+    let helper_sha256 = sha256_bytes(&helper_bytes);
+    if helper_sha256 != TAG_SOURCE_VALIDATOR_SHA256 {
+        return Err(format!(
+            "immutable-tag source validator digest mismatch: expected {TAG_SOURCE_VALIDATOR_SHA256}, got {helper_sha256}"
+        ));
+    }
+    validate_tag_validator_tool("Python runtime", &toolchain.python, false)?;
+    validate_tag_validator_tool("Git executable", &toolchain.git, true)?;
+    let executed_helper_bytes =
+        transform_tag_validator_git_dispatch(&helper_bytes, &toolchain.git.path)?;
+    let executed_helper_sha256 = sha256_bytes(&executed_helper_bytes);
+    let repository = canonical_existing_directory_without_symlinks(
+        &repository,
+        "immutable-tag Git object repository",
+    )?;
+    let git_dir_before = pinned_git_metadata_directory(
+        &toolchain.git.path,
+        &repository,
+        &["rev-parse", "--absolute-git-dir"],
+        "immutable-tag Git directory",
+    )?;
+    let git_common_dir_before = pinned_git_metadata_directory(
+        &toolchain.git.path,
+        &repository,
+        &["rev-parse", "--path-format=absolute", "--git-common-dir"],
+        "immutable-tag Git common directory",
+    )?;
+    let addendum_path = canonical_existing_regular_file_without_symlinks(
+        addendum_path,
+        "R6 source-qualification addendum",
+    )?;
+    let addendum_bytes = fs::read(&addendum_path)
+        .map_err(|error| format!("read R6 source-qualification addendum: {error}"))?;
+    if sha256_bytes(&addendum_bytes) != expected_addendum_sha256 {
+        return Err("R6 source-qualification addendum changed before validation".to_string());
+    }
+    reject_duplicate_json_keys(&addendum_bytes, "R6 source-qualification addendum")?;
+    let arguments = vec![
+        "validate-normalized-existing-tag-holla".to_string(),
+        "--repository".to_string(),
+        repository.display().to_string(),
+        "--addendum".to_string(),
+        addendum_path.display().to_string(),
+        "--addendum-sha256".to_string(),
+        expected_addendum_sha256.to_string(),
+    ];
+    let output = run_pinned_validator_python_arguments(
+        &toolchain.python.path,
+        &executed_helper_bytes,
+        &arguments,
+    )?;
+    validate_tag_validator_tool("Python runtime", &toolchain.python, false)?;
+    validate_tag_validator_tool("Git executable", &toolchain.git, true)?;
+    let git_dir_after = pinned_git_metadata_directory(
+        &toolchain.git.path,
+        &repository,
+        &["rev-parse", "--absolute-git-dir"],
+        "immutable-tag Git directory",
+    )?;
+    let git_common_dir_after = pinned_git_metadata_directory(
+        &toolchain.git.path,
+        &repository,
+        &["rev-parse", "--path-format=absolute", "--git-common-dir"],
+        "immutable-tag Git common directory",
+    )?;
+    if git_dir_before != git_dir_after || git_common_dir_before != git_common_dir_after {
+        return Err("immutable-tag Git metadata paths changed during validation".to_string());
+    }
+    if output.stdout.len() > 2 * 1024 * 1024 || output.stderr.len() > 64 * 1024 {
+        return Err("immutable-tag source validator output exceeded its size limit".to_string());
+    }
+    if !output.status.success() {
+        let detail = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "normalized immutable-tag source validation failed with {}: {}",
+            output.status,
+            detail.trim()
+        ));
+    }
+    let identity = parse_normalized_tag_validator_identity(
+        &output.stdout,
+        &addendum_path,
+        expected_addendum_sha256,
+    )?;
+    Ok((
+        identity,
+        TagValidatedEvidenceReference {
+            path: helper_path,
+            sha256: helper_sha256,
+        },
+        TagValidatorExecutionEvidence {
+            repository,
+            git_dir: git_dir_before,
+            git_common_dir: git_common_dir_before,
+            toolchain: toolchain_reference,
+            python: toolchain.python.clone(),
+            git: toolchain.git.clone(),
+            helper_transport: TAG_VALIDATOR_HELPER_TRANSPORT.to_string(),
+            executed_helper_sha256,
+            python_sha256_before: toolchain.python.sha256.clone(),
+            python_sha256_after: toolchain.python.sha256.clone(),
+            git_sha256_before: toolchain.git.sha256.clone(),
+            git_sha256_after: toolchain.git.sha256.clone(),
+        },
+    ))
+}
+
 fn pinned_git_metadata_directory(
     git_executable: &Path,
     repository: &Path,
@@ -4796,16 +5105,27 @@ fn run_pinned_validator_python(
     receipt_path: &Path,
     expected_receipt_sha256: &str,
 ) -> Result<std::process::Output, String> {
+    let arguments = vec![
+        "validate-frozen-tag-holla".to_string(),
+        "--repository".to_string(),
+        repository.display().to_string(),
+        "--receipt".to_string(),
+        receipt_path.display().to_string(),
+        "--receipt-sha256".to_string(),
+        expected_receipt_sha256.to_string(),
+    ];
+    run_pinned_validator_python_arguments(python, helper_bytes, &arguments)
+}
+
+fn run_pinned_validator_python_arguments(
+    python: &Path,
+    helper_bytes: &[u8],
+    arguments: &[String],
+) -> Result<std::process::Output, String> {
     let mut child = Command::new(python)
         .arg("-I")
         .arg("-")
-        .arg("validate-frozen-tag-holla")
-        .arg("--repository")
-        .arg(repository)
-        .arg("--receipt")
-        .arg(receipt_path)
-        .arg("--receipt-sha256")
-        .arg(expected_receipt_sha256)
+        .args(arguments)
         .env_clear()
         // Git calls in the checked helper are rewritten to its pinned absolute
         // path before transport. No caller or fallback PATH is provided.
@@ -5001,6 +5321,321 @@ fn validate_tag_validator_identity(
     Ok(())
 }
 
+fn parse_normalized_tag_validator_identity(
+    bytes: &[u8],
+    addendum_path: &Path,
+    expected_addendum_sha256: &str,
+) -> Result<TagNormalizedExistingBuildIdentityV2, String> {
+    reject_duplicate_json_keys(bytes, "normalized immutable-tag validated identity")?;
+    let identity: TagNormalizedExistingBuildIdentityV2 = serde_json::from_slice(bytes)
+        .map_err(|error| format!("parse normalized immutable-tag validated identity: {error}"))?;
+    validate_normalized_tag_validator_identity(
+        &identity,
+        addendum_path,
+        expected_addendum_sha256,
+    )?;
+    Ok(identity)
+}
+
+fn verify_normalized_identity_reference(
+    reference: &TagValidatedEvidenceReference,
+    label: &str,
+) -> Result<PathBuf, String> {
+    if !reference.path.is_absolute() {
+        return Err(format!("normalized {label} path must be absolute"));
+    }
+    require_sha256(&format!("normalized {label}"), &reference.sha256)?;
+    let path = canonical_existing_regular_file_without_symlinks(&reference.path, label)?;
+    if path != reference.path || sha256_file(&path)? != reference.sha256 {
+        return Err(format!("normalized {label} bytes differ from their identity reference"));
+    }
+    Ok(path)
+}
+
+fn validate_normalized_tag_validator_identity(
+    identity: &TagNormalizedExistingBuildIdentityV2,
+    addendum_path: &Path,
+    expected_addendum_sha256: &str,
+) -> Result<(), String> {
+    require_sha256(TAG_NORMALIZED_BUILD_ADDENDUM_SHA_ENV, expected_addendum_sha256)?;
+    let addendum_path = canonical_existing_regular_file_without_symlinks(
+        addendum_path,
+        "R6 source-qualification addendum",
+    )?;
+    let addendum_bytes = fs::read(&addendum_path)
+        .map_err(|error| format!("read R6 source-qualification addendum: {error}"))?;
+    if sha256_bytes(&addendum_bytes) != expected_addendum_sha256 {
+        return Err("R6 source-qualification addendum digest changed".to_string());
+    }
+    reject_duplicate_json_keys(&addendum_bytes, "R6 source-qualification addendum")?;
+    let addendum: serde_json::Value = serde_json::from_slice(&addendum_bytes)
+        .map_err(|error| format!("parse R6 source-qualification addendum: {error}"))?;
+    if identity.schema != TAG_NORMALIZED_EXISTING_BUILD_IDENTITY_SCHEMA
+        || identity.run_id != "tag-four-binary-r6-20261010"
+        || identity.normalization_addendum.path != addendum_path
+        || identity.normalization_addendum.sha256 != expected_addendum_sha256
+        || identity.product_build != "PASS"
+        || identity.source_payload != "VERIFIED"
+        || identity.locked_cache_payload != "VERIFIED"
+        || identity.environment_integrity != "INCOMPLETE"
+        || identity.execution_anchor_status != "unverified"
+        || identity.qualification.status != "blocked"
+        || identity.qualification.reason.trim().is_empty()
+        || identity.capture_status != "NOT_RUN"
+        || identity.admission_status != "NOT_RUN"
+    {
+        return Err(
+            "normalized R6 identity must preserve its exact origin and blocked qualification state"
+                .to_string(),
+        );
+    }
+
+    let bindings = addendum
+        .get("bindings")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| "R6 addendum lacks its closed evidence bindings".to_string())?;
+    let bound_reference = |name: &str| -> Result<(PathBuf, String), String> {
+        let value = bindings
+            .get(name)
+            .and_then(serde_json::Value::as_object)
+            .ok_or_else(|| format!("R6 addendum lacks the {name} reference"))?;
+        if value.len() != 2 {
+            return Err(format!("R6 {name} reference is not a closed object"));
+        }
+        let path = value
+            .get("path")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| format!("R6 {name} path is invalid"))?;
+        let digest = value
+            .get("sha256")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| format!("R6 {name} digest is invalid"))?;
+        require_sha256(&format!("R6 {name}"), digest)?;
+        let path = PathBuf::from(path);
+        if !path.is_absolute() {
+            return Err(format!("R6 {name} path must be absolute"));
+        }
+        Ok((path, digest.to_string()))
+    };
+    let check_bound = |reference: &TagValidatedEvidenceReference,
+                       binding_name: &str,
+                       label: &str|
+     -> Result<(), String> {
+        let (expected_path, expected_sha256) = bound_reference(binding_name)?;
+        if reference.path != expected_path || reference.sha256 != expected_sha256 {
+            return Err(format!("normalized {label} differs from the R6 reviewed binding"));
+        }
+        verify_normalized_identity_reference(reference, label)?;
+        Ok(())
+    };
+
+    check_bound(&identity.build_result, "original_build_result", "build result")?;
+    check_bound(&identity.build_plan, "build_plan", "build plan")?;
+    check_bound(
+        &identity.cache_copy_receipt,
+        "cache_copy_receipt",
+        "cache-copy receipt",
+    )?;
+    check_bound(
+        &identity.cache_source_manifest,
+        "cache_manifest",
+        "cache source manifest",
+    )?;
+    check_bound(
+        &identity.cache_row_reconciliation,
+        "independent_cache_row_reconciliation",
+        "cache row reconciliation",
+    )?;
+    check_bound(
+        &identity.cache_row_review,
+        "independent_cache_row_review",
+        "cache row review",
+    )?;
+    check_bound(
+        &identity.source_cache_identity_addendum,
+        "source_cache_identity_addendum",
+        "source/cache identity addendum",
+    )?;
+    check_bound(
+        &identity.build_result_review,
+        "original_actual_result_review",
+        "actual build result review",
+    )?;
+
+    let result_path = verify_normalized_identity_reference(&identity.build_result, "R6 build result")?;
+    let result_bytes = fs::read(&result_path)
+        .map_err(|error| format!("read R6 build result: {error}"))?;
+    reject_duplicate_json_keys(&result_bytes, "R6 build result")?;
+    let result: serde_json::Value = serde_json::from_slice(&result_bytes)
+        .map_err(|error| format!("parse R6 build result: {error}"))?;
+    let result_sha256 = sha256_bytes(&result_bytes);
+    let invocation_path = result
+        .get("invocation_path")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "R6 build result lacks its invocation path".to_string())?;
+    let invocation_sha256 = result
+        .get("invocation_sha256")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "R6 build result lacks its invocation digest".to_string())?;
+    if identity.invocation.path != Path::new(invocation_path)
+        || identity.invocation.sha256 != invocation_sha256
+        || identity.build_environment.origin_result_sha256 != result_sha256
+        || identity.build_environment.origin_invocation_sha256 != invocation_sha256
+    {
+        return Err("normalized R6 identity does not bind the exact result and invocation".to_string());
+    }
+    verify_normalized_identity_reference(&identity.invocation, "R6 invocation")?;
+    let process = result
+        .get("cargo_process")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| "R6 build result lacks its Cargo process record".to_string())?;
+    for (reference, key, label) in [
+        (&identity.cargo_stdout, "stdout", "Cargo stdout"),
+        (&identity.cargo_stderr, "stderr", "Cargo stderr"),
+        (&identity.process_events, "process_events", "process events"),
+    ] {
+        let expected = process
+            .get(key)
+            .and_then(serde_json::Value::as_object)
+            .ok_or_else(|| format!("R6 Cargo process lacks {label}"))?;
+        let expected_path = expected
+            .get("path")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| format!("R6 {label} path is invalid"))?;
+        let expected_sha256 = expected
+            .get("sha256")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| format!("R6 {label} digest is invalid"))?;
+        if reference.path != Path::new(expected_path) || reference.sha256 != expected_sha256 {
+            return Err(format!("normalized identity {label} differs from the R6 result"));
+        }
+        verify_normalized_identity_reference(reference, label)?;
+    }
+    if identity.build_environment.environment
+        != serde_json::from_value::<BTreeMap<String, BuildEnvironmentFacts>>(
+            result
+                .get("environment")
+                .cloned()
+                .ok_or_else(|| "R6 build result lacks its environment".to_string())?,
+        )
+        .map_err(|error| format!("parse R6 build environment: {error}"))?
+    {
+        return Err("normalized identity environment differs from the actual R6 result".to_string());
+    }
+
+    for (reference, label) in [
+        (&identity.normalization_addendum, "normalization addendum"),
+        (&identity.build_result, "build result"),
+        (&identity.build_plan, "build plan"),
+        (&identity.invocation, "invocation"),
+        (&identity.cargo_stdout, "Cargo stdout"),
+        (&identity.cargo_stderr, "Cargo stderr"),
+        (&identity.process_events, "process events"),
+        (&identity.cache_copy_receipt, "cache-copy receipt"),
+        (&identity.cache_source_manifest, "cache source manifest"),
+        (&identity.cache_row_reconciliation, "cache reconciliation"),
+        (&identity.cache_row_review, "cache review"),
+        (&identity.source_cache_identity_addendum, "source/cache addendum"),
+        (&identity.build_result_review, "actual result review"),
+    ] {
+        verify_normalized_identity_reference(reference, label)?;
+    }
+
+    let plan_path = verify_normalized_identity_reference(&identity.build_plan, "R6 build plan")?;
+    let plan_bytes = fs::read(&plan_path).map_err(|error| format!("read R6 build plan: {error}"))?;
+    reject_duplicate_json_keys(&plan_bytes, "R6 build plan")?;
+    let plan: serde_json::Value = serde_json::from_slice(&plan_bytes)
+        .map_err(|error| format!("parse R6 build plan: {error}"))?;
+    let source = plan
+        .get("tag_source")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| "R6 plan lacks immutable tag source data".to_string())?;
+    let source_root = source
+        .get("source_root")
+        .and_then(serde_json::Value::as_str)
+        .map(PathBuf::from)
+        .ok_or_else(|| "R6 source root is invalid".to_string())?;
+    let command = plan
+        .get("command")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| "R6 plan lacks its Cargo command".to_string())?;
+    let command_argv = command
+        .get("argv")
+        .and_then(serde_json::Value::as_array)
+        .ok_or_else(|| "R6 Cargo argv is invalid".to_string())?;
+    let target_dir = command_argv
+        .last()
+        .and_then(serde_json::Value::as_str)
+        .map(PathBuf::from)
+        .ok_or_else(|| "R6 Cargo target directory is invalid".to_string())?;
+    let target_triple = command
+        .get("target_triple")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "R6 target triple is invalid".to_string())?;
+    let artifact_root = target_dir.join(target_triple).join("release");
+    if identity.oracle_lineage.tag_ref != ORACLE_TAG_REF
+        || identity.oracle_lineage.tag_object != ORACLE_TAG_OBJECT
+        || identity.oracle_lineage.tag_commit != ORACLE_TAG_COMMIT
+        || identity.oracle_lineage.git_object_replacement_policy != "disabled-by-option-and-environment"
+        || identity.oracle_lineage.git_lazy_fetch_policy != "disabled-by-environment"
+        || identity.source_snapshot.source_commit != ORACLE_TAG_COMMIT
+        || identity.source_snapshot.tree_oid != "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+        || identity.source_snapshot.materialized_root != source_root
+        || identity.source_snapshot.included_path_blob_map_sha256
+            != "4e2cf9d17700833023c1c70b33f4b11e710ccb60fbc8c9c9d727c81745436bb4"
+        || identity.source_snapshot.included_file_count != 1415
+        || identity.metadata_target.package_name != "junie-tui"
+        || identity.metadata_target.target_name != "holla"
+        || identity.metadata_target.manifest_path != source_root.join("Cargo.toml").display().to_string()
+        || identity.metadata_target.source_path != source_root.join("src/bin/holla/main.rs").display().to_string()
+        || identity.build_artifact_root != artifact_root
+        || identity.build.target_name != "holla"
+        || !identity.build.features.is_empty()
+        || !identity.build.default_features
+        || identity.build.profile != "release"
+        || identity.build.toolchain != "1.98.1"
+        || identity.build.target_triple != target_triple
+        || identity.executable.path != artifact_root.join("holla")
+        || identity.build_inputs.manifest_sha256
+            != plan["tag_source"]["package"]["manifest_sha256"]
+                .as_str().unwrap_or_default()
+        || identity.build_inputs.lock_sha256
+            != plan["tag_source"]["package"]["lock_sha256"]
+                .as_str().unwrap_or_default()
+    {
+        return Err("normalized identity differs from the immutable R6 tag build".to_string());
+    }
+    require_git_oid("normalized R6 source tree", &identity.source_snapshot.tree_oid)?;
+    require_sha256("normalized R6 source map", &identity.source_snapshot.included_path_blob_map_sha256)?;
+    let package_root = source_root;
+    let manifest_path = canonical_existing_regular_file_without_symlinks(
+        &package_root.join("Cargo.toml"),
+        "normalized R6 Cargo manifest",
+    )?;
+    let lock_path = canonical_existing_regular_file_without_symlinks(
+        &package_root.join("Cargo.lock"),
+        "normalized R6 Cargo lock",
+    )?;
+    if sha256_file(&manifest_path)? != identity.build_inputs.manifest_sha256
+        || sha256_file(&lock_path)? != identity.build_inputs.lock_sha256
+    {
+        return Err("normalized R6 Cargo manifest/lock bytes changed".to_string());
+    }
+    let executable_path = verify_normalized_identity_reference(
+        &TagValidatedEvidenceReference {
+            path: identity.executable.path.clone(),
+            sha256: identity.executable.sha256.clone(),
+        },
+        "R6 Holla executable",
+    )?;
+    let metadata = fs::metadata(&executable_path)
+        .map_err(|error| format!("inspect normalized R6 executable: {error}"))?;
+    if metadata.len() != identity.executable.size_bytes {
+        return Err("normalized R6 executable size differs from its result".to_string());
+    }
+    Ok(())
+}
+
 fn validate_tag_record_binding(
     record: &TagBuilderEvidence,
     identity: &TagValidatedIdentity,
@@ -5055,14 +5690,42 @@ fn validate_tag_record_binding(
 fn load_tag_builder_evidence(
     actual_output_root: PathBuf,
 ) -> Result<LoadedTagBuildEvidence, String> {
-    let path = std::env::var_os(TAG_BUILD_EVIDENCE_PATH_ENV)
-        .map(PathBuf::from)
-        .ok_or_else(|| format!("{TAG_BUILD_EVIDENCE_PATH_ENV} is required for tag preflight"))?;
+    let v1_path = std::env::var_os(TAG_BUILD_EVIDENCE_PATH_ENV);
+    let v1_sha = std::env::var_os(TAG_BUILD_EVIDENCE_SHA_ENV);
+    let v2_path = std::env::var_os(TAG_NORMALIZED_BUILD_ADDENDUM_PATH_ENV);
+    let v2_sha = std::env::var_os(TAG_NORMALIZED_BUILD_ADDENDUM_SHA_ENV);
+    match (v1_path, v1_sha, v2_path, v2_sha) {
+        (Some(path), Some(sha), None, None) => {
+            load_v1_tag_builder_evidence(actual_output_root, PathBuf::from(path), sha)
+        }
+        (None, None, Some(path), Some(sha)) => {
+            load_normalized_existing_build_evidence(
+                actual_output_root,
+                PathBuf::from(path),
+                sha,
+            )
+        }
+        (None, None, None, None) => Err(format!(
+            "either the complete v1 builder receipt pair or the complete normalized-build origin pair is required"
+        )),
+        _ => Err(
+            "tag capture evidence must select exactly one complete v1 or normalized-build origin pair"
+                .to_string(),
+        ),
+    }
+}
+
+fn load_v1_tag_builder_evidence(
+    actual_output_root: PathBuf,
+    path: PathBuf,
+    expected_sha256_os: std::ffi::OsString,
+) -> Result<LoadedTagBuildEvidence, String> {
     if !path.is_absolute() {
         return Err(format!("{TAG_BUILD_EVIDENCE_PATH_ENV} must be absolute"));
     }
-    let expected_sha256 = std::env::var(TAG_BUILD_EVIDENCE_SHA_ENV)
-        .map_err(|_| format!("{TAG_BUILD_EVIDENCE_SHA_ENV} must be caller-pinned"))?;
+    let expected_sha256 = expected_sha256_os
+        .into_string()
+        .map_err(|_| format!("{TAG_BUILD_EVIDENCE_SHA_ENV} must be UTF-8"))?;
     require_sha256(TAG_BUILD_EVIDENCE_SHA_ENV, &expected_sha256)?;
     let path = canonical_existing_regular_file_without_symlinks(&path, "tag builder receipt")?;
     let bytes = fs::read(&path).map_err(|error| {
@@ -5160,22 +5823,178 @@ fn load_tag_builder_evidence(
         source_commit: identity.oracle_lineage.tag_commit.clone(),
         build: identity.build.clone(),
         executable: identity.executable.clone(),
-        actual_output_root,
-        build_inputs,
+        actual_output_root: actual_output_root.clone(),
+        build_inputs: build_inputs.clone(),
         builder_receipt: receipt.clone(),
         builder_receipt_sha256: identity.builder_receipt_sha256.clone(),
     };
     validate_build_receipt(&subject)?;
+    let source_inputs_sha256 = sha256_bytes(
+        &serde_json::to_vec(&record.source_snapshot)
+            .map_err(|error| format!("serialize immutable-tag source snapshot: {error}"))?,
+    );
+    let build_environment_sha256 = sha256_bytes(
+        &serde_json::to_vec(&record.build_environment)
+            .map_err(|error| format!("serialize immutable-tag build environment: {error}"))?,
+    );
+    let capture_subject = TagCaptureSubject {
+        role: subject.role,
+        executable: subject.executable,
+        actual_output_root: subject.actual_output_root,
+    };
+    let builder_run_path = identity.run.path.clone();
+    let builder_run_sha256 = identity.run.sha256.clone();
     Ok(LoadedTagBuildEvidence {
-        record,
-        identity: identity.clone(),
+        identity: TagCaptureValidatedIdentity::V1(identity.clone()),
+        run_id: record.run_id.clone(),
+        oracle_lineage: record.oracle_lineage.clone(),
+        build: record.build.clone(),
+        source_inputs_sha256,
+        build_environment_sha256,
+        builder_receipt_sha256: Some(identity.builder_receipt_sha256.clone()),
+        builder_evidence: Some(EvidenceReference {
+            path: path.display().to_string(),
+            sha256: sha256.clone(),
+        }),
+        builder_run: Some(EvidenceReference {
+            path: builder_run_path.display().to_string(),
+            sha256: builder_run_sha256,
+        }),
+        normalized_existing_build_origin: None,
         validator_helper,
         validator_execution,
         path,
         sha256,
         source_snapshot_root,
         build_artifact_root,
-        subject,
+        subject: capture_subject,
+    })
+}
+
+fn load_normalized_existing_build_evidence(
+    actual_output_root: PathBuf,
+    addendum_path: PathBuf,
+    expected_addendum_sha256_os: std::ffi::OsString,
+) -> Result<LoadedTagBuildEvidence, String> {
+    if !addendum_path.is_absolute() {
+        return Err(format!("{TAG_NORMALIZED_BUILD_ADDENDUM_PATH_ENV} must be absolute"));
+    }
+    let expected_addendum_sha256 = expected_addendum_sha256_os
+        .into_string()
+        .map_err(|_| format!("{TAG_NORMALIZED_BUILD_ADDENDUM_SHA_ENV} must be UTF-8"))?;
+    require_sha256(
+        TAG_NORMALIZED_BUILD_ADDENDUM_SHA_ENV,
+        &expected_addendum_sha256,
+    )?;
+    let addendum_path = canonical_existing_regular_file_without_symlinks(
+        &addendum_path,
+        "R6 source-qualification addendum",
+    )?;
+    let addendum_bytes = fs::read(&addendum_path)
+        .map_err(|error| format!("read R6 source-qualification addendum: {error}"))?;
+    let addendum_sha256 = sha256_bytes(&addendum_bytes);
+    verify_external_record_digest(&expected_addendum_sha256, &addendum_sha256)?;
+    reject_duplicate_json_keys(&addendum_bytes, "R6 source-qualification addendum")?;
+    let (raw_identity, validator_helper, validator_execution) =
+        run_normalized_existing_tag_source_validator(&addendum_path, &expected_addendum_sha256)?;
+    validate_normalized_tag_validator_identity(
+        &raw_identity,
+        &addendum_path,
+        &expected_addendum_sha256,
+    )?;
+    let identity = TagCaptureValidatedIdentity::NormalizedExistingV2(raw_identity.clone());
+    let source_snapshot_directory = resolve_existing_directory_without_symlinks(
+        &raw_identity.source_snapshot.materialized_root,
+        "normalized immutable-tag source snapshot",
+    )?;
+    let source_snapshot_root = source_snapshot_directory.path.clone();
+    let build_artifact_directory = resolve_existing_directory_without_symlinks(
+        &raw_identity.build_artifact_root,
+        "normalized immutable-tag artifact root",
+    )?;
+    let build_artifact_root = build_artifact_directory.path.clone();
+    if source_snapshot_root != raw_identity.source_snapshot.materialized_root
+        || build_artifact_root != raw_identity.build_artifact_root
+        || physical_directories_overlap(&source_snapshot_directory, &build_artifact_directory)
+    {
+        return Err("normalized R6 source and artifact roots must be canonical and disjoint".to_string());
+    }
+    if !actual_output_root.is_absolute() {
+        return Err(format!("{TAG_ACTUAL_ROOT_ENV} must be absolute"));
+    }
+    let actual_output_directory = resolve_existing_directory_without_symlinks(
+        &actual_output_root,
+        TAG_ACTUAL_ROOT_ENV,
+    )?;
+    if physical_directories_overlap(&actual_output_directory, &source_snapshot_directory)
+        || physical_directories_overlap(&actual_output_directory, &build_artifact_directory)
+    {
+        return Err("actual output root overlaps normalized tag source or artifact root".to_string());
+    }
+    let checkout_root = suite_checkout_root(Path::new(env!("CARGO_MANIFEST_DIR")))?;
+    if addendum_path.starts_with(&checkout_root)
+        || addendum_path.starts_with(&source_snapshot_root)
+        || addendum_path.starts_with(&build_artifact_root)
+    {
+        return Err("normalized-build addendum must be outside suite, source, and artifact roots".to_string());
+    }
+    let executable = Executable {
+        path: raw_identity.executable.path.clone(),
+        sha256: raw_identity.executable.sha256.clone(),
+    };
+    let executable_path = canonical_existing_regular_file_without_symlinks(
+        &executable.path,
+        "normalized R6 Holla executable",
+    )?;
+    if executable_path != executable.path
+        || !executable_path.starts_with(&build_artifact_root)
+        || sha256_file(&executable_path)? != executable.sha256
+    {
+        return Err("normalized R6 Holla executable is outside or differs from the build result".to_string());
+    }
+    let source_inputs_sha256 = sha256_bytes(
+        &serde_json::to_vec(&raw_identity.source_snapshot)
+            .map_err(|error| format!("serialize normalized source identity: {error}"))?,
+    );
+    let normalized_environment = match &raw_identity {
+        TagNormalizedExistingBuildIdentityV2 { build_environment, .. } => build_environment,
+    };
+    let build_environment_bytes = serde_json::to_vec(normalized_environment)
+        .map_err(|error| format!("serialize normalized R6 build environment: {error}"))?;
+    let build_environment_sha256 = sha256_bytes(&build_environment_bytes);
+    let origin = NormalizedExistingBuildOriginV2 {
+        schema: TAG_NORMALIZED_EXISTING_BUILD_ORIGIN_SCHEMA.to_string(),
+        normalization_addendum: EvidenceReference {
+            path: addendum_path.display().to_string(),
+            sha256: expected_addendum_sha256.clone(),
+        },
+        build_result: EvidenceReference {
+            path: raw_identity.build_result.path.display().to_string(),
+            sha256: raw_identity.build_result.sha256.clone(),
+        },
+    };
+    Ok(LoadedTagBuildEvidence {
+        identity,
+        run_id: raw_identity.run_id.clone(),
+        oracle_lineage: raw_identity.oracle_lineage.clone(),
+        build: raw_identity.build.clone(),
+        source_inputs_sha256,
+        build_environment_sha256,
+        builder_receipt_sha256: None,
+        builder_evidence: None,
+        builder_run: None,
+        normalized_existing_build_origin: Some(origin),
+        validator_helper,
+        validator_execution,
+        path: addendum_path,
+        sha256: expected_addendum_sha256,
+        source_snapshot_root,
+        build_artifact_root,
+        subject: TagCaptureSubject {
+            role: "oracle".to_string(),
+            executable,
+            actual_output_root: actual_output_directory.path,
+        },
     })
 }
 
@@ -5425,7 +6244,7 @@ pub fn prepare_frozen_tag_holla_preflight(case_id: &str) -> Result<TagCapturePre
         return Err(format!("{TAG_ACTUAL_ROOT_ENV} must be absolute"));
     }
     let tag = load_tag_builder_evidence(actual_output_root)?;
-    if tag.identity.build.target_name != case.binary {
+    if tag.build.target_name != case.binary {
         return Err("tag builder binary does not match HELP-HOLLA-004".to_string());
     }
     let write_input = load_write_policy_input()?;
@@ -5442,6 +6261,7 @@ pub fn prepare_frozen_tag_holla_preflight(case_id: &str) -> Result<TagCapturePre
         None,
         &test_binary,
         Some(&tag.path),
+        tag.normalized_existing_build_origin.as_ref(),
     )?;
     validate_case_capture_paths(case, &write_policy.actual_output_roots)?;
     require_tag_validator_outside_write_roots(
@@ -5460,7 +6280,7 @@ pub fn prepare_frozen_tag_holla_preflight(case_id: &str) -> Result<TagCapturePre
     Ok(TagCapturePreflight {
         schema: TAG_CAPTURE_PREFLIGHT_SCHEMA.to_string(),
         state: "blocked".to_string(),
-        run_id: tag.record.run_id.clone(),
+        run_id: tag.run_id.clone(),
         case: tag_case_capture_identity(case, &case_set_digest)?,
         suite: SuiteIdentity {
             revision: registry.suite_revision,
@@ -5532,7 +6352,7 @@ pub fn run_tag_capture(case_id: &str) -> Result<OracleCaptureReceipt, String> {
     if prepared_identity != current_identity
         || prepared.validator_helper != tag.validator_helper
         || prepared.validator_execution != tag.validator_execution
-        || prepared.run_id != tag.record.run_id
+        || prepared.run_id != tag.run_id
     {
         return Err("immutable-tag evidence changed after capture preflight".to_string());
     }
@@ -5613,29 +6433,31 @@ pub fn run_tag_capture(case_id: &str) -> Result<OracleCaptureReceipt, String> {
     let artifacts = driven.artifacts;
     let checks = driven.checks;
     validate_checkpoint_dimensions(&checks, std::slice::from_ref(&tag.subject), &case)?;
-    let source_identity_bytes = serde_json::to_vec(&tag.record.source_snapshot)
-        .map_err(|error| format!("serialize immutable-tag source identity: {error}"))?;
-    let build_environment_bytes = serde_json::to_vec(&tag.record.build_environment)
-        .map_err(|error| format!("serialize immutable-tag build environment: {error}"))?;
+    let normalized_origin = tag.normalized_existing_build_origin.clone();
     let receipt = OracleCaptureReceipt {
-        schema: ORACLE_CAPTURE_RECEIPT_SCHEMA.to_string(),
-        run_id: tag.record.run_id.clone(),
+        schema: if normalized_origin.is_some() {
+            ORACLE_CAPTURE_RECEIPT_SCHEMA_V2.to_string()
+        } else {
+            ORACLE_CAPTURE_RECEIPT_SCHEMA.to_string()
+        },
+        run_id: tag.run_id.clone(),
         state: if complete { "capture_recorded" } else { "capture_partial" }.to_string(),
         oracle_identity: OracleCaptureIdentity {
-            tag_ref: tag.record.oracle_lineage.tag_ref.clone(),
-            tag_object: tag.record.oracle_lineage.tag_object.clone(),
-            tag_commit: tag.record.oracle_lineage.tag_commit.clone(),
-            git_object_replacement_policy: tag.record.oracle_lineage.git_object_replacement_policy.clone(),
-            git_lazy_fetch_policy: tag.record.oracle_lineage.git_lazy_fetch_policy.clone(),
-            source_snapshot_commit: tag.identity.source_snapshot.source_commit.clone(),
-            source_snapshot_tree: tag.identity.source_snapshot.tree_oid.clone(),
+            tag_ref: tag.oracle_lineage.tag_ref.clone(),
+            tag_object: tag.oracle_lineage.tag_object.clone(),
+            tag_commit: tag.oracle_lineage.tag_commit.clone(),
+            git_object_replacement_policy: tag.oracle_lineage.git_object_replacement_policy.clone(),
+            git_lazy_fetch_policy: tag.oracle_lineage.git_lazy_fetch_policy.clone(),
+            source_snapshot_commit: tag.identity.source_snapshot().source_commit.clone(),
+            source_snapshot_tree: tag.identity.source_snapshot().tree_oid.clone(),
             source_snapshot_root: tag.source_snapshot_root.clone(),
-            source_snapshot_included_file_count: tag.identity.source_snapshot.included_file_count,
+            source_snapshot_included_file_count: tag.identity.source_snapshot().included_file_count,
             build_artifact_root: tag.build_artifact_root.clone(),
-            build: tag.record.build.clone(),
-            builder_receipt_sha256: tag.record.builder_receipt_sha256.clone(),
-            source_inputs_sha256: sha256_bytes(&source_identity_bytes),
-            build_environment_sha256: sha256_bytes(&build_environment_bytes),
+            build: tag.build.clone(),
+            builder_receipt_sha256: tag.builder_receipt_sha256.clone(),
+            normalized_existing_build_origin: normalized_origin,
+            source_inputs_sha256: tag.source_inputs_sha256.clone(),
+            build_environment_sha256: tag.build_environment_sha256.clone(),
             executable: ExecutableReceipt {
                 path: tag.subject.executable.path.clone(),
                 expected_sha256: tag.subject.executable.sha256.clone(),
@@ -5643,14 +6465,8 @@ pub fn run_tag_capture(case_id: &str) -> Result<OracleCaptureReceipt, String> {
             },
             validator_execution: tag.validator_execution.clone(),
         },
-        builder_evidence: EvidenceReference {
-            path: tag.path.display().to_string(),
-            sha256: tag.sha256.clone(),
-        },
-        builder_run: EvidenceReference {
-            path: tag.identity.run.path.display().to_string(),
-            sha256: tag.identity.run.sha256.clone(),
-        },
+        builder_evidence: tag.builder_evidence.clone(),
+        builder_run: tag.builder_run.clone(),
         validator_helper: EvidenceReference {
             path: tag.validator_helper.path.display().to_string(),
             sha256: tag.validator_helper.sha256.clone(),
@@ -5685,12 +6501,17 @@ fn validate_oracle_capture_receipt(
     receipt: &OracleCaptureReceipt,
     policy: &WritePolicyReceipt,
 ) -> Result<(), String> {
+    validate_capture_build_origin(receipt)?;
+    let supported_schema = matches!(
+        receipt.schema.as_str(),
+        ORACLE_CAPTURE_RECEIPT_SCHEMA | ORACLE_CAPTURE_RECEIPT_SCHEMA_V2
+    );
     let expected_state = if receipt.capture_status == "COMPLETE" {
         "capture_recorded"
     } else {
         "capture_partial"
     };
-    if receipt.schema != ORACLE_CAPTURE_RECEIPT_SCHEMA
+    if !supported_schema
         || receipt.write_policy != *policy
         || write_policy_digest(policy)? != policy.sha256
         || receipt.qualification.status != "blocked"
@@ -5785,10 +6606,6 @@ fn validate_oracle_capture_receipt(
     )?;
     for (name, digest) in [
         (
-            "tag builder receipt",
-            receipt.oracle_identity.builder_receipt_sha256.as_str(),
-        ),
-        (
             "tag source inputs",
             receipt.oracle_identity.source_inputs_sha256.as_str(),
         ),
@@ -5837,6 +6654,9 @@ fn validate_oracle_capture_receipt(
         ),
     ] {
         require_sha256(name, digest)?;
+    }
+    if let Some(builder_receipt_sha256) = &receipt.oracle_identity.builder_receipt_sha256 {
+        require_sha256("tag builder receipt", builder_receipt_sha256)?;
     }
     if !receipt
         .oracle_identity
@@ -5999,6 +6819,69 @@ fn validate_oracle_capture_receipt(
         for checkpoint in &receipt.case.checkpoints {
             verify_oracle_capture_manifest(receipt, &actual_root.path, &checkpoint.id)?;
         }
+    }
+    Ok(())
+}
+
+fn validate_capture_build_origin(receipt: &OracleCaptureReceipt) -> Result<(), String> {
+    validate_capture_build_origin_fields(
+        &receipt.schema,
+        receipt.builder_evidence.as_ref(),
+        receipt.builder_run.as_ref(),
+        receipt.oracle_identity.builder_receipt_sha256.as_deref(),
+        receipt
+            .oracle_identity
+            .normalized_existing_build_origin
+            .as_ref(),
+    )
+}
+
+fn validate_capture_build_origin_fields(
+    schema: &str,
+    builder_evidence: Option<&EvidenceReference>,
+    builder_run: Option<&EvidenceReference>,
+    builder_receipt_sha256: Option<&str>,
+    normalized_existing_build_origin: Option<&NormalizedExistingBuildOriginV2>,
+) -> Result<(), String> {
+    match schema {
+        ORACLE_CAPTURE_RECEIPT_SCHEMA => {
+            if builder_evidence.is_none()
+                || builder_run.is_none()
+                || builder_receipt_sha256.is_none()
+                || normalized_existing_build_origin.is_some()
+            {
+                return Err(
+                    "v1 oracle capture must retain its builder receipt and run references"
+                        .to_string(),
+                );
+            }
+        }
+        ORACLE_CAPTURE_RECEIPT_SCHEMA_V2 => {
+            if builder_evidence.is_some()
+                || builder_run.is_some()
+                || builder_receipt_sha256.is_some()
+            {
+                return Err(
+                    "v2 oracle capture must not claim v1 builder receipt evidence".to_string(),
+                );
+            }
+            let origin = normalized_existing_build_origin
+                .ok_or_else(|| "v2 oracle capture lacks its normalized-build origin".to_string())?;
+            if origin.schema != TAG_NORMALIZED_EXISTING_BUILD_ORIGIN_SCHEMA {
+                return Err("v2 normalized-build origin schema is invalid".to_string());
+            }
+            for (label, reference) in [
+                ("normalization addendum", &origin.normalization_addendum),
+                ("R6 build result", &origin.build_result),
+            ] {
+                let path = Path::new(&reference.path);
+                if !path.is_absolute() {
+                    return Err(format!("v2 {label} path must be absolute"));
+                }
+                require_sha256(&format!("v2 {label}"), &reference.sha256)?;
+            }
+        }
+        _ => return Err("unsupported immutable-tag capture receipt schema".to_string()),
     }
     Ok(())
 }
@@ -6277,70 +7160,7 @@ fn load_oracle_capture(
         return Err("partial oracle capture cannot be admitted".to_string());
     }
 
-    let builder_path = verify_evidence_reference(&receipt.builder_evidence, "tag builder receipt")?;
-    if builder_path.starts_with(&checkout_root) {
-        return Err("tag builder evidence must be stored outside the suite checkout".to_string());
-    }
-    let builder_bytes = fs::read(&builder_path).map_err(|error| {
-        format!(
-            "read tag builder receipt {}: {error}",
-            builder_path.display()
-        )
-    })?;
-    reject_duplicate_json_keys(&builder_bytes, "tag builder receipt")?;
-    let builder: TagBuilderEvidence = serde_json::from_slice(&builder_bytes)
-        .map_err(|error| format!("parse tag builder receipt: {error}"))?;
-    revalidate_captured_tag_source(&receipt, &builder, &builder_path)?;
-    let builder_run_path =
-        verify_evidence_reference(&receipt.builder_run, "tag builder run record")?;
-    let expected_builder_run = builder_path
-        .parent()
-        .ok_or_else(|| "tag builder receipt has no parent directory".to_string())?
-        .join("run.json");
-    if builder_run_path != expected_builder_run {
-        return Err(
-            "tag builder run evidence must be the sibling run.json validated with the receipt"
-                .to_string(),
-        );
-    }
-    if builder_run_path.starts_with(&checkout_root) {
-        return Err(
-            "tag builder run evidence must be stored outside the suite checkout".to_string(),
-        );
-    }
-    let source_inputs_bytes = serde_json::to_vec(&builder.source_snapshot)
-        .map_err(|error| format!("serialize tag source inputs: {error}"))?;
-    let build_environment_bytes = serde_json::to_vec(&builder.build_environment)
-        .map_err(|error| format!("serialize tag build environment: {error}"))?;
-    let nested_builder_sha = builder_receipt_digest(&builder.builder_receipt)?;
-    if builder.schema != TAG_BUILD_EVIDENCE_SCHEMA
-        || builder.run_id != receipt.run_id
-        || builder.purpose != "frozen-visual-tag-holla-build-only"
-        || builder.build_result != "PASS"
-        || builder.qualification.status != "blocked"
-        || builder.capture_status != "NOT_RUN"
-        || builder.admission_status != "NOT_RUN"
-        || builder.oracle_lineage.tag_ref != receipt.oracle_identity.tag_ref
-        || builder.oracle_lineage.tag_object != receipt.oracle_identity.tag_object
-        || builder.oracle_lineage.tag_commit != receipt.oracle_identity.tag_commit
-        || builder.source_snapshot.source_commit != receipt.oracle_identity.source_snapshot_commit
-        || builder.source_snapshot.tree_oid != receipt.oracle_identity.source_snapshot_tree
-        || Path::new(&builder.source_snapshot.materialized_root)
-            != receipt.oracle_identity.source_snapshot_root
-        || builder.build_artifact_root != receipt.oracle_identity.build_artifact_root
-        || builder.build != receipt.oracle_identity.build
-        || builder.builder_receipt_sha256 != receipt.oracle_identity.builder_receipt_sha256
-        || nested_builder_sha != receipt.oracle_identity.builder_receipt_sha256
-        || sha256_bytes(&source_inputs_bytes) != receipt.oracle_identity.source_inputs_sha256
-        || sha256_bytes(&build_environment_bytes)
-            != receipt.oracle_identity.build_environment_sha256
-        || builder.executable.path != receipt.oracle_identity.executable.path
-        || builder.executable.sha256 != receipt.oracle_identity.executable.expected_sha256
-    {
-        return Err(
-            "oracle capture does not match the raw immutable-tag builder evidence".to_string(),
-        );
-    }
+    revalidate_capture_build_origin(&receipt, &checkout_root)?;
 
     let source_root = canonical_existing_directory_without_symlinks(
         &receipt.oracle_identity.source_snapshot_root,
@@ -6387,12 +7207,156 @@ fn load_oracle_capture(
     })
 }
 
+fn revalidate_capture_build_origin(
+    receipt: &OracleCaptureReceipt,
+    checkout_root: &Path,
+) -> Result<(), String> {
+    match receipt.schema.as_str() {
+        ORACLE_CAPTURE_RECEIPT_SCHEMA => {
+            let builder_reference = receipt
+                .builder_evidence
+                .as_ref()
+                .ok_or_else(|| "v1 capture lacks its builder receipt reference".to_string())?;
+            let run_reference = receipt
+                .builder_run
+                .as_ref()
+                .ok_or_else(|| "v1 capture lacks its builder run reference".to_string())?;
+            let builder_path = verify_evidence_reference(builder_reference, "tag builder receipt")?;
+            if builder_path.starts_with(checkout_root) {
+                return Err("tag builder evidence must be stored outside the suite checkout".to_string());
+            }
+            let builder_bytes = fs::read(&builder_path).map_err(|error| {
+                format!("read tag builder receipt {}: {error}", builder_path.display())
+            })?;
+            reject_duplicate_json_keys(&builder_bytes, "tag builder receipt")?;
+            let builder: TagBuilderEvidence = serde_json::from_slice(&builder_bytes)
+                .map_err(|error| format!("parse tag builder receipt: {error}"))?;
+            revalidate_captured_tag_source(receipt, &builder, &builder_path)?;
+            let builder_run_path = verify_evidence_reference(run_reference, "tag builder run record")?;
+            let expected_builder_run = builder_path
+                .parent()
+                .ok_or_else(|| "tag builder receipt has no parent directory".to_string())?
+                .join("run.json");
+            if builder_run_path != expected_builder_run || builder_run_path.starts_with(checkout_root) {
+                return Err(
+                    "tag builder run evidence must be the sibling run.json outside the suite checkout"
+                        .to_string(),
+                );
+            }
+            let source_inputs_bytes = serde_json::to_vec(&builder.source_snapshot)
+                .map_err(|error| format!("serialize tag source inputs: {error}"))?;
+            let build_environment_bytes = serde_json::to_vec(&builder.build_environment)
+                .map_err(|error| format!("serialize tag build environment: {error}"))?;
+            let nested_builder_sha = builder_receipt_digest(&builder.builder_receipt)?;
+            if builder.schema != TAG_BUILD_EVIDENCE_SCHEMA
+                || builder.run_id != receipt.run_id
+                || builder.purpose != "frozen-visual-tag-holla-build-only"
+                || builder.build_result != "PASS"
+                || builder.qualification.status != "blocked"
+                || builder.capture_status != "NOT_RUN"
+                || builder.admission_status != "NOT_RUN"
+                || builder.oracle_lineage.tag_ref != receipt.oracle_identity.tag_ref
+                || builder.oracle_lineage.tag_object != receipt.oracle_identity.tag_object
+                || builder.oracle_lineage.tag_commit != receipt.oracle_identity.tag_commit
+                || builder.source_snapshot.source_commit != receipt.oracle_identity.source_snapshot_commit
+                || builder.source_snapshot.tree_oid != receipt.oracle_identity.source_snapshot_tree
+                || Path::new(&builder.source_snapshot.materialized_root)
+                    != receipt.oracle_identity.source_snapshot_root
+                || builder.build_artifact_root != receipt.oracle_identity.build_artifact_root
+                || builder.build != receipt.oracle_identity.build
+                || Some(&builder.builder_receipt_sha256)
+                    != receipt.oracle_identity.builder_receipt_sha256.as_ref()
+                || Some(&nested_builder_sha)
+                    != receipt.oracle_identity.builder_receipt_sha256.as_ref()
+                || sha256_bytes(&source_inputs_bytes) != receipt.oracle_identity.source_inputs_sha256
+                || sha256_bytes(&build_environment_bytes)
+                    != receipt.oracle_identity.build_environment_sha256
+                || builder.executable.path != receipt.oracle_identity.executable.path
+                || builder.executable.sha256 != receipt.oracle_identity.executable.expected_sha256
+            {
+                return Err(
+                    "oracle capture does not match the raw immutable-tag builder evidence".to_string(),
+                );
+            }
+        }
+        ORACLE_CAPTURE_RECEIPT_SCHEMA_V2 => {
+            let origin = receipt
+                .oracle_identity
+                .normalized_existing_build_origin
+                .as_ref()
+                .ok_or_else(|| "v2 capture lacks its normalized-build origin".to_string())?;
+            let addendum_path = verify_evidence_reference(
+                &origin.normalization_addendum,
+                "normalized-build addendum",
+            )?;
+            let result_path = verify_evidence_reference(&origin.build_result, "R6 build result")?;
+            if addendum_path.starts_with(checkout_root) || result_path.starts_with(checkout_root) {
+                return Err("normalized-build evidence must be stored outside the suite checkout".to_string());
+            }
+            let (identity, helper, execution) = run_normalized_existing_tag_source_validator(
+                &addendum_path,
+                &origin.normalization_addendum.sha256,
+            )?;
+            if helper.path.display().to_string() != receipt.validator_helper.path
+                || helper.sha256 != receipt.validator_helper.sha256
+                || execution != receipt.oracle_identity.validator_execution
+                || identity.run_id != receipt.run_id
+                || identity.normalization_addendum.path != addendum_path
+                || identity.normalization_addendum.sha256 != origin.normalization_addendum.sha256
+                || identity.build_result.path != result_path
+                || identity.build_result.sha256 != origin.build_result.sha256
+                || identity.oracle_lineage.tag_ref != receipt.oracle_identity.tag_ref
+                || identity.oracle_lineage.tag_object != receipt.oracle_identity.tag_object
+                || identity.oracle_lineage.tag_commit != receipt.oracle_identity.tag_commit
+                || identity.source_snapshot.source_commit != receipt.oracle_identity.source_snapshot_commit
+                || identity.source_snapshot.tree_oid != receipt.oracle_identity.source_snapshot_tree
+                || identity.source_snapshot.materialized_root != receipt.oracle_identity.source_snapshot_root
+                || identity.source_snapshot.included_file_count
+                    != receipt.oracle_identity.source_snapshot_included_file_count
+                || identity.build_artifact_root != receipt.oracle_identity.build_artifact_root
+                || identity.build != receipt.oracle_identity.build
+                || Some(identity.executable.path.clone())
+                    != Some(receipt.oracle_identity.executable.path.clone())
+                || identity.executable.sha256 != receipt.oracle_identity.executable.expected_sha256
+                || receipt.oracle_identity.builder_receipt_sha256.is_some()
+            {
+                return Err("v2 capture differs from the revalidated normalized R6 origin".to_string());
+            }
+            let source_bytes = serde_json::to_vec(&identity.source_snapshot)
+                .map_err(|error| format!("serialize normalized source identity: {error}"))?;
+            let environment_bytes = serde_json::to_vec(&identity.build_environment)
+                .map_err(|error| format!("serialize normalized build environment: {error}"))?;
+            if sha256_bytes(&source_bytes) != receipt.oracle_identity.source_inputs_sha256
+                || sha256_bytes(&environment_bytes)
+                    != receipt.oracle_identity.build_environment_sha256
+                || identity.product_build != "PASS"
+                || identity.environment_integrity != "INCOMPLETE"
+                || identity.capture_status != "NOT_RUN"
+                || identity.admission_status != "NOT_RUN"
+                || identity.qualification.status != "blocked"
+            {
+                return Err("v2 capture promoted or changed the original R6 outcome".to_string());
+            }
+        }
+        _ => return Err("unsupported immutable-tag capture schema".to_string()),
+    }
+    Ok(())
+}
+
 fn revalidate_captured_tag_source(
     capture: &OracleCaptureReceipt,
     builder: &TagBuilderEvidence,
     builder_path: &Path,
 ) -> Result<(), String> {
     let oracle = &capture.oracle_identity;
+    let builder_reference = capture
+        .builder_evidence
+        .as_ref()
+        .ok_or_else(|| "v1 capture lacks its builder receipt reference".to_string())?;
+    let expected_builder_sha256 = oracle
+        .builder_receipt_sha256
+        .as_deref()
+        .ok_or_else(|| "v1 capture lacks its builder receipt digest".to_string())?;
     // Revalidation must use the path and raw digest supplied by the current
     // trusted caller. A capture cannot choose its own validator toolchain.
     let (toolchain, toolchain_reference) = load_caller_pinned_tag_validator_toolchain()?;
@@ -6407,7 +7371,7 @@ fn revalidate_captured_tag_source(
     }
     let (identity, helper, execution) = execute_tag_source_validator(
         builder_path,
-        &capture.builder_evidence.sha256,
+        &builder_reference.sha256,
         Path::new(&capture.validator_helper.path),
         &oracle.validator_execution.repository,
         &toolchain,
@@ -6423,7 +7387,7 @@ fn revalidate_captured_tag_source(
         builder,
         &identity,
         builder_path,
-        &capture.builder_evidence.sha256,
+        &builder_reference.sha256,
     )?;
     let source_inputs_bytes = serde_json::to_vec(&builder.source_snapshot)
         .map_err(|error| format!("serialize revalidated tag source inputs: {error}"))?;
@@ -6437,7 +7401,8 @@ fn revalidate_captured_tag_source(
             .clone(),
         included_file_count: oracle.source_snapshot_included_file_count,
     };
-    if sha256_bytes(&source_inputs_bytes) != oracle.source_inputs_sha256
+    if expected_builder_sha256 != builder.builder_receipt_sha256
+        || sha256_bytes(&source_inputs_bytes) != oracle.source_inputs_sha256
         || validate_tag_source_snapshot_still_matches(&captured_snapshot, &identity.source_snapshot)
             .is_err()
         || identity.source_snapshot.included_path_blob_map_sha256
@@ -6470,6 +7435,12 @@ fn build_admission_binding(
     renderer: &RendererIdentity,
 ) -> Result<admission::AdmissionBinding, String> {
     let receipt = &capture.receipt;
+    if receipt.schema != ORACLE_CAPTURE_RECEIPT_SCHEMA {
+        return Err(
+            "normalized existing-build capture remains blocked from generation admission"
+                .to_string(),
+        );
+    }
     let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let case_set_digest = digest_tree(&package_root.join("cases"))?;
     let profile_digest = sha256_file(&package_root.join("profile.json"))?;
@@ -6507,8 +7478,8 @@ fn build_admission_binding(
         || generation.oracle.source_inputs_sha256 != receipt.oracle_identity.source_inputs_sha256
         || generation.oracle.build_environment_sha256
             != receipt.oracle_identity.build_environment_sha256
-        || generation.oracle.builder_receipt_sha256
-            != receipt.oracle_identity.builder_receipt_sha256
+        || Some(&generation.oracle.builder_receipt_sha256)
+            != receipt.oracle_identity.builder_receipt_sha256.as_ref()
         || generation.oracle.oracle_executable_sha256
             != receipt.oracle_identity.executable.expected_sha256
     {
@@ -6550,7 +7521,11 @@ fn build_admission_binding(
             source_snapshot_tree: receipt.oracle_identity.source_snapshot_tree.clone(),
             source_inputs_sha256: receipt.oracle_identity.source_inputs_sha256.clone(),
             build_environment_sha256: receipt.oracle_identity.build_environment_sha256.clone(),
-            builder_receipt_sha256: receipt.oracle_identity.builder_receipt_sha256.clone(),
+            builder_receipt_sha256: receipt
+                .oracle_identity
+                .builder_receipt_sha256
+                .clone()
+                .ok_or_else(|| "v1 capture lacks its builder receipt digest".to_string())?,
             executable_sha256: receipt.oracle_identity.executable.expected_sha256.clone(),
             validator_toolchain: receipt
                 .oracle_identity
@@ -6699,21 +7674,37 @@ pub fn admit_expected_generation(
         Path::new(&capture.receipt.validator_helper.path),
         &capture.receipt.oracle_identity.validator_execution,
     )?);
-    for evidence_path in [
+    let mut evidence_paths = vec![
         capture.path.as_path(),
         review.path.as_path(),
-        Path::new(&capture.receipt.builder_evidence.path),
-        Path::new(&capture.receipt.builder_run.path),
         Path::new(&capture.receipt.validator_helper.path),
-    ]
-    .into_iter()
-    .chain(
+    ];
+    evidence_paths.extend(
+        capture
+            .receipt
+            .builder_evidence
+            .iter()
+            .map(|reference| Path::new(&reference.path)),
+    );
+    evidence_paths.extend(
+        capture
+            .receipt
+            .builder_run
+            .iter()
+            .map(|reference| Path::new(&reference.path)),
+    );
+    if let Some(origin) = &capture.receipt.oracle_identity.normalized_existing_build_origin {
+        evidence_paths.push(Path::new(&origin.normalization_addendum.path));
+        evidence_paths.push(Path::new(&origin.build_result.path));
+    }
+    evidence_paths.extend(
         review
             .review
             .execution_anchor_evidence
             .iter()
             .map(|evidence| Path::new(&evidence.path)),
-    ) {
+    );
+    for evidence_path in evidence_paths {
         protected_paths.push(canonical_existing_regular_file_without_symlinks(
             evidence_path,
             "admission evidence",
@@ -6858,6 +7849,7 @@ pub fn run_case(case_id: &str) -> Result<RunReceipt, String> {
         Some(&trust_source.canonical_path),
         Some(&evidence),
         &binary_path,
+        None,
         None,
     )?;
     validate_case_capture_paths(case, &write_policy.actual_output_roots)?;
@@ -7171,8 +8163,8 @@ pub fn run_case(case_id: &str) -> Result<RunReceipt, String> {
     Ok(receipt)
 }
 
-fn drive_case_subject(
-    subject: &Subject,
+fn drive_case_subject<S: CaptureSubject>(
+    subject: &S,
     case: &Case,
     profile: &Profile,
     renderer: &RendererIdentity,
@@ -7180,20 +8172,22 @@ fn drive_case_subject(
     write_policy: &WritePolicyReceipt,
     visual_context: Option<&VisualComparisonContext<'_>>,
 ) -> Result<SubjectDriveResult, String> {
+    let role = subject.capture_role();
+    let executable = subject.capture_executable();
     let mut result = SubjectDriveResult {
         checks: Vec::new(),
         artifacts: Vec::new(),
         actual_sha256: None,
         post_run_failure: None,
     };
-    let args = make_argv(&subject.executable.path, &case.args);
+    let args = make_argv(&executable.path, &case.args);
     let launch_result = launch(&args, case, &profile, &write_policy.subject_cwd);
     let mut session = match launch_result {
         Ok(session) => {
             for checkpoint in checkpoints(case) {
                 push_check(
                     &mut result.checks,
-                    &subject.role,
+                    role,
                     &case.id,
                     checkpoint,
                     "build",
@@ -7203,14 +8197,14 @@ fn drive_case_subject(
                 );
                 push_check(
                     &mut result.checks,
-                    &subject.role,
+                    role,
                     &case.id,
                     checkpoint,
                     "launch",
                     "PASS",
                     "real executable launched in a Tuiscotti PTY",
                     vec![
-                        subject.executable.path.display().to_string(),
+                        executable.path.display().to_string(),
                         initial_snapshot.sha256.clone(),
                     ],
                 );
@@ -7222,7 +8216,7 @@ fn drive_case_subject(
             for checkpoint in checkpoints(case) {
                 append_not_run_checkpoint(
                     &mut result.checks,
-                    &subject.role,
+                    role,
                     &case.id,
                     checkpoint,
                     "PASS",
@@ -7243,7 +8237,7 @@ fn drive_case_subject(
             Step::Press { key } => {
                 if let Err(error) = session.press(key) {
                     result.checks.push(check(
-                        &subject.role,
+                        role,
                         &case.id,
                         "input",
                         "interaction",
@@ -7265,7 +8259,7 @@ fn drive_case_subject(
                 };
                 record_input_result(
                     &mut result.checks,
-                    &subject.role,
+                    role,
                     &case.id,
                     format!("key_event {key} {kind:?}"),
                     session.key_event(key_value, mods, kind),
@@ -7274,7 +8268,7 @@ fn drive_case_subject(
             }
             Step::Text { text } => record_input_result(
                 &mut result.checks,
-                &subject.role,
+                role,
                 &case.id,
                 "send_text".to_string(),
                 session.send_text(text),
@@ -7282,7 +8276,7 @@ fn drive_case_subject(
             ),
             Step::Paste { text } => record_input_result(
                 &mut result.checks,
-                &subject.role,
+                role,
                 &case.id,
                 "paste".to_string(),
                 session.paste(text),
@@ -7292,7 +8286,7 @@ fn drive_case_subject(
                 let sent = dispatch_mouse_input(&session, input);
                 record_input_result(
                     &mut result.checks,
-                    &subject.role,
+                    role,
                     &case.id,
                     format!("mouse {input:?}"),
                     sent,
@@ -7309,7 +8303,7 @@ fn drive_case_subject(
                 }
                 record_input_result(
                     &mut result.checks,
-                    &subject.role,
+                    role,
                     &case.id,
                     format!("resize {cols}x{rows}"),
                     resized,
@@ -7335,7 +8329,7 @@ fn drive_case_subject(
                         };
                         replace_checkpoint_check(
                             &mut result.checks,
-                            &subject.role,
+                            role,
                             &case.id,
                             checkpoint,
                             "exit",
@@ -7351,7 +8345,7 @@ fn drive_case_subject(
                     }
                     Err(error) => replace_checkpoint_check(
                         &mut result.checks,
-                        &subject.role,
+                        role,
                         &case.id,
                         checkpoint,
                         "exit",
@@ -7377,7 +8371,7 @@ fn drive_case_subject(
                     Err(error) => {
                         append_readiness_failure(
                             &mut result.checks,
-                            &subject.role,
+                            role,
                             &case.id,
                             checkpoint,
                             &error,
@@ -7397,7 +8391,7 @@ fn drive_case_subject(
                     let check_id = format!("{}:{}:{}", case.id, checkpoint, assertion.id);
                     result.checks.push(CheckReceipt {
                         id: check_id,
-                        subject_role: subject.role.clone(),
+                        subject_role: role.to_string(),
                         case_id: case.id.clone(),
                         checkpoint_id: checkpoint.to_string(),
                         dimension: "interaction".to_string(),
@@ -7418,7 +8412,7 @@ fn drive_case_subject(
                 };
                 push_check(
                     &mut result.checks,
-                    &subject.role,
+                    role,
                     &case.id,
                     checkpoint,
                     "first_frame",
@@ -7431,7 +8425,7 @@ fn drive_case_subject(
                 );
                 push_check(
                     &mut result.checks,
-                    &subject.role,
+                    role,
                     &case.id,
                     checkpoint,
                     "interaction",
@@ -7443,7 +8437,7 @@ fn drive_case_subject(
                 let actual_output_root = write_policy
                     .actual_output_roots
                     .iter()
-                    .find(|output| output.role == subject.role)
+                    .find(|output| output.role == role)
                     .expect("resolved write policy has each subject output root");
                 match write_capture(
                     subject,
@@ -7497,7 +8491,7 @@ fn drive_case_subject(
                                     "admitted expected and actual frame or decoded opaque RGB pixels differ"
                                 };
                                 let mut visual_check = check(
-                                    &subject.role,
+                                    role,
                                     &case.id,
                                     checkpoint,
                                     "visual",
@@ -7510,7 +8504,7 @@ fn drive_case_subject(
                             }
                             Err((status, reason)) => {
                                 result.checks.push(check(
-                                    &subject.role,
+                                    role,
                                     &case.id,
                                     checkpoint,
                                     "visual",
@@ -7525,7 +8519,7 @@ fn drive_case_subject(
                     }
                     Err(error) => push_check(
                         &mut result.checks,
-                        &subject.role,
+                        role,
                         &case.id,
                         checkpoint,
                         "visual",
@@ -7536,7 +8530,7 @@ fn drive_case_subject(
                 }
                 push_check(
                     &mut result.checks,
-                    &subject.role,
+                    role,
                     &case.id,
                     checkpoint,
                     "exit",
@@ -7546,7 +8540,7 @@ fn drive_case_subject(
                 );
                 push_check(
                     &mut result.checks,
-                    &subject.role,
+                    role,
                     &case.id,
                     checkpoint,
                     "restoration",
@@ -7559,7 +8553,7 @@ fn drive_case_subject(
     }
 
     drop(session);
-    let post_run = inspect_executable(&subject.executable.path);
+    let post_run = inspect_executable(&executable.path);
     result.actual_sha256 = post_run
         .as_ref()
         .ok()
@@ -7749,9 +8743,9 @@ fn compare_visual_capture(
     .map_err(|error| ("ERROR".to_string(), error))
 }
 
-fn validate_checkpoint_dimensions(
+fn validate_checkpoint_dimensions<S: CaptureSubject>(
     checks: &[CheckReceipt],
-    subjects: &[Subject],
+    subjects: &[S],
     case: &Case,
 ) -> Result<(), String> {
     let required = [
@@ -7767,14 +8761,14 @@ fn validate_checkpoint_dimensions(
         for checkpoint in checkpoints(case) {
             for dimension in required {
                 if !checks.iter().any(|check| {
-                    check.subject_role == subject.role
+                    check.subject_role == subject.capture_role()
                         && check.case_id == case.id
                         && check.checkpoint_id == checkpoint
                         && check.dimension == dimension
                 }) {
                     return Err(format!(
                         "receipt is missing {dimension} check for {}:{}:{}",
-                        subject.role, case.id, checkpoint
+                        subject.capture_role(), case.id, checkpoint
                     ));
                 }
             }
@@ -8115,12 +9109,13 @@ fn make_argv(executable: &Path, args: &[String]) -> Vec<String> {
     argv
 }
 
-fn verify_subject_executable(subject: &Subject) -> Result<ExecutableSnapshot, String> {
-    let snapshot = inspect_executable(&subject.executable.path)?;
-    if snapshot.sha256 != subject.executable.sha256 {
+fn verify_subject_executable<S: CaptureSubject>(subject: &S) -> Result<ExecutableSnapshot, String> {
+    let executable = subject.capture_executable();
+    let snapshot = inspect_executable(&executable.path)?;
+    if snapshot.sha256 != executable.sha256 {
         return Err(format!(
             "{} executable digest mismatch: expected {}, got {}",
-            subject.role, subject.executable.sha256, snapshot.sha256
+            subject.capture_role(), executable.sha256, snapshot.sha256
         ));
     }
     Ok(snapshot)
@@ -8213,21 +9208,22 @@ fn executable_metadata(metadata: &fs::Metadata) -> ExecutableMetadata {
     }
 }
 
-fn validate_executable_snapshot(
-    subject: &Subject,
+fn validate_executable_snapshot<S: CaptureSubject>(
+    subject: &S,
     initial: &ExecutableSnapshot,
     current: &ExecutableSnapshot,
 ) -> Result<(), String> {
-    if current.sha256 != subject.executable.sha256 {
+    let executable = subject.capture_executable();
+    if current.sha256 != executable.sha256 {
         return Err(format!(
             "{} executable digest changed: expected {}, got {}",
-            subject.role, subject.executable.sha256, current.sha256
+            subject.capture_role(), executable.sha256, current.sha256
         ));
     }
     if current != initial {
         return Err(format!(
             "{} executable file identity or metadata changed after preflight",
-            subject.role
+            subject.capture_role()
         ));
     }
     Ok(())
@@ -8682,8 +9678,8 @@ fn check(
     }
 }
 
-fn write_capture(
-    subject: &Subject,
+fn write_capture<S: CaptureSubject>(
+    subject: &S,
     write_root: &Path,
     actual_root: &Path,
     case: &Case,
@@ -8786,7 +9782,7 @@ fn write_capture(
     let artifacts = outputs
         .into_iter()
         .map(|(format, filename, bytes)| ArtifactReceipt {
-            subject_role: subject.role.clone(),
+            subject_role: subject.capture_role().to_string(),
             case_id: case.id.clone(),
             checkpoint_id: checkpoint.to_string(),
             format,
@@ -9291,6 +10287,162 @@ fn stage_receipt_bytes(parent: &Path, bytes: &[u8]) -> Result<PathBuf, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn capture_origin_test_reference(name: &str, digest_byte: char) -> EvidenceReference {
+        EvidenceReference {
+            path: std::env::temp_dir()
+                .join(name)
+                .display()
+                .to_string(),
+            sha256: digest_byte.to_string().repeat(64),
+        }
+    }
+
+    fn capture_origin_test_v2() -> NormalizedExistingBuildOriginV2 {
+        NormalizedExistingBuildOriginV2 {
+            schema: TAG_NORMALIZED_EXISTING_BUILD_ORIGIN_SCHEMA.to_string(),
+            normalization_addendum: capture_origin_test_reference("addendum.json", 'a'),
+            build_result: capture_origin_test_reference("build-result.json", 'b'),
+        }
+    }
+
+    #[test]
+    fn capture_build_origin_v1_requires_only_its_original_builder_references() {
+        let builder_evidence = capture_origin_test_reference("builder.json", 'c');
+        let builder_run = capture_origin_test_reference("run.json", 'd');
+        let builder_digest = "e".repeat(64);
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA,
+            Some(&builder_evidence),
+            Some(&builder_run),
+            Some(&builder_digest),
+            None,
+        )
+        .is_ok());
+
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA,
+            None,
+            Some(&builder_run),
+            Some(&builder_digest),
+            None,
+        )
+        .is_err());
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA,
+            Some(&builder_evidence),
+            None,
+            Some(&builder_digest),
+            None,
+        )
+        .is_err());
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA,
+            Some(&builder_evidence),
+            Some(&builder_run),
+            None,
+            None,
+        )
+        .is_err());
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA,
+            Some(&builder_evidence),
+            Some(&builder_run),
+            Some(&builder_digest),
+            Some(&capture_origin_test_v2()),
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn capture_build_origin_v2_accepts_only_normalized_origin_references() {
+        let origin = capture_origin_test_v2();
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA_V2,
+            None,
+            None,
+            None,
+            Some(&origin),
+        )
+        .is_ok());
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA_V2,
+            Some(&capture_origin_test_reference("builder.json", 'c')),
+            None,
+            None,
+            Some(&origin),
+        )
+        .is_err());
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA_V2,
+            None,
+            Some(&capture_origin_test_reference("run.json", 'd')),
+            None,
+            Some(&origin),
+        )
+        .is_err());
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA_V2,
+            None,
+            None,
+            Some(&"e".repeat(64)),
+            Some(&origin),
+        )
+        .is_err());
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA_V2,
+            None,
+            None,
+            None,
+            None,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn capture_build_origin_v2_rejects_wrong_schema_relative_paths_and_bad_digests() {
+        let mut origin = capture_origin_test_v2();
+        origin.schema = "termrock-spec/visual-tag-holla-build-origin-v1".to_string();
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA_V2,
+            None,
+            None,
+            None,
+            Some(&origin),
+        )
+        .is_err());
+
+        let mut origin = capture_origin_test_v2();
+        origin.normalization_addendum.path = "relative/addendum.json".to_string();
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA_V2,
+            None,
+            None,
+            None,
+            Some(&origin),
+        )
+        .is_err());
+
+        let mut origin = capture_origin_test_v2();
+        origin.build_result.sha256 = "not-a-sha256".to_string();
+        assert!(validate_capture_build_origin_fields(
+            ORACLE_CAPTURE_RECEIPT_SCHEMA_V2,
+            None,
+            None,
+            None,
+            Some(&origin),
+        )
+        .is_err());
+
+        assert!(validate_capture_build_origin_fields(
+            "termrock-spec/parity-oracle-capture-receipt-v3",
+            None,
+            None,
+            None,
+            None,
+        )
+        .is_err());
+    }
 
     #[test]
     fn pty_environment_drops_parent_sentinel_and_uses_pinned_cwd() {
@@ -12227,6 +13379,7 @@ mod tests {
             Some(trust_record_path),
             None,
             &fixture.test_binary,
+            None,
             None,
         )
     }
