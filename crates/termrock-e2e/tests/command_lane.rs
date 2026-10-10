@@ -240,7 +240,7 @@ pub const RUN02_INPUT: &[InputEvent] = &[
     },
     InputEvent::WaitFor {
         checkpoint: "01-manager",
-        contains: &["Workspaces", "outside the Construct"],
+        contains: &["Workspaces", "inside the Construct"],
         absent: &[],
         requires: &["00-intro"],
     },
