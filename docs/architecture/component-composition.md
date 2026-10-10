@@ -211,6 +211,7 @@ Give it an owner, a public data contract, a use case, and a test requirement.
 Show use with a second independent data shape or a generic conformance fixture.
 Do not demand an artificial second product application.
 
+Record implementation work as pending during this documentation task.
 Never add the missing feature as an app-local renderer.
 
 ## ARC-012 — Prohibited patterns in preview drawing paths

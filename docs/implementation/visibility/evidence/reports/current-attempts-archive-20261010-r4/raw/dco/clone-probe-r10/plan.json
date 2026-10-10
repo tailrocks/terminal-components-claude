@@ -1,0 +1,437 @@
+{
+  "schema": "dco-selective-repair-native-bitmap-probe-plan/v1",
+  "status": "PROPOSAL_ONLY_AWAITING_EXACT_R10_INDEPENDENT_REVIEW_AND_ROOT_LOCAL_WRITE_AUTHORIZATION",
+  "objective": "Test whether Git 2.54 native bitmap pack generation can reduce the selective DCO rewrite's outgoing object set to the independently proven 131 new commits, without any remote operation or canonical/source-object-store write.",
+  "candidate": {
+    "remote_ref": "refs/heads/visual-baseline",
+    "old_tip": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "new_tip": "d8e5ddf106db81d047a80441239b90a41874349c",
+    "shared_tree": "ccafe5e19aa701765b06a5277c544b7459b998e8",
+    "mapping_proposal": "/private/tmp/termrock-reference-dco-selective-repair-root-20261010/mapping-proposal.json",
+    "mapping_proposal_sha256": "ac361b991aae911f59eca96d2f59901021fc1d15a1abed74d477f71616630a4b",
+    "full_reachable_set_review": "/private/tmp/termrock-reference-dco-git-reachable-set-review-observer-20261010.json",
+    "full_reachable_set_review_sha256": "825d07087fcd99f4ca2b0322e5281c5f50f5a49b634b173ffa180a41c14b2fe7",
+    "expected_difference": {
+      "commit": 131,
+      "tree": 0,
+      "blob": 0,
+      "tag": 0
+    }
+  },
+  "read_only_environment_observed": {
+    "git_version": "git version 2.54.0 (Apple Git-157)",
+    "transport_repo": "/private/tmp/termrock-reference-dco-selective-repair-root-20261010/transport.git",
+    "transport_alternates_sha256": "c3b510dc22ee81c6aef292238bf8ffdc5625a4b5f2b1645546a5211113d3f249",
+    "source_object_dir": "/private/tmp/termrock-reference-dco-selective-repair-root-20261010/objects.git/objects",
+    "source_object_dir_alternates_sha256": "0e6e0118226a80a5a3c41986d935a8f025fb987f66d023b5c0ee5431c9d8d8da",
+    "source_pack_files": 1263,
+    "source_pack_index_files": 1263,
+    "source_promisor_markers": 1263,
+    "source_reverse_index_files": 1263,
+    "source_midx_or_bitmap_present_at_review": false,
+    "limitations": "The source object directory is an alternate-backed private store. The proposed isolated probe clones only the exact reviewed allowlist using Darwin clonefile(2) COW into its own object directory; it does not assume this pack set contains complete target closure. Any missing target-closure OIDs must be detected, and only a capped scratch supplement may be considered. The 5.577 GB temporary pack is stat-only and excluded.",
+    "source_pack_inventory": {
+      "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/source-pack-inventory.json",
+      "sha256": "33a8aaa5cc1db77f30aa88ad2b4ba5364c901364bb42dad9a1f6611e4f6aa9b7",
+      "allowlist_path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/clone-allowlist.tsv",
+      "allowlist_sha256": "d78122bb25c886648d3ce47a7a9abd3651b3a02540c4ec214b0b67bf8fefb240",
+      "pack_directory_entries": 5053,
+      "exact_clone_allowlist_regular_files": 5052,
+      "complete_pack_groups": 1263,
+      "total_logical_bytes": 103571064,
+      "largest_pack_bytes": 64456680,
+      "unexpected_entries": 0,
+      "all_group_suffixes": [
+        "pack",
+        "idx",
+        "rev",
+        "promisor"
+      ],
+      "all_source_files_have_sha256_and_stat_identity": true,
+      "excluded_entry": {
+        "name": "tmp_pack_l6MVvt",
+        "size_bytes": 5577026288,
+        "device": 16777234,
+        "inode": 89091953,
+        "mode_octal": "100444",
+        "nlink": 1,
+        "ctime_ns": "1791573972188982527",
+        "content_opened_or_hashed": false,
+        "copied_or_cloned": false,
+        "exclusion_reason": "5.577 GB temporary pack explicitly outside the strict four-suffix pack-[40-lowercase-hex] allowlist"
+      },
+      "destination_scratch_root_observed_absent": "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r10-20261010"
+    }
+  },
+  "primary_git_evidence": [
+    {
+      "url": "https://github.com/git/git/blob/master/send-pack.c#L1861-L1917",
+      "claim": "send-pack passes its bitmap-disable flag to object pack generation and sends advertised/negotiated/old tips as haves and new tips as wants."
+    },
+    {
+      "url": "https://github.com/git/git/blob/master/send-pack.c#L2632-L2665",
+      "claim": "send-pack honors push.useBitmaps; if configured, false disables bitmap use and true leaves it enabled."
+    },
+    {
+      "url": "https://github.com/git/git/blob/master/Documentation/config/push.adoc",
+      "claim": "push.useBitmaps defaults to true; push.negotiate only searches for common commits."
+    },
+    {
+      "url": "https://github.com/git/git/blob/master/pack-bitmap.c#L3276-L3348",
+      "claim": "bitmap discovery checks MIDX/pack bitmap indexes for each packed ODB source, including alternate sources."
+    },
+    {
+      "url": "https://git-scm.com/docs/git-multi-pack-index",
+      "claim": "MIDX write can create a bitmap; --refs-snapshot supplies exact tip OIDs and a plus-prefixed preferred tip to force its inclusion in bitmap selection; --object-dir targets an alternate object directory."
+    },
+    {
+      "url": "https://github.com/git/git/blob/v2.54.0/midx-write.c#L1543-L1563",
+      "claim": "With --bitmap, the non-incremental MIDX writer writes the lock/canonical MIDX and bitmap sidecar. It includes an embedded reverse-index chunk, but writes a separate .rev sidecar only when GIT_TEST_MIDX_WRITE_REV=1; the clean env -i plan does not set that test variable, so no standalone .rev/tmp_rev file is allowed."
+    },
+    {
+      "url": "https://git-scm.com/docs/bitmap-format.html",
+      "claim": "Reachability bitmaps require full object closure for the represented graph."
+    },
+    {
+      "url": "https://git-scm.com/docs/git-pack-objects",
+      "claim": "pack-objects --revs accepts revisions like rev-list --objects; --use-bitmap-index can use a reachability bitmap, and --thin is a transport optimization."
+    },
+    {
+      "url": "https://github.com/apple-oss-distributions/xnu/blob/main/bsd/man/man2/clonefile.2",
+      "claim": "clonefile creates a COW clone with separate file attributes; destination must not exist; unsupported filesystems return ENOTSUP; CLONE_NOFOLLOW_ANY rejects symbolic links in path traversal."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/main/bsd/sys/clonefile.h",
+      "claim": "Apple header defines CLONE_ACL as 0x0004, CLONE_NOFOLLOW_ANY as 0x0008, and the clonefile signature."
+    },
+    {
+      "url": "https://github.com/nodejs/node/blob/v26.10.0/deps/uv/src/unix/fs.c",
+      "claim": "Pinned Node/libuv unix implementation does not define FICLONE on Darwin and returns ENOSYS for COPYFILE_FICLONE_FORCE when unavailable; Node force-clone API is therefore not an acceptable macOS no-fallback mechanism."
+    },
+    {
+      "url": "https://doc.rust-lang.org/std/os/unix/fs/trait.MetadataExt.html",
+      "claim": "Rust std-only MetadataExt provides device, inode, mode, nlink, size, ctime seconds and nanoseconds for helper stat guards."
+    },
+    {
+      "url": "https://github.com/git/git/blob/v2.54.0/midx-write.c#L1543-L1563",
+      "claim": "With --bitmap, the non-incremental MIDX writer writes the lock/canonical MIDX and bitmap sidecar. It includes an embedded reverse-index chunk, but writes a separate .rev sidecar only when GIT_TEST_MIDX_WRITE_REV=1; the clean env -i plan does not set that test variable, so no standalone .rev/tmp_rev file is allowed."
+    },
+    {
+      "url": "https://github.com/git/git/blob/v2.54.0/midx.c",
+      "claim": "The non-incremental MIDX and bitmap sidecar names use the multi-pack-index base and MIDX checksum; this plan allows the bitmap sidecar only, not the test-only external reverse-index sidecar."
+    },
+    {
+      "url": "https://github.com/git/git/blob/v2.54.0/pack-bitmap-write.c",
+      "claim": "MIDX bitmap staging uses pack/tmp_bitmap_XXXXXX before renaming to the checksum-suffixed .bitmap sidecar."
+    },
+    {
+      "url": "https://github.com/apple-oss-distributions/adv_cmds/blob/main/ps/ps.c#L2477-L2515",
+      "claim": "Apple's ps implementation defines the pgid output keyword and parses -A and -o for full process-list selection and selected output columns."
+    },
+    {
+      "url": "https://github.com/apple-oss-distributions/adv_cmds/blob/main/ps/print.c#L3495-L3545",
+      "claim": "Apple's ps implementation reports RSS from resident_size divided by 1024, so RSS output is KiB and the monitor converts it to bytes before aggregation."
+    }
+  ],
+  "proposed_scratch_only_procedure": [
+    {
+      "step": 1,
+      "name": "read-only preflight and source snapshot",
+      "actions": [
+        "Require /private/tmp/termrock-reference-dco-bitmap-probe-observer-r10-20261010/ to be absent; do not clean or reuse a prior path.",
+        "Rehash the exact mapping proposal, reachable-set proof, source-pack-inventory.json, clone-allowlist.tsv and helper source. Verify the 5052 file hashes/stat identities in the manifest against the source pack directory before any writes.",
+        "Verify all 1263 pack groups have exactly .pack/.idx/.rev/.promisor; reject symlinks, non-regular entries, missing sidecars, mismatched names, metadata changes, unexpected entries, or any source object-store alternates change.",
+        "Record canonical HEAD, current branch, raw .git/index file SHA-256, refs/tags, source object-store inventory, remote ref/tag/release readback available at the start. Do not query or mutate a remote during the probe.",
+        "Capture the explicit child environment allowlist and prove all inherited Git object/config redirection, tracing, credential, and proxy variables are absent before every child; only the documented one-command supplemental-pack alternate may be set."
+      ]
+    },
+    {
+      "step": 2,
+      "name": "initialize isolated scratch and compile fixed-path clone helper",
+      "actions": [
+        "After Root separately authorizes local scratch writes, exclusively create the absent scratch root with mode 0700 and a fresh TMPDIR beneath it.",
+        "Root alone compiles the reviewed helper directly with pinned rustc (no Cargo), fixed source bytes, edition 2021, and output `-o <scratch>/scratch/tmp/clone-source-packs`; this puts compiler-generated .rcgu.o files in the bounded scratch/tmp area rather than scratch/bin. Count all scratch/tmp entries under the existing 64 MiB compiler-temp aggregate/per-file bound. After successful compilation and confirmed process-group cleanup, require the final temp output to be a regular non-symlink file with nlink 1, executable mode, and size <=16 MiB; atomically rename it on the same filesystem to scratch/bin/clone-source-packs and verify destination device/inode/mode/size before hashing or invoking it. Any compile, validation, rename, or post-rename mismatch is fail-closed and preserves scratch; helper execution must not start.",
+        "Run `git --git-dir=<scratch>/probe.git init --bare --object-format=sha1 --initial-branch=bitmap-probe --template=/dev/null` under a clean environment. Verify no remotes, hooks, alternate, refs, objects, or unexpected config entries exist; only the symbolic HEAD and Git-created skeleton are present.",
+        "The helper accepts no arguments and has source, destination and allowlist paths compiled in. It calls only Darwin clonefile(2), with CLONE_NOFOLLOW_ANY|CLONE_ACL. No clone/write is attempted until this helper has independent review and Root explicitly authorizes it.",
+        "Create only the initially absent scratch/bin, scratch/tmp, and scratch/home directories with mode 0700 before compiling; any pre-existing path or unexpected entry is fatal.",
+        "Start the 100 ms scratch inventory and free-space monitor before rustc and keep it active through compiler and helper stages. During compile, scratch/bin must remain empty; compiler intermediates and the final temporary executable may appear only under scratch/tmp, all counted under the existing 64 MiB aggregate and per-file compiler-temp bounds. After successful rustc exit and confirmed process-group cleanup, validate the temporary executable as a regular non-symlink file with nlink 1, executable mode, and size <=16 MiB, then atomically rename only that executable to scratch/bin/clone-source-packs and verify device/inode/mode/size. Post-rename scans allow only that helper binary under scratch/bin; any compiler output there, unknown path, or cap crossing is fatal and preserves scratch."
+      ]
+    },
+    {
+      "step": 3,
+      "name": "COW-clone exact pack files",
+      "actions": [
+        "Before launch, rehash all 5052 source files and compare SHA-256 and device/inode/mode/size/nlink/ctime against the inventory. Verify source and destination pack directories are canonical, non-symlink directories on the same device and destination is empty.",
+        "Run the fixed helper once with no arguments, under a clean environment and its own process group. Set shell RLIMIT_FSIZE via `ulimit -f 131072` (512-byte blocks = 64 MiB) and verify the limit before spawn; the largest reviewed pack is 64,456,680 bytes. Live-poll scratch files and filesystem free space every 100 ms.",
+        "Require helper stdout JSON exactly CLONE_COMPLETE for 5052 files/1263 groups/103,571,064 logical bytes, fallback=false. Verify destination names exactly equal the allowlist; each destination has a distinct inode, same device/mode/size, nlink 1, and SHA-256 equal to its source manifest entry.",
+        "After clone completion, rehash and restat every allowed source file and compare all fields and hashes to the preflight snapshot. Recheck source directory and excluded tmp pack stat metadata. Never open/hash/copy/clone tmp_pack_l6MVvt."
+      ]
+    },
+    {
+      "step": 4,
+      "name": "prove and complete only the bounded old/new tip closure",
+      "actions": [
+        "Using the source ODB with GIT_NO_LAZY_FETCH=1 and GIT_NO_REPLACE_OBJECTS=1, enumerate the exact reachable old/new object union from new d8e5ddf106db81d047a80441239b90a41874349c and old 4b473a98a8641a9dae8dbf9c31c0c94b15465496. Record observed unique OIDs and types; make no total-count assumption.",
+        "Require at most 100,000 unique OIDs and an 8 MiB sorted manifest. With scratch ODB only (no alternates), compare the exact union to locally present OIDs. If anything is missing, generate a supplemental pack only from the exact missing OID list using a command-scoped read-only GIT_ALTERNATE_OBJECT_DIRECTORIES pointing at the reviewed source ODB; no alternates file is added to scratch.",
+        "Abort if any target OID cannot be read locally without lazy fetch, the missing set exceeds 100,000 entries/8 MiB, supplemental pack exceeds 64 MiB or its index exceeds 8 MiB, or pack verification reports any OID/type outside the missing list. Apply --window=0/--threads=1, no retries, and no thin pack.",
+        "After supplement indexing, re-run scratch-only presence/type checks and require full closure for both tips before MIDX creation. Any promisor/missing closure warning is fatal; no fetch or network operation is allowed."
+      ]
+    },
+    {
+      "step": 5,
+      "name": "create exact-tip scratch MIDX bitmap",
+      "actions": [
+        "Create a scratch refs-snapshot containing exactly `+d8e5ddf106db81d047a80441239b90a41874349c` and `+4b473a98a8641a9dae8dbf9c31c0c94b15465496`, one OID per line; it is not installed as a real ref.",
+        "Run exactly `git --git-dir=<scratch>/probe.git multi-pack-index write --bitmap --refs-snapshot=<scratch>/refs.snapshot --no-progress` with no --object-dir, no remotes and GIT_NO_LAZY_FETCH=1. This writes only in scratch/probe.git/objects/pack.",
+        "Apply 180 s timeout, a 1 GiB sampled process-group RSS abort threshold, SIGTERM with a 5 s grace, followed by SIGKILL and the separate 5 s post-SIGKILL observation deadline defined in resource_bounds, `ulimit -f 32768` (16 MiB per output file), one thread, and a live 100 ms inventory/disk-space poll. The supervisor starts the direct command in an isolated process group (child PID is PGID); no child may daemonize or change groups. Every 100 ms it runs `/bin/ps -A -o pgid=,rss=` under a clean bounded environment, strictly parses numeric PGID/RSS KiB fields, and sums RSS for all rows in the owned PGID. ps output is capped at 2 MiB and the ps child at 2 s. On threshold crossing, malformed/failed sampling, or monitor failure, follow the bounded terminate-and-observe procedure in resource_bounds; if cleanup is incomplete, preserve scratch and abort without retry/deletion or any cleanup-complete claim. This is a sampled abort threshold, not a hard instantaneous RSS ceiling. Accept only defined MIDX output paths and at most three concurrently present outputs; MIDX/bitmap/temp logical bytes may not exceed 64 MiB. Any unknown path, fourth concurrent output, or cap crossing ends the probe.",
+        "Verify MIDX/bitmap checksums and exact inclusion of both tips. No source/global config, source ODB, canonical repo or refs may be written.",
+        "The Git v2.54 default non-incremental MIDX write output allowlist under this clean environment is exactly: `objects/pack/multi-pack-index.lock` (temporary MIDX lock), `objects/pack/multi-pack-index` (final MIDX), `objects/pack/tmp_bitmap_<mkstemp-suffix>` (temporary bitmap), and `objects/pack/multi-pack-index-<same 40-lowercase-hex-MIDX-checksum>.bitmap` (final bitmap). The MIDX embeds its reverse-index chunk; a standalone `.rev` and `tmp_rev` are emitted only when GIT_TEST_MIDX_WRITE_REV=1, which is not set and is forbidden by this env -i plan. No `.d` chain, loose object, pack, ref, or other path is allowed. The monitor verifies the final bitmap checksum suffix against the MIDX checksum."
+      ]
+    },
+    {
+      "step": 6,
+      "name": "native bitmap revision and pack probes",
+      "actions": [
+        "Run scratch-only `rev-list --objects --use-bitmap-index --no-object-names <new> ^<old>` and require exact equality with the independently reviewed 131 new commit OIDs (zero tree/blob/tag additions). Write a sorted capped output manifest (8 MiB maximum) and record trace2 evidence that bitmap traversal was used.",
+        "Run local `pack-objects --stdout --use-bitmap-index --window=0 --threads=1 --no-reuse-delta --revs` with stdin exactly new OID then `^old` OID; never invoke send-pack, push, fetch, or any remote transport.",
+        "Hash/count the stdout stream in a bounded scratch file no larger than 64 MiB; then index only inside scratch with `index-pack --stdin --strict`. Keep its pack at most 64 MiB and index at most 8 MiB. Verify the indexed OID/type set is exactly the 131 new commits, with no trees/blobs/tags. Record stream bytes/SHA and index checksum.",
+        "If bitmap/indexing is unavailable, closure incomplete, IDs/types differ, or any output cap is reached, record that no native bitmap workaround was demonstrated; do not retry or widen scope."
+      ]
+    },
+    {
+      "step": 7,
+      "name": "postflight and evidence",
+      "actions": [
+        "Rehash/restat all 5052 source files, source pack-directory inventory, source alternates and excluded tmp-pack metadata; require exact pre/post equality. Verify destination cloned bytes against original hashes and distinct inode constraints.",
+        "Recheck canonical HEAD/branch/raw .git/index hash/refs/tags, source object-store file inventory, and release readback; compare to preflight. No canonical/source object-store/ref/remote mutation is permitted.",
+        "Record exact argv and sanitized environment, binary hashes and versions, duration/RSS/free-space peaks, process exit codes, paths/counts/types/sizes/SHA-256, output inventory, and explicit no-network/no-lazy-fetch/no-ref-update results. Keep receipts/logs in the external evidence directory with 16 MiB aggregate cap.",
+        "A local bitmap+small-pack success only validates this bounded Git pack-generation hypothesis. It does not authorize push, assert GitHub upload success, or substitute for a separately reviewed exact-lease publisher."
+      ]
+    }
+  ],
+  "resource_bounds": {
+    "per_child_timeout_ms": {
+      "rustc_compile": 60000,
+      "helper_clone": 180000,
+      "git_commands": 180000
+    },
+    "owned_process_group_termination_grace_ms": 5000,
+    "threads": 1,
+    "retry_count": 0,
+    "source_pack_allowlist_files": 5052,
+    "source_pack_groups": 1263,
+    "source_clone_logical_bytes_max": 103571064,
+    "max_source_pack_file_bytes": 64456680,
+    "excluded_source_file_bytes_stat_only": 5577026288,
+    "reachable_oid_count_cap": 100000,
+    "oid_manifest_file_cap_bytes": 8388608,
+    "supplemental_pack_cap_bytes": 67108864,
+    "supplemental_index_cap_bytes": 8388608,
+    "midx_per_file_RLIMIT_FSIZE_bytes": 16777216,
+    "midx_known_concurrent_output_file_count_max": 3,
+    "midx_and_bitmap_output_aggregate_cap_bytes": 67108864,
+    "probe_pack_stream_and_pack_file_cap_bytes": 67108864,
+    "probe_index_cap_bytes": 8388608,
+    "captured_stdout_stderr_aggregate_cap_bytes": 16777216,
+    "helper_executable_cap_bytes": 16777216,
+    "compiler_temp_aggregate_cap_bytes": 67108864,
+    "scratch_expected_max_logical_bytes": 448569976,
+    "scratch_expected_max_components_bytes": {
+      "exact_cow_source_pack_clones": 103571064,
+      "optional_supplement_pack_and_index": 75497472,
+      "midx_bitmap_and_temp_files": 67108864,
+      "optional_probe_pack_and_index": 75497472,
+      "three_oid_manifests": 25165824,
+      "bounded_logs": 16777216,
+      "final_receipt": 1048576,
+      "refs_snapshot": 1024,
+      "bare_git_skeleton": 16384,
+      "compiler_temporary_files": 67108864,
+      "helper_executable": 16777216
+    },
+    "filesystem_monitor": {
+      "poll_interval_ms": 100,
+      "minimum_available_free_bytes_before_start": 2147483648,
+      "terminate_if_available_space_decreases_from_initial_by_bytes": 448569976,
+      "terminate_if_scratch_logical_size_exceeds_bytes": 448569976,
+      "action_on_limit": "terminate owned process group, record cap failure, preserve scratch; never delete/retry"
+    },
+    "resource_limit_fsize_512_byte_blocks": {
+      "clone_or_pack_file_64MiB": 131072,
+      "index_or_log_8MiB": 16384,
+      "midx_file_16MiB": 32768,
+      "compiler_temp_or_log_64MiB": 131072
+    },
+    "note": "macOS RLIMIT_FSIZE is a per-file limit set by the immediate shell before each child. Live filesystem monitoring and exact inventories enforce aggregate disk limits. The process-group RSS value is a sampled abort threshold; it is not claimed as a hard instantaneous kernel limit. If any limit cannot be set, sampled, or read back, the child is not launched.",
+    "midx_output_inventory": [
+      "objects/pack/multi-pack-index.lock",
+      "objects/pack/multi-pack-index",
+      "objects/pack/tmp_bitmap_<mkstemp-suffix>",
+      "objects/pack/multi-pack-index-<MIDX-checksum>.bitmap"
+    ],
+    "process_group_sampled_rss_abort_threshold_bytes": 1073741824,
+    "process_group_rss_monitor": {
+      "poll_interval_ms": 100,
+      "process_group_source": "Each direct rustc/helper/Git command is spawned in its own isolated process group; its PID is the PGID. Descendants must inherit that PGID and may not daemonize/call setsid/setpgid.",
+      "argv": [
+        "/bin/ps",
+        "-A",
+        "-o",
+        "pgid=,rss="
+      ],
+      "rss_unit": "KiB; multiply each RSS value by 1024 before summing",
+      "aggregate": "Sum RSS for every row whose numeric PGID equals the active child PGID, including all inherited-group descendants.",
+      "sample_output_cap_bytes": 2097152,
+      "ps_command_timeout_ms": 2000,
+      "failure_policy": "Nonzero ps exit, timeout, output over cap, malformed/non-numeric rows, or missing PGID sample is fail-closed: terminate the owned group and abort.",
+      "threshold_policy": "At observed aggregate RSS >= 1073741824 bytes, or on an abort requiring termination, send SIGTERM to the owned process group and wait at most 5000 ms. Then send SIGKILL and begin the separate 5000 ms post-SIGKILL observation deadline: poll waitpid(WNOHANG) and the bounded ps sampler every 100 ms. Termination is confirmed only after the direct child is reaped and two consecutive successful snapshots contain no rows matching the PGID. On failure or deadline expiry, record cleanup_incomplete, preserve scratch, stop, and do not retry or delete.",
+      "measurement_limit": "This is a 100 ms sampled abort threshold, not a kernel-enforced instantaneous peak-RSS ceiling; the receipt must report sampled peak and must not claim no between-sample overshoot.",
+      "post_sigkill_observation_deadline_ms": 5000,
+      "post_sigkill_poll_interval_ms": 100,
+      "post_sigkill_success_condition": "Within 5000 ms after SIGKILL, the supervisor must observe the direct child reaped through waitpid(WNOHANG) and two consecutive successful bounded ps snapshots with zero rows for the active PGID.",
+      "post_sigkill_failure_policy": "If the child is not reaped, the PGID remains present, ps fails, or the deadline expires, record cleanup_incomplete, preserve scratch, stop the procedure, do not retry or delete scratch, and do not claim that cleanup completed."
+    },
+    "owned_process_group_post_sigkill_observation_deadline_ms": 5000
+  },
+  "environment_controls": {
+    "GIT_NO_LAZY_FETCH": "1",
+    "GIT_NO_REPLACE_OBJECTS": "1",
+    "GIT_OPTIONAL_LOCKS": "0",
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_CONFIG_GLOBAL": "/dev/null",
+    "GIT_TERMINAL_PROMPT": "0",
+    "TMPDIR": "<unique scratch>/tmp",
+    "network_commands": false,
+    "push_fetch_or_ref_update": false,
+    "canonical_or_source_object_store_write": false,
+    "global_or_system_config_write": false,
+    "source_alternates_file_write": false,
+    "source_alternates_env": "set only for the exact missing-OID supplemental pack command; no alternates file in scratch",
+    "launch_policy": "Use env -i for every rustc/helper/Git child with an explicit allowlist only. For Git, pass the pinned executable path, PATH, HOME=<scratch>/home, TMPDIR=<scratch>/tmp, LANG=C, LC_ALL=C and the listed GIT_* safety variables. Unset all inherited variables, especially every unlisted GIT_* variable, GIT_DIR, GIT_WORK_TREE, GIT_COMMON_DIR, GIT_OBJECT_DIRECTORY, GIT_ALTERNATE_OBJECT_DIRECTORIES, GIT_INDEX_FILE, GIT_CONFIG_COUNT, GIT_CONFIG_PARAMETERS, GIT_TRACE2_*, SSH_AUTH_SOCK, and credential/proxy variables. Only the exact supplement-pack command may add GIT_ALTERNATE_OBJECT_DIRECTORIES=<reviewed source ODB>; it still runs with GIT_OBJECT_DIRECTORY pointing to scratch and writes no alternates file. The env -i allowlist must not set GIT_TEST_MIDX_WRITE_REV; specifically keep that variable absent so the default MIDX bitmap command emits no standalone .rev sidecar."
+  },
+  "acceptance_criteria": [
+    "Root separately authorizes local scratch writes after review; absent scratch root and all source/canonical/remote guards are rechecked immediately before creation.",
+    "Helper source, allowlist and source inventory hashes match this plan; macOS clonefile COW succeeds for exactly the 5052 allowlisted files or the probe stops with no fallback.",
+    "Each source/destination file is separately inode-bound, same-device, exact mode/size, nlink 1 at destination, and byte-identical by SHA-256; pre/post source hashes and stat metadata match.",
+    "No access to or copy of excluded tmp_pack_l6MVvt; exact clone logical bytes are 103,571,064 and scratch/output inventory remains within all per-file/aggregate bounds.",
+    "Both old/new target closures are present in scratch without lazy fetch, and bitmap revision output exactly equals the approved 131 commit-only object set.",
+    "A local bounded pack stream, if produced, verifies exactly the expected OIDs/types and stays within caps; otherwise outcome is no bitmap workaround demonstrated.",
+    "All pre/post canonical/source/remote/tag/release guards match. This plan does not authorize any push, fetch, ref update, history rewrite, or source change.",
+    "Every child uses the explicit env -i allowlist; no inherited Git directory/object/config/alternate variable can redirect writes or discover unrelated objects.",
+    "The MIDX write monitor accepts only the four exact default v2.54 non-incremental MIDX/bitmap paths listed in this plan; it excludes standalone .rev/tmp_rev because GIT_TEST_MIDX_WRITE_REV is absent, rejects any other path, and verifies the bitmap checksum suffix against the MIDX checksum. Compiler temp and helper output remain continuously monitored under the stated bounds.",
+    "Every forced-termination path has a finite 5 s post-SIGKILL observation deadline. Success requires the direct child reaped and two consecutive successful process-group samples with no matching PGID; otherwise record cleanup_incomplete, preserve scratch, stop without retry/deletion, and make no cleanup-complete claim.",
+    "Compile output is initially written under scratch/tmp and all compiler intermediates are covered by the existing 64 MiB bounds; after successful child cleanup, only the validated final executable is atomically moved to scratch/bin, with identity/mode/size checks before and after. No helper starts unless this move and verification succeed.",
+    "The active inventory policy is stage-specific: scratch/bin contains no compiler output during rustc; scratch/tmp contains and caps compiler intermediates and the temporary final executable; only after successful child cleanup and validation can the final executable be atomically renamed into scratch/bin, where identity/mode/size are checked before helper launch."
+  ],
+  "no_execution_performed": true,
+  "no_local_write_authorization_assumed": true,
+  "review_revision": "r10",
+  "review_change_summary": [
+    "Replaced unbounded hardlink cloning with fixed-path std-only Rust FFI invoking Darwin clonefile(2), strict allowlist/stat guards and zero fallback.",
+    "Bound an exact 5,052-file/1,263-pack source inventory and allowlist; the 5.577 GB temporary pack is explicitly stat-only and excluded.",
+    "Added source/destination byte-hash and device/inode/mode/nlink/ctime pre/post requirements.",
+    "Added per-file RLIMIT_FSIZE, live disk polling, known output inventories, and the exact derived 448569976-byte scratch aggregate cap.",
+    "Bound actual Git v2.54 non-incremental MIDX lock, canonical file, reverse-index/bitmap staging and final filenames from pinned primary source; monitor now has an enforceable output allowlist.",
+    "Made compiler-time aggregate disk monitoring explicit and added an env -i child allowlist so inherited Git object-directory/config variables cannot redirect scratch operations.",
+    "R5 rebinds every plan and fixed helper path to its own packet and absent scratch root; clone helper digest is rebound. The source ODB and exact pack allowlist remain unchanged from R4.",
+    "R6 corrects the Git 2.54 default MIDX output allowlist: the external reverse-index sidecar is test-gated by GIT_TEST_MIDX_WRITE_REV=1 and is excluded under the clean env -i allowlist.",
+    "R6 replaces the unsupported hard RSS-cap wording with a 100 ms process-group RSS sampled abort threshold, a strict ps parser/output cap, SIGTERM-to-SIGKILL owned-group cleanup, and an explicit no-hard-peak claim limit.",
+    "R7 adds a finite 5 s post-SIGKILL observation deadline. The supervisor uses nonblocking direct-child reaping and bounded process-group samples; if cleanup cannot be confirmed, it records cleanup_incomplete, retains scratch, and stops without retry or deletion.",
+    "R8 is a fresh immutable packet after the R7 in-place hash correction. It binds the corrected R7 plan as predecessor, records the stale R7 review receipt and unavailable original reviewed bytes, and rebinds the fixed helper paths/hash to R8.",
+    "R9 uses a new absent scratch root and rebinds the fixed-path helper to it, preserving the failed R8 scratch unchanged.",
+    "R8 compile failure showed rustc writes .rcgu.o beside the requested output despite TMPDIR; R9 compiles the final executable in bounded scratch/tmp, validates it, then atomically renames only that executable into scratch/bin before helper launch.",
+    "R10 closes the R9 review finding by making the live compile-time inventory explicit: scratch/bin remains empty while rustc writes only under scratch/tmp; after validation and atomic rename, scratch/bin may contain only the helper executable."
+  ],
+  "clone_helper": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/clone-source-packs.rs",
+    "sha256": "14148ea17dd55e6f8ab7ab4901b43965c6ceeaeda0ad4e18939c025f1ecba07f",
+    "language": "Rust std-only; no Cargo or dependencies",
+    "compile_status": "NOT_COMPILED_ROOT_ONLY_AFTER_SEPARATE_R10_REVIEW_AND_WRITE_AUTHORIZATION",
+    "fixed_source_pack_directory": "/private/tmp/termrock-reference-dco-selective-repair-root-20261010/objects.git/objects/pack",
+    "fixed_destination_pack_directory": "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r10-20261010/scratch/probe.git/objects/pack",
+    "fixed_allowlist_path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/clone-allowlist.tsv",
+    "accepted_arguments": 0,
+    "native_api": "Darwin clonefile(2)",
+    "flags": {
+      "CLONE_NOFOLLOW_ANY": "0x0008",
+      "CLONE_ACL": "0x0004",
+      "combined": "0x000c"
+    },
+    "behavior": [
+      "lstat-check every source file against frozen device/inode/mode/size/nlink/ctime metadata before cloning",
+      "require exact source directory allowlist plus stat-only excluded tmp_pack_l6MVvt; reject any extra or missing path",
+      "require fresh empty destination pack directory on the same device and separate directory inode",
+      "clone only the exact 5052 allowlisted regular files; require destination inode differs, same device/mode/size, and nlink 1",
+      "recheck every source file and source directory metadata after all clones",
+      "direct clonefile call; ENOTSUP/EXDEV/EEXIST/any error is fatal; no hardlink, byte-copy, or fallback path"
+    ],
+    "source_content_hashes": "The Root-owned pre/post supervisor must hash every allowed source file and every clone against the frozen inventory SHA-256; this helper performs stat identity checks only.",
+    "failure_behavior": "Stop immediately and preserve scratch for inspection; never delete or rewrite source objects. A partial clone is not reused."
+  },
+  "predecessor_plan_sha256": "1f81b6876c848d4675563227de518ad143ca98ba4600b85362fd093029623705",
+  "predecessor_independent_review": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r9-review-current-branch-comparison-luna-20261010.json",
+    "sha256": "5d88e6943445c941ee16316ff7f8a989e76cd34575e5312da0b6505e0ee338e0",
+    "verdict": "CHANGES_REQUIRED",
+    "finding": "procedure action 6 allowed compiler output in scratch/bin although action 2 directs it to scratch/tmp"
+  },
+  "predecessor_r6_review_status": {
+    "plan_path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r6-20261010/plan.json",
+    "plan_sha256": "60bd8d366f1c22e8ee10c8a9cd219edc2f3d1576c8a1c6a5a9f0c034725a863e",
+    "review_status_at_r7_freeze": "Requested from independent reviewer; no R6 review receipt had been received when R7 was frozen."
+  },
+  "predecessor_r7_review_status": {
+    "current_r7_plan_path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r7-20261010/plan.json",
+    "current_r7_plan_sha256": "a4f683afcfd9996a1e76ae1540368c3f6d94d6eadcb942146304047c041decf7",
+    "current_r7_helper_sha256": "14ca0cee54d80363aa6ef87df579413c14d203f7adf19e237a5a5ef9d0d9e8fc",
+    "superseded_review_receipt_path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/superseded-r7-review.json",
+    "superseded_review_receipt_sha256": "8e35353e74e05320e3242a5e1db5bfce59317f537fc3239e344a6966b914bf1e",
+    "superseded_receipt_reviewed_plan_sha256": "32e603a41e0a93741607deb7f2a6c1dc410ac70c6096f51f54f807713ed85055",
+    "superseded_receipt_reviewed_request_sha256": "b2d4a5a53cf1401c91097a15c5e1734db056221d335f3ad1e0c74356972375da",
+    "status": "STALE_NOT_AUTHORIZING",
+    "reason": "The R7 packet was edited in place after its READY review: the plan helper SHA was corrected from the R6 digest to the R7 helper digest. The originally reviewed R7 bytes are unavailable; do not reconstruct or treat the current R7 packet as approved. Root will not execute R7."
+  },
+  "predecessor_plan_path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r9-20261010/plan.json",
+  "older_predecessor_independent_review": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r5-review-luna-20261010.json",
+    "sha256": "72923bfc18ace4ac908a593e88437047fc604de647e0dbafef4556cf5f7c6a10",
+    "verdict": "CHANGES_REQUIRED",
+    "findings_closed": [
+      "Default Git 2.54 MIDX output is now distinguished from the GIT_TEST_MIDX_WRITE_REV-only standalone .rev sidecar.",
+      "The 1 GiB RSS statement is now a defined, sampled process-group threshold with a concrete monitor and owned-group termination procedure."
+    ]
+  },
+  "predecessor_r8_clone_attempt_failure": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r8-20261010/evidence/receipt.json",
+    "sha256": "af1cd8d3affa4592472b2ec321bfcbcd2a26500dcf2f854def38b97ff3297b13",
+    "status": "FAILED_STOP_PRESERVE_SCRATCH",
+    "phase": "rustc_compile",
+    "observed_failure": "unexpected scratch file: scratch/bin/clone-source-packs.clone_source_packs.70c16b8f4422abd0-cgu.0.rcgu.o",
+    "direct_child_exit_code": null,
+    "signal": "SIGTERM",
+    "cleanup": "confirmed_after_sigterm",
+    "helper_started": false,
+    "git_init_or_midx_or_probe_started": false,
+    "scratch_preserved": true
+  },
+  "r8_plan_review_receipt": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r8-review-luna-20261010.json",
+    "sha256": "39a458fd598c40c27752fa009380a420eb33bb6809b14a7c973d44ce8a724f0a",
+    "verdict": "READY_FOR_ROOT_DECISION_ON_SEPARATE_LOCAL_WRITE_AUTHORIZATION"
+  },
+  "historical_r5_plan_review_receipt": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r5-review-luna-20261010.json",
+    "sha256": "72923bfc18ace4ac908a593e88437047fc604de647e0dbafef4556cf5f7c6a10",
+    "verdict": "CHANGES_REQUIRED",
+    "findings_closed": [
+      "Default Git 2.54 MIDX output is now distinguished from the GIT_TEST_MIDX_WRITE_REV-only standalone .rev sidecar.",
+      "The 1 GiB RSS statement is now a defined, sampled process-group threshold with a concrete monitor and owned-group termination procedure."
+    ]
+  },
+  "predecessor_r9_plan_review_finding": {
+    "status": "CHANGES_REQUIRED",
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r9-review-current-branch-comparison-luna-20261010.json",
+    "sha256": "5d88e6943445c941ee16316ff7f8a989e76cd34575e5312da0b6505e0ee338e0",
+    "exact_finding": "During-compile monitor output allowlist must keep scratch/bin empty and permit compiler outputs only under scratch/tmp; post-rename, allow only the validated helper executable in scratch/bin."
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "schema": "termrock.vis11.diagnostic-generator-registry-index-fill-review-request/v3",
+  "scope": "Independent read-only review of the exact R3 command/source rationale, cache whitelist and runner delta. Do not execute Cargo, the Velnor CLI, tests, builds, cache copies, or network probes.",
+  "packet_root": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010",
+  "command": {
+    "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "argv": [
+      "update",
+      "--workspace",
+      "--dry-run",
+      "--locked",
+      "--manifest-path",
+      "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010/Cargo.toml"
+    ],
+    "cwd": "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010"
+  },
+  "pins": {
+    "plan": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/evidence/plan.json",
+      "sha256": "2931c206b37031b01877a096998e990cf55b13edaaa153c5d0ce1cd0b4916485"
+    },
+    "runner": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/runner.cjs",
+      "sha256": "c3a790ba36cd16604456aecba23cd25d2d17d56528a0465ddd8524cde29f398d"
+    },
+    "git_network_guard": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/tools/git",
+      "sha256": "638ef221a35c44979eb017a96cde44c2cb973f3fbe980a65f48cdf8ca5e9e4ab"
+    },
+    "readme": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/README.md",
+      "sha256": "60f583c6c092b7fcbe2929584807c52e2545422e577013864063dde74a18d0f9"
+    },
+    "r2_failure": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/run-root/execution/result.json",
+      "sha256": "f8bab9a7222c94eb170cf0ca26fe0c849c44fdc8955091d81f2ccf2c84418562"
+    },
+    "r3b_failure": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010/run-root/execution/result.json",
+      "sha256": "d3c2bc1ee512d80cc6345de03b29bbd20788211f067ab2fe55d8bf0f6bd70d30"
+    },
+    "preflight": {
+      "argv": [
+        "/opt/homebrew/Cellar/node/26.11.0_1/bin/node",
+        "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/runner.cjs",
+        "--preflight"
+      ],
+      "stdout_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/evidence/preflight-attempt-02/stdout.json",
+      "stdout_sha256": "c0b3c8fba357509913a75c62152acca38729fcee1e67ae058d43389cb27394a7",
+      "stderr_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/evidence/preflight-attempt-02/stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0,
+      "status": "PREFLIGHT_PASS_NOT_RUN",
+      "execution": "NOT_RUN",
+      "qualification": "NOT_QUALIFIED",
+      "run_root_absent": true,
+      "cargo_child_spawned": false,
+      "cache_mutated": false
+    }
+  },
+  "review_focus": [
+    "Confirm this is the only new Cargo command and it exactly uses workspace + dry-run + locked, with no package selector or build/archive command.",
+    "Check the official Cargo docs and implementation source; specifically verify that dry-run skips the lockfile writer and that this packet does not claim --locked validates a hypothetical graph delta. Actual Cargo.lock bytes must remain unchanged.",
+    "Verify Git network guard and post-run full-cache check allow only registry/index plus exact existing bookkeeping files; archive, registry/src, Git, source, target and lock changes fail closed.",
+    "Verify R2 actual result is preserved accurately as 45/45 package/member metadata, resolve=null, no reqwest index and zero cache deltas, and R3b missing-reqwest failure remains separately bound.",
+    "Confirm no Cargo/CLI/test/build execution or qualification claim is present. ",
+    "Verify the result claim is limited to successful dry-run index resolution, expected reqwest index presence, and observed no-write/cache boundaries; it does not certify a would-be updated lock graph.",
+    "Verify the result claim is limited to successful dry-run index resolution, expected reqwest index presence, and observed no-write/cache boundaries; it does not certify a would-be updated lock graph."
+  ],
+  "execution": "NOT_RUN",
+  "qualification": "NOT_QUALIFIED",
+  "preserved_preflight_attempts": [
+    {
+      "id": "r3-preflight-01",
+      "stdout_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/evidence/preflight-attempt-01/stdout.json",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/evidence/preflight-attempt-01/stderr.txt",
+      "stderr_sha256": "f4cbda0d36553b3c9b5248f03da83ca3462cc282e2fd14776ba9b7fd29caf969",
+      "exit_code": 1,
+      "execution_started": false,
+      "cargo_child_spawned": false,
+      "cache_mutated": false
+    },
+    {
+      "id": "r3-preflight-02",
+      "stdout_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/evidence/preflight-attempt-02/stdout.json",
+      "stdout_sha256": "c0b3c8fba357509913a75c62152acca38729fcee1e67ae058d43389cb27394a7",
+      "stderr_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/evidence/preflight-attempt-02/stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0,
+      "status": "PREFLIGHT_PASS_NOT_RUN",
+      "execution_started": false,
+      "cargo_child_spawned": false,
+      "cache_mutated": false,
+      "disposition": "Current no-Cargo preflight after correcting the copied R2 checksum literal."
+    }
+  ],
+  "status": "FROZEN_PENDING_ROOT_EXECUTION_DECISION"
+}

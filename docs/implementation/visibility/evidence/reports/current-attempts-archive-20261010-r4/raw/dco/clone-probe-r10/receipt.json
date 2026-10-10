@@ -1,0 +1,95 @@
+{
+  "schema": "dco-r11-clone-only-stage-result/v1",
+  "status": "FAILED_STOP_PRESERVE_SCRATCH",
+  "phase": "helper_clone",
+  "plan_sha256": "7dd13ae973df348306fed750aa0ec84f4a6ae8a4c1d6db12027e9f826eea99c3",
+  "scope_addendum_sha256": "e9cb497bbb2caa26cd0a441be097139a21bdb682de83b0a59aeb252f25770729",
+  "supervisor_sha256": "f42debcd52397ecb58cf5b1e5ff722223113fff2790494fbb5838ab3fa8b2921",
+  "authorization_sha256": "003d8ca2976a45cdeb0d7d3f2d5a6d56be79b4f532f35eb01cb254f97fd58dcb",
+  "helper_binary_sha256": "5ac49b99ad1eda08c3db883248bb620aff4694f6f4f60c3884d4df1129976db4",
+  "source_before": {
+    "directory": {
+      "dev": "16777234",
+      "ino": "89040009",
+      "ctimeNs": "1791573990039887095"
+    },
+    "files": 5052,
+    "ordered_name_hash_digest": "fbd02532035e16a33df11a46365be00dbe58b4ca358171c2b418db21167ca3b7"
+  },
+  "compile": {
+    "name": "rustc",
+    "argv": [
+      "/bin/sh",
+      "-c",
+      "umask 077; lim=\"$1\"; shift; ulimit -f \"$lim\" || exit 120; got=$(ulimit -f) || exit 121; [ \"$got\" = \"$lim\" ] || exit 122; exec \"$@\"",
+      "dco-clone-supervisor",
+      "131072",
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "--edition=2021",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "linker=/Library/Developer/CommandLineTools/usr/bin/clang",
+      "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/clone-source-packs.rs",
+      "-o",
+      "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r10-20261010/scratch/tmp/clone-source-packs"
+    ],
+    "direct_tool_argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "--edition=2021",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "linker=/Library/Developer/CommandLineTools/usr/bin/clang",
+      "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/clone-source-packs.rs",
+      "-o",
+      "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r10-20261010/scratch/tmp/clone-source-packs"
+    ],
+    "started_at_utc": "2026-10-09T23:41:42.067Z",
+    "exit_code": 0,
+    "duration_ms": 843,
+    "rss_peak_sampled_bytes": "138149888",
+    "rss_samples": 7,
+    "output_bytes_this_stage": "0",
+    "output_bytes_total": "0",
+    "minimum_available_free_bytes_sampled": "258841145344",
+    "peak_scratch_logical_bytes_sampled": "795696",
+    "peak_compiler_temp_bytes_sampled": "795696",
+    "scratch_after": {
+      "total": "795696",
+      "tmp": "795696",
+      "logs": "0",
+      "receipt": "0",
+      "helper": "0"
+    },
+    "cleanup": "natural_exit_group_empty"
+  },
+  "clone": {
+    "name": "helper",
+    "argv": [
+      "/bin/sh",
+      "-c",
+      "umask 077; lim=\"$1\"; shift; ulimit -f \"$lim\" || exit 120; got=$(ulimit -f) || exit 121; [ \"$got\" = \"$lim\" ] || exit 122; exec \"$@\"",
+      "dco-clone-supervisor",
+      "131072",
+      "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r10-20261010/scratch/bin/clone-source-packs"
+    ],
+    "direct_tool_argv": [
+      "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r10-20261010/scratch/bin/clone-source-packs"
+    ],
+    "started_at_utc": "2026-10-09T23:41:43.324Z",
+    "failure": "helper child failed",
+    "exit_code": 2,
+    "signal": null,
+    "duration_ms": 750,
+    "rss_peak_sampled_bytes": "32768",
+    "rss_samples": 5,
+    "output_bytes_this_stage": "81",
+    "output_bytes_total": "81",
+    "minimum_available_free_bytes_sampled": "258839859200",
+    "peak_scratch_logical_bytes_sampled": "795777",
+    "peak_compiler_temp_bytes_sampled": "0",
+    "cleanup": "confirmed_after_sigterm"
+  },
+  "no_git_init_or_midx_or_probe": true
+}

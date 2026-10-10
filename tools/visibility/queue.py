@@ -333,7 +333,7 @@ def _validated_branch_scopes(value: Any, label: str, work_id: str) -> list[dict[
 
 
 def _task_branch_grants(task: Mapping[str, Any]) -> list[tuple[str, list[str]]]:
-    grants = [(task.get("branch"), _task_scopes(task))]
+    grants = [(task["branch"], _task_scopes(task))]
     for scope in _validated_branch_scopes(task.get("branch_scopes", []), task["work_id"], task["work_id"]):
         grants.append((scope["branch"], scope["allowed_paths"]))
     return grants
@@ -373,6 +373,9 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
         if schema_version == 2:
             required_task_fields = TASK_REQUIRED_FIELDS | TASK_IDENTITY_FIELDS
         _exact_keys(task, required_task_fields, TASK_OPTIONAL_FIELDS, label)
+        if schema_version == 2:
+            require("branch_scopes" not in task,
+                    "{}.branch_scopes is a schema-v1 claim extension".format(label))
         work_id = task.get("work_id")
         require(isinstance(work_id, str) and WORK_ID.fullmatch(work_id) is not None,
                 "{}.work_id is invalid".format(label))
@@ -471,13 +474,12 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
             expected_snapshot_fields = CLAIM_SNAPSHOT_FIELDS
             if schema_version == 2:
                 expected_snapshot_fields = CLAIM_SNAPSHOT_V2_FIELDS
-            expected_snapshot_keys = {
-                frozenset(expected_snapshot_fields),
-                frozenset(expected_snapshot_fields | CLAIM_SNAPSHOT_OPTIONAL_FIELDS),
-            }
+            expected_snapshot_keys = {frozenset(expected_snapshot_fields)}
+            if schema_version == 1:
+                expected_snapshot_keys.add(frozenset(expected_snapshot_fields | CLAIM_SNAPSHOT_OPTIONAL_FIELDS))
             require(frozenset(prior) in expected_snapshot_keys,
                     "{} claim snapshot has missing or unknown fields".format(history_label))
-            if "branch_scopes" in prior:
+            if schema_version == 1 and "branch_scopes" in prior:
                 prior_branch_scopes = _validated_branch_scopes(prior["branch_scopes"], history_label, work_id)
                 require(prior.get("branch") not in {scope["branch"] for scope in prior_branch_scopes},
                         "{} repeats its primary branch in branch_scopes".format(history_label))
@@ -563,11 +565,15 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
         for other in active[index + 1 :]:
             if schema_version == 2 and task["repository_id"] != other["repository_id"]:
                 continue
-            task_grants = _task_branch_grants(task)
-            other_grants = _task_branch_grants(other)
+            task_grants = _task_branch_grants(task) if schema_version == 1 else [
+                (task.get("branch") or "", task["allowed_paths"])
+            ]
+            other_grants = _task_branch_grants(other) if schema_version == 1 else [
+                (other.get("branch") or "", other["allowed_paths"])
+            ]
             for branch, scopes in task_grants:
                 for other_branch, other_scopes in other_grants:
-                    if branch != other_branch:
+                    if schema_version == 1 and branch != other_branch:
                         continue
                     for scope in scopes:
                         for other_scope in other_scopes:

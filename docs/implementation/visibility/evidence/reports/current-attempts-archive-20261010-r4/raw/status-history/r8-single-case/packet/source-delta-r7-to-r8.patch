@@ -1,0 +1,48 @@
+--- R7/crates/termrock-visibility-tests/tests/status.rs
++++ R8/crates/termrock-visibility-tests/tests/status.rs
+@@ -2007,6 +2007,45 @@
+         removed_scope_count, 2,
+         "both scoped claim rows must be removed for the schema-v1 migration preview"
+     );
++    let mut removed_history_scope_contexts = Vec::new();
++    let history_tasks = representable_v1["tasks"]
++        .as_array_mut()
++        .expect("schema-v1 task array after current-claim normalization");
++    for task in history_tasks.iter_mut() {
++        let work_id = task["work_id"]
++            .as_str()
++            .expect("checked-in task work id")
++            .to_owned();
++        let Some(history) = task.get_mut("claim_history") else {
++            continue;
++        };
++        let history = history
++            .as_array_mut()
++            .expect("checked-in claim history array");
++        for (history_index, entry) in history.iter_mut().enumerate() {
++            let claim = entry
++                .get_mut("claim")
++                .expect("checked-in history claim snapshot")
++                .as_object_mut()
++                .expect("checked-in history claim object");
++            if !claim.contains_key("branch_scopes") {
++                continue;
++            }
++            let mut expected_claim = claim.clone();
++            assert!(expected_claim.remove("branch_scopes").is_some());
++            assert!(claim.remove("branch_scopes").is_some());
++            assert_eq!(
++                *claim, expected_claim,
++                "normalizing a v1 history snapshot must preserve every non-scope field"
++            );
++            removed_history_scope_contexts.push((work_id.clone(), history_index));
++        }
++    }
++    assert_eq!(
++        removed_history_scope_contexts,
++        vec![("VIS-01".to_owned(), 3), ("VIS-02".to_owned(), 2)],
++        "only the two accepted history snapshots with the schema-v1 claim extension are normalized"
++    );
+     fixture.write_tasks(
+         &serde_json::to_string(&representable_v1).expect("serialize representable schema-v1 tasks"),
+     );

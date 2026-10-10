@@ -1,0 +1,28 @@
+{
+  "schema": "termrock.vis01.attempt-history-r8-review-request-erratum/v1",
+  "packet": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet",
+  "request_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/review-request.json",
+  "request_sha256": "e8b92f7c413a67a68d81ba6e1d866c21fa805e7c88ce89fb016fe4a6b1d4f872",
+  "supersedes_field": "supersedes.prior_r7_result",
+  "superseded_text": "No execution; runner/runplan/request remained bound to R6 paths and base 882; superseded by this current-base packet.",
+  "corrected_text": "Root actual R7 run selected 53 status tests: 52 passed and 1 failed; child and wrapper exit 100; source stable and artifacts verified. The sole failure was status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2 at status.rs:2030 because migration preview carried branch_scopes from VIS-01.claim_history[3].claim into the exact-key schema-v2 history snapshot. The actual result review is pinned below.",
+  "authority": {
+    "r7_result_receipt_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/packet/output/final-receipt.json",
+    "r7_result_receipt_sha256": "8e6d08143d04ebe85450dcb0906a49157a43e04637085d48e15035881fb06e0d",
+    "r7_actual_result_review_path": "/private/tmp/termrock-vis01-r7-actual-result-review-luna-20261010.json",
+    "r7_actual_result_review_sha256": "b2f94886c5d555bbf431bdd1d56e3641ae50af2b1abcef927a3c003f82d87127"
+  },
+  "unchanged_packet_pins": {
+    "runner_sha256": "9bf1ef25fea220e3498bd4fb1d8c451f06c87d02340cba2e58d8f3a29aaad1d6",
+    "runplan_sha256": "19f25abc53d9147c4092f85c13a50c4efece17461d31dd844dafd32d9dbe45cb",
+    "source_manifest_sha256": "ceb9d6e3659b4690c0b5de1e0afb330dd8b09f4600028ff90060af390d043fa1",
+    "test_names_sha256": "dd586d8a143f59a5a003b6ef795fb31c7656b6fc7561923b8f7827b923e4ff72",
+    "cache_closure_sha256": "51c37d5230908527b74419104f1d76dfeade0b9bc1e58d1755e498e86e9ecb92",
+    "source_freeze_sha256": "4e02ce1f0bf0c6ffc365ea958da0cfb26d90818475a347af4a1690e9bd934f09",
+    "source_delta_patch_sha256": "090bbdb522b8e94a88ac8db85d711faa5192a34720156300013def028ab21b80",
+    "packet_checksums_sha256": "640838b3edacd6d85315aa8bd1abf66f5958edc6d92b7b417f13c3528ac6f9f4",
+    "preflight_receipt_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/preflight/runner-preflight.json",
+    "preflight_receipt_sha256": "a28f99ad57068f20b316fb1b1f57ede0447158af1b19de488e1c9409bb9ae005"
+  },
+  "status": "ERRATUM_ONLY; NO_PACKET_BYTES_CHANGED; NO_CARGO_OR_TEST_EXECUTION"
+}

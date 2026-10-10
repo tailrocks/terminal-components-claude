@@ -1,0 +1,2994 @@
+{
+  "schema": "termrock.vis19.offline-cache-closure-r2/v1",
+  "created_at_utc": "2026-10-09T21:18:11.527Z",
+  "source": {
+    "manifest_path": "/private/tmp/termrock-vis19-cursor-increment1-r2/manifest.json",
+    "manifest_sha256": "2ae389fa175caf4a66c7453e160b660ac4e56f952f6ef082a723fabe321d9c7d",
+    "source_identity_path": "/private/tmp/termrock-vis19-tuiscotti-a47-source-r1-identity.json",
+    "source_identity_sha256": "b73438f18e20bead834a05e5fef0717f1e811bc553c0b8c00bac0e16a0ad8897",
+    "source_identity_commit": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+    "source_identity_tree": "618b561d867f1bda0c1678d18a8f531a06c6469d",
+    "workspace_root": "/private/tmp/termrock-vis19-tuiscotti-cursor-r2",
+    "lock_path": "/private/tmp/termrock-vis19-tuiscotti-cursor-r2/Cargo.lock",
+    "lock_sha256": "3f89805ce891dfd9ad34b09618492116c99cb7242cf31eceaa340047bde0550f",
+    "lock_bytes": 39666
+  },
+  "cache": {
+    "cargo_home": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home",
+    "registry_id": "index.crates.io-1949cf8c6b5b557f",
+    "preparation_path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cache-preparation.json",
+    "preparation_sha256": "9353f94d32b02357133feb0c00f3b53e387c608936492eb951459d39a1c74c10",
+    "download_receipt_path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/download-archives-r1.json",
+    "download_receipt_sha256": "0580f5addecbec5ee24161d06182c969f51c88f64d7212d9436b0e472046cb10",
+    "archive_count": 165,
+    "archives": [
+      {
+        "name": "adler2",
+        "version": "2.0.1",
+        "checksum": "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/adler2-2.0.1.crate",
+        "sha256": "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa",
+        "bytes": 13366,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "ahash",
+        "version": "0.8.12",
+        "checksum": "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/ahash-0.8.12.crate",
+        "sha256": "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75",
+        "bytes": 43413,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "allocator-api2",
+        "version": "0.2.21",
+        "checksum": "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/allocator-api2-0.2.21.crate",
+        "sha256": "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923",
+        "bytes": 63622,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "anstream",
+        "version": "1.0.0",
+        "checksum": "824a212faf96e9acacdbd09febd34438f8f711fb84e09a8916013cd7815ca28d",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/anstream-1.0.0.crate",
+        "sha256": "824a212faf96e9acacdbd09febd34438f8f711fb84e09a8916013cd7815ca28d",
+        "bytes": 28916,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "anstyle",
+        "version": "1.0.14",
+        "checksum": "940b3a0ca603d1eade50a4846a2afffd5ef57a9feac2c0e2ec2e14f9ead76000",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/anstyle-1.0.14.crate",
+        "sha256": "940b3a0ca603d1eade50a4846a2afffd5ef57a9feac2c0e2ec2e14f9ead76000",
+        "bytes": 17787,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "anstyle-parse",
+        "version": "1.0.0",
+        "checksum": "52ce7f38b242319f7cabaa6813055467063ecdc9d355bbb4ce0c68908cd8130e",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/anstyle-parse-1.0.0.crate",
+        "sha256": "52ce7f38b242319f7cabaa6813055467063ecdc9d355bbb4ce0c68908cd8130e",
+        "bytes": 22042,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "anstyle-query",
+        "version": "1.1.5",
+        "checksum": "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/anstyle-query-1.1.5.crate",
+        "sha256": "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc",
+        "bytes": 10264,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "anstyle-wincon",
+        "version": "3.0.11",
+        "checksum": "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/anstyle-wincon-3.0.11.crate",
+        "sha256": "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d",
+        "bytes": 12638,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "anyhow",
+        "version": "1.0.104",
+        "checksum": "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/anyhow-1.0.104.crate",
+        "sha256": "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470",
+        "bytes": 48819,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "arrayvec",
+        "version": "0.7.8",
+        "checksum": "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/arrayvec-0.7.8.crate",
+        "sha256": "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56",
+        "bytes": 33260,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "autocfg",
+        "version": "1.5.1",
+        "checksum": "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1.crate",
+        "sha256": "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53",
+        "bytes": 18911,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "base64",
+        "version": "0.23.1",
+        "checksum": "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/base64-0.23.1.crate",
+        "sha256": "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5",
+        "bytes": 93605,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "bitflags",
+        "version": "1.3.2",
+        "checksum": "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/bitflags-1.3.2.crate",
+        "sha256": "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a",
+        "bytes": 23021,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "bitflags",
+        "version": "2.13.1",
+        "checksum": "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.1.crate",
+        "sha256": "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da",
+        "bytes": 51395,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "block-buffer",
+        "version": "0.12.1",
+        "checksum": "d2f6c7dbe95a6ed67ad9f18e57daf93a2f034c524b99fd2b76d18fdfeb6660aa",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/block-buffer-0.12.1.crate",
+        "sha256": "d2f6c7dbe95a6ed67ad9f18e57daf93a2f034c524b99fd2b76d18fdfeb6660aa",
+        "bytes": 15902,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "bytemuck",
+        "version": "1.25.2",
+        "checksum": "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/bytemuck-1.25.2.crate",
+        "sha256": "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797",
+        "bytes": 54075,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "bytemuck_derive",
+        "version": "1.12.1",
+        "checksum": "6a1f896587b6f2c069c73d2f0913e2d590c3990285cd2f0b6aa02b786b4c679c",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/bytemuck_derive-1.12.1.crate",
+        "sha256": "6a1f896587b6f2c069c73d2f0913e2d590c3990285cd2f0b6aa02b786b4c679c",
+        "bytes": 26509,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "byteorder-lite",
+        "version": "0.1.0",
+        "checksum": "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/byteorder-lite-0.1.0.crate",
+        "sha256": "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495",
+        "bytes": 15909,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "cassowary",
+        "version": "0.3.0",
+        "checksum": "df8670b8c7b9dae1793364eafadf7239c40d669904660c5960d74cfd80b46a53",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/cassowary-0.3.0.crate",
+        "sha256": "df8670b8c7b9dae1793364eafadf7239c40d669904660c5960d74cfd80b46a53",
+        "bytes": 22876,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "castaway",
+        "version": "0.2.4",
+        "checksum": "dec551ab6e7578819132c713a93c022a05d60159dc86e7a7050223577484c55a",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/castaway-0.2.4.crate",
+        "sha256": "dec551ab6e7578819132c713a93c022a05d60159dc86e7a7050223577484c55a",
+        "bytes": 12546,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "cfg_aliases",
+        "version": "0.1.1",
+        "checksum": "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/cfg_aliases-0.1.1.crate",
+        "sha256": "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e",
+        "bytes": 6009,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "cfg_aliases",
+        "version": "0.2.2",
+        "checksum": "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/cfg_aliases-0.2.2.crate",
+        "sha256": "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527",
+        "bytes": 6527,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "cfg-if",
+        "version": "1.0.4",
+        "checksum": "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/cfg-if-1.0.4.crate",
+        "sha256": "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801",
+        "bytes": 9360,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "clap",
+        "version": "4.6.6",
+        "checksum": "473c7e07f409a8d772161724aa8db6a765a2532a70f9667eeb7b49d3d02fbdca",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/clap-4.6.6.crate",
+        "sha256": "473c7e07f409a8d772161724aa8db6a765a2532a70f9667eeb7b49d3d02fbdca",
+        "bytes": 64815,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "clap_builder",
+        "version": "4.6.6",
+        "checksum": "7b48fea5a88e9ae728a2dcbedbfc0e730f7d60da42e1cb049a83c9fb8b789889",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/clap_builder-4.6.6.crate",
+        "sha256": "7b48fea5a88e9ae728a2dcbedbfc0e730f7d60da42e1cb049a83c9fb8b789889",
+        "bytes": 171756,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "clap_derive",
+        "version": "4.6.4",
+        "checksum": "d012d2b9d65aca7f18f4d9878a045bc17899bba951561ba5ec3c2ba1eed9a061",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/clap_derive-4.6.4.crate",
+        "sha256": "d012d2b9d65aca7f18f4d9878a045bc17899bba951561ba5ec3c2ba1eed9a061",
+        "bytes": 33533,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "clap_lex",
+        "version": "1.1.0",
+        "checksum": "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/clap_lex-1.1.0.crate",
+        "sha256": "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9",
+        "bytes": 13470,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "color_quant",
+        "version": "1.1.0",
+        "checksum": "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/color_quant-1.1.0.crate",
+        "sha256": "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b",
+        "bytes": 6649,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "colorchoice",
+        "version": "1.0.5",
+        "checksum": "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/colorchoice-1.0.5.crate",
+        "sha256": "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570",
+        "bytes": 8187,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "compact_str",
+        "version": "0.10.0",
+        "checksum": "79fcda08c33bb58b97008b2cdada6622500e949e060f5913361763121abd2416",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/compact_str-0.10.0.crate",
+        "sha256": "79fcda08c33bb58b97008b2cdada6622500e949e060f5913361763121abd2416",
+        "bytes": 104319,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "compact_str",
+        "version": "0.8.2",
+        "checksum": "7fd622ebbb56a5b2ccb651b32b911cdeb2a9b4b11776b2473bf26a26a286244e",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/compact_str-0.8.2.crate",
+        "sha256": "7fd622ebbb56a5b2ccb651b32b911cdeb2a9b4b11776b2473bf26a26a286244e",
+        "bytes": 88384,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "const-oid",
+        "version": "0.10.2",
+        "checksum": "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/const-oid-0.10.2.crate",
+        "sha256": "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c",
+        "bytes": 61449,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "cpufeatures",
+        "version": "0.3.1",
+        "checksum": "5ca28b0ae3115b884660db4118d803791fd6756b6e88f39c0f3f7859060d7566",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/cpufeatures-0.3.1.crate",
+        "sha256": "5ca28b0ae3115b884660db4118d803791fd6756b6e88f39c0f3f7859060d7566",
+        "bytes": 14272,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "crc32fast",
+        "version": "1.5.1",
+        "checksum": "8498c871161e1742aaa9d52551b2d6ebdd4c3d45a3be423e3728f33b955be550",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.1.crate",
+        "sha256": "8498c871161e1742aaa9d52551b2d6ebdd4c3d45a3be423e3728f33b955be550",
+        "bytes": 47893,
+        "mode": 384,
+        "provenance": "official static.crates.io HTTPS; download receipt row"
+      },
+      {
+        "name": "crossbeam-deque",
+        "version": "0.8.8",
+        "checksum": "622f3fc73690be383c7214310406f28a90e6edeadc3cea882f9d71e495b9711a",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/crossbeam-deque-0.8.8.crate",
+        "sha256": "622f3fc73690be383c7214310406f28a90e6edeadc3cea882f9d71e495b9711a",
+        "bytes": 24634,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "crossbeam-epoch",
+        "version": "0.9.21",
+        "checksum": "dc74980687109a3b14c72fd458107bf0baa1da1a1a805e178d15501ba9b86d9d",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/crossbeam-epoch-0.9.21.crate",
+        "sha256": "dc74980687109a3b14c72fd458107bf0baa1da1a1a805e178d15501ba9b86d9d",
+        "bytes": 47936,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "crossbeam-utils",
+        "version": "0.8.23",
+        "checksum": "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/crossbeam-utils-0.8.23.crate",
+        "sha256": "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6",
+        "bytes": 47174,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "crossterm",
+        "version": "0.28.1",
+        "checksum": "829d955a0bb380ef178a640b91779e3987da38c9aea133b20614cfed8cdea9c6",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/crossterm-0.28.1.crate",
+        "sha256": "829d955a0bb380ef178a640b91779e3987da38c9aea133b20614cfed8cdea9c6",
+        "bytes": 132275,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "crossterm_winapi",
+        "version": "0.9.1",
+        "checksum": "acdd7c62a3665c7f6830a51635d9ac9b23ed385797f70a83bb8bafe9c572ab2b",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/crossterm_winapi-0.9.1.crate",
+        "sha256": "acdd7c62a3665c7f6830a51635d9ac9b23ed385797f70a83bb8bafe9c572ab2b",
+        "bytes": 16027,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "crypto-common",
+        "version": "0.2.2",
+        "checksum": "ce6e4c961d6cd6c9a86db418387425e8bdeaf05b3c8bc1411e6dca4c252f1453",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/crypto-common-0.2.2.crate",
+        "sha256": "ce6e4c961d6cd6c9a86db418387425e8bdeaf05b3c8bc1411e6dca4c252f1453",
+        "bytes": 15449,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "darling",
+        "version": "0.24.1",
+        "checksum": "ed17f5901b6630b993ca003def43f2f8ef4014fc13b047b57aad617ff32bc2ec",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/darling-0.24.1.crate",
+        "sha256": "ed17f5901b6630b993ca003def43f2f8ef4014fc13b047b57aad617ff32bc2ec",
+        "bytes": 51607,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "darling_core",
+        "version": "0.24.1",
+        "checksum": "6837e2cf7485aaae18f86181d2f0e9a7ed297a025e220aeabf63fdebd3a2ddff",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/darling_core-0.24.1.crate",
+        "sha256": "6837e2cf7485aaae18f86181d2f0e9a7ed297a025e220aeabf63fdebd3a2ddff",
+        "bytes": 83947,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "darling_macro",
+        "version": "0.24.1",
+        "checksum": "2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/darling_macro-0.24.1.crate",
+        "sha256": "2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785",
+        "bytes": 2481,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "digest",
+        "version": "0.11.3",
+        "checksum": "f1dd6dbb5841937940781866fa1281a1ff7bd3bf827091440879f9994983d5c2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/digest-0.11.3.crate",
+        "sha256": "f1dd6dbb5841937940781866fa1281a1ff7bd3bf827091440879f9994983d5c2",
+        "bytes": 28955,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "downcast-rs",
+        "version": "1.2.1",
+        "checksum": "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/downcast-rs-1.2.1.crate",
+        "sha256": "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2",
+        "bytes": 11821,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "either",
+        "version": "1.18.0",
+        "checksum": "252afb9ae5eaa683babdc6a068b3f5726eb19e05070c731f9b2a23a7c3e8ed34",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/either-1.18.0.crate",
+        "sha256": "252afb9ae5eaa683babdc6a068b3f5726eb19e05070c731f9b2a23a7c3e8ed34",
+        "bytes": 22357,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "errno",
+        "version": "0.3.14",
+        "checksum": "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/errno-0.3.14.crate",
+        "sha256": "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb",
+        "bytes": 12002,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "fastrand",
+        "version": "2.5.0",
+        "checksum": "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/fastrand-2.5.0.crate",
+        "sha256": "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223",
+        "bytes": 20782,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "fdeflate",
+        "version": "0.3.7",
+        "checksum": "1e6853b52649d4ac5c0bd02320cddc5ba956bdb407c4b75a2c6b75bf51500f8c",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/fdeflate-0.3.7.crate",
+        "sha256": "1e6853b52649d4ac5c0bd02320cddc5ba956bdb407c4b75a2c6b75bf51500f8c",
+        "bytes": 27188,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "filedescriptor",
+        "version": "0.8.3",
+        "checksum": "e40758ed24c9b2eeb76c35fb0aebc66c626084edd827e07e1552279814c6682d",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/filedescriptor-0.8.3.crate",
+        "sha256": "e40758ed24c9b2eeb76c35fb0aebc66c626084edd827e07e1552279814c6682d",
+        "bytes": 12635,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "flate2",
+        "version": "1.1.10",
+        "checksum": "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/flate2-1.1.10.crate",
+        "sha256": "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb",
+        "bytes": 80244,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "font-types",
+        "version": "0.12.5",
+        "checksum": "b8eb065f3251655b3c90e22e5e363f310fc5332fb3402e37bbc94752283248f6",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/font-types-0.12.5.crate",
+        "sha256": "b8eb065f3251655b3c90e22e5e363f310fc5332fb3402e37bbc94752283248f6",
+        "bytes": 30084,
+        "mode": 384,
+        "provenance": "official static.crates.io HTTPS; download receipt row"
+      },
+      {
+        "name": "fs2",
+        "version": "0.4.3",
+        "checksum": "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/fs2-0.4.3.crate",
+        "sha256": "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213",
+        "bytes": 13138,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "getrandom",
+        "version": "0.4.3",
+        "checksum": "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/getrandom-0.4.3.crate",
+        "sha256": "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099",
+        "bytes": 52437,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "gif",
+        "version": "0.14.2",
+        "checksum": "ee8cfcc411d9adbbaba82fb72661cc1bcca13e8bba98b364e62b2dba8f960159",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/gif-0.14.2.crate",
+        "sha256": "ee8cfcc411d9adbbaba82fb72661cc1bcca13e8bba98b364e62b2dba8f960159",
+        "bytes": 38710,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "hashbrown",
+        "version": "0.14.5",
+        "checksum": "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/hashbrown-0.14.5.crate",
+        "sha256": "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1",
+        "bytes": 141498,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "heck",
+        "version": "0.5.0",
+        "checksum": "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/heck-0.5.0.crate",
+        "sha256": "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea",
+        "bytes": 11517,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "hybrid-array",
+        "version": "0.4.14",
+        "checksum": "707114b52a152fa7bdb290cd7cd5912d9467273b6d74e21b8d81aca1f8533f6b",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/hybrid-array-0.4.14.crate",
+        "sha256": "707114b52a152fa7bdb290cd7cd5912d9467273b6d74e21b8d81aca1f8533f6b",
+        "bytes": 36777,
+        "mode": 384,
+        "provenance": "official static.crates.io HTTPS; download receipt row"
+      },
+      {
+        "name": "ident_case",
+        "version": "1.0.1",
+        "checksum": "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/ident_case-1.0.1.crate",
+        "sha256": "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39",
+        "bytes": 3492,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "image",
+        "version": "0.25.10",
+        "checksum": "85ab80394333c02fe689eaf900ab500fbd0c2213da414687ebf995a65d5a6104",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/image-0.25.10.crate",
+        "sha256": "85ab80394333c02fe689eaf900ab500fbd0c2213da414687ebf995a65d5a6104",
+        "bytes": 303647,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "image-compare",
+        "version": "0.5.0",
+        "checksum": "176623a137baf75908084aff53578d6336cbd932bffaf12fabe26b343eb13338",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/image-compare-0.5.0.crate",
+        "sha256": "176623a137baf75908084aff53578d6336cbd932bffaf12fabe26b343eb13338",
+        "bytes": 27918,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "indoc",
+        "version": "2.0.7",
+        "checksum": "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/indoc-2.0.7.crate",
+        "sha256": "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706",
+        "bytes": 17184,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "insta",
+        "version": "1.48.0",
+        "checksum": "86f0f8fee8c926415c58d6ae43a08523a26faccb2323f5e6b644fe7dd4ef6b82",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/insta-1.48.0.crate",
+        "sha256": "86f0f8fee8c926415c58d6ae43a08523a26faccb2323f5e6b644fe7dd4ef6b82",
+        "bytes": 121313,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "instability",
+        "version": "0.3.13",
+        "checksum": "2bf84e73fa6f27f299dec58e13223cf70db80da872eb921d4f6138342a0eabc8",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/instability-0.3.13.crate",
+        "sha256": "2bf84e73fa6f27f299dec58e13223cf70db80da872eb921d4f6138342a0eabc8",
+        "bytes": 14790,
+        "mode": 384,
+        "provenance": "official static.crates.io HTTPS; download receipt row"
+      },
+      {
+        "name": "is_terminal_polyfill",
+        "version": "1.70.2",
+        "checksum": "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/is_terminal_polyfill-1.70.2.crate",
+        "sha256": "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695",
+        "bytes": 7548,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "itertools",
+        "version": "0.13.0",
+        "checksum": "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/itertools-0.13.0.crate",
+        "sha256": "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186",
+        "bytes": 146261,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "itertools",
+        "version": "0.14.0",
+        "checksum": "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/itertools-0.14.0.crate",
+        "sha256": "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285",
+        "bytes": 152715,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "itoa",
+        "version": "1.0.18",
+        "checksum": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/itoa-1.0.18.crate",
+        "sha256": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682",
+        "bytes": 15935,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "lazy_static",
+        "version": "1.5.0",
+        "checksum": "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/lazy_static-1.5.0.crate",
+        "sha256": "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe",
+        "bytes": 14025,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "libc",
+        "version": "0.2.189",
+        "checksum": "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/libc-0.2.189.crate",
+        "sha256": "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2",
+        "bytes": 851502,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "linux-raw-sys",
+        "version": "0.12.1",
+        "checksum": "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.12.1.crate",
+        "sha256": "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53",
+        "bytes": 3006116,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "linux-raw-sys",
+        "version": "0.4.15",
+        "checksum": "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.15.crate",
+        "sha256": "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab",
+        "bytes": 2150898,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "lock_api",
+        "version": "0.4.14",
+        "checksum": "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/lock_api-0.4.14.crate",
+        "sha256": "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965",
+        "bytes": 29249,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "log",
+        "version": "0.4.34",
+        "checksum": "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/log-0.4.34.crate",
+        "sha256": "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6",
+        "bytes": 53395,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "lru",
+        "version": "0.12.4",
+        "checksum": "37ee39891760e7d94734f6f63fedc29a2e4a152f836120753a72503f09fcf904",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/lru-0.12.4.crate",
+        "sha256": "37ee39891760e7d94734f6f63fedc29a2e4a152f836120753a72503f09fcf904",
+        "bytes": 16032,
+        "mode": 384,
+        "provenance": "official static.crates.io HTTPS; download receipt row"
+      },
+      {
+        "name": "memchr",
+        "version": "2.8.3",
+        "checksum": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/memchr-2.8.3.crate",
+        "sha256": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98",
+        "bytes": 99165,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "miniz_oxide",
+        "version": "0.8.9",
+        "checksum": "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/miniz_oxide-0.8.9.crate",
+        "sha256": "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316",
+        "bytes": 67132,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "miniz_oxide",
+        "version": "0.9.1",
+        "checksum": "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/miniz_oxide-0.9.1.crate",
+        "sha256": "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c",
+        "bytes": 70519,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "mio",
+        "version": "1.2.3",
+        "checksum": "4b18443e9c262bfe8fa82f51666e2642c53393f7e5c27b3e1aeab922cff5b9d8",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/mio-1.2.3.crate",
+        "sha256": "4b18443e9c262bfe8fa82f51666e2642c53393f7e5c27b3e1aeab922cff5b9d8",
+        "bytes": 110455,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "moxcms",
+        "version": "0.8.1",
+        "checksum": "bb85c154ba489f01b25c0d36ae69a87e4a1c73a72631fc6c0eb6dde34a73e44b",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/moxcms-0.8.1.crate",
+        "sha256": "bb85c154ba489f01b25c0d36ae69a87e4a1c73a72631fc6c0eb6dde34a73e44b",
+        "bytes": 188252,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "nix",
+        "version": "0.28.0",
+        "checksum": "ab2156c4fce2f8df6c499cc1c763e4394b7482525bf2a9701c9d79d215f519e4",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/nix-0.28.0.crate",
+        "sha256": "ab2156c4fce2f8df6c499cc1c763e4394b7482525bf2a9701c9d79d215f519e4",
+        "bytes": 311086,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "nix",
+        "version": "0.31.3",
+        "checksum": "cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/nix-0.31.3.crate",
+        "sha256": "cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d",
+        "bytes": 347476,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "num-traits",
+        "version": "0.2.19",
+        "checksum": "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/num-traits-0.2.19.crate",
+        "sha256": "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841",
+        "bytes": 51631,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "once_cell",
+        "version": "1.21.4",
+        "checksum": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/once_cell-1.21.4.crate",
+        "sha256": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50",
+        "bytes": 35010,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "once_cell_polyfill",
+        "version": "1.70.2",
+        "checksum": "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/once_cell_polyfill-1.70.2.crate",
+        "sha256": "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe",
+        "bytes": 7448,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "parking_lot",
+        "version": "0.12.5",
+        "checksum": "93857453250e3077bd71ff98b6a65ea6621a19bb0f559a85248955ac12c45a1a",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/parking_lot-0.12.5.crate",
+        "sha256": "93857453250e3077bd71ff98b6a65ea6621a19bb0f559a85248955ac12c45a1a",
+        "bytes": 46735,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "parking_lot_core",
+        "version": "0.9.12",
+        "checksum": "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/parking_lot_core-0.9.12.crate",
+        "sha256": "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1",
+        "bytes": 34110,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "paste",
+        "version": "1.0.15",
+        "checksum": "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/paste-1.0.15.crate",
+        "sha256": "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a",
+        "bytes": 18374,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "png",
+        "version": "0.18.1",
+        "checksum": "60769b8b31b2a9f263dae2776c37b1b28ae246943cf719eb6946a1db05128a61",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/png-0.18.1.crate",
+        "sha256": "60769b8b31b2a9f263dae2776c37b1b28ae246943cf719eb6946a1db05128a61",
+        "bytes": 125800,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "portable-pty",
+        "version": "0.9.0",
+        "checksum": "b4a596a2b3d2752d94f51fac2d4a96737b8705dddd311a32b9af47211f08671e",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/portable-pty-0.9.0.crate",
+        "sha256": "b4a596a2b3d2752d94f51fac2d4a96737b8705dddd311a32b9af47211f08671e",
+        "bytes": 29466,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "proc-macro2",
+        "version": "1.0.107",
+        "checksum": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107.crate",
+        "sha256": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+        "bytes": 59588,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "pxfm",
+        "version": "0.1.30",
+        "checksum": "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/pxfm-0.1.30.crate",
+        "sha256": "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea",
+        "bytes": 879463,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "quote",
+        "version": "1.0.47",
+        "checksum": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/quote-1.0.47.crate",
+        "sha256": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+        "bytes": 31622,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "r-efi",
+        "version": "6.0.0",
+        "checksum": "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/r-efi-6.0.0.crate",
+        "sha256": "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf",
+        "bytes": 65303,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "ratatui",
+        "version": "0.29.0",
+        "checksum": "eabd94c2f37801c20583fc49dd5cd6b0ba68c716787c2dd6ed18571e1e63117b",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/ratatui-0.29.0.crate",
+        "sha256": "eabd94c2f37801c20583fc49dd5cd6b0ba68c716787c2dd6ed18571e1e63117b",
+        "bytes": 543514,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "rayon",
+        "version": "1.12.0",
+        "checksum": "fb39b166781f92d482534ef4b4b1b2568f42613b53e5b6c160e24cfbfa30926d",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/rayon-1.12.0.crate",
+        "sha256": "fb39b166781f92d482534ef4b4b1b2568f42613b53e5b6c160e24cfbfa30926d",
+        "bytes": 183391,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "rayon-core",
+        "version": "1.13.0",
+        "checksum": "22e18b0f0062d30d4230b2e85ff77fdfe4326feb054b9783a3460d8435c8ab91",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/rayon-core-1.13.0.crate",
+        "sha256": "22e18b0f0062d30d4230b2e85ff77fdfe4326feb054b9783a3460d8435c8ab91",
+        "bytes": 73151,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "read-fonts",
+        "version": "0.41.0",
+        "checksum": "046a7d674daf459825b32f5062056d6882db0d2f5a479fbd76ccfc870ac18709",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/read-fonts-0.41.0.crate",
+        "sha256": "046a7d674daf459825b32f5062056d6882db0d2f5a479fbd76ccfc870ac18709",
+        "bytes": 567271,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "redox_syscall",
+        "version": "0.5.18",
+        "checksum": "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/redox_syscall-0.5.18.crate",
+        "sha256": "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d",
+        "bytes": 30747,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "rustix",
+        "version": "0.38.44",
+        "checksum": "fdb5bc1ae2baa591800df16c9ca78619bf65c0488b41b96ccec5d11220d8c154",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/rustix-0.38.44.crate",
+        "sha256": "fdb5bc1ae2baa591800df16c9ca78619bf65c0488b41b96ccec5d11220d8c154",
+        "bytes": 379347,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "rustix",
+        "version": "1.1.4",
+        "checksum": "b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/rustix-1.1.4.crate",
+        "sha256": "b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190",
+        "bytes": 425241,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "rustversion",
+        "version": "1.0.23",
+        "checksum": "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/rustversion-1.0.23.crate",
+        "sha256": "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f",
+        "bytes": 21013,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "ryu",
+        "version": "1.0.23",
+        "checksum": "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/ryu-1.0.23.crate",
+        "sha256": "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f",
+        "bytes": 52823,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "scopeguard",
+        "version": "1.2.0",
+        "checksum": "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/scopeguard-1.2.0.crate",
+        "sha256": "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49",
+        "bytes": 11619,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "serde",
+        "version": "1.0.229",
+        "checksum": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/serde-1.0.229.crate",
+        "sha256": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba",
+        "bytes": 83669,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "serde_core",
+        "version": "1.0.229",
+        "checksum": "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.229.crate",
+        "sha256": "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48",
+        "bytes": 63100,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "serde_derive",
+        "version": "1.0.229",
+        "checksum": "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229.crate",
+        "sha256": "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348",
+        "bytes": 59864,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "serde_json",
+        "version": "1.0.151",
+        "checksum": "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151.crate",
+        "sha256": "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14",
+        "bytes": 156556,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "serial2",
+        "version": "0.2.38",
+        "checksum": "b16809bc35793b19ce4e0c53924bc0dce3937f15487997cfdaed936004180730",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/serial2-0.2.38.crate",
+        "sha256": "b16809bc35793b19ce4e0c53924bc0dce3937f15487997cfdaed936004180730",
+        "bytes": 36487,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "sha2",
+        "version": "0.11.0",
+        "checksum": "446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/sha2-0.11.0.crate",
+        "sha256": "446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4",
+        "bytes": 33969,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "shared_library",
+        "version": "0.1.9",
+        "checksum": "5a9e7e0f2bfae24d8a5b5a66c5b257a83c7412304311512a0c054cd5e619da11",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/shared_library-0.1.9.crate",
+        "sha256": "5a9e7e0f2bfae24d8a5b5a66c5b257a83c7412304311512a0c054cd5e619da11",
+        "bytes": 10566,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "shell-words",
+        "version": "1.1.1",
+        "checksum": "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/shell-words-1.1.1.crate",
+        "sha256": "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77",
+        "bytes": 10012,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "signal-hook",
+        "version": "0.3.18",
+        "checksum": "d881a16cf4426aa584979d30bd82cb33429027e42122b169753d6ef1085ed6e2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/signal-hook-0.3.18.crate",
+        "sha256": "d881a16cf4426aa584979d30bd82cb33429027e42122b169753d6ef1085ed6e2",
+        "bytes": 50862,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "signal-hook-mio",
+        "version": "0.2.5",
+        "checksum": "b75a19a7a740b25bc7944bdee6172368f988763b744e3d4dfe753f6b4ece40cc",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/signal-hook-mio-0.2.5.crate",
+        "sha256": "b75a19a7a740b25bc7944bdee6172368f988763b744e3d4dfe753f6b4ece40cc",
+        "bytes": 14373,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "signal-hook-registry",
+        "version": "1.4.8",
+        "checksum": "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/signal-hook-registry-1.4.8.crate",
+        "sha256": "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b",
+        "bytes": 21668,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "simd-adler32",
+        "version": "0.3.10",
+        "checksum": "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/simd-adler32-0.3.10.crate",
+        "sha256": "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea",
+        "bytes": 18760,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "similar",
+        "version": "2.7.0",
+        "checksum": "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/similar-2.7.0.crate",
+        "sha256": "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa",
+        "bytes": 53928,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "skrifa",
+        "version": "0.44.0",
+        "checksum": "819ab7d62b1d3e72d9d9dea5650bac30424f9111364bb94928dbf5ecad1baa68",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/skrifa-0.44.0.crate",
+        "sha256": "819ab7d62b1d3e72d9d9dea5650bac30424f9111364bb94928dbf5ecad1baa68",
+        "bytes": 299025,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "smallvec",
+        "version": "1.16.0",
+        "checksum": "b9be42f50aa861c555654aa3a37f52f4b1074bacf4e48fe0ef7fa584e80f1f0f",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/smallvec-1.16.0.crate",
+        "sha256": "b9be42f50aa861c555654aa3a37f52f4b1074bacf4e48fe0ef7fa584e80f1f0f",
+        "bytes": 32647,
+        "mode": 384,
+        "provenance": "official static.crates.io HTTPS; download receipt row"
+      },
+      {
+        "name": "static_assertions",
+        "version": "1.1.0",
+        "checksum": "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/static_assertions-1.1.0.crate",
+        "sha256": "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f",
+        "bytes": 18480,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "strsim",
+        "version": "0.11.1",
+        "checksum": "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/strsim-0.11.1.crate",
+        "sha256": "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f",
+        "bytes": 14266,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "strum",
+        "version": "0.26.3",
+        "checksum": "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/strum-0.26.3.crate",
+        "sha256": "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06",
+        "bytes": 7237,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "strum_macros",
+        "version": "0.26.4",
+        "checksum": "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/strum_macros-0.26.4.crate",
+        "sha256": "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be",
+        "bytes": 27531,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "swash",
+        "version": "0.2.10",
+        "checksum": "6c2499c2d826531388872b2268718aed907a39bd785ab0dcfe57fab26283f92e",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/swash-0.2.10.crate",
+        "sha256": "6c2499c2d826531388872b2268718aed907a39bd785ab0dcfe57fab26283f92e",
+        "bytes": 238263,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "syn",
+        "version": "2.0.119",
+        "checksum": "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/syn-2.0.119.crate",
+        "sha256": "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297",
+        "bytes": 307407,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "syn",
+        "version": "3.0.5",
+        "checksum": "12df2e0110f65b775f769bb17ef989067a1d931b2eb822bd4346631eeada89f9",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/syn-3.0.5.crate",
+        "sha256": "12df2e0110f65b775f769bb17ef989067a1d931b2eb822bd4346631eeada89f9",
+        "bytes": 313222,
+        "mode": 384,
+        "provenance": "official static.crates.io HTTPS; download receipt row"
+      },
+      {
+        "name": "tempfile",
+        "version": "3.27.0",
+        "checksum": "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/tempfile-3.27.0.crate",
+        "sha256": "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd",
+        "bytes": 44780,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "termpane",
+        "version": "0.1.0",
+        "checksum": "a57f9d35a6412cc3a0f21f8cee6d090852f59dee9f998ed341ce878e33a57700",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/termpane-0.1.0.crate",
+        "sha256": "a57f9d35a6412cc3a0f21f8cee6d090852f59dee9f998ed341ce878e33a57700",
+        "bytes": 199416,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "thiserror",
+        "version": "1.0.69",
+        "checksum": "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/thiserror-1.0.69.crate",
+        "sha256": "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52",
+        "bytes": 22198,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "thiserror",
+        "version": "2.0.20",
+        "checksum": "ec86235f5fcc2a73650310756d2ac5b138a5780bbbdfae3eeccec992c435ba4f",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20.crate",
+        "sha256": "ec86235f5fcc2a73650310756d2ac5b138a5780bbbdfae3eeccec992c435ba4f",
+        "bytes": 28969,
+        "mode": 384,
+        "provenance": "official static.crates.io HTTPS; download receipt row"
+      },
+      {
+        "name": "thiserror-impl",
+        "version": "1.0.69",
+        "checksum": "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/thiserror-impl-1.0.69.crate",
+        "sha256": "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1",
+        "bytes": 18365,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "thiserror-impl",
+        "version": "2.0.20",
+        "checksum": "bc04cd3e1236dd4a98afca4569f2deb3f120e5422a4023be2cb683f8486292af",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/thiserror-impl-2.0.20.crate",
+        "sha256": "bc04cd3e1236dd4a98afca4569f2deb3f120e5422a4023be2cb683f8486292af",
+        "bytes": 21436,
+        "mode": 384,
+        "provenance": "official static.crates.io HTTPS; download receipt row"
+      },
+      {
+        "name": "typenum",
+        "version": "1.20.1",
+        "checksum": "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/typenum-1.20.1.crate",
+        "sha256": "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20",
+        "bytes": 105479,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "unicode-ident",
+        "version": "1.0.24",
+        "checksum": "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.24.crate",
+        "sha256": "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75",
+        "bytes": 49298,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "unicode-segmentation",
+        "version": "1.13.3",
+        "checksum": "c6f5d3c3b1bf09027a88a6bc961fc00497d651009560b5463668dc81b0fa87a8",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/unicode-segmentation-1.13.3.crate",
+        "sha256": "c6f5d3c3b1bf09027a88a6bc961fc00497d651009560b5463668dc81b0fa87a8",
+        "bytes": 112325,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "unicode-truncate",
+        "version": "1.1.0",
+        "checksum": "b3644627a5af5fa321c95b9b235a72fd24cd29c648c2c379431e6628655627bf",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/unicode-truncate-1.1.0.crate",
+        "sha256": "b3644627a5af5fa321c95b9b235a72fd24cd29c648c2c379431e6628655627bf",
+        "bytes": 12529,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "unicode-width",
+        "version": "0.1.14",
+        "checksum": "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/unicode-width-0.1.14.crate",
+        "sha256": "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af",
+        "bytes": 271615,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "unicode-width",
+        "version": "0.2.0",
+        "checksum": "1fc81956842c57dac11422a97c3b8195a1ff727f06e85c84ed2e8aa277c9a0fd",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/unicode-width-0.2.0.crate",
+        "sha256": "1fc81956842c57dac11422a97c3b8195a1ff727f06e85c84ed2e8aa277c9a0fd",
+        "bytes": 271509,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "utf8parse",
+        "version": "0.2.2",
+        "checksum": "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/utf8parse-0.2.2.crate",
+        "sha256": "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821",
+        "bytes": 13499,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "version_check",
+        "version": "0.9.5",
+        "checksum": "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5.crate",
+        "sha256": "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a",
+        "bytes": 15554,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "vte",
+        "version": "0.15.0",
+        "checksum": "a5924018406ce0063cd67f8e008104968b74b563ee1b85dde3ed1f7cb87d3dbd",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/vte-0.15.0.crate",
+        "sha256": "a5924018406ce0063cd67f8e008104968b74b563ee1b85dde3ed1f7cb87d3dbd",
+        "bytes": 57487,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "wasi",
+        "version": "0.11.1+wasi-snapshot-preview1",
+        "checksum": "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/wasi-0.11.1+wasi-snapshot-preview1.crate",
+        "sha256": "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b",
+        "bytes": 28477,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "weezl",
+        "version": "0.1.12",
+        "checksum": "a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/weezl-0.1.12.crate",
+        "sha256": "a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88",
+        "bytes": 46045,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "winapi",
+        "version": "0.3.9",
+        "checksum": "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/winapi-0.3.9.crate",
+        "sha256": "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419",
+        "bytes": 1200382,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "winapi-i686-pc-windows-gnu",
+        "version": "0.4.0",
+        "checksum": "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/winapi-i686-pc-windows-gnu-0.4.0.crate",
+        "sha256": "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6",
+        "bytes": 2918815,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "winapi-x86_64-pc-windows-gnu",
+        "version": "0.4.0",
+        "checksum": "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/winapi-x86_64-pc-windows-gnu-0.4.0.crate",
+        "sha256": "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f",
+        "bytes": 2947998,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows_aarch64_gnullvm",
+        "version": "0.52.6",
+        "checksum": "32a4622180e7a0ec044bb555404c800bc9fd9ec262ec147edd5989ccd0c02cd3",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_aarch64_gnullvm-0.52.6.crate",
+        "sha256": "32a4622180e7a0ec044bb555404c800bc9fd9ec262ec147edd5989ccd0c02cd3",
+        "bytes": 435718,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows_aarch64_msvc",
+        "version": "0.52.6",
+        "checksum": "09ec2a7bb152e2252b53fa7803150007879548bc709c039df7627cabbd05d469",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_aarch64_msvc-0.52.6.crate",
+        "sha256": "09ec2a7bb152e2252b53fa7803150007879548bc709c039df7627cabbd05d469",
+        "bytes": 832615,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows_i686_gnu",
+        "version": "0.52.6",
+        "checksum": "8e9b5ad5ab802e97eb8e295ac6720e509ee4c243f69d781394014ebfe8bbfa0b",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_i686_gnu-0.52.6.crate",
+        "sha256": "8e9b5ad5ab802e97eb8e295ac6720e509ee4c243f69d781394014ebfe8bbfa0b",
+        "bytes": 880402,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows_i686_gnullvm",
+        "version": "0.52.6",
+        "checksum": "0eee52d38c090b3caa76c563b86c3a4bd71ef1a819287c19d586d7334ae8ed66",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_i686_gnullvm-0.52.6.crate",
+        "sha256": "0eee52d38c090b3caa76c563b86c3a4bd71ef1a819287c19d586d7334ae8ed66",
+        "bytes": 475940,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows_i686_msvc",
+        "version": "0.52.6",
+        "checksum": "240948bc05c5e7c6dabba28bf89d89ffce3e303022809e73deaefe4f6ec56c66",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_i686_msvc-0.52.6.crate",
+        "sha256": "240948bc05c5e7c6dabba28bf89d89ffce3e303022809e73deaefe4f6ec56c66",
+        "bytes": 901163,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows_x86_64_gnu",
+        "version": "0.52.6",
+        "checksum": "147a5c80aabfbf0c7d901cb5895d1de30ef2907eb21fbbab29ca94c5b08b1a78",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_x86_64_gnu-0.52.6.crate",
+        "sha256": "147a5c80aabfbf0c7d901cb5895d1de30ef2907eb21fbbab29ca94c5b08b1a78",
+        "bytes": 836363,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows_x86_64_gnullvm",
+        "version": "0.52.6",
+        "checksum": "24d5b23dc417412679681396f2b49f3de8c1473deb516bd34410872eff51ed0d",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_x86_64_gnullvm-0.52.6.crate",
+        "sha256": "24d5b23dc417412679681396f2b49f3de8c1473deb516bd34410872eff51ed0d",
+        "bytes": 435707,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows_x86_64_msvc",
+        "version": "0.52.6",
+        "checksum": "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_x86_64_msvc-0.52.6.crate",
+        "sha256": "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec",
+        "bytes": 832564,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows-link",
+        "version": "0.2.1",
+        "checksum": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows-link-0.2.1.crate",
+        "sha256": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",
+        "bytes": 6133,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows-sys",
+        "version": "0.59.0",
+        "checksum": "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows-sys-0.59.0.crate",
+        "sha256": "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b",
+        "bytes": 2387323,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows-sys",
+        "version": "0.61.2",
+        "checksum": "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows-sys-0.61.2.crate",
+        "sha256": "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc",
+        "bytes": 2517186,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "windows-targets",
+        "version": "0.52.6",
+        "checksum": "9b724f72796e036ab90c1021d4780d4d3d648aca59e491e6b98e725b84e99973",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/windows-targets-0.52.6.crate",
+        "sha256": "9b724f72796e036ab90c1021d4780d4d3d648aca59e491e6b98e725b84e99973",
+        "bytes": 6403,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "winreg",
+        "version": "0.10.1",
+        "checksum": "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/winreg-0.10.1.crate",
+        "sha256": "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d",
+        "bytes": 25725,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "yazi",
+        "version": "0.2.1",
+        "checksum": "e01738255b5a16e78bbb83e7fbba0a1e7dd506905cfc53f4622d89015a03fbb5",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/yazi-0.2.1.crate",
+        "sha256": "e01738255b5a16e78bbb83e7fbba0a1e7dd506905cfc53f4622d89015a03fbb5",
+        "bytes": 30267,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "zeno",
+        "version": "0.3.3",
+        "checksum": "6df3dc4292935e51816d896edcd52aa30bc297907c26167fec31e2b0c6a32524",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/zeno-0.3.3.crate",
+        "sha256": "6df3dc4292935e51816d896edcd52aa30bc297907c26167fec31e2b0c6a32524",
+        "bytes": 46042,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "zerocopy",
+        "version": "0.8.59",
+        "checksum": "6df92bf3d9227be3d53173901ddbffac2babc27ae50f397776ffd6dc33f800cb",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/zerocopy-0.8.59.crate",
+        "sha256": "6df92bf3d9227be3d53173901ddbffac2babc27ae50f397776ffd6dc33f800cb",
+        "bytes": 287462,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "zerocopy-derive",
+        "version": "0.8.59",
+        "checksum": "ac4f328cf2f05d084e496c3e9c3f33ed0a183656a16e1fcec4d464d8373aec82",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/zerocopy-derive-0.8.59.crate",
+        "sha256": "ac4f328cf2f05d084e496c3e9c3f33ed0a183656a16e1fcec4d464d8373aec82",
+        "bytes": 137212,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      },
+      {
+        "name": "zlib-rs",
+        "version": "0.6.7",
+        "checksum": "34b31d188d9d685a4f9c7b46d6e36631b07058d2cfe190267adce54dc230bf12",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/zlib-rs-0.6.7.crate",
+        "sha256": "34b31d188d9d685a4f9c7b46d6e36631b07058d2cfe190267adce54dc230bf12",
+        "bytes": 215740,
+        "mode": 384,
+        "provenance": "official static.crates.io HTTPS; download receipt row"
+      },
+      {
+        "name": "zmij",
+        "version": "1.0.23",
+        "checksum": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/zmij-1.0.23.crate",
+        "sha256": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b",
+        "bytes": 28612,
+        "mode": 384,
+        "provenance": "verified donor copy in cache preparation"
+      }
+    ],
+    "index_file_count": 152,
+    "indexes": [
+      {
+        "name": "fs2",
+        "relative_path": "3/f/fs2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/f/fs2",
+        "sha256": "03d274359898c9e877b9a35f66e48f70378011dbbfb0e22bf45bef07df951490",
+        "bytes": 7900,
+        "mode": 384
+      },
+      {
+        "name": "gif",
+        "relative_path": "3/g/gif",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/g/gif",
+        "sha256": "4f776ecac280d35f7ce35c3269e6fe89a09b180106c6a60454e3833841f9a087",
+        "bytes": 23321,
+        "mode": 384
+      },
+      {
+        "name": "log",
+        "relative_path": "3/l/log",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/l/log",
+        "sha256": "a75991da988ce93760221f19db4f0d0eeca0e82d00d5f3ddc88c4806542178c4",
+        "bytes": 67685,
+        "mode": 384
+      },
+      {
+        "name": "lru",
+        "relative_path": "3/l/lru",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/l/lru",
+        "sha256": "fda13b17b224a7740aa88d94cbc5e1f1b9f5ffddd0c22c69e49a09c719efcc43",
+        "bytes": 40466,
+        "mode": 384
+      },
+      {
+        "name": "mio",
+        "relative_path": "3/m/mio",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/m/mio",
+        "sha256": "878bd71a832bffdaf0e262cc75ebf35cadfb359a8c1934e0183d186b7e5b4800",
+        "bytes": 113933,
+        "mode": 384
+      },
+      {
+        "name": "nix",
+        "relative_path": "3/n/nix",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/n/nix",
+        "sha256": "aa213aa8cb7cd27058e5ef4093fc6b57a7fb058727a21877992bb1118be0535e",
+        "bytes": 118910,
+        "mode": 384
+      },
+      {
+        "name": "png",
+        "relative_path": "3/p/png",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/p/png",
+        "sha256": "e7935984117310bd793f0fd423e191b8c53c178c5ae4fb51f703ad328b74c87b",
+        "bytes": 86268,
+        "mode": 384
+      },
+      {
+        "name": "ryu",
+        "relative_path": "3/r/ryu",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/r/ryu",
+        "sha256": "ecef9add1078b90981960dc1054f43d7d862bacf37311b3febafc90f5be3430c",
+        "bytes": 21724,
+        "mode": 384
+      },
+      {
+        "name": "syn",
+        "relative_path": "3/s/syn",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/s/syn",
+        "sha256": "f35e574cec97617c7ad87aef5c0b1add6ad4407d12b0371a2f203c2fa79f6159",
+        "bytes": 653259,
+        "mode": 384
+      },
+      {
+        "name": "vte",
+        "relative_path": "3/v/vte",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/v/vte",
+        "sha256": "29a1d253c4059383d8eafc672da65d3d4046e54a41385730393ee9425e2dcc41",
+        "bytes": 18267,
+        "mode": 384
+      },
+      {
+        "name": "adler2",
+        "relative_path": "ad/le/adler2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ad/le/adler2",
+        "sha256": "70c3aa11518c152c87074799e1d8bb8334fbcc81ea8d8c7bb99a415d107ccb05",
+        "bytes": 1094,
+        "mode": 384
+      },
+      {
+        "name": "ahash",
+        "relative_path": "ah/as/ahash",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ah/as/ahash",
+        "sha256": "5ec4eea367704141d9ba986f5144e3e59dc8027554f3bc680f527c0bf82db20e",
+        "bytes": 175400,
+        "mode": 384
+      },
+      {
+        "name": "allocator-api2",
+        "relative_path": "al/lo/allocator-api2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/al/lo/allocator-api2",
+        "sha256": "6c07be5c1dddbb6aeeefec28b61630b12226826c071d12fdd8c1d3570b25ff0d",
+        "bytes": 11999,
+        "mode": 384
+      },
+      {
+        "name": "anstream",
+        "relative_path": "an/st/anstream",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/an/st/anstream",
+        "sha256": "49c75f6a5a3fc6b77e2d1b57daa8125b499597e8d66e313d2c927f4cb9bf9ca8",
+        "bytes": 54534,
+        "mode": 384
+      },
+      {
+        "name": "anstyle",
+        "relative_path": "an/st/anstyle",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/an/st/anstyle",
+        "sha256": "83b622607e1b5283246c1b27d28fd94c1c77d28d0fd3bfe044c10091be5d4700",
+        "bytes": 10462,
+        "mode": 384
+      },
+      {
+        "name": "anstyle-parse",
+        "relative_path": "an/st/anstyle-parse",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/an/st/anstyle-parse",
+        "sha256": "36cdfc38608ce7ab89503d55402a6a5af0718b3a1d201557313c0505d1da9d6b",
+        "bytes": 13872,
+        "mode": 384
+      },
+      {
+        "name": "anstyle-query",
+        "relative_path": "an/st/anstyle-query",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/an/st/anstyle-query",
+        "sha256": "d16554103965530fdc7db4c5db57b95d184a481fc5a86f05cbfea50fb15a096d",
+        "bytes": 3964,
+        "mode": 384
+      },
+      {
+        "name": "anstyle-wincon",
+        "relative_path": "an/st/anstyle-wincon",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/an/st/anstyle-wincon",
+        "sha256": "abd426a28c02f8a97de3e281420c3e7046b03aa7c7d68e007f23655fe71b0b97",
+        "bytes": 13900,
+        "mode": 384
+      },
+      {
+        "name": "anyhow",
+        "relative_path": "an/yh/anyhow",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/an/yh/anyhow",
+        "sha256": "a529c91ec8630f952709743b04c9e375efffad3311b6e8a7b3b8928b9dd3e7f3",
+        "bytes": 80806,
+        "mode": 384
+      },
+      {
+        "name": "arrayvec",
+        "relative_path": "ar/ra/arrayvec",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ar/ra/arrayvec",
+        "sha256": "b54ff517b0f0ba3c83b8b8586adadf6ca457ad1de4953901494bd06f98402e31",
+        "bytes": 35443,
+        "mode": 384
+      },
+      {
+        "name": "autocfg",
+        "relative_path": "au/to/autocfg",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/au/to/autocfg",
+        "sha256": "3d5a45af1f6444b54c15a209a8f75ced405d17bdda8d2e6ccdbb050dda47328e",
+        "bytes": 3634,
+        "mode": 384
+      },
+      {
+        "name": "base64",
+        "relative_path": "ba/se/base64",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ba/se/base64",
+        "sha256": "a0da95f758f60dc199fe3e918cdcb4bb32480b03e01a15d2588f9d22016c68cb",
+        "bytes": 28836,
+        "mode": 384
+      },
+      {
+        "name": "bitflags",
+        "relative_path": "bi/tf/bitflags",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/bi/tf/bitflags",
+        "sha256": "6713b703da401faa62e3df0a4a42a7d14a9d777511ac010512a5dd7b3417faaa",
+        "bytes": 64166,
+        "mode": 384
+      },
+      {
+        "name": "block-buffer",
+        "relative_path": "bl/oc/block-buffer",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/bl/oc/block-buffer",
+        "sha256": "01c56856aa2b0252ce0d90752ec2c0106edff7db2c1bdf35d60244762fd18419",
+        "bytes": 21310,
+        "mode": 384
+      },
+      {
+        "name": "bytemuck",
+        "relative_path": "by/te/bytemuck",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/by/te/bytemuck",
+        "sha256": "a54662301ca68b7a385c230ce922b32d98ee32259394c034147fba4d2fabc483",
+        "bytes": 35238,
+        "mode": 384
+      },
+      {
+        "name": "bytemuck_derive",
+        "relative_path": "by/te/bytemuck_derive",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/by/te/bytemuck_derive",
+        "sha256": "8f5088209c8abd5be81f7f22c94c07cf02b8781a985fb36769a1413018dd0152",
+        "bytes": 16041,
+        "mode": 384
+      },
+      {
+        "name": "byteorder-lite",
+        "relative_path": "by/te/byteorder-lite",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/by/te/byteorder-lite",
+        "sha256": "dc6b3d2d8bfff4e18a054c5a1bb2bbc73683c6eff267392ec673239aab9b395f",
+        "bytes": 518,
+        "mode": 384
+      },
+      {
+        "name": "cassowary",
+        "relative_path": "ca/ss/cassowary",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ca/ss/cassowary",
+        "sha256": "79e48ff4ebf82855b45b22c1a1934473dcf691811c738e7c73be54a619a5573b",
+        "bytes": 802,
+        "mode": 384
+      },
+      {
+        "name": "castaway",
+        "relative_path": "ca/st/castaway",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ca/st/castaway",
+        "sha256": "cd7c5cba7c1fdfdecfaaf8415df224074e355f03f8f82d8003948c5cfb745fe2",
+        "bytes": 2746,
+        "mode": 384
+      },
+      {
+        "name": "cfg_aliases",
+        "relative_path": "cf/g_/cfg_aliases",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cf/g_/cfg_aliases",
+        "sha256": "af137539718318d2bae93954e99e3f7a1296366362a6678660fee2a604227b29",
+        "bytes": 1415,
+        "mode": 384
+      },
+      {
+        "name": "cfg-if",
+        "relative_path": "cf/g-/cfg-if",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cf/g-/cfg-if",
+        "sha256": "8f6eaea0f7fc5f6848486cbdf55738698871d39e9120c4c1c68fe5c964696d7d",
+        "bytes": 5121,
+        "mode": 384
+      },
+      {
+        "name": "clap",
+        "relative_path": "cl/ap/clap",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cl/ap/clap",
+        "sha256": "bf2badb802e8ae998f73a09e7082ee0fc161cde9a4be7e20f1349c6ea9e39119",
+        "bytes": 914577,
+        "mode": 384
+      },
+      {
+        "name": "clap_builder",
+        "relative_path": "cl/ap/clap_builder",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cl/ap/clap_builder",
+        "sha256": "364acab4c7ed7e1656b567437a3c418fbca8953006b7a245eb495024e495e2b0",
+        "bytes": 261272,
+        "mode": 384
+      },
+      {
+        "name": "clap_derive",
+        "relative_path": "cl/ap/clap_derive",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cl/ap/clap_derive",
+        "sha256": "ed2b5cec0d2546b20f77fb95417122af4feced83b04c2e1e6ffc40221dc5a75f",
+        "bytes": 84397,
+        "mode": 384
+      },
+      {
+        "name": "clap_lex",
+        "relative_path": "cl/ap/clap_lex",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cl/ap/clap_lex",
+        "sha256": "bbae369b9f7c2d468f6dfcf23097ba4312e1a640bb13c79ff56ce0bd0b1baa79",
+        "bytes": 8625,
+        "mode": 384
+      },
+      {
+        "name": "color_quant",
+        "relative_path": "co/lo/color_quant",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/co/lo/color_quant",
+        "sha256": "9d295f2bf8589b07b2639824ee0a342f87f668cc874ea7a2068fdcf4a6d5d728",
+        "bytes": 832,
+        "mode": 384
+      },
+      {
+        "name": "colorchoice",
+        "relative_path": "co/lo/colorchoice",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/co/lo/colorchoice",
+        "sha256": "0e3383a397661d11e2b336f6bfd62a8fa7cafc248b3cdbd73b145fca0add8220",
+        "bytes": 1336,
+        "mode": 384
+      },
+      {
+        "name": "compact_str",
+        "relative_path": "co/mp/compact_str",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/co/mp/compact_str",
+        "sha256": "6d0c8686b909cc9e8012bf7037948eff7b4afc9115f8887d947af829b8b30716",
+        "bytes": 49724,
+        "mode": 384
+      },
+      {
+        "name": "const-oid",
+        "relative_path": "co/ns/const-oid",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/co/ns/const-oid",
+        "sha256": "937bbce56ac2f1b13c7ce0afc8c0469611505bd40e13e17c4f3918c860d90eed",
+        "bytes": 14933,
+        "mode": 384
+      },
+      {
+        "name": "cpufeatures",
+        "relative_path": "cp/uf/cpufeatures",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cp/uf/cpufeatures",
+        "sha256": "dd29f42e05ee3cf258f4ecf10c43c47625306fbb3f041106ac48cf33d02b1435",
+        "bytes": 17848,
+        "mode": 384
+      },
+      {
+        "name": "crc32fast",
+        "relative_path": "cr/c3/crc32fast",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cr/c3/crc32fast",
+        "sha256": "77502739ecf077d359e3f0ce50aa3105996e8dfd1c3b6469c4b26dae3ee05956",
+        "bytes": 13439,
+        "mode": 384
+      },
+      {
+        "name": "crossbeam-deque",
+        "relative_path": "cr/os/crossbeam-deque",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cr/os/crossbeam-deque",
+        "sha256": "c0e3994654be46f50fe754fd98a205a1c40d6200b8e1c0b556050e6b7a2853fb",
+        "bytes": 17272,
+        "mode": 384
+      },
+      {
+        "name": "crossbeam-epoch",
+        "relative_path": "cr/os/crossbeam-epoch",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cr/os/crossbeam-epoch",
+        "sha256": "7d578474866dca8caf7f3c0be05f0a14556550b3df698269e141c98b342f305b",
+        "bytes": 49206,
+        "mode": 384
+      },
+      {
+        "name": "crossbeam-utils",
+        "relative_path": "cr/os/crossbeam-utils",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cr/os/crossbeam-utils",
+        "sha256": "a0170858efabcdc721a46d11f48879dd8e3a9f5e28bf23e57f9168ce47003416",
+        "bytes": 26124,
+        "mode": 384
+      },
+      {
+        "name": "crossterm",
+        "relative_path": "cr/os/crossterm",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cr/os/crossterm",
+        "sha256": "e5eb46f23e81fb1d834c7c13022f73b94737b910109b71c80a131e0172066e99",
+        "bytes": 106210,
+        "mode": 384
+      },
+      {
+        "name": "crossterm_winapi",
+        "relative_path": "cr/os/crossterm_winapi",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cr/os/crossterm_winapi",
+        "sha256": "fa415bed75de76b549f3631f5512b4d13d01841247bdfc8f05570c70cce5e4d6",
+        "bytes": 7615,
+        "mode": 384
+      },
+      {
+        "name": "crypto-common",
+        "relative_path": "cr/yp/crypto-common",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cr/yp/crypto-common",
+        "sha256": "888aa37a81634f87ae790d68b432c51f0c88a238fc08a760171958e263daef2f",
+        "bytes": 22622,
+        "mode": 384
+      },
+      {
+        "name": "darling",
+        "relative_path": "da/rl/darling",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/da/rl/darling",
+        "sha256": "5d14dfa10bbda6988daad0df1249ef44dd5748077f45c44e4049738c73b2c584",
+        "bytes": 61405,
+        "mode": 384
+      },
+      {
+        "name": "darling_core",
+        "relative_path": "da/rl/darling_core",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/da/rl/darling_core",
+        "sha256": "1540336b1b97b95a771c64790dec7fa196cbd27cab2f3c07cd8216207476f25c",
+        "bytes": 62084,
+        "mode": 384
+      },
+      {
+        "name": "darling_macro",
+        "relative_path": "da/rl/darling_macro",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/da/rl/darling_macro",
+        "sha256": "9b8452edf3aeea90f32ce0cd58c0f6f303baeb6aa8501d6c959515c6e6dad77f",
+        "bytes": 38234,
+        "mode": 384
+      },
+      {
+        "name": "digest",
+        "relative_path": "di/ge/digest",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/di/ge/digest",
+        "sha256": "4a9f0a9b47df415003371f47ed05c5a48bab33e642a3476e8ad1d4124178cfa3",
+        "bytes": 53601,
+        "mode": 384
+      },
+      {
+        "name": "downcast-rs",
+        "relative_path": "do/wn/downcast-rs",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/do/wn/downcast-rs",
+        "sha256": "ac9d95d7f6649ecbe6e6c8e807a06844aa1e14033919d6d2dc3dce9ce9fbddfd",
+        "bytes": 3158,
+        "mode": 384
+      },
+      {
+        "name": "either",
+        "relative_path": "ei/th/either",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ei/th/either",
+        "sha256": "a52861f83b862f12a8615b822ca2c87b5646d8dff47b9468182a340f46f82ed8",
+        "bytes": 12688,
+        "mode": 384
+      },
+      {
+        "name": "errno",
+        "relative_path": "er/rn/errno",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/er/rn/errno",
+        "sha256": "609acf9108184ab8ca087991bf5d634262cea1dc157c6e31e4b7051c08d30fa6",
+        "bytes": 25180,
+        "mode": 384
+      },
+      {
+        "name": "fastrand",
+        "relative_path": "fa/st/fastrand",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/fa/st/fastrand",
+        "sha256": "bb3497dd4b879758b900190b56912c6cc1995c4b64f701904b44c048912b1505",
+        "bytes": 25640,
+        "mode": 384
+      },
+      {
+        "name": "fdeflate",
+        "relative_path": "fd/ef/fdeflate",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/fd/ef/fdeflate",
+        "sha256": "040ffcc19574899d9fd8fdf26d4ee1bb7b2ff03dbfb4dbc6a603579209242f05",
+        "bytes": 7689,
+        "mode": 384
+      },
+      {
+        "name": "filedescriptor",
+        "relative_path": "fi/le/filedescriptor",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/fi/le/filedescriptor",
+        "sha256": "ee4b0d93e09cfb1215d1a87a0acf99c8320435476f33e58474d1c420caa97753",
+        "bytes": 11450,
+        "mode": 384
+      },
+      {
+        "name": "flate2",
+        "relative_path": "fl/at/flate2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/fl/at/flate2",
+        "sha256": "b3bda12f0291a5f7a6445e374b6c87df5cc074807324be9b0f5dc054363cf96d",
+        "bytes": 104478,
+        "mode": 384
+      },
+      {
+        "name": "font-types",
+        "relative_path": "fo/nt/font-types",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/fo/nt/font-types",
+        "sha256": "c343aa0052b2d890a6604f84b30a91a048b5305728052bd72cf2750f07e3ce72",
+        "bytes": 28526,
+        "mode": 384
+      },
+      {
+        "name": "getrandom",
+        "relative_path": "ge/tr/getrandom",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ge/tr/getrandom",
+        "sha256": "ea3ebfe89a8153e02e45194ad58f9fddf29158f70392ed66fec931a14f885192",
+        "bytes": 92014,
+        "mode": 384
+      },
+      {
+        "name": "hashbrown",
+        "relative_path": "ha/sh/hashbrown",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ha/sh/hashbrown",
+        "sha256": "1e697f50eb6bb6eeff9221f8ae844c3929285f3a779a3ee621895cc3efa40598",
+        "bytes": 105523,
+        "mode": 384
+      },
+      {
+        "name": "heck",
+        "relative_path": "he/ck/heck",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/he/ck/heck",
+        "sha256": "e569491216ead0f0c8bb3d72240e07cbc98b7dd3e0407ecac51a5e520882ff19",
+        "bytes": 3395,
+        "mode": 384
+      },
+      {
+        "name": "hybrid-array",
+        "relative_path": "hy/br/hybrid-array",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/hy/br/hybrid-array",
+        "sha256": "18ab086292b81d46cecbc6f86380cbe8cec91c5ccaf4158b8a5c0f0eabb0b801",
+        "bytes": 33490,
+        "mode": 384
+      },
+      {
+        "name": "ident_case",
+        "relative_path": "id/en/ident_case",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/id/en/ident_case",
+        "sha256": "9901171f876375f53246f5c24dca670b005cc77bbfe3e611db469e585164af81",
+        "bytes": 426,
+        "mode": 384
+      },
+      {
+        "name": "image",
+        "relative_path": "im/ag/image",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/im/ag/image",
+        "sha256": "b89eb07f840a175caa4ed77cc96b6d559013e8986527112a0beffdee520c8c11",
+        "bytes": 212965,
+        "mode": 384
+      },
+      {
+        "name": "image-compare",
+        "relative_path": "im/ag/image-compare",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/im/ag/image-compare",
+        "sha256": "f7ec9e129122ec37e1f82ad0ddbe2f6a57618655220efa081c2790c6cff7a849",
+        "bytes": 19298,
+        "mode": 384
+      },
+      {
+        "name": "indoc",
+        "relative_path": "in/do/indoc",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/in/do/indoc",
+        "sha256": "b61f44bd560b1e6c3a06378e947a89fff29a0f27fd90fe54d8f73ba9ae4b6d9b",
+        "bytes": 28971,
+        "mode": 384
+      },
+      {
+        "name": "insta",
+        "relative_path": "in/st/insta",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/in/st/insta",
+        "sha256": "3add1862881d5d41a0478b55e3da79e0ff983815257a194c6f8db4daf359fda7",
+        "bytes": 259668,
+        "mode": 384
+      },
+      {
+        "name": "instability",
+        "relative_path": "in/st/instability",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/in/st/instability",
+        "sha256": "d39dcd87285e752a20c859e30966d82b9b3d997e48d85d1d08d489c3162a957e",
+        "bytes": 12774,
+        "mode": 384
+      },
+      {
+        "name": "is_terminal_polyfill",
+        "relative_path": "is/_t/is_terminal_polyfill",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/is/_t/is_terminal_polyfill",
+        "sha256": "c4729406d411203c6ebe81ffa14165bf4101a8cfce7f5581f462f8927d470e95",
+        "bytes": 1840,
+        "mode": 384
+      },
+      {
+        "name": "itertools",
+        "relative_path": "it/er/itertools",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/it/er/itertools",
+        "sha256": "e3a2e0ef115cacef28e8883813f5a98f4015b49ba8dfa3b8610f9428b722ea00",
+        "bytes": 61102,
+        "mode": 384
+      },
+      {
+        "name": "itoa",
+        "relative_path": "it/oa/itoa",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/it/oa/itoa",
+        "sha256": "358ec410c0eb6e99d0bd115834b6f94aa92791f87d684c29f2dc7a62b7887b48",
+        "bytes": 9750,
+        "mode": 384
+      },
+      {
+        "name": "lazy_static",
+        "relative_path": "la/zy/lazy_static",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/la/zy/lazy_static",
+        "sha256": "8ecf3d145fdd5ad9e29c5d5d06bd2679e738f4fce0c19362396f257fd7f46aad",
+        "bytes": 12102,
+        "mode": 384
+      },
+      {
+        "name": "libc",
+        "relative_path": "li/bc/libc",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/li/bc/libc",
+        "sha256": "1dae18b02aef1302b10f109173ea770359038aa3e1646eded4e97578996b7826",
+        "bytes": 83511,
+        "mode": 384
+      },
+      {
+        "name": "linux-raw-sys",
+        "relative_path": "li/nu/linux-raw-sys",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/li/nu/linux-raw-sys",
+        "sha256": "e20d72e863f9d5a06f29138ba8505b919eb7127bedb6bee3b4e294328b8cfb5e",
+        "bytes": 81593,
+        "mode": 384
+      },
+      {
+        "name": "lock_api",
+        "relative_path": "lo/ck/lock_api",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/lo/ck/lock_api",
+        "sha256": "6a84bec235b73295e2a8374f0cf44624dae15090859b689f744227058827abc2",
+        "bytes": 15747,
+        "mode": 384
+      },
+      {
+        "name": "memchr",
+        "relative_path": "me/mc/memchr",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/me/mc/memchr",
+        "sha256": "fd6ae4fcce894bf67403c653f73a6fe48bfa1fac66a04e2caec70e1f36343d05",
+        "bytes": 28753,
+        "mode": 384
+      },
+      {
+        "name": "miniz_oxide",
+        "relative_path": "mi/ni/miniz_oxide",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/mi/ni/miniz_oxide",
+        "sha256": "f3b29fb89becacdf3395b20271f0b697561ac935be82fc85322610892fc06e00",
+        "bytes": 36942,
+        "mode": 384
+      },
+      {
+        "name": "moxcms",
+        "relative_path": "mo/xc/moxcms",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/mo/xc/moxcms",
+        "sha256": "813d80e1d98e50524e527bb86dc22b5f4d43b4ef701dd3c7da1dd57636f61c57",
+        "bytes": 24744,
+        "mode": 384
+      },
+      {
+        "name": "num-traits",
+        "relative_path": "nu/m-/num-traits",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/nu/m-/num-traits",
+        "sha256": "7c7ceb0ad2e9ed675b5a794dc474615adaef9a4d963e5827f050ac4f03bd5d39",
+        "bytes": 9884,
+        "mode": 384
+      },
+      {
+        "name": "once_cell",
+        "relative_path": "on/ce/once_cell",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/on/ce/once_cell",
+        "sha256": "482e2ff5884947e2bcaaa63d01cc99d0fb6090cdff0a51ee22869f1362126efe",
+        "bytes": 51392,
+        "mode": 384
+      },
+      {
+        "name": "once_cell_polyfill",
+        "relative_path": "on/ce/once_cell_polyfill",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/on/ce/once_cell_polyfill",
+        "sha256": "b1382cd40e000be3782657a2c4d0ab208fa9c4c2a96c231d864d20d66a6d7f73",
+        "bytes": 1589,
+        "mode": 384
+      },
+      {
+        "name": "parking_lot",
+        "relative_path": "pa/rk/parking_lot",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/pa/rk/parking_lot",
+        "sha256": "26622dd030c449655466802a38b5b662658b08762fb29c10bfd301dbd7c27825",
+        "bytes": 45168,
+        "mode": 384
+      },
+      {
+        "name": "parking_lot_core",
+        "relative_path": "pa/rk/parking_lot_core",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/pa/rk/parking_lot_core",
+        "sha256": "fad0b85d540f583cab30332690df29c4371724285ae77dc939344a3beacac9d8",
+        "bytes": 67234,
+        "mode": 384
+      },
+      {
+        "name": "paste",
+        "relative_path": "pa/st/paste",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/pa/st/paste",
+        "sha256": "55da3639592e934a3c291a89495f1808f9eb3730207db65f98262c85d610e844",
+        "bytes": 19292,
+        "mode": 384
+      },
+      {
+        "name": "portable-pty",
+        "relative_path": "po/rt/portable-pty",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/po/rt/portable-pty",
+        "sha256": "88baaf76b5e2bced2b0b51c832c3c27dfefd30afbe65922a32cf69fa02949402",
+        "bytes": 23995,
+        "mode": 384
+      },
+      {
+        "name": "proc-macro2",
+        "relative_path": "pr/oc/proc-macro2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/pr/oc/proc-macro2",
+        "sha256": "95228f72462ea6fa119430877d1c7abb7a22346da05473c37ecc12e678174b69",
+        "bytes": 93770,
+        "mode": 384
+      },
+      {
+        "name": "pxfm",
+        "relative_path": "px/fm/pxfm",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/px/fm/pxfm",
+        "sha256": "cd21f4dcc6e2d326ecbe5e1bd3a2b0d8bee5ff1b32d7a3b24c93fe7fdf418afb",
+        "bytes": 9810,
+        "mode": 384
+      },
+      {
+        "name": "quote",
+        "relative_path": "qu/ot/quote",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/qu/ot/quote",
+        "sha256": "bf97b4d031ad9a1159e896720b9227fb39947f370b48cb8ded9abd27b1515feb",
+        "bytes": 42698,
+        "mode": 384
+      },
+      {
+        "name": "r-efi",
+        "relative_path": "r-/ef/r-efi",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/r-/ef/r-efi",
+        "sha256": "a2f9390340035b66c560c9a7190a0002daabce5ac0834d43d5daff52750b2591",
+        "bytes": 8339,
+        "mode": 384
+      },
+      {
+        "name": "ratatui",
+        "relative_path": "ra/ta/ratatui",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ra/ta/ratatui",
+        "sha256": "95168a04f77324adb6bf1b7e7e71a64004dd57a58f24d43f9aa730b692a0893d",
+        "bytes": 366224,
+        "mode": 384
+      },
+      {
+        "name": "rayon",
+        "relative_path": "ra/yo/rayon",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ra/yo/rayon",
+        "sha256": "ab1957ae515438c2d29787ebc5285a98a0755e147305f988de471eabd0826bdc",
+        "bytes": 39485,
+        "mode": 384
+      },
+      {
+        "name": "rayon-core",
+        "relative_path": "ra/yo/rayon-core",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ra/yo/rayon-core",
+        "sha256": "1a158930d4c9e8e24da910382581071bfbc02d90345a86a2989b048b3037e14b",
+        "bytes": 30241,
+        "mode": 384
+      },
+      {
+        "name": "read-fonts",
+        "relative_path": "re/ad/read-fonts",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/re/ad/read-fonts",
+        "sha256": "f935491857e0c14235df9811f4dda42bbb09cb95042b57a10c774948faf46d26",
+        "bytes": 97142,
+        "mode": 384
+      },
+      {
+        "name": "redox_syscall",
+        "relative_path": "re/do/redox_syscall",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/re/do/redox_syscall",
+        "sha256": "030a3c0ab97471568718151bc5922e67643871c5482313851a832d9e40d35388",
+        "bytes": 41565,
+        "mode": 384
+      },
+      {
+        "name": "rustix",
+        "relative_path": "ru/st/rustix",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ru/st/rustix",
+        "sha256": "7ac5a490ff7d3339b90f9b3a01953921723f4c1a3152fb7c3d7cb2866e0edd91",
+        "bytes": 1137387,
+        "mode": 384
+      },
+      {
+        "name": "rustversion",
+        "relative_path": "ru/st/rustversion",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ru/st/rustversion",
+        "sha256": "436aebebb68fcafac49cf08f4870ca51b2f2c8d2d7db2590606a8416df16c9c2",
+        "bytes": 10024,
+        "mode": 384
+      },
+      {
+        "name": "scopeguard",
+        "relative_path": "sc/op/scopeguard",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/sc/op/scopeguard",
+        "sha256": "735a7c1b21fd2e260142afb3f5f2440d2593c11900d37d434e08975b18ed64e4",
+        "bytes": 2373,
+        "mode": 384
+      },
+      {
+        "name": "serde",
+        "relative_path": "se/rd/serde",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde",
+        "sha256": "8fa7dcf631674523357d78dd82a9e8ec91e6822bf658e996962382d5b03a06f2",
+        "bytes": 167236,
+        "mode": 384
+      },
+      {
+        "name": "serde_core",
+        "relative_path": "se/rd/serde_core",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde_core",
+        "sha256": "00f5412df941bf2bb3aa7fe7e2456fabff8ce96f324060645cb84a1a0200647c",
+        "bytes": 6606,
+        "mode": 384
+      },
+      {
+        "name": "serde_derive",
+        "relative_path": "se/rd/serde_derive",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde_derive",
+        "sha256": "04e32a953a39f321a61f4914b3b22025f8476f6d5f7140025e3766c28c6af06d",
+        "bytes": 198632,
+        "mode": 384
+      },
+      {
+        "name": "serde_json",
+        "relative_path": "se/rd/serde_json",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde_json",
+        "sha256": "a558e6db3da2d63e247ea734320ef3483b4538a97d4f650ba99af9d377037dc1",
+        "bytes": 278595,
+        "mode": 384
+      },
+      {
+        "name": "serial2",
+        "relative_path": "se/ri/serial2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/ri/serial2",
+        "sha256": "88f67bc7c8a0a0be21613ab948e9ad15b4ca0664f7d19614bc31b8d69485d68f",
+        "bytes": 49732,
+        "mode": 384
+      },
+      {
+        "name": "sha2",
+        "relative_path": "sh/a2/sha2",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/sh/a2/sha2",
+        "sha256": "267d7e974971d33790232ae905c481d424ab7ade021e631236bb5363f0849a7f",
+        "bytes": 54830,
+        "mode": 384
+      },
+      {
+        "name": "shared_library",
+        "relative_path": "sh/ar/shared_library",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/sh/ar/shared_library",
+        "sha256": "71c830f79ce74859353a77df13d7f8b7695d0c9c48af1e6c0827ce8292ba7e92",
+        "bytes": 5603,
+        "mode": 384
+      },
+      {
+        "name": "shell-words",
+        "relative_path": "sh/el/shell-words",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/sh/el/shell-words",
+        "sha256": "fefc848953cf2f6f8172ee62d2cb2a413573e29b953e67698ade2cc747590535",
+        "bytes": 862,
+        "mode": 384
+      },
+      {
+        "name": "signal-hook",
+        "relative_path": "si/gn/signal-hook",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/si/gn/signal-hook",
+        "sha256": "ea30cea0091f02d5226f77e20e6054597823fc868ce1870a005f9f2cba9cadae",
+        "bytes": 42937,
+        "mode": 384
+      },
+      {
+        "name": "signal-hook-mio",
+        "relative_path": "si/gn/signal-hook-mio",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/si/gn/signal-hook-mio",
+        "sha256": "e2f5394001bbac91436a685196a01ba71d1a1a12fe47ceaf026dfed6a5302793",
+        "bytes": 9356,
+        "mode": 384
+      },
+      {
+        "name": "signal-hook-registry",
+        "relative_path": "si/gn/signal-hook-registry",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/si/gn/signal-hook-registry",
+        "sha256": "dafd1e4ab65d109cc0b0f253d386000baee069a92cd59a6ba3495203b7ce5dc1",
+        "bytes": 8946,
+        "mode": 384
+      },
+      {
+        "name": "simd-adler32",
+        "relative_path": "si/md/simd-adler32",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/si/md/simd-adler32",
+        "sha256": "1811841194c4ac4d8ea7ded04a5c6a6a128cc541cc708cb3242dd85ccdda65b5",
+        "bytes": 8672,
+        "mode": 384
+      },
+      {
+        "name": "similar",
+        "relative_path": "si/mi/similar",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/si/mi/similar",
+        "sha256": "a9bd79868a70d595b98129af99d4b73cb6096d9e68c41165a342aab74ce3a587",
+        "bytes": 24564,
+        "mode": 384
+      },
+      {
+        "name": "skrifa",
+        "relative_path": "sk/ri/skrifa",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/sk/ri/skrifa",
+        "sha256": "d28224ba9b5e2a3d222b2c561d00055fcab58bb16ace3360f5fd1ffd22bd504f",
+        "bytes": 101787,
+        "mode": 384
+      },
+      {
+        "name": "smallvec",
+        "relative_path": "sm/al/smallvec",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/sm/al/smallvec",
+        "sha256": "3201c69dfa603aeb44e4f570ab5497c5f8f921ab61edd0ff6f82c39e04104fc6",
+        "bytes": 51307,
+        "mode": 384
+      },
+      {
+        "name": "static_assertions",
+        "relative_path": "st/at/static_assertions",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/st/at/static_assertions",
+        "sha256": "607998cd7fde1c686f6591e4a320f5807f156273a17a174f64a2b48d040af102",
+        "bytes": 3428,
+        "mode": 384
+      },
+      {
+        "name": "strsim",
+        "relative_path": "st/rs/strsim",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/st/rs/strsim",
+        "sha256": "d20c8ce62e58463847daf053c4f8a188a2ebb1f3cf0694c8173b24fb467e1328",
+        "bytes": 4965,
+        "mode": 384
+      },
+      {
+        "name": "strum",
+        "relative_path": "st/ru/strum",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/st/ru/strum",
+        "sha256": "91edb910d139ccfd2144ba8b1d61ee82ebdf185ef55ad52000c056e5ad35b8ba",
+        "bytes": 17056,
+        "mode": 384
+      },
+      {
+        "name": "strum_macros",
+        "relative_path": "st/ru/strum_macros",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/st/ru/strum_macros",
+        "sha256": "b1b65c5b56a984530ee29f905ef5b51ab27a7ee9b3706f8b3a08985d162f3856",
+        "bytes": 39580,
+        "mode": 384
+      },
+      {
+        "name": "swash",
+        "relative_path": "sw/as/swash",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/sw/as/swash",
+        "sha256": "895c62a4f4897cdbc0c70cf57e4bb22a04b74ecf697ee846151867cef0269350",
+        "bytes": 21867,
+        "mode": 384
+      },
+      {
+        "name": "tempfile",
+        "relative_path": "te/mp/tempfile",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/te/mp/tempfile",
+        "sha256": "d3e996668f54466ea0af9253a623ac853b4943937f3181de73bad365f29f7098",
+        "bytes": 60033,
+        "mode": 384
+      },
+      {
+        "name": "termpane",
+        "relative_path": "te/rm/termpane",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/te/rm/termpane",
+        "sha256": "7bf85f8a13d5726f83e4b7f7e39cdf53c9e4154f744f464a48682123f225d707",
+        "bytes": 1709,
+        "mode": 384
+      },
+      {
+        "name": "thiserror",
+        "relative_path": "th/is/thiserror",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/th/is/thiserror",
+        "sha256": "7021c1811d006903b19b4e86c9cdf8d4d7d1acfacd82c8f4fd12394c740285d2",
+        "bytes": 73694,
+        "mode": 384
+      },
+      {
+        "name": "thiserror-impl",
+        "relative_path": "th/is/thiserror-impl",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/th/is/thiserror-impl",
+        "sha256": "e4769279419154f5dd859c2253d54532f662d5a223f00bf970872cb14fd7ac90",
+        "bytes": 51419,
+        "mode": 384
+      },
+      {
+        "name": "typenum",
+        "relative_path": "ty/pe/typenum",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ty/pe/typenum",
+        "sha256": "0aa39a82563fb4c1959ea3ce514ada50075c436f0ed5f6edcdabb90e995f7f18",
+        "bytes": 9437,
+        "mode": 384
+      },
+      {
+        "name": "unicode-ident",
+        "relative_path": "un/ic/unicode-ident",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/un/ic/unicode-ident",
+        "sha256": "d7a3b34b99cae1bfc222b39b920b67ec93b1adb17d33880cb452a452bbfb314a",
+        "bytes": 24866,
+        "mode": 384
+      },
+      {
+        "name": "unicode-segmentation",
+        "relative_path": "un/ic/unicode-segmentation",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/un/ic/unicode-segmentation",
+        "sha256": "13561244dd6fce3361c5f83724a152413e0c4cb2d85bf6b9e64f64da783c968c",
+        "bytes": 10031,
+        "mode": 384
+      },
+      {
+        "name": "unicode-truncate",
+        "relative_path": "un/ic/unicode-truncate",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/un/ic/unicode-truncate",
+        "sha256": "30a12ce239ef0917695383b30e0f02513a092aa1cd6f32ee0821db8a6a8259e1",
+        "bytes": 4735,
+        "mode": 384
+      },
+      {
+        "name": "unicode-width",
+        "relative_path": "un/ic/unicode-width",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/un/ic/unicode-width",
+        "sha256": "78e454f7e328de1e2efb96e5c568de05992967e5b260394d49a6c23db9a4c18b",
+        "bytes": 9906,
+        "mode": 384
+      },
+      {
+        "name": "utf8parse",
+        "relative_path": "ut/f8/utf8parse",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ut/f8/utf8parse",
+        "sha256": "22a08afe22f39ea7244e4285cc57333634075da8d732478d1150e2332cce072f",
+        "bytes": 1066,
+        "mode": 384
+      },
+      {
+        "name": "version_check",
+        "relative_path": "ve/rs/version_check",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ve/rs/version_check",
+        "sha256": "3b59bb407ec049518d98a4baee28599d2724767aad5c95c1b2f25ef511008a3d",
+        "bytes": 2362,
+        "mode": 384
+      },
+      {
+        "name": "wasi",
+        "relative_path": "wa/si/wasi",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wa/si/wasi",
+        "sha256": "08b6fa88ded2be57bff9982fb8259eb736caec49974c707e633fa44d08713c11",
+        "bytes": 17683,
+        "mode": 384
+      },
+      {
+        "name": "weezl",
+        "relative_path": "we/ez/weezl",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/we/ez/weezl",
+        "sha256": "e8b5eeb07fcdb55607309e0d23655bc79f9a3b8c65f2ff505414e90f16bf787b",
+        "bytes": 12102,
+        "mode": 384
+      },
+      {
+        "name": "winapi",
+        "relative_path": "wi/na/winapi",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/na/winapi",
+        "sha256": "aa0065a77fa817f68e88ef72ba687d930eb82efcc00d830ba0cb99831ede37c0",
+        "bytes": 102279,
+        "mode": 384
+      },
+      {
+        "name": "winapi-i686-pc-windows-gnu",
+        "relative_path": "wi/na/winapi-i686-pc-windows-gnu",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/na/winapi-i686-pc-windows-gnu",
+        "sha256": "9275dfc90e419c6a237872456c7e38b504aa94a5af65f0c16333acc3ca94cdc0",
+        "bytes": 870,
+        "mode": 384
+      },
+      {
+        "name": "winapi-x86_64-pc-windows-gnu",
+        "relative_path": "wi/na/winapi-x86_64-pc-windows-gnu",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/na/winapi-x86_64-pc-windows-gnu",
+        "sha256": "4fdc4d9f600da7bf76502c9b8cf40cee5745b9356942700773457f9d9ff69b8f",
+        "bytes": 878,
+        "mode": 384
+      },
+      {
+        "name": "windows_aarch64_gnullvm",
+        "relative_path": "wi/nd/windows_aarch64_gnullvm",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows_aarch64_gnullvm",
+        "sha256": "afe5671dd0378c0e63b5d7b80deca8a46ac3065da9a0b0d1e7d4ccc5df696c55",
+        "bytes": 4319,
+        "mode": 384
+      },
+      {
+        "name": "windows_aarch64_msvc",
+        "relative_path": "wi/nd/windows_aarch64_msvc",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows_aarch64_msvc",
+        "sha256": "af120a8d81663b649fd5ba9b645f2d3446178e89b6b44854f5b8112c8d31f33e",
+        "bytes": 7291,
+        "mode": 384
+      },
+      {
+        "name": "windows_i686_gnu",
+        "relative_path": "wi/nd/windows_i686_gnu",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows_i686_gnu",
+        "sha256": "e71c901a2eb9d689a5a7676671aa803cda9c78291a4b83c1cdff56d56b679ded",
+        "bytes": 7547,
+        "mode": 384
+      },
+      {
+        "name": "windows_i686_gnullvm",
+        "relative_path": "wi/nd/windows_i686_gnullvm",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows_i686_gnullvm",
+        "sha256": "daf7eb8dcc03018ea0ccf617de08eee1c11d1bfc868665b747cc4ef9295bef32",
+        "bytes": 1164,
+        "mode": 384
+      },
+      {
+        "name": "windows_i686_msvc",
+        "relative_path": "wi/nd/windows_i686_msvc",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows_i686_msvc",
+        "sha256": "6b2f3e4982c18d4e12a100164ba8cb2cf26a9bda706093b12a53899ddb88b54c",
+        "bytes": 7783,
+        "mode": 384
+      },
+      {
+        "name": "windows_x86_64_gnu",
+        "relative_path": "wi/nd/windows_x86_64_gnu",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows_x86_64_gnu",
+        "sha256": "60da937c9a118d4eace7ce3d54e6e21bc7c64dd34a1ac59e48d52fde0feb11f8",
+        "bytes": 7621,
+        "mode": 384
+      },
+      {
+        "name": "windows_x86_64_gnullvm",
+        "relative_path": "wi/nd/windows_x86_64_gnullvm",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows_x86_64_gnullvm",
+        "sha256": "4ccb9ba7f12248ab8f4d68a3285cf2d3a549b7155ac819b8a2b890d1ebdc63af",
+        "bytes": 4299,
+        "mode": 384
+      },
+      {
+        "name": "windows_x86_64_msvc",
+        "relative_path": "wi/nd/windows_x86_64_msvc",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows_x86_64_msvc",
+        "sha256": "04a0eae699059b5fa4dd5ce3f655b74f3f35f21bcdf250a926d102771e849aa9",
+        "bytes": 7859,
+        "mode": 384
+      },
+      {
+        "name": "windows-link",
+        "relative_path": "wi/nd/windows-link",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows-link",
+        "sha256": "d22f6b9ac1dea4587d049cfe5acaa4a769c18feb63dd29aa61bee99837a06546",
+        "bytes": 1761,
+        "mode": 384
+      },
+      {
+        "name": "windows-sys",
+        "relative_path": "wi/nd/windows-sys",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows-sys",
+        "sha256": "beab389ed4ab8a0aca87fde6a1195814c27d62aae5f6ffb39bb2207ad2f9ad66",
+        "bytes": 491504,
+        "mode": 384
+      },
+      {
+        "name": "windows-targets",
+        "relative_path": "wi/nd/windows-targets",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows-targets",
+        "sha256": "32e429f2ac3d36ae56587f7bc43ab810f73fb5beca4855524e614872bfd971aa",
+        "bytes": 38998,
+        "mode": 384
+      },
+      {
+        "name": "winreg",
+        "relative_path": "wi/nr/winreg",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nr/winreg",
+        "sha256": "d460f92cb7530630df06fe7d5a05d5b04ccbce90cca340a4cba5e70508b78e82",
+        "bytes": 38305,
+        "mode": 384
+      },
+      {
+        "name": "yazi",
+        "relative_path": "ya/zi/yazi",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ya/zi/yazi",
+        "sha256": "944cabd1983b641c9c0e5346e8d15f222c4a3e5f215951e755984545a999225c",
+        "bytes": 2058,
+        "mode": 384
+      },
+      {
+        "name": "zeno",
+        "relative_path": "ze/no/zeno",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ze/no/zeno",
+        "sha256": "0fe16c25eb4bf511bb762d17525f13f1a4541533ae3fe96a291bb1f6d4e8630c",
+        "bytes": 3422,
+        "mode": 384
+      },
+      {
+        "name": "zerocopy",
+        "relative_path": "ze/ro/zerocopy",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ze/ro/zerocopy",
+        "sha256": "1a17be4ef091b0e7f83c6f3067f5637c877c3e0f4e95226aa3a37e5ff6e969ad",
+        "bytes": 243866,
+        "mode": 384
+      },
+      {
+        "name": "zerocopy-derive",
+        "relative_path": "ze/ro/zerocopy-derive",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ze/ro/zerocopy-derive",
+        "sha256": "2d452ebc11ed09ddd34b8f1d21d7a989e7aeb0104998afc66500dbd6775e27a6",
+        "bytes": 177424,
+        "mode": 384
+      },
+      {
+        "name": "zlib-rs",
+        "relative_path": "zl/ib/zlib-rs",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/zl/ib/zlib-rs",
+        "sha256": "29d042789a9a3e142432cebf04b77e4a5a6d151aa7dbe47172b1a0155927e070",
+        "bytes": 26558,
+        "mode": 384
+      },
+      {
+        "name": "zmij",
+        "relative_path": "zm/ij/zmij",
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/zm/ij/zmij",
+        "sha256": "2292a52a2f4a8089d5327151f1d5e68496608311cfec6e1d564a6f5202a1931e",
+        "bytes": 35499,
+        "mode": 384
+      }
+    ],
+    "registry_config": {
+      "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/index/index.crates.io-1949cf8c6b5b557f/config.json",
+      "sha256": "5b943a2c6f7eb743f7308aba07bdbb47d9ae44aafecd832d7f15df186afbafb3",
+      "bytes": 76,
+      "mode": 384
+    },
+    "cachedir_tag": {
+      "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/registry/CACHEDIR.TAG",
+      "sha256": "6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2",
+      "bytes": 177,
+      "mode": 420
+    },
+    "mutable_cargo_metadata": [
+      {
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/.global-cache",
+        "bytes": 73728,
+        "sha256": "c11720ff0eba8e210992b6ff1d8dde34448e837f4d4ec6c8e90c49d051e385b1",
+        "mode": 420,
+        "classification": "Cargo-managed mutable metadata; current R3 post-run point-in-time, not registry source"
+      },
+      {
+        "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/.package-cache",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 420,
+        "classification": "Cargo-managed lock metadata; current point-in-time"
+      }
+    ],
+    "root_inventory_policy": {
+      "prelaunch_seed_roots": [
+        "registry/cache/index.crates.io-1949cf8c6b5b557f",
+        "registry/index/index.crates.io-1949cf8c6b5b557f"
+      ],
+      "postlaunch_source_extraction": "record separately; not part of archive/index seed closure",
+      "mutable_metadata_paths": [
+        "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/.global-cache",
+        "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/.package-cache",
+        "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/.package-cache-mutate"
+      ],
+      "known_lock_path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/.package-cache-mutate"
+    },
+    "mutate_lock": {
+      "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home/.package-cache-mutate",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 420,
+      "dev": "16777234",
+      "ino": "90003372",
+      "nlink": 1,
+      "classification": "Cargo 1.98.1 shared/mutate cache lock file; exact prelaunch filesystem identity; empty regular single-link file"
+    },
+    "current_snapshot": {
+      "prior_runner_result_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r3-nine-tests-20261010/attempt-03/receipt.json",
+      "prior_runner_result_sha256": "e25c1158fbf27fe77d613cdc3b99661289a94a6fca968f02d69f982ebbf5fce2",
+      "prior_actual_result_review_path": "/private/tmp/termrock-vis19-cursor-r3-nine-tests-actual-result-review-luna-20261010.json",
+      "prior_actual_result_review_sha256": "097700f900432ebe50d1b1ffe0b33034cb0955638783e059e69cae9b25738b75",
+      "post_r3_extracted_root_count": 165,
+      "qualification": "point-in-time current cache inventory; archive and index rows remain inherited from reviewed R2 closure"
+    }
+  },
+  "metadata": {
+    "result_path": "/private/tmp/termrock-vis19-root-metadata-r2-20261010/result.json",
+    "result_sha256": "62c394d123f9a219fba459f9e8672861574077ef2f432259904403590bae1fee",
+    "stdout_path": "/private/tmp/termrock-vis19-root-metadata-r2-20261010/stdout.json",
+    "stdout_sha256": "51327ac1d126e2134d7075f806772763198eaa7fc5283070442e4809856ec5a0",
+    "stderr_path": "/private/tmp/termrock-vis19-root-metadata-r2-20261010/stderr.raw",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "package_count": 146,
+    "active_registry_packages": 137,
+    "workspace_path_packages": 9,
+    "feature": "pty",
+    "target_triple": "aarch64-apple-darwin",
+    "argv": [
+      "metadata",
+      "--manifest-path",
+      "/private/tmp/termrock-vis19-tuiscotti-cursor-r2/crates/tuiscotti-runtime/Cargo.toml",
+      "--locked",
+      "--offline",
+      "--features",
+      "pty",
+      "--filter-platform",
+      "aarch64-apple-darwin",
+      "--format-version",
+      "1"
+    ]
+  },
+  "constraints": [
+    "Cargo.lock is hash-pinned and unchanged in Root metadata pass 2.",
+    "All 165 registry archives from lock are regular files with exact checksum; all 152 sparse index files and 165 exact version/checksum records are covered by source preparation/download receipts.",
+    "The metadata pass resolves 146 packages for the pty feature on aarch64-apple-darwin (137 registry and 9 workspace/path packages).",
+    "Offline test command must use this CARGO_HOME and CARGO_NET_OFFLINE=true.",
+    "Cargo-managed .global-cache/.package-cache are recorded point-in-time metadata, not registry-source proof; rehash archive/index rows after the gate and report metadata changes separately."
+  ],
+  "supersedes": {
+    "path": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cache-closure-r2.json",
+    "sha256": "e684b06e803e84e20a954bf69a57df03e7921ec16abe7da24d868893efd5e057",
+    "reason": "same 165 locked archive/152 sparse-index source closure; rebind mutable Cargo metadata to the exact post-R3 point-in-time"
+  }
+}

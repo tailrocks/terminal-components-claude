@@ -1,0 +1,79 @@
+{
+  "schema": "termrock.focused-actual-result-review/v1",
+  "reviewer": "/root/current_branch_comparison_luna",
+  "verdict": "ACTUAL_RESULT_VERIFIED_INDEX_RESOLUTION_SUCCEEDED_NOT_QUALIFIED",
+  "pins": {
+    "packet_root": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010",
+    "plan_sha256": "2931c206b37031b01877a096998e990cf55b13edaaa153c5d0ce1cd0b4916485",
+    "runner_sha256": "c3a790ba36cd16604456aecba23cd25d2d17d56528a0465ddd8524cde29f398d",
+    "result_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/run-root/execution/result.json",
+    "result_sha256": "cc051692ed5aad367709ae6a6b905c7190a513a6a97b3f91ee049f0ad8a9bf24",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "bf7b1efd6bc64ad9b5815d098b006e667c89dfc8b6dc28136fec408517aef69f"
+  },
+  "observed": {
+    "status": "INDEX_RESOLUTION_SUCCEEDED_NOT_QUALIFIED",
+    "execution": "COMPLETED",
+    "qualification": "NOT_QUALIFIED",
+    "command": "cargo update --workspace --dry-run --locked --manifest-path /private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010/Cargo.toml",
+    "exit_code": 0,
+    "elapsed_ms": 1354,
+    "signal": null,
+    "timeout_kind": null,
+    "captured_output_bytes": 209,
+    "dry_run_warning_present": true,
+    "reqwest_sparse_index": {
+      "present": true,
+      "bytes": 972003,
+      "sha256": "b362cf73aa5be4dea3d7d4f83be484bc28bb25f39defd956d4a6e587b485348d"
+    },
+    "cache_delta": {
+      "before_tree_sha256": "fca99e44c62a4c1bd6fd1b274d143b7dac1e54e9f9751d4ea7856a329ba888f9",
+      "after_tree_sha256": "6e45fd13ab7c70c75f18e8d8e71fc6c51dd2b535ff9ce1ec4ad56514ecb44402",
+      "changed_paths": 152,
+      "added_paths": 151,
+      "changed_paths_including_bookkeeping": 152,
+      "outside_allowed_scope": 0,
+      "removed_index_paths": 0,
+      "invalid_bookkeeping_changes": 0,
+      "allowed_scope_check_passed": true,
+      "only_bookkeeping_file_changed": ".global-cache"
+    },
+    "cargo_home_root": {
+      "physical_non_symlink_directory": true,
+      "mode_unchanged": "0755",
+      "device_unchanged": true,
+      "inode_unchanged": true,
+      "postcheck_passed": true
+    },
+    "candidate": {
+      "head_unchanged": true,
+      "tree_unchanged": true,
+      "status_unchanged": true,
+      "index_unchanged": true,
+      "cargo_lock_unchanged": true,
+      "config_unchanged": true,
+      "cargo_lock_sha256": "a43fdf2640e4934ecb60289c215363298b5932effdc9f161495269159f1f917e"
+    },
+    "target": { "entries_before": 0, "entries_after": 0, "unchanged": true },
+    "git_network_guard": {
+      "sha256": "638ef221a35c44979eb017a96cde44c2cb973f3fbe980a65f48cdf8ca5e9e4ab",
+      "blocked_operation_log_bytes": 0,
+      "no_git_network_operation_observed": true
+    },
+    "generator_source_postcheck": {
+      "inventory_path": "/private/tmp/termrock-vis11-tool-fixture-capture-r15-build-only-lock-luna-20261010/evidence/full-source-tree-r15.json",
+      "inventory_sha256": "4b3bb9389d0277167632a33a1e24c2a9cdf6e9583012c441f6bba68e4ed6e800",
+      "entries_expected": 3457,
+      "entries_observed": 3457,
+      "mismatches": 0,
+      "method": "Independent read-only post-run walk compared path/type/mode/bytes/SHA-256 against the pinned full source inventory."
+    }
+  },
+  "limits": [
+    "This establishes only the packet's narrow dry-run index-resolution result and required reqwest index population.",
+    "Cargo's dry-run path skips the lockfile writer where --locked mismatch validation occurs; this result does not validate a hypothetical updated graph against the lockfile.",
+    "No crate archives, registry source trees, cached Git source, candidate source, Cargo.lock, target, preview, or qualification were produced or claimed."
+  ],
+  "reviewer_actions": "Read-only result/log inspection, hash verification, and post-run source-inventory comparison. No Cargo, CLI, tests, or network operation was run by the reviewer."
+}

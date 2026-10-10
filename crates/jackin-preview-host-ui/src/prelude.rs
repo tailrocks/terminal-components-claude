@@ -5,17 +5,13 @@ use termrock::author::{
     Family, FgStep, Id, Modifier, PaintStyle, Part, Role, StateFlags, StyleDefaults, StylePatch,
     Surface, Ui, Variant,
 };
-use termrock::{
-    Button, ByIndex, Checkbox, Cx, Insets, ItemKey, List, ListAction, ListState, Note, Panel,
-    PanelKind, Response, RowUi, SelectMode, TextInput, TextInputState,
-};
+use termrock::{Button, Checkbox};
 
 pub use jackin_preview_presentation::prelude::PreludeState;
 
 pub const ROOT: Id = Id::root("jackin.prelude");
 pub const DIALOG: Id = ROOT.sub("dialog");
 pub const STEPPER: Id = ROOT.sub("stepper");
-pub const PATH_LABEL: Id = ROOT.sub("path_label");
 pub const PATH_INPUT: Id = ROOT.sub("path_input");
 pub const FILE_LIST: Id = ROOT.sub("file_list");
 pub const READ_ONLY: Id = ROOT.sub("read_only");
@@ -90,88 +86,10 @@ impl PreludePalette {
     }
 }
 
-struct SourceRow {
-    name: &'static str,
-    meta: &'static str,
-}
-
-const ROWS: [SourceRow; 6] = [
-    SourceRow {
-        name: "..",
-        meta: "parent",
-    },
-    SourceRow {
-        name: "crates/",
-        meta: "6 items",
-    },
-    SourceRow {
-        name: "docs/",
-        meta: "adr",
-    },
-    SourceRow {
-        name: "scripts/",
-        meta: "3 items",
-    },
-    SourceRow {
-        name: "Cargo.toml",
-        meta: "1 h",
-    },
-    SourceRow {
-        name: "README.md",
-        meta: "3 d",
-    },
-];
-
-fn row_disabled(row: &SourceRow) -> bool {
-    matches!(row.name, "Cargo.toml" | "README.md")
-}
-
-fn paint_source_row(row: &SourceRow, ui: &mut RowUi<'_>) {
-    if ui.flags().contains(StateFlags::FOCUSED) && !ui.flags().contains(StateFlags::DISABLED) {
-        ui.label_patched(row.name, &StylePatch::new().add(Modifier::BOLD));
-    } else {
-        ui.label(row.name);
-    }
-    ui.meta(row.meta);
-}
-
-fn source_list() -> List<'static, SourceRow, ByIndex, fn(&SourceRow, &mut RowUi<'_>)> {
-    List::new(FILE_LIST)
-        .select_mode(SelectMode::None)
-        .focused(true)
-        .disabled_item(&row_disabled)
-        .row(paint_source_row)
-}
-
-fn show_selection(files: &mut ListState, selection: u8) {
-    let sel = usize::from(selection);
-    files.set_cursor(sel, ItemKey::index(sel));
-    files.choose(None);
-}
-
-fn cursor_index(files: &ListState) -> Option<usize> {
-    match files.cursor() {
-        Some(ItemKey::Index(index)) => Some(index),
-        _ => None,
-    }
-}
-
-fn step_title(step: u8) -> &'static str {
-    match step {
-        1 => "New workspace · step 1 of 5 · Source",
-        2 => "New workspace · step 2 of 5 · Destination",
-        3 => "New workspace · step 3 of 5 · Edit",
-        4 => "New workspace · step 4 of 5 · Working dir",
-        _ => "New workspace · step 5 of 5 · Name",
-    }
-}
-
 /// Durable state for the Prelude UI screen.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PreludeUiState {
     pub read_only: bool,
-    pub files: ListState,
-    pub path: TextInputState,
 }
 
 /// Prelude screen composition.
@@ -179,7 +97,7 @@ pub struct PreludeScreen;
 
 impl PreludeScreen {
     /// Draw the Prelude creation dialog and inner components.
-    pub fn draw(ui: &mut Ui<'_>, full: Rect, prelude: &PreludeState, ui_state: &PreludeUiState) {
+    pub fn draw(ui: &mut Ui<'_>, full: Rect, prelude: &PreludeState, read_only: bool) {
         let palette = PreludePalette::new(ui);
 
         let w = if full.width < 100 {
@@ -195,121 +113,159 @@ impl PreludeScreen {
         let x = full.x + (full.width - w) / 2;
         let y = full.y + (full.height - h) / 2;
         let dialog_rect = Rect::new(x, y, w, h);
-        let step = prelude.step();
-        let title = step_title(step);
-        let panel_parts = [
-            (Part::BORDER, StylePatch::new().set_fg(Role::BorderStrong)),
-            (
-                Part::TITLE,
-                StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .add(Modifier::BOLD),
-            ),
-        ];
 
         ui.with_surface(Surface::Elevated, |ui| {
-            Panel::new(DIALOG)
-                .kind(PanelKind::Framed)
-                .title(title)
-                .inner_inset(Insets {
-                    l: 1,
-                    t: 1,
-                    r: 2,
-                    b: 1,
-                })
-                .patch_part(&panel_parts)
-                .focused(false)
-                .draw(ui, dialog_rect, |ui, _inner| {
-                    let stepper = "  Source · Destination · Edit · Working dir · Name";
-                    ui.paint_str(
-                        Rect::new(x + 1, y + 1, stepper.chars().count() as u16, 1),
-                        stepper,
-                        palette.muted,
-                    );
-                    if step == 1 {
-                        Self::draw_source_step(ui, dialog_rect, prelude, ui_state);
-                    } else {
-                        Self::draw_generic_step(ui, &palette, dialog_rect, prelude);
-                    }
-                });
-        });
-    }
+            ui.fill(dialog_rect, palette.elevated_bg);
+            ui.frame(dialog_rect, palette.border);
 
-    /// Move the source list by one row. The domain cursor stays on `prelude`.
-    pub fn update(
-        cx: &mut Cx<'_>,
-        ui: &mut PreludeUiState,
-        prelude: &mut PreludeState,
-    ) -> Response<()> {
-        if prelude.step() != 1 {
-            return Response::ignored();
-        }
-        let sel = usize::from(prelude.selection());
-        show_selection(&mut ui.files, prelude.selection());
-        let resp = source_list().update(cx, &mut ui.files, &ROWS);
-        let moved = resp.action_ref() == Some(&ListAction::Moved);
-        if moved {
-            let next = cursor_index(&ui.files).unwrap_or(sel);
-            if next == sel.saturating_add(1) {
-                prelude.move_selection(true);
-            } else if next.saturating_add(1) == sel {
-                prelude.move_selection(false);
+            let step = prelude.step();
+            let step_title = match step {
+                1 => " New workspace · step 1 of 5 · Source ",
+                2 => " New workspace · step 2 of 5 · Destination ",
+                3 => " New workspace · step 3 of 5 · Edit ",
+                4 => " New workspace · step 4 of 5 · Working dir ",
+                _ => " New workspace · step 5 of 5 · Name ",
+            };
+
+            ui.paint_str(
+                Rect::new(x + 2, y, step_title.chars().count() as u16, 1),
+                step_title,
+                palette.primary_bold,
+            );
+
+            let stepper = "  Source · Destination · Edit · Working dir · Name";
+            ui.paint_str(
+                Rect::new(x + 1, y + 1, stepper.chars().count() as u16, 1),
+                stepper,
+                palette.muted,
+            );
+
+            if step == 1 {
+                Self::draw_source_step(ui, &palette, dialog_rect, prelude, read_only);
+            } else {
+                Self::draw_generic_step(ui, &palette, dialog_rect, prelude);
             }
-        }
-        show_selection(&mut ui.files, prelude.selection());
-        resp.erase()
+        });
     }
 
     fn draw_source_step(
         ui: &mut Ui<'_>,
+        palette: &PreludePalette,
         dialog: Rect,
         prelude: &PreludeState,
-        ui_state: &PreludeUiState,
+        read_only: bool,
     ) {
         let x = dialog.x;
         let y = dialog.y;
         let w = dialog.width;
 
-        let help = [(
-            Part::HELP,
-            StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
-        )];
-        Note::new(PATH_LABEL, "Path")
-            .patch_part(&help)
-            .draw(ui, Rect::new(x + 4, y + 3, 4, 1));
-
-        let field = Role::Surface(Surface::Field);
-        let input_parts = [
-            (
-                Part::FIELD,
-                StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .set_bg(field),
-            ),
-            (
-                Part::TEXT,
-                StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-            ),
-        ];
-        TextInput::new(PATH_INPUT)
-            .value(prelude.source())
-            .disabled(true)
-            .patch_part(&input_parts)
-            .draw(
-                ui,
-                Rect::new(x + 2, y + 4, w.saturating_sub(5), 1),
-                &ui_state.path,
-            );
-
-        let list_h: u16 = if dialog.width < 76 { 4 } else { 6 };
-        let mut files = ui_state.files.clone();
-        show_selection(&mut files, prelude.selection());
-        source_list().draw(
-            ui,
-            Rect::new(x + 2, y + 6, w.saturating_sub(5), list_h),
-            &files,
-            &ROWS,
+        // Path label
+        let path_w = (w.saturating_sub(7)) as usize;
+        let path_text = format!("{:<path_w$}", "Path");
+        ui.paint_str(
+            Rect::new(x + 4, y + 3, path_w as u16, 1),
+            &path_text,
+            palette.secondary,
         );
+
+        // Path input field
+        let input_rect = Rect::new(x + 2, y + 4, w.saturating_sub(5), 1);
+        ui.fill(input_rect, palette.primary_on_field);
+        ui.paint_str(Rect::new(x + 2, y + 4, 1, 1), " ", palette.field_bg);
+        ui.paint_str(
+            Rect::new(x + 4, y + 4, w.saturating_sub(6), 1),
+            prelude.source(),
+            palette.primary_on_field,
+        );
+        ui.register_focus_only(FILE_LIST, termrock::author::Focusability::Focusable);
+
+        // File list
+        let list_y = y + 6;
+        let is_narrow = dialog.width < 76;
+        let list_h: u16 = if is_narrow { 4 } else { 6 };
+
+        let items: &[(&str, &str, bool, bool)] = &[
+            ("..", "parent", true, true),
+            ("crates/", "6 items", true, false),
+            ("docs/", "adr", true, false),
+            ("scripts/", "3 items", true, false),
+            ("Cargo.toml", "1 h", false, false),
+            ("README.md", "3 d", false, false),
+        ];
+
+        let meta_end_x = if is_narrow {
+            dialog.right().saturating_sub(5)
+        } else {
+            dialog.right().saturating_sub(4)
+        };
+
+        let dark_gap = resolve_style(
+            ui,
+            Role::Surface(Surface::Elevated),
+            Role::Surface(Surface::Elevated),
+            false,
+        );
+        for (idx, (name, meta, selectable, is_selected)) in
+            items.iter().take(list_h as usize).enumerate()
+        {
+            let row_y = list_y + idx as u16;
+            let meta_w = meta.chars().count() as u16;
+            let meta_x = meta_end_x.saturating_sub(meta_w);
+            let pad_w = (meta_x.saturating_sub(x + 3)) as usize;
+            let pad_content = pad_w.saturating_sub(2 + name.chars().count());
+            let text = format!("  {name}{:<pad_content$}", "");
+            if *is_selected {
+                ui.paint_str(Rect::new(x + 2, row_y, 1, 1), "▎", palette.accent_bold);
+                ui.paint_str(
+                    Rect::new(x + 3, row_y, meta_x.saturating_sub(x + 3), 1),
+                    &text,
+                    palette.primary_bold,
+                );
+                ui.paint_str(
+                    Rect::new(meta_x, row_y, meta_w, 1),
+                    meta,
+                    palette.muted_bold,
+                );
+                ui.paint_str(
+                    Rect::new(meta_end_x, row_y, 1, 1),
+                    " ",
+                    palette.primary_bold,
+                );
+            } else if *selectable {
+                ui.paint_str(Rect::new(x + 2, row_y, 1, 1), " ", dark_gap);
+                ui.paint_str(
+                    Rect::new(x + 3, row_y, meta_x.saturating_sub(x + 3), 1),
+                    &text,
+                    palette.primary,
+                );
+                ui.paint_str(Rect::new(meta_x, row_y, meta_w, 1), meta, palette.muted);
+                ui.paint_str(Rect::new(meta_end_x, row_y, 1, 1), " ", palette.primary);
+            } else {
+                ui.paint_str(Rect::new(x + 2, row_y, 1, 1), " ", dark_gap);
+                ui.paint_str(
+                    Rect::new(x + 3, row_y, meta_x.saturating_sub(x + 3), 1),
+                    &text,
+                    palette.disabled,
+                );
+                ui.paint_str(Rect::new(meta_x, row_y, meta_w, 1), meta, palette.disabled);
+                ui.paint_str(Rect::new(meta_end_x, row_y, 1, 1), " ", palette.disabled);
+            }
+        }
+
+        if is_narrow {
+            // Scrollbar at right edge of list
+            let sb_col = dialog.right().saturating_sub(4);
+            ui.paint_str(Rect::new(sb_col, list_y, 1, 1), "┃", palette.primary);
+            ui.paint_str(Rect::new(sb_col, list_y + 1, 1, 1), "┃", palette.primary);
+            let dim_border = resolve_style(
+                ui,
+                Role::BorderSubtle,
+                Role::Surface(Surface::Elevated),
+                false,
+            );
+            ui.paint_str(Rect::new(sb_col, list_y + 2, 1, 1), "│", dim_border);
+            ui.paint_str(Rect::new(sb_col, list_y + 3, 1, 1), "│", dim_border);
+        }
 
         // Checkbox: Mount read-only at bottom - 5
         let chk_y = dialog.bottom().saturating_sub(5);
@@ -318,7 +274,7 @@ impl PreludeScreen {
         if !area.is_empty() {
             let elevated = Role::Surface(Surface::Elevated);
             Checkbox::new(READ_ONLY, "Mount read-only")
-                .checked(ui_state.read_only)
+                .checked(read_only)
                 .patch_part(&[
                     (
                         Part::CONTAINER,
@@ -399,54 +355,5 @@ impl PreludeScreen {
         Button::new(CONTINUE, "Continue")
             .variant(Variant::PRIMARY)
             .draw(ui, continue_rect);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use termrock::{App, Buffer, Position, Response, Runtime, Theme};
-
-    use super::*;
-
-    struct DummyApp;
-
-    impl App for DummyApp {
-        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-            Response::ignored()
-        }
-
-        fn draw(&self, _ui: &mut Ui<'_>) {}
-    }
-
-    fn symbol(buf: &Buffer, x: u16, y: u16) -> String {
-        buf.cell(Position::new(x, y))
-            .map(|cell| cell.symbol().to_string())
-            .unwrap_or_default()
-    }
-
-    #[test]
-    fn selected_source_label_comes_from_the_list() {
-        let area = Rect::new(0, 0, 120, 40);
-        let mut runtime = Runtime::new(DummyApp, Theme::junie());
-        let mut buf = Buffer::empty(area);
-        let mut prelude = PreludeState::default();
-        prelude.move_selection(true);
-        assert_eq!(prelude.selection(), 1);
-        runtime
-            .draw_scene(area, &mut buf, |ui, full| {
-                PreludeScreen::draw(ui, full, &prelude, &PreludeUiState::default());
-            })
-            .commit_presented();
-
-        assert_eq!(symbol(&buf, 20, 16), "▎", "cursor gutter sits on crates/");
-        assert_eq!(symbol(&buf, 20, 15), " ");
-        assert_eq!(symbol(&buf, 21, 15), " ");
-        assert_eq!(symbol(&buf, 22, 15), " ");
-        let crates: String = (20..40).map(|x| symbol(&buf, x, 16)).collect();
-        let cargo: String = (20..40).map(|x| symbol(&buf, x, 19)).collect();
-        assert!(crates.contains("crates/"), "{crates}");
-        assert!(cargo.contains("Cargo.toml"), "{cargo}");
-        let mount: String = (20..=42).map(|x| symbol(&buf, x, 26)).collect();
-        assert_eq!(mount, " [ ] Mount read-only   ");
     }
 }

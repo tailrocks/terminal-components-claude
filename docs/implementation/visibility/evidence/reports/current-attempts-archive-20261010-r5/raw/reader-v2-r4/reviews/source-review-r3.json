@@ -1,0 +1,29 @@
+{
+  "review": "VIS-08 Nextest reader implementation R3",
+  "reviewer": "/root/rust_test_infrastructure/nextest_reader_plan_review",
+  "candidate": "/private/tmp/termrock-vis08-nextest-reader-impl-r3-v1",
+  "source_freeze_sha256": "1431a38f87b7eaaa0c20a2323547f902538f850e6ff6ee425e7d24a3a34fb8e2",
+  "full_patch_sha256": "64724702c3be2ca4e884ae0224bbba1658a327ad7f51b5de1a3b840c01fe64b0",
+  "r2_to_r3_delta_sha256": "a459f021d9cf66ef7fce5aeee61c4279d35dda41346ba91e1b19cf24cb268544",
+  "reviewed_source_files": [
+    {
+      "path": "crates/termrock-visibility-tests/src/lib.rs",
+      "sha256": "5ec6fe8e4a4bbb15e888c403fc91e35a6431c6541481c162d4da3aca996f2f2c"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/nextest_result.rs",
+      "sha256": "74c6511da26473c70ed3a9e2592668862bb2dcba47913029cc60b652d69ec7fd"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/bin/nextest-result-reader.rs",
+      "sha256": "518d527af27dd880057db6c4ef029244d59fe8cdcfdf6d3822b8aad2e7b83500"
+    }
+  ],
+  "verdict": "APPROVE",
+  "reviewed_points": [
+    "Repeated suite.started is rejected after suite close; identical pre-close repeats remain allowed and covered.",
+    "A single child harness summary is checked against one structured suite; a child-only mismatch blocks acceptance.",
+    "Multiple or unbound child summaries are marked unverified without a false contradiction."
+  ],
+  "review_limits": "Read-only source review. No Cargo, compiler, or tests were run."
+}

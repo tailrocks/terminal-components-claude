@@ -227,6 +227,33 @@ The reporter does not fetch GitHub. It verifies the pinned execution JSON
 records when rendering local partial observations; it does not rehash the
 artifact files named inside the paired Holla receipt.
 
+## Typed execution attempt history
+
+An optional top-level `execution_attempt_history` object uses
+`termrock-status-execution-attempt-history/v1`. The `attempts` array is ordered
+by contiguous sequence number and unique attempt ID. Each row binds to a
+candidate commit, candidate/reference pair, immutable visual tag, or tool
+source, and declares `CURRENT` or `HISTORICAL`. `CURRENT` is accepted only when
+the binding matches the latest recorded source observation; an older or
+unrelated source must remain `HISTORICAL`.
+
+Every row pins its evidence files by repository-relative path, format, and
+SHA-256. Non-provider lanes include a pinned
+`termrock-status-attempt-result/v1` JSON record whose attempt ID, lane, source
+binding, reconciled counts, and outcome states must equal the row. The
+`ci_provider` lane instead validates the captured run, failed check suite,
+suite-specific check-runs response, jobs, artifacts, and failed-log CLI output.
+When that CLI reports “log not found” without a captured HTTP response, the
+record must say `diagnostic.status=NOT_EXPOSED` and `http_status=NOT_CAPTURED`;
+the reporter does not infer a provider cause or HTTP code.
+
+Counts reconcile inventory, selection, filtered cases, started tests, terminal
+results, and incomplete tests. Test, child process, wrapper, collector,
+postflight, cleanup, capture, qualification, and admission outcomes render in
+separate columns. Attempt history is informational: it cannot qualify a
+product result, admit data, or change readiness. It also does not replace the
+existing paired product observations.
+
 ## Published report and provider evidence
 
 The current-publication record keeps report commits separate from the fixed
@@ -284,8 +311,7 @@ writes only `STATUS.md` when called with `--write`.
 
 ## Current limits
 
-This increment reads only the two pinned, reviewed execution record shapes
-listed above. It does not validate an accepted complete case registry or active
-required set, enforce monotonic receipt freshness, calculate trends, produce
-component checkpoint pages, or publish reports. Those results remain
-incomplete until their records and evidence are accepted.
+The reporter does not validate an accepted complete case registry or active
+required set, enforce monotonic receipt freshness across product runs, calculate
+trends, produce component checkpoint pages, or publish reports. Those results
+remain incomplete until their records and evidence are accepted.

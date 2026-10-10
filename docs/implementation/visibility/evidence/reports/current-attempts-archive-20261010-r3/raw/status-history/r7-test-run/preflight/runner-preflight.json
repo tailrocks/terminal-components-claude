@@ -1,0 +1,44 @@
+{
+  "schema": "termrock.nextest-runner-preflight.v1",
+  "result": "PREFLIGHT_READY_NO_CARGO",
+  "runner_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/packet/runner.cjs",
+  "runner_sha256": "d4cd18301396f4f3dff93330b98ac3ef3cb71b3c7f58db189ee6bc147aac6471",
+  "runplan_sha256": "f0a4f859b71ed2a2742809ce664af1e6baddc5caba294b317741ad96c34d3ae2",
+  "source_manifest_sha256": "55d4643858acf670182d36931e231799a25ab83de0406654aba9dacde08d8642",
+  "test_names_sha256": "169f5ea6c145ab6862c02fef279959bd82cf89307d0c091e19030a0984ab0e2d",
+  "cache_closure_sha256": "5d110f51df58b786c0d3a36d81025e4e4421e5544184fd3243b498f2d51c00fd",
+  "packet_checksums_sha256": "2ca0634812d954c2795837fed9d1f29bec3ceab05db0506af51240fcd03b8a4c",
+  "review_request_sha256": "e49245d1664975e9ea0fcf56dd0f1768fcb21932d36df3c6b739894d303d4d1e",
+  "cargo_spawned": false,
+  "nextest_spawned": false,
+  "tests_run": false,
+  "network_used": false,
+  "selected_cases_expected_from_source": 53,
+  "target_selectors": {
+    "package": "termrock-visibility-tests",
+    "test": "status"
+  },
+  "build_dependencies": [
+    {
+      "name": "fixture",
+      "selection_role": "build_dependency_only",
+      "source_unit_test_count": 1,
+      "source_unit_test_names": [
+        "nextest_signal_parser_accepts_only_a_guaranteed_terminating_signal"
+      ],
+      "selected_unit_test_count": 0,
+      "artifact_path": "debug/fixture",
+      "artifact_mode": "0755"
+    }
+  ],
+  "source_digest": "fe5f46b7557800ec496dbe253aa6c8350c0f93e997d428b7dfef93fa210aff08",
+  "tool_digest": "af1dbb9644fd7443ffdba5d4ea6f26da51dc8a8cbf4dae61c955ffc08c612668",
+  "cache_digest": "0905c5e18710303eb427bd54c679e4c4a0bb20cc6be29ea066501b9d5b755eae",
+  "target_root": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/packet/target",
+  "target_digest": "009b7b039081f24f8208cd7508b6f2e6c4a0c113ae1010c85160b8f71d8e34c6",
+  "target_entries": 1,
+  "target_file_bytes": 0,
+  "new_target_artifacts_absent": true,
+  "output_root_absent": true,
+  "created_at": "2026-10-09T23:06:13.243Z"
+}

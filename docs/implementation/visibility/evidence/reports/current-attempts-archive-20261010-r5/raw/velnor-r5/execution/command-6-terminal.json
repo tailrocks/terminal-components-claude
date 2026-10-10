@@ -1,0 +1,90 @@
+{
+  "index": 6,
+  "label": "reusable_call_renderer_revalidation",
+  "package": "velnor-actions-workflow-renderer",
+  "expected_tests": 4,
+  "test_ids": [
+    "impl_renderer_reusable_call::renderer_emits_valid_job_level_call",
+    "impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts",
+    "impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output",
+    "impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege"
+  ],
+  "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+  "argv": [
+    "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "nextest",
+    "run",
+    "--locked",
+    "--offline",
+    "-p",
+    "velnor-actions-workflow-renderer",
+    "--build-jobs",
+    "2",
+    "--test-threads",
+    "1",
+    "--no-tests",
+    "fail",
+    "--user-config-file",
+    "none",
+    "--ignore-default-filter",
+    "--retries",
+    "0",
+    "--no-fail-fast",
+    "--color",
+    "never",
+    "-E",
+    "test(=impl_renderer_reusable_call::renderer_emits_valid_job_level_call) | test(=impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts) | test(=impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output) | test(=impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege)"
+  ],
+  "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+  "started_utc": "2026-10-10T01:00:55.243Z",
+  "pid": 77047,
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "interrupted": false,
+  "terminal_reason": null,
+  "launch_error": null,
+  "exit_event_received": true,
+  "close_event_received": true,
+  "kill_signals": [
+    {
+      "signal": "SIGKILL",
+      "sent": false,
+      "error": "kill ESRCH",
+      "reason": "final_group_cleanup"
+    }
+  ],
+  "output_capture": {
+    "gate_cap_bytes": 4194304,
+    "stored_gate_bytes": 36589,
+    "observed_gate_bytes": 36589,
+    "stored_command_bytes": 2605,
+    "observed_command_bytes": 2605,
+    "limit_exceeded": false,
+    "write_error": null
+  },
+  "finished_utc": "2026-10-10T01:01:06.847Z",
+  "post_kill_close_grace_expired": false,
+  "summary_lines": [
+    "Summary [   0.084s] 4 tests run: 4 passed, 121 skipped"
+  ],
+  "measured_counts": {
+    "executed": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "passed_test_ids": [
+    "impl_renderer_reusable_call::renderer_emits_valid_job_level_call",
+    "impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output",
+    "impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege",
+    "impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts"
+  ],
+  "counts_exact": true,
+  "output": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-6.log",
+    "bytes": 2605,
+    "sha256": "11059c1f58631491e5c96f0567af8dd0503fa09c4924530491e4a2ed6a3bae7f",
+    "complete": true
+  },
+  "status": "completed"
+}

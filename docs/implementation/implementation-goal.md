@@ -1,9 +1,9 @@
-# Preserved implementation mission (inactive historical prompt)
+# Preserved implementation mission (inactive during the documentation repair)
 
-> This file is an inactive historical prompt. It is not a live specification and it is not policy.
-> Do not follow it. None of it is followed, including the clause that would supersede source-path protections and including its model, provider, and reasoning-level lines.
-> Do not restore this file into `GOAL.md` or `AGENTS.md`.
-> Root `GOAL.md` is the active task. This file does not supersede it.
+> This file preserves the implementation mission VERBATIM while root GOAL.md
+> carries the active documentation-only task. It is not a live specification.
+> Do not follow it until the documentation task restores it through its
+> recorded restoration procedure. See the final documentation report.
 
 ---
 

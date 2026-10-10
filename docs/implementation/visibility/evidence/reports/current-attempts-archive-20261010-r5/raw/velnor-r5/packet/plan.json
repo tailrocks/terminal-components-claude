@@ -1,0 +1,348 @@
+{
+  "schema": "termrock.vis11.prerelease-v2-nextest-runner-plan/v1",
+  "status": "READY_FOR_INDEPENDENT_REVIEW_AND_ROOT_EXECUTION_DECISION_NOT_RUN",
+  "qualification": "NOT_QUALIFIED",
+  "execution": {
+    "owner": "Root only",
+    "command": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node /private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/runner.cjs --execute",
+    "must_wait_for_exclusive_cargo_slot": true,
+    "expected_group_counts": [
+      2,
+      2,
+      23,
+      11,
+      6,
+      4
+    ],
+    "expected_total": 48,
+    "target": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target",
+      "preexisting": true,
+      "mode": "755",
+      "role": "R9 one-test warm Cargo target input only; R9 test result counts zero toward current gate"
+    },
+    "cargo_home": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home",
+    "limits": {
+      "whole_gate_deadline_ms": 1200000,
+      "term_grace_ms": 15000,
+      "post_kill_close_grace_ms": 10000,
+      "combined_output_cap_bytes": 4194304,
+      "per_group_logs": true,
+      "process_group_cleanup": true
+    },
+    "only_execution_output_path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution",
+    "source_guard": "Before each child, rehash and verify the complete pinned R8 source tree and inventory; abort that group on mismatch. Keep existing post-child and final source checks.",
+    "historical_zero_job_context": {
+      "r9_status": "20 PASS / 1 FAIL; failed test is selected normally in current 48; no cause inferred",
+      "r10_status": "separate isolated 1/1 PASS; source tree differs and no pass is carried forward",
+      "r9_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-r9-observer-21-gate-luna-20261010/run-root/execution/receipt.json",
+        "sha256": "32ca83dae8422de1233abbda081ecfca73c0e2edc4a7a6f4047991910b84c594",
+        "bytes": 96165,
+        "mode": "600"
+      },
+      "r10_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-r10-zero-job-diagnostic-gate-luna-20261010/run-root/execution/receipt.json",
+        "sha256": "82793052f80ab5fe06079e41d8a60bf09466aa3fe90eae8074c162bb074b39bd",
+        "bytes": 40175,
+        "mode": "600"
+      }
+    },
+    "status": "READY_FOR_INDEPENDENT_REVIEW_AND_ROOT_EXECUTION_DECISION_NOT_RUN"
+  },
+  "scope": "Root-only exact 48-case Nextest gate on the post-metadata Git-less source; this is an affected-case gate, not full-workspace qualification or product/release qualification.",
+  "source": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+    "identity": "Git-less admitted R8 external source snapshot. The R8 fixture-admission record binds one approved source-tag fixture update against its R7 base. The complete current input is the pinned R8 tree; no Git identity is asserted.",
+    "full_tree": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/evidence/full-source-tree-r1.json",
+      "sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+      "bytes": 755222,
+      "mode": "644"
+    },
+    "post_metadata_inventory": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/evidence/source-file-inventory-r1.json",
+      "sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+      "bytes": 642941,
+      "mode": "644"
+    },
+    "test_source_map": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/test-source-map.json",
+      "sha256": "48d45264e38ac2f82192e46bf1c24a5e8472866277d906b2cae12a018a18ef55",
+      "bytes": 23209,
+      "mode": "444"
+    },
+    "source_rows_rebound": 16,
+    "changed_source_files": [
+      "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+      "crates/services/velnor-actions-orchestrator-generation/tests/impl_schema2_routing.rs",
+      "crates/services/velnor-actions-workflow-generator/tests/impl_generator_mise_setup/source_modes.rs"
+    ],
+    "line_number_updates": [
+      {
+        "id": "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+        "old": 143,
+        "new": 144
+      },
+      {
+        "id": "impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+        "old": 187,
+        "new": 189
+      },
+      {
+        "id": "impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing",
+        "old": 258,
+        "new": 260
+      },
+      {
+        "id": "impl_ci_observer::runtime_reports_transport_and_workflow_source_errors",
+        "old": 303,
+        "new": 305
+      },
+      {
+        "id": "impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+        "old": 358,
+        "new": 360
+      },
+      {
+        "id": "impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run",
+        "old": 383,
+        "new": 385
+      }
+    ],
+    "fixture_admission": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/review/fixture-admission-r1.json",
+      "sha256": "2ac63643ad9f7a5a5b948f2bfc2081967138bbbe5039d8f8a37afab95a70ad12",
+      "bytes": 4874,
+      "mode": "644"
+    },
+    "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "lock_bytes": 127941
+  },
+  "packet": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/gate-packet.json",
+    "bytes": 95534,
+    "sha256": "5ab40a5ced48ea768f56c974ab177a64bca8639367a9a67444b1ad045625ccc1",
+    "mode": "444"
+  },
+  "runner": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/runner.cjs",
+    "sha256": "0096bffe42a95984693c035cd00e562d2bfe346eac0b28841742caeddd92a083",
+    "bytes": 45508,
+    "mode": "444"
+  },
+  "impact_plan": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/impact-plan.json",
+    "bytes": 17407,
+    "sha256": "903a2f7649ed22422c16bf0ecf22fcf5c51236da16961ff67060251696b31739",
+    "mode": "444"
+  },
+  "metadata_actual_review": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-metadata-actual-review-luna-20261009.json",
+    "sha256": "67eccf20e6001f314c11df538b2ccd9c163165c1d668bce05c46093e897aa8aa"
+  },
+  "metadata_actual_result": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-metadata-runner-luna-r1-20261009/run-root/execution/result.json",
+    "sha256": "66cd71ea0d38ac55b38dd4e2dccc7e4f891dc139b6e305b5c9f80c2e11f5f786"
+  },
+  "preflight": {
+    "command": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node /private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/runner.cjs --preflight",
+    "status": "PASS_NO_CARGO",
+    "exit_code": 0,
+    "runner_sha256": "0096bffe42a95984693c035cd00e562d2bfe346eac0b28841742caeddd92a083",
+    "execution_started": false,
+    "stdout": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/preflight.stdout",
+      "sha256": "76ee106f332f43afe9ab74f27b2700116fbdffb8e5bdf3c57ff10f3a62e763fb",
+      "bytes": 21467,
+      "mode": "444"
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/preflight.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": "444"
+    },
+    "source_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+    "selected_count": 48,
+    "groups": [
+      {
+        "index": 1,
+        "package": "velnor-actions-contract-config",
+        "count": 2
+      },
+      {
+        "index": 2,
+        "package": "velnor-actions-contract-release",
+        "count": 2
+      },
+      {
+        "index": 3,
+        "package": "velnor-actions-orchestrator-generation",
+        "count": 23
+      },
+      {
+        "index": 4,
+        "package": "velnor-actions-workflow-generator",
+        "count": 11
+      },
+      {
+        "index": 5,
+        "package": "velnor-actions-contract-workflow",
+        "count": 6
+      },
+      {
+        "index": 6,
+        "package": "velnor-actions-workflow-renderer",
+        "count": 4
+      }
+    ],
+    "output_roots": {
+      "execution": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution",
+      "execution_absent": true,
+      "target": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target",
+      "target_preexisting": true
+    },
+    "action": "No Cargo, Nextest, build, test, CLI, or workflow generation ran during preflight."
+  },
+  "node_syntax_check": {
+    "command": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node --check /private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/runner.cjs",
+    "exit_code": 0,
+    "meaning": "JavaScript syntax check only; no Cargo or Nextest."
+  },
+  "prior_preflight_attempts": [
+    {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r1-20261010/evidence/preflight-attempt-1.json",
+      "sha256": "34232ebab4b0962c7d375285574079bef79708850d143d943ac994c230567608",
+      "status": "NOT_READY_PRESERVED",
+      "runner_sha256": "21667b0ab2cd6306321395e5a20c0e5a8ee748edb394efba33e2b035d54720ca",
+      "reason": "Static preflight found ordering mismatch between full-tree walk rows and post-metadata inventory rows; no Cargo or Nextest process was started.",
+      "execution_started": false
+    },
+    {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r1-20261010/evidence/preflight-attempt-2.json",
+      "sha256": "977262be6456282af4779a6a8cb4ff63748251c4415c8ef040a24eeb290191ad",
+      "status": "NOT_READY_PRESERVED",
+      "runner_sha256": "cc416b59abf72d0a1bf882f0ae3b8a05152632ee7e6052861a663e8fa15a755c",
+      "reason": "Static preflight found that the post-metadata symlink inventory adds a target-content hash not yet represented by the full-tree comparison; no Cargo or Nextest process was started.",
+      "execution_started": false
+    },
+    {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r1-20261010/evidence/preflight-attempt-3.json",
+      "sha256": "89e89183b137692441ef84f0f1f561d75ead9cec7f977b07d25bbb628963482a",
+      "status": "NOT_READY_PRESERVED",
+      "runner_sha256": "e169339394c7356b5219d3be35e64280476cee6333bbc54a5c685966112fe5c7",
+      "reason": "Static preflight showed the source inventory records the SHA-256 of symlink target text; the full-tree check is being aligned to that recorded representation while resolving the actual symlink target separately. No Cargo or Nextest process was started.",
+      "execution_started": false
+    }
+  ],
+  "claims": {
+    "tests_run": false,
+    "build_run": false,
+    "cli_run": false,
+    "qualification": "NOT_QUALIFIED",
+    "no_git_identity": true,
+    "prior_35_case_passes_not_carried": true,
+    "r9_single_test_passes_carried": 0,
+    "cache_qualification": "NOT_QUALIFIED"
+  },
+  "successor": {
+    "predecessor": "R3",
+    "predecessor_packet_sha256": "03b7323d6645219086a6a966ab823ae63860da16535ce7eed4c0d9fff3ebdae5",
+    "predecessor_runner_sha256": "a7c580532a96aac2ba1da321328a3980c85370fc3dddffd9c9206b62e3ee613e",
+    "predecessor_preflight": {
+      "command": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node /private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/run-root/runner.cjs --preflight",
+      "exit_code": 2,
+      "stdout": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/evidence/preflight.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "mode": "444"
+      },
+      "stderr": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/evidence/preflight.stderr",
+        "sha256": "79c051e259851835730d2f32c60da9090b8e3da5f2303936e7b730bd874da5c9",
+        "bytes": 1251,
+        "mode": "444"
+      },
+      "execution_started": false,
+      "diagnosis": "R8 source root mode was observed as 0755 but the R3 packet omitted source.root_mode because the full-tree JSON has no root_mode field. No Cargo, Nextest, build, or tests were spawned."
+    },
+    "delta": [
+      "set the observed physical R8 source root mode to 0755; the full-tree JSON does not include root_mode",
+      "rebind the packet, impact-plan, test-map, and absent execution-output paths to R4",
+      "preserve R3 failed preflight as a no-Cargo setup error; no source/test selection change"
+    ]
+  },
+  "historical_attempts": {
+    "r9_zero_job_gate": {
+      "receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-r9-observer-21-gate-luna-20261010/run-root/execution/receipt.json",
+        "sha256": "32ca83dae8422de1233abbda081ecfca73c0e2edc4a7a6f4047991910b84c594",
+        "bytes": 96165,
+        "mode": "600"
+      },
+      "selected": 21,
+      "passed": 20,
+      "failed": 1,
+      "source_tree_sha256": "16ae6439214c38b49e5a1cff24ec009fed837663729697c4799b63043e186d92"
+    },
+    "r10_isolated_retry": {
+      "receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-r10-zero-job-diagnostic-gate-luna-20261010/run-root/execution/receipt.json",
+        "sha256": "82793052f80ab5fe06079e41d8a60bf09466aa3fe90eae8074c162bb074b39bd",
+        "bytes": 40175,
+        "mode": "600"
+      },
+      "selected": 1,
+      "passed": 1,
+      "failed": 0,
+      "source_tree_sha256": "c0fb4f5781f58e932be2b01a3cf96427196f4a5002693fbcdc6284976b762bbe"
+    }
+  },
+  "predecessor": {
+    "revision": "R3",
+    "status": "PREFLIGHT_FAILED_BEFORE_CARGO",
+    "packet": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/evidence/gate-packet.json",
+      "sha256": "03b7323d6645219086a6a966ab823ae63860da16535ce7eed4c0d9fff3ebdae5",
+      "bytes": 93883,
+      "mode": "444"
+    },
+    "runner": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/run-root/runner.cjs",
+      "sha256": "a7c580532a96aac2ba1da321328a3980c85370fc3dddffd9c9206b62e3ee613e",
+      "bytes": 45522,
+      "mode": "444"
+    },
+    "preflight": {
+      "command": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node /private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/run-root/runner.cjs --preflight",
+      "exit_code": 2,
+      "stdout": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/evidence/preflight.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "mode": "444"
+      },
+      "stderr": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/evidence/preflight.stderr",
+        "sha256": "79c051e259851835730d2f32c60da9090b8e3da5f2303936e7b730bd874da5c9",
+        "bytes": 1251,
+        "mode": "444"
+      },
+      "execution_started": false,
+      "diagnosis": "R8 source root mode was observed as 0755 but the R3 packet omitted source.root_mode because the full-tree JSON has no root_mode field. No Cargo, Nextest, build, or tests were spawned."
+    }
+  },
+  "current_revision": {
+    "revision": "R5",
+    "supersedes": "R4",
+    "status": "FROZEN_FOR_FOCUSED_REVIEW_NOT_RUN",
+    "delta": "The raw PASS collector now preserves duplicate rows; exact selected IDs/counts therefore reject duplicate PASS rows. Source tree, fixture, lock, test names, and 48 selectors are unchanged. Packet references and execution output path point to R5.",
+    "predecessor_finding": {
+      "r4_runner_sha256": "1165a25cb5e6d827e8f3f2643e0d8550cd792165ac2aef663ecd6b655d22654a",
+      "finding": "passedIds converted raw matching PASS rows through Set, silently discarding duplicate rows before the exact-pass check.",
+      "execution": "NOT_RUN"
+    }
+  }
+}

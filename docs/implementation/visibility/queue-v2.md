@@ -204,12 +204,6 @@ Schema-v2 records keep the same top-level fields as schema v1, with
 `repository_id` and `worktree_id`. These are logical identifiers. Records do
 not contain local root paths.
 
-Schema v2 remains a read-only record format in this increment and has no v2
-mutation command. To make migration lossless, it preserves schema-v1 task and
-claim-snapshot `branch_scopes` where present. It continues to validate those
-legacy grants and expands them in repository- and branch-scoped conflict checks;
-it does not add a schema-v2 amendment operation or reinterpret the grants.
-
 The role registry adds one `queue_authority` and a role for each registered
 worktree. The coordinator owns the only task file, generated view, and queue
 lock. It is a writable `termrock-implementation` worktree. The separate

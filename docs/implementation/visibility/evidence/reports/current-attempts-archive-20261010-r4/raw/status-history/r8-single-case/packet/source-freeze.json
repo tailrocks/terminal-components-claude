@@ -1,0 +1,55 @@
+{
+  "schema": "termrock.vis01.attempt-history-r8-source-freeze/v1",
+  "base_commit": "6b00cb1c5cd10ab2e82014c306a603e92ea5e694",
+  "base_tree": "f10bd01e2d1b38b8e5f50f397fa070a348149cfe",
+  "parent_source_freeze_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/packet/source-freeze.json",
+  "parent_source_freeze_sha256": "ed1c8e5245d440fb937a5b623946f8e836052b2c47ddcc4afcaea42d0cf33d24",
+  "parent_source_review_path": "/private/tmp/termrock-vis01-attempt-history-r7-source-review-ci-parity-luna-20261010.json",
+  "parent_source_review_sha256": "d7bca87f2e25717317341b48990a6f6be5fd16891cefbc34f1286fcdcd63d338",
+  "r8_source_review_path": "/private/tmp/termrock-vis01-attempt-history-r8-source-delta-review-ci-parity-luna.json",
+  "r8_source_review_sha256": "ead9a145aa10a3d484eb08d1dafae26dc168e398ade052b16b490368f62c0e4a",
+  "source_delta_from_parent_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/source-delta-r7-to-r8.patch",
+  "source_delta_from_parent_sha256": "47793190ed7439ae80fe1cec78bf8347e2df90bcb8dd9c396f058a100bf75305",
+  "source_delta_patch_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/source-delta.patch",
+  "source_delta_patch_sha256": "090bbdb522b8e94a88ac8db85d711faa5192a34720156300013def028ab21b80",
+  "source_delta_patch_bytes": 43386,
+  "allowed_paths": [
+    "tools/visibility/status.py",
+    "tools/visibility/README.md",
+    "crates/termrock-visibility-tests/tests/status.rs"
+  ],
+  "changed_paths_from_parent": [
+    "crates/termrock-visibility-tests/tests/status.rs"
+  ],
+  "files": [
+    {
+      "path": "tools/visibility/status.py",
+      "base_sha256": "3821039f926a312e46712ab2b2f1af32e6ee928862185e7ea8f7fe66e6d34cef",
+      "sha256": "857b9958ec588fcb18aa1f5263a156cd1c6e24192a4cf56d8a99d0af7520732e",
+      "bytes": 256771
+    },
+    {
+      "path": "tools/visibility/README.md",
+      "base_sha256": "230b92557572a1c75eb6f714e00e94ac06b550ae64900fe801c860552853940e",
+      "sha256": "13dd245e8bbb7031bf231eaed4ce953cc80c2220945aac6b7b0f7bdec570fdac",
+      "bytes": 18499
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "base_sha256": "e09256ea95055a3b9c33ea12b05f572661bc84bf3ff41c105e016bd279932d3b",
+      "sha256": "dbdceffc8252c44923da70e5296a54a54c40c2396b34986bb6055d5b2d206d7e",
+      "bytes": 163441
+    }
+  ],
+  "preserved_r7_attempt": {
+    "receipt_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/packet/output/final-receipt.json",
+    "receipt_sha256": "8e6d08143d04ebe85450dcb0906a49157a43e04637085d48e15035881fb06e0d",
+    "actual_result_review_path": "/private/tmp/termrock-vis01-r7-actual-result-review-luna-20261010.json",
+    "actual_result_review_sha256": "b2f94886c5d555bbf431bdd1d56e3641ae50af2b1abcef927a3c003f82d87127",
+    "result": "52/53 passed, one required case failed, child exit 100; source stable and artifacts verified"
+  },
+  "change_summary": "Normalize branch_scopes only in the two scoped claim-history snapshots of the synthetic representable-v1 migration fixture, assert exact accepted contexts and preserve every other snapshot field; production validator unchanged.",
+  "source_root": "/private/tmp/termrock-vis01-attempt-history-source-r8-20261010",
+  "status": "R8_SOURCE_REVIEW_READY; R8_NEXTTEST_NOT_RUN",
+  "cargo_or_nextest_executed": false
+}

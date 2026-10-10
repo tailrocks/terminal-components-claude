@@ -1,0 +1,9 @@
+# R10 clone-stage plan successor
+
+R10 is a new immutable successor to R9. R9 remains unchanged with a focused `CHANGES_REQUIRED` review: its compile command directed the final rustc output to `scratch/tmp`, but a later live-monitor action ambiguously allowed compiler output under `scratch/bin`. R10 corrects that monitor contract and binds a fresh helper destination and absent scratch root.
+
+R8’s actual compile failure remains the motivating evidence. Its supervisor found rustc’s generated `.rcgu.o` under `scratch/bin`, terminated the compiler, and stopped before helper execution or any Git operation. The exact R8 receipt is `/private/tmp/termrock-reference-dco-bitmap-probe-observer-r8-20261010/evidence/receipt.json`, SHA-256 `af1cd8d3affa4592472b2ec321bfcbcd2a26500dcf2f854def38b97ff3297b13`. R8 scratch remains preserved and is not reused.
+
+R10 compiles to `scratch/tmp/clone-source-packs`. The live inventory keeps `scratch/bin` empty during rustc and counts compiler intermediates and the final temporary executable under the existing 64 MiB per-file and aggregate bounds. Only after successful rustc exit and confirmed process-group cleanup does the supervisor validate the final temp executable as regular, non-symlink, nlink 1, executable, and <=16 MiB, then atomically rename that executable on the same filesystem to `scratch/bin/clone-source-packs`. It verifies device/inode/mode/size after rename before hashing or invoking the helper. Thereafter `scratch/bin` may contain only this validated helper. Any other output, failed validation, or rename problem preserves scratch and stops before helper launch.
+
+The 5,052-file/1,263-group source allowlist is unchanged. `tmp_pack_l6MVvt` remains stat-only: it is never opened, hashed, copied, or cloned. R10 is proposal-only, has no Root write authorization, and has not been compiled or executed. A successful clone stage would not run Git or establish MIDX/bitmap/native-pack behavior.
