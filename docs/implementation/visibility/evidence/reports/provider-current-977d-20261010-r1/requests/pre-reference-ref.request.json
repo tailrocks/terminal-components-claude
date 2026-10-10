@@ -1,0 +1,20 @@
+{
+  "argv": [
+    "/opt/homebrew/bin/gh",
+    "api",
+    "repos/tailrocks/terminal-components-claude/git/ref/heads/visual-baseline"
+  ],
+  "cwd": "/",
+  "env": {
+    "GH_PAGER": "cat",
+    "GH_PROMPT_DISABLED": "1",
+    "HOME": "/Users/donbeave",
+    "NO_COLOR": "1",
+    "PATH": "/opt/homebrew/bin:/usr/bin:/bin"
+  },
+  "result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-reference-ref.result.json",
+  "schema": "termrock-command-capture-request/v1",
+  "stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-reference-ref.stderr.raw",
+  "stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-reference-ref.stdout.raw",
+  "timeout_ms": 90000
+}

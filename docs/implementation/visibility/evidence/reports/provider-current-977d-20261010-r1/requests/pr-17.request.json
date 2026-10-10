@@ -1,0 +1,25 @@
+{
+  "argv": [
+    "/opt/homebrew/bin/gh",
+    "pr",
+    "view",
+    "17",
+    "--repo",
+    "tailrocks/terminal-components-claude",
+    "--json",
+    "number,state,isDraft,headRefName,headRefOid,baseRefName,mergeStateStatus,statusCheckRollup"
+  ],
+  "cwd": "/",
+  "env": {
+    "GH_PAGER": "cat",
+    "GH_PROMPT_DISABLED": "1",
+    "HOME": "/Users/donbeave",
+    "NO_COLOR": "1",
+    "PATH": "/opt/homebrew/bin:/usr/bin:/bin"
+  },
+  "result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pr-17.result.json",
+  "schema": "termrock-command-capture-request/v1",
+  "stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pr-17.stderr.raw",
+  "stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pr-17.stdout.raw",
+  "timeout_ms": 90000
+}

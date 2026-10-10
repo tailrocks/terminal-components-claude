@@ -1,0 +1,20 @@
+{
+  "argv": [
+    "/opt/homebrew/bin/gh",
+    "api",
+    "repos/tailrocks/terminal-components-claude/contents/.github/workflows/ci.yml?ref=977d7f4bb2bc7e6d3d4541651feede4e77ada1bb"
+  ],
+  "cwd": "/",
+  "env": {
+    "GH_PAGER": "cat",
+    "GH_PROMPT_DISABLED": "1",
+    "HOME": "/Users/donbeave",
+    "NO_COLOR": "1",
+    "PATH": "/opt/homebrew/bin:/usr/bin:/bin"
+  },
+  "result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow-source-api.result.json",
+  "schema": "termrock-command-capture-request/v1",
+  "stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow-source-api.stderr.raw",
+  "stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow-source-api.stdout.raw",
+  "timeout_ms": 90000
+}

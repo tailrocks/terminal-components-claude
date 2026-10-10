@@ -1,0 +1,1539 @@
+{
+  "capture_ended_at_utc": "2026-10-10T06:41:34.967427+00:00",
+  "capture_started_at_utc": null,
+  "capture_tool": {
+    "copy_receipt_path": "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/copy-receipt.json",
+    "copy_receipt_sha256": "b49074a6b7ec6b1aca69d5c35aca824143202ef0fee61ad4d61e7c9f548ff058",
+    "path": "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+    "qualification_claim": "identity/source hashes are recorded; no qualification claim is made by this packet alone",
+    "sha256": "5564b7749faba78d18cc060dd8e34f4d753ae6c5cbf55457d4a5e220a84f93e8",
+    "source_commit": "58de6bb6c8e23da8a1f66237db179d7c58c79b28",
+    "source_git_blob": "fabaad307970cda5d910a008b8f22f2c7186531b",
+    "source_path": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+    "source_sha256": "de1b9211b8671b28b57ffe288be37fc58f10e43a836bfd9153813704e0dfdda7"
+  },
+  "classification": "RAW_CAPTURE_NOT_NORMALIZED; whether CURRENT depends on exact pre/post head identity and later report-source pointer.",
+  "commands": [
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/git/ref/heads/termrock-implementation"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/git/ref/heads/termrock-implementation"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "944c34b2099de393203ee103f796f43c51d09fb1335528b5065e7e0fd3f0464e",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-candidate-ref.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 436,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-candidate-ref.stdout.raw",
+          "sha256": "ee9536ab80f1728e4ac373b46a0b99b66d817b9914d9a20d603f466845f65315",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/pre-candidate-ref.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/pre-candidate-ref.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 985,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/pre-candidate-ref.stdout.raw",
+      "capture_tool_stdout_sha256": "731da03fb70c2e844e92fbfaf039bfc53774af077ddc7764be20d2192659f6fe",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "pre-candidate-ref",
+      "raw_result_bytes": 985,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-candidate-ref.result.json",
+      "raw_result_sha256": "731da03fb70c2e844e92fbfaf039bfc53774af077ddc7764be20d2192659f6fe",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-candidate-ref.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 436,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-candidate-ref.stdout.raw",
+      "raw_stdout_sha256": "ee9536ab80f1728e4ac373b46a0b99b66d817b9914d9a20d603f466845f65315",
+      "request_bytes": 784,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/pre-candidate-ref.request.json",
+      "request_sha256": "944c34b2099de393203ee103f796f43c51d09fb1335528b5065e7e0fd3f0464e"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/git/ref/heads/visual-baseline"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/git/ref/heads/visual-baseline"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "b2b9e28659495aee473203cb3dc86dafc1d7e532eea9159101f3e015217c0480",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-reference-ref.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 407,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-reference-ref.stdout.raw",
+          "sha256": "7c04a8d27e5c742dc67013c71b7d55da9613e32e56a67aff128beec277614387",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/pre-reference-ref.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/pre-reference-ref.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 977,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/pre-reference-ref.stdout.raw",
+      "capture_tool_stdout_sha256": "cdd948434ddd6b255c4cd2be4c4d6cb894557099f0b413c6eca27572a64a75c0",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "pre-reference-ref",
+      "raw_result_bytes": 977,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-reference-ref.result.json",
+      "raw_result_sha256": "cdd948434ddd6b255c4cd2be4c4d6cb894557099f0b413c6eca27572a64a75c0",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-reference-ref.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 407,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-reference-ref.stdout.raw",
+      "raw_stdout_sha256": "7c04a8d27e5c742dc67013c71b7d55da9613e32e56a67aff128beec277614387",
+      "request_bytes": 776,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/pre-reference-ref.request.json",
+      "request_sha256": "b2b9e28659495aee473203cb3dc86dafc1d7e532eea9159101f3e015217c0480"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/git/ref/tags/visual-baseline"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/git/ref/tags/visual-baseline"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "8b2cac5cac4b17eecdf0e17ec2fb0edfba2f3858672fa9d736609356f786b82b",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-tag-ref.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 397,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-tag-ref.stdout.raw",
+          "sha256": "3bd2e6f3fbf647a20fb9dda6d8f9dbf408d9fda66c71a96262d11ec383bf4728",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/pre-tag-ref.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/pre-tag-ref.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 964,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/pre-tag-ref.stdout.raw",
+      "capture_tool_stdout_sha256": "8c2e7ffb30bf350b103fe1d8ede1b2f16410781f4477e6a41ee35419dfd8cf36",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "pre-tag-ref",
+      "raw_result_bytes": 964,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-tag-ref.result.json",
+      "raw_result_sha256": "8c2e7ffb30bf350b103fe1d8ede1b2f16410781f4477e6a41ee35419dfd8cf36",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-tag-ref.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 397,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pre-tag-ref.stdout.raw",
+      "raw_stdout_sha256": "3bd2e6f3fbf647a20fb9dda6d8f9dbf408d9fda66c71a96262d11ec383bf4728",
+      "request_bytes": 757,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/pre-tag-ref.request.json",
+      "request_sha256": "8b2cac5cac4b17eecdf0e17ec2fb0edfba2f3858672fa9d736609356f786b82b"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "pr",
+        "view",
+        "17",
+        "--repo",
+        "tailrocks/terminal-components-claude",
+        "--json",
+        "number,state,isDraft,headRefName,headRefOid,baseRefName,mergeStateStatus,statusCheckRollup"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "pr",
+          "view",
+          "17",
+          "--repo",
+          "tailrocks/terminal-components-claude",
+          "--json",
+          "number,state,isDraft,headRefName,headRefOid,baseRefName,mergeStateStatus,statusCheckRollup"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "bbc2d105cae699bc786077d56fc8a04dec9c7e5154c55dd24f61fee5a36702ac",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pr-17.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 427,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pr-17.stdout.raw",
+          "sha256": "abba94a8e73b60b8560c37756b97926863dd72c9d89cae2d35b5c9deafacb319",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/pr-17.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/pr-17.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 1039,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/pr-17.stdout.raw",
+      "capture_tool_stdout_sha256": "808add0c3c9010097041f1f0aa68d710abef824980d6c4f7ebf9a95858332185",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "pr-17",
+      "raw_result_bytes": 1039,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pr-17.result.json",
+      "raw_result_sha256": "808add0c3c9010097041f1f0aa68d710abef824980d6c4f7ebf9a95858332185",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pr-17.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 427,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/pr-17.stdout.raw",
+      "raw_stdout_sha256": "abba94a8e73b60b8560c37756b97926863dd72c9d89cae2d35b5c9deafacb319",
+      "request_bytes": 851,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/pr-17.request.json",
+      "request_sha256": "bbc2d105cae699bc786077d56fc8a04dec9c7e5154c55dd24f61fee5a36702ac"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "--version"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "--version"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "eaa42383b5d6451c5a77c3c35bc3f68d1da39dec3e54d611c1a3dec1c53ca273",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/gh-version.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 81,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/gh-version.stdout.raw",
+          "sha256": "a679442459bed23fdc13efb977dec3b17c3c923d8d48abc0d8e522182250955f",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/gh-version.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/gh-version.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 893,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/gh-version.stdout.raw",
+      "capture_tool_stdout_sha256": "01953d5854c7a855e8df763e8e745cde5d164adbed53cbd95b69f8af6241d3b1",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "gh-version",
+      "raw_result_bytes": 893,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/gh-version.result.json",
+      "raw_result_sha256": "01953d5854c7a855e8df763e8e745cde5d164adbed53cbd95b69f8af6241d3b1",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/gh-version.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 81,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/gh-version.stdout.raw",
+      "raw_stdout_sha256": "a679442459bed23fdc13efb977dec3b17c3c923d8d48abc0d8e522182250955f",
+      "request_bytes": 681,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/gh-version.request.json",
+      "request_sha256": "eaa42383b5d6451c5a77c3c35bc3f68d1da39dec3e54d611c1a3dec1c53ca273"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "run",
+        "list",
+        "--repo",
+        "tailrocks/terminal-components-claude",
+        "--commit",
+        "977d7f4bb2bc7e6d3d4541651feede4e77ada1bb",
+        "--limit",
+        "20",
+        "--json",
+        "databaseId,headSha,event,status,conclusion,createdAt,updatedAt,url,workflowName,headBranch"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "run",
+          "list",
+          "--repo",
+          "tailrocks/terminal-components-claude",
+          "--commit",
+          "977d7f4bb2bc7e6d3d4541651feede4e77ada1bb",
+          "--limit",
+          "20",
+          "--json",
+          "databaseId,headSha,event,status,conclusion,createdAt,updatedAt,url,workflowName,headBranch"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "cea9264d22dc949d6052749b2a5062912e381f7bf1de356776508f1c9e4663a2",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/runs-for-candidate.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 359,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/runs-for-candidate.stdout.raw",
+          "sha256": "136ce4e8687883231dca0f44b7d62488cbcbd1dcb0e0b6ad68a999c66b88f12c",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/runs-for-candidate.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/runs-for-candidate.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 1130,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/runs-for-candidate.stdout.raw",
+      "capture_tool_stdout_sha256": "d29d3e48b9389029973e17b1225a905e2fb4b6a9b36f4c7dbe58bf3f216bb926",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "runs-for-candidate",
+      "raw_result_bytes": 1130,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/runs-for-candidate.result.json",
+      "raw_result_sha256": "d29d3e48b9389029973e17b1225a905e2fb4b6a9b36f4c7dbe58bf3f216bb926",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/runs-for-candidate.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 359,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/runs-for-candidate.stdout.raw",
+      "raw_stdout_sha256": "136ce4e8687883231dca0f44b7d62488cbcbd1dcb0e0b6ad68a999c66b88f12c",
+      "request_bytes": 970,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/runs-for-candidate.request.json",
+      "request_sha256": "cea9264d22dc949d6052749b2a5062912e381f7bf1de356776508f1c9e4663a2"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/actions/runs/38031747998"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/actions/runs/38031747998"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "8ef8e5704965f7f959f1b0c2a91f57e69d63b6acb3d13df39eb88ba68d88391b",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/run.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 14482,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/run.stdout.raw",
+          "sha256": "b97edafec0261512cc76ec8907513b8b64ddbc72f2ae237055d1d04581f830e3",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/run.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/run.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 946,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/run.stdout.raw",
+      "capture_tool_stdout_sha256": "bed61354005f3e6860a31f7c856d5c1f6ed0add95fbfc6fde4ac8dd1aab974ca",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "run",
+      "raw_result_bytes": 946,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/run.result.json",
+      "raw_result_sha256": "bed61354005f3e6860a31f7c856d5c1f6ed0add95fbfc6fde4ac8dd1aab974ca",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/run.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 14482,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/run.stdout.raw",
+      "raw_stdout_sha256": "b97edafec0261512cc76ec8907513b8b64ddbc72f2ae237055d1d04581f830e3",
+      "request_bytes": 729,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/run.request.json",
+      "request_sha256": "8ef8e5704965f7f959f1b0c2a91f57e69d63b6acb3d13df39eb88ba68d88391b"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/actions/workflows/349610291"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/actions/workflows/349610291"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "0d264c5dbbae73b831507d81153b4c2849224ef46a763f91fc54c052e538f4d1",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 499,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow.stdout.raw",
+          "sha256": "bffc6276ebb10f3b8b973338c5e5b6dfeae0232a61de735525c135dd9430c74e",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/workflow.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/workflow.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 957,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/workflow.stdout.raw",
+      "capture_tool_stdout_sha256": "e8b93f15146ae9a52bf1694f700aece3dbd74ffc6e0601d5416903cbc285e092",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "workflow",
+      "raw_result_bytes": 957,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow.result.json",
+      "raw_result_sha256": "e8b93f15146ae9a52bf1694f700aece3dbd74ffc6e0601d5416903cbc285e092",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 499,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow.stdout.raw",
+      "raw_stdout_sha256": "bffc6276ebb10f3b8b973338c5e5b6dfeae0232a61de735525c135dd9430c74e",
+      "request_bytes": 747,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/workflow.request.json",
+      "request_sha256": "0d264c5dbbae73b831507d81153b4c2849224ef46a763f91fc54c052e538f4d1"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/commits/977d7f4bb2bc7e6d3d4541651feede4e77ada1bb/check-suites?per_page=100"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/commits/977d7f4bb2bc7e6d3d4541651feede4e77ada1bb/check-suites?per_page=100"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "4092361cbb42ede4ffead7170c9ccea4b22084b28b9f1e705f44fe05b444aa7f",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/check-suites.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 17481,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/check-suites.stdout.raw",
+          "sha256": "29f5b3262ef751cfb5b332c25b0434577bc54e00e448ebdd28ca8f613b163b64",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/check-suites.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/check-suites.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 1014,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/check-suites.stdout.raw",
+      "capture_tool_stdout_sha256": "3366b4eed31ecdfe73db1a332b71233cc9f0542746e4faf8b0e330131442c770",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "check-suites",
+      "raw_result_bytes": 1014,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/check-suites.result.json",
+      "raw_result_sha256": "3366b4eed31ecdfe73db1a332b71233cc9f0542746e4faf8b0e330131442c770",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/check-suites.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 17481,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/check-suites.stdout.raw",
+      "raw_stdout_sha256": "29f5b3262ef751cfb5b332c25b0434577bc54e00e448ebdd28ca8f613b163b64",
+      "request_bytes": 806,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/check-suites.request.json",
+      "request_sha256": "4092361cbb42ede4ffead7170c9ccea4b22084b28b9f1e705f44fe05b444aa7f"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/check-suites/103048916980/check-runs?per_page=100"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/check-suites/103048916980/check-runs?per_page=100"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "e735c0b866c83f7539c7c5674f5b4156116083c2a3bb6e27849d792dda31242b",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/suite-check-runs.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 33,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/suite-check-runs.stdout.raw",
+          "sha256": "e83cfac35507982a40cfeb776ce85aa0367e7646f81fe857df4a6c841ea8a170",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/suite-check-runs.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/suite-check-runs.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 994,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/suite-check-runs.stdout.raw",
+      "capture_tool_stdout_sha256": "3766b25db47bc42ab49260db8a3f854229b22a7ea58294a5a5e165dd6a1e4319",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "suite-check-runs",
+      "raw_result_bytes": 994,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/suite-check-runs.result.json",
+      "raw_result_sha256": "3766b25db47bc42ab49260db8a3f854229b22a7ea58294a5a5e165dd6a1e4319",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/suite-check-runs.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 33,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/suite-check-runs.stdout.raw",
+      "raw_stdout_sha256": "e83cfac35507982a40cfeb776ce85aa0367e7646f81fe857df4a6c841ea8a170",
+      "request_bytes": 793,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/suite-check-runs.request.json",
+      "request_sha256": "e735c0b866c83f7539c7c5674f5b4156116083c2a3bb6e27849d792dda31242b"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/commits/977d7f4bb2bc7e6d3d4541651feede4e77ada1bb/check-runs?per_page=100"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/commits/977d7f4bb2bc7e6d3d4541651feede4e77ada1bb/check-runs?per_page=100"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "9f859ef902d93dc78108f7818bee68e9f3799425535b9313b0f6066d7c4010d1",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/check-runs.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 57358,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/check-runs.stdout.raw",
+          "sha256": "f640b05d97b3309a5d7aa924664f851f95d932796308e987b34aafe499da76e3",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/check-runs.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/check-runs.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 1008,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/check-runs.stdout.raw",
+      "capture_tool_stdout_sha256": "d75252f2518bf1efb2fe25b25ff26ab08158f89c13c3c070bae59e3f8cb4860f",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "check-runs",
+      "raw_result_bytes": 1008,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/check-runs.result.json",
+      "raw_result_sha256": "d75252f2518bf1efb2fe25b25ff26ab08158f89c13c3c070bae59e3f8cb4860f",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/check-runs.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 57358,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/check-runs.stdout.raw",
+      "raw_stdout_sha256": "f640b05d97b3309a5d7aa924664f851f95d932796308e987b34aafe499da76e3",
+      "request_bytes": 798,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/check-runs.request.json",
+      "request_sha256": "9f859ef902d93dc78108f7818bee68e9f3799425535b9313b0f6066d7c4010d1"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/actions/runs/38031747998/jobs?per_page=100"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/actions/runs/38031747998/jobs?per_page=100"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "2b5bcee08caf8f566c539f55b880a7fb17cac7d6d55a4f2947941010a4bacb5e",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/jobs.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 27,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/jobs.stdout.raw",
+          "sha256": "b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/jobs.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/jobs.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 963,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/jobs.stdout.raw",
+      "capture_tool_stdout_sha256": "93ffedfcf2dfbb177bc8ebe662e9d5ecc56861658118176e085f74914856df11",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "jobs",
+      "raw_result_bytes": 963,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/jobs.result.json",
+      "raw_result_sha256": "93ffedfcf2dfbb177bc8ebe662e9d5ecc56861658118176e085f74914856df11",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/jobs.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 27,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/jobs.stdout.raw",
+      "raw_stdout_sha256": "b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6",
+      "request_bytes": 750,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/jobs.request.json",
+      "request_sha256": "2b5bcee08caf8f566c539f55b880a7fb17cac7d6d55a4f2947941010a4bacb5e"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/actions/runs/38031747998/artifacts?per_page=100"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/actions/runs/38031747998/artifacts?per_page=100"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "252c6e198d2158ec2a050ea8a08b419ad376f534c34c1910e4d0585b29206a1e",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/artifacts.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 32,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/artifacts.stdout.raw",
+          "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/artifacts.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/artifacts.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 978,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/artifacts.stdout.raw",
+      "capture_tool_stdout_sha256": "6f69e77450ccef3a5f5f77f7cc69c5a78ae9cda8774ca2bfcb8908b0f7d722a3",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "artifacts",
+      "raw_result_bytes": 978,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/artifacts.result.json",
+      "raw_result_sha256": "6f69e77450ccef3a5f5f77f7cc69c5a78ae9cda8774ca2bfcb8908b0f7d722a3",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/artifacts.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 32,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/artifacts.stdout.raw",
+      "raw_stdout_sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "request_bytes": 770,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/artifacts.request.json",
+      "request_sha256": "252c6e198d2158ec2a050ea8a08b419ad376f534c34c1910e4d0585b29206a1e"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "--include",
+        "repos/tailrocks/terminal-components-claude/actions/runs/38031747998/logs"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "--include",
+          "repos/tailrocks/terminal-components-claude/actions/runs/38031747998/logs"
+        ],
+        "child": {
+          "exit_code": 1,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "ac357498fbba8f5e794eb3de1f0c0243bd406957de25feb0a7c7269f8516faac",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 25,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/run-logs-combined.stderr.raw",
+          "sha256": "d2c8985c89b29a842ac4946d13bdbc297709f44f20bb968faf9682664b211db6",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 1392,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/run-logs-combined.stdout.raw",
+          "sha256": "fa79484b04946143e8a15bcecadda2173a98d2b9280193e1ed9eba4cc55a4cc9",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/run-logs-combined.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/run-logs-combined.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 991,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/run-logs-combined.stdout.raw",
+      "capture_tool_stdout_sha256": "12f13a8eb6a089baeec8e3f1a2c73b759dd49d51611e5e2a8f5d7705fa88b381",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 1,
+      "child_exit_expected_nonzero_allowed": true,
+      "label": "run-logs-combined",
+      "raw_result_bytes": 991,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/run-logs-combined.result.json",
+      "raw_result_sha256": "12f13a8eb6a089baeec8e3f1a2c73b759dd49d51611e5e2a8f5d7705fa88b381",
+      "raw_stderr_bytes": 25,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/run-logs-combined.stderr.raw",
+      "raw_stderr_sha256": "d2c8985c89b29a842ac4946d13bdbc297709f44f20bb968faf9682664b211db6",
+      "raw_stdout_bytes": 1392,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/run-logs-combined.stdout.raw",
+      "raw_stdout_sha256": "fa79484b04946143e8a15bcecadda2173a98d2b9280193e1ed9eba4cc55a4cc9",
+      "request_bytes": 793,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/run-logs-combined.request.json",
+      "request_sha256": "ac357498fbba8f5e794eb3de1f0c0243bd406957de25feb0a7c7269f8516faac"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/contents/.github/workflows/ci.yml?ref=977d7f4bb2bc7e6d3d4541651feede4e77ada1bb"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/contents/.github/workflows/ci.yml?ref=977d7f4bb2bc7e6d3d4541651feede4e77ada1bb"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "ab8db0bcf6c885cbae90b53d66e63ada806b82df0c842215951d7d8a0fdbe317",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow-source-api.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 741679,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow-source-api.stdout.raw",
+          "sha256": "47b92e4ea8090d15f139f90207bc40da03857ee3fc70a83e9cee84895c805902",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/workflow-source-api.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/workflow-source-api.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 1033,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/workflow-source-api.stdout.raw",
+      "capture_tool_stdout_sha256": "19a161119b08c1dc3db3258c3c26519d5d31b380163b82bc52a3bc3d082f203f",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "workflow-source-api",
+      "raw_result_bytes": 1033,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow-source-api.result.json",
+      "raw_result_sha256": "19a161119b08c1dc3db3258c3c26519d5d31b380163b82bc52a3bc3d082f203f",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow-source-api.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 741679,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/workflow-source-api.stdout.raw",
+      "raw_stdout_sha256": "47b92e4ea8090d15f139f90207bc40da03857ee3fc70a83e9cee84895c805902",
+      "request_bytes": 831,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/workflow-source-api.request.json",
+      "request_sha256": "ab8db0bcf6c885cbae90b53d66e63ada806b82df0c842215951d7d8a0fdbe317"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/git/ref/heads/termrock-implementation"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/git/ref/heads/termrock-implementation"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "bd5f9f10269b8ea17ebab09ec3882b43360c803fb0c6e7e17a712c747a9f1bd7",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-candidate-ref.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 436,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-candidate-ref.stdout.raw",
+          "sha256": "ee9536ab80f1728e4ac373b46a0b99b66d817b9914d9a20d603f466845f65315",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/post-candidate-ref.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/post-candidate-ref.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 987,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/post-candidate-ref.stdout.raw",
+      "capture_tool_stdout_sha256": "3be5fb8d107c42f336b704fe60b282be5beafed52502fb569e64c6d5967376b3",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "post-candidate-ref",
+      "raw_result_bytes": 987,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-candidate-ref.result.json",
+      "raw_result_sha256": "3be5fb8d107c42f336b704fe60b282be5beafed52502fb569e64c6d5967376b3",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-candidate-ref.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 436,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-candidate-ref.stdout.raw",
+      "raw_stdout_sha256": "ee9536ab80f1728e4ac373b46a0b99b66d817b9914d9a20d603f466845f65315",
+      "request_bytes": 787,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/post-candidate-ref.request.json",
+      "request_sha256": "bd5f9f10269b8ea17ebab09ec3882b43360c803fb0c6e7e17a712c747a9f1bd7"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/git/ref/heads/visual-baseline"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/git/ref/heads/visual-baseline"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "03ca4ce0c7e1b6aac72d728b6fe974f038043993ba84de4450d1276c06e94023",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-reference-ref.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 407,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-reference-ref.stdout.raw",
+          "sha256": "7c04a8d27e5c742dc67013c71b7d55da9613e32e56a67aff128beec277614387",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/post-reference-ref.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/post-reference-ref.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 979,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/post-reference-ref.stdout.raw",
+      "capture_tool_stdout_sha256": "841b24a305529ec731032a220683846ec0adbfb55833a50dc6f56053b2e6cbdf",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "post-reference-ref",
+      "raw_result_bytes": 979,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-reference-ref.result.json",
+      "raw_result_sha256": "841b24a305529ec731032a220683846ec0adbfb55833a50dc6f56053b2e6cbdf",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-reference-ref.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 407,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-reference-ref.stdout.raw",
+      "raw_stdout_sha256": "7c04a8d27e5c742dc67013c71b7d55da9613e32e56a67aff128beec277614387",
+      "request_bytes": 779,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/post-reference-ref.request.json",
+      "request_sha256": "03ca4ce0c7e1b6aac72d728b6fe974f038043993ba84de4450d1276c06e94023"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/git/ref/tags/visual-baseline"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/git/ref/tags/visual-baseline"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "eb2909e50cca1b4f4004ea8e16cf62d2f2d9c4ab8d3fd2176598879b926848c3",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-tag-ref.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 397,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-tag-ref.stdout.raw",
+          "sha256": "3bd2e6f3fbf647a20fb9dda6d8f9dbf408d9fda66c71a96262d11ec383bf4728",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/post-tag-ref.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/post-tag-ref.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 966,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/post-tag-ref.stdout.raw",
+      "capture_tool_stdout_sha256": "a6513b805dbcff6cd5d1a3bcd9eafd718344882b97329cd6cdcd53fabad7575d",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "post-tag-ref",
+      "raw_result_bytes": 966,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-tag-ref.result.json",
+      "raw_result_sha256": "a6513b805dbcff6cd5d1a3bcd9eafd718344882b97329cd6cdcd53fabad7575d",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-tag-ref.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 397,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-tag-ref.stdout.raw",
+      "raw_stdout_sha256": "3bd2e6f3fbf647a20fb9dda6d8f9dbf408d9fda66c71a96262d11ec383bf4728",
+      "request_bytes": 760,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/post-tag-ref.request.json",
+      "request_sha256": "eb2909e50cca1b4f4004ea8e16cf62d2f2d9c4ab8d3fd2176598879b926848c3"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/gh",
+        "api",
+        "repos/tailrocks/terminal-components-claude/git/tags/1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
+      ],
+      "capture_result": {
+        "argv": [
+          "/opt/homebrew/bin/gh",
+          "api",
+          "repos/tailrocks/terminal-components-claude/git/tags/1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
+        ],
+        "child": {
+          "exit_code": 0,
+          "signal": null,
+          "timed_out": false
+        },
+        "cwd": "/",
+        "env_cleared": true,
+        "env_keys": [
+          "GH_PAGER",
+          "GH_PROMPT_DISABLED",
+          "HOME",
+          "NO_COLOR",
+          "PATH"
+        ],
+        "outcome": "complete",
+        "parent_signal": null,
+        "request_sha256": "3c0d6857af9c7d85ccff10290d9039390ecc423b67a35d07dde7f3034ba924be",
+        "schema": "termrock-command-capture-result/v1",
+        "stderr": {
+          "byte_length": 0,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-tag-object.stderr.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stdout": {
+          "byte_length": 814,
+          "file_written": true,
+          "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-tag-object.stdout.raw",
+          "sha256": "6356a6ec09b7ccd53960a8dcf7b515833c4879779dc775be8c16fa98c660be44",
+          "truncated": false
+        },
+        "timeout_ms": 90000
+      },
+      "capture_tool_argv": [
+        "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+        "--request",
+        "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/post-tag-object.request.json"
+      ],
+      "capture_tool_exit_code": 0,
+      "capture_tool_stderr_bytes": 0,
+      "capture_tool_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/post-tag-object.stderr.raw",
+      "capture_tool_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_tool_stdout_bytes": 993,
+      "capture_tool_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/wrapper/post-tag-object.stdout.raw",
+      "capture_tool_stdout_sha256": "59999f597af3a60b670cd94dd2461658264674863e3ca7f7c4d94a3e919ec818",
+      "capture_wrapper_complete": true,
+      "child_exit_code": 0,
+      "child_exit_expected_nonzero_allowed": false,
+      "label": "post-tag-object",
+      "raw_result_bytes": 993,
+      "raw_result_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-tag-object.result.json",
+      "raw_result_sha256": "59999f597af3a60b670cd94dd2461658264674863e3ca7f7c4d94a3e919ec818",
+      "raw_stderr_bytes": 0,
+      "raw_stderr_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-tag-object.stderr.raw",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 814,
+      "raw_stdout_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/raw/post-tag-object.stdout.raw",
+      "raw_stdout_sha256": "6356a6ec09b7ccd53960a8dcf7b515833c4879779dc775be8c16fa98c660be44",
+      "request_bytes": 790,
+      "request_path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/requests/post-tag-object.request.json",
+      "request_sha256": "3c0d6857af9c7d85ccff10290d9039390ecc423b67a35d07dde7f3034ba924be"
+    }
+  ],
+  "failure_cause": "NOT_INFERRED",
+  "gh_tool": {
+    "path": "/opt/homebrew/bin/gh",
+    "sha256": "81904d0aaa9fb3d9e35e13e7b1fe917451df0430eaee63144c69426d5d2832f1",
+    "version_stdout_sha256": "a679442459bed23fdc13efb977dec3b17c3c923d8d48abc0d8e522182250955f"
+  },
+  "orchestrator": {
+    "bytes": 16559,
+    "path": "/private/tmp/termrock-vis01-pr17-provider-current-observation-r1-20261010/capture-observation.py",
+    "python_executable": "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "python_version": "3.9.6 (default, Aug 25 2026, 21:26:21) \n[Clang 21.0.0 (clang-2100.3.34.2)]",
+    "sha256": "ccc889a1c37be4b3792a6f46e007908f9c580388c1d277c5f2797fd4018d721c"
+  },
+  "post_capture_readback": {
+    "candidate_commit": "977d7f4bb2bc7e6d3d4541651feede4e77ada1bb",
+    "reference_commit": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+    "tag_target_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+  },
+  "pre_capture_readback": {
+    "candidate_commit": "977d7f4bb2bc7e6d3d4541651feede4e77ada1bb",
+    "pr_draft": true,
+    "pr_head": "977d7f4bb2bc7e6d3d4541651feede4e77ada1bb",
+    "pr_merge_state": "DIRTY",
+    "pr_state": "OPEN",
+    "reference_commit": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
+  },
+  "provider_detail": {
+    "check_suite_id": 103048916980,
+    "conclusion": "failure",
+    "event": "push",
+    "head_sha": "977d7f4bb2bc7e6d3d4541651feede4e77ada1bb",
+    "run_attempt": 1,
+    "run_id": 38031747998,
+    "status": "completed",
+    "workflow_id": 349610291
+  },
+  "readback_stable": {
+    "candidate": true,
+    "pr_head_matches_candidate": true,
+    "reference": true,
+    "run_head_matches_candidate": true,
+    "tag": true
+  },
+  "repository": "tailrocks/terminal-components-claude",
+  "schema": "termrock-pr17-provider-observation-capture/v1",
+  "selected_run": {
+    "conclusion": "failure",
+    "createdAt": "2026-10-10T06:40:23Z",
+    "databaseId": 38031747998,
+    "event": "push",
+    "headBranch": "termrock-implementation",
+    "headSha": "977d7f4bb2bc7e6d3d4541651feede4e77ada1bb",
+    "status": "completed",
+    "updatedAt": "2026-10-10T06:40:23Z",
+    "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38031747998",
+    "workflowName": "CI"
+  },
+  "test_or_product_execution": "NOT_RUN_BY_THIS_CAPTURE",
+  "workflow_source": {
+    "api_blob_sha": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+    "api_size": 537470,
+    "candidate_commit": "977d7f4bb2bc7e6d3d4541651feede4e77ada1bb",
+    "content_matches_git_blob_sha": true,
+    "decoded_bytes": 537470,
+    "decoded_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24",
+    "git_blob_sha1": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+    "path": ".github/workflows/ci.yml"
+  }
+}

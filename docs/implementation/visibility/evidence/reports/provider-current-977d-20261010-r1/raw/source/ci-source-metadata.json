@@ -1,0 +1,10 @@
+{
+  "api_blob_sha": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+  "api_size": 537470,
+  "candidate_commit": "977d7f4bb2bc7e6d3d4541651feede4e77ada1bb",
+  "content_matches_git_blob_sha": true,
+  "decoded_bytes": 537470,
+  "decoded_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24",
+  "git_blob_sha1": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+  "path": ".github/workflows/ci.yml"
+}
