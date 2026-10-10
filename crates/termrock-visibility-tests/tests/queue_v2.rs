@@ -570,6 +570,16 @@ fn assert_error(output: &CliOutput, expected: &str) {
     );
 }
 
+fn assert_exact_error(output: &CliOutput, expected: &str) {
+    assert_ne!(output.exit_code, Some(0), "CLI unexpectedly succeeded");
+    assert_eq!(output.signal, None, "CLI was killed by a signal");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).trim_end(),
+        format!("visibility queue error: {expected}"),
+        "CLI error differed from the deterministic boundary"
+    );
+}
+
 #[test]
 fn registry_check_reports_candidate_identity_and_clean_state() {
     let fixture = RegistryFixture::new();
@@ -1419,6 +1429,22 @@ impl QueueV2Fixture {
         (tasks_path, view_path, source_tasks, source_view)
     }
 
+    fn install_scope_free_current_v1_queue(&self) -> (PathBuf, PathBuf, Vec<u8>, Vec<u8>) {
+        let (tasks_path, view_path, source_tasks, _checked_in_view) =
+            self.install_current_v1_queue();
+        let mut records: Value =
+            serde_json::from_slice(&source_tasks).expect("parse copied accepted records");
+        remove_branch_scope_fields(&mut records);
+        let mut scope_free_tasks =
+            serde_json::to_vec_pretty(&records).expect("serialize scope-free records");
+        scope_free_tasks.push(b'\n');
+        fs::write(&tasks_path, &scope_free_tasks).expect("write scope-free records");
+        let rendered = self.run(&["render".to_owned()]);
+        assert_success(&rendered);
+        fs::write(&view_path, &rendered.stdout).expect("write matching scope-free view");
+        (tasks_path, view_path, scope_free_tasks, rendered.stdout)
+    }
+
     fn identity_map_args(&self) -> Vec<String> {
         vec![
             "migration-preview".to_owned(),
@@ -1427,6 +1453,32 @@ impl QueueV2Fixture {
             "--worktree-id".to_owned(),
             "queue-coordinator".to_owned(),
         ]
+    }
+}
+
+fn remove_branch_scope_fields(records: &mut Value) {
+    let Some(tasks) = records.get_mut("tasks").and_then(Value::as_array_mut) else {
+        return;
+    };
+    for task in tasks {
+        let Some(task_object) = task.as_object_mut() else {
+            continue;
+        };
+        task_object.remove("branch_scopes");
+        let Some(history) = task_object
+            .get_mut("claim_history")
+            .and_then(Value::as_array_mut)
+        else {
+            continue;
+        };
+        for entry in history {
+            if let Some(claim) = entry
+                .get_mut("claim")
+                .and_then(Value::as_object_mut)
+            {
+                claim.remove("branch_scopes");
+            }
+        }
     }
 }
 
@@ -2122,9 +2174,10 @@ fn registry_v2_validation_requires_caller_pinned_raw_bytes() {
 }
 
 #[test]
-fn current_accepted_records_preview_to_v2_without_writing_and_preserve_history() {
+fn scope_free_current_records_preview_to_v2_without_writing_and_preserve_history() {
     let fixture = QueueV2Fixture::new();
-    let (tasks_path, view_path, source_tasks, source_view) = fixture.install_current_v1_queue();
+    let (tasks_path, view_path, source_tasks, source_view) =
+        fixture.install_scope_free_current_v1_queue();
     assert_success(&fixture.run(&["check".to_owned()]));
     let v1_render = fixture.run(&["render".to_owned()]);
     assert_success(&v1_render);
@@ -2239,9 +2292,79 @@ fn current_accepted_records_preview_to_v2_without_writing_and_preserve_history()
 }
 
 #[test]
+fn migration_preview_fails_closed_for_a_current_branch_scope_extension() {
+    let fixture = QueueV2Fixture::new();
+    let (tasks_path, view_path, source_tasks, _source_view) =
+        fixture.install_scope_free_current_v1_queue();
+    let mut records: Value =
+        serde_json::from_slice(&source_tasks).expect("parse scope-free fixture records");
+    records["tasks"][0]["branch_scopes"] = json!([]);
+    let mut scoped_tasks =
+        serde_json::to_vec_pretty(&records).expect("serialize top-level scope fixture");
+    scoped_tasks.push(b'\n');
+    fs::write(&tasks_path, &scoped_tasks).expect("write top-level scope fixture");
+    let rendered = fixture.run(&["render".to_owned()]);
+    assert_success(&rendered);
+    fs::write(&view_path, &rendered.stdout).expect("write top-level scope view");
+
+    let output = fixture.run(&fixture.identity_map_args());
+    assert_exact_error(
+        &output,
+        "tasks[0].branch_scopes is a schema-v1 claim extension",
+    );
+    assert_eq!(
+        fs::read(&tasks_path).expect("read task source after rejected preview"),
+        scoped_tasks
+    );
+    assert_eq!(
+        fs::read(&view_path).expect("read view source after rejected preview"),
+        rendered.stdout
+    );
+}
+
+#[test]
+fn migration_preview_fails_closed_for_a_historical_branch_scope_extension() {
+    let fixture = QueueV2Fixture::new();
+    let (tasks_path, view_path, source_tasks, _source_view) =
+        fixture.install_scope_free_current_v1_queue();
+    let mut records: Value =
+        serde_json::from_slice(&source_tasks).expect("parse scope-free fixture records");
+    assert!(
+        records["tasks"][0]
+            .get("claim_history")
+            .and_then(Value::as_array)
+            .is_some_and(|history| !history.is_empty()),
+        "deterministic fixture requires task-zero history"
+    );
+    records["tasks"][0]["claim_history"][0]["claim"]["branch_scopes"] = json!([]);
+    let mut scoped_tasks =
+        serde_json::to_vec_pretty(&records).expect("serialize historical scope fixture");
+    scoped_tasks.push(b'\n');
+    fs::write(&tasks_path, &scoped_tasks).expect("write historical scope fixture");
+    let rendered = fixture.run(&["render".to_owned()]);
+    assert_success(&rendered);
+    fs::write(&view_path, &rendered.stdout).expect("write historical scope view");
+
+    let output = fixture.run(&fixture.identity_map_args());
+    assert_exact_error(
+        &output,
+        "tasks[0].branch_scopes is a schema-v1 claim extension",
+    );
+    assert_eq!(
+        fs::read(&tasks_path).expect("read task source after rejected preview"),
+        scoped_tasks
+    );
+    assert_eq!(
+        fs::read(&view_path).expect("read view source after rejected preview"),
+        rendered.stdout
+    );
+}
+
+#[test]
 fn handoff_next_action_is_labeled_as_recorded_in_v1_and_v2() {
     let fixture = QueueV2Fixture::new();
-    let (tasks_path, view_path, source_tasks, _source_view) = fixture.install_current_v1_queue();
+    let (tasks_path, view_path, source_tasks, _source_view) =
+        fixture.install_scope_free_current_v1_queue();
     let mut records: Value = serde_json::from_slice(&source_tasks)
         .expect("parse copied accepted task records");
     let recorded_action = "fixture instruction retained from the prior handoff";
@@ -2288,7 +2411,12 @@ fn handoff_next_action_is_labeled_as_recorded_in_v1_and_v2() {
 #[test]
 fn schema_v2_active_path_conflicts_are_repository_scoped() {
     let fixture = QueueV2Fixture::new();
-    let (_tasks_path, _view_path, source_tasks, _source_view) = fixture.install_current_v1_queue();
+    let source_root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
+        .expect("resolve source repository root");
+    let checked_in_tasks = fs::read(source_root.join("docs/implementation/visibility/tasks.json"))
+        .expect("read checked-in records before fixture checks");
+    let (_tasks_path, _view_path, _source_tasks, _source_view) =
+        fixture.install_scope_free_current_v1_queue();
     let preview = fixture.run(&fixture.identity_map_args());
     assert_success(&preview);
     let preview: Value = serde_json::from_slice(&preview.stdout).expect("parse migration preview");
@@ -2370,12 +2498,10 @@ fn schema_v2_active_path_conflicts_are_repository_scoped() {
     fs::write(&view_path, &rendered.stdout).expect("write generated v2 view");
     assert_success(&fixture.run(&["check-v2".to_owned()]));
 
-    let source_root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
-        .expect("resolve source repository root");
     assert_eq!(
         fs::read(source_root.join("docs/implementation/visibility/tasks.json"))
             .expect("read source records after fixture checks"),
-        source_tasks,
+        checked_in_tasks,
         "Rust fixture checks must not alter checked-in accepted records"
     );
 }
@@ -3219,7 +3345,11 @@ fn reviewer_handoff_preserves_claim_and_expired_expiry_while_changing_reviewer()
     let task = fixture.read_task("VIS-08");
     let token = task["claim_token"].as_str().unwrap().to_owned();
     let old_reviewer = task["reviewer"].as_str().unwrap();
-    let new_reviewer = "/root/subjects_runner_review_luna";
+    let new_reviewer = if old_reviewer == "/root/subjects_runner_review_luna" {
+        "/root/ci_parity_review_luna"
+    } else {
+        "/root/subjects_runner_review_luna"
+    };
     let evidence = "synthetic reviewer replacement evidence";
 
     assert_eq!(task["owner"], "/root/rust_test_infrastructure");
@@ -3261,7 +3391,11 @@ fn reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes() {
     let old_reviewer = task["reviewer"].as_str().unwrap().to_owned();
     let existing = task["evidence"][0].as_str().unwrap().to_owned();
     let unchanged = fixture.queue_files();
-    let valid_new = "/root/subjects_runner_review_luna";
+    let valid_new = if old_reviewer == "/root/subjects_runner_review_luna" {
+        "/root/ci_parity_review_luna"
+    } else {
+        "/root/subjects_runner_review_luna"
+    };
 
     assert_error(
         &fixture.reviewer_handoff(
@@ -3340,8 +3474,16 @@ fn reviewer_handoff_rejects_reused_reason_without_writes() {
     let task = fixture.read_task("VIS-08");
     let token = task["claim_token"].as_str().unwrap().to_owned();
     let first_reviewer = task["reviewer"].as_str().unwrap().to_owned();
-    let second_reviewer = "/root/subjects_runner_review_luna";
-    let third_reviewer = "/root/ci_parity_review_luna";
+    let second_reviewer = if first_reviewer == "/root/subjects_runner_review_luna" {
+        "/root/ci_parity_review_luna"
+    } else {
+        "/root/subjects_runner_review_luna"
+    };
+    let third_reviewer = if second_reviewer == "/root/ci_parity_review_luna" {
+        "/root/technical_review"
+    } else {
+        "/root/ci_parity_review_luna"
+    };
     let reason = "same reviewer handoff rationale";
     assert_success(&fixture.reviewer_handoff(
         "VIS-08", fixture.revision(), &token, &first_reviewer, second_reviewer, reason,
@@ -3390,7 +3532,11 @@ fn reviewer_handoff_rejects_review_state_without_writes() {
             revision,
             task["claim_token"].as_str().unwrap(),
             task["reviewer"].as_str().unwrap(),
-            "/root/subjects_runner_review_luna",
+            if task["reviewer"] == json!("/root/subjects_runner_review_luna") {
+                "/root/ci_parity_review_luna"
+            } else {
+                "/root/subjects_runner_review_luna"
+            },
             "synthetic review-state control",
         ),
         "reviewer handoff requires a claimed, in-progress, or blocked task",
@@ -3430,7 +3576,11 @@ fn reviewer_handoff_rejects_lower_priority_work_without_writes() {
             revision,
             task["claim_token"].as_str().unwrap(),
             task["reviewer"].as_str().unwrap(),
-            "/root/subjects_runner_review_luna",
+            if task["reviewer"] == json!("/root/subjects_runner_review_luna") {
+                "/root/ci_parity_review_luna"
+            } else {
+                "/root/subjects_runner_review_luna"
+            },
             "synthetic lower-priority reviewer handoff",
         ),
         "cannot append evidence for lower priority P1 while P0 remains open",
@@ -3467,7 +3617,11 @@ fn reviewer_handoff_rejects_a_stale_review_subject_without_writes() {
             revision,
             task["claim_token"].as_str().unwrap(),
             task["reviewer"].as_str().unwrap(),
-            "/root/subjects_runner_review_luna",
+            if task["reviewer"] == json!("/root/subjects_runner_review_luna") {
+                "/root/ci_parity_review_luna"
+            } else {
+                "/root/subjects_runner_review_luna"
+            },
             "synthetic stale subject control",
         ),
         "reviewer handoff cannot change an active review subject",

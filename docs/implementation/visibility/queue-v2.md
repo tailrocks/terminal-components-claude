@@ -351,6 +351,13 @@ object reports the observed queue revision and raw SHA-256 values for both
 `tasks.json` and `WORK_QUEUE.md`; `writes_files` is `false`. The command does
 not acquire the queue lock, write files, or advance the accepted revision.
 
+The preview accepts only scope-free schema-v1 source. Before proposing schema
+v2, it rejects a current `task.branch_scopes` field or a `branch_scopes` field
+in any historical `claim` snapshot with the deterministic error
+`tasks[0].branch_scopes is a schema-v1 claim extension`. This boundary does not
+change live schema-v1 validation or branch-scope conflict checks; those grants
+remain valid for schema-v1 queue operations.
+
 The selected candidate source commit is already accepted as
 `cee7e2e307514e49a70d8b8fcb028923ccdc7322` (fixed-pair fetch-receipt prefix
 `6645a0d4`, source-audit prefix `43a57d70`). This selection does not qualify a

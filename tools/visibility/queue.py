@@ -108,6 +108,9 @@ TASK_IDENTITY_FIELDS = {"repository_id", "worktree_id"}
 CLAIM_SNAPSHOT_V2_FIELDS = CLAIM_SNAPSHOT_FIELDS | TASK_IDENTITY_FIELDS
 IDENTITY_MAP_SCHEMA = "termrock-visibility-identity-map/v1"
 MIGRATION_PREVIEW_SCHEMA = "termrock-visibility-migration-preview/v1"
+MIGRATION_BRANCH_SCOPE_ERROR = (
+    "tasks[0].branch_scopes is a schema-v1 claim extension"
+)
 REGISTRY_ID = re.compile(r"^[a-z][a-z0-9-]*$")
 WORKTREE_MODES = {"branch", "source-pin", "scratch"}
 WORKTREE_ROLES = {
@@ -2538,7 +2541,19 @@ def migration_preview(
 
     tasks_raw = _safe_read(tasks_path, "accepted task records")
     view_raw = _safe_read(queue_path, "generated WORK_QUEUE.md")
-    source_records = validate_records(strict_json_loads(tasks_raw))
+    source_value = strict_json_loads(tasks_raw)
+    tasks = source_value.get("tasks") if isinstance(source_value, dict) else []
+    for task in tasks if isinstance(tasks, list) else []:
+        if not isinstance(task, dict):
+            continue
+        if "branch_scopes" in task:
+            require(False, MIGRATION_BRANCH_SCOPE_ERROR)
+        history = task.get("claim_history")
+        for history_entry in history if isinstance(history, list) else []:
+            claim = history_entry.get("claim") if isinstance(history_entry, dict) else None
+            if isinstance(claim, dict) and "branch_scopes" in claim:
+                require(False, MIGRATION_BRANCH_SCOPE_ERROR)
+    source_records = validate_records(source_value)
     expected_v1_view = render_queue(source_records)
     try:
         source_view = view_raw.decode("utf-8")
