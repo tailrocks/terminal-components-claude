@@ -17709,6 +17709,7 @@ impl App {
         );
     }
 
+    #[allow(dead_code)]
     pub(super) fn draw_historical_usage_overview_120_40(&self, ui: &mut Ui<'_>, area: Rect) {
         ui.fill(
             area,

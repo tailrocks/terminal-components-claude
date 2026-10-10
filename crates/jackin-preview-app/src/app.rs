@@ -47,7 +47,7 @@ use crate::screens::{
     manager::{LaunchCandidate, ManagerRowKey, ManagerState},
     prelude::{PreludeState, PreludeUiState},
     settings::{SettingsFocus, SettingsScreen, SettingsState},
-    usage::{Tab as UsageTab, UsageState},
+    usage::UsageState,
 };
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun};
 use crate::sim::provider;
@@ -5508,16 +5508,8 @@ impl App {
                     self.capsule_usage = true;
                     self.status = Some("Usage".into());
                 } else {
-                    if self.usage.selected().is_none() {
-                        let selected = self
-                            .world
-                            .accounts
-                            .sorted()
-                            .first()
-                            .map(|account| account.id.clone());
-                        self.usage.select(selected);
-                    }
                     self.route = Route::Usage;
+                    cx.focus(crate::screens::usage::LIST);
                 }
                 Some(Response::changed())
             }
@@ -7193,31 +7185,8 @@ impl App {
     }
 
     fn draw_usage(&self, ui: &mut Ui<'_>, area: Rect) {
-        let summary = crate::domain::usage::OverallSummary::compute(&self.world.accounts.accounts);
-        let tab = match self.usage.tab {
-            UsageTab::Overview => "Overview",
-            UsageTab::Registration => "Registration",
-            UsageTab::Quota => "Quota",
-        };
-        let lines = [
-            "Usage · read-only".to_owned(),
-            tab.to_owned(),
-            "Limits".to_owned(),
-            format!("Health · {}", summary.health.label()),
-            format!(
-                "Accounts · {} total · {} enabled · {} disabled",
-                summary.counts.accounts, summary.counts.enabled, summary.counts.disabled
-            ),
-            format!(
-                "Providers · {} · warnings {} · exhausted {}",
-                summary.counts.providers, summary.counts.warnings, summary.counts.exhausted
-            ),
-            format!(
-                "Freshness · stale {} · failed {} · unresolved identities {}",
-                summary.counts.stale, summary.counts.failed, summary.counts.unresolved_identity
-            ),
-        ];
-        paint_lines(ui, area, &lines);
+        let focused = !self.help_open;
+        crate::screens::usage::UsageScreen::draw(ui, area, &self.usage, &self.world, focused);
     }
 
     fn draw_settings(&self, ui: &mut Ui<'_>, _area: Rect) {
@@ -8555,6 +8524,14 @@ impl App {
             return;
         }
 
+        if self.route == Route::Usage {
+            let hints = crate::screens::usage::UsageScreen::hints(self.usage.detail_open());
+            HintBar::new(APP.sub("hint"), &hints)
+                .status_text(self.status.as_deref())
+                .draw(ui, area);
+            return;
+        }
+
         if self.route == Route::Settings {
             let hints = SettingsScreen::hints(self.settings_tab, self.settings.focus);
             HintBar::new(APP.sub("hint"), &hints)
@@ -9278,13 +9255,10 @@ impl TuiApp for App {
         if self.route == Route::Usage
             && (full.width, full.height) == (120, 40)
             && self.motion == Motion::Paused
+            && self.usage_detail
         {
-            if self.usage_detail {
-                self.draw_historical_usage_detail_120_40(ui, full);
-                return;
-            } else {
-                self.draw_historical_usage_overview_120_40(ui, full);
-            }
+            self.draw_historical_usage_detail_120_40(ui, full);
+            return;
         }
 
         let header = Rect::new(full.x, full.y, full.width, 1);
