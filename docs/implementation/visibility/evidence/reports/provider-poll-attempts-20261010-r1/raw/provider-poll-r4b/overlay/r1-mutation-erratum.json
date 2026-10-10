@@ -1,0 +1,25 @@
+{
+  "incident": "After announcing R1 frozen, I modified the R1 working projection Rust test file to add focused negative cases. That made the live Rust file disagree with the R1 frozen tree and manifest. The R1 original Rust source was reconstructed from the R1 tree into r1-frozen/ and its SHA-256 matches the R1 manifest. The R1 Python source was likewise reconstructed and matches its R1 hash. No tests, build, Cargo, or canonical repository edits occurred during this mutation.",
+  "r1_freeze": {
+    "manifest_sha256": "3dd6a427f4ddd730f9ac7b6e5ed80fdbf4189874a9aafa7cb6044fb4ff51ce02",
+    "patch_sha256": "283f82057b5f2d7e15992e1bd279ff964cfad73d9efa2ad36e26293680bb5513",
+    "tree": "f3eaf37037d96da3774b6a32283ef947cfa90575"
+  },
+  "r1_reconstructed_originals": [
+    {
+      "expected_r1_sha256": "c370aff0eb2bf02773f2b0d002fdb51c7b94d34d7f95029d8037962d44c2c4eb",
+      "file": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r1-frozen/crates/termrock-visibility-tests/tests/status.rs",
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "sha256": "c370aff0eb2bf02773f2b0d002fdb51c7b94d34d7f95029d8037962d44c2c4eb"
+    },
+    {
+      "expected_r1_sha256": "a165416f298b4e5cbdfba221a1b57db67b860cdc4a604dff6d90151b970b4cd4",
+      "file": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r1-frozen/tools/visibility/status.py",
+      "path": "tools/visibility/status.py",
+      "sha256": "a165416f298b4e5cbdfba221a1b57db67b860cdc4a604dff6d90151b970b4cd4"
+    }
+  ],
+  "r2_uses": "Fresh r2/ projection copied from the reconstructed R1 tree plus the narrow added Rust negative assertions. R1 files and packet remain preserved.",
+  "schema": "termrock-vis01-source-freeze-erratum/v1",
+  "status": "DISCLOSED; R1 not used as R2 evidence"
+}

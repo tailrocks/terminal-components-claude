@@ -1,0 +1,22 @@
+{
+  "schema": "termrock-root-remote-readback/v1",
+  "argv": [
+    "ls-remote",
+    "https://github.com/tailrocks/terminal-components-claude.git",
+    "refs/heads/termrock-implementation",
+    "refs/heads/visual-baseline",
+    "refs/tags/visual-baseline",
+    "refs/tags/visual-baseline^{}"
+  ],
+  "exit_code": 0,
+  "signal": null,
+  "observed_at": "2026-10-10T05:46:49.630Z",
+  "records": {
+    "refs/heads/termrock-implementation": "67492afe9c6428c720a60e136f3941cbc91cd980",
+    "refs/heads/visual-baseline": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "refs/tags/visual-baseline": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+    "refs/tags/visual-baseline^{}": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+  },
+  "stdout_sha256": "d5d613a56f790df1577c299e7fa9d59964602ac99e5ae196b161f15aaf0cb14e",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

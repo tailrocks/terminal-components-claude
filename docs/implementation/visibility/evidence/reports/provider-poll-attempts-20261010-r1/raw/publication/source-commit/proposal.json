@@ -1,0 +1,37 @@
+{
+  "schema": "termrock-root-proposed-commit/v1",
+  "parent": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+  "tree": "f8a2508d003ed00d614b95f204418f0b7910bdfd",
+  "object_store": "/private/tmp/termrock-root-integration-20261010.git",
+  "private_index": "/private/tmp/termrock-provider-poll-root-proposed-commit-r5-20261010/index",
+  "changed_paths": [
+    {
+      "path": "tools/visibility/status.py",
+      "preimage_sha256": "53d7ca682e33ffe37f5ab22274d3a0d819562801939b17783690f4e4bd739419",
+      "sha256": "a165416f298b4e5cbdfba221a1b57db67b860cdc4a604dff6d90151b970b4cd4",
+      "blob": "4e288f980ee573e7d2c90b66b29d098588e8389b",
+      "bytes": 319119
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "preimage_sha256": "1fba764643b9fe5ce05fd9027732901a15e652e2a1e6baab2227eff957a2ea59",
+      "sha256": "771479e81e862c9de5e8ca63eb96539833fa2852c806ca56c61732f27ba29b47",
+      "blob": "ed0d89791be2d5b99209628e76f3d5d879f12366",
+      "bytes": 218427
+    }
+  ],
+  "diff": {
+    "path": "/private/tmp/termrock-provider-poll-root-proposed-commit-r5-20261010/source.patch",
+    "sha256": "765415ea37a6f9c6d50ad472af909b14552697d5f87c1abe471e519c74260ec0",
+    "bytes": 44417
+  },
+  "source_review": {
+    "path": "/private/tmp/termrock-vis01-provider-poll-r5-source-review-rust-test-execution-20261010.json",
+    "sha256": "c422437606a9430735a599c16735edc3b8eaa4e4aad2398ddbe704ae85c9f162"
+  },
+  "actual_capture_root": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010",
+  "reader_validation": "PENDING",
+  "commit_message": "feat: preserve captured CI poll failures",
+  "sign_off": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+  "prepared_at": "2026-10-10T05:26:13.637Z"
+}

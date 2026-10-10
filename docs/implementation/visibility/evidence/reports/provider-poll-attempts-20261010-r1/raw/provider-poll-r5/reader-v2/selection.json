@@ -1,0 +1,39 @@
+{
+  "expected_test_count": 3,
+  "filter_args": [],
+  "run_ignored": "default",
+  "schema": "termrock-nextest-selection/v2",
+  "targets": [
+    {
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "package": "termrock-visibility-tests"
+    }
+  ],
+  "tests": [
+    {
+      "binary_id": "termrock-visibility-tests::status",
+      "filter_match_status": "matches",
+      "ignored": false,
+      "kind": "test",
+      "package": "termrock-visibility-tests",
+      "test_name": "provider_poll_variant_preserves_error_and_historical_boundaries"
+    },
+    {
+      "binary_id": "termrock-visibility-tests::status",
+      "filter_match_status": "matches",
+      "ignored": false,
+      "kind": "test",
+      "package": "termrock-visibility-tests",
+      "test_name": "provider_poll_variant_rejects_duplicate_attempts_nonmonotone_rows_and_unknown_kind"
+    },
+    {
+      "binary_id": "termrock-visibility-tests::status",
+      "filter_match_status": "matches",
+      "ignored": false,
+      "kind": "test",
+      "package": "termrock-visibility-tests",
+      "test_name": "provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_bytes"
+    }
+  ]
+}

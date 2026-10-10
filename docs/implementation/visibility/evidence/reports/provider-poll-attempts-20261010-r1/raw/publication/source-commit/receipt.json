@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "--git-dir=/private/tmp/termrock-root-integration-20261010.git",
+    "commit-tree",
+    "eea6cf5e25866fba6fa959419c71b46ed6ef70ca",
+    "-p",
+    "3ee990482375d64ac2a88907b6d8642c1930ba63",
+    "-p",
+    "bdc9c83180abc37571643216a931149f947990b5"
+  ],
+  "exit_code": 0,
+  "signal": null,
+  "commit": "67492afe9c6428c720a60e136f3941cbc91cd980",
+  "review_sha256": "c2c3280ace29024b1cfeb08947a032bc67557cbaeabd339f9d618a3d1d5019dd",
+  "created_at": "2026-10-10T05:46:29.202Z"
+}

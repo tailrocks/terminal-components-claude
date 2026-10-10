@@ -1,0 +1,62 @@
+{
+  "changed_path_count": 2,
+  "changed_paths": [
+    {
+      "base_blob": "47a9455cac1732731b6fad4fd13bdde332d520f9",
+      "bytes": 319119,
+      "changed": true,
+      "path": "tools/visibility/status.py",
+      "preimage_sha256": "53d7ca682e33ffe37f5ab22274d3a0d819562801939b17783690f4e4bd739419",
+      "sha256": "a165416f298b4e5cbdfba221a1b57db67b860cdc4a604dff6d90151b970b4cd4",
+      "source_r4b_sha256": "a165416f298b4e5cbdfba221a1b57db67b860cdc4a604dff6d90151b970b4cd4"
+    },
+    {
+      "base_blob": "7aef9bb3a2518eb500c7e5dc2162d0660aec1e23",
+      "bytes": 218427,
+      "changed": true,
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "preimage_sha256": "1fba764643b9fe5ce05fd9027732901a15e652e2a1e6baab2227eff957a2ea59",
+      "sha256": "771479e81e862c9de5e8ca63eb96539833fa2852c806ca56c61732f27ba29b47",
+      "source_r4b_sha256": "c7798eeaaf24d30488bd7dc1c89253202b4f23e4449c818d001c0f8b0678f93d"
+    }
+  ],
+  "diagnosis": [
+    {
+      "cause": "The second row timestamp was changed to 04:13 while its pinned summary remained 04:12:40. The validator checks row-to-summary time consistency before the duplicate run ID/attempt key, so the duplicate test was masked by a fixture timestamp mismatch.",
+      "correction": "Keep the second row timestamp equal to the pinned summary timestamp; duplicate run identity remains unchanged.",
+      "failure": "duplicate attempt assertion"
+    },
+    {
+      "cause": "The missing-member case rewrote MANIFEST.json on disk and updated only the test-local facts pin. The following unlisted-path case restored facts from the original bundle but left the rewritten manifest on disk. The manifest hash check therefore fails before the unlisted-member check.",
+      "correction": "Save the original manifest bytes and restore them after the missing-member assertion, before the unlisted-path case.",
+      "failure": "unlisted capture assertion"
+    }
+  ],
+  "execution": {
+    "build": "NOT_RUN",
+    "cargo": "NOT_RUN",
+    "nextest": "NOT_RUN"
+  },
+  "freeze_id": "VIS01-provider-poll-R5-fixture-fixes-20261010",
+  "patch": {
+    "bytes": 43905,
+    "path": "source.patch",
+    "sha256": "2193eee5e0bfd92428cb2391fa49c5762cf42e13635203347cf693ee95678025"
+  },
+  "review": {
+    "reviewer": "/root/ci_parity_review_luna",
+    "scope": "R4b test-only fixture corrections; production validator unchanged; exact two allowed paths; preserve prior 1-pass/2-fail result",
+    "status": "PENDING"
+  },
+  "schema": "termrock-vis01-provider-poll-fixture-fix-freeze/v1",
+  "source_base": {
+    "commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "object_store": "/private/tmp/termrock-root-integration-20261010.git",
+    "tree": "48e074b5503c227422d51faaa8d8a143a295d9da"
+  },
+  "supersedes": {
+    "actual_outcome": "three selected tests; one passed, two failed; child exit 100; wrapper exit 0; preserve raw captures unchanged",
+    "manifest_sha256": "a65b6ef74c6627b985421ffc7019b18a7f0ea8d5789219f31c687d9e14933cc9",
+    "path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/"
+  }
+}

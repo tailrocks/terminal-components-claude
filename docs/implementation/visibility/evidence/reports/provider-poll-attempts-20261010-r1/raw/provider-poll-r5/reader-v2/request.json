@@ -1,0 +1,78 @@
+{
+  "invocation": {
+    "expected_test_count": 3,
+    "filter_args": [],
+    "libtest_json_enabled": true,
+    "machine_stream": "stdout",
+    "message_format": "libtest-json-plus",
+    "message_format_version": "0.1",
+    "nextest_version": "0.9.146",
+    "partition": "none",
+    "retries": 0,
+    "run_id": "7c996c69-8cdf-44b8-99ca-c1a13e010618",
+    "run_ignored": "default",
+    "stress": "none",
+    "targets": [
+      {
+        "binary_id": "termrock-visibility-tests::status",
+        "kind": "test",
+        "package": "termrock-visibility-tests"
+      }
+    ]
+  },
+  "list_capture": {
+    "stderr": {
+      "byte_length": 2346,
+      "path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/raw/nextest.stderr.raw",
+      "sha256": "edb3239570b61dcd7884ede53b640d294f7d8244461a21f266b8090e17f4284b",
+      "truncated": false
+    },
+    "stdout": {
+      "byte_length": 11492,
+      "path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/raw/nextest.stdout.raw",
+      "sha256": "04c1683826443a77c4b9686c02c49581930e92b5b17ec5b93ae31f44331b71ff",
+      "truncated": false
+    },
+    "termination": {
+      "exit_code": 0,
+      "kind": "exited"
+    }
+  },
+  "run_capture": {
+    "stderr": {
+      "byte_length": 16809,
+      "path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/raw/nextest.stderr.raw",
+      "sha256": "b0ea0e05dc2f0e2357b888d028a288fd887f10fb59f51dc4f8fd9c09d03e6027",
+      "truncated": false
+    },
+    "stdout": {
+      "byte_length": 1318,
+      "path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/raw/nextest.stdout.raw",
+      "sha256": "9dcd1f107c80301a2d7406d2e6d830c9bf92f6266aaaab3d021977104d1baedc",
+      "truncated": false
+    },
+    "termination": {
+      "exit_code": 0,
+      "kind": "exited"
+    }
+  },
+  "schema": "termrock-nextest-reader-request/v2",
+  "wrapper_capture": {
+    "stderr": {
+      "byte_length": 0,
+      "path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/root-wrapper.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "truncated": false
+    },
+    "stdout": {
+      "byte_length": 2083,
+      "path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/root-wrapper.stdout.raw",
+      "sha256": "7c13684ac7aed142a418ab35377a0754a3b352b8cca122add25eedfc9b1f9e00",
+      "truncated": false
+    },
+    "termination": {
+      "exit_code": 0,
+      "kind": "exited"
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "schema": "termrock-vis01-provider-poll-rust-capture-plan/v1",
+  "status": "PREPARED_NOT_RUN; ROOT_OWNS_CAPTURE",
+  "source": {
+    "root": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/source-root",
+    "closure_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/source-closure.json",
+    "closure_sha256": "f1cbd53a13a462f0bcfed68b7a178f71cd8a5ae2cd35b4c2f50cc80ad25976cd",
+    "r4b_manifest": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r4b/source-manifest.json",
+    "r4b_manifest_sha256": "a65b6ef74c6627b985421ffc7019b18a7f0ea8d5789219f31c687d9e14933cc9",
+    "overlay_tree": "389dbd9e594dc05fa7b0311a0c5142f8931f31cd",
+    "overlay_patch_sha256": "5279863f68cb71138d7b13c36018987f5059238e69e45bef67bb351cf623cfe6",
+    "modified_source_files": [
+      {
+        "path": "tools/visibility/status.py",
+        "sha256": "a165416f298b4e5cbdfba221a1b57db67b860cdc4a604dff6d90151b970b4cd4",
+        "bytes": 319119
+      },
+      {
+        "path": "crates/termrock-visibility-tests/tests/status.rs",
+        "sha256": "c7798eeaaf24d30488bd7dc1c89253202b4f23e4449c818d001c0f8b0678f93d",
+        "bytes": 218311
+      }
+    ]
+  },
+  "selection": {
+    "package": "termrock-visibility-tests",
+    "target": "status",
+    "kind": "test",
+    "count": 3,
+    "test_names": [
+      "provider_poll_variant_preserves_error_and_historical_boundaries",
+      "provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_bytes",
+      "provider_poll_variant_rejects_duplicate_attempts_nonmonotone_rows_and_unknown_kind"
+    ],
+    "filterset": "test(provider_poll_variant_preserves_error_and_historical_boundaries) | test(provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_bytes) | test(provider_poll_variant_rejects_duplicate_attempts_nonmonotone_rows_and_unknown_kind)"
+  },
+  "capture_tool": {
+    "path": "/private/tmp/termrock-qualified-capture-command-58de6bb-r1-20261010/capture-command",
+    "sha256": "5564b7749faba78d18cc060dd8e34f4d753ae6c5cbf55457d4a5e220a84f93e8"
+  },
+  "runtime": {
+    "cargo": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d"
+    },
+    "rustc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+    },
+    "nextest": {
+      "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+      "version": "0.9.146"
+    },
+    "cargo_home": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/cargo-home",
+    "target_dir": "/private/tmp/termrock-capture-command-root-gate-r1-20261010/target",
+    "network": "offline",
+    "build_jobs": 2,
+    "test_threads": 1
+  },
+  "requests": {
+    "list": {
+      "path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/request.json",
+      "sha256": "07c9511d26dd8aa88683bc196342b1f011842b8c1c27330ae4f021591dfa3dec",
+      "timeout_ms": 180000,
+      "stdout": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/raw/nextest.stdout.raw",
+      "stderr": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/raw/nextest.stderr.raw",
+      "result": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/raw/capture-result.json"
+    },
+    "run": {
+      "path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/request.json",
+      "sha256": "a97a3a29ad28ef6bca2edce04d35fd2ebfcf8da40ba0be8843564d6937de28e8",
+      "timeout_ms": 180000,
+      "stdout": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/raw/nextest.stdout.raw",
+      "stderr": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/raw/nextest.stderr.raw",
+      "result": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/raw/capture-result.json"
+    }
+  },
+  "execution": {
+    "list": "NOT_RUN",
+    "run": "NOT_RUN",
+    "cargo": "NOT_RUN",
+    "nextest": "NOT_RUN"
+  }
+}

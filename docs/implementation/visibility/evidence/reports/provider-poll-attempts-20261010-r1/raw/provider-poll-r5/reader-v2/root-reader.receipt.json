@@ -1,0 +1,18 @@
+{
+  "started": "2026-10-10T05:28:05.769Z",
+  "finished": "2026-10-10T05:28:05.796Z",
+  "reader_sha256": "6e04b44ab03aae70fec328eabda332293bedf1f71f66673d903af6566696366f",
+  "argv": [
+    "--request",
+    "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/request.json",
+    "--selection",
+    "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/selection.json",
+    "--trusted-selection-sha256",
+    "65897f7d8e28f948e3fb7cdb3bd989000cc55b0bea0fb0f38924b99fba9c015e"
+  ],
+  "exit_code": 0,
+  "signal": null,
+  "error": null,
+  "stdout_sha256": "6d917c285a6bfb1efcad9b956ea84dfbe9752bba5173ee2f52918c6f163131f5",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

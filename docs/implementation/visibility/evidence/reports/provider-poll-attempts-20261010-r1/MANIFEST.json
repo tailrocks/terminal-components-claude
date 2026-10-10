@@ -1,0 +1,609 @@
+{
+  "files": [
+    {
+      "bytes": 983,
+      "description": "Current 0b jobs-api command receipt",
+      "path": "raw/current-0b-four-query/jobs-api/receipt.json",
+      "sha256": "1ba42273abac24d13488ff8afa119c2275edb461b7365659e97effa30ce66c58",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/jobs-api.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "Current 0b jobs-api command stderr",
+      "path": "raw/current-0b-four-query/jobs-api/stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/jobs-api.stderr.raw"
+    },
+    {
+      "bytes": 1443,
+      "description": "Current 0b jobs-api command stdout",
+      "path": "raw/current-0b-four-query/jobs-api/stdout.raw",
+      "sha256": "76887283b16c18fb993ccfc434dd896354b44405841840ab3f4fa7562349be06",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/jobs-api.stdout.raw"
+    },
+    {
+      "bytes": 1043,
+      "description": "Current 0b pr command receipt",
+      "path": "raw/current-0b-four-query/pr/receipt.json",
+      "sha256": "13ab71560a0566374de2edc75ae59727c9921f38c3ec42f64bef95bd7c9ec9ec",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/pr.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "Current 0b pr command stderr",
+      "path": "raw/current-0b-four-query/pr/stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/pr.stderr.raw"
+    },
+    {
+      "bytes": 385,
+      "description": "Current 0b pr command stdout",
+      "path": "raw/current-0b-four-query/pr/stdout.raw",
+      "sha256": "d10d51896bffcae0f01063281bb69c6be57d4e87aac315dc48ee544d8d0eccb5",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/pr.stdout.raw"
+    },
+    {
+      "bytes": 1070,
+      "description": "Current 0b run command receipt",
+      "path": "raw/current-0b-four-query/run/receipt.json",
+      "sha256": "0154b1c5224c21df79ec891dfe548ef264b93ceee96b557942b60a99eb562561",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/run.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "Current 0b run command stderr",
+      "path": "raw/current-0b-four-query/run/stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/run.stderr.raw"
+    },
+    {
+      "bytes": 328,
+      "description": "Current 0b run command stdout",
+      "path": "raw/current-0b-four-query/run/stdout.raw",
+      "sha256": "bc7acc0c3af923a1de5a09f9567af1febf1332efe713ffd432cdf1dff19635f4",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/run.stdout.raw"
+    },
+    {
+      "bytes": 888,
+      "description": "Current 0b version command receipt",
+      "path": "raw/current-0b-four-query/version/receipt.json",
+      "sha256": "5671e1e01960717154277b47e6d4926683f64a376cf2b7df99256be18c8947a9",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/version.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "Current 0b version command stderr",
+      "path": "raw/current-0b-four-query/version/stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/version.stderr.raw"
+    },
+    {
+      "bytes": 81,
+      "description": "Current 0b version command stdout",
+      "path": "raw/current-0b-four-query/version/stdout.raw",
+      "sha256": "a679442459bed23fdc13efb977dec3b17c3c923d8d48abc0d8e522182250955f",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/version.stdout.raw"
+    },
+    {
+      "bytes": 1036,
+      "description": "Native 0b/ref/tag readback receipt",
+      "path": "raw/current-0b-ref-readback/receipt.json",
+      "sha256": "8ad10dea379fa5e77e86bcb612ed1096ff039de98731b51efa7a84831aef8aae",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-root-current-ref-readback-0b7545-r1-20261010/receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "Native 0b/ref/tag readback stderr",
+      "path": "raw/current-0b-ref-readback/stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-root-current-ref-readback-0b7545-r1-20261010/stderr.raw"
+    },
+    {
+      "bytes": 281,
+      "description": "Native 0b/ref/tag readback stdout",
+      "path": "raw/current-0b-ref-readback/stdout.raw",
+      "sha256": "d09262ffc77cb61dd9a1f4b6bf0c614731407f01cfd2df9713aa908f8e2109e7",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-root-current-ref-readback-0b7545-r1-20261010/stdout.raw"
+    },
+    {
+      "bytes": 4243,
+      "description": "R4b capture plan; original execution fields retained",
+      "path": "raw/provider-poll-r4b/capture-plan.json",
+      "sha256": "1d424d198b81fdf92025b8be89848b9cd7e6fd78982526ea94a04aad98aa3cb4",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/capture-plan.json"
+    },
+    {
+      "bytes": 1762,
+      "description": "R4b raw process capture result",
+      "path": "raw/provider-poll-r4b/list/raw/capture-result.json",
+      "sha256": "1548b003cdeb47aa4d68012a024081c5740f4177639998798afe1014cb5990fe",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/raw/capture-result.json"
+    },
+    {
+      "bytes": 1471,
+      "description": "R4b raw Nextest stderr",
+      "path": "raw/provider-poll-r4b/list/raw/nextest.stderr.raw",
+      "sha256": "72867324d3340ee6d7f14fcbe9138cfc18d6b57e45eb409242675921c8e1cb2a",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/raw/nextest.stderr.raw"
+    },
+    {
+      "bytes": 11453,
+      "description": "R4b raw Nextest stdout",
+      "path": "raw/provider-poll-r4b/list/raw/nextest.stdout.raw",
+      "sha256": "746edd6ca814d926f123e2bd1151977e844b40950ce0fcfaf79e7e4fe9b56b00",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/raw/nextest.stdout.raw"
+    },
+    {
+      "bytes": 2258,
+      "description": "R4b captured Nextest invocation request",
+      "path": "raw/provider-poll-r4b/list/request.json",
+      "sha256": "07c9511d26dd8aa88683bc196342b1f011842b8c1c27330ae4f021591dfa3dec",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/request.json"
+    },
+    {
+      "bytes": 464,
+      "description": "R4b capture wrapper receipt",
+      "path": "raw/provider-poll-r4b/list/root-wrapper.receipt.json",
+      "sha256": "9f8bcb133aefbbf04d904cadfac210b7bba721831589d5705642337d7fae0944",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/root-wrapper.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "R4b capture wrapper stderr",
+      "path": "raw/provider-poll-r4b/list/root-wrapper.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/root-wrapper.stderr.raw"
+    },
+    {
+      "bytes": 1762,
+      "description": "R4b capture wrapper stdout",
+      "path": "raw/provider-poll-r4b/list/root-wrapper.stdout.raw",
+      "sha256": "1548b003cdeb47aa4d68012a024081c5740f4177639998798afe1014cb5990fe",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/list/root-wrapper.stdout.raw"
+    },
+    {
+      "bytes": 2212,
+      "description": "Accepted R4b source-overlay scope",
+      "path": "raw/provider-poll-r4b/overlay/accepted-scope.json",
+      "sha256": "09843805b02aec0c32b10c94d6715faef96fed8f78bfb15263b54a43d04f92bc",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/accepted-scope.json"
+    },
+    {
+      "bytes": 1806,
+      "description": "R4b source-freeze mutation/restoration erratum",
+      "path": "raw/provider-poll-r4b/overlay/r1-mutation-erratum.json",
+      "sha256": "8c4fed7794231e160c6c90ef087a86af5cb119cb393a57ccfa5ff682010994d7",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r1-mutation-erratum.json"
+    },
+    {
+      "bytes": 5627,
+      "description": "R4b source overlay manifest",
+      "path": "raw/provider-poll-r4b/overlay/source-manifest.json",
+      "sha256": "a65b6ef74c6627b985421ffc7019b18a7f0ea8d5789219f31c687d9e14933cc9",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r4b/source-manifest.json"
+    },
+    {
+      "bytes": 44175,
+      "description": "R4b source overlay patch",
+      "path": "raw/provider-poll-r4b/overlay/source.patch",
+      "sha256": "5279863f68cb71138d7b13c36018987f5059238e69e45bef67bb351cf623cfe6",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r4b/source.patch"
+    },
+    {
+      "bytes": 2033,
+      "description": "R4b raw process capture result",
+      "path": "raw/provider-poll-r4b/run/raw/capture-result.json",
+      "sha256": "7ac1f556bd57fb26f2302f052954e4c8f3511c083caf975089e145df292db08c",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/raw/capture-result.json"
+    },
+    {
+      "bytes": 19446,
+      "description": "R4b raw Nextest stderr",
+      "path": "raw/provider-poll-r4b/run/raw/nextest.stderr.raw",
+      "sha256": "d998559a322fdf0632593d0c905a25ac4757abffb8b3edac901a1a145b5268f1",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/raw/nextest.stderr.raw"
+    },
+    {
+      "bytes": 1978,
+      "description": "R4b raw Nextest stdout",
+      "path": "raw/provider-poll-r4b/run/raw/nextest.stdout.raw",
+      "sha256": "8144735cb3b1f24058d478f6cdc47ec94039a5bfca20179284f8261323121cb9",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/raw/nextest.stdout.raw"
+    },
+    {
+      "bytes": 2614,
+      "description": "R4b captured Nextest invocation request",
+      "path": "raw/provider-poll-r4b/run/request.json",
+      "sha256": "a97a3a29ad28ef6bca2edce04d35fd2ebfcf8da40ba0be8843564d6937de28e8",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/request.json"
+    },
+    {
+      "bytes": 464,
+      "description": "R4b capture wrapper receipt",
+      "path": "raw/provider-poll-r4b/run/root-wrapper.receipt.json",
+      "sha256": "fe5bda8df51817e7b1b73e1b99cd5a8d062533ef52a4f88848eafdd1426a503a",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/root-wrapper.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "R4b capture wrapper stderr",
+      "path": "raw/provider-poll-r4b/run/root-wrapper.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/root-wrapper.stderr.raw"
+    },
+    {
+      "bytes": 2033,
+      "description": "R4b capture wrapper stdout",
+      "path": "raw/provider-poll-r4b/run/root-wrapper.stdout.raw",
+      "sha256": "7ac1f556bd57fb26f2302f052954e4c8f3511c083caf975089e145df292db08c",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/run/root-wrapper.stdout.raw"
+    },
+    {
+      "bytes": 37707,
+      "description": "R4b source closure; original execution fields retained",
+      "path": "raw/provider-poll-r4b/source-closure.json",
+      "sha256": "f1cbd53a13a462f0bcfed68b7a178f71cd8a5ae2cd35b4c2f50cc80ad25976cd",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r4-capture-20261010/source-closure.json"
+    },
+    {
+      "bytes": 4457,
+      "description": "R5 capture plan; original PREPARED/NOT_RUN fields retained",
+      "path": "raw/provider-poll-r5/capture-plan.json",
+      "sha256": "00696fa074cf250406df8a636aae21a9e738614c54e46adf003a40d418d59ab3",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/capture-plan.json"
+    },
+    {
+      "bytes": 1814,
+      "description": "R5 raw process capture result",
+      "path": "raw/provider-poll-r5/list/raw/capture-result.json",
+      "sha256": "95dc7696d8ca0bfe2adc92be18f87f085cf1be20aa6934399484dc5ee86e42a0",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/raw/capture-result.json"
+    },
+    {
+      "bytes": 2346,
+      "description": "R5 raw Nextest stderr",
+      "path": "raw/provider-poll-r5/list/raw/nextest.stderr.raw",
+      "sha256": "edb3239570b61dcd7884ede53b640d294f7d8244461a21f266b8090e17f4284b",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/raw/nextest.stderr.raw"
+    },
+    {
+      "bytes": 11492,
+      "description": "R5 raw Nextest stdout",
+      "path": "raw/provider-poll-r5/list/raw/nextest.stdout.raw",
+      "sha256": "04c1683826443a77c4b9686c02c49581930e92b5b17ec5b93ae31f44331b71ff",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/raw/nextest.stdout.raw"
+    },
+    {
+      "bytes": 2349,
+      "description": "R5 captured Nextest invocation request",
+      "path": "raw/provider-poll-r5/list/request.json",
+      "sha256": "63f56e2661b0c8243fda6607c7c9473eae16a5631a7c195a3686caee96789f9c",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/request.json"
+    },
+    {
+      "bytes": 379,
+      "description": "R5 capture wrapper receipt",
+      "path": "raw/provider-poll-r5/list/root-wrapper.receipt.json",
+      "sha256": "fb808181ead4ea7d8384f115ca94bc56405af57eceebd96810caf7e82a1664dd",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/root-wrapper.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "R5 capture wrapper stderr",
+      "path": "raw/provider-poll-r5/list/root-wrapper.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/root-wrapper.stderr.raw"
+    },
+    {
+      "bytes": 1814,
+      "description": "R5 capture wrapper stdout",
+      "path": "raw/provider-poll-r5/list/root-wrapper.stdout.raw",
+      "sha256": "95dc7696d8ca0bfe2adc92be18f87f085cf1be20aa6934399484dc5ee86e42a0",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/root-wrapper.stdout.raw"
+    },
+    {
+      "bytes": 3080,
+      "description": "R5 source overlay manifest",
+      "path": "raw/provider-poll-r5/overlay/source-manifest.json",
+      "sha256": "8cd86631d0681abb6e207eee2ea52efd09c59682c00faa2be7f2acdca3e50b63",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-variant-0b7545-r5-fixture-fixes-20261010/source-manifest.json"
+    },
+    {
+      "bytes": 43905,
+      "description": "R5 source overlay patch",
+      "path": "raw/provider-poll-r5/overlay/source.patch",
+      "sha256": "2193eee5e0bfd92428cb2391fa49c5762cf42e13635203347cf693ee95678025",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-variant-0b7545-r5-fixture-fixes-20261010/source.patch"
+    },
+    {
+      "bytes": 6092,
+      "description": "Independent R5 Reader v2 actual-result review",
+      "path": "raw/provider-poll-r5/reader-v2/independent-actual-result-review.json",
+      "sha256": "dbba59c5d8db73e815a8c13cab181c4a61ff80349295176cb52e1e53e77e6f56",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-proposed-commit-r5-20261010/independent-final-review-rust-test-execution.json"
+    },
+    {
+      "bytes": 3767,
+      "description": "R5 Reader v2 preparation record; original PREPARED status retained",
+      "path": "raw/provider-poll-r5/reader-v2/preparation.json",
+      "sha256": "d8bd063c08798661b64a882dfcad817b33b9b656f9227e91ce6da54f6e6ece85",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/preparation.json"
+    },
+    {
+      "bytes": 2590,
+      "description": "R5 Reader v2 request",
+      "path": "raw/provider-poll-r5/reader-v2/request.json",
+      "sha256": "117e080f1d88841c65cf1ee7f100a583bc5c50e24b34b5165f35a40ae1defe6a",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/request.json"
+    },
+    {
+      "bytes": 728,
+      "description": "R5 Reader v2 root execution receipt",
+      "path": "raw/provider-poll-r5/reader-v2/root-reader.receipt.json",
+      "sha256": "6ccf620a464d360b049495c7ed23277ff94b27ff2f4b3b1f62651009704f6a51",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/root-reader.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "R5 Reader v2 stderr",
+      "path": "raw/provider-poll-r5/reader-v2/root-reader.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/root-reader.stderr.raw"
+    },
+    {
+      "bytes": 2682,
+      "description": "R5 Reader v2 raw JSON report on stdout",
+      "path": "raw/provider-poll-r5/reader-v2/root-reader.stdout.raw",
+      "sha256": "6d917c285a6bfb1efcad9b956ea84dfbe9752bba5173ee2f52918c6f163131f5",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/root-reader.stdout.raw"
+    },
+    {
+      "bytes": 1193,
+      "description": "R5 Reader v2 exact selection",
+      "path": "raw/provider-poll-r5/reader-v2/selection.json",
+      "sha256": "65897f7d8e28f948e3fb7cdb3bd989000cc55b0bea0fb0f38924b99fba9c015e",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/selection.json"
+    },
+    {
+      "bytes": 2149,
+      "description": "R5 focused source review",
+      "path": "raw/provider-poll-r5/reviews/source-review.json",
+      "sha256": "c422437606a9430735a599c16735edc3b8eaa4e4aad2398ddbe704ae85c9f162",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-source-review-rust-test-execution-20261010.json"
+    },
+    {
+      "bytes": 2083,
+      "description": "R5 raw process capture result",
+      "path": "raw/provider-poll-r5/run/raw/capture-result.json",
+      "sha256": "7c13684ac7aed142a418ab35377a0754a3b352b8cca122add25eedfc9b1f9e00",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/raw/capture-result.json"
+    },
+    {
+      "bytes": 16809,
+      "description": "R5 raw Nextest stderr",
+      "path": "raw/provider-poll-r5/run/raw/nextest.stderr.raw",
+      "sha256": "b0ea0e05dc2f0e2357b888d028a288fd887f10fb59f51dc4f8fd9c09d03e6027",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/raw/nextest.stderr.raw"
+    },
+    {
+      "bytes": 1318,
+      "description": "R5 raw Nextest stdout",
+      "path": "raw/provider-poll-r5/run/raw/nextest.stdout.raw",
+      "sha256": "9dcd1f107c80301a2d7406d2e6d830c9bf92f6266aaaab3d021977104d1baedc",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/raw/nextest.stdout.raw"
+    },
+    {
+      "bytes": 2705,
+      "description": "R5 captured Nextest invocation request",
+      "path": "raw/provider-poll-r5/run/request.json",
+      "sha256": "64c0d526bf7a54458525b76e54c070034062923f63034f106b0a631f8df32d6b",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/request.json"
+    },
+    {
+      "bytes": 379,
+      "description": "R5 capture wrapper receipt",
+      "path": "raw/provider-poll-r5/run/root-wrapper.receipt.json",
+      "sha256": "1f608380eca705d10013301b587833499698c446ffe70eb2f1e2faa76d2fbde7",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/root-wrapper.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "R5 capture wrapper stderr",
+      "path": "raw/provider-poll-r5/run/root-wrapper.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/root-wrapper.stderr.raw"
+    },
+    {
+      "bytes": 2083,
+      "description": "R5 capture wrapper stdout",
+      "path": "raw/provider-poll-r5/run/root-wrapper.stdout.raw",
+      "sha256": "7c13684ac7aed142a418ab35377a0754a3b352b8cca122add25eedfc9b1f9e00",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/root-wrapper.stdout.raw"
+    },
+    {
+      "bytes": 35357,
+      "description": "R5 source closure; original PREPARED/NOT_RUN fields retained",
+      "path": "raw/provider-poll-r5/source-closure.json",
+      "sha256": "8478e151777e4849ae09890e90e93af85a41a44b364adc1b5ae9bf76f148d0c9",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/source-closure.json"
+    },
+    {
+      "bytes": 962,
+      "description": "Root-accepted VIS-13 archive scope",
+      "path": "raw/publication/accepted-scope.json",
+      "sha256": "ffd75216dd551ebf7a0881aa801c081ebd6bbfd4d84d14820693a033f14fbdbd",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-archive-root-accepted-claim-r1-20261010.json"
+    },
+    {
+      "bytes": 336,
+      "description": "Provider source commit tree receipt",
+      "path": "raw/publication/source-commit/commit-tree.receipt.json",
+      "sha256": "42c0468edb0ab3b15d740eb46573e9c92a7749a05ddfb6de50ad4a4976e14bde",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-proposed-commit-r5-20261010/commit-tree.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "Provider source commit tree command stderr",
+      "path": "raw/publication/source-commit/commit-tree.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-proposed-commit-r5-20261010/commit-tree.stderr.raw"
+    },
+    {
+      "bytes": 41,
+      "description": "Provider source commit tree command stdout",
+      "path": "raw/publication/source-commit/commit-tree.stdout.raw",
+      "sha256": "e030269a8395c16ff2d37de26533d1976f4361d5b1597895da7e06b1aa6f36e8",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-proposed-commit-r5-20261010/commit-tree.stdout.raw"
+    },
+    {
+      "bytes": 0,
+      "description": "Provider source commit integration stderr",
+      "path": "raw/publication/source-commit/commit.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-integration-r5-20261010/commit.stderr.raw"
+    },
+    {
+      "bytes": 41,
+      "description": "Provider source commit integration stdout",
+      "path": "raw/publication/source-commit/commit.stdout.raw",
+      "sha256": "41184c7bd32b259db8838a82ca06aa9735ffcf7650c9d6ecf2aa11e102af3dec",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-integration-r5-20261010/commit.stdout.raw"
+    },
+    {
+      "bytes": 1750,
+      "description": "Provider source commit proposal",
+      "path": "raw/publication/source-commit/proposal.json",
+      "sha256": "d3addfda679c39564812d188bf5e45a61ce6118c5aac48074f3074f42caf5c12",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-proposed-commit-r5-20261010/proposal.json"
+    },
+    {
+      "bytes": 891,
+      "description": "Provider source commit remote readback receipt",
+      "path": "raw/publication/source-commit/readback.receipt.json",
+      "sha256": "c836ddc190fe0d2663c8d2aec7284a1dc24f2edd6d68796c63324e58fb5ed8f9",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-integration-r5-20261010/readback.receipt.json"
+    },
+    {
+      "bytes": 0,
+      "description": "Provider source commit remote readback stderr",
+      "path": "raw/publication/source-commit/readback.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-integration-r5-20261010/readback.stderr.raw"
+    },
+    {
+      "bytes": 281,
+      "description": "Provider source commit remote readback stdout",
+      "path": "raw/publication/source-commit/readback.stdout.raw",
+      "sha256": "d5d613a56f790df1577c299e7fa9d59964602ac99e5ae196b161f15aaf0cb14e",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-integration-r5-20261010/readback.stdout.raw"
+    },
+    {
+      "bytes": 494,
+      "description": "Provider source commit integration receipt",
+      "path": "raw/publication/source-commit/receipt.json",
+      "sha256": "609c04824bed40c35197adc200df899703738110ae0ab6bf703f19fc0a21ea00",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-integration-r5-20261010/receipt.json"
+    },
+    {
+      "bytes": 44417,
+      "description": "Provider source commit patch",
+      "path": "raw/publication/source-commit/source.patch",
+      "sha256": "765415ea37a6f9c6d50ad472af909b14552697d5f87c1abe471e519c74260ec0",
+      "source_mode": "0644",
+      "source_path": "/private/tmp/termrock-provider-poll-root-proposed-commit-r5-20261010/source.patch"
+    }
+  ],
+  "increment": "provider-poll-attempts-20261010-r1",
+  "schema": "termrock-vis13-raw-attempt-archive/v1",
+  "source_baseline": {
+    "accepted_path_prefix_absent_at_base": true,
+    "accepted_path_prefix_absent_at_proposal_parent": true,
+    "accepted_scope_base_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "accepted_scope_base_tree": "48e074b5503c227422d51faaa8d8a143a295d9da",
+    "accepted_scope_record": "/private/tmp/termrock-provider-poll-archive-root-accepted-claim-r1-20261010.json",
+    "accepted_scope_sha256": "ffd75216dd551ebf7a0881aa801c081ebd6bbfd4d84d14820693a033f14fbdbd",
+    "note": "This is a separate append-only archive sibling. Provider source integration advanced the proposal parent from the accepted base; the accepted prefix remained absent. Previously published archive directories remain unchanged.",
+    "previous_archive_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "previous_archive_file_bytes": 3930234,
+    "previous_archive_file_count": 111,
+    "previous_archive_manifest_sha256": "8753f7e74693a061ff3f999f1bf1bba20c9d3c916614942095bc1d485cab3ef7",
+    "previous_archive_observed_in_current_tree": true,
+    "previous_archive_path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r6",
+    "previous_archive_tree": "48e074b5503c227422d51faaa8d8a143a295d9da",
+    "proposal_parent_commit": "67492afe9c6428c720a60e136f3941cbc91cd980",
+    "proposal_parent_tree": "eea6cf5e25866fba6fa959419c71b46ed6ef70ca"
+  },
+  "status": "EXTERNAL_PREPARATION_NOT_COMMITTED"
+}
