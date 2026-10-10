@@ -1,0 +1,38 @@
+{
+  "schema": "independent-actual-result-review-correction/v1",
+  "reviewer": "/root/current_branch_comparison_luna",
+  "reviewed_at_utc": "2026-10-09T23:47:00Z",
+  "verdict": "R6_HELPER_FAILED_ON_CONFIRMED_2000NS_STALE_CTIME_LITERAL",
+  "supersedes_conclusion_only": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-clone-supervisor-r6-actual-result-review-current-branch-comparison-luna-20261010.json",
+    "sha256": "ac47a44b0d1ce2449393ca16d2d603e2e849c0240e37e53344bb8933be7d4298",
+    "previous_incorrect_conclusion": "No stale helper constant or persistent drift established; identity fields were reported matching."
+  },
+  "preserves_actual_result_receipt": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r10-20261010/evidence/receipt.json",
+    "sha256": "5e382e0d93c460de51da6d424bd50a965bdd7ca9fd520a39e15fc72891190fc7",
+    "helper_stderr_sha256": "132ccd8f1be760867ab59ae88618de60cfb01aef84cf3e44fd4c85c71c01cf12",
+    "helper_stderr": "clone-source-packs: source pack directory identity changed from frozen inventory\n",
+    "compile_exit_code": 0,
+    "helper_exit_code": 2,
+    "git_probe_network": "NOT_RUN"
+  },
+  "exact_ctime_comparison": {
+    "helper_source_path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/clone-source-packs.rs",
+    "helper_source_sha256": "14148ea17dd55e6f8ab7ab4901b43965c6ceeaeda0ad4e18939c025f1ecba07f",
+    "helper_guard_line": 160,
+    "helper_source_literal": "1_791_573_990_039_889_095",
+    "helper_literal_parsed_i128": "1791573990039889095",
+    "inventory_source_directory_ctimeNs": "1791573990039887095",
+    "current_read_only_lstat_ctime_ns": "1791573990039887095",
+    "helper_literal_minus_inventory_ns": "2000",
+    "conclusion": "The helper constant is stale by exactly 2,000 ns. The inventory agrees with current read-only lstat. The generic helper error is therefore explained by this fixed directory ctime comparison; no other directory-field mismatch was found."
+  },
+  "recommended_narrow_source_correction": {
+    "expected_literal_if_rebound_to_pinned_inventory": "1_791_573_990_039_887_095",
+    "scope": "Correct only the frozen source-directory ctime literal in a fresh helper successor and bind the fresh destination path. Preserve every other identity guard, allowlist assertion, clone behavior, and failure receipt.",
+    "no_execution_or_source_edit_by_reviewer": true
+  },
+  "no_scratch_mutation_by_reviewer": true,
+  "no_git_or_network_operation_by_reviewer": true
+}

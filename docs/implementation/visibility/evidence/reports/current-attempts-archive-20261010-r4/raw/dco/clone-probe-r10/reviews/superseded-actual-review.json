@@ -1,0 +1,76 @@
+{
+  "schema": "independent-clone-stage-actual-result-review/v1",
+  "reviewer": "/root/current_branch_comparison_luna",
+  "reviewed_at_utc": "2026-10-09T23:44:00Z",
+  "verdict": "ACTUAL_FAILURE_CONFIRMED_STALE_DIRECTORY_IDENTITY_NOT_ESTABLISHED",
+  "pins": {
+    "r6_supervisor_sha256": "f42debcd52397ecb58cf5b1e5ff722223113fff2790494fbb5838ab3fa8b2921",
+    "r6_scope_sha256": "e9cb497bbb2caa26cd0a441be097139a21bdb682de83b0a59aeb252f25770729",
+    "r10_inventory_sha256": "33a8aaa5cc1db77f30aa88ad2b4ba5364c901364bb42dad9a1f6611e4f6aa9b7",
+    "r10_helper_source_sha256": "14148ea17dd55e6f8ab7ab4901b43965c6ceeaeda0ad4e18939c025f1ecba07f",
+    "r6_actual_receipt_path": "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r10-20261010/evidence/receipt.json",
+    "r6_actual_receipt_sha256": "5e382e0d93c460de51da6d424bd50a965bdd7ca9fd520a39e15fc72891190fc7",
+    "helper_stderr_path": "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r10-20261010/evidence/helper.stderr.log",
+    "helper_stderr_sha256": "132ccd8f1be760867ab59ae88618de60cfb01aef84cf3e44fd4c85c71c01cf12",
+    "compiler_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compiler_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "helper_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "actual_result": {
+    "preflight": "PASS (Root-observed identifier 7aa085)",
+    "rustc_exit_code": 0,
+    "rustc_duration_ms": 843,
+    "rustc_cleanup": "natural_exit_group_empty",
+    "helper_exit_code": 2,
+    "helper_duration_ms": 750,
+    "helper_cleanup": "confirmed_after_sigterm",
+    "helper_stderr": "clone-source-packs: source pack directory identity changed from frozen inventory\n",
+    "clone_files": "NOT_QUALIFIED",
+    "git_or_midx_or_bitmap_or_pack_probe_or_network": "NOT_RUN"
+  },
+  "identity_comparison": {
+    "helper_guard_location": "clone-source-packs.rs:152-163",
+    "helper_expected_directory": {
+      "dev": "16777234",
+      "ino": "89040009",
+      "mode_octal": "40755",
+      "size": "161760",
+      "nlink": "5055",
+      "ctime_ns": "1791573990039887095"
+    },
+    "pinned_inventory_directory": {
+      "dev": "16777234",
+      "ino": "89040009",
+      "mode_octal": "40755",
+      "size": "161760",
+      "nlink": "5055",
+      "ctime_ns": "1791573990039887095",
+      "mtime_ns": "1791573990039887095"
+    },
+    "current_read_only_lstat": {
+      "dev": "16777234",
+      "ino": "89040009",
+      "mode_octal": "40755",
+      "size": "161760",
+      "nlink": "5055",
+      "ctime_ns": "1791573990039887095",
+      "mtime_ns": "1791573990039887095"
+    },
+    "comparison": "All helper-checked directory fields match both the inventory and the current read-only lstat. The helper emits only a generic mismatch message, so the transient value observed by that process cannot be identified from this receipt. No persistent mismatch was observed afterward."
+  },
+  "diagnosis": {
+    "stale_helper_constant_established": false,
+    "persistent_source_directory_drift_established": false,
+    "cause": "UNRESOLVED_FROM_AVAILABLE_EVIDENCE",
+    "next_evidence_needed": "A fail-closed diagnostic successor can report each expected and observed directory field at the mismatch point without relaxing any guard; preserve this failed receipt and scratch as-is."
+  },
+  "preservation": {
+    "failed_scratch_not_deleted_or_reused_by_reviewer": true,
+    "source_or_inventory_not_modified_by_reviewer": true,
+    "no_automated_source_after_snapshot_in_failure_receipt": true,
+    "manual_lstat_is_not_a_replacement_for_that_missing_postflight": true
+  },
+  "no_git_or_network_operation_by_reviewer": true,
+  "no_rustc_or_helper_invocation_by_reviewer": true,
+  "no_scratch_mutation_by_reviewer": true
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "termrock.nextest.target-snapshot.v1",
+  "target_root": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/target",
+  "root_mode": 448,
+  "entry_count": 1,
+  "regular_file_count": 0,
+  "directory_count": 1,
+  "symlink_count": 0,
+  "regular_file_bytes": 0,
+  "entries_sha256": "13d97ce4a1c8622f42af562079b04126850cfe840e93d8970b30bc3fb16305ae",
+  "entries": [
+    {
+      "path": "",
+      "kind": "directory",
+      "mode": 448
+    }
+  ],
+  "digest": "342d59a63c647a263ac7dac833df8262755228f3afb27bda0478fafb04c2b0f3"
+}

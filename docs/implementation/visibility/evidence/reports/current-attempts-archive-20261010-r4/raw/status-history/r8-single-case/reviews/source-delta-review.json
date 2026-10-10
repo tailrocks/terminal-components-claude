@@ -1,0 +1,31 @@
+{
+  "schema": "termrock.vis01.attempt-history-source-delta-review/v1",
+  "verdict": "READY_STATIC_REVIEW_WITH_SCOPE_NOTE",
+  "scope": "R7-to-R8 test-source delta only; no Cargo, Nextest, or test execution by reviewer",
+  "candidate": {
+    "source_root": "/private/tmp/termrock-vis01-attempt-history-source-r8-20261010",
+    "changed_path": "crates/termrock-visibility-tests/tests/status.rs",
+    "candidate_sha256": "dbdceffc8252c44923da70e5296a54a54c40c2396b34986bb6055d5b2d206d7e",
+    "parent_sha256": "620688b19abfd82ab5521410268bf4d1eabfc647fd23ce71444017845f3ab7e0",
+    "delta_sha256": "0b2c2be9378f034c4c9b46b28efb76412f905795c894dd7352578ad6e43b4cd8",
+    "production_status_py_sha256": "857b9958ec588fcb18aa1f5263a156cd1c6e24192a4cf56d8a99d0af7520732e",
+    "readme_sha256": "13dd245e8bbb7031bf231eaed4ce953cc80c2220945aac6b7b0f7bdec570fdac"
+  },
+  "prior_failure_binding": {
+    "r7_receipt_sha256": "8e6d08143d04ebe85450dcb0906a49157a43e04637085d48e15035881fb06e0d",
+    "r7_stderr_sha256": "0e06fb78ff907d59a33540b1b4957bd3249140f8346569e859a1d7724c0bbbe6",
+    "tests_started": 53,
+    "tests_passed": 52,
+    "tests_failed": 1,
+    "failing_test": "status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2",
+    "failure": "VIS-01.claim_history[3] claim snapshot has missing or unknown fields"
+  },
+  "review_findings": [
+    "R8 changes only the existing Rust test source; the production validator and README bytes are unchanged.",
+    "The fixture conversion removes branch_scopes from claim histories only when present, asserts exactly the VIS-01 history index 3 and VIS-02 history index 2 are affected, and compares each normalized claim to its pre-change clone with only branch_scopes removed.",
+    "This matches the R7 failure: migration-preview adds schema-v2 identities to retained history snapshots, and schema-v2 validation rejects the schema-v1 branch_scopes extension as an unknown snapshot field. The added normalization makes the fixture representable by the schema-v2 target while leaving production rejection behavior untouched.",
+    "The existing negative path for current scoped claims, preview no-write checks, schema-v1 and schema-v2 rendered-output equality, and malformed-v2 rejection assertions remain in place."
+  ],
+  "scope_note": "This test now covers migration of the fixture after schema-v1 branch_scopes extensions are removed from current claims and the two pinned historical snapshots. It does not establish migration support for schema-v1 records that retain branch_scopes in history; production conversion remains fail-closed for such inputs.",
+  "no_mutations": true
+}

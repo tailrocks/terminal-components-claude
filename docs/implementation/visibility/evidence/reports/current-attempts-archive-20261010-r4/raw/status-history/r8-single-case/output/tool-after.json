@@ -1,0 +1,34 @@
+{
+  "schema": "termrock.nextest.tool-audit.v1",
+  "tools": [
+    {
+      "name": "cargo",
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+      "bytes": 31960040,
+      "mode": 493
+    },
+    {
+      "name": "nextest",
+      "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+      "bytes": 43079808,
+      "mode": 493
+    },
+    {
+      "name": "node",
+      "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+      "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+      "bytes": 121911744,
+      "mode": 493
+    },
+    {
+      "name": "rustc",
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+      "bytes": 412504,
+      "mode": 493
+    }
+  ],
+  "digest": "af1dbb9644fd7443ffdba5d4ea6f26da51dc8a8cbf4dae61c955ffc08c612668"
+}
