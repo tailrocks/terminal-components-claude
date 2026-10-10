@@ -540,6 +540,11 @@ impl<'a> HintBar<'a> {
             if drawn < self.layer.hints.len() {
                 span = span.saturating_add(Self::HINT_GAP);
             }
+            // Nothing fitted: the cut marker is the whole block and keeps
+            // two cells (`tag:keyhint.rs`), not a second gap on top.
+            if used == 0 && drawn == 0 {
+                span = Self::HINT_GAP;
+            }
             let free = area.width.saturating_sub(span);
             let mid = area.x.saturating_add(free / 2);
             x = mid.max(x).min(right_limit.saturating_sub(span).max(x));

@@ -493,7 +493,6 @@ const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_paint;
 use historical_paint::HistoricalPalette;
-mod historical_accounts_settings_usage;
 
 /// The visible product route.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -974,6 +973,7 @@ pub struct App {
     accounts_down_count: usize,
     settings_tab: usize,
     settings_save_preview: bool,
+    settings_save_dialog: DialogState,
     usage_detail: bool,
 }
 
@@ -1179,6 +1179,7 @@ impl App {
             accounts_down_count: 0,
             settings_tab: 1,
             settings_save_preview: false,
+            settings_save_dialog: DialogState::default(),
             usage_detail: false,
         };
         if app.launch.as_ref().is_some_and(|run| run.done) {
@@ -4432,8 +4433,11 @@ impl App {
             return;
         }
         self.settings_save_preview = true;
-        cx.focus(SETTINGS_SAVE_CONFIRM);
-        self.status = Some("Save settings · choose a confirmation action".into());
+        self.settings_save_dialog = DialogState::default();
+        cx.focus(crate::screens::settings::PREVIEW_CANCEL);
+        if self.status.is_none() {
+            self.status = Some("Save settings · choose a confirmation action".into());
+        }
     }
 
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -4446,7 +4450,7 @@ impl App {
         let confirm = Self::settings_save_confirm_button().update(cx);
         let confirm_chosen = confirm.activated();
         result |= confirm.erase();
-        if cancel_chosen {
+        if cancel_chosen && !self.settings_save_preview {
             if self.settings.dirty {
                 self.status = Some("Save settings before leaving?".into());
             } else {
@@ -4454,24 +4458,65 @@ impl App {
             }
             result |= Response::changed();
         }
-        if save_chosen {
+        if save_chosen && !self.settings_save_preview {
             self.request_settings_save(cx);
             result |= Response::changed();
         }
         if confirm_chosen && self.settings.dirty {
-            let keep = self.settings.attempt_save(self.world.refresh_fails);
-            if keep {
-                self.status = self.settings.save_error.clone();
-            } else {
-                self.apply_settings_trust();
-                self.settings.clear_trust();
-                self.settings_save_preview = false;
-                self.status = Some("Settings saved".into());
-                self.route = Route::Manager;
+            result |= self.commit_settings_save();
+        }
+        if self.settings_save_preview {
+            let actions = [
+                Action::new(ActionKey::CANCEL, "Cancel"),
+                Action::new(ActionKey::CONFIRM, "Save"),
+            ];
+            let dialog = Dialog::new(crate::screens::settings::PREVIEW)
+                .title("Save settings")
+                .actions(&actions)
+                .cancel(ActionKey::CANCEL)
+                .primary(ActionKey::CONFIRM)
+                .width(66);
+            let response = dialog.update(cx, &mut self.settings_save_dialog);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            if let Some(action) = action {
+                match action {
+                    DialogAction::Action(ActionKey::CONFIRM) => {
+                        result |= self.commit_settings_save();
+                    }
+                    DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_) => {
+                        self.abort_settings_save(cx);
+                    }
+                    DialogAction::Action(_) => {}
+                }
+                result |= Response::changed();
             }
-            result |= Response::changed();
         }
         result
+    }
+
+    fn abort_settings_save(&mut self, cx: &mut Cx<'_>) {
+        self.settings_save_preview = false;
+        self.status = Some("Save aborted · settings unchanged".into());
+        self.settings.focus = SettingsFocus::Buttons;
+        cx.focus(crate::screens::settings::SAVE);
+    }
+
+    fn commit_settings_save(&mut self) -> Response<()> {
+        if !self.settings.dirty {
+            return Response::default();
+        }
+        let keep = self.settings.attempt_save(self.world.refresh_fails);
+        if keep {
+            self.status = self.settings.save_error.clone();
+        } else {
+            self.apply_settings_trust();
+            self.settings.clear_trust();
+            self.settings_save_preview = false;
+            self.status = Some("Settings saved".into());
+            self.route = Route::Manager;
+        }
+        Response::changed()
     }
 
     fn update_prelude(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -7448,11 +7493,13 @@ impl App {
     }
 
     fn draw_settings(&self, ui: &mut Ui<'_>, _area: Rect) {
-        // Only the Trust tab is live; tabs 1-4 render from stored frames at
-        // 120x40 and stay blank elsewhere until they go live.
-        if self.settings_tab == 5 {
-            SettingsScreen::draw_trust(ui, &self.settings, &self.world);
-        }
+        SettingsScreen::draw(
+            ui,
+            self.settings_tab,
+            &self.settings,
+            &self.world,
+            self.settings_save_preview,
+        );
     }
 
     fn draw_launch(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -8799,7 +8846,19 @@ impl App {
         }
 
         if self.route == Route::Settings {
-            let hints = SettingsScreen::hints(self.settings_tab, self.settings.focus);
+            let hints = if self.settings_save_preview {
+                SettingsScreen::preview_hints()
+            } else {
+                SettingsScreen::hints(self.settings_tab, self.settings.focus)
+            };
+            // Tag modal frame: the screen footer paints first so its bold
+            // key chips remain where the preview hints do not replace them.
+            if self.settings_save_preview {
+                let under = SettingsScreen::hints(self.settings_tab, self.settings.focus);
+                HintBar::new(APP.sub("hint"), &under)
+                    .status_text(self.status.as_deref())
+                    .draw(ui, area);
+            }
             HintBar::new(APP.sub("hint"), &hints)
                 .status_text(self.status.as_deref())
                 .draw(ui, area);
@@ -9467,32 +9526,6 @@ impl TuiApp for App {
             return;
         }
 
-        if self.route == Route::Settings
-            && (full.width, full.height) == (120, 40)
-            && self.motion == Motion::Paused
-        {
-            if self.settings_save_preview {
-                self.draw_historical_settings_save_preview_120_40(ui, full);
-                return;
-            }
-            // Tabs 1-4 render from stored frames; the Trust tab (5) falls
-            // through to the live path below. A focused tab strip paints
-            // the live jump footer over the stored body footer (tag focus
-            // model).
-            if self.settings_tab != 5 {
-                match self.settings_tab {
-                    2 => self.draw_historical_settings_mounts_120_40(ui, full),
-                    3 => self.draw_historical_settings_env_120_40(ui, full),
-                    4 => self.draw_historical_settings_agents_120_40(ui, full),
-                    _ => self.draw_historical_settings_route_120_40(ui, full),
-                }
-                if self.settings.focus == SettingsFocus::Tabs {
-                    let footer = Rect::new(full.x, full.bottom().saturating_sub(1), full.width, 1);
-                    self.draw_footer(ui, footer);
-                }
-                return;
-            }
-        }
         let header = Rect::new(full.x, full.y, full.width, 1);
         let footer = Rect::new(full.x, full.bottom().saturating_sub(1), full.width, 1);
         let body = if self.route == Route::Cockpit || self.route == Route::Launch {
@@ -9745,10 +9778,7 @@ impl TuiApp for App {
         }
         if self.route == Route::Settings {
             if self.settings_save_preview {
-                self.settings_save_preview = false;
-                self.status = Some("Save aborted · settings unchanged".into());
-                self.settings.focus = SettingsFocus::Buttons;
-                cx.focus(crate::screens::settings::SAVE);
+                self.abort_settings_save(cx);
                 return self.route_changed();
             }
             if self.settings.save_error.is_some() {

@@ -20,7 +20,7 @@ use crate::layer::LayerSize;
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// What a list reports; every item action carries the item's key.
@@ -397,6 +397,9 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     row_gap: u16,
     whole_rows: bool,
     bare: bool,
+    /// Foreground for an unselected blank marker. A chosen glyph keeps the
+    /// recipe color; only the empty marker cell is filled.
+    blank_marker: Option<Role>,
     select_mode: SelectMode,
     leave_at_boundary: bool,
     activate_focused_on_click: bool,
@@ -459,6 +462,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             row_gap: 0,
             whole_rows: false,
             bare: false,
+            blank_marker: None,
             select_mode: SelectMode::Single,
             leave_at_boundary: false,
             activate_focused_on_click: false,
@@ -619,6 +623,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row_gap: self.row_gap,
             whole_rows: self.whole_rows,
             bare: self.bare,
+            blank_marker: self.blank_marker,
             select_mode: self.select_mode,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
@@ -647,6 +652,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row_gap: self.row_gap,
             whole_rows: self.whole_rows,
             bare: self.bare,
+            blank_marker: self.blank_marker,
             select_mode: self.select_mode,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
@@ -694,6 +700,14 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     #[must_use]
     pub fn bare(mut self, yes: bool) -> Self {
         self.bare = yes;
+        self
+    }
+
+    /// Fill the blank (unchosen) marker with `role`. The chosen glyph and
+    /// the focus gutter stay on the list recipe.
+    #[must_use]
+    pub const fn blank_marker(mut self, role: Role) -> Self {
+        self.blank_marker = Some(role);
         self
     }
 
@@ -1430,6 +1444,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                             Slot::Inherit | Slot::Clear => {
                                 if ov.part_patch(Part::MARKER).is_some() {
                                     ui.fill(marker_cell, m.style);
+                                } else if let Some(role) = self.blank_marker {
+                                    let patch = StylePatch::new().set_fg(role);
+                                    let style = ui
+                                        .style_patched(
+                                            Family::LIST,
+                                            Variant::DEFAULT,
+                                            Part::MARKER,
+                                            marker_flags,
+                                            &patch,
+                                        )
+                                        .style;
+                                    ui.fill(marker_cell, style);
                                 }
                             }
                         }
