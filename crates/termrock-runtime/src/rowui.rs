@@ -14,7 +14,7 @@ use ratatui_core::style::Modifier;
 use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
 use crate::response::StateFlags;
-use crate::text::{Span, width};
+use crate::text::{Span, truncate_middle, width};
 use crate::theme::{Align, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
@@ -275,6 +275,45 @@ impl<'u> RowUi<'u> {
         self.label_in(s, st);
     }
 
+    /// Middle-truncate the label, then pad the rest of the label slot.
+    ///
+    /// The slot is the remaining width minus one cell, so the row's final
+    /// cell stays the row fill. Padding uses the same style as the word.
+    /// A string that already fits is not ellipsized.
+    pub fn label_middle(&mut self, s: &str, p: &StylePatch) {
+        let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
+        let st = self
+            .ui
+            .style_patched(self.family, self.variant, Part::LABEL, self.flags, &patch)
+            .style;
+        let area = self.remaining();
+        let slot = area.width.saturating_sub(1);
+        if slot == 0 {
+            return;
+        }
+        let text = truncate_middle(s, slot);
+        let used = self.ui.paint_str(
+            Rect {
+                width: slot,
+                ..area
+            },
+            &text,
+            st,
+        );
+        let pad = slot.saturating_sub(used);
+        if pad > 0 {
+            self.ui.fill(
+                Rect {
+                    x: area.x.saturating_add(used),
+                    width: pad,
+                    ..area
+                },
+                st,
+            );
+        }
+        self.left = self.left.saturating_add(slot);
+    }
+
     /// Paint the label with bold emphasis at matched grapheme ordinals
     /// (oracle picker rows bold `matched` bytes).
     pub fn label_matched(&mut self, s: &str, matched: &[usize]) {
@@ -354,6 +393,36 @@ impl<'u> RowUi<'u> {
             return;
         }
         let st = self.style_of(Part::META);
+        let cell = Rect {
+            x: area.right().saturating_sub(need).saturating_sub(1),
+            y: area.y,
+            width: need,
+            height: 1,
+        };
+        self.ui.paint_str(cell, s, st);
+        self.right = self.right.saturating_add(need).saturating_add(2);
+        self.last_meta = Some(MetaPaint {
+            need,
+            painted: need,
+        });
+    }
+
+    /// Right-aligned meta text with an instance patch.
+    ///
+    /// Fit and placement match [`RowUi::meta`]: the word is dropped
+    /// all-or-none when it does not fit after a two-cell gap, and it ends
+    /// one cell before the row edge.
+    pub fn meta_patched(&mut self, s: &str, p: &StylePatch) {
+        let need = width(s);
+        let area = self.remaining();
+        if need == 0 || self.suppress_meta || need.saturating_add(2) > area.width {
+            self.last_meta = Some(MetaPaint { need, painted: 0 });
+            return;
+        }
+        let st = self
+            .ui
+            .style_patched(self.family, self.variant, Part::META, self.flags, p)
+            .style;
         let cell = Rect {
             x: area.right().saturating_sub(need).saturating_sub(1),
             y: area.y,
@@ -1079,6 +1148,44 @@ mod tests {
             page.cell((19, 0))
                 .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD)),
             "META remains row-owned"
+        );
+    }
+
+    #[test]
+    fn label_middle_keeps_both_ends_and_pads_the_slot() {
+        let patch = StylePatch::new().add(Modifier::BOLD);
+        let long = "abcdefghijklmnopqrstuvwxyz";
+        let page = paint(Rect::new(0, 0, 10, 1), |row| {
+            row.label_middle(long, &patch);
+        });
+        let slot = crate::text::truncate_middle(long, 9);
+        assert_eq!(row_text(&page, 0, 0, 9), slot);
+        assert!(slot.contains('…'), "{slot}");
+        assert!(slot.starts_with('a') && slot.ends_with('z'), "{slot}");
+        assert!(page.cell((0, 0)).unwrap().modifier.contains(Modifier::BOLD));
+        assert!(page.cell((8, 0)).unwrap().modifier.contains(Modifier::BOLD));
+        assert!(
+            !page.cell((9, 0)).unwrap().modifier.contains(Modifier::BOLD),
+            "the cell past the label slot stays the row fill"
+        );
+
+        let short = paint(Rect::new(0, 0, 8, 1), |row| {
+            row.label_middle("ab", &patch);
+        });
+        assert_eq!(row_text(&short, 0, 0, 7), "ab     ");
+        assert!(
+            short
+                .cell((6, 0))
+                .unwrap()
+                .modifier
+                .contains(Modifier::BOLD)
+        );
+        assert!(
+            !short
+                .cell((7, 0))
+                .unwrap()
+                .modifier
+                .contains(Modifier::BOLD)
         );
     }
 

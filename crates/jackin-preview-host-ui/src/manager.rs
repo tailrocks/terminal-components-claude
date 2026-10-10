@@ -10,8 +10,9 @@ use termrock::author::{
     StyleDefaults, StylePatch, Surface, Ui, Variant,
 };
 use termrock::{
-    Button, Empty, EmptyState, Insets, LayerSize, LayerSpec, ListState, Panel, PanelKind, Props,
-    PropsRow, ScrollState, SplitAxis, SplitPane, SplitPaneState, truncate, truncate_middle, width,
+    Button, Empty, EmptyState, GlyphRole, Insets, LayerSize, LayerSpec, ListState, Panel,
+    PanelKind, Props, PropsRow, RowUi, ScrollState, SplitAxis, SplitPane, SplitPaneState, Tree,
+    TreeNode, TreeState, truncate, width,
 };
 
 use crate::manager_actions::{Fact, role_label};
@@ -27,6 +28,14 @@ const FAINT_DETAIL_PATCH: [(Part, StylePatch); 1] = [(
     Part::DETAIL,
     StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
 )];
+
+const TREE_PANEL_PATCH: [(Part, StylePatch); 2] = [
+    (Part::DETAIL, StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
+    (Part::META, StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+];
+
+/// Cursor-row tint. Unfocused rows stay on the tree container.
+const MANAGER_TREE_FOCUS: StylePatch = StylePatch::new().set_bg(Role::AccentTint);
 
 /// Manager tree control.
 pub const TREE: Id = Id::root("jackin.manager.tree");
@@ -315,10 +324,80 @@ pub fn position_label(scroll: &ScrollState) -> String {
     format!("{}–{} of {}", r.start + 1, r.end, scroll.content_len())
 }
 
-fn fit(s: &str, w: u16) -> String {
-    let t = truncate(s, w);
-    let pad = w.saturating_sub(width(&t));
-    format!("{t}{}", " ".repeat(pad as usize))
+fn manager_tree_node(row: &ManagerRow) -> TreeNode {
+    let node = if row.expandable {
+        TreeNode::parent(row.depth)
+    } else {
+        TreeNode::leaf(row.depth)
+    };
+    node.keyed(ItemKey::text(&row.key.stable_key()))
+}
+
+fn manager_tree_key(row: &ManagerRow) -> ItemKey {
+    ItemKey::text(&row.key.stable_key())
+}
+
+fn manager_tree_icon(row: &ManagerRow) -> Option<(&'static str, StylePatch)> {
+    if row.glyph == " " {
+        return None;
+    }
+    let mut patch = StylePatch::new().set_fg(row.glyph_tone);
+    match row.glyph_tone {
+        Role::Danger => {
+            patch = patch
+                .set_bg(Role::Surface(Surface::Canvas))
+                .remove(Modifier::BOLD);
+        }
+        Role::Fg(FgStep::Primary) => {}
+        _ => patch = patch.remove(Modifier::BOLD),
+    }
+    Some((row.glyph, patch))
+}
+
+fn manager_tree_trailing(row: &ManagerRow) -> Option<(GlyphRole, StylePatch)> {
+    row.trailing.map(|(_, tone)| {
+        (
+            GlyphRole::Dirty,
+            StylePatch::new()
+                .set_fg(tone)
+                .set_bg(Role::Surface(Surface::Canvas))
+                .remove(Modifier::BOLD),
+        )
+    })
+}
+
+fn manager_tree_row(row: &ManagerRow, ui: &mut RowUi<'_>, show_meta: bool, is_cursor: bool) {
+    let focused = ui.flags().contains(StateFlags::FOCUSED);
+    let label = if row.key == ManagerRowKey::NewWorkspace {
+        if focused {
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD)
+        } else {
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .remove(Modifier::BOLD)
+        }
+    } else if focused {
+        StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD)
+    } else if is_cursor {
+        StylePatch::new()
+            .set_fg(Role::Accent)
+            .remove(Modifier::BOLD)
+    } else {
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .remove(Modifier::BOLD)
+    };
+    if show_meta && !row.meta.is_empty() {
+        ui.meta_patched(
+            &row.meta,
+            &StylePatch::new()
+                .set_fg(row.meta_tone)
+                .remove(Modifier::BOLD),
+        );
+    }
+    ui.label_middle(&row.label, &label);
 }
 
 #[derive(Debug, Clone)]
@@ -908,7 +987,7 @@ impl ManagerScreen {
         world: &World,
         focused: bool,
         rows: &[ManagerRow],
-        palette: &ManagerPalette,
+        _palette: &ManagerPalette,
     ) {
         let running = world.running_count();
         let cursor_index = rows.iter().position(|r| {
@@ -944,7 +1023,7 @@ impl ManagerScreen {
             .meta(&meta)
             .focused(focused)
             .slot(Part::GUTTER, &|_ui, _cell| {})
-            .patch_part(&FAINT_DETAIL_PATCH)
+            .patch_part(&TREE_PANEL_PATCH)
             .inner_inset(Insets {
                 l: 2,
                 t: 1,
@@ -952,125 +1031,43 @@ impl ManagerScreen {
                 b: 1,
             })
             .draw(ui, area, |ui, inner| {
-                let has_sb = scroll.overflows();
-                let row_w = inner.width.saturating_sub(u16::from(has_sb));
-                let show_meta = row_w >= 44;
-                for (k, i) in scroll.visible_range().enumerate() {
-                    let y = inner.y + k as u16;
-                    if i >= rows.len() {
-                        break;
-                    }
-                    let row = &rows[i];
-                    let is_selected = cursor_index == Some(i);
-                    let is_focused = focused && is_selected;
-                    let rect = Rect::new(inner.x, y, row_w, 1);
-                    if is_focused {
-                        ui.fill(rect, palette.primary_on_accent_tint_bold);
-                        ui.paint_str(
-                            Rect::new(rect.x, y, 1, 1),
-                            "▎",
-                            palette.accent_on_accent_tint_bold,
-                        );
-                    } else {
-                        ui.fill(rect, palette.canvas);
-                        ui.paint_str(Rect::new(rect.x, y, 1, 1), " ", palette.gutter_unfocused);
-                    }
-                    let mut x = rect.x + 2 + row.depth * 2;
-                    let gs = if is_focused {
-                        match row.glyph_tone {
-                            Role::Danger => palette.danger_on_canvas,
-                            Role::Fg(FgStep::Primary) => palette.primary_on_accent_tint_bold,
-                            _ => palette.secondary_on_accent_tint,
-                        }
-                    } else {
-                        match row.glyph_tone {
-                            Role::Danger => palette.danger_on_canvas,
-                            Role::Fg(FgStep::Primary) => palette.primary_on_canvas,
-                            Role::Fg(FgStep::Muted) => palette.muted_on_canvas,
-                            _ => palette.secondary_on_canvas,
-                        }
-                    };
-                    ui.paint_str(Rect::new(x, y, 1, 1), row.glyph, gs);
-                    x += 2;
-                    let meta_w = if show_meta {
-                        width(&row.meta) as u16
-                    } else {
-                        0
-                    };
-                    let trailing_w: u16 = if row.trailing.is_some() { 2 } else { 0 };
-                    let avail = rect.right().saturating_sub(x + 1);
-                    let lw =
-                        avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 0 } + trailing_w);
-                    let label_style = if row.key == ManagerRowKey::NewWorkspace {
-                        if is_focused {
-                            palette.primary_on_accent_tint_bold
-                        } else {
-                            palette.secondary_on_canvas
-                        }
-                    } else if is_focused {
-                        palette.accent_on_accent_tint_bold
-                    } else if is_selected {
-                        palette.accent_on_canvas
-                    } else {
-                        palette.primary_on_canvas
-                    };
-                    let label_text = fit(&truncate_middle(&row.label, lw), lw);
-                    ui.paint_str(Rect::new(x, y, lw, 1), &label_text, label_style);
-                    if meta_w > 0 && meta_w + 4 < avail {
-                        let ms = if is_focused {
-                            palette.muted_on_accent_tint
-                        } else {
-                            match row.meta_tone {
-                                Role::Danger => palette.danger_on_canvas,
-                                Role::Warning => palette.warning_on_canvas,
-                                Role::Fg(FgStep::Secondary) => palette.secondary_on_canvas,
-                                Role::Fg(FgStep::Faint) => palette.faint_on_canvas,
-                                _ => palette.muted_on_canvas,
-                            }
-                        };
-                        ui.paint_str(
-                            Rect::new(
-                                rect.right().saturating_sub(meta_w + 1 + trailing_w),
-                                y,
-                                meta_w,
-                                1,
-                            ),
-                            &row.meta,
-                            ms,
-                        );
-                    }
-                    if let Some((g, tone)) = row.trailing {
-                        let ts = match tone {
-                            Role::Warning => palette.warning_on_canvas,
-                            _ => palette.secondary_on_canvas,
-                        };
-                        ui.paint_str(Rect::new(rect.right().saturating_sub(2), y, 1, 1), g, ts);
+                // Tree owns the row cells and the scrollbar. Expansion and
+                // the cursor are copied for paint; choose / cursor_selected
+                // would mark a different selection than ListState.
+                let mut tree_state = TreeState::new();
+                for row in rows {
+                    if let ManagerRowKey::Workspace(id) = &row.key
+                        && state.is_expanded(*id)
+                    {
+                        tree_state.expand(ItemKey::text(&row.key.stable_key()));
                     }
                 }
-                if has_sb {
-                    ui.scroll_edges(
-                        Rect::new(
-                            inner.x,
-                            inner.y,
-                            (inner.right() - 1).saturating_sub(inner.x),
-                            inner.height,
-                        ),
-                        &scroll,
-                    );
-                    let sb_rect =
-                        Rect::new(inner.right().saturating_sub(1), inner.y, 1, inner.height);
-                    let track_len = usize::from(sb_rect.height);
-                    let (thumb_start, thumb_len) = scroll.thumb(track_len);
-                    for row in 0..track_len {
-                        let y = sb_rect.y + row as u16;
-                        let pos = Rect::new(sb_rect.x, y, 1, 1);
-                        if row >= thumb_start && row < thumb_start + thumb_len {
-                            ui.paint_str(pos, "┃", palette.primary_on_canvas);
-                        } else {
-                            ui.paint_str(pos, "│", palette.border_on_canvas);
-                        }
-                    }
+                if let Some(index) = cursor_index
+                    && let Some(row) = rows.get(index)
+                {
+                    tree_state.set_cursor(index, ItemKey::text(&row.key.stable_key()));
                 }
+                let show_meta = inner.width.saturating_sub(u16::from(scroll.overflows())) >= 44;
+                let cursor_key =
+                    cursor_index.and_then(|index| rows.get(index).map(|row| row.key.clone()));
+                Tree::new(TREE)
+                    .node(&manager_tree_node)
+                    .key(manager_tree_key)
+                    .row(move |row, ui_row| {
+                        manager_tree_row(
+                            row,
+                            ui_row,
+                            show_meta,
+                            Some(&row.key) == cursor_key.as_ref(),
+                        )
+                    })
+                    .icon(&manager_tree_icon)
+                    .trailing_mark(&manager_tree_trailing)
+                    .focused_patch(&MANAGER_TREE_FOCUS)
+                    .publish_keymap(false)
+                    .gutter_gap(1)
+                    .focused(focused)
+                    .draw(ui, inner, &tree_state, rows);
             });
     }
 

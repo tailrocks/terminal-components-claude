@@ -700,6 +700,10 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     row: R,
     render_row: Option<TreeRowRenderer<'a, T>>,
     node: Option<&'a dyn Fn(&T) -> TreeNode>,
+    icon: Option<&'a dyn Fn(&T) -> Option<(&'static str, StylePatch)>>,
+    trailing_mark: Option<&'a dyn Fn(&T) -> Option<(GlyphRole, StylePatch)>>,
+    focused_patch: Option<&'a StylePatch>,
+    publish_keymap: bool,
     branch_activation: TreeBranchActivation,
     branch_click: TreeBranchClick,
     activate_selected_on_click: bool,
@@ -751,6 +755,10 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             row: DefaultRow,
             render_row: None,
             node: None,
+            icon: None,
+            trailing_mark: None,
+            focused_patch: None,
+            publish_keymap: true,
             branch_activation: TreeBranchActivation::Toggle,
             branch_click: TreeBranchClick::Toggle,
             activate_selected_on_click: false,
@@ -797,6 +805,50 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
     #[must_use]
     pub const fn node(mut self, f: &'a dyn Fn(&T) -> TreeNode) -> Self {
         self.node = Some(f);
+        self
+    }
+
+    /// Replace the disclosure cell, or keep the stock disclosure.
+    ///
+    /// `None` keeps the branch disclosure or the blank leaf and does not
+    /// paint a second icon. `Some` paints that one-cell string with the
+    /// patch.
+    #[must_use]
+    pub const fn icon(mut self, f: &'a dyn Fn(&T) -> Option<(&'static str, StylePatch)>) -> Self {
+        self.icon = Some(f);
+        self
+    }
+
+    /// Reserve a trailing glyph cell without handing the row a painter.
+    ///
+    /// `None` leaves the row width unchanged. `Some` shrinks that row's
+    /// [`RowUi`] by two cells and paints the glyph at the row's right-2.
+    #[must_use]
+    pub const fn trailing_mark(
+        mut self,
+        f: &'a dyn Fn(&T) -> Option<(GlyphRole, StylePatch)>,
+    ) -> Self {
+        self.trailing_mark = Some(f);
+        self
+    }
+
+    /// Extra patch for the focused cursor row only.
+    ///
+    /// Merged into that row's fill and label. Other rows keep the shared
+    /// container recipe, so a tint here does not recolor the rest of the tree.
+    #[must_use]
+    pub const fn focused_patch(mut self, patch: &'a StylePatch) -> Self {
+        self.focused_patch = Some(patch);
+        self
+    }
+
+    /// Publish the tree keymap while this control is focused.
+    ///
+    /// Defaults to true. Paint-only callers that still update through another
+    /// collection leave this false so draw does not replace that keymap.
+    #[must_use]
+    pub const fn publish_keymap(mut self, yes: bool) -> Self {
+        self.publish_keymap = yes;
         self
     }
 
@@ -858,6 +910,10 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             row: self.row,
             render_row: self.render_row,
             node: self.node,
+            icon: self.icon,
+            trailing_mark: self.trailing_mark,
+            focused_patch: self.focused_patch,
+            publish_keymap: self.publish_keymap,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
             activate_selected_on_click: self.activate_selected_on_click,
@@ -902,6 +958,10 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             row: r,
             render_row: self.render_row,
             node: self.node,
+            icon: self.icon,
+            trailing_mark: self.trailing_mark,
+            focused_patch: self.focused_patch,
+            publish_keymap: self.publish_keymap,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
             activate_selected_on_click: self.activate_selected_on_click,
@@ -1876,7 +1936,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             index.sync(self, st, items);
             (index.visible.len(), index.foldable, index.query_active)
         };
-        if !ui.is_inert() {
+        if !ui.is_inert() && self.publish_keymap {
             ui.publish_bindings(self.id, live, self.table_for(foldable && !query_active));
         }
         let container = self.ov.style(
@@ -2078,14 +2138,34 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         item: &T,
         suppress_meta: bool,
     ) -> bool {
-        let rs = self.ov.style(
-            ui,
-            self.id,
-            Family::TREE,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            row.flags,
-        );
+        let focus = row
+            .flags
+            .contains(StateFlags::FOCUSED)
+            .then(|| self.focused_patch.copied())
+            .flatten();
+        let rs = if let Some(focus) = focus {
+            let patch = self
+                .ov
+                .part_patch(Part::CONTAINER)
+                .map(|part| part.merge(focus))
+                .unwrap_or(focus);
+            ui.style_patched(
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                row.flags,
+                &patch,
+            )
+        } else {
+            self.ov.style(
+                ui,
+                self.id,
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                row.flags,
+            )
+        };
         ui.fill(row.rect, rs.style);
         let gutter = cell_at(row.rect, row.rect.x);
         if let Some(f) = self.ov.slot_for(Part::GUTTER) {
@@ -2108,7 +2188,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let fold_x = self.fold_x(row, indent);
         let fold = cell_at(row.rect, fold_x);
-        if let Some(f) = self.ov.slot_for(Part::ICON) {
+        let custom_icon = self.icon.and_then(|paint| paint(item));
+        if let Some((text, patch)) = custom_icon {
+            let style = ui
+                .style_patched(
+                    Family::TREE,
+                    Variant::DEFAULT,
+                    Part::ICON,
+                    row.flags,
+                    &patch,
+                )
+                .style;
+            // Paint over the row fill. A patch with no background keeps that
+            // fill, and `remove(BOLD)` can drop the fill's bold on this cell.
+            ui.paint_str(fold, text, style);
+        } else if let Some(f) = self.ov.slot_for(Part::ICON) {
             f(ui, fold);
         } else {
             let has_icon_patch = self.ov.part_patch(Part::ICON).is_some();
@@ -2144,10 +2238,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let marker = cell_at(row.rect, fold_x.saturating_add(1));
         self.paint_marker(ui, row, marker);
+        let trailing = self.trailing_mark.and_then(|paint| paint(item));
         // The row area ends at the content edge: `RowUi::meta` paints
         // the trailing word one cell before it (`tag:tree.rs:637`), so no
-        // extra pad is reserved here.
-        let rest = Rect {
+        // extra pad is reserved here. A trailing mark takes two more cells
+        // from this row only.
+        let mut rest = Rect {
             x: fold_x.saturating_add(2),
             width: row
                 .rect
@@ -2156,8 +2252,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 .min(row.rect.width),
             ..row.rect
         };
+        if trailing.is_some() {
+            rest.width = rest.width.saturating_sub(2);
+        }
         let mut vetoed = false;
         if rest.width > 0 && rest.x < row.rect.right() {
+            let container_patch = merge_focus(self.ov.part_patch(Part::CONTAINER), focus);
+            let label_patch = merge_focus(self.ov.part_patch(Part::LABEL), focus);
             let mut r = RowUi::new_with_patches(
                 ui,
                 self.id,
@@ -2166,12 +2267,25 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 row.flags,
                 row.key,
                 rest,
-                self.ov.part_patch(Part::CONTAINER),
-                self.ov.part_patch(Part::LABEL),
+                container_patch,
+                label_patch,
             );
             r.set_suppress_meta(suppress_meta);
             self.row.row(item, &mut r);
             vetoed = !suppress_meta && r.meta_paint().is_some_and(|m| m.need > 0 && m.painted == 0);
+        }
+        if let Some((role, patch)) = trailing {
+            let mark = cell_at(row.rect, row.rect.right().saturating_sub(2));
+            let style = ui
+                .style_patched(
+                    Family::TREE,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    row.flags,
+                    &patch,
+                )
+                .style;
+            ui.glyph(mark, role, style);
         }
         if ui.is_inert() {
             return vetoed;
@@ -2233,6 +2347,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             preferred: (Self::PREFERRED_WIDTH, c.max.1),
         }
         .fit(c)
+    }
+}
+
+fn merge_focus(base: Option<StylePatch>, focus: Option<StylePatch>) -> Option<StylePatch> {
+    match (base, focus) {
+        (Some(base), Some(focus)) => Some(base.merge(focus)),
+        (Some(base), None) => Some(base),
+        (None, Some(focus)) => Some(focus),
+        (None, None) => None,
     }
 }
 
@@ -2515,11 +2638,11 @@ mod tests {
         t.draw(&mut ui, area, st, items);
     }
 
-    fn render<K: crate::collection::KeyFn<N>, R: crate::collection::RowFn<N>>(
+    fn render<T, K: crate::collection::KeyFn<T>, R: crate::collection::RowFn<T>>(
         theme: Theme,
-        tree: &Tree<'_, N, K, R>,
+        tree: &Tree<'_, T, K, R>,
         state: &TreeState,
-        items: &[N],
+        items: &[T],
     ) -> Buffer {
         let area = Rect::new(0, 0, 24, items.len().max(1) as u16);
         let mut runtime = Runtime::new(Stub::default(), theme);
@@ -3368,6 +3491,112 @@ mod tests {
         assert!(
             marker.modifier.contains(Modifier::DIM),
             "marker cell lost the container DIM"
+        );
+    }
+
+    /// Caller icon `None` keeps disclosure. A leaf icon replaces that one
+    /// cell. Trailing `Dirty` is the cell at right-2 and is absent when the
+    /// callback returns `None`. `key` and `row` run after the callbacks so a
+    /// dropped field fails this draw.
+    #[test]
+    fn icon_none_keeps_disclosure_leaf_icon_and_trailing_dirty_at_right_minus_two() {
+        #[derive(Clone, Copy)]
+        struct Item {
+            name: &'static str,
+            depth: u16,
+            parent: bool,
+            icon: Option<&'static str>,
+            dirty: bool,
+        }
+        fn node(item: &Item) -> TreeNode {
+            let node = if item.parent {
+                TreeNode::parent(item.depth)
+            } else {
+                TreeNode::leaf(item.depth)
+            };
+            node.keyed(ItemKey::text(item.name))
+        }
+        fn icon(item: &Item) -> Option<(&'static str, StylePatch)> {
+            item.icon
+                .map(|glyph| (glyph, StylePatch::new().set_fg(Role::Accent)))
+        }
+        fn trailing(item: &Item) -> Option<(GlyphRole, StylePatch)> {
+            item.dirty
+                .then_some((GlyphRole::Dirty, StylePatch::new().set_fg(Role::Warning)))
+        }
+        fn row(item: &Item, ui: &mut RowUi<'_>) {
+            ui.label(item.name);
+        }
+        let items = [
+            Item {
+                name: "parent",
+                depth: 0,
+                parent: true,
+                icon: None,
+                dirty: false,
+            },
+            Item {
+                name: "leaf",
+                depth: 1,
+                parent: false,
+                icon: Some("◉"),
+                dirty: true,
+            },
+        ];
+        let tree = Tree::new(TREE)
+            .node(&node)
+            .icon(&icon)
+            .trailing_mark(&trailing)
+            .key(|item: &Item| ItemKey::text(item.name))
+            .row(row);
+        let theme = Theme::junie();
+        let collapsed_glyph = theme.design.glyphs.get(GlyphRole::Collapsed);
+        let expanded_glyph = theme.design.glyphs.get(GlyphRole::Expanded);
+        let dirty_glyph = theme.design.glyphs.get(GlyphRole::Dirty);
+        let collapsed = render(theme.clone(), &tree, &TreeState::new(), &items);
+        assert_eq!(
+            collapsed.cell(Position::new(1, 0)).map(BufferCell::symbol),
+            Some(collapsed_glyph),
+            "parent icon None keeps the collapsed disclosure"
+        );
+        assert_ne!(
+            collapsed.cell(Position::new(2, 0)).map(BufferCell::symbol),
+            Some(collapsed_glyph),
+            "a None icon must not paint a second disclosure"
+        );
+
+        let mut open = TreeState::new();
+        open.expand(ItemKey::text("parent"));
+        let buffer = render(theme, &tree, &open, &items);
+        assert_eq!(
+            buffer.cell(Position::new(1, 0)).map(BufferCell::symbol),
+            Some(expanded_glyph),
+            "parent icon None keeps the expanded disclosure"
+        );
+        assert_eq!(
+            buffer.cell(Position::new(3, 1)).map(BufferCell::symbol),
+            Some("◉"),
+            "a leaf icon paints the provided glyph"
+        );
+        assert_ne!(
+            buffer.cell(Position::new(4, 1)).map(BufferCell::symbol),
+            Some("◉"),
+            "the leaf icon occupies one cell"
+        );
+        let right_2 = 24u16.saturating_sub(2);
+        assert_eq!(
+            buffer
+                .cell(Position::new(right_2, 1))
+                .map(BufferCell::symbol),
+            Some(dirty_glyph),
+            "trailing Dirty sits at right-2"
+        );
+        assert_ne!(
+            buffer
+                .cell(Position::new(right_2, 0))
+                .map(BufferCell::symbol),
+            Some(dirty_glyph),
+            "trailing None does not paint a mark or shrink a sibling row"
         );
     }
 }
