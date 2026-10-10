@@ -1,0 +1,355 @@
+{
+  "schema": "termrock-vis04-locked-cargo-cache-repair/v1",
+  "state": "COMPLETE_VERIFIED_ARCHIVE_AND_INDEX_CLOSURE",
+  "cargo_lock_path": "/private/tmp/termrock-vis04-deferred-controls-b106-20261009-v6.H4MeYi/source/crates/termrock-visibility-tests/Cargo.lock",
+  "cargo_lock_sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2",
+  "source_cargo_home_index": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
+  "host_archive_source": "/Users/donbeave/.cargo",
+  "destination_cargo_home": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/cargo-home",
+  "registry": "index.crates.io-1949cf8c6b5b557f",
+  "locked_registry_packages": 32,
+  "copied_index_entries": 32,
+  "copied_archives": 32,
+  "missing_archives_to_fetch_from_static_crates_io": [],
+  "packages": [
+    {
+      "name": "bitflags",
+      "version": "2.13.2",
+      "checksum": "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/bi/tf/bitflags",
+      "index_sha256": "6713b703da401faa62e3df0a4a42a7d14a9d777511ac010512a5dd7b3417faaa",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2.crate",
+      "archive_sha256": "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "block-buffer",
+      "version": "0.10.4",
+      "checksum": "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/bl/oc/block-buffer",
+      "index_sha256": "01c56856aa2b0252ce0d90752ec2c0106edff7db2c1bdf35d60244762fd18419",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/block-buffer-0.10.4.crate",
+      "archive_sha256": "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71",
+      "archive_origin": "downloaded from static.crates.io; verified against Cargo.lock checksum",
+      "archive_url": "https://static.crates.io/crates/block-buffer/block-buffer-0.10.4.crate"
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.5",
+      "checksum": "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cf/g-/cfg-if",
+      "index_sha256": "8f6eaea0f7fc5f6848486cbdf55738698871d39e9120c4c1c68fe5c964696d7d",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/cfg-if-1.0.5.crate",
+      "archive_sha256": "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/cfg-if-1.0.5.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "cpufeatures",
+      "version": "0.2.17",
+      "checksum": "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cp/uf/cpufeatures",
+      "index_sha256": "dd29f42e05ee3cf258f4ecf10c43c47625306fbb3f041106ac48cf33d02b1435",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/cpufeatures-0.2.17.crate",
+      "archive_sha256": "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/cpufeatures-0.2.17.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "crypto-common",
+      "version": "0.1.7",
+      "checksum": "78c8292055d1c1df0cce5d180393dc8cce0abec0a7102adb6c7b1eef6016d60a",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cr/yp/crypto-common",
+      "index_sha256": "888aa37a81634f87ae790d68b432c51f0c88a238fc08a760171958e263daef2f",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/crypto-common-0.1.7.crate",
+      "archive_sha256": "78c8292055d1c1df0cce5d180393dc8cce0abec0a7102adb6c7b1eef6016d60a",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/crypto-common-0.1.7.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "digest",
+      "version": "0.10.7",
+      "checksum": "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/di/ge/digest",
+      "index_sha256": "4a9f0a9b47df415003371f47ed05c5a48bab33e642a3476e8ad1d4124178cfa3",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/digest-0.10.7.crate",
+      "archive_sha256": "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292",
+      "archive_origin": "downloaded from static.crates.io; verified against Cargo.lock checksum",
+      "archive_url": "https://static.crates.io/crates/digest/digest-0.10.7.crate"
+    },
+    {
+      "name": "errno",
+      "version": "0.3.14",
+      "checksum": "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/er/rn/errno",
+      "index_sha256": "609acf9108184ab8ca087991bf5d634262cea1dc157c6e31e4b7051c08d30fa6",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/errno-0.3.14.crate",
+      "archive_sha256": "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/errno-0.3.14.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "fastrand",
+      "version": "2.5.0",
+      "checksum": "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/fa/st/fastrand",
+      "index_sha256": "bb3497dd4b879758b900190b56912c6cc1995c4b64f701904b44c048912b1505",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/fastrand-2.5.0.crate",
+      "archive_sha256": "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/fastrand-2.5.0.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "generic-array",
+      "version": "0.14.7",
+      "checksum": "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ge/ne/generic-array",
+      "index_sha256": "ca57d9fc384febb27edb69462550ed8e38f8e11d2c074260759055af41affcb4",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/generic-array-0.14.7.crate",
+      "archive_sha256": "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/generic-array-0.14.7.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "getrandom",
+      "version": "0.4.3",
+      "checksum": "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ge/tr/getrandom",
+      "index_sha256": "ea3ebfe89a8153e02e45194ad58f9fddf29158f70392ed66fec931a14f885192",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/getrandom-0.4.3.crate",
+      "archive_sha256": "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/getrandom-0.4.3.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "itoa",
+      "version": "1.0.18",
+      "checksum": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/it/oa/itoa",
+      "index_sha256": "358ec410c0eb6e99d0bd115834b6f94aa92791f87d684c29f2dc7a62b7887b48",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/itoa-1.0.18.crate",
+      "archive_sha256": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/itoa-1.0.18.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "libc",
+      "version": "0.2.190",
+      "checksum": "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/li/bc/libc",
+      "index_sha256": "1dae18b02aef1302b10f109173ea770359038aa3e1646eded4e97578996b7826",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/libc-0.2.190.crate",
+      "archive_sha256": "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/libc-0.2.190.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "linux-raw-sys",
+      "version": "0.12.1",
+      "checksum": "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/li/nu/linux-raw-sys",
+      "index_sha256": "e20d72e863f9d5a06f29138ba8505b919eb7127bedb6bee3b4e294328b8cfb5e",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.12.1.crate",
+      "archive_sha256": "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.12.1.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "memchr",
+      "version": "2.8.3",
+      "checksum": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/me/mc/memchr",
+      "index_sha256": "fd6ae4fcce894bf67403c653f73a6fe48bfa1fac66a04e2caec70e1f36343d05",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/memchr-2.8.3.crate",
+      "archive_sha256": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/memchr-2.8.3.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "once_cell",
+      "version": "1.21.4",
+      "checksum": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/on/ce/once_cell",
+      "index_sha256": "482e2ff5884947e2bcaaa63d01cc99d0fb6090cdff0a51ee22869f1362126efe",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/once_cell-1.21.4.crate",
+      "archive_sha256": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/once_cell-1.21.4.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.107",
+      "checksum": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/pr/oc/proc-macro2",
+      "index_sha256": "95228f72462ea6fa119430877d1c7abb7a22346da05473c37ecc12e678174b69",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107.crate",
+      "archive_sha256": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "quote",
+      "version": "1.0.47",
+      "checksum": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/qu/ot/quote",
+      "index_sha256": "bf97b4d031ad9a1159e896720b9227fb39947f370b48cb8ded9abd27b1515feb",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/quote-1.0.47.crate",
+      "archive_sha256": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/quote-1.0.47.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "r-efi",
+      "version": "6.0.0",
+      "checksum": "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/r-/ef/r-efi",
+      "index_sha256": "a2f9390340035b66c560c9a7190a0002daabce5ac0834d43d5daff52750b2591",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/r-efi-6.0.0.crate",
+      "archive_sha256": "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/r-efi-6.0.0.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "rustix",
+      "version": "1.1.5",
+      "checksum": "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ru/st/rustix",
+      "index_sha256": "7ac5a490ff7d3339b90f9b3a01953921723f4c1a3152fb7c3d7cb2866e0edd91",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/rustix-1.1.5.crate",
+      "archive_sha256": "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/rustix-1.1.5.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "serde",
+      "version": "1.0.229",
+      "checksum": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde",
+      "index_sha256": "8fa7dcf631674523357d78dd82a9e8ec91e6822bf658e996962382d5b03a06f2",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/serde-1.0.229.crate",
+      "archive_sha256": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde-1.0.229.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "serde_core",
+      "version": "1.0.229",
+      "checksum": "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde_core",
+      "index_sha256": "00f5412df941bf2bb3aa7fe7e2456fabff8ce96f324060645cb84a1a0200647c",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.229.crate",
+      "archive_sha256": "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.229.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "serde_derive",
+      "version": "1.0.229",
+      "checksum": "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde_derive",
+      "index_sha256": "04e32a953a39f321a61f4914b3b22025f8476f6d5f7140025e3766c28c6af06d",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229.crate",
+      "archive_sha256": "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "serde_json",
+      "version": "1.0.151",
+      "checksum": "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde_json",
+      "index_sha256": "a558e6db3da2d63e247ea734320ef3483b4538a97d4f650ba99af9d377037dc1",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151.crate",
+      "archive_sha256": "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "sha2",
+      "version": "0.10.9",
+      "checksum": "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/sh/a2/sha2",
+      "index_sha256": "267d7e974971d33790232ae905c481d424ab7ade021e631236bb5363f0849a7f",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/sha2-0.10.9.crate",
+      "archive_sha256": "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283",
+      "archive_origin": "downloaded from static.crates.io; verified against Cargo.lock checksum",
+      "archive_url": "https://static.crates.io/crates/sha2/sha2-0.10.9.crate"
+    },
+    {
+      "name": "syn",
+      "version": "3.0.6",
+      "checksum": "8593e8e72159ed2257d083c7a454a85cbf854f37a0966d8d483aff8c8a3ebcee",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/s/syn",
+      "index_sha256": "f35e574cec97617c7ad87aef5c0b1add6ad4407d12b0371a2f203c2fa79f6159",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/syn-3.0.6.crate",
+      "archive_sha256": "8593e8e72159ed2257d083c7a454a85cbf854f37a0966d8d483aff8c8a3ebcee",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/syn-3.0.6.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "tempfile",
+      "version": "3.27.0",
+      "checksum": "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/te/mp/tempfile",
+      "index_sha256": "d3e996668f54466ea0af9253a623ac853b4943937f3181de73bad365f29f7098",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/tempfile-3.27.0.crate",
+      "archive_sha256": "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/tempfile-3.27.0.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "typenum",
+      "version": "1.20.1",
+      "checksum": "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ty/pe/typenum",
+      "index_sha256": "0aa39a82563fb4c1959ea3ce514ada50075c436f0ed5f6edcdabb90e995f7f18",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/typenum-1.20.1.crate",
+      "archive_sha256": "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/typenum-1.20.1.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.26",
+      "checksum": "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/un/ic/unicode-ident",
+      "index_sha256": "d7a3b34b99cae1bfc222b39b920b67ec93b1adb17d33880cb452a452bbfb314a",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.26.crate",
+      "archive_sha256": "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.26.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "version_check",
+      "version": "0.9.5",
+      "checksum": "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ve/rs/version_check",
+      "index_sha256": "3b59bb407ec049518d98a4baee28599d2724767aad5c95c1b2f25ef511008a3d",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5.crate",
+      "archive_sha256": "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "windows-link",
+      "version": "0.2.1",
+      "checksum": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows-link",
+      "index_sha256": "d22f6b9ac1dea4587d049cfe5acaa4a769c18feb63dd29aa61bee99837a06546",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/windows-link-0.2.1.crate",
+      "archive_sha256": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows-link-0.2.1.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.61.2",
+      "checksum": "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows-sys",
+      "index_sha256": "beab389ed4ab8a0aca87fde6a1195814c27d62aae5f6ffb39bb2207ad2f9ad66",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/windows-sys-0.61.2.crate",
+      "archive_sha256": "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows-sys-0.61.2.crate; verified against Cargo.lock checksum"
+    },
+    {
+      "name": "zmij",
+      "version": "1.0.23",
+      "checksum": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b",
+      "index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/zm/ij/zmij",
+      "index_sha256": "2292a52a2f4a8089d5327151f1d5e68496608311cfec6e1d564a6f5202a1931e",
+      "archive_path": "registry/cache/index.crates.io-1949cf8c6b5b557f/zmij-1.0.23.crate",
+      "archive_sha256": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b",
+      "archive_origin": "copied from /Users/donbeave/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/zmij-1.0.23.crate; verified against Cargo.lock checksum"
+    }
+  ],
+  "index_config": {
+    "path": "registry/index/index.crates.io-1949cf8c6b5b557f/config.json",
+    "sha256": "5b943a2c6f7eb743f7308aba07bdbb47d9ae44aafecd832d7f15df186afbafb3",
+    "copied_from": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/config.json"
+  },
+  "archive_verification": "Every `.crate` SHA-256 exactly matches the package checksum in the pinned Cargo.lock.",
+  "index_verification": "Each of the 32 copied sparse-index cache entries contains the locked version and matching package checksum; each entry hash is recorded.",
+  "failed_v6_run": {
+    "receipt_path": "/private/tmp/termrock-vis04-deferred-controls-b106-20261009-v6.H4MeYi/runs/2026-10-09T03-58-03-155Z-ea0fb116/receipt.json",
+    "receipt_sha256": "8e5309b28710de0b5d49671cb0357e16b88199388c411bd074d05ffdb6f13e77",
+    "result": "BLOCKED_INCOMPLETE_OR_PARSE",
+    "exit_code": 102,
+    "tests_run": 0,
+    "stderr": "error: failed to download `bitflags v2.13.2`; attempting HTTP under --offline",
+    "preserved": true
+  }
+}

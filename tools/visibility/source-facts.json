@@ -1,7 +1,88 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "repository": "tailrocks/terminal-components-claude",
-  "observed_at": "2026-10-08T06:22:51Z",
+  "observed_at": "2026-10-09T00:30:35Z",
+  "latest_source_observation": {
+    "observed_at": "2026-10-08T23:25:02Z",
+    "method": "read-only GitHub branch API observation; local fetched refs verified afterward",
+    "candidate_remote": {
+      "branch": "termrock-implementation",
+      "head_sha": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "commit_committer_at": "2026-10-08T23:14:25Z"
+    },
+    "reference_remote": {
+      "branch": "visual-baseline",
+      "head_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+      "commit_committer_at": "2026-10-08T16:13:33Z"
+    },
+    "branch_last_update_at": null,
+    "timestamp_provenance": {
+      "candidate_committer_date_source": "Direct GitHub branches API response for termrock-implementation; commit.commit.committer.date",
+      "reference_committer_date_source": "Direct GitHub branches API response for visual-baseline; commit.commit.committer.date",
+      "branch_last_update_at_source": "No separate branch-update timestamp was recorded; commit dates are not branch-update times.",
+      "committer_dates_are_branch_update_times": false
+    },
+    "api_observation": {
+      "candidate_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/termrock-implementation",
+      "reference_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/visual-baseline",
+      "raw_response_files_preserved": false,
+      "observation_scope": "These branch heads were observed at the timestamp above; this record makes no claim about later remote updates."
+    },
+    "fetch_provenance": {
+      "evidence_kind": "coordinator-reported fetch result with post-fetch local-ref verification",
+      "transport": "HTTPS",
+      "operation": "fetch",
+      "refspecs": [
+        "refs/heads/termrock-implementation",
+        "refs/heads/visual-baseline"
+      ],
+      "session_id": 79755,
+      "exit_code": 0,
+      "completed_at": null,
+      "raw_fetch_output_preserved": false,
+      "post_fetch_ref_query": {
+        "observed_at": "2026-10-08T23:30:54Z",
+        "candidate_head_sha": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "reference_head_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+      },
+      "fetch_history": [
+        {
+          "session_id": 36055,
+          "transport": "SSH",
+          "exit_code": 128,
+          "reported_error": "agent refused ED25519 public-key authentication"
+        },
+        {
+          "session_id": 79755,
+          "transport": "HTTPS",
+          "exit_code": 0,
+          "note": "The coordinator reported a one-command credential fallback; the original origin URL remained SSH. No global Git, shell, or Cargo settings were changed."
+        }
+      ]
+    }
+  },
+  "latest_local_checkout_observation": {
+    "observed_at": "2026-10-09T00:30:35Z",
+    "branch": "termrock-implementation",
+    "head_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+    "tree_sha": "b5701830ac45f93620b2f55da71862aacc549cd6",
+    "signature_status": "N",
+    "signature_command": "git show -s --format='%G?' HEAD",
+    "publication_status": "not_recorded",
+    "qualification": "The local HEAD and commit tree were observed, but this observation does not assert a clean working tree or index and does not independently confirm publication of this local HEAD."
+  },
+  "latest_local_dco_trailer_observation": {
+    "observed_at": "2026-10-09T00:30:35Z",
+    "commit_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+    "expected_trailer": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+    "trailer_present": true,
+    "parsed_trailers": [
+      "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>"
+    ],
+    "message_subject": "test: add pinned reference capture and explicit corpus admission",
+    "inspection_command": "git show -s --format=%B HEAD | git interpret-trailers --parse",
+    "qualification": "The exact DCO trailer is present in the observed local commit message. Git signature status N is a separate observation and does not establish missing DCO sign-off."
+  },
   "candidate": {
     "branch": "termrock-implementation",
     "head_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
@@ -72,6 +153,7 @@
       }
     ]
   },
+  "current_ci_observation": null,
   "ambient_tools": {
     "python": "3.9.6",
     "mise_rust": "1.98.1",
@@ -214,5 +296,1082 @@
     "head_sha": "85b51da2e9832dba642abf7d64d032f848cade0e",
     "working_tree": "dirty",
     "qualification": "Source identity is the commit SHA only. Uncommitted local work is not included in the GitHub source facts."
+  },
+  "source_observation_history": [
+    {
+      "source_observation": {
+        "observed_at": "2026-10-08T08:18:00Z",
+        "method": "read-only GitHub branch API observation",
+        "candidate_remote": {
+          "branch": "termrock-implementation",
+          "head_sha": "931bbba00bad43de79731912f48e29fe88751cb8",
+          "updated_at": "2026-10-08T08:05:33Z"
+        },
+        "reference_remote": {
+          "branch": "visual-baseline",
+          "head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+          "updated_at": "2026-10-08T07:13:13Z"
+        },
+        "prior_candidate_remote_observation": {
+          "head_sha": "b07540df4f7a97fcca8c4d3396102651be459503",
+          "observed_at": null,
+          "qualification": "Earlier candidate tip relayed by the coordinator; its fetch time and API response were not retained. It is superseded by the remote branch tip above and carries no test or product qualification."
+        },
+        "observation_sources": {
+          "candidate_branch_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/termrock-implementation",
+          "reference_branch_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/visual-baseline",
+          "commands": [
+            "gh api repos/tailrocks/terminal-components-claude/branches/termrock-implementation --jq '{sha:.commit.sha, updated_at:.commit.commit.committer.date}'",
+            "gh api repos/tailrocks/terminal-components-claude/branches/visual-baseline --jq '{sha:.commit.sha, updated_at:.commit.commit.committer.date}'"
+          ]
+        }
+      },
+      "source_evidence": {
+        "path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-0/source-evidence",
+        "sha256": "4aac6e1d76aa2f7db40588f34f443ee6f0bd23aed11064cb7fc5bb48d183f3d1"
+      },
+      "current_ci_observation": {
+        "api_capture": {
+          "captured_at": "2026-10-08T08:33:53Z",
+          "manifest_path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-0/api-capture-manifest",
+          "manifest_sha256": "96fab9bbb37943d69c27e9e57d6b053ac7674de5bff2ca5f5f3087429e226d50",
+          "source_pair": {
+            "candidate_head_sha": "931bbba00bad43de79731912f48e29fe88751cb8",
+            "reference_head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd"
+          },
+          "candidate_run": {
+            "run_id": "37747564884",
+            "workflow_path": ".github/workflows/ci.yml",
+            "head_sha": "931bbba00bad43de79731912f48e29fe88751cb8",
+            "status": "completed",
+            "conclusion": "failure",
+            "created_at": "2026-10-08T08:05:40Z",
+            "head_sha_query_total_count": 1,
+            "job_count": 0,
+            "artifact_count": 0,
+            "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37747564884"
+          },
+          "reference_query": {
+            "query_status": "success",
+            "head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+            "workflow_path": ".github/workflows/ci.yml",
+            "query_total_count": 0,
+            "matching_run_ids": [],
+            "request_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs?head_sha=68d98ac99238c8580464f238a65b0f862ecc3dbd&per_page=100",
+            "response_file": "NOT_ARCHIVED/HISTORICAL/source-observation-history-0/reference-query-response"
+          },
+          "workflow_source": {
+            "path": ".github/workflows/ci.yml",
+            "commit_sha": "931bbba00bad43de79731912f48e29fe88751cb8",
+            "github_blob_sha": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+            "size_bytes": 537470,
+            "raw_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
+          },
+          "candidate_dco": {
+            "check_run_id": "113212666161",
+            "name": "DCO",
+            "head_sha": "931bbba00bad43de79731912f48e29fe88751cb8",
+            "status": "completed",
+            "conclusion": "action_required",
+            "affected_commit_count": 2,
+            "annotations_count": 0,
+            "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113212666161"
+          },
+          "reference_dco": {
+            "check_run_id": "113195062894",
+            "name": "DCO",
+            "head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+            "status": "completed",
+            "conclusion": "action_required",
+            "affected_commit_count": 14,
+            "annotations_count": 0,
+            "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113195062894"
+          }
+        },
+        "provider_annotation_capture": {
+          "captured_at": "2026-10-08T09:02:19Z",
+          "manifest_path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-0/provider-capture-manifest",
+          "manifest_sha256": "f1eb6e6dc17014481e898b750053e29f278fcf39f70738c5d851e73d0e695e80",
+          "run_id": "37747564884",
+          "run_page_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37747564884",
+          "workflow_path": ".github/workflows/ci.yml",
+          "workflow_commit_sha": "931bbba00bad43de79731912f48e29fe88751cb8",
+          "page_status": "Failure",
+          "page_annotation_count": 1,
+          "annotation": "Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information.",
+          "raw_page_sha256": "c1333f9fa1c18136d49e7a4f494074b20629912ecb6bf275593a97c580f80f38",
+          "workflow_source_size_bytes": 537470,
+          "workflow_source_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
+        }
+      },
+      "superseded_at": "2026-10-08T10:05:21Z"
+    },
+    {
+      "source_observation": {
+        "observed_at": "2026-10-08T10:05:21Z",
+        "method": "read-only exact-source comparison",
+        "candidate_remote": {
+          "branch": "termrock-implementation",
+          "head_sha": "bebb60a7948f9ee190483c48545d6bc35c5437df"
+        },
+        "reference_remote": {
+          "branch": "visual-baseline",
+          "head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd"
+        },
+        "branch_last_update_at": null
+      },
+      "source_evidence": {
+        "path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-1/source-evidence",
+        "sha256": "318e4d127122b4eac303c21d6e48e0028121cbc6e69998483e9a454a34d04e2f"
+      },
+      "current_ci_observation": {
+        "api_capture": {
+          "captured_at": "2026-10-08T10:04:14Z",
+          "manifest_path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-1/ci-capture-manifest",
+          "manifest_sha256": "3f419da7b1b4be673f550c68601f10e9ca9605fddb05bce0e4353349062c529f",
+          "source_pair": {
+            "candidate_head_sha": "bebb60a7948f9ee190483c48545d6bc35c5437df",
+            "reference_head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd"
+          },
+          "candidate_run": {
+            "run_id": "37758149777",
+            "workflow_path": ".github/workflows/ci.yml",
+            "head_sha": "bebb60a7948f9ee190483c48545d6bc35c5437df",
+            "status": "completed",
+            "conclusion": "failure",
+            "created_at": "2026-10-08T09:39:19Z",
+            "head_sha_query_total_count": 1,
+            "job_count": 0,
+            "artifact_count": 0,
+            "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37758149777"
+          },
+          "reference_query": {
+            "query_status": "success",
+            "head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+            "workflow_path": ".github/workflows/ci.yml",
+            "query_total_count": 0,
+            "matching_run_ids": [],
+            "request_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs?head_sha=68d98ac99238c8580464f238a65b0f862ecc3dbd&per_page=100",
+            "response_file": "reference-actions-runs.json"
+          },
+          "workflow_source": {
+            "path": ".github/workflows/ci.yml",
+            "commit_sha": "bebb60a7948f9ee190483c48545d6bc35c5437df",
+            "github_blob_sha": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+            "size_bytes": 537470,
+            "raw_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
+          },
+          "candidate_dco": {
+            "check_run_id": "113247788492",
+            "name": "DCO",
+            "head_sha": "bebb60a7948f9ee190483c48545d6bc35c5437df",
+            "status": "completed",
+            "conclusion": "action_required",
+            "affected_commit_count": 2,
+            "annotations_count": 0,
+            "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113247788492"
+          },
+          "reference_dco": {
+            "check_run_id": "113195062894",
+            "name": "DCO",
+            "head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+            "status": "completed",
+            "conclusion": "action_required",
+            "affected_commit_count": 14,
+            "annotations_count": 0,
+            "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113195062894"
+          }
+        },
+        "provider_annotation_capture": {
+          "captured_at": "2026-10-08T10:03:39Z",
+          "manifest_path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-1/ci-capture-manifest",
+          "manifest_sha256": "3f419da7b1b4be673f550c68601f10e9ca9605fddb05bce0e4353349062c529f",
+          "run_id": "37758149777",
+          "run_page_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37758149777",
+          "workflow_path": ".github/workflows/ci.yml",
+          "workflow_commit_sha": "bebb60a7948f9ee190483c48545d6bc35c5437df",
+          "page_status": "Failure",
+          "page_annotation_count": 1,
+          "annotation": "Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information.",
+          "raw_page_sha256": "1ef740418eca64fd28f949c5be8ce927c48871bc6abf89fdfa2b06c14401f083",
+          "workflow_source_size_bytes": 537470,
+          "workflow_source_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
+        }
+      },
+      "superseded_at": "2026-10-08T10:13:57Z"
+    },
+    {
+      "source_observation": {
+        "observed_at": "2026-10-08T10:13:57Z",
+        "method": "read-only GitHub branch API observation",
+        "candidate_remote": {
+          "branch": "termrock-implementation",
+          "head_sha": "e22d54708fe58670d92c2dac7c1ace6c97fac164",
+          "commit_committer_at": "2026-10-08T10:07:16Z"
+        },
+        "reference_remote": {
+          "branch": "visual-baseline",
+          "head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+          "commit_committer_at": "2026-10-08T07:13:13Z"
+        },
+        "branch_last_update_at": null,
+        "timestamp_provenance": {
+          "candidate_committer_date_source": "observations[0].commit_committer_date in the captured branch API manifest",
+          "reference_committer_date_source": "observations[1].commit_committer_date in the captured branch API manifest",
+          "committer_dates_are_branch_update_times": false,
+          "branch_last_update_at_source": "The captured branch API manifest states that branch last-update time is not supplied."
+        }
+      },
+      "source_evidence": {
+        "path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-2/source-evidence",
+        "sha256": "ba6862438a415fcccc04a756be15a06e63b9eee17c4e0edf7442bf6fe982f301"
+      },
+      "current_ci_observation": null,
+      "superseded_at": "2026-10-08T10:19:24Z"
+    },
+    {
+      "source_observation": {
+        "observed_at": "2026-10-08T10:19:24Z",
+        "method": "explicit HTTPS refs/heads fetch",
+        "candidate_remote": {
+          "branch": "termrock-implementation",
+          "head_sha": "cee7e2e307514e49a70d8b8fcb028923ccdc7322",
+          "commit_committer_at": "2026-10-08T17:17:11+07:00"
+        },
+        "reference_remote": {
+          "branch": "visual-baseline",
+          "head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+          "commit_committer_at": "2026-10-08T14:13:13+07:00"
+        },
+        "branch_last_update_at": null,
+        "timestamp_provenance": {
+          "candidate_committer_date_source": "timestamp_sources.candidate_commit_committer_at in the fixed source-pair evidence",
+          "reference_committer_date_source": "timestamp_sources.reference_commit_committer_at in the fixed source-pair evidence",
+          "branch_last_update_at_source": "timestamp_sources.actual_branch_last_update_at is null in the fixed source-pair evidence",
+          "committer_dates_are_branch_update_times": false
+        },
+        "fetch_provenance": {
+          "evidence_path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-3/source-evidence",
+          "evidence_sha256": "6645a0d40d4777d8fc8af0f74e64bf2c701986ed9bf2d5d30aa1d73a82e1db3c",
+          "command": "git fetch --no-tags https://github.com/tailrocks/terminal-components-claude.git refs/heads/termrock-implementation:refs/remotes/origin/termrock-implementation refs/heads/visual-baseline:refs/remotes/origin/visual-baseline"
+        }
+      },
+      "source_evidence": {
+        "path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-3/source-evidence",
+        "sha256": "6645a0d40d4777d8fc8af0f74e64bf2c701986ed9bf2d5d30aa1d73a82e1db3c"
+      },
+      "current_ci_observation": {
+        "api_capture": {
+          "captured_at": "2026-10-08T10:22:44Z",
+          "manifest_path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-3/ci-capture-manifest",
+          "manifest_sha256": "819ee505aeceb2d4f55de56e6845765c6f3189dee01be605ed694bdd19f005a1",
+          "source_pair": {
+            "candidate_head_sha": "cee7e2e307514e49a70d8b8fcb028923ccdc7322",
+            "reference_head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd"
+          },
+          "candidate_run": {
+            "run_id": "37762481719",
+            "workflow_path": ".github/workflows/ci.yml",
+            "head_sha": "cee7e2e307514e49a70d8b8fcb028923ccdc7322",
+            "status": "completed",
+            "conclusion": "failure",
+            "created_at": "2026-10-08T10:17:21Z",
+            "head_sha_query_total_count": 1,
+            "job_count": 0,
+            "artifact_count": 0,
+            "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37762481719"
+          },
+          "reference_query": {
+            "query_status": "success",
+            "head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+            "workflow_path": ".github/workflows/ci.yml",
+            "query_total_count": 0,
+            "matching_run_ids": [],
+            "request_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs?head_sha=68d98ac99238c8580464f238a65b0f862ecc3dbd&per_page=100",
+            "response_file": "reference-actions-runs.json"
+          },
+          "workflow_source": {
+            "path": ".github/workflows/ci.yml",
+            "commit_sha": "cee7e2e307514e49a70d8b8fcb028923ccdc7322",
+            "github_blob_sha": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+            "size_bytes": 537470,
+            "raw_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
+          },
+          "candidate_dco": {
+            "check_run_id": "113262062732",
+            "name": "DCO",
+            "head_sha": "cee7e2e307514e49a70d8b8fcb028923ccdc7322",
+            "status": "completed",
+            "conclusion": "action_required",
+            "affected_commit_count": 2,
+            "annotations_count": 0,
+            "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113262062732"
+          },
+          "reference_dco": {
+            "check_run_id": "113195062894",
+            "name": "DCO",
+            "head_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+            "status": "completed",
+            "conclusion": "action_required",
+            "affected_commit_count": 14,
+            "annotations_count": 0,
+            "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113195062894"
+          }
+        },
+        "provider_annotation_capture": {
+          "captured_at": "2026-10-08T10:22:44Z",
+          "manifest_path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-3/ci-capture-manifest",
+          "manifest_sha256": "819ee505aeceb2d4f55de56e6845765c6f3189dee01be605ed694bdd19f005a1",
+          "run_id": "37762481719",
+          "run_page_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37762481719",
+          "workflow_path": ".github/workflows/ci.yml",
+          "workflow_commit_sha": "cee7e2e307514e49a70d8b8fcb028923ccdc7322",
+          "page_status": "Failure",
+          "page_annotation_count": 1,
+          "annotation": "Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information.",
+          "raw_page_sha256": "0400848e5fd8f57a3bd89140da6a1f067974f82e0ea8df5012efcdbe888dbc46",
+          "workflow_source_size_bytes": 537470,
+          "workflow_source_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
+        }
+      },
+      "superseded_at": "2026-10-08T15:11:33Z"
+    },
+    {
+      "source_observation": {
+        "observed_at": "2026-10-08T15:11:33Z",
+        "method": "explicit HTTPS refs/heads fetch",
+        "candidate_remote": {
+          "branch": "termrock-implementation",
+          "head_sha": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+          "commit_committer_at": "2026-10-08T14:37:23Z"
+        },
+        "reference_remote": {
+          "branch": "visual-baseline",
+          "head_sha": "b682cb26d68b353aeeccf9e51653eddf097b39f5",
+          "commit_committer_at": "2026-10-08T13:06:50Z"
+        },
+        "branch_last_update_at": null,
+        "timestamp_provenance": {
+          "candidate_committer_date_source": "candidate-commit.body.raw at 2026-10-08T15:22:16Z; .commit.committer.date; SHA-256 d37391f0b8159004b2bc6bec5aadc8aecea177ee570f6d567c6dc0c9b7ffc3f7",
+          "reference_committer_date_source": "reference-commit.body.raw at 2026-10-08T15:22:16Z; .commit.committer.date; SHA-256 1084bf613a894407c8f49cdd71d0fb9ea5f6504d302c45220b10fd7d8d3bb8c0",
+          "branch_last_update_at_source": "No branch update timestamp was recorded in the explicit-ref fetch observation or exact-head commit API capture; branch update time remains unknown.",
+          "committer_dates_are_branch_update_times": false
+        },
+        "fetch_provenance": {
+          "evidence_path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-4/source-evidence",
+          "evidence_sha256": "367121e3eb643453d46d33b598388752c41b1c5fa23e9c099e751c280e0568aa",
+          "evidence_kind": "coordinator external observation record",
+          "transport": "HTTPS",
+          "operation": "fetch",
+          "refspecs": [
+            "refs/heads/termrock-implementation",
+            "refs/heads/visual-baseline"
+          ],
+          "session_id": 45546,
+          "exit_code": 0,
+          "completed_at": "2026-10-08T15:11:33Z",
+          "raw_fetch_output_preserved": false,
+          "post_fetch_ref_query": {
+            "record_id": "91806b",
+            "observed_at": null,
+            "candidate_head_sha": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+            "reference_head_sha": "b682cb26d68b353aeeccf9e51653eddf097b39f5"
+          }
+        }
+      },
+      "current_ci_observation": {
+        "api_capture": {
+          "captured_at": "2026-10-08T15:22:16Z",
+          "manifest_path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-4/ci-capture-manifest",
+          "manifest_sha256": "1b37cf9d01a66503c76495202b626bbde8634ca015dac4073402ff4eb57466eb",
+          "source_pair": {
+            "candidate_head_sha": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+            "reference_head_sha": "b682cb26d68b353aeeccf9e51653eddf097b39f5"
+          },
+          "candidate_run": {
+            "run_id": "37793991551",
+            "workflow_path": ".github/workflows/ci.yml",
+            "head_sha": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+            "status": "completed",
+            "conclusion": "failure",
+            "created_at": "2026-10-08T14:37:29Z",
+            "head_sha_query_total_count": 1,
+            "job_count": 0,
+            "artifact_count": 0,
+            "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37793991551"
+          },
+          "reference_query": {
+            "query_status": "success",
+            "head_sha": "b682cb26d68b353aeeccf9e51653eddf097b39f5",
+            "workflow_path": ".github/workflows/ci.yml",
+            "query_total_count": 0,
+            "matching_run_ids": [],
+            "request_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs?head_sha=b682cb26d68b353aeeccf9e51653eddf097b39f5&per_page=100",
+            "response_file": "reference-actions-runs.body.raw"
+          },
+          "workflow_source": {
+            "path": ".github/workflows/ci.yml",
+            "commit_sha": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+            "github_blob_sha": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+            "size_bytes": 537470,
+            "raw_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
+          },
+          "candidate_dco": {
+            "check_run_id": "113368579050",
+            "name": "DCO",
+            "head_sha": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+            "status": "completed",
+            "conclusion": "action_required",
+            "affected_commit_count": 2,
+            "annotations_count": 0,
+            "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113368579050"
+          },
+          "reference_dco": {
+            "check_run_id": "113326850483",
+            "name": "DCO",
+            "head_sha": "b682cb26d68b353aeeccf9e51653eddf097b39f5",
+            "status": "completed",
+            "conclusion": "action_required",
+            "affected_commit_count": 14,
+            "annotations_count": 0,
+            "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113326850483"
+          }
+        },
+        "provider_annotation_capture": {
+          "captured_at": "2026-10-08T15:22:16Z",
+          "manifest_path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-4/ci-capture-manifest",
+          "manifest_sha256": "1b37cf9d01a66503c76495202b626bbde8634ca015dac4073402ff4eb57466eb",
+          "run_id": "37793991551",
+          "run_page_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37793991551",
+          "workflow_path": ".github/workflows/ci.yml",
+          "workflow_commit_sha": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+          "workflow_source_size_bytes": 537470,
+          "workflow_source_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24",
+          "page_annotation_count": 1,
+          "raw_page_sha256": "aa4cb2eba49a30bc01e754448f4a41f70db6d5f9b6685e84ee1b446ffc0545df",
+          "page_status": "Failure",
+          "annotation": "Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information."
+        }
+      },
+      "source_evidence": {
+        "path": "NOT_ARCHIVED/HISTORICAL/source-observation-history-4/source-evidence",
+        "sha256": "367121e3eb643453d46d33b598388752c41b1c5fa23e9c099e751c280e0568aa"
+      },
+      "superseded_at": "2026-10-08T23:25:02Z"
+    }
+  ],
+  "local_e2e_suite_observation": {
+    "observed_at": "2026-10-08T21:49:36Z",
+    "source_commit": "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
+    "source_tree_sha": "15b0c9c2b24b773844a99c84b3839b4e98ef101f",
+    "revision": "termrock-e2e-2026-10-08.1",
+    "file_count": 21,
+    "package_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361",
+    "technical_review": {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-package-technical-addendum.json",
+      "sha256": "5c45cf6060a154099d5b97dea31066b211ceea3ee985ae80e66c73ba26b4acca"
+    },
+    "contract_gate": {
+      "result": "PASS",
+      "scope": "Two ignored-test targets compiled and listed; one non-product registry/precondition contract test passed 1/1.",
+      "receipt": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-contract-gate-receipt.json",
+        "sha256": "11bbc2548897ff83126aa6585266e21dd657ce7556dc4195362489d64f81e4a8"
+      },
+      "independent_review": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-contract-gate-review.json",
+        "sha256": "d371e97c7ecb48770b6a04a1f77fc3279085b2115b3f26ca4d324d2873782041"
+      }
+    }
+  },
+  "status_report_control_observation": {
+    "observed_at": "2026-10-08T21:49:36Z",
+    "verdict": "VERIFIED",
+    "unique_test_identities": 35,
+    "composition": "26 initial passing identities plus successive exact failed-test reruns of 7, 1, and 1 identities across reviewed test-source revisions; not one full green gate.",
+    "scope": "Status generator/report controls only, not product readiness.",
+    "independent_review": {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/r9-cumulative-actual-review.json",
+      "sha256": "65cde1ebac37588ce31983c78bc589242ab7cd3f8be3f9c787537212a9f64d7a"
+    }
+  },
+  "latest_source_observation_evidence": {
+    "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis06-current-source-facts-20261008T233054Z-luna.json",
+    "sha256": "fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d"
+  },
+  "latest_ci_snapshot": {
+    "schema": "termrock-status-latest-ci-snapshot-v1",
+    "captured_at": "2026-10-08T23:30:54Z",
+    "captured_interval_utc": [
+      "2026-10-08T23:25:02Z",
+      "2026-10-08T23:30:54Z"
+    ],
+    "source_pair": {
+      "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+    },
+    "source_facts_evidence": {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis06-current-source-facts-20261008T233054Z-luna.json",
+      "sha256": "fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d"
+    },
+    "raw_api_responses_preserved": false,
+    "candidate_run": {
+      "run_id": "37858314774",
+      "workflow_path": ".github/workflows/ci.yml",
+      "head_sha": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-08T23:14:33Z",
+      "job_count": 0,
+      "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37858314774"
+    },
+    "artifact_count": null,
+    "artifact_query": "NOT_QUERIED",
+    "failure_cause": "UNKNOWN_NOT_CAPTURED",
+    "product_execution": "NOT_RUN",
+    "reference_query": {
+      "query_status": "success",
+      "head_sha": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+      "workflow_path": ".github/workflows/ci.yml",
+      "query_total_count": 0,
+      "matching_run_ids": [],
+      "request_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs?head_sha=b274dd57f4dd078ade6e424d546d83efbd2e8526&per_page=100"
+    },
+    "candidate_dco": {
+      "check_run_id": "113587796998",
+      "name": "DCO",
+      "head_sha": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "status": "completed",
+      "conclusion": "action_required",
+      "reported_missing_signoff_commit_ids": [
+        "cb89f1d61a0d8d78a1b7b7c872de16c12131e8b1",
+        "99c9524772f717111489db5324ccd8632138c8d9"
+      ],
+      "details_url": "https://github.com/tailrocks/terminal-components-claude/runs/113587796998"
+    },
+    "reference_dco": null
+  },
+  "historical_execution_observations": [
+    {
+      "source_pair": {
+        "candidate_commit": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+        "reference_commit": "b682cb26d68b353aeeccf9e51653eddf097b39f5"
+      },
+      "source_observed_at": "2026-10-08T15:11:33Z",
+      "superseded_at": "2026-10-08T23:25:02Z",
+      "observations": {
+        "schema": "termrock-status-execution-observations-v1",
+        "provisional_local_evidence": true,
+        "source_pair": {
+          "candidate_commit": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+          "reference_commit": "b682cb26d68b353aeeccf9e51653eddf097b39f5"
+        },
+        "deferred_nextest": {
+          "seal": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/final-seal.json",
+            "sha256": "c517a00e2b66d252c18c2c5c7737caff9d6832a4b4764b0dd38e3ed12515c8aa"
+          },
+          "case_results": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/case-results.json",
+            "sha256": "276daab6ca4bed491189d870a38af17e7f6ff1a6744d18797bd9e2bc77f5e97c"
+          },
+          "case_map": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/case-map.json",
+            "sha256": "0bea25ff4b1ee14072c066d2bc2b20cefab87cd6166b817a027e47b2d7b53eaa"
+          },
+          "review": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/independent-review.json",
+            "sha256": "ca856719c5096aaedae96dbdb223817763d14a517f222788a200ac3da366e270"
+          }
+        },
+        "holla_diagnostic": {
+          "receipt": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/outputs/holla-paired-receipt.json",
+            "sha256": "8fa7329ffad3130f03f1c3025bc7e47807c927e66bff61b3c45b52f778619882"
+          },
+          "seal": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/journey/final-seal.json",
+            "sha256": "c2f75d9387a639d7afd05dd4c269f88ef760ab063ca1b6a2c3b635470938ac89"
+          },
+          "review": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/reviews/journey-review.json",
+            "sha256": "ffff027f91e309778aaf8c0b1e261ff8f23a4f88a5291ec33d84d8b46f50ddc3"
+          },
+          "build_review": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/reviews/build-review.json",
+            "sha256": "b48b6f8083e97d03a258220e6743180e1d6e8c76ae6270d59d5ac628fc4c7259"
+          }
+        }
+      }
+    }
+  ],
+  "latest_local_checkout_evidence": {
+    "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-local-head-766-observation-20261009T0030Z/manifest.json",
+    "sha256": "130a5680c2d87720ddccf2ba84281a92624b64b5c235302f58f78534cb793248"
+  },
+  "report_publication_observation": {
+    "publication_record": {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis10-foundation-publication-20261009.json",
+      "sha256": "6dbaf2e84e7befa9e6eda15f6a4885f706e657d33496bd4f1aa4d36dc64912c2"
+    },
+    "postcommit_review": {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis10-foundation-postcommit-review-technical.json",
+      "sha256": "5591df8eeeb9250f7cc50135d5cdb0ed11d3b569e7f6f591b0fcac63e1a0edd5"
+    }
+  },
+  "publication_ci_observations": [
+    {
+      "source_commit": "169380c7d6a4cff9f1c43ecef592abc715e6df6a",
+      "manifest": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-p169-ci-refresh-20261009T0018Z/manifest.json",
+        "sha256": "10ecf34f05dad57d128f273f78cadaebac1089e25d037d688a292d5dced33cd4"
+      }
+    },
+    {
+      "source_commit": "b9e34b13ef47401865f1511b9babaab6e020eedc",
+      "manifest": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-b9-ci-observation-20261009T0028Z/manifest.json",
+        "sha256": "591bf6e3de2c7aedbd68d5e59c822a5f3c4b32b5c7b5adcd7b4f159a3ba5104b"
+      }
+    }
+  ],
+  "local_checkout_history": [
+    {
+      "checkout": {
+        "observed_at": "2026-10-08T22:12:34Z",
+        "branch": "termrock-implementation",
+        "head_sha": "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
+        "tree_sha": "15b0c9c2b24b773844a99c84b3839b4e98ef101f",
+        "signature_status": "N",
+        "signature_command": "git show -s --format='%G?' HEAD",
+        "publication_status": "unpublished",
+        "qualification": "This local HEAD is unpublished and separate from the selected remote source pair. Its exact required DCO trailer is present. Git reported no cryptographic signature; that status is separate from DCO sign-off."
+      },
+      "dco_trailer_observation": {
+        "observed_at": "2026-10-08T22:12:34Z",
+        "commit_sha": "f61abd3dfba1b4f867a539ab18ed7e4760b24a18",
+        "expected_trailer": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+        "trailer_present": true,
+        "parsed_trailers": [
+          "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>"
+        ],
+        "message_subject": "test: establish shared real-binary preview suite",
+        "inspection_command": "git show -s --format=%B HEAD | git interpret-trailers --parse",
+        "qualification": "The exact required DCO trailer is present in this local commit. Git signature status is recorded separately and does not establish publication."
+      },
+      "superseded_at": "2026-10-09T00:30:35Z"
+    }
+  ],
+  "current_status_observations": {
+    "schema": "termrock-status-current-observations-v1",
+    "observed_at": "2026-10-09T04:07:09Z",
+    "fixed_comparison_pair": {
+      "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+    },
+    "immutable_visual_tag": {
+      "tag_object_sha": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+      "peeled_commit_sha": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    },
+    "branch_tip": {
+      "branch": "termrock-implementation",
+      "head_sha": "9f1f756219b6bd42131b6e7291f54f99e1128cf1",
+      "tree_sha": "a89e345e148c85f2f72fbc1a026e35ff002e9b7f",
+      "captured_at": "2026-10-09T04:07:01Z",
+      "branch_response": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/branch.json",
+        "sha256": "e413588cbca3e672eebc6b31f2a6e51a39d26bc18d2519f353cbc0ba45722964"
+      },
+      "workflow_runs_response": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-runs-by-head.json",
+        "sha256": "8824d842ca87d9058aa55c07b2426266f839320444ebe1c4cb3f3b5f3b4bcc8c"
+      }
+    },
+    "branch_gate_observations": [
+      {
+        "head_sha": "9f1f756219b6bd42131b6e7291f54f99e1128cf1",
+        "tree_sha": "a89e345e148c85f2f72fbc1a026e35ff002e9b7f",
+        "dco_check_run_id": "113663911182",
+        "dco_name": "DCO",
+        "dco_status": "completed",
+        "dco_conclusion": "success",
+        "captured_at": "2026-10-09T04:07:02Z",
+        "check_runs_response": {
+          "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/check-runs.json",
+          "sha256": "1e3a0c386ecf4d95e74f318b2d37715abdee48bc27c25991cf6f145f850bf877"
+        }
+      }
+    ],
+    "workflow_run_observations": [
+      {
+        "run_id": "37882112951",
+        "head_sha": "9f1f756219b6bd42131b6e7291f54f99e1128cf1",
+        "tree_sha": "a89e345e148c85f2f72fbc1a026e35ff002e9b7f",
+        "workflow_path": ".github/workflows/ci.yml",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": "2026-10-09T04:03:35Z",
+        "job_count": 0,
+        "artifact_count": 0,
+        "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37882112951",
+        "provider_annotation": "Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information.",
+        "provider_annotation_count": 1,
+        "product_execution": "NOT_RUN",
+        "captures": {
+          "run_detail": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951.json",
+            "sha256": "58490532bb647e1e44a990af56a698ffdfc24832c46f3a5ef3202a4d99ad51fd"
+          },
+          "jobs": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-jobs.json",
+            "sha256": "b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6"
+          },
+          "artifacts": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-artifacts.json",
+            "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+          },
+          "provider_page": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-provider-page.html",
+            "sha256": "344bdaf3620ce56ec04b4ced0b1b474cb2cac3b4dd6e1ec96722247b4c93f716"
+          },
+          "workflow_content_api": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-content-api.json",
+            "sha256": "448c61fef301ea9a6add6a8088ec9e5521f957634e4b63e34f25516a0b396006"
+          },
+          "workflow_bytes": {
+            "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-ci.yml",
+            "sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
+          }
+        },
+        "workflow_source": {
+          "github_blob_sha": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+          "size_bytes": 537470,
+          "sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
+        }
+      }
+    ],
+    "tag_suite": {
+      "suite_sha256": "f072118c54c7c4c2c76ba203bef51e0584617e5359da334a614dcff2fc8f0c27",
+      "file_count": 28,
+      "source_commit": null,
+      "source_tree": null,
+      "source_freeze": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis02-r5-all7-jackin-r5-20261009/source-freeze-r5.json",
+        "sha256": "484e0493b2b24daa4d2bd501f797568c3bd369170fe13592be7c4c8c2b3eba04"
+      }
+    },
+    "tag_capture_attempts": [
+      {
+        "attempt_id": "R12",
+        "state": "runner_stopped_before_tests",
+        "tag_object_sha": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+        "tag_commit_sha": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+        "nextest_selected": 0,
+        "nextest_passed": 0,
+        "nextest_failed": 0,
+        "capture_status": "NOT_RUN",
+        "qualification_status": "NOT_RUN",
+        "failure_summary": "Nextest stopped before selecting tests because experimental libtest JSON output requires NEXTEST_EXPERIMENTAL_LIBTEST_JSON=1.",
+        "runner_result": {
+          "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/runner-result.json",
+          "sha256": "066581e710b4ded6da368fb42f8ee95f63f7416d058d7b93da73ed79883a00b2"
+        },
+        "stdout": {
+          "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/logs/nextest.stdout.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderr": {
+          "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/logs/nextest.stderr.raw",
+          "sha256": "93f527c9bc302895be4790c48d0a99671d03cadd567d900b48e33bcc8fa39fd3"
+        }
+      },
+      {
+        "attempt_id": "R13",
+        "state": "test_failed_before_pty",
+        "tag_object_sha": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+        "tag_commit_sha": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+        "nextest_run_id": "4d2d4a03-8252-426e-87c0-f82fc800b2f1",
+        "nextest_selected": 1,
+        "nextest_passed": 0,
+        "nextest_failed": 1,
+        "nextest_skipped": 0,
+        "capture_status": "NOT_RUN",
+        "qualification_status": "NOT_RUN",
+        "runner_result_status": "incomplete; raw Nextest streams carry the terminal test result",
+        "failure_summary": "subjects: snapshot tree_oid must be a lowercase SHA-256",
+        "runner_result": {
+          "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/runner-result.json",
+          "sha256": "1be308a35db06a42b65f5988646df8b88019577b528e377234e3d51c47e05e14"
+        },
+        "stdout": {
+          "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/logs/nextest.stdout.raw",
+          "sha256": "d9b2d4278077ad358195d7dce6798d28a7bd8814624c332e056b18fc7f05b70d"
+        },
+        "stderr": {
+          "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/logs/nextest.stderr.raw",
+          "sha256": "31ad4063cbc971d8ccf08cd4b3411ab9fa9d79959ef4e85c452f35154de1012b"
+        }
+      }
+    ],
+    "tag_validator_regression": {
+      "attempt_id": "tree-oid-regression-r4",
+      "scope": "synthetic Rust black-box validator regression only",
+      "test_id": "validates_tag_bundle_source_closure_but_keeps_execution_unverified",
+      "nextest_run_id": "944e3365-4b92-4dc9-b813-4e77903d675d",
+      "selected": 1,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 16,
+      "source_inputs_unchanged": true,
+      "capture_status": "NOT_RUN",
+      "qualification_status": "NOT_QUALIFIED",
+      "failure_summary": "subjects: tag isolated environment facts differ from the run record; left Some(2), right Some(0)",
+      "runner_result": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/runner-result.json",
+        "sha256": "8ad749ee5dfb35eee4d27b22746baa66b5d819f31e0e602b1a48460c9c73f676"
+      },
+      "stderr": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/logs/nextest.stderr.raw",
+        "sha256": "4a016c6251f1201153e6f4b505cc550a41f8a6d06d04904da1ee3851b38b34d2"
+      }
+    },
+    "external_tool_control": {
+      "tool": "Velnor Actions CLI",
+      "source_tree": "ca3ef07606236282a03ccd2a027b2f2efa4cb094",
+      "source_commit": null,
+      "source_git_metadata": "absent; this execution binds tree contents, not a commit or branch",
+      "source_manifest_sha256": "59c676f80c00f4dd309fde4a476c4a3939121070cd01d295159cc3bbbeaaeb57",
+      "source_binding_sha256": "9c4078f429d042dcdecf11f06ae5e75d3a837312e76907e9e2cd8cb29c651db6",
+      "status": "stopped_after_failure_timeout_or_count_mismatch",
+      "qualification_status": "NOT_QUALIFIED",
+      "expected_commands": 12,
+      "completed_commands": 6,
+      "expected_tests": 27,
+      "executed_tests": 16,
+      "passed_tests": 14,
+      "failed_tests": 2,
+      "not_run_tests": 11,
+      "cli_build_status": "PASS",
+      "cli_version_status": "PASS",
+      "cli_version": "velnor-actions 0.1.5",
+      "fresh_binary_sha256": "7c3243cb73b0b8d0c76e8f81633f631008d9ddcec86d65549cbf6caebafcd574",
+      "test_commands": [
+        {
+          "index": 3,
+          "expected": 2,
+          "executed": 2,
+          "passed": 2,
+          "failed": 0
+        },
+        {
+          "index": 4,
+          "expected": 2,
+          "executed": 2,
+          "passed": 2,
+          "failed": 0
+        },
+        {
+          "index": 5,
+          "expected": 2,
+          "executed": 2,
+          "passed": 2,
+          "failed": 0
+        },
+        {
+          "index": 6,
+          "expected": 10,
+          "executed": 10,
+          "passed": 8,
+          "failed": 2
+        }
+      ],
+      "receipt": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/receipt.json",
+        "sha256": "604036be9c3c75168abe0a9d4ae561ce5ea61dbb8bdc374978a3ee0f100b1a80"
+      },
+      "review": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-velnor-ca3ef-current-rollout-gate-r5-actual-review-20261009.json",
+        "sha256": "ec897eee4da2f5f50f85bc558f3ef93c5262e7c3c54eae8c614e7d545f4e7a11"
+      }
+    },
+    "report_visibility_complete": "NOT_RUN",
+    "report_refactor_ready": "NOT_RUN",
+    "report_reference_qualified": "NOT_RUN",
+    "report_command_ready": "NOT_RUN",
+    "report_readiness": {
+      "visibility_complete": "NOT_RUN",
+      "refactor_ready": "NOT_RUN",
+      "reference_qualified": "NOT_RUN",
+      "command_ready": "NOT_RUN",
+      "evidence_freshness": "NOT_RUN"
+    },
+    "candidate_api_deferred_run": {
+      "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "package": "termrock-conformance",
+      "binary": "control_states",
+      "measurement_status": "FAILED",
+      "expected": 23,
+      "executed": 23,
+      "passed": 22,
+      "failed": 1,
+      "nextest_filtered": 87,
+      "nextest_run_id": "b88b36d1-5809-4cc9-b9fd-306970f65be7",
+      "child_exit_code": 100,
+      "timed_out": false,
+      "parse_errors": [],
+      "failure": {
+        "requirement_id": "BD-21",
+        "case_id": "W13-05",
+        "test_name": "w13_filter_wide_trail_cells_clear",
+        "component_id": "W13",
+        "component_owner": "termrock-navigation",
+        "failure_summary": "W13-05: wide-character trail cells were not cleared; the reviewer observed an unexpected y in the rendered 旧日本 cells.",
+        "registry_status": "NOT_RUN"
+      },
+      "source_manifest_sha256": "aeea57da7e576c174e768e12876fe6303c4880c49ce826dacf2e448407a327cb",
+      "runplan_sha256": "1e80f9232545a41f3685857603d1d033d2b529878cb9efd443da1d034617b149",
+      "archive_sha256": "a042bfc9e3a861660709fc345937c4ef2cecbebe6bb08c0646fafcdab7643edb",
+      "receipt": {
+        "path": "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/runs/2026-10-09T03-04-14-975Z-10bae096/receipt.json",
+        "sha256": "c6fec50571f45a875c375bf5668e4f1b8754eb9ac87ec9aa98c95590c79e1929"
+      },
+      "ledger": {
+        "path": "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/runs/2026-10-09T03-04-14-975Z-10bae096/ledger-record.json",
+        "sha256": "485142854f3569909c0d8980de58a4e2f2f863eaf522982a027638d9496853ff"
+      },
+      "review": {
+        "path": "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/runs/2026-10-09T03-04-14-975Z-10bae096/actual-independent-review-luna.json",
+        "sha256": "8d397a4d2fb9e866e197792bf4eafd4c09e30fb66d9709b8b22523e83242eaf4"
+      },
+      "review_verdict": "VERIFIED_FAILED_RUN",
+      "paired_reference_status": "NOT_RUN",
+      "paired_visual_status": "NOT_RUN",
+      "acceptance_decision": "NOT_RECORDED",
+      "packet_manifest": {
+        "path": "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/SHA256SUMS.json",
+        "sha256": "4928eb13c7e242d79a80b7d8d710a0d95f34fc4ad54a4255d361500eea748053"
+      }
+    }
+  },
+  "historical_evidence_gaps": {
+    "schema": "termrock-status-historical-evidence-gaps/v1",
+    "status": "RAW_CAPTURE_GAP",
+    "records": [
+      {
+        "history_index": 0,
+        "candidate_sha": "931bbba00bad43de79731912f48e29fe88751cb8",
+        "reference_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+        "normalized_source_observation": "RETAINED",
+        "normalized_ci_observation": "RETAINED",
+        "raw_source_evidence": "NOT_ARCHIVED",
+        "raw_ci_capture": "NOT_ARCHIVED"
+      },
+      {
+        "history_index": 1,
+        "candidate_sha": "bebb60a7948f9ee190483c48545d6bc35c5437df",
+        "reference_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+        "normalized_source_observation": "RETAINED",
+        "normalized_ci_observation": "RETAINED",
+        "raw_source_evidence": "NOT_ARCHIVED",
+        "raw_ci_capture": "NOT_ARCHIVED"
+      },
+      {
+        "history_index": 2,
+        "candidate_sha": "e22d54708fe58670d92c2dac7c1ace6c97fac164",
+        "reference_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+        "normalized_source_observation": "RETAINED",
+        "normalized_ci_observation": "NOT_RECORDED",
+        "raw_source_evidence": "NOT_ARCHIVED",
+        "raw_ci_capture": "NOT_RECORDED"
+      },
+      {
+        "history_index": 3,
+        "candidate_sha": "cee7e2e307514e49a70d8b8fcb028923ccdc7322",
+        "reference_sha": "68d98ac99238c8580464f238a65b0f862ecc3dbd",
+        "normalized_source_observation": "RETAINED",
+        "normalized_ci_observation": "RETAINED",
+        "raw_source_evidence": "NOT_ARCHIVED",
+        "raw_ci_capture": "NOT_ARCHIVED"
+      },
+      {
+        "history_index": 4,
+        "candidate_sha": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+        "reference_sha": "b682cb26d68b353aeeccf9e51653eddf097b39f5",
+        "normalized_source_observation": "RETAINED",
+        "normalized_ci_observation": "RETAINED",
+        "raw_source_evidence": "NOT_ARCHIVED",
+        "raw_ci_capture": "NOT_ARCHIVED"
+      }
+    ],
+    "report_readiness_effect": "NONE; all existing report-level readiness values remain NOT_RUN"
+  },
+  "source_evidence_archive": {
+    "schema": "termrock-status-source-evidence-archive-pin/v1",
+    "manifest": {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json",
+      "sha256": "e77fa551b5669585e9d21356d4f2baeff16a8cbc3f348bbade470d98f90b839a"
+    },
+    "file_count": 70,
+    "total_bytes": 6171844,
+    "effect_on_product_qualification": "NONE"
+  },
+  "current_publication_observation": {
+    "schema": "termrock-current-publication-observation/v1",
+    "fixed_product_pair": {
+      "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+    },
+    "candidate_report": {
+      "publication": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-status-publication.json",
+        "sha256": "94be47eb731d22b01aa17ea236f4d1f7ad4f9ead35c3823569964dde174245d6"
+      },
+      "postcommit_review": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-status-postcommit-review.json",
+        "sha256": "2e2bb3ca9d869963bcfaee36929fc0d5cd3bedeb1a0d75c3cc389fb783979c2a"
+      },
+      "queue_publication": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-q59-publication.json",
+        "sha256": "e6f9bba0e41a811ee21588e409f7497634d9af203b839ddec4d6c8e7cf2e5bd5"
+      },
+      "task_snapshot": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-q59-task-record.json",
+        "sha256": "b38f71cf073e1a0249e1b084137de04d71301b763f6300af7a5416da998d1109"
+      }
+    },
+    "reference_report": {
+      "publication": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/reference-status-publication.json",
+        "sha256": "f2b9e5b53305fca4cac797e9075673d3817aa252624d1181a8e9d3f04146073a"
+      },
+      "postcommit_review": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/reference-status-postcommit-review.json",
+        "sha256": "626c45a62f1671159a771054c4c388387594cdb3fe577cdd0713546e549849e8"
+      },
+      "historical_task_snapshot": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/reference-q56-task-record.json",
+        "sha256": "e7343bfcd57090af67c0f84563cdce6d8ea4cc8a80fbfae6733df8da3ef4a907"
+      }
+    },
+    "paired_suite_publication": {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/paired-suite-publication.json",
+      "sha256": "75d7d89f1981ebad4a8be13b63e3e203b6a18cf81b01aadf7cfd2df6d7bf44fe"
+    },
+    "prepublication_provider_observation": {
+      "source_commit": "f0a05fa55d4fd09b19be63d51f512d4c32076f67",
+      "root_observation": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/f0a-ci-root-observation.json",
+        "sha256": "7858acd50d904e538191db2348fd91f41a01d125319f68aa951372324b28e2aa"
+      },
+      "provider_page": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/f0a-run-37954103945-provider-page.html",
+        "sha256": "21fd2bc7bcf5926f992254238664eba6cc60b12588969334adba28f725fe1b37"
+      },
+      "check_runs": {
+        "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/f0a-check-runs.json",
+        "sha256": "56677e9e88c757cedb7a62833c63628f983ca12e5fe409512aadcb4130f427b3"
+      },
+      "raw_actions_run_and_jobs_responses_preserved": false
+    }
   }
 }

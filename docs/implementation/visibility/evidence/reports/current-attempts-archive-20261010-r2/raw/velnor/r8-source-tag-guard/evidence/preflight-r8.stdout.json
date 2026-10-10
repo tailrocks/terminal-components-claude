@@ -1,0 +1,232 @@
+{
+  "schema": "termrock.vis11.fixture-focused-nextest-preflight/v1",
+  "status": "READY_FOR_INDEPENDENT_REVIEW_AND_ROOT_EXECUTION_DECISION_NOT_RUN",
+  "qualification": "NOT_QUALIFIED",
+  "packet_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/evidence/gate-packet-r8.json",
+  "packet_sha256": "e94e4a9125bb7581be92078184391592f2827a84683afc65a6fe8e1b8e25ce86",
+  "runner_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/run-root/runner-r8.cjs",
+  "runner_sha256": "d4e17fbe95f10cea93382c6b8b3dc574aa6efcd05c737819de37e7ec9e61991c",
+  "source": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r5-source-tag-guard-luna-20261010/source",
+    "full_tree_sha256": "1ef2c7e6929f96c0c12ffcbb675162490d677c31d43a1fe0fd1c2330b03ec115",
+    "entries": 3457,
+    "files": 2608,
+    "directories": 842,
+    "symlinks": 7,
+    "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "selected_test_functions": 1,
+    "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+  },
+  "cache": {
+    "archive_manifest_sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+    "archives": 406,
+    "archive_bytes": 59163074,
+    "source_index_closure_sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+    "source_index_files": 20133,
+    "source_index_directories": 3666,
+    "source_index_actual_file_bytes": 441286079,
+    "source_index_declared_file_bytes": 200791635,
+    "extracted_package_directories": 406,
+    "cargo_ok_markers": 406,
+    "qualification": "NOT_QUALIFIED"
+  },
+  "tools": [
+    {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "bytes": 31960040,
+      "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+      "mode": "755"
+    },
+    {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "bytes": 412504,
+      "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+      "mode": "755"
+    },
+    {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "bytes": 11269752,
+      "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+      "mode": "755"
+    },
+    {
+      "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "bytes": 43079808,
+      "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+      "mode": "755"
+    },
+    {
+      "path": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node",
+      "bytes": 132848,
+      "sha256": "f75a79e4c96954709a130427e452d6720b35c90318ca8293727a4c6376198453",
+      "mode": "555"
+    },
+    {
+      "path": "/Users/donbeave/Projects/tailrocks/.termrock-visibility-runtime-20261009/mise-2026.9.18-macos-arm64/mise-v2026.9.18-macos-arm64",
+      "bytes": 122907616,
+      "sha256": "484c135bd4329975d608d3f77e26c2ece5d2f5590f18ca71f44440294f8cfa6f",
+      "mode": "755"
+    },
+    {
+      "path": "/usr/bin/git",
+      "bytes": 200560,
+      "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+      "mode": "755"
+    },
+    {
+      "path": "/bin/bash",
+      "bytes": 1961872,
+      "sha256": "d59c6f2312e551e9c46497329d435b6ec74fbc46e9155b84170f377127ed004e",
+      "mode": "555"
+    },
+    {
+      "path": "/usr/bin/python3",
+      "bytes": 200560,
+      "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+      "mode": "755"
+    },
+    {
+      "path": "/usr/bin/awk",
+      "bytes": 465408,
+      "sha256": "3dc6dc8f94de3d1597645e1da608a0b097bbfd186a793ab5c4a63ef417a2f072",
+      "mode": "755"
+    },
+    {
+      "path": "/usr/bin/wc",
+      "bytes": 167584,
+      "sha256": "adcd3578fe789c4411723dd601adef2a83d2d475c58f3a8f4820a3f17be4cb8d",
+      "mode": "755"
+    },
+    {
+      "path": "/usr/bin/tr",
+      "bytes": 216976,
+      "sha256": "188d384d918a49fab8263deaa423e33068c99e9a4a5cb23fb971d2ed5b6e4d16",
+      "mode": "755"
+    },
+    {
+      "path": "/usr/bin/jq",
+      "bytes": 2225280,
+      "sha256": "6de4a915497277d6787ce09beaeb0e2f66b2ca04125752a219d12a302491c660",
+      "mode": "755"
+    },
+    {
+      "path": "/bin/sh",
+      "bytes": 166576,
+      "sha256": "84ca7f9b83021621e16059a1c7850df72a462d879e8239d566236ca6ddd00953",
+      "mode": "755"
+    },
+    {
+      "path": "/bin/chmod",
+      "bytes": 186000,
+      "sha256": "69a801599d0b5d6908d97d487939c29b626442999af60b6dc57b58aa4824f751",
+      "mode": "755"
+    }
+  ],
+  "runtime_seeds": 13,
+  "mutable_global_cache": {
+    "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home/.global-cache",
+    "type": "file",
+    "bytes": 118784,
+    "sha256": "d4d447f6fec397fbcffcdb2fc835824f1e0e7fbbcbf3094b794feddb4d454a09",
+    "mode": 420,
+    "status": "observed_separately_mutable_not_offline_input"
+  },
+  "command": {
+    "index": 1,
+    "package": "velnor-actions-orchestrator-generation",
+    "binary": "impl_schema2_routing",
+    "expected_count": 1,
+    "test_ids": [
+      "impl_schema2_routing::schema2_workflows_match_expected_bytes"
+    ],
+    "argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "nextest",
+      "run",
+      "--locked",
+      "--offline",
+      "-p",
+      "velnor-actions-orchestrator-generation",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--no-tests",
+      "fail",
+      "--user-config-file",
+      "none",
+      "--ignore-default-filter",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--color",
+      "never",
+      "-E",
+      "test(=impl_schema2_routing::schema2_workflows_match_expected_bytes)"
+    ],
+    "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r5-source-tag-guard-luna-20261010/source"
+  },
+  "environment": {
+    "inherited": false,
+    "keys": [
+      "CARGO",
+      "CARGO_BUILD_JOBS",
+      "CARGO_HOME",
+      "CARGO_NET_OFFLINE",
+      "CARGO_TARGET_DIR",
+      "CARGO_TERM_COLOR",
+      "GIT_CONFIG_GLOBAL",
+      "GIT_CONFIG_NOSYSTEM",
+      "GIT_NO_LAZY_FETCH",
+      "GIT_NO_REPLACE_OBJECTS",
+      "GIT_OPTIONAL_LOCKS",
+      "GIT_TERMINAL_PROMPT",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "MISE_AUTO_INSTALL",
+      "MISE_CACHE_DIR",
+      "MISE_CARGO_HOME",
+      "MISE_DATA_DIR",
+      "MISE_EXEC_AUTO_INSTALL",
+      "MISE_GLOBAL_CONFIG_FILE",
+      "MISE_LOCKFILE",
+      "MISE_NO_CONFIG",
+      "MISE_NO_ENV",
+      "MISE_NO_HOOKS",
+      "MISE_RUSTUP_HOME",
+      "MISE_STATE_DIR",
+      "NEXTEST_EXPERIMENTAL_LIBTEST_JSON",
+      "NO_COLOR",
+      "PATH",
+      "RUSTC",
+      "RUSTDOC",
+      "RUSTUP_HOME",
+      "RUSTUP_TOOLCHAIN",
+      "TEMP",
+      "TERM",
+      "TMP",
+      "TMPDIR",
+      "TZ"
+    ],
+    "cargo_home": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home",
+    "cargo_target_dir": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/run-root/target",
+    "offline": true,
+    "jobs": 2,
+    "test_threads": 1,
+    "mise_dirs_private_under_execution": true
+  },
+  "outputs": {
+    "execution": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/run-root/execution",
+    "absent": true,
+    "target": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/run-root/target",
+    "absent_and_fresh": true
+  },
+  "limits": {
+    "deadline_ms": 1200000,
+    "term_grace_ms": 15000,
+    "close_grace_ms": 10000,
+    "output_bytes": 4194304
+  },
+  "preflight_action": "No Cargo, Nextest, build, Rust test, or CLI was spawned."
+}

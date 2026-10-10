@@ -1,0 +1,74 @@
+--- a/tools/visibility/status.py
++++ b/tools/visibility/status.py
+@@ -4271,6 +4271,11 @@
+     execution_attempt_history_section = render_execution_attempt_history(
+         execution_attempt_history
+     )
++    execution_attempt_history_layout = (
++        execution_attempt_history_section + "\n\n"
++        if execution_attempt_history_section
++        else ""
++    )
+     current_publication_observation = validate_current_publication_observation(
+         facts.get("current_publication_observation"), latest, archive_manifest, queue_module,
+     )
+@@ -4638,9 +4643,7 @@
+ 
+ {current_status_observations_section}
+ 
+-{execution_attempt_history_section}
+-
+-{current_publication_section}
++{execution_attempt_history_layout}{current_publication_section}
+ 
+ {publication_section}
+ 
+@@ -4746,7 +4749,7 @@
+         task_section=task_section,
+         current_ci_section=current_ci_section,
+         current_status_observations_section=current_status_observations_section,
+-        execution_attempt_history_section=execution_attempt_history_section,
++        execution_attempt_history_layout=execution_attempt_history_layout,
+         current_publication_section=current_publication_section,
+         checklist_markdown_link=checklist_markdown_link,
+         checklist_json_link=checklist_json_link,
+--- a/crates/termrock-visibility-tests/tests/status.rs
++++ b/crates/termrock-visibility-tests/tests/status.rs
+@@ -81,6 +81,7 @@
+             .copy_tool_exact(Tool::Queue)
+             .expect("copy exact adjacent queue CLI");
+         for relative_path in [
++            "STATUS.md",
+             "tools/visibility/source-facts.json",
+             "docs/implementation/visibility/tasks.json",
+             "WORK_QUEUE.md",
+@@ -1620,6 +1621,8 @@
+ #[test]
+ fn checked_in_records_render_from_exact_copies() {
+     let fixture = StatusFixture::from_checked_in_records();
++    let checked_in_report = fs::read(fixture.repo.root().join("STATUS.md"))
++        .expect("read exact checked-in STATUS report");
+     let facts_path = fixture
+         .repo
+         .root()
+@@ -1642,11 +1645,20 @@
+     let history = facts["source_observation_history"]
+         .as_array()
+         .expect("superseded source observation history");
++    assert!(
++        facts.get("execution_attempt_history").is_none(),
++        "checked-in source facts must exercise absent optional attempt history"
++    );
+ 
+     let output = fixture.run(&[]);
+     let repeated = fixture.run(&[]);
+     let report = output_text(&output);
+     assert_eq!(output.exit_code, Some(0));
++    assert_eq!(
++        output.stdout.as_slice(),
++        checked_in_report.as_slice(),
++        "absent optional history must preserve checked-in STATUS bytes"
++    );
+     assert_eq!(repeated.exit_code, Some(0));
+     assert_eq!(output.stdout, repeated.stdout);
+     assert!(report.contains(candidate_sha));

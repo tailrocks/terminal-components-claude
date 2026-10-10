@@ -1,0 +1,6 @@
+{"type":"suite","event":"started","test_count":1,"nextest":{"crate":"termrock-visibility-tests","test_binary":"cache_source_audit","kind":"test"}}
+{"type":"test","event":"started","name":"termrock-visibility-tests::cache_source_audit$audits_r11_unmanifested_sources_against_locked_crate_archives"}
+{"type":"suite","event":"ok","passed":0,"failed":0,"ignored":1,"measured":0,"filtered_out":0,"exec_time":0,"nextest":{"crate":"termrock-visibility-tests","test_binary":"cache_source_audit","kind":"test"}}
+{"type":"suite","event":"started","test_count":1,"nextest":{"crate":"termrock-visibility-tests","test_binary":"cache_source_audit","kind":"test"}}
+{"type":"test","event":"ok","name":"termrock-visibility-tests::cache_source_audit$audits_r11_unmanifested_sources_against_locked_crate_archives","exec_time":13.898509166}
+{"type":"suite","event":"ok","passed":1,"failed":0,"ignored":1,"measured":0,"filtered_out":18446744073709551615,"exec_time":13.898509166,"nextest":{"crate":"termrock-visibility-tests","test_binary":"cache_source_audit","kind":"test"}}

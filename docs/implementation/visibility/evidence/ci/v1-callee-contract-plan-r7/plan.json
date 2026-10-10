@@ -1,0 +1,233 @@
+{
+  "schema": "termrock.vis11.external-implementation-plan-addition/v1",
+  "revision": "R7",
+  "created_utc": "2026-10-09T11:25:23Z",
+  "status": "PROPOSED_R7_PENDING_FINAL_INDEPENDENT_REVIEW_AND_ROOT_QUEUE_ADMISSION",
+  "parent_work": {
+    "work_id": "VIS-11",
+    "integration_owner": "/root",
+    "existing_claim_owner": "/root/current_branch_comparison_luna",
+    "existing_claim_is_preserved": true,
+    "admission": "Root integrates this reviewed external-implementation plan reference through the existing queue CLI/evidence mechanism. Do not add a queue schema field, new work ID, claim-token system, or reassign the existing VIS-11 claim."
+  },
+  "plan_basis": {
+    "reusable_publisher_split_plan": "/private/tmp/termrock-vis11-reusable-publisher-split-r2-20261009/plan.json",
+    "reusable_publisher_split_plan_sha256": "d038e674baa6d69c22b05ad22a836183c262bb3605a0353ac44b0ac5c34e7b3f",
+    "slice_id": "V1_CALLEE_CONTRACT",
+    "source_fix_review": "/private/tmp/termrock-vis11-velnor-observer-tag-reusable-source-r3-fixture-fix-20261009/evidence/source-fix-review.json",
+    "source_fix_review_sha256": "57149da728b12ce060faa0794e5049fbc2b7c40e4756aa587037206bf0091671",
+    "source_fix_review_state": "SOURCE_CANDIDATE_REVIEW_PENDING; provenance only, not a qualification claim"
+  },
+  "selected_baseline": {
+    "source_root": "/private/tmp/termrock-vis11-velnor-observer-tag-reusable-source-r3-fixture-fix-20261009/source",
+    "inventory_path": "/private/tmp/termrock-vis11-velnor-observer-tag-reusable-source-r3-fixture-fix-20261009/evidence/combined-r3-tree-inventory.json",
+    "inventory_sha256": "612bbbcf127a64ee4e44d709aea92dbf3d688140a944bdb69e54a72153065319",
+    "identity_kind": "fixed Git-less source snapshot; no commit SHA is asserted",
+    "execution_or_qualification": "NOT_RUN"
+  },
+  "assignment": {
+    "external_implementation_owner": "/root/subjects_runner_review_luna",
+    "independent_reviewer": "/root/velnor_current_refs_luna",
+    "owner_assignment_status": "proposed; effective only after Root records admission",
+    "review_status": "pending"
+  },
+  "scope": {
+    "allowed_paths": [
+      "crates/core/velnor-actions-contract-workflow/src/workflow/reusable_callee.rs",
+      "crates/core/velnor-actions-contract-workflow/src/workflow/mod.rs",
+      "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_callee.rs",
+      "crates/core/velnor-actions-contract-workflow/tests/main.rs",
+      "crates/services/velnor-actions-workflow-document/src/document.rs",
+      "crates/services/velnor-actions-workflow-document/src/document_reusable_callee.rs",
+      "crates/services/velnor-actions-workflow-render-strict/src/lib.rs",
+      "crates/services/velnor-actions-workflow-render-strict/src/reusable_callee.rs"
+    ],
+    "path_count": 8,
+    "new_paths": [
+      "crates/core/velnor-actions-contract-workflow/src/workflow/reusable_callee.rs",
+      "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_callee.rs",
+      "crates/services/velnor-actions-workflow-document/src/document_reusable_callee.rs",
+      "crates/services/velnor-actions-workflow-render-strict/src/reusable_callee.rs"
+    ],
+    "existing_paths": [
+      "crates/core/velnor-actions-contract-workflow/src/workflow/mod.rs",
+      "crates/core/velnor-actions-contract-workflow/tests/main.rs",
+      "crates/services/velnor-actions-workflow-document/src/document.rs",
+      "crates/services/velnor-actions-workflow-render-strict/src/lib.rs"
+    ],
+    "ownership_boundary": "New contract, document, and renderer implementation belongs in the three new modules. Existing files receive only necessary module declarations, exports, and test registration; no unrelated edits."
+  },
+  "implementation_contract": {
+    "goal": "Implement only the V1 strict typed reusable-workflow callee contract, document mapping, strict callee rendering, and Rust contract/render tests on the selected fixed source snapshot.",
+    "trust_policy": [
+      "Trusted caller repository, workflow path, and one exact source/publication branch are supplied explicitly by typed renderer policy and rendered as fixed expected values; callers cannot choose or override them. If any required value is absent or ambiguous, generated output remains disabled.",
+      "The V1 identity guard is push-only and checks caller github.repository, github.event_name == push, github.ref, and github.workflow_ref against the explicit trusted renderer policy. It checks the dynamic equality github.workflow_sha == github.sha; it does not embed an expected caller commit SHA or add a workflow_call input. It separately checks callee job.workflow_repository against the expected callee repository.",
+      "The identity guard is read-only. V1 does not claim that branch protection or workflow-file ownership controls are installed or verified. Before V2 enables a write-capable caller, it must separately verify the actual branch/ruleset and workflow-file trust controls and the exact reviewed caller workflow bytes through externally trusted configuration; do not assume those controls exist. The guard is context-only and cannot fetch or verify caller workflow source bytes. V2/T3 actual trust checks must separately verify branch/ruleset controls and exact reviewed caller bytes before an operating publisher is enabled.",
+      "V1 does not compare callee job.workflow_sha to a value embedded in the callee. After V1 is committed, V2 authenticates the exact callee SHA through the trusted caller workflow full-SHA uses reference and separately verifies the exact reviewed caller workflow bytes before enabling the caller."
+    ],
+    "contract_and_rendering": [
+      "Preserve exactly six workflow_call inputs, all type string, and their direct mappings: repository <- github.repository; event_name <- github.event_name; ref <- github.ref; sha <- github.sha; run_id <- github.run_id; run_attempt <- github.run_attempt. The direct context values must match the declared string input types. Keep the closed schema and exact permissions; do not let data inputs override identity policy or numerically convert run values in expressions. Each input must be declared `required: true` with no `default` property; rendering must not emit optional/defaulted inputs.",
+      "Render a strict reusable callee using workflow_call only, with the exact declared inputs and no extra triggers or candidate checkout/execution steps. The renderer must emit `required: true` for every input and omit every default.",
+      "Keep caller identity separate from callee identity. V1 checks push-only caller repository/event/ref/workflow_ref and github.workflow_sha == github.sha, plus callee job.workflow_repository. V1 embeds no expected caller commit SHA and does not self-pin job.workflow_sha. V2 binds callee source through the trusted caller full-SHA uses reference after V1 commit and verifies exact caller workflow bytes and existing trust controls before enablement."
+    ],
+    "explicit_exclusions": [
+      "No V2 caller or workflow generation, no observer IDs or observer ingestion, no publisher runtime, no report projection, no new runtime schema, no queue/CAS changes, no remote/tag/release actions, and no Termrock source edits.",
+      "Do not fold observer or V2 identifiers into the V1 contract.",
+      "Do not claim that V1 compares job.workflow_sha to an embedded callee self-pin; V2 owns the trusted caller full-SHA uses binding after V1 commit."
+    ],
+    "permissions": {
+      "caller_reusable_call_job": {
+        "actions": "read",
+        "contents": "write",
+        "pull-requests": "none",
+        "id-token": "none"
+      },
+      "callee_read_only_identity_guard_job": {},
+      "callee_write_capable_job": {
+        "actions": "read",
+        "contents": "write",
+        "pull-requests": "none",
+        "id-token": "none"
+      },
+      "omitted_scopes": "none; with an explicit permissions map, any unlisted permission is denied"
+    },
+    "caller_inputs": [
+      {
+        "name": "repository",
+        "type": "string",
+        "expression": "github.repository",
+        "required": true,
+        "default_presence": "absent"
+      },
+      {
+        "name": "event_name",
+        "type": "string",
+        "expression": "github.event_name",
+        "required": true,
+        "default_presence": "absent"
+      },
+      {
+        "name": "ref",
+        "type": "string",
+        "expression": "github.ref",
+        "required": true,
+        "default_presence": "absent"
+      },
+      {
+        "name": "sha",
+        "type": "string",
+        "expression": "github.sha",
+        "required": true,
+        "default_presence": "absent"
+      },
+      {
+        "name": "run_id",
+        "type": "string",
+        "expression": "github.run_id",
+        "validation_owner": "future trusted Rust publisher parses a positive decimal string with checked u64 conversion before side effects",
+        "required": true,
+        "default_presence": "absent"
+      },
+      {
+        "name": "run_attempt",
+        "type": "string",
+        "expression": "github.run_attempt",
+        "validation_owner": "future trusted Rust publisher parses a positive decimal string with checked u64 conversion before side effects",
+        "required": true,
+        "default_presence": "absent"
+      }
+    ],
+    "input_semantics": "All six workflow_call input types are string to match the direct GitHub context expressions. Inputs are forwarded data only. The identity guard checks actual GitHub context and trusted renderer policy; it never treats caller-supplied input values as identity attestation. The trusted Rust publisher later validates run_id and run_attempt as positive decimal strings and parses them with checked u64 conversion before any side effect. No fromJSON or JavaScript numeric conversion is used. All six workflow_call inputs are required and have no default; the rendered schema must reject omission before the callee jobs run.",
+    "platform_scope": "GitHub.com only. Do not claim GHES support; GitHub documents the job.workflow_* identity properties used by this guard as unavailable on GHES."
+  },
+  "required_rust_regressions": [
+    "Positive contract and rendered-schema cases cover exactly the six fields, each declared `type: string`, `required: true`, and with no `default` property, plus their direct context mappings: repository/event_name/ref/sha/run_id/run_attempt map to the matching github context properties. Also assert the exact reusable caller permission map: actions: read, contents: write, pull-requests: none, id-token: none; omitted scopes are denied.",
+    "Contract negative cases reject each omitted input, malformed/unknown fields, non-string values for any input, any input not marked required, any emitted default, altered permissions, caller-selected repository/branch/workflow path/callee reference, and attempts to use the six data inputs as identity policy overrides.",
+    "Strict document/render snapshot contains workflow_call only, exactly the six inputs with `type: string`, `required: true`, no `default` property, and the fixed mappings/permissions; snapshot assertions fail if any input is optional or defaulted. It contains no candidate checkout, artifact extraction, or executable candidate steps.",
+    "Identity guard positive case accepts only the expected caller repository, push event, exact ref and workflow_ref, caller github.workflow_sha == github.sha, and expected callee job.workflow_repository.",
+    "Identity guard negative cases reject non-push event, missing or mismatched caller repository/ref/workflow_ref, github.workflow_sha != github.sha, missing or mismatched callee repository, absent/ambiguous trusted policy, and caller-controlled overrides.",
+    "Structure test proves the write-capable job depends on guard success and that the guard is read-only. Missing or ambiguous explicit repository/path/branch policy keeps generated output disabled.",
+    "Permission regression proves the read-only identity guard has an empty permissions map and the write-capable callee job has exactly actions: read, contents: write, pull-requests: none, id-token: none, with all omitted scopes denied.",
+    "Permission negative cases reject any additional caller or callee scope, a missing required write-job scope, or any token scope on the read-only guard.",
+    "V1 tests do not claim branch/ruleset or workflow-file trust controls are installed. V2/T3 own their verification, exact caller-byte verification, and full-SHA callee uses binding after V1 commit.",
+    "Rendered-schema regression inspects each of the six workflow_call input objects and asserts `required` is exactly true and `default` is absent; negative cases remove each input or change required to false and must reject the contract/rendering."
+  ],
+  "size_and_source_controls": {
+    "baseline_existing_file_lines": {
+      "crates/core/velnor-actions-contract-workflow/src/workflow/mod.rs": 94,
+      "crates/core/velnor-actions-contract-workflow/tests/main.rs": 17,
+      "crates/services/velnor-actions-workflow-document/src/document.rs": 361,
+      "crates/services/velnor-actions-workflow-render-strict/src/lib.rs": 105
+    },
+    "document_file_headroom_lines_at_baseline": 39,
+    "rule": "Keep each source file within Velnor's 400-line limit, keep the existing lib.rs/tests/main.rs files within their 150-line limit, and keep each function within 80 lines. Place substantive new logic in the three new modules; existing files should contain only the necessary declarations, exports, and test registration. Do not exceed the known document.rs headroom. Recheck the exact frozen snapshot inventory and these eight paths before editing.",
+    "additional_instruction_binding": {
+      "source_path": "AGENTS.md",
+      "source_sha256": "c289f52a56e1566a06b3db0507fc5fe53da6fc79726d748c894d0eb28619fbfd",
+      "applicable_limits": {
+        "existing_lib_rs_and_test_main_max_lines": 150,
+        "max_function_lines": 80
+      }
+    }
+  },
+  "execution_gates": [
+    "No producer source edit before Root records this exact plan addition in the accepted queue state.",
+    "Independent review must approve the exact source diff and path closure before integration.",
+    "No Cargo/Nextest/build or generated workflow execution until Root separately grants the bounded Rust gate.",
+    "After that grant, use cargo nextest for the affected Rust packages and preserve exact selected test IDs, raw output, and failures."
+  ],
+  "non_claims": [
+    "This plan is not queue admission, source approval, implementation, test evidence, workflow generation, producer qualification, publication, or release.",
+    "The fixed source snapshot is not described as a current branch tip or a Git commit."
+  ],
+  "review_revision": {
+    "reviewer_r2": "/root/velnor_current_refs_luna",
+    "r2_review_sha256": "a64a5111708cc7d4346d48d5568f576f302d8f98dd127c40754ac089fbf0eaff",
+    "owner_boundary_finding": "An embedded exact expected caller workflow SHA may be self-referential if caller and callee files are emitted in the same repository commit.",
+    "root_resolution": "Use push-only dynamic github.workflow_sha == github.sha plus exact repository/workflow_ref/path/ref/event. Do not embed an expected caller commit SHA or add an input. V2 verifies actual trust controls and exact reviewed caller bytes before enablement, and pins callee source with full-SHA uses after V1 commit.",
+    "additional_instruction_caps": "Bind AGENTS.md SHA and enforce 150-line lib.rs/tests/main.rs and 80-line function limits as well as the 400-line general cap.",
+    "owner_r3_finding": "The R3 plan named exact permissions without stating the maps for the guard and write-capable job.",
+    "r4_resolution": "The caller reusable-call job and callee write job use exactly actions: read, contents: write, pull-requests: none, id-token: none. The read-only guard has an empty permissions map; omitted scopes are denied. The context-only guard does not fetch caller workflow bytes; V2/T3 own actual trust-control and exact-byte verification before the operating publisher is enabled.",
+    "owner_r4_finding": "The plan referred to the six caller fields and types without enumerating the exact names, context mappings, and positive-integral constraints for run IDs.",
+    "r5_resolution": "Superseded proposal: R5 incorrectly described run_id and run_attempt as numbers. The R5 type finding and root correction below replace that proposal with six string inputs.",
+    "r5_independent_review_path": "/private/tmp/termrock-vis11-v1-callee-contract-plan-r5-review-luna-20261009/review.json",
+    "r5_independent_review_sha256": "b36bdfee82ad9bae8edbd15d189337ece05ae299d0f0801479da62948d1536b1",
+    "r5_type_finding": "Official GitHub docs classify github.run_id and github.run_attempt as strings, and reusable-call input expressions must match the called workflow input type.",
+    "root_correction": "Declare all six workflow_call inputs as strings to match direct context mappings. Validate run_id and run_attempt as positive decimal strings and parse with checked u64 conversion in the separate trusted Rust publisher before side effects. Do not use fromJSON or JavaScript numeric conversion.",
+    "official_references": [
+      {
+        "title": "GitHub Actions contexts reference",
+        "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/contexts",
+        "fact": "github.run_id and github.run_attempt are strings."
+      },
+      {
+        "title": "GitHub Actions workflow syntax",
+        "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
+        "fact": "jobs.<job_id>.with.<input_id> values must match the declared workflow_call input type. Inputs are optional unless required is true; if an optional string input has no default, its default is the empty string."
+      }
+    ],
+    "r6_optional_input_finding": "The R6 plan described six required fields but did not bind `required: true` in the rendered workflow_call schema. GitHub workflow_call inputs are optional unless required is set; an omitted string input defaults to an empty string when no default is supplied.",
+    "r6_independent_review_path": "/private/tmp/termrock-vis11-v1-callee-contract-plan-r6-review-luna-20261009/review.json",
+    "r6_independent_review_sha256": "4deccfdeb52591dac5294576bb35077a68ef46d71283bca885936c2cd7ba5b19",
+    "r7_resolution": "Set required: true and omit defaults for all six string inputs. Add contract and render regressions that assert those exact schema properties for every input and reject omission, required:false, or any default. Preserve the six exact GitHub context mappings and all R6 type handling."
+  },
+  "future_runtime_requirements": {
+    "owner": "separate trusted Rust publisher/runtime slice; not part of these eight V1 paths",
+    "validation": "Treat run_id and run_attempt as strings from workflow_call. Require a positive decimal string and parse with checked u64 conversion before any API, artifact, or Git write side effect.",
+    "reject": [
+      "empty",
+      "zero",
+      "negative",
+      "fractional",
+      "nondecimal",
+      "whitespace-padded",
+      "overflowing values"
+    ],
+    "conversion": "No fromJSON expression, JavaScript number conversion, or other precision-losing coercion.",
+    "tests": [
+      "accept canonical positive decimal values within u64",
+      "reject each invalid form before side effects",
+      "reject values above u64::MAX without wrapping"
+    ]
+  }
+}

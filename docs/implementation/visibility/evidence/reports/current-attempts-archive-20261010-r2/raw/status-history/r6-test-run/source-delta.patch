@@ -1,0 +1,22 @@
+--- a/crates/termrock-visibility-tests/tests/status.rs
++++ b/crates/termrock-visibility-tests/tests/status.rs
+@@ -3575,16 +3575,16 @@
+ fn ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs() {
+     let fixture = StatusFixture::new();
+     let run = serde_json::json!({
+-        "id": 37985833303,
++        "id": 37985833303_u64,
+         "name": ".github/workflows/ci.yml",
+         "head_branch": "termrock-implementation",
+         "head_sha": "ed7d30de8ffabe9ebe6f1119f8f364142b777d0f",
+         "status": "completed",
+         "conclusion": "failure",
+-        "check_suite_id": 102925783239
++        "check_suite_id": 102925783239_u64
+     });
+     let failed_suite = serde_json::json!({
+-        "id": 102925783239,
++        "id": 102925783239_u64,
+         "head_branch": "termrock-implementation",
+         "head_sha": "ed7d30de8ffabe9ebe6f1119f8f364142b777d0f",
+         "status": "completed",

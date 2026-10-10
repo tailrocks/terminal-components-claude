@@ -1,0 +1,263 @@
+{
+  "schema": "termrock-vis18-cache-source-audit-execution-result/v1",
+  "run_root": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime",
+  "completed_utc": "2026-10-09T22:15:03.531Z",
+  "invocation": {
+    "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/invocation.json",
+    "sha256": "1cc4bb5aeb8088b1c84cce7e9b37349ffeb1315a6b498336280062dfa240638b"
+  },
+  "executor": {
+    "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/executor.cjs",
+    "sha256": "c94f2161d341b20b209f565f0e4f7fe7acefaa1657113e318aa4640cbe491280"
+  },
+  "launch_grant": {
+    "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/launch-grant.json",
+    "sha256": "e66eb821d949c1657ed0e2636ecffafa1b54a777333fc4fda078b70dba6ea6d3"
+  },
+  "preflight": {
+    "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/preflight.json",
+    "sha256": "5bfb08dada9b45041f666cacb672edaa811736cf1d17e817a4284a094fae1b86"
+  },
+  "command": {
+    "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "args": [
+      "nextest",
+      "run",
+      "--manifest-path",
+      "/private/tmp/termrock-vis18-cache-source-audit-r11-derive-debug-20261010/package/crates/termrock-visibility-tests/Cargo.toml",
+      "--package",
+      "termrock-visibility-tests",
+      "--test",
+      "cache_source_audit",
+      "--locked",
+      "--offline",
+      "--all-features",
+      "--user-config-file",
+      "none",
+      "--no-tests",
+      "fail",
+      "--profile",
+      "default",
+      "--ignore-default-filter",
+      "--run-ignored",
+      "only",
+      "--filterset",
+      "package(=termrock-visibility-tests) & binary(=cache_source_audit) & test(=audits_r11_unmanifested_sources_against_locked_crate_archives)",
+      "--no-fail-fast",
+      "--retries",
+      "0",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--color",
+      "never",
+      "--show-progress",
+      "none",
+      "--message-format",
+      "libtest-json-plus",
+      "--message-format-version",
+      "0.1"
+    ],
+    "cwd": "/private/tmp/termrock-vis18-cache-source-audit-r11-derive-debug-20261010/package/crates/termrock-visibility-tests",
+    "environment": {
+      "HOME": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/home",
+      "CARGO_HOME": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/cargo-home",
+      "CARGO_TARGET_DIR": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/target",
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_NET_OFFLINE": "true",
+      "CARGO_REGISTRIES_CRATES_IO_PROTOCOL": "sparse",
+      "CARGO_TERM_COLOR": "never",
+      "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1",
+      "RUSTUP_HOME": "/Users/donbeave/.rustup",
+      "RUSTUP_TOOLCHAIN": "1.98.1",
+      "RUSTC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "RUSTDOC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "TMPDIR": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/tmp",
+      "TMP": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/tmp",
+      "TEMP": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/tmp",
+      "TERMROCK_VIS18_AUDIT_RECEIPT_PATH": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/report/cache-source-audit.json",
+      "TERMROCK_VIS18_R11_RESULT_PATH": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/attempt-01/runner-result.json",
+      "TERMROCK_VIS18_CACHE_PREPARATION_PATH": "/private/tmp/termrock-vis06-tag-linker-r1-20261009/execution/tag-r4-20261009-ba912a28e055/cache-preparation.json",
+      "PATH": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/usr/bin:/bin",
+      "LANG": "C",
+      "LC_ALL": "C.UTF-8",
+      "TERM": "dumb"
+    }
+  },
+  "process": {
+    "pid": 44587,
+    "process_group": 44587,
+    "detached": true,
+    "exit": {
+      "code": 0,
+      "signal": null
+    },
+    "close": {
+      "code": 0,
+      "signal": null
+    },
+    "child_reaped": true,
+    "elapsed_ms": 21936,
+    "outer_timeout_ms": 900000,
+    "timed_out": false,
+    "output_limit_exceeded": false,
+    "output_bytes_captured": 2536,
+    "output_limit": 4194304,
+    "termination_reason": null,
+    "external_signal": null
+  },
+  "nextest_json": {
+    "json_records": [
+      {
+        "stream": "stdout",
+        "type": "suite",
+        "event": "started",
+        "name": null,
+        "test_count": 1,
+        "passed": null,
+        "failed": null,
+        "ignored": null,
+        "measured": null,
+        "filtered_out": null,
+        "nextest": {
+          "crate": "termrock-visibility-tests",
+          "test_binary": "cache_source_audit",
+          "kind": "test"
+        }
+      },
+      {
+        "stream": "stdout",
+        "type": "test",
+        "event": "started",
+        "name": "termrock-visibility-tests::cache_source_audit$audits_r11_unmanifested_sources_against_locked_crate_archives",
+        "test_count": null,
+        "passed": null,
+        "failed": null,
+        "ignored": null,
+        "measured": null,
+        "filtered_out": null,
+        "nextest": null
+      },
+      {
+        "stream": "stdout",
+        "type": "suite",
+        "event": "ok",
+        "name": null,
+        "test_count": null,
+        "passed": 0,
+        "failed": 0,
+        "ignored": 1,
+        "measured": 0,
+        "filtered_out": 0,
+        "nextest": {
+          "crate": "termrock-visibility-tests",
+          "test_binary": "cache_source_audit",
+          "kind": "test"
+        }
+      },
+      {
+        "stream": "stdout",
+        "type": "suite",
+        "event": "started",
+        "name": null,
+        "test_count": 1,
+        "passed": null,
+        "failed": null,
+        "ignored": null,
+        "measured": null,
+        "filtered_out": null,
+        "nextest": {
+          "crate": "termrock-visibility-tests",
+          "test_binary": "cache_source_audit",
+          "kind": "test"
+        }
+      },
+      {
+        "stream": "stdout",
+        "type": "test",
+        "event": "ok",
+        "name": "termrock-visibility-tests::cache_source_audit$audits_r11_unmanifested_sources_against_locked_crate_archives",
+        "test_count": null,
+        "passed": null,
+        "failed": null,
+        "ignored": null,
+        "measured": null,
+        "filtered_out": null,
+        "nextest": null
+      },
+      {
+        "stream": "stdout",
+        "type": "suite",
+        "event": "ok",
+        "name": null,
+        "test_count": null,
+        "passed": 1,
+        "failed": 0,
+        "ignored": 1,
+        "measured": 0,
+        "filtered_out": 18446744073709552000,
+        "nextest": {
+          "crate": "termrock-visibility-tests",
+          "test_binary": "cache_source_audit",
+          "kind": "test"
+        }
+      }
+    ],
+    "suite_started": 2,
+    "suite_finished": 2,
+    "test_started": 1,
+    "test_finished": 1,
+    "observed_test_names": [
+      "termrock-visibility-tests::cache_source_audit$audits_r11_unmanifested_sources_against_locked_crate_archives"
+    ],
+    "malformed_structured_lines": [],
+    "valid": false
+  },
+  "audit_report": {
+    "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/report/cache-source-audit.json",
+    "sha256": "b31bd5d3c549ed5f14ff4964fcb5f59ecfb5d6f453a6008a867ffef26541948e",
+    "bytes": 126675,
+    "mode": 420,
+    "status": "PASS",
+    "unmanifested_paths": 7231,
+    "files": 6054,
+    "directories": 1177,
+    "package_roots": 153,
+    "locked_archive_rows": 319,
+    "historical_r11_content_status": "NOT_VERIFIED",
+    "qualification": "blocked",
+    "admission": "NOT_RUN"
+  },
+  "audit_report_error": null,
+  "before_snapshot_sha256": "7f8274090a9709909e5f9d369cd03aa192d4d26459d5e0e2a171a910c6aa2d61",
+  "after_snapshot_sha256": "89d9edac5af7d8e92dfffdffd23112040d1401e1fa5fdd7dd045a057ca3db561",
+  "postflight_error": null,
+  "input_stable": true,
+  "raw_logs": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/logs/stdout.raw",
+      "sha256": "d474f0316a18f49d383848ec5e629baad5c81d6e674fb389a6550ad4730f07cf",
+      "bytes": 1056
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/logs/stderr.raw",
+      "sha256": "31c13a6b539107c540c713308f01a99393112ec8054a4f61672cff353f38e1e2",
+      "bytes": 1480
+    },
+    "events": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/logs/process-events.jsonl",
+      "sha256": "e5a5ce51aefdf96ffff3f3dbcd8f249a1ee84886f1d37f25b7c7d3a6f1dd8d2d",
+      "bytes": 1317
+    }
+  },
+  "output_contract_pass": false,
+  "wrapper_exit_code": 125,
+  "limits": {
+    "historical_r11_content": "NOT_VERIFIED",
+    "qualification": "NOT_ESTABLISHED",
+    "admission": "NOT_RUN",
+    "capture": "NOT_RUN"
+  }
+}

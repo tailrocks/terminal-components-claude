@@ -1,0 +1,628 @@
+{
+  "schema": "termrock-vis06-pair-build-nextest-invocation/v1",
+  "started_at_utc": "2026-10-09T11:23:26.255Z",
+  "command": {
+    "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "nextest",
+      "run",
+      "--manifest-path",
+      "/private/tmp/termrock-vis06-pair-build-r2-20261009/project/crates/termrock-visibility-tests/Cargo.toml",
+      "--test",
+      "subjects",
+      "--locked",
+      "--offline",
+      "--profile",
+      "default",
+      "--run-ignored",
+      "only",
+      "-E",
+      "test(supervises_real_holla_pair_build)",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--user-config-file",
+      "none",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--no-tests",
+      "fail",
+      "--success-output",
+      "final"
+    ],
+    "cwd": "/private/tmp/termrock-vis06-pair-build-r2-20261009/project/crates/termrock-visibility-tests",
+    "timeout_ms": 1500000
+  },
+  "environment": {
+    "HOME": "/private/tmp/termrock-vis06-home-pair-178a-20261009-1052Z-r3",
+    "CARGO_HOME": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3",
+    "CARGO_TARGET_DIR": "/private/tmp/termrock-vis06-nextest-target-pair-178a-20261009-1052Z-r3",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_TERM_COLOR": "never",
+    "RUSTUP_HOME": "/Users/donbeave/.rustup",
+    "RUSTC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+    "RUSTDOC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+    "TMPDIR": "/private/tmp/termrock-vis06-tmp-pair-178a-20261009-1052Z-r3",
+    "TMP": "/private/tmp/termrock-vis06-tmp-pair-178a-20261009-1052Z-r3",
+    "TEMP": "/private/tmp/termrock-vis06-tmp-pair-178a-20261009-1052Z-r3",
+    "PATH": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tools/bin:/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/Users/donbeave/.cargo/bin:/usr/bin:/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Developer/CommandLineTools/usr/bin",
+    "TERMROCK_VIS06_REAL_RUN_ID": "pair-178a-20261009-1052Z-r3",
+    "TERMROCK_VIS06_REAL_RUN_ROOT": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3",
+    "TERMROCK_VIS06_REAL_SOURCE_FACTS_PATH": "/private/tmp/termrock-vis06-pair-build-r2-20261009/inputs/source-facts.json",
+    "TERMROCK_VIS06_REAL_SOURCE_FACTS_SHA256": "bc765653690ee7f3e26132ce8b404e57cf5706c45d36548b496c12e923f6e6a6",
+    "TERMROCK_VIS06_REAL_SUITE_REVISION": "termrock-e2e-2026-10-09.2",
+    "TERMROCK_VIS06_REAL_SUITE_SHA256": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+    "TERMROCK_VIS06_REAL_TARGET_TRIPLE": "aarch64-apple-darwin",
+    "TERMROCK_VIS06_REAL_NEXTTEST_TARGET_ROOT": "/private/tmp/termrock-vis06-nextest-target-pair-178a-20261009-1052Z-r3",
+    "DEVELOPER_DIR": "/Library/Developer/CommandLineTools",
+    "SDKROOT": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+    "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1",
+    "LANG": "C",
+    "LC_ALL": "C"
+  },
+  "grant_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/root-launch-grant-r4.json",
+  "grant_sha256": "38e625899ce320bf9710cda92730dc7c5004e62d9df26c114c51083c5901ee4c",
+  "preflight_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/preflight.json",
+  "preflight_sha256": "c0e88ff9594195c1e509940f0a761dab689c2786b002183bb69f9a94af349212",
+  "inputs_before": {
+    "project_git": {
+      "head": "178a6637bf32972147fdc5d979f491d42773721d",
+      "status": "",
+      "index": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/project/.git/index",
+        "sha256": "0583262686985d61fe0605bfdbbe5637946be068fea97ccdfcca83a0572ba0ed",
+        "bytes": 10732957,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "85228677"
+      },
+      "refs": {
+        "refs/remotes/origin/termrock-implementation": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "refs/remotes/origin/visual-baseline": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+        "refs/tags/visual-baseline": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
+      },
+      "git_config": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/project/.git/config",
+        "sha256": "ff1479786edfbd25c700a6cda21a3a734b4f2fe0f4e01d3d85067b075e936d38",
+        "bytes": 160,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "84994192"
+      },
+      "alternates": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/project/.git/objects/info/alternates",
+        "sha256": "7ef78908469e78a74ed86c8156929672b87ca8c5ff999491e1ab62a631002a3c",
+        "bytes": 151,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "84994189"
+      }
+    },
+    "suite": {
+      "revision": "termrock-e2e-2026-10-09.2",
+      "digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+      "source_commit": "178a6637bf32972147fdc5d979f491d42773721d",
+      "source_tree": "8412937852d8473b65755a75236b122a277c9178",
+      "file_count": 28,
+      "files": [
+        {
+          "path": "Cargo.lock",
+          "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+          "bytes": 50065,
+          "blob_oid": "5145d651be4595cd9d41eac5b8ece0ec98942b6c",
+          "mode": "100644"
+        },
+        {
+          "path": "Cargo.toml",
+          "sha256": "39f5e8e0af5db6df748b8fe7f27ead263bd64105e270ae176b0cb1face907c9c",
+          "bytes": 758,
+          "blob_oid": "242753c8a8a1fc88c92fb178f2d0ad3a4869a822",
+          "mode": "100644"
+        },
+        {
+          "path": "README.md",
+          "sha256": "b439dec03e5f007a70042345579a47666b9d9b0c29691dda5920ecedf6989408",
+          "bytes": 15231,
+          "blob_oid": "4bc05b04f84ad893ac29bc8d2b2cd3a18b6c222a",
+          "mode": "100644"
+        },
+        {
+          "path": "build.rs",
+          "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64",
+          "bytes": 2198,
+          "blob_oid": "1968dff2a2581b4f3067d20cca18e62640debc68",
+          "mode": "100644"
+        },
+        {
+          "path": "cases/deferred-obligations.json",
+          "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+          "bytes": 3675,
+          "blob_oid": "67b6d233365b43ee000f3bfc3bfa56cff33ef92c",
+          "mode": "100644"
+        },
+        {
+          "path": "cases/registry.json",
+          "sha256": "2685f7a8b39d154ab96e107abeada9aaac98b3b4ed66f36a4fdf37e5479ad703",
+          "bytes": 18993,
+          "blob_oid": "845200e1c08c3a49947034040bf38d1103152ce7",
+          "mode": "100644"
+        },
+        {
+          "path": "profile.json",
+          "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+          "bytes": 1043,
+          "blob_oid": "5501ffcbe1bd9d2d602449f510fdaf81f06a78e8",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/expected-generation-v1.schema.json",
+          "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe",
+          "bytes": 17088,
+          "blob_oid": "e2a750a19feb9c4bcb694f05e00d7e73ef6a2c03",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/generation-admission-v1.schema.json",
+          "sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+          "bytes": 3679,
+          "blob_oid": "e3e179aa8d25f3b630024f14d38f4127d5e90571",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/oracle-capture-receipt-v1.schema.json",
+          "sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+          "bytes": 21009,
+          "blob_oid": "4ff10ebc54f51243e2415ac8ff16583b17f36b50",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/qualification-review-v1.schema.json",
+          "sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+          "bytes": 4146,
+          "blob_oid": "016febdf652e5c59ab9a7ecede6eb0899d8782b2",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/receipt-v1.schema.json",
+          "sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+          "bytes": 11472,
+          "blob_oid": "fb1575db1da12777934bca9664d6b22282399315",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/receipt-v2.schema.json",
+          "sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+          "bytes": 22929,
+          "blob_oid": "f847dfbf091952fee958df13716b62e6cea314f1",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/receipt-v3.schema.json",
+          "sha256": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+          "bytes": 37958,
+          "blob_oid": "fa2eed4f194fd75c86f6f43745088a97aceb7467",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/subject-manifest-v1.schema.json",
+          "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+          "bytes": 6026,
+          "blob_oid": "7643666bacc5a542cec0d8c1d5285ee91df15ae3",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/subject-manifest-v2.schema.json",
+          "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+          "bytes": 9807,
+          "blob_oid": "b163ab35af6ac0b38764748c1a1aab256e8c9e6b",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/tag-validator-toolchain-v1.schema.json",
+          "sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+          "bytes": 943,
+          "blob_oid": "225fd7b6507e475c48f05d7ab828a9ebd2ca7125",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/trust-record-v1.schema.json",
+          "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+          "bytes": 2535,
+          "blob_oid": "949088bccfd0e19249ea6faa4d891b8a15c0cc7f",
+          "mode": "100644"
+        },
+        {
+          "path": "schemas/trust-record-v2.schema.json",
+          "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+          "bytes": 4418,
+          "blob_oid": "fd8c8dabeba0c4490ba2238b526aa641b4b2d93b",
+          "mode": "100644"
+        },
+        {
+          "path": "src/admission.rs",
+          "sha256": "2c3b57ac207a64d31fdadae274e90a1d90b9b0e1ddbf620493f83bfb03d5b566",
+          "bytes": 19654,
+          "blob_oid": "7f113a1d7343d0c834bd14560b6bf388d44cc34c",
+          "mode": "100644"
+        },
+        {
+          "path": "src/bin/admit_expected_generation.rs",
+          "sha256": "947064afb21c3938aa783d9b8d62af2738d4c357d21d2694e96accb1e2f87f1e",
+          "bytes": 1927,
+          "blob_oid": "148fcdd2fccad570d78b06ec87ab0c41983cbae6",
+          "mode": "100644"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "7830f8a7069eb622fbbd4126ddcf42dd658e4dff23c108d76058e7cf986df3f7",
+          "bytes": 476350,
+          "blob_oid": "7a1c311804da364546bd8451e39fb332b473ad15",
+          "mode": "100644"
+        },
+        {
+          "path": "src/visual.rs",
+          "sha256": "f4bb552cddd3cbac2dd8f9fff986c31efa6ed04e6e46b2ebe9372a88660e5960",
+          "bytes": 60776,
+          "blob_oid": "208c696ee80237d2a80356c7c3ac148ee8349e77",
+          "mode": "100644"
+        },
+        {
+          "path": "tests/command_lane.rs",
+          "sha256": "5daebdfd3ee467b9bd2308602c79ebd30a08bd56431b477e1d8da56504e82506",
+          "bytes": 164558,
+          "blob_oid": "157910b6a9c0429a8561513a775d63fe3b042a2a",
+          "mode": "100644"
+        },
+        {
+          "path": "tests/contract.rs",
+          "sha256": "3a4758fc63797761e5009dbbcc655b278a7448405435beb67a6088b2e9e4eb4e",
+          "bytes": 50268,
+          "blob_oid": "968e652dd19d6f3593ab54120e7a3c56cd092bc7",
+          "mode": "100644"
+        },
+        {
+          "path": "tests/holla_help_overlay.rs",
+          "sha256": "64bcaae6070ca7bfac6e7caaf8c355e2b8e942a3ba670b4c7aab808e808472b8",
+          "bytes": 3897,
+          "blob_oid": "a0eab1ef2f13e03a9024b0347cd5607b8d31e082",
+          "mode": "100644"
+        },
+        {
+          "path": "tests/holla_tag_capture.rs",
+          "sha256": "255f840b9f6953e462a67aabb7afbbeffb92214e5bcb6f5f860e513043dff31e",
+          "bytes": 1823,
+          "blob_oid": "6f823c388b260c83849a0c45a5e6ebbb3ac6db14",
+          "mode": "100644"
+        },
+        {
+          "path": "tests/shared_journeys.rs",
+          "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639",
+          "bytes": 1529,
+          "blob_oid": "ddcec07df1c9fce195a3c41db8f348b3de735c23",
+          "mode": "100644"
+        }
+      ]
+    },
+    "visibility_package": {
+      "root": "/private/tmp/termrock-vis06-pair-build-r2-20261009/project/crates/termrock-visibility-tests",
+      "files": [
+        {
+          "relative_path": "Cargo.lock",
+          "sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2",
+          "bytes": 7322
+        },
+        {
+          "relative_path": "Cargo.toml",
+          "sha256": "f56265e959da084a19586110cf155b7a0232b0c42b96ca6ab07daa41c69997ae",
+          "bytes": 324
+        },
+        {
+          "relative_path": "README.md",
+          "sha256": "67762a6f6df40b6e5514677e1dfbed4e429d7e1b91a99ddb53110b211df0126a",
+          "bytes": 5338
+        },
+        {
+          "relative_path": "src/bin/fixture.rs",
+          "sha256": "a7ee4a89646439a67d2d4e016b759a2d68eecec7339310778e81acf60235adc4",
+          "bytes": 21577
+        },
+        {
+          "relative_path": "src/lib.rs",
+          "sha256": "96a6d3e8aea50b464444b598e2ee53b639548712fbfdbb8a0b5a39405c44a247",
+          "bytes": 51086
+        },
+        {
+          "relative_path": "tests/deferred.rs",
+          "sha256": "d5d336c7527dcdb56704df6be68e937bc8be10ee0545b592a79e63402561ec94",
+          "bytes": 68958
+        },
+        {
+          "relative_path": "tests/queue_v2.rs",
+          "sha256": "a5e84adb466e24666e03706365976b885109c78f31e0b9e7a73f8a609f9bdcff",
+          "bytes": 167426
+        },
+        {
+          "relative_path": "tests/status.rs",
+          "sha256": "0dd5dbe15068259922cf23f7865e32ba0593523fb8ad0302ed04accdf2724a72",
+          "bytes": 128363
+        },
+        {
+          "relative_path": "tests/subjects.rs",
+          "sha256": "bd676ba4c8f5bbbac996797d6d7cf0fc1534a7b6bda9bf2dbc7e9d4aa73f72e4",
+          "bytes": 207089
+        }
+      ]
+    },
+    "source_facts": {
+      "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/inputs/source-facts.json",
+      "sha256": "bc765653690ee7f3e26132ce8b404e57cf5706c45d36548b496c12e923f6e6a6",
+      "bytes": 70161,
+      "mode": 292,
+      "dev": "16777234",
+      "ino": "84995238"
+    },
+    "helper": {
+      "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/project/tools/visibility/subjects.py",
+      "sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "bytes": 141167,
+      "mode": 420,
+      "dev": "16777234",
+      "ino": "84994226"
+    },
+    "cache": {
+      "home": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3",
+      "closure_sha256": "437eeadc8cf26858e372536688fc6e14d10683557c66bca56ee8ffb272e9d158",
+      "review_sha256": "823af41a3adb98d81f2694e03b9392fc13198241501fdeee4a6d52a16e3ee511",
+      "inventory_count": 698,
+      "inventory_bytes": 80183727,
+      "inventory_sha256": "e0da4dcd2262260c92189ceafd49d53805c4b6a75a8746e51a60794466002c10"
+    },
+    "sdk_and_tools": {
+      "files": {
+        "cargo": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "bytes": 31960040,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2266785"
+        },
+        "rustc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+          "bytes": 412504,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2334731"
+        },
+        "rustdoc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+          "bytes": 11269752,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2334730"
+        },
+        "nextest": {
+          "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+          "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+          "bytes": 43079808,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2718261"
+        },
+        "rustup": {
+          "path": "/Users/donbeave/.cargo/bin/rustup",
+          "sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+          "bytes": 11319056,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2266597"
+        },
+        "python3": {
+          "path": "/usr/bin/python3",
+          "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+          "bytes": 200560,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "1152921500312607500"
+        },
+        "git": {
+          "path": "/usr/bin/git",
+          "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+          "bytes": 200560,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "1152921500312607500"
+        },
+        "node": {
+          "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+          "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+          "bytes": 121911744,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2265489"
+        },
+        "bash": {
+          "path": "/bin/bash",
+          "sha256": "d59c6f2312e551e9c46497329d435b6ec74fbc46e9155b84170f377127ed004e",
+          "bytes": 1961872,
+          "mode": 365,
+          "dev": "16777234",
+          "ino": "1152921500312607400"
+        },
+        "clang": {
+          "path": "/Library/Developer/CommandLineTools/usr/bin/clang",
+          "sha256": "1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9",
+          "bytes": 124676976,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2054302"
+        },
+        "linker": {
+          "path": "/Library/Developer/CommandLineTools/usr/bin/ld",
+          "sha256": "374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c",
+          "bytes": 2749664,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2054361"
+        },
+        "xcrun": {
+          "path": "/usr/bin/xcrun",
+          "sha256": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9",
+          "bytes": 199024,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "1152921500312609000"
+        },
+        "cc_wrapper": {
+          "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tools/bin/cc",
+          "sha256": "2dbb93e061d8f1f4b36991405c3c6bd33a59936a7092915eb1ca95a6b4174cbb",
+          "bytes": 1544,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "85247640"
+        },
+        "clang_wrapper": {
+          "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tools/bin/clang",
+          "sha256": "2dbb93e061d8f1f4b36991405c3c6bd33a59936a7092915eb1ca95a6b4174cbb",
+          "bytes": 1544,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "85248186"
+        },
+        "sdk_settings_json": {
+          "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk/SDKSettings.json",
+          "sha256": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb",
+          "bytes": 7948,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "2057747"
+        },
+        "sdk_settings_plist": {
+          "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk/SDKSettings.plist",
+          "sha256": "90a738dbf3fd88e7f6d35646e19d3a8a716923b9773ce1b67260466d9ceed370",
+          "bytes": 5538,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "2057748"
+        }
+      },
+      "developer_dir": "/Library/Developer/CommandLineTools",
+      "sdk_root": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "sdk_link": {
+        "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "is_symlink": true,
+        "link_target": "MacOSX27.0.sdk",
+        "realpath": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk"
+      },
+      "sdk_resolved_root": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk",
+      "sdk_version": "27.0",
+      "linker_observation": "clang driver -### trace is captured for every cc/clang invocation; it records selected linker command but does not prove a separate ld exec"
+    },
+    "locks": {
+      "visibility": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/project/crates/termrock-visibility-tests/Cargo.lock",
+        "sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2",
+        "bytes": 7322,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "84994212"
+      },
+      "reference_copy": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/inputs/reference-Cargo.lock",
+        "sha256": "3edfd7975cfe1449aad4b30d65dbbcb9d695f01dfd3e1eb9025ed346f0a94460",
+        "bytes": 74958,
+        "mode": 292,
+        "dev": "16777234",
+        "ino": "84995244"
+      },
+      "candidate_copy": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/inputs/candidate-Cargo.lock",
+        "sha256": "6ce8eab6040704d9eadb71349aa0f382e232ffeb657c84fe4f266e93660b5a4a",
+        "bytes": 90763,
+        "mode": 292,
+        "dev": "16777234",
+        "ino": "84995241"
+      },
+      "visibility_copy": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/inputs/visibility-Cargo.lock",
+        "sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2",
+        "bytes": 7322,
+        "mode": 292,
+        "dev": "16777234",
+        "ino": "84995239"
+      },
+      "reference_git_blob_sha256": "3edfd7975cfe1449aad4b30d65dbbcb9d695f01dfd3e1eb9025ed346f0a94460",
+      "candidate_git_blob_sha256": "6ce8eab6040704d9eadb71349aa0f382e232ffeb657c84fe4f266e93660b5a4a"
+    },
+    "execution_inputs": {
+      "suite_identity": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/preparation/suite-identity-r3.json",
+        "sha256": "a9b028f77d9590b9215d79f10658ed7498706b8c10c81858f532100a6b81e45f",
+        "bytes": 7754,
+        "mode": 384,
+        "dev": "16777234",
+        "ino": "85243897"
+      },
+      "cache_independent_review": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/preparation/cache-closure-independent-review-luna.json",
+        "sha256": "823af41a3adb98d81f2694e03b9392fc13198241501fdeee4a6d52a16e3ee511",
+        "bytes": 3964,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "85246282"
+      },
+      "cache_closure": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/preparation/cache-closure-r3.json",
+        "sha256": "437eeadc8cf26858e372536688fc6e14d10683557c66bca56ee8ffb272e9d158",
+        "bytes": 382076,
+        "mode": 384,
+        "dev": "16777234",
+        "ino": "85222553"
+      },
+      "pair_source_review": {
+        "path": "/private/tmp/termrock-vis06-pair-current-1d-b274-proposal-20261009/luna-three-constant-review.json",
+        "sha256": "f2496b5a191386bf0c55af561dab5b4bd28037c9c2398d335f00a6174aa84402",
+        "bytes": 2571,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "84918947"
+      },
+      "compiler_wrapper_cc": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tools/bin/cc",
+        "sha256": "2dbb93e061d8f1f4b36991405c3c6bd33a59936a7092915eb1ca95a6b4174cbb",
+        "bytes": 1544,
+        "mode": 493,
+        "dev": "16777234",
+        "ino": "85247640"
+      },
+      "compiler_wrapper_clang": {
+        "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tools/bin/clang",
+        "sha256": "2dbb93e061d8f1f4b36991405c3c6bd33a59936a7092915eb1ca95a6b4174cbb",
+        "bytes": 1544,
+        "mode": 493,
+        "dev": "16777234",
+        "ino": "85248186"
+      }
+    }
+  },
+  "cargo_source_trees_before": [
+    {
+      "path": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3/registry/src",
+      "present": false,
+      "entries": []
+    },
+    {
+      "path": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3/git/checkouts",
+      "present": true,
+      "entry_count": 0,
+      "entries": [],
+      "inventory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  ]
+}

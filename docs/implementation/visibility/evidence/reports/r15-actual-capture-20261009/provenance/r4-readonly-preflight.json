@@ -1,0 +1,177 @@
+{
+  "schema": "termrock-rust-tool-test-execution/tag-capture-r15-r4-readonly-preflight-v1",
+  "at_utc": "2026-10-09T10:20:07.924Z",
+  "runner_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r4.cjs",
+  "runner_sha256": "0d1d07a82a1a89b684924e736c3bc743e306b4bd197e6bdb480891745ad8a425",
+  "invocation_manifest_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/invocation-manifest-r4.json",
+  "invocation_manifest_sha256": "ded529a2c0e0d9080029ee05fc843fec15d9cba8905749b026d160a6ce0042c3",
+  "grant_template_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/launch-grant-r4.template.json",
+  "grant_template_sha256": "83159f9a2f30fc9d97f5b6c2beb82cb45f6a50985de7ac7f49849194d2570955",
+  "grant_template_key_count": 43,
+  "read_launch_grant_predicates": "PASS using in-memory synthetic values only; no actual grant file was present or created",
+  "approved_review_context": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/reviews/d990-helper-pin-source-review.json",
+    "sha256": "393acd58eecba22b3448005b22913e9594470dd8c762816063c42ad83b097712",
+    "reviewer": "/root/controls_wrapper_review_luna",
+    "verdict": "READY_SOURCE_DELTA_ONLY",
+    "candidate_suite_sha256": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+    "candidate_lib_sha256": "7830f8a7069eb622fbbd4126ddcf42dd658e4dff23c108d76058e7cf986df3f7",
+    "helper_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853"
+  },
+  "validator_context": {
+    "helper_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/subjects.py",
+    "helper_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+    "helper_bytes": 141167,
+    "source_commit": "23b0eeadc1fa2ba83f13e243b7e54af95e9c59de",
+    "source_publication_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/validator/source-publication.json",
+    "source_publication_sha256": "10b4744bbcea9a85e623b0db2701598d4563a8b2a243d68593deeff8a0721c86",
+    "toolchain_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/toolchain.json",
+    "toolchain_sha256": "d3bce7d5775bf755e3d0a6fb675a4eea3e62a2ffaf775a4874d91f7a43bff072"
+  },
+  "captured_contexts": [
+    "inventory",
+    "tools",
+    "sdk",
+    "renderer",
+    "reviews",
+    "git",
+    "cache",
+    "tag",
+    "validator"
+  ],
+  "package_file_count": 28,
+  "suite_digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+  "tag": {
+    "receipt_path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/tag-builder-receipt.json",
+    "receipt_sha256": "772208ace8cff5c1f1dc70a62ceb8771fcde5b429104636d679b2121a9cdc6ec",
+    "run_path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/run.json",
+    "run_sha256": "744f22edbe4f35dca773715bc6cf738f5fb0b24c83d5c8dd0edc3e9575a02bb1",
+    "closure_path": "/private/tmp/termrock-vis06-tag-closure-tag-20261008T212348Z-25ce63f5a3b7/actual-evidence-seal.json",
+    "closure_sha256": "f5b4796e32625bcc96476a8ccd4b7b80740c9337faf4eaa69ccc1dbea5dfd86a",
+    "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+    "tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "tag_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+    "executable_path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle/aarch64-apple-darwin/release/holla",
+    "executable_bytes": 3619040,
+    "executable_sha256": "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5",
+    "source_root": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/source/oracle",
+    "build_root": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle"
+  },
+  "cache": {
+    "cargo_home": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home",
+    "cargo_home_realpath": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home",
+    "registry": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/registry",
+      "is_symlink": false,
+      "link_target": null,
+      "realpath": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/registry"
+    },
+    "git": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/git",
+      "is_symlink": false,
+      "link_target": null,
+      "realpath": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/git"
+    },
+    "cache_verification_path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cache-verification.json",
+    "cache_verification_sha256": "f6418704b2917bfbc2646a2df73c34e69a6cf3a3e30b9e89ab83bcf41edfbf01",
+    "registry_locked_packages": 206,
+    "git_locked_packages": 5,
+    "prefetch_completion_path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/prefetch-completion.json",
+    "prefetch_completion_sha256": "02874b9da5be4e3ca657382361adfe2e7bab69417001613431c3a50b7d88c82a",
+    "target_dir": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009",
+    "target_dir_exists": true,
+    "target_dir_realpath": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009",
+    "target_dir_device": "16777234",
+    "target_dir_inode": "83357571",
+    "holla_tag_capture_binaries": [
+      "holla_tag_capture-fa2a1ab31e8cb087"
+    ],
+    "holla_tag_capture_binary": {
+      "path": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009/debug/deps/holla_tag_capture-fa2a1ab31e8cb087",
+      "sha256": "7014b46f1facde2ac83894702619dec1565453a5163a87eb5289aa56ce3c4060",
+      "bytes": 34072080
+    }
+  },
+  "sdk": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "sdk_version": "27.0",
+    "sdk_build_version": "26A425"
+  },
+  "tools": {
+    "cargo": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+      "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+    },
+    "rustc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+      "version": "rustc 1.98.1 (48a229cea 2026-09-01)"
+    },
+    "rustdoc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+      "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)"
+    },
+    "nextest": {
+      "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+      "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: aarch64-apple-darwin"
+    },
+    "node": {
+      "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+      "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+      "version": "v24.20.0"
+    },
+    "rustup": {
+      "path": "/Users/donbeave/.cargo/bin/rustup",
+      "sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+      "version": "rustup 1.29.1 (d95a37b6a 2026-08-13)"
+    },
+    "python3": {
+      "path": "/usr/bin/python3",
+      "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+      "version": "Python 3.9.6"
+    },
+    "git": {
+      "path": "/usr/bin/git",
+      "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+      "version": "git version 2.54.0 (Apple Git-157)"
+    },
+    "clang": {
+      "path": "/Library/Developer/CommandLineTools/usr/bin/clang",
+      "sha256": "1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9",
+      "version": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin"
+    },
+    "linker": {
+      "path": "/Library/Developer/CommandLineTools/usr/bin/ld",
+      "sha256": "374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c",
+      "version": "@(#)PROGRAM:ld PROJECT:ld-27037.1\nBUILD 21:17:51 Aug 25 2026\nconfigured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em armv8m.main armv8.1m.main\nLTO support using: LLVM version 21.0.0 (static support for 30, runtime is 30)\nTAPI support using: Apple TAPI version 21.0.0 (tapi-2100.3.8.1)"
+    },
+    "xcrun": {
+      "path": "/usr/bin/xcrun",
+      "sha256": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9",
+      "version": "xcrun version 72."
+    }
+  },
+  "r2_predecessor_failure_preserved": true,
+  "r3_preflight_failure_bound": {
+    "runner_sha256": "ca438e706bf482722ce2246b4108bc90b5689ef55478bc3a8776fff27c9b3b02",
+    "manifest_sha256": "6038d364abcbc4f3b10efdd6fb071352e3f07746f6088d33d1cec4d6371aea24",
+    "grant_sha256": "b65499b039239c5e2988b51eab9c74e7e736afab7424f20f5c21f053df879006",
+    "error_sha256": "7c3fec59aeca9a1e2b616c4a21c49e473de754ae4eb5ee5878171d6afd4c643a",
+    "diagnostic": "Error: d990 candidate source review does not bind this exact helper-pin successor\n    at reviewContext (/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r3.cjs:418:11)\n    at snapshot (/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r3.cjs:550:110)\n    at Object.<anonymous> (/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r3.cjs:720:9)\n    at Module._compile (node:internal/modules/cjs/loader:1929:14)\n    at Object..js (node:internal/modules/cjs/loader:2060:10)\n    at Module.load (node:internal/modules/cjs/loader:1651:32)\n    at Module._load (node:internal/modules/cjs/loader:1443:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47"
+  },
+  "absent_prelaunch_paths": [
+    "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02",
+    "/private/tmp/termrock-tag-capture-r15-r4-output-20261009",
+    "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual",
+    "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-capture-receipt.json",
+    "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/launch-grant-r4.json"
+  ],
+  "cargo_spawned": false,
+  "nextest_started": false,
+  "pty_started": false,
+  "output_root_created": false
+}

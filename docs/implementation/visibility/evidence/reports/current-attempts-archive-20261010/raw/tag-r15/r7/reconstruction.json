@@ -1,0 +1,106 @@
+{
+  "schema": "termrock-vis06-r15-r7-read-only-raw-result-reconstruction/v1",
+  "generated_at_utc": "2026-10-09T19:59:28.945Z",
+  "inputs": {
+    "result": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/runner-result.json",
+      "sha256": "6f5b2e275dc2896c6e1511a625106612a302e391cae65bdb492bb1df8fc9d3f0"
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/preflight.json",
+      "sha256": "22b7f3fd51cb984d6931482408333ffaf3134462f24645b4db0832c556b8330b"
+    },
+    "runner": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verifier-r7/runner-r15.cjs",
+      "sha256": "08767121038bd4ac8df7c15cebf8fbf1015199fd14ad64b279d1086906382151"
+    },
+    "runner_review": {
+      "path": "/private/tmp/termrock-vis06-tag-r15-r11-readonly-verifier-r7-runner-review-luna-20261010.json",
+      "sha256": "da5a56d49c60d78a78fcd95ca24cddf34dfc84ee02c9fe68602913e28d4bce89"
+    },
+    "source_freeze": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/freeze-r15-r11-count-19/freeze.json",
+      "sha256": "c87a190c87e5dd1261f4efa392da20d597c1d67cd401eadd9bd5959c78b2c02d"
+    },
+    "source_review": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r15-source-review-luna-20261010.json",
+      "sha256": "7b743a6dc3a2112dbb9ab69ac50a05efc1e83845b83cd4c8e05c7fe45bdd3828"
+    },
+    "r11_actual_review": {
+      "path": "/private/tmp/termrock-vis06-tag-r11-actual-review-luna-20261010.json",
+      "sha256": "dcc0900899d7d6024e9b27bfcbb09f526a91e7f51c50f93eb4318ea23f0c8646"
+    },
+    "r7_actual_review": {
+      "path": "/private/tmp/termrock-vis06-tag-r15-r7-actual-review-luna-20261010.json",
+      "sha256": "4d77b94d5c6ecd97c67daf3ad26c6c70d1d6f115c56dba8f503def030edd45b1"
+    }
+  },
+  "actual_streams": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/logs/nextest.stdout.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/logs/nextest.stderr.raw",
+      "bytes": 4273,
+      "sha256": "6b77ee59d82c8367d5e1e6545bbdeaf7502c6e4460d314cf30852440156cf4c7",
+      "truncated": false
+    }
+  },
+  "nextest": {
+    "run_id": "3ab8b110-d6f0-47f0-9104-7ecf1b922711",
+    "selected_case": "verifies_existing_r11_tag_linker_stage_output_read_only",
+    "raw_progress_row": "        PASS [   6.540s] (1/1) termrock-visibility-tests::subjects verifies_existing_r11_tag_linker_stage_output_read_only",
+    "raw_summary": "Summary [   6.540s] 1 test run: 1 passed, 17 skipped",
+    "identical_summary_echo": "        PASS [   6.540s] (1/1) termrock-visibility-tests::subjects verifies_existing_r11_tag_linker_stage_output_read_only",
+    "logical_terminal_events_after_identical_echo_collapse": 1,
+    "actual_counts": {
+      "selected": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 17
+    },
+    "raw_rows": [
+      {
+        "status": "PASS",
+        "duration": "   6.540s",
+        "ordinal": 1,
+        "denominator": 1,
+        "test": "termrock-visibility-tests::subjects verifies_existing_r11_tag_linker_stage_output_read_only",
+        "raw": "        PASS [   6.540s] (1/1) termrock-visibility-tests::subjects verifies_existing_r11_tag_linker_stage_output_read_only",
+        "line_index": 54
+      },
+      {
+        "status": "PASS",
+        "duration": "   6.540s",
+        "ordinal": 1,
+        "denominator": 1,
+        "test": "termrock-visibility-tests::subjects verifies_existing_r11_tag_linker_stage_output_read_only",
+        "raw": "        PASS [   6.540s] (1/1) termrock-visibility-tests::subjects verifies_existing_r11_tag_linker_stage_output_read_only",
+        "line_index": 57
+      }
+    ]
+  },
+  "original_wrapper": {
+    "gate_valid": false,
+    "conclusion": "READ_ONLY_R11_EVIDENCE_VERIFICATION_INCOMPLETE_OR_FAILED",
+    "postflight_errors": [
+      "exact selected Nextest terminal row missing or invalid"
+    ],
+    "preserved_as_incomplete": true
+  },
+  "interpretation": {
+    "result": "RAW_SELECTED_TEST_PASS_ORIGINAL_WRAPPER_INCOMPLETE",
+    "test_scope": "read-only verification of the preserved R11 evidence; no product build in this R7 invocation",
+    "qualification": "BLOCKED",
+    "expected_generation": null,
+    "capture": "NOT_RUN",
+    "admission": "NOT_RUN",
+    "application_launch": "NOT_RUN",
+    "cache_qualification": "NOT_CLAIMED",
+    "cache_note": "Cargo global-cache changed and protected_inputs_unchanged is false; this reconstruction does not convert that into a cache qualification.",
+    "no_rerun": true
+  }
+}

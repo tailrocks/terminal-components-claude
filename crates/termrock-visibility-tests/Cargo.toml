@@ -9,9 +9,11 @@ publish = false
 resolver = "3"
 
 [dependencies]
+flate2 = "=1.1.10"
 libc = "=0.2.190"
 serde_json = "=1.0.151"
 sha2 = "=0.10.9"
+tar = { version = "=0.4.46", default-features = false }
 tempfile = "=3.27.0"
 
 [[bin]]

@@ -43,7 +43,7 @@ const TAG_VALIDATOR_TOOLCHAIN_SHA_ENV: &str = "TERMROCK_VIS06_VALIDATOR_TOOLCHAI
 const GENERATION_ADMISSION_PATH_ENV: &str = "TERMROCK_E2E_GENERATION_ADMISSION";
 const GENERATION_ADMISSION_SHA_ENV: &str = "TERMROCK_E2E_GENERATION_ADMISSION_SHA256";
 const TAG_SOURCE_VALIDATOR_SHA256: &str =
-    "0e09a25178749178252846512a66ad1dd1787ac9f27c96b5251e5a3aa61680c3";
+    "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853";
 const TAG_VALIDATOR_TOOLCHAIN_SCHEMA: &str = "termrock-spec/visual-tag-validator-toolchain-v1";
 const TAG_VALIDATOR_HELPER_TRANSPORT: &str = "checked-source-absolute-git-dispatch-v1";
 const TAG_VALIDATED_IDENTITY_SCHEMA: &str = "termrock-spec/visual-tag-holla-validated-identity-v1";
@@ -188,6 +188,26 @@ pub enum Step {
     Press {
         key: String,
     },
+    KeyEvent {
+        key: String,
+        kind: KeyEventKind,
+    },
+    Text {
+        text: String,
+    },
+    Paste {
+        text: String,
+    },
+    Mouse {
+        input: MouseInput,
+    },
+    Resize {
+        cols: u16,
+        rows: u16,
+    },
+    ExpectExit {
+        code: u32,
+    },
     Checkpoint {
         id: String,
         wait: Vec<WaitCondition>,
@@ -195,6 +215,87 @@ pub enum Step {
         assertions: Vec<Assertion>,
         #[serde(default)]
         legacy_snapshot_path: Option<String>,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum KeyEventKind {
+    Down,
+    Repeat,
+    Up,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MouseButton {
+    Left,
+    Middle,
+    Right,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum WheelDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct MouseModifiers {
+    #[serde(default)]
+    pub shift: bool,
+    #[serde(default)]
+    pub alt: bool,
+    #[serde(default)]
+    pub ctrl: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(tag = "action", rename_all = "snake_case", deny_unknown_fields)]
+pub enum MouseInput {
+    Click {
+        button: MouseButton,
+        x: u16,
+        y: u16,
+        #[serde(default)]
+        modifiers: MouseModifiers,
+    },
+    Down {
+        button: MouseButton,
+        x: u16,
+        y: u16,
+        #[serde(default)]
+        modifiers: MouseModifiers,
+    },
+    Release {
+        x: u16,
+        y: u16,
+        #[serde(default)]
+        modifiers: MouseModifiers,
+    },
+    Move {
+        x: u16,
+        y: u16,
+        #[serde(default)]
+        modifiers: MouseModifiers,
+    },
+    Drag {
+        button: MouseButton,
+        x: u16,
+        y: u16,
+        #[serde(default)]
+        modifiers: MouseModifiers,
+    },
+    Wheel {
+        direction: WheelDirection,
+        x: u16,
+        y: u16,
+        #[serde(default)]
+        modifiers: MouseModifiers,
     },
 }
 
@@ -3518,6 +3619,75 @@ pub fn validate_case_contract(case: &Case) -> Result<(), String> {
     if case.steps.is_empty() {
         return Err(format!("case {} has no steps", case.id));
     }
+    validate_geometry(&case.geometry)?;
+    let mut geometry = case.geometry.clone();
+    let mut checkpoint_ids = BTreeSet::new();
+    let mut checkpoint_count = 0usize;
+    if case
+        .steps
+        .iter()
+        .filter(|step| matches!(step, Step::ExpectExit { .. }))
+        .count()
+        > 1
+    {
+        return Err(format!(
+            "case {} has more than one expect_exit step",
+            case.id
+        ));
+    }
+    for (index, step) in case.steps.iter().enumerate() {
+        match step {
+            Step::Press { key } | Step::KeyEvent { key, .. } => {
+                tuiscotti::tui::parse_chord(key)
+                    .map_err(|error| format!("case {} has invalid key chord {key:?}: {error}", case.id))?;
+            }
+            Step::Text { .. } => {}
+            Step::Paste { text } => {
+                if text.contains("\u{1b}[200~") || text.contains("\u{1b}[201~") {
+                    return Err(format!(
+                        "case {} paste contains a bracketed-paste delimiter",
+                        case.id
+                    ));
+                }
+            }
+            Step::Mouse { input } => validate_mouse_input(input, &geometry, &case.id)?,
+            Step::Resize { cols, rows } => {
+                geometry = Geometry { cols: *cols, rows: *rows };
+                validate_geometry(&geometry).map_err(|error| {
+                    format!("case {} has invalid resize target: {error}", case.id)
+                })?;
+            }
+            Step::ExpectExit { .. } => {
+                if checkpoint_count == 0 {
+                    return Err(format!(
+                        "case {} expect_exit must follow at least one checkpoint",
+                        case.id
+                    ));
+                }
+                if index + 1 != case.steps.len() {
+                    return Err(format!("case {} has steps after expect_exit", case.id));
+                }
+            }
+            Step::Checkpoint { id, .. } => {
+                if !valid_checkpoint_id(id) {
+                    return Err(format!(
+                        "case {} has invalid checkpoint ID {id:?}",
+                        case.id
+                    ));
+                }
+                if !checkpoint_ids.insert(id.as_str()) {
+                    return Err(format!(
+                        "case {} has duplicate checkpoint ID {id:?}",
+                        case.id
+                    ));
+                }
+                checkpoint_count += 1;
+            }
+        }
+    }
+    if checkpoint_count == 0 {
+        return Err(format!("case {} has no checkpoints", case.id));
+    }
     let mut assertion_ids = BTreeSet::new();
     let mut positive_ids = BTreeSet::new();
     for step in &case.steps {
@@ -3648,6 +3818,75 @@ pub fn validate_case_contract(case: &Case) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+pub(crate) fn validate_geometry(geometry: &Geometry) -> Result<(), String> {
+    use tuiscotti::tui::{MAX_COLS, MAX_ROWS, MIN_COLS, MIN_ROWS};
+
+    if !(MIN_COLS..=MAX_COLS).contains(&geometry.cols) {
+        return Err(format!(
+            "cols {} outside Tuiscotti range {MIN_COLS}..={MAX_COLS}",
+            geometry.cols
+        ));
+    }
+    if !(MIN_ROWS..=MAX_ROWS).contains(&geometry.rows) {
+        return Err(format!(
+            "rows {} outside Tuiscotti range {MIN_ROWS}..={MAX_ROWS}",
+            geometry.rows
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn valid_checkpoint_id(id: &str) -> bool {
+    !id.is_empty()
+        && id != "."
+        && id != ".."
+        && id.len() <= 128
+        && id.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-')
+        })
+}
+
+fn validate_mouse_input(input: &MouseInput, geometry: &Geometry, case_id: &str) -> Result<(), String> {
+    let (x, y) = match input {
+        MouseInput::Click { x, y, .. }
+        | MouseInput::Down { x, y, .. }
+        | MouseInput::Release { x, y, .. }
+        | MouseInput::Move { x, y, .. }
+        | MouseInput::Drag { x, y, .. }
+        | MouseInput::Wheel { x, y, .. } => (*x, *y),
+    };
+    if x >= geometry.cols || y >= geometry.rows {
+        return Err(format!(
+            "case {case_id} mouse coordinate ({x},{y}) is outside current geometry {}x{}",
+            geometry.cols, geometry.rows
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn checkpoint_geometries(case: &Case) -> Result<BTreeMap<String, Geometry>, String> {
+    let mut geometry = case.geometry.clone();
+    let mut checkpoints = BTreeMap::new();
+    for step in &case.steps {
+        match step {
+            Step::Resize { cols, rows } => geometry = Geometry { cols: *cols, rows: *rows },
+            Step::Checkpoint { id, .. } => {
+                if checkpoints.insert(id.clone(), geometry.clone()).is_some() {
+                    return Err(format!("case {} has duplicate checkpoint ID {id:?}", case.id));
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(checkpoints)
+}
+
+pub(crate) fn checkpoint_geometry(case: &Case, checkpoint: &str) -> Result<Geometry, String> {
+    checkpoint_geometries(case)?
+        .remove(checkpoint)
+        .ok_or_else(|| format!("case {} has no checkpoint {checkpoint:?}", case.id))
 }
 
 pub fn prepare_holla_help_overlay_preflight() -> Result<WritePolicyPreflightReceipt, String> {
@@ -4719,7 +4958,13 @@ fn tag_case_capture_identity(
                 id: id.clone(),
                 assertions: assertions.clone(),
             }),
-            Step::Press { .. } => None,
+            Step::Press { .. }
+            | Step::KeyEvent { .. }
+            | Step::Text { .. }
+            | Step::Paste { .. }
+            | Step::Mouse { .. }
+            | Step::Resize { .. }
+            | Step::ExpectExit { .. } => None,
         })
         .collect();
     Ok(CaseCaptureIdentity {
@@ -4950,7 +5195,6 @@ pub fn run_tag_capture(case_id: &str) -> Result<OracleCaptureReceipt, String> {
             })
         });
     let assertions_complete = case.steps.iter().all(|step| match step {
-        Step::Press { .. } => true,
         Step::Checkpoint { id, assertions, .. } => assertions.iter().all(|assertion| {
             let expected_id = format!("{}:{}:{}", case.id, id, assertion.id);
             driven
@@ -4965,6 +5209,7 @@ pub fn run_tag_capture(case_id: &str) -> Result<OracleCaptureReceipt, String> {
                 .count()
                 == 1
         }),
+        _ => true,
     }) && driven.checks.iter().all(|check| {
         check.dimension == "visual" || matches!(check.status.as_str(), "PASS" | "NOT_APPLICABLE")
     });
@@ -6592,6 +6837,8 @@ fn drive_case_subject(
     };
 
     let mut passed_assertions = BTreeSet::new();
+    let mut effective_geometry = case.geometry.clone();
+    let last_checkpoint = checkpoints(case).last().copied();
     for step in &case.steps {
         match step {
             Step::Press { key } => {
@@ -6607,6 +6854,112 @@ fn drive_case_subject(
                     ));
                 } else {
                     std::thread::sleep(Duration::from_millis(profile.input_pacing_ms));
+                }
+            }
+            Step::KeyEvent { key, kind } => {
+                let (key_value, mods) = tuiscotti::tui::parse_chord(key)
+                    .expect("validated case contains a valid key chord");
+                let kind = match kind {
+                    KeyEventKind::Down => tuiscotti::tui::KeyEventKind::Down,
+                    KeyEventKind::Repeat => tuiscotti::tui::KeyEventKind::Repeat,
+                    KeyEventKind::Up => tuiscotti::tui::KeyEventKind::Up,
+                };
+                record_input_result(
+                    &mut result.checks,
+                    &subject.role,
+                    &case.id,
+                    format!("key_event {key} {kind:?}"),
+                    session.key_event(key_value, mods, kind),
+                    profile.input_pacing_ms,
+                );
+            }
+            Step::Text { text } => record_input_result(
+                &mut result.checks,
+                &subject.role,
+                &case.id,
+                "send_text".to_string(),
+                session.send_text(text),
+                profile.input_pacing_ms,
+            ),
+            Step::Paste { text } => record_input_result(
+                &mut result.checks,
+                &subject.role,
+                &case.id,
+                "paste".to_string(),
+                session.paste(text),
+                profile.input_pacing_ms,
+            ),
+            Step::Mouse { input } => {
+                let sent = dispatch_mouse_input(&session, input);
+                record_input_result(
+                    &mut result.checks,
+                    &subject.role,
+                    &case.id,
+                    format!("mouse {input:?}"),
+                    sent,
+                    profile.input_pacing_ms,
+                );
+            }
+            Step::Resize { cols, rows } => {
+                let resized = session.resize(*cols, *rows);
+                if resized.is_ok() {
+                    effective_geometry = Geometry {
+                        cols: *cols,
+                        rows: *rows,
+                    };
+                }
+                record_input_result(
+                    &mut result.checks,
+                    &subject.role,
+                    &case.id,
+                    format!("resize {cols}x{rows}"),
+                    resized,
+                    profile.input_pacing_ms,
+                );
+            }
+            Step::ExpectExit { code } => {
+                let checkpoint = last_checkpoint
+                    .expect("case validation requires a checkpoint before expect_exit");
+                let deadline = std::time::Instant::now()
+                    + Duration::from_millis(case.timeout_ms.max(profile.readiness_timeout_ms));
+                let cancel = tuiscotti::tui::CancelToken::new();
+                match session.wait_exit(deadline, &cancel) {
+                    Ok(exit) => {
+                        let actual_code = exit.status.code();
+                        let signal = exit.status.signal().unwrap_or("none");
+                        let passed = signal == "none" && actual_code == *code;
+                        let status = if passed { "PASS" } else { "FAIL" };
+                        let reason = if passed {
+                            "direct child exited with the expected code"
+                        } else {
+                            "direct child exit status did not match the expected code"
+                        };
+                        replace_checkpoint_check(
+                            &mut result.checks,
+                            &subject.role,
+                            &case.id,
+                            checkpoint,
+                            "exit",
+                            status,
+                            reason,
+                            vec![
+                                format!("expected_code={code}"),
+                                format!("actual_code={actual_code}"),
+                                format!("signal={signal}"),
+                                format!("tracked_dec_modes={:?}", exit.observation.state.modes),
+                            ],
+                        )?;
+                    }
+                    Err(error) => replace_checkpoint_check(
+                        &mut result.checks,
+                        &subject.role,
+                        &case.id,
+                        checkpoint,
+                        "exit",
+                        "ERROR",
+                        "waiting for the direct child to exit failed",
+                        vec![error.to_string()],
+                    )?,
                 }
             }
             Step::Checkpoint {
@@ -6672,7 +7025,10 @@ fn drive_case_subject(
                     "first_frame",
                     "PASS",
                     "readiness predicates held on one captured PTY observation",
-                    vec![format!("{}x{}", case.geometry.cols, case.geometry.rows)],
+                    vec![format!(
+                        "{}x{}",
+                        effective_geometry.cols, effective_geometry.rows
+                    )],
                 );
                 push_check(
                     &mut result.checks,
@@ -6717,7 +7073,7 @@ fn drive_case_subject(
                             &captured,
                             &frame_artifact,
                             &png_artifact,
-                            &case.geometry,
+                            &effective_geometry,
                             &renderer,
                         );
                         let visual_outcome = compare_visual_capture(
@@ -6786,7 +7142,7 @@ fn drive_case_subject(
                     checkpoint,
                     "exit",
                     "NOT_APPLICABLE",
-                    "HELP-HOLLA-004 closes and reopens an overlay but does not exit the root TUI",
+                    "Application process exit is not measured in this checkpoint-driven journey",
                     Vec::new(),
                 );
                 push_check(
@@ -6815,6 +7171,128 @@ fn drive_case_subject(
     };
 
     Ok(result)
+}
+
+fn record_input_result(
+    checks: &mut Vec<CheckReceipt>,
+    role: &str,
+    case_id: &str,
+    operation: String,
+    result: Result<(), tuiscotti::tui::TuiError>,
+    pacing_ms: u64,
+) {
+    match result {
+        Ok(()) => std::thread::sleep(Duration::from_millis(pacing_ms)),
+        Err(error) => checks.push(check(
+            role,
+            case_id,
+            "input",
+            "interaction",
+            "ERROR",
+            format!("{operation} failed: {error}"),
+            Vec::new(),
+        )),
+    }
+}
+
+fn dispatch_mouse_input(
+    session: &tuiscotti::tui::Session,
+    input: &MouseInput,
+) -> Result<(), tuiscotti::tui::TuiError> {
+    use tuiscotti::tui::{MouseButton as TuiMouseButton, MouseMods, Wheel};
+
+    let button = |button| match button {
+        MouseButton::Left => TuiMouseButton::Left,
+        MouseButton::Middle => TuiMouseButton::Middle,
+        MouseButton::Right => TuiMouseButton::Right,
+    };
+    let modifiers = |modifiers: MouseModifiers| MouseMods {
+        shift: modifiers.shift,
+        alt: modifiers.alt,
+        ctrl: modifiers.ctrl,
+    };
+    match input {
+        MouseInput::Click {
+            button: mouse_button,
+            x,
+            y,
+            modifiers: mouse_modifiers,
+        } => session.click(button(*mouse_button), *x, *y, modifiers(*mouse_modifiers)),
+        MouseInput::Down {
+            button: mouse_button,
+            x,
+            y,
+            modifiers: mouse_modifiers,
+        } => session.mouse_down(button(*mouse_button), *x, *y, modifiers(*mouse_modifiers)),
+        MouseInput::Release {
+            x,
+            y,
+            modifiers: mouse_modifiers,
+        } => session.mouse_up(TuiMouseButton::Left, *x, *y, modifiers(*mouse_modifiers)),
+        MouseInput::Move {
+            x,
+            y,
+            modifiers: mouse_modifiers,
+        } => session.mouse_move(*x, *y, modifiers(*mouse_modifiers)),
+        MouseInput::Drag {
+            button: mouse_button,
+            x,
+            y,
+            modifiers: mouse_modifiers,
+        } => session.mouse_drag(button(*mouse_button), *x, *y, modifiers(*mouse_modifiers)),
+        MouseInput::Wheel {
+            direction,
+            x,
+            y,
+            modifiers: mouse_modifiers,
+        } => {
+            let wheel = match direction {
+                WheelDirection::Up => Wheel::Up,
+                WheelDirection::Down => Wheel::Down,
+                WheelDirection::Left => Wheel::Left,
+                WheelDirection::Right => Wheel::Right,
+            };
+            session.mouse_wheel(wheel, *x, *y, modifiers(*mouse_modifiers))
+        }
+    }
+}
+
+fn replace_checkpoint_check(
+    checks: &mut [CheckReceipt],
+    role: &str,
+    case_id: &str,
+    checkpoint: &str,
+    dimension: &str,
+    status: &str,
+    reason: &str,
+    evidence: Vec<String>,
+) -> Result<(), String> {
+    let mut matches = checks.iter().enumerate().filter(|(_, check)| {
+        check.subject_role == role
+            && check.case_id == case_id
+            && check.checkpoint_id == checkpoint
+            && check.dimension == dimension
+    });
+    let Some((index, _)) = matches.next() else {
+        return Err(format!(
+            "cannot replace missing {dimension} check for {role}:{case_id}:{checkpoint}"
+        ));
+    };
+    if matches.next().is_some() {
+        return Err(format!(
+            "cannot replace duplicate {dimension} checks for {role}:{case_id}:{checkpoint}"
+        ));
+    }
+    checks[index] = check(
+        role,
+        case_id,
+        checkpoint,
+        dimension,
+        status,
+        reason.to_string(),
+        evidence,
+    );
+    Ok(())
 }
 
 fn compare_visual_capture(
@@ -7096,6 +7574,7 @@ fn validate_visual_comparison_evidence(
     }
 
     let (expected_frame, expected_png) = generation.checkpoint_refs(checkpoint)?;
+    let checkpoint_geometry = checkpoint_geometry(case, checkpoint)?;
     let actual_frame = capture_artifact(receipt, role, &case.id, checkpoint, "frame_json")?;
     let actual_png = capture_artifact(receipt, role, &case.id, checkpoint, "png")?;
     let actual_fidelity =
@@ -7110,8 +7589,8 @@ fn validate_visual_comparison_evidence(
         ));
     }
     let frame = &comparison.frame;
-    let expected_geometry_matches = frame.expected_geometry == case.geometry;
-    let actual_geometry_matches = frame.actual_geometry == case.geometry;
+    let expected_geometry_matches = frame.expected_geometry == checkpoint_geometry;
+    let actual_geometry_matches = frame.actual_geometry == checkpoint_geometry;
     let frame_equal = frame.dimensions_equal && frame.cells_equal && frame.cursor_equal;
     if frame.version != 3
         || !expected_geometry_matches
@@ -7126,7 +7605,7 @@ fn validate_visual_comparison_evidence(
     let png = &comparison.png;
     let png_equal = png.dimensions_equal && png.pixels_equal;
     let profile_pixel_size = tuiscotti::profile::RenderProfile::vendored()
-        .image_size(case.geometry.cols, case.geometry.rows);
+        .image_size(checkpoint_geometry.cols, checkpoint_geometry.rows);
     if png.alpha_policy != "opaque"
         || png.equal != png_equal
         || png.dimensions_equal
@@ -7225,7 +7704,7 @@ fn checkpoints(case: &Case) -> Vec<&str> {
         .iter()
         .filter_map(|step| match step {
             Step::Checkpoint { id, .. } => Some(id.as_str()),
-            Step::Press { .. } => None,
+            _ => None,
         })
         .collect()
 }
@@ -7917,13 +8396,14 @@ fn write_capture(
 
 fn capture_relative_stem(case: &Case, checkpoint: &str) -> Result<String, String> {
     let output_substep = checkpoint_substep(case, checkpoint);
+    let geometry = checkpoint_geometry(case, checkpoint)?;
     let relative = format!(
         "{}/{}/{}/{}x{}/{}",
         case.app,
         case.screen,
         output_substep,
-        case.geometry.cols,
-        case.geometry.rows,
+        geometry.cols,
+        geometry.rows,
         case.color_path
     );
     let path = Path::new(&relative);
@@ -10604,6 +11084,132 @@ mod tests {
             validate_case_contract(&absence_only)
                 .unwrap_err()
                 .contains("at least one positive contains readiness predicate")
+        );
+    }
+
+    #[test]
+    fn step_program_digest_preserves_legacy_pilot_and_binds_new_events() {
+        let case = registry()
+            .expect("load registry")
+            .cases
+            .into_iter()
+            .find(|case| case.id == "HELP-HOLLA-004")
+            .expect("find Holla pilot");
+        let legacy = tag_case_capture_identity(&case, &"a".repeat(64))
+            .expect("serialize legacy Holla identity");
+        assert_eq!(
+            legacy.input_program_sha256,
+            "40d5785862c34179116e2fc34beff682f296ee5fa176e4e39007b636f46d04fd",
+            "the existing Press/Checkpoint input program digest is stable"
+        );
+
+        let mut expanded = case;
+        expanded.steps.insert(
+            1,
+            Step::Text {
+                text: "new input changes the bound program".to_string(),
+            },
+        );
+        let changed = tag_case_capture_identity(&expanded, &"a".repeat(64))
+            .expect("serialize expanded input identity");
+        assert_ne!(changed.input_program_sha256, legacy.input_program_sha256);
+    }
+
+    #[test]
+    fn resized_geometry_is_bound_to_each_later_checkpoint_and_capture_path() {
+        let mut case = registry()
+            .expect("load registry")
+            .cases
+            .into_iter()
+            .find(|case| case.id == "HELP-HOLLA-004")
+            .expect("find Holla pilot");
+        case.steps.insert(1, Step::Resize { cols: 73, rows: 21 });
+        validate_case_contract(&case).expect("valid boundary geometry resize");
+
+        assert_eq!(
+            checkpoint_geometry(&case, "00-boot").expect("initial checkpoint geometry"),
+            Geometry {
+                cols: 120,
+                rows: 40
+            }
+        );
+        assert_eq!(
+            checkpoint_geometry(&case, "01-help").expect("resized checkpoint geometry"),
+            Geometry { cols: 73, rows: 21 }
+        );
+        assert_eq!(
+            capture_relative_stem(&case, "00-boot").expect("initial capture path"),
+            "holla/finder/help-overlay/boot/120x40/truecolor"
+        );
+        assert_eq!(
+            capture_relative_stem(&case, "01-help").expect("resized capture path"),
+            "holla/finder/help-overlay/73x21/truecolor"
+        );
+    }
+
+    #[test]
+    fn expect_exit_replaces_one_existing_checkpoint_dimension() {
+        let mut checks = vec![check(
+            "reference",
+            "CASE-1",
+            "checkpoint-1",
+            "exit",
+            "NOT_APPLICABLE",
+            "exit is not yet observed".to_string(),
+            Vec::new(),
+        )];
+        replace_checkpoint_check(
+            &mut checks,
+            "reference",
+            "CASE-1",
+            "checkpoint-1",
+            "exit",
+            "PASS",
+            "expected direct-child exit observed",
+            vec!["expected_code=0".to_string()],
+        )
+        .expect("replace the existing N/A row");
+        assert_eq!(checks.len(), 1, "replacement does not append a duplicate");
+        assert_eq!(checks[0].status, "PASS");
+        assert_eq!(checks[0].evidence, vec!["expected_code=0"]);
+
+        checks.push(check(
+            "reference",
+            "CASE-1",
+            "checkpoint-1",
+            "exit",
+            "NOT_APPLICABLE",
+            "duplicate fixture row".to_string(),
+            Vec::new(),
+        ));
+        assert!(
+            replace_checkpoint_check(
+                &mut checks,
+                "reference",
+                "CASE-1",
+                "checkpoint-1",
+                "exit",
+                "FAIL",
+                "unexpected exit",
+                Vec::new(),
+            )
+            .unwrap_err()
+            .contains("duplicate exit checks")
+        );
+
+        assert!(
+            replace_checkpoint_check(
+                &mut checks,
+                "candidate",
+                "CASE-1",
+                "checkpoint-1",
+                "exit",
+                "FAIL",
+                "missing role row",
+                Vec::new(),
+            )
+            .unwrap_err()
+            .contains("missing exit check")
         );
     }
 

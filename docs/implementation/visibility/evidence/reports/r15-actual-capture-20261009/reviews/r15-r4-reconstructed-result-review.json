@@ -1,0 +1,73 @@
+{
+  "schema": "termrock-r15-reconstructed-capture-result-review-v1",
+  "reviewed_at_utc": "2026-10-09T10:43:42.701Z",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "verdict": "RECONSTRUCTED_REPORT_VALID_WITH_ORIGINAL_GATE_FAILURE_PRESERVED",
+  "review_mode": "Read-only report, source record, raw receipt and artifact verification; no Cargo/Nextest/PTY/product rerun.",
+  "subject": {
+    "report_path": "/private/tmp/termrock-tag-capture-r15-r4-recollection-20261009/reconstructed-postflight.json",
+    "report_sha256": "5f22d323784917907bcc10a4b9562966efd5a088e87e991b8828908ae435bbfa",
+    "collector_path": "/private/tmp/termrock-tag-capture-r15-r4-recollection-20261009/recollect-r4.cjs",
+    "collector_sha256": "40d2416361c42091bbb399512692ff01da3466c2c703d75f1216595b51051028"
+  },
+  "bound_original_evidence": {
+    "runner_sha256": "0d1d07a82a1a89b684924e736c3bc743e306b4bd197e6bdb480891745ad8a425",
+    "manifest_sha256": "ded529a2c0e0d9080029ee05fc843fec15d9cba8905749b026d160a6ce0042c3",
+    "nextest_run_id": "00c75b56-9a85-494b-9e17-6061d3a9c9df",
+    "original_wrapper_receipt_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/final-receipt.json",
+    "original_wrapper_receipt_sha256": "bbbaa88c6d00da04f28b3d9237397c42f0bd66b251842921c29dca89e7a09dd3",
+    "capture_receipt_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-capture-receipt.json",
+    "capture_receipt_sha256": "dba8be2ed8c80e6c56418ba9e78b476b65fe027c964b757903daa5c97fd8eea2"
+  },
+  "checks": {
+    "original_wrapper_exit_code": 125,
+    "original_child_exit_code": 0,
+    "original_input_stable": false,
+    "original_after_snapshot": null,
+    "report_preserves_original_wrapper_failure": true,
+    "report_type": "reconstructed_after_completion_not_original_postflight",
+    "report_explicitly_separates_reconstruction_from_original_postflight": true,
+    "point_in_time_context_match": true,
+    "context_groups": {
+      "package_files": true,
+      "tools": true,
+      "sdk": true,
+      "renderer": true,
+      "reviews": true,
+      "git": true,
+      "cache": true,
+      "tag": true,
+      "validator": true
+    },
+    "assertion_rows": {
+      "expected": 12,
+      "reported": 12,
+      "actual": 12,
+      "IDs_match": true,
+      "all_PASS": true
+    },
+    "aggregate_rows": {
+      "expected": 4,
+      "reported": 4,
+      "actual": 4,
+      "IDs_match": true,
+      "all_PASS": true
+    },
+    "artifact_rows": {
+      "expected": 40,
+      "reported": 40,
+      "actual": 40,
+      "inventory_matches_receipt": true,
+      "current_file_hash_failures": 0
+    },
+    "statuses": {
+      "execution_anchor": "unverified",
+      "qualification": "blocked",
+      "admission": "NOT_RUN",
+      "visual_pass_count": 0
+    },
+    "no_reexecution": true,
+    "no_product_source_or_suite_edits": true
+  },
+  "limits": "Validates a separately timestamped read-only reconstruction only. The original R4 wrapper remains exit 125 with input_stable=false and no recorded after snapshot; this review does not convert that original gate into PASS or claim qualification/admission."
+}

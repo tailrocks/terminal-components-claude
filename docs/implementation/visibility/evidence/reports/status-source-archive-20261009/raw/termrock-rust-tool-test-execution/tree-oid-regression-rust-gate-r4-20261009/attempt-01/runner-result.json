@@ -1,0 +1,1310 @@
+{
+  "schema": "termrock-vis06-tree-oid-rust-regression-run-result/v1",
+  "attempt_root": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01",
+  "runner_sha256": "9bfdd7cb2b802d1555b47cf867577de995ce2f7623602df828f959b819b77601",
+  "preflight_path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/preflight.json",
+  "preflight_sha256": "bb6efdb44b5333c281e0bf519482057f25315bc85a23c3942da550aeb0c6c448",
+  "command": {
+    "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "nextest",
+      "run",
+      "--manifest-path",
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/Cargo.toml",
+      "--test",
+      "subjects",
+      "--locked",
+      "--offline",
+      "--profile",
+      "default",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--user-config-file",
+      "none",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--no-tests",
+      "fail",
+      "-E",
+      "test(validates_tag_bundle_source_closure_but_keeps_execution_unverified)"
+    ],
+    "cwd": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests",
+    "timeout_ms": 240000
+  },
+  "environment": {
+    "HOME": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home",
+    "USER": "donbeave",
+    "LOGNAME": "donbeave",
+    "PATH": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "CARGO_HOME": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
+    "CARGO_TARGET_DIR": "/private/tmp/termrock-vis06-tree-oid-regression-target-r4-20261009",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_TERM_COLOR": "never",
+    "RUSTUP_HOME": "/Users/donbeave/.rustup",
+    "RUSTC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+    "RUSTDOC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+    "TMPDIR": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/tmp",
+    "TMP": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/tmp",
+    "TEMP": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/tmp",
+    "TERMROCK_VIS06_SUBJECTS_PY": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/subjects.py",
+    "GIT_OPTIONAL_LOCKS": "0",
+    "GIT_NO_LAZY_FETCH": "1",
+    "GIT_NO_REPLACE_OBJECTS": "1",
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_CONFIG_GLOBAL": "/dev/null",
+    "LANG": "C",
+    "LC_ALL": "C"
+  },
+  "started_at_utc": "2026-10-09T03:01:19.661Z",
+  "finished_at_utc": "2026-10-09T03:01:32.626Z",
+  "elapsed_seconds": 13.383,
+  "cargo_exit_code": 100,
+  "cargo_signal": null,
+  "timed_out": false,
+  "output_limit_exceeded": false,
+  "spawn_error": null,
+  "nextest_run_ids": [
+    "944e3365-4b92-4dc9-b813-4e77903d675d"
+  ],
+  "nextest_summaries": [
+    {
+      "selected": 1,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 16
+    }
+  ],
+  "selected_result_lines": [],
+  "all_subject_target_result_lines": [],
+  "stdout": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/logs/nextest.stdout.raw",
+    "bytes_seen": 0,
+    "bytes_saved": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/logs/nextest.stderr.raw",
+    "bytes_seen": 2642,
+    "bytes_saved": 2642,
+    "sha256": "4a016c6251f1201153e6f4b505cc550a41f8a6d06d04904da1ee3851b38b34d2"
+  },
+  "cleanup": {
+    "owned_process_group_gone": true,
+    "group_survivors_observed": false
+  },
+  "postflight_error": null,
+  "target_root_after": {
+    "path": "/private/tmp/termrock-vis06-tree-oid-regression-target-r4-20261009",
+    "exists": true,
+    "real_directory": true,
+    "dev": "16777234",
+    "ino": "78267960"
+  },
+  "tmpdir_entries_after": [],
+  "inputs_before": {
+    "candidate_files": {
+      "root": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests",
+      "file_count": 10,
+      "files": [
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/Cargo.lock",
+          "sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2",
+          "bytes": 7322,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769590",
+          "relative_path": "Cargo.lock"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/Cargo.toml",
+          "sha256": "f56265e959da084a19586110cf155b7a0232b0c42b96ca6ab07daa41c69997ae",
+          "bytes": 324,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769583",
+          "relative_path": "Cargo.toml"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/README.md",
+          "sha256": "67762a6f6df40b6e5514677e1dfbed4e429d7e1b91a99ddb53110b211df0126a",
+          "bytes": 5338,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769591",
+          "relative_path": "README.md"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/src/bin/fixture.rs",
+          "sha256": "771b3dff1fbf53a60d9b90ae6cc3934bc411bb3ef953bfbda31b5fb2dfca360c",
+          "bytes": 43998,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769594",
+          "relative_path": "src/bin/fixture.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/src/lib.rs",
+          "sha256": "96a6d3e8aea50b464444b598e2ee53b639548712fbfdbb8a0b5a39405c44a247",
+          "bytes": 51086,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769595",
+          "relative_path": "src/lib.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/tests/deferred.rs",
+          "sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d",
+          "bytes": 62489,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769589",
+          "relative_path": "tests/deferred.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/tests/queue.rs",
+          "sha256": "29802e6a03fc3e8ee9b712e2e822cab066c31aecc4a06a2490e1fc2f1d8afe3e",
+          "bytes": 83265,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769586",
+          "relative_path": "tests/queue.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/tests/queue_v2.rs",
+          "sha256": "3dad041f96f74727e95be8ca4cddc6c5862afeb851908dd681917c290315b582",
+          "bytes": 103807,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769585",
+          "relative_path": "tests/queue_v2.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/tests/status.rs",
+          "sha256": "3866cc2fadc6a189648a6ee34a43d947e4b11c74cb1644bc1d9c06c704331646",
+          "bytes": 112288,
+          "mode": 384,
+          "dev": "16777234",
+          "ino": "76769587",
+          "relative_path": "tests/status.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/tests/subjects.rs",
+          "sha256": "90dcf506ad931751ddd4af10284628f9c262655978efa1169c5b7cfedf9b896b",
+          "bytes": 185128,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769588",
+          "relative_path": "tests/subjects.rs"
+        }
+      ],
+      "length_prefixed_sha256": "6455ee6baeeea7fb8944db63506e6371fa438351ee96ec66ae7d8549ee3664be"
+    },
+    "external_inputs": {
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/candidate-manifest.json": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/candidate-manifest.json",
+        "sha256": "07d1fa11210044e92b421014b7aa92609369fcee886237a6625673ce28e1e7f0",
+        "bytes": 3929,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76796797"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/subjects.py": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/subjects.py",
+        "sha256": "38343f1e50a1aa1b0885378fee78e6b74202112f18094bf68ed02eff990cb0cd",
+        "bytes": 138656,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76653357"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/subjects.rs": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/subjects.rs",
+        "sha256": "90dcf506ad931751ddd4af10284628f9c262655978efa1169c5b7cfedf9b896b",
+        "bytes": 185128,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76653358"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/tools/visibility/subjects.py": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/tools/visibility/subjects.py",
+        "sha256": "38343f1e50a1aa1b0885378fee78e6b74202112f18094bf68ed02eff990cb0cd",
+        "bytes": 138656,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76769867"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-e2e/schemas/subject-manifest-v2.schema.json": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-e2e/schemas/subject-manifest-v2.schema.json",
+        "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+        "bytes": 9807,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76770602"
+      },
+      "/private/tmp/termrock-vis06-tree-oid-fix-independent-review-20261009-luna.json": {
+        "path": "/private/tmp/termrock-vis06-tree-oid-fix-independent-review-20261009-luna.json",
+        "sha256": "10cb0b8949645f13074cd0cae29c2546bc97b5226efd34326d4ac362f87137b8",
+        "bytes": 3825,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76990033"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/jackin-review-known-model.json": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/jackin-review-known-model.json",
+        "sha256": "10cb0b8949645f13074cd0cae29c2546bc97b5226efd34326d4ac362f87137b8",
+        "bytes": 3825,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "77264976"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/RUN-PLAN.md": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/RUN-PLAN.md",
+        "sha256": "0600d89e17be7e7f12eec4f9d7e7227db0036dadda40c1cbc45cb6e97ddb4570",
+        "bytes": 3614,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76797054"
+      },
+      "/private/tmp/termrock-rust-tool-test-execution/holla-cache-copy-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/cache-copy-postflight.json": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/holla-cache-copy-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/cache-copy-postflight.json",
+        "sha256": "5fcf5b7874094e5f23f36a1a5fc0418817aa7d8eb3dd278b8ea2b1b9f12d2d0c",
+        "bytes": 3551,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "69349472"
+      },
+      "/private/tmp/termrock-vis10-r5-q29-control-actual-20261009-r11-preflight/preflight.json": {
+        "path": "/private/tmp/termrock-vis10-r5-q29-control-actual-20261009-r11-preflight/preflight.json",
+        "sha256": "fec354c432f779e2bb10bdecf56fdcc496356908dd43ecfec714785c71b53874",
+        "bytes": 76746,
+        "mode": 384,
+        "dev": "16777234",
+        "ino": "77278120"
+      },
+      "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/runner-result.json": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/runner-result.json",
+        "sha256": "1be308a35db06a42b65f5988646df8b88019577b528e377234e3d51c47e05e14",
+        "bytes": 238247,
+        "mode": 384,
+        "dev": "16777234",
+        "ino": "75969228"
+      }
+    },
+    "source_git_refs": {
+      "refs": {
+        "refs/remotes/origin/visual-baseline": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+        "refs/remotes/origin/termrock-implementation": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "refs/tags/visual-baseline": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
+      },
+      "peeled_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+      "tag_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+      "annotated_tag_object_type": "tag"
+    },
+    "isolated_git_metadata": {
+      "git_dir": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.git",
+      "object_alternate": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.git/objects/info/alternates",
+        "sha256": "e12ad277a36fc9716dc9a59ce8f8b13c91b7a118961d8e340db79bdedfef2852",
+        "bytes": 75,
+        "mode": 292,
+        "dev": "16777234",
+        "ino": "77911043"
+      },
+      "alternate_mode": 292,
+      "source_object_dir": "/Users/donbeave/Projects/tailrocks/terminal-components-claude/.git/objects",
+      "config": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.git/config",
+        "sha256": "cae33efdb02cf774435c1ff9cb16bcc1014606908530c6e1dc727615fe3e8cda",
+        "bytes": 137,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "77911035"
+      },
+      "head": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.git/HEAD",
+        "sha256": "28d25bf82af4c0e2b72f50959b2beb859e3e60b9630a5e8c603dad4ddb2b6e80",
+        "bytes": 21,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "77911039"
+      },
+      "metadata_files": [
+        {
+          "relative_path": "HEAD",
+          "sha256": "28d25bf82af4c0e2b72f50959b2beb859e3e60b9630a5e8c603dad4ddb2b6e80",
+          "bytes": 21,
+          "mode": 420
+        },
+        {
+          "relative_path": "config",
+          "sha256": "cae33efdb02cf774435c1ff9cb16bcc1014606908530c6e1dc727615fe3e8cda",
+          "bytes": 137,
+          "mode": 420
+        },
+        {
+          "relative_path": "description",
+          "sha256": "85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee",
+          "bytes": 73,
+          "mode": 420
+        },
+        {
+          "relative_path": "hooks/applypatch-msg.sample",
+          "sha256": "0223497a0b8b033aa58a3a521b8629869386cf7ab0e2f101963d328aa62193f7",
+          "bytes": 478,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/commit-msg.sample",
+          "sha256": "efc1401b0e99d1ff51494d154d98b46c1e99059bcd8bf9f73cecde19fd3eb23b",
+          "bytes": 1972,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/fsmonitor-watchman.sample",
+          "sha256": "9159720099ad5595b8e66645cbfd47763c1e920f46e0b50ae75e642bbec57ef0",
+          "bytes": 4611,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/post-update.sample",
+          "sha256": "81765af2daef323061dcbc5e61fc16481cb74b3bac9ad8a174b186523586f6c5",
+          "bytes": 189,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-applypatch.sample",
+          "sha256": "e15c5b469ea3e0a695bea6f2c82bcf8e62821074939ddd85b77e0007ff165475",
+          "bytes": 424,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-commit.sample",
+          "sha256": "57185b7b9f05239d7ab52db045f5b89eb31348d7b2177eab214f5eb872e1971b",
+          "bytes": 1649,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-merge-commit.sample",
+          "sha256": "d3825a70337940ebbd0a5c072984e13245920cdf8898bd225c8d27a6dfc9cb53",
+          "bytes": 416,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-push.sample",
+          "sha256": "ecce9c7e04d3f5dd9d8ada81753dd1d549a9634b26770042b58dda00217d086a",
+          "bytes": 1374,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-rebase.sample",
+          "sha256": "4febce867790052338076f4e66cc47efb14879d18097d1d61c8261859eaaa7b3",
+          "bytes": 4898,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-receive.sample",
+          "sha256": "a4c3d2b9c7bb3fd8d1441c31bd4ee71a595d66b44fcf49ddb310252320169989",
+          "bytes": 544,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/prepare-commit-msg.sample",
+          "sha256": "e9ddcaa4189fddd25ed97fc8c789eca7b6ca16390b2392ae3276f0c8e1aa4619",
+          "bytes": 1492,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/push-to-checkout.sample",
+          "sha256": "a53d0741798b287c6dd7afa64aee473f305e65d3f49463bb9d7408ec3b12bf5f",
+          "bytes": 2783,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/sendemail-validate.sample",
+          "sha256": "44ebfc923dc5466bc009602f0ecf067b9c65459abfe8868ddc49b78e6ced7a92",
+          "bytes": 2308,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/update.sample",
+          "sha256": "8d5f2fa83e103cf08b57eaa67521df9194f45cbdbcb37da52ad586097a14d106",
+          "bytes": 3650,
+          "mode": 493
+        },
+        {
+          "relative_path": "info/exclude",
+          "sha256": "6671fe83b7a07c8932ee89164d1f2793b2318058eb8b98dc5c06ee0a5a3b0ec1",
+          "bytes": 240,
+          "mode": 420
+        },
+        {
+          "relative_path": "logs/refs/remotes/origin/termrock-implementation",
+          "sha256": "11fe4f2d4d42b00e7d54dd293e0d3df84a82d5cbcc85a9f10e20ca477f735793",
+          "bytes": 151,
+          "mode": 420
+        },
+        {
+          "relative_path": "logs/refs/remotes/origin/visual-baseline",
+          "sha256": "4a410bac4110e916e70c0a28a3f9cb57b4d9733b8406a6907a1f836fbdb74296",
+          "bytes": 151,
+          "mode": 420
+        },
+        {
+          "relative_path": "objects/info/alternates",
+          "sha256": "e12ad277a36fc9716dc9a59ce8f8b13c91b7a118961d8e340db79bdedfef2852",
+          "bytes": 75,
+          "mode": 292
+        },
+        {
+          "relative_path": "refs/remotes/origin/termrock-implementation",
+          "sha256": "bca404152176f7e36b291e2c0f28ca40bab362da15dc3d2fe5a89005b53a8811",
+          "bytes": 41,
+          "mode": 420
+        },
+        {
+          "relative_path": "refs/remotes/origin/visual-baseline",
+          "sha256": "af5afd817da93c890dc4e58c40cb2cdc59e384eee24452eac5575301cf09043d",
+          "bytes": 41,
+          "mode": 420
+        },
+        {
+          "relative_path": "refs/tags/visual-baseline",
+          "sha256": "48eded2994a2eb6e3746e89be0210ba08a0bcfb4d769d136dca08ccf3a6fd540",
+          "bytes": 41,
+          "mode": 420
+        }
+      ],
+      "refs": {
+        "refs/remotes/origin/termrock-implementation": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "refs/remotes/origin/visual-baseline": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+        "refs/tags/visual-baseline": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
+      },
+      "annotated_tag_object_type": "tag",
+      "peeled_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+      "tag_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+      "semantics": "isolated read-only ref lookup metadata; no checkout equivalence or product state is asserted"
+    },
+    "cache": {
+      "cargo_home": {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
+        "mode": "0700",
+        "dev": "16777234",
+        "ino": "69157547"
+      },
+      "copy_receipt": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/holla-cache-copy-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/cache-copy-postflight.json",
+        "sha256": "5fcf5b7874094e5f23f36a1a5fc0418817aa7d8eb3dd278b8ea2b1b9f12d2d0c",
+        "status": "PREPARED_ONLY_NO_CARGO_OR_BUILD",
+        "checked_registry_entries": 100595,
+        "checked_git_entries": 2323
+      },
+      "active_dependency_check": {
+        "path": "/private/tmp/termrock-vis10-r5-q29-control-actual-20261009-r11-preflight/preflight.json",
+        "sha256": "fec354c432f779e2bb10bdecf56fdcc496356908dd43ecfec714785c71b53874",
+        "package_count": 33,
+        "registry_package_count": 32,
+        "archive_checks": 32,
+        "source_checks": 32,
+        "sparse_index_checks": 32,
+        "lock_sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2"
+      }
+    },
+    "tools": {
+      "binaries": {
+        "cargo": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "bytes": 31960040,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2266785"
+        },
+        "rustc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+          "bytes": 412504,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2334731"
+        },
+        "rustdoc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+          "bytes": 11269752,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2334730"
+        },
+        "nextest": {
+          "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+          "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+          "bytes": 43079808,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2718261"
+        },
+        "node": {
+          "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+          "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+          "bytes": 121911744,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2265489"
+        },
+        "python3": {
+          "path": "/usr/bin/python3",
+          "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+          "bytes": 200560,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "1152921500312607500"
+        },
+        "git": {
+          "path": "/usr/bin/git",
+          "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+          "bytes": 200560,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "1152921500312607500"
+        }
+      },
+      "versions": {
+        "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+        "rustdoc": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+        "nextest": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)",
+        "node": "v24.20.0",
+        "python3": "Python 3.9.6",
+        "git": "git version 2.54.0 (Apple Git-157)"
+      }
+    },
+    "cargo_configs": [
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/credentials",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/credentials.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/credentials",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/credentials.toml",
+        "exists": false,
+        "sha256": null
+      }
+    ]
+  },
+  "inputs_after": {
+    "candidate_files": {
+      "root": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests",
+      "file_count": 10,
+      "files": [
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/Cargo.lock",
+          "sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2",
+          "bytes": 7322,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769590",
+          "relative_path": "Cargo.lock"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/Cargo.toml",
+          "sha256": "f56265e959da084a19586110cf155b7a0232b0c42b96ca6ab07daa41c69997ae",
+          "bytes": 324,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769583",
+          "relative_path": "Cargo.toml"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/README.md",
+          "sha256": "67762a6f6df40b6e5514677e1dfbed4e429d7e1b91a99ddb53110b211df0126a",
+          "bytes": 5338,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769591",
+          "relative_path": "README.md"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/src/bin/fixture.rs",
+          "sha256": "771b3dff1fbf53a60d9b90ae6cc3934bc411bb3ef953bfbda31b5fb2dfca360c",
+          "bytes": 43998,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769594",
+          "relative_path": "src/bin/fixture.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/src/lib.rs",
+          "sha256": "96a6d3e8aea50b464444b598e2ee53b639548712fbfdbb8a0b5a39405c44a247",
+          "bytes": 51086,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769595",
+          "relative_path": "src/lib.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/tests/deferred.rs",
+          "sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d",
+          "bytes": 62489,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769589",
+          "relative_path": "tests/deferred.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/tests/queue.rs",
+          "sha256": "29802e6a03fc3e8ee9b712e2e822cab066c31aecc4a06a2490e1fc2f1d8afe3e",
+          "bytes": 83265,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769586",
+          "relative_path": "tests/queue.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/tests/queue_v2.rs",
+          "sha256": "3dad041f96f74727e95be8ca4cddc6c5862afeb851908dd681917c290315b582",
+          "bytes": 103807,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769585",
+          "relative_path": "tests/queue_v2.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/tests/status.rs",
+          "sha256": "3866cc2fadc6a189648a6ee34a43d947e4b11c74cb1644bc1d9c06c704331646",
+          "bytes": 112288,
+          "mode": 384,
+          "dev": "16777234",
+          "ino": "76769587",
+          "relative_path": "tests/status.rs"
+        },
+        {
+          "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/tests/subjects.rs",
+          "sha256": "90dcf506ad931751ddd4af10284628f9c262655978efa1169c5b7cfedf9b896b",
+          "bytes": 185128,
+          "mode": 420,
+          "dev": "16777234",
+          "ino": "76769588",
+          "relative_path": "tests/subjects.rs"
+        }
+      ],
+      "length_prefixed_sha256": "6455ee6baeeea7fb8944db63506e6371fa438351ee96ec66ae7d8549ee3664be"
+    },
+    "external_inputs": {
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/candidate-manifest.json": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/candidate-manifest.json",
+        "sha256": "07d1fa11210044e92b421014b7aa92609369fcee886237a6625673ce28e1e7f0",
+        "bytes": 3929,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76796797"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/subjects.py": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/subjects.py",
+        "sha256": "38343f1e50a1aa1b0885378fee78e6b74202112f18094bf68ed02eff990cb0cd",
+        "bytes": 138656,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76653357"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/subjects.rs": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/subjects.rs",
+        "sha256": "90dcf506ad931751ddd4af10284628f9c262655978efa1169c5b7cfedf9b896b",
+        "bytes": 185128,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76653358"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/tools/visibility/subjects.py": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/tools/visibility/subjects.py",
+        "sha256": "38343f1e50a1aa1b0885378fee78e6b74202112f18094bf68ed02eff990cb0cd",
+        "bytes": 138656,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76769867"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-e2e/schemas/subject-manifest-v2.schema.json": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-e2e/schemas/subject-manifest-v2.schema.json",
+        "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+        "bytes": 9807,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76770602"
+      },
+      "/private/tmp/termrock-vis06-tree-oid-fix-independent-review-20261009-luna.json": {
+        "path": "/private/tmp/termrock-vis06-tree-oid-fix-independent-review-20261009-luna.json",
+        "sha256": "10cb0b8949645f13074cd0cae29c2546bc97b5226efd34326d4ac362f87137b8",
+        "bytes": 3825,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76990033"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/jackin-review-known-model.json": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/jackin-review-known-model.json",
+        "sha256": "10cb0b8949645f13074cd0cae29c2546bc97b5226efd34326d4ac362f87137b8",
+        "bytes": 3825,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "77264976"
+      },
+      "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/RUN-PLAN.md": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/RUN-PLAN.md",
+        "sha256": "0600d89e17be7e7f12eec4f9d7e7227db0036dadda40c1cbc45cb6e97ddb4570",
+        "bytes": 3614,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "76797054"
+      },
+      "/private/tmp/termrock-rust-tool-test-execution/holla-cache-copy-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/cache-copy-postflight.json": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/holla-cache-copy-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/cache-copy-postflight.json",
+        "sha256": "5fcf5b7874094e5f23f36a1a5fc0418817aa7d8eb3dd278b8ea2b1b9f12d2d0c",
+        "bytes": 3551,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "69349472"
+      },
+      "/private/tmp/termrock-vis10-r5-q29-control-actual-20261009-r11-preflight/preflight.json": {
+        "path": "/private/tmp/termrock-vis10-r5-q29-control-actual-20261009-r11-preflight/preflight.json",
+        "sha256": "fec354c432f779e2bb10bdecf56fdcc496356908dd43ecfec714785c71b53874",
+        "bytes": 76746,
+        "mode": 384,
+        "dev": "16777234",
+        "ino": "77278120"
+      },
+      "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/runner-result.json": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/runner-result.json",
+        "sha256": "1be308a35db06a42b65f5988646df8b88019577b528e377234e3d51c47e05e14",
+        "bytes": 238247,
+        "mode": 384,
+        "dev": "16777234",
+        "ino": "75969228"
+      }
+    },
+    "source_git_refs": {
+      "refs": {
+        "refs/remotes/origin/visual-baseline": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+        "refs/remotes/origin/termrock-implementation": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "refs/tags/visual-baseline": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
+      },
+      "peeled_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+      "tag_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+      "annotated_tag_object_type": "tag"
+    },
+    "isolated_git_metadata": {
+      "git_dir": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.git",
+      "object_alternate": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.git/objects/info/alternates",
+        "sha256": "e12ad277a36fc9716dc9a59ce8f8b13c91b7a118961d8e340db79bdedfef2852",
+        "bytes": 75,
+        "mode": 292,
+        "dev": "16777234",
+        "ino": "77911043"
+      },
+      "alternate_mode": 292,
+      "source_object_dir": "/Users/donbeave/Projects/tailrocks/terminal-components-claude/.git/objects",
+      "config": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.git/config",
+        "sha256": "cae33efdb02cf774435c1ff9cb16bcc1014606908530c6e1dc727615fe3e8cda",
+        "bytes": 137,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "77911035"
+      },
+      "head": {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.git/HEAD",
+        "sha256": "28d25bf82af4c0e2b72f50959b2beb859e3e60b9630a5e8c603dad4ddb2b6e80",
+        "bytes": 21,
+        "mode": 420,
+        "dev": "16777234",
+        "ino": "77911039"
+      },
+      "metadata_files": [
+        {
+          "relative_path": "HEAD",
+          "sha256": "28d25bf82af4c0e2b72f50959b2beb859e3e60b9630a5e8c603dad4ddb2b6e80",
+          "bytes": 21,
+          "mode": 420
+        },
+        {
+          "relative_path": "config",
+          "sha256": "cae33efdb02cf774435c1ff9cb16bcc1014606908530c6e1dc727615fe3e8cda",
+          "bytes": 137,
+          "mode": 420
+        },
+        {
+          "relative_path": "description",
+          "sha256": "85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee",
+          "bytes": 73,
+          "mode": 420
+        },
+        {
+          "relative_path": "hooks/applypatch-msg.sample",
+          "sha256": "0223497a0b8b033aa58a3a521b8629869386cf7ab0e2f101963d328aa62193f7",
+          "bytes": 478,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/commit-msg.sample",
+          "sha256": "efc1401b0e99d1ff51494d154d98b46c1e99059bcd8bf9f73cecde19fd3eb23b",
+          "bytes": 1972,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/fsmonitor-watchman.sample",
+          "sha256": "9159720099ad5595b8e66645cbfd47763c1e920f46e0b50ae75e642bbec57ef0",
+          "bytes": 4611,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/post-update.sample",
+          "sha256": "81765af2daef323061dcbc5e61fc16481cb74b3bac9ad8a174b186523586f6c5",
+          "bytes": 189,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-applypatch.sample",
+          "sha256": "e15c5b469ea3e0a695bea6f2c82bcf8e62821074939ddd85b77e0007ff165475",
+          "bytes": 424,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-commit.sample",
+          "sha256": "57185b7b9f05239d7ab52db045f5b89eb31348d7b2177eab214f5eb872e1971b",
+          "bytes": 1649,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-merge-commit.sample",
+          "sha256": "d3825a70337940ebbd0a5c072984e13245920cdf8898bd225c8d27a6dfc9cb53",
+          "bytes": 416,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-push.sample",
+          "sha256": "ecce9c7e04d3f5dd9d8ada81753dd1d549a9634b26770042b58dda00217d086a",
+          "bytes": 1374,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-rebase.sample",
+          "sha256": "4febce867790052338076f4e66cc47efb14879d18097d1d61c8261859eaaa7b3",
+          "bytes": 4898,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/pre-receive.sample",
+          "sha256": "a4c3d2b9c7bb3fd8d1441c31bd4ee71a595d66b44fcf49ddb310252320169989",
+          "bytes": 544,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/prepare-commit-msg.sample",
+          "sha256": "e9ddcaa4189fddd25ed97fc8c789eca7b6ca16390b2392ae3276f0c8e1aa4619",
+          "bytes": 1492,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/push-to-checkout.sample",
+          "sha256": "a53d0741798b287c6dd7afa64aee473f305e65d3f49463bb9d7408ec3b12bf5f",
+          "bytes": 2783,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/sendemail-validate.sample",
+          "sha256": "44ebfc923dc5466bc009602f0ecf067b9c65459abfe8868ddc49b78e6ced7a92",
+          "bytes": 2308,
+          "mode": 493
+        },
+        {
+          "relative_path": "hooks/update.sample",
+          "sha256": "8d5f2fa83e103cf08b57eaa67521df9194f45cbdbcb37da52ad586097a14d106",
+          "bytes": 3650,
+          "mode": 493
+        },
+        {
+          "relative_path": "info/exclude",
+          "sha256": "6671fe83b7a07c8932ee89164d1f2793b2318058eb8b98dc5c06ee0a5a3b0ec1",
+          "bytes": 240,
+          "mode": 420
+        },
+        {
+          "relative_path": "logs/refs/remotes/origin/termrock-implementation",
+          "sha256": "11fe4f2d4d42b00e7d54dd293e0d3df84a82d5cbcc85a9f10e20ca477f735793",
+          "bytes": 151,
+          "mode": 420
+        },
+        {
+          "relative_path": "logs/refs/remotes/origin/visual-baseline",
+          "sha256": "4a410bac4110e916e70c0a28a3f9cb57b4d9733b8406a6907a1f836fbdb74296",
+          "bytes": 151,
+          "mode": 420
+        },
+        {
+          "relative_path": "objects/info/alternates",
+          "sha256": "e12ad277a36fc9716dc9a59ce8f8b13c91b7a118961d8e340db79bdedfef2852",
+          "bytes": 75,
+          "mode": 292
+        },
+        {
+          "relative_path": "refs/remotes/origin/termrock-implementation",
+          "sha256": "bca404152176f7e36b291e2c0f28ca40bab362da15dc3d2fe5a89005b53a8811",
+          "bytes": 41,
+          "mode": 420
+        },
+        {
+          "relative_path": "refs/remotes/origin/visual-baseline",
+          "sha256": "af5afd817da93c890dc4e58c40cb2cdc59e384eee24452eac5575301cf09043d",
+          "bytes": 41,
+          "mode": 420
+        },
+        {
+          "relative_path": "refs/tags/visual-baseline",
+          "sha256": "48eded2994a2eb6e3746e89be0210ba08a0bcfb4d769d136dca08ccf3a6fd540",
+          "bytes": 41,
+          "mode": 420
+        }
+      ],
+      "refs": {
+        "refs/remotes/origin/termrock-implementation": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "refs/remotes/origin/visual-baseline": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+        "refs/tags/visual-baseline": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
+      },
+      "annotated_tag_object_type": "tag",
+      "peeled_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+      "tag_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+      "semantics": "isolated read-only ref lookup metadata; no checkout equivalence or product state is asserted"
+    },
+    "cache": {
+      "cargo_home": {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
+        "mode": "0700",
+        "dev": "16777234",
+        "ino": "69157547"
+      },
+      "copy_receipt": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/holla-cache-copy-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/cache-copy-postflight.json",
+        "sha256": "5fcf5b7874094e5f23f36a1a5fc0418817aa7d8eb3dd278b8ea2b1b9f12d2d0c",
+        "status": "PREPARED_ONLY_NO_CARGO_OR_BUILD",
+        "checked_registry_entries": 100595,
+        "checked_git_entries": 2323
+      },
+      "active_dependency_check": {
+        "path": "/private/tmp/termrock-vis10-r5-q29-control-actual-20261009-r11-preflight/preflight.json",
+        "sha256": "fec354c432f779e2bb10bdecf56fdcc496356908dd43ecfec714785c71b53874",
+        "package_count": 33,
+        "registry_package_count": 32,
+        "archive_checks": 32,
+        "source_checks": 32,
+        "sparse_index_checks": 32,
+        "lock_sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2"
+      }
+    },
+    "tools": {
+      "binaries": {
+        "cargo": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "bytes": 31960040,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2266785"
+        },
+        "rustc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+          "bytes": 412504,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2334731"
+        },
+        "rustdoc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+          "bytes": 11269752,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2334730"
+        },
+        "nextest": {
+          "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+          "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+          "bytes": 43079808,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2718261"
+        },
+        "node": {
+          "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+          "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+          "bytes": 121911744,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "2265489"
+        },
+        "python3": {
+          "path": "/usr/bin/python3",
+          "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+          "bytes": 200560,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "1152921500312607500"
+        },
+        "git": {
+          "path": "/usr/bin/git",
+          "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+          "bytes": 200560,
+          "mode": 493,
+          "dev": "16777234",
+          "ino": "1152921500312607500"
+        }
+      },
+      "versions": {
+        "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+        "rustdoc": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+        "nextest": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)",
+        "node": "v24.20.0",
+        "python3": "Python 3.9.6",
+        "git": "git version 2.54.0 (Apple Git-157)"
+      }
+    },
+    "cargo_configs": [
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/termrock-visibility-tests/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/crates/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-source-binding-tree-oid-fix-r1-20261009.P3EzJC/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/credentials",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/home/credentials.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/.cargo/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/.cargo/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/config",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/config.toml",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/credentials",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/credentials.toml",
+        "exists": false,
+        "sha256": null
+      }
+    ]
+  },
+  "source_inputs_unchanged": true,
+  "wrapper_assessment": "FAIL_OR_INCOMPLETE",
+  "qualification": "synthetic Rust black-box validator regression only; no product build, PTY capture, capture admission, or product qualification"
+}

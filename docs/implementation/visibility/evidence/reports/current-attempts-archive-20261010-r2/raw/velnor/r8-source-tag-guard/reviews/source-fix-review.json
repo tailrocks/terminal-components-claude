@@ -1,0 +1,41 @@
+{
+  "schema": "independent-source-and-actual-result-review/v1",
+  "reviewer": "ci_parity_review_luna",
+  "verdict": "READY",
+  "scope": "Confirm the preserved R5 test failure and statically review the one-file source-gate assertion correction",
+  "actual_r5_result": {
+    "receipt_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/execution/receipt.json",
+    "receipt_sha256": "3b6029e2f8e2b66ccc6bf2afdd3a2f9998ade04e783edc627d132a68a1cd3e56",
+    "command_log_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/execution/command-1.log",
+    "command_log_sha256": "341522870d9c759a6072b6385d4d38c504fea0dc2aca14ba1f46aaeb72797119",
+    "selected": 2,
+    "executed": 2,
+    "passed_ids": ["impl_schema2_routing::committed_release_files_match_schema2_bytes"],
+    "failed_ids": ["impl_schema2_routing::schema2_workflows_match_expected_bytes"],
+    "failed_assertion": "R4 searched for an unescaped fragment that does not occur in the generated YAML text. The source-tag snapshot stores the shell test with YAML-escaped double quotes; R5 now matches the exact escaped snippet.",
+    "qualification": "NOT_QUALIFIED"
+  },
+  "source_delta": {
+    "base_root": "/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source",
+    "candidate_root": "/private/tmp/termrock-vis11-tool-fixture-admission-r5-source-tag-guard-luna-20261010/source",
+    "base_test_source_sha256": "dcbef7bc01b8a644a98e3e5171b65ab8175d46922d2e22627cd28d4b817c8167",
+    "candidate_test_source_sha256": "c4fc520489392c7abfd9856903a5675ab295534a80ee6687beb377a49378f1b5",
+    "diff_q_changed_paths": ["crates/services/velnor-actions-orchestrator-generation/tests/schema2_generator_release_snapshots.rs"],
+    "source_tag_workflow_snapshot_sha256": "2d8f47b3361f7ab405aa03530cf7d8b9db3e7178bd268c02a6d46d82c18740f8",
+    "source_tag_action_snapshot_sha256": "7a7bff0325d9283d446504144ce9790d3119228d91b00b45789e5de339995184"
+  },
+  "review_findings": {
+    "raw_strings_match_escaped_rendered_yaml": true,
+    "push_event_and_exact_tag_ref_assertions_remain": true,
+    "peeled_target_assignment_assertion_remains": true,
+    "workflow_and_checkout_sha_assertions_remain": true,
+    "remote_tag_lookup_and_full_snapshot_equality_remain": true,
+    "negative_main_branch_and_no_ci_runs_api_checks_remain": true,
+    "other source bytes unchanged": true
+  },
+  "limits": [
+    "Static review only; no tests, Cargo, Nextest, build, formatter, or CLI were run by the reviewer.",
+    "The preserved R5 failure remains a failure; this review does not claim the R5/R6 source successor passes.",
+    "No product or release qualification is asserted."
+  ]
+}

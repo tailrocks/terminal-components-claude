@@ -1,0 +1,655 @@
+   Compiling serde_core v1.0.229
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling cfg-if v1.0.5
+   Compiling syn v3.0.6
+   Compiling serde v1.0.229
+   Compiling itoa v1.0.18
+   Compiling shlex v2.0.1
+   Compiling zmij v1.0.23
+   Compiling find-msvc-tools v0.1.14
+   Compiling cc v1.5.1
+   Compiling serde_derive v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling memchr v2.8.3
+   Compiling blake3 v1.8.7
+   Compiling thiserror v2.0.21
+   Compiling thiserror-impl v2.0.21
+   Compiling constant_time_eq v0.4.2
+   Compiling arrayvec v0.7.8
+   Compiling semver v1.0.28
+   Compiling libc v0.2.189
+   Compiling velnor-actions-contract v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/core/velnor-actions-contract)
+   Compiling velnor-actions-contract-release v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/core/velnor-actions-contract-release)
+   Compiling velnor-actions-contract-config v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/core/velnor-actions-contract-config)
+   Compiling rustix v1.1.5
+   Compiling errno v0.3.14
+   Compiling bitflags v2.13.2
+   Compiling winnow v1.0.4
+   Compiling velnor-actions-contract-planning v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/core/velnor-actions-contract-planning)
+   Compiling velnor-actions-contract-workflow v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/core/velnor-actions-contract-workflow)
+   Compiling typenum v1.20.1
+warning: missing documentation for a function
+   --> crates/core/velnor-actions-contract-workflow/src/workflow/artifact_build/reconcile.rs:198:1
+    |
+198 | / pub fn validate_downloaded_outputs(
+199 | |     result: &[super::ArtifactBuildFile],
+200 | |     expected: &[velnor_actions_contract_config::ArtifactBuildOutput],
+201 | |     downloaded: &[super::DownloadedArtifactOutput],
+202 | | ) -> Result<(), ContractError> {
+    | |______________________________^
+    |
+    = note: requested on the command line with `-W missing-docs`
+
+   Compiling hybrid-array v0.4.15
+   Compiling velnor-actions-workflow-steps v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-workflow-steps)
+   Compiling velnor-actions-workflow-tree v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-workflow-tree)
+warning: `velnor-actions-contract-workflow` (lib) generated 1 warning
+   Compiling velnor-actions-mise-core v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-mise-core)
+   Compiling ryu v1.0.23
+   Compiling hashbrown v0.17.1
+   Compiling equivalent v1.0.2
+   Compiling indexmap v2.14.2
+   Compiling hcl-primitives v0.1.12
+   Compiling vecmap-rs v0.2.5
+   Compiling fnv v1.0.7
+   Compiling pratt v0.4.0
+   Compiling hcl-edit v0.9.7
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling toml_datetime v0.7.5+spec-1.1.0
+   Compiling serde_spanned v1.1.1
+   Compiling toml_writer v1.1.2+spec-1.1.0
+   Compiling winnow v0.7.15
+   Compiling const-oid v0.10.2
+   Compiling digest v0.11.3
+   Compiling hcl-rs v0.19.8
+   Compiling toml v0.9.12+spec-1.1.0
+   Compiling velnor-actions-mise-catalog v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-mise-catalog)
+   Compiling cpufeatures v0.3.1
+   Compiling sha2 v0.11.0
+   Compiling velnor-actions-mise-nextest v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-mise-nextest)
+   Compiling velnor-actions-rust-core v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-rust-core)
+   Compiling velnor-actions-tofu-core v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-tofu-core)
+   Compiling velnor-actions-mise-cache v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-mise-cache)
+   Compiling velnor-actions-mise-probes v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-mise-probes)
+   Compiling velnor-actions-mise v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-mise)
+   Compiling velnor-actions-rust v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-rust)
+   Compiling velnor-actions-actionlint v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-actionlint)
+   Compiling velnor-actions-orchestrator-core v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-core)
+   Compiling velnor-actions-workflow-cache v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-workflow-cache)
+   Compiling velnor-actions-workflow-jobs v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-workflow-jobs)
+   Compiling velnor-actions-workflow-document v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-workflow-document)
+   Compiling velnor-actions-workflow-render-strict v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-workflow-render-strict)
+   Compiling velnor-actions-tofu v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/adapters/velnor-actions-tofu)
+   Compiling velnor-actions-workflow-renderer v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-workflow-renderer)
+   Compiling crc32fast v1.5.2
+   Compiling velnor-actions-orchestrator-discovery v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-discovery)
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling miniz_oxide v0.9.1
+   Compiling getrandom v0.4.3
+   Compiling flate2 v1.1.10
+   Compiling filetime v0.2.29
+   Compiling typed-path v0.12.3
+   Compiling tar v0.4.46
+   Compiling zip v8.6.0
+   Compiling lzma-rust2 v0.21.0
+   Compiling once_cell v1.21.4
+   Compiling fastrand v2.5.0
+   Compiling tempfile v3.27.0
+   Compiling velnor-actions-orchestrator-check-acquisition v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-check-acquisition)
+   Compiling velnor-actions-orchestrator-graph v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-graph)
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/acquisition.rs:20:1
+   |
+20 | / pub fn acquire(
+21 | |     handle: &QualifiedCheck,
+22 | |     check: &DiscoveredCheck,
+23 | |     home: &Path,
+24 | |     deadline: CheckDeadline,
+25 | | ) -> Result<Vec<QualifiedToolReceipt>, OrchestratorError> {
+   | |_________________________________________________________^
+   |
+   = note: requested on the command line with `-W missing-docs`
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:13:5
+   |
+13 |     pub id: String,
+   |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:14:5
+   |
+14 |     pub version: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:15:5
+   |
+15 |     pub platform: CheckPlatform,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:16:5
+   |
+16 |     pub definition_digest: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:17:5
+   |
+17 |     pub artifacts: Vec<QualifiedToolArtifact>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:18:5
+   |
+18 |     pub dependency_artifacts: Vec<QualifiedToolArtifact>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:19:5
+   |
+19 |     pub install_tree_sha256: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:20:5
+   |
+20 |     pub executables: Vec<QualifiedExecutableProof>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:23:1
+   |
+23 | / pub fn receipt(
+24 | |     tool: &QualifiedTool,
+25 | |     platform: CheckPlatform,
+26 | |     artifacts: Vec<QualifiedToolArtifact>,
+...  |
+29 | |     executables: Vec<QualifiedExecutableProof>,
+30 | | ) -> Result<QualifiedToolReceipt, OrchestratorError> {
+   | |____________________________________________________^
+
+   Compiling velnor-actions-orchestrator-check-preparation v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-check-preparation)
+warning: missing documentation for a module
+ --> crates/services/velnor-actions-orchestrator-check-preparation/src/lib.rs:9:1
+  |
+9 | pub mod container_receipts;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: requested on the command line with `-W missing-docs`
+
+warning: missing documentation for a module
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:11:1
+   |
+11 | pub mod runtime;
+   | ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:14:1
+   |
+14 | pub struct ContainerReceipt {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:15:5
+   |
+15 |     pub profile_digest: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:16:5
+   |
+16 |     pub before: CheckCapabilityProof,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:17:5
+   |
+17 |     pub after: CheckCapabilityProof,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:19:5
+   |
+19 |     pub sdk: Option<Value>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:20:5
+   |
+20 |     pub runtime: Value,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:21:5
+   |
+21 |     pub before_runtime: Option<runtime::RuntimeObservation>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:22:5
+   |
+22 |     pub after_runtime: Option<runtime::RuntimeObservation>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:24:1
+   |
+24 | / pub fn container_receipt<S: Serialize, R: Serialize>(
+25 | |     runner: &CheckRunner,
+26 | |     before: CheckCapabilityProof,
+27 | |     after: CheckCapabilityProof,
+...  |
+31 | |     after_runtime: Option<runtime::RuntimeObservation>,
+32 | | ) -> Result<Option<ContainerReceipt>, OrchestratorError> {
+   | |________________________________________________________^
+
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:61:1
+   |
+61 | / pub fn validate_container_receipt(
+62 | |     runner: &CheckRunner,
+63 | |     receipt: Option<&ContainerReceipt>,
+64 | | ) -> Result<(), OrchestratorError> {
+   | |__________________________________^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation.rs:23:5
+   |
+23 |     pub container: Option<container::OwnedContainer>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation.rs:24:5
+   |
+24 |     pub system_tools: Vec<SystemToolProof>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation.rs:25:5
+   |
+25 |     pub qualified_tools: Vec<QualifiedToolReceipt>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation/container.rs:13:1
+   |
+13 | pub struct OwnedContainer {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation/container.rs:63:1
+   |
+63 | pub struct ObservedContainer {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation/container.rs:68:1
+   |
+68 | / pub fn probe(
+69 | |     runner: &CheckRunner,
+70 | |     owned: Option<&OwnedContainer>,
+71 | |     deadline: CheckDeadline,
+72 | | ) -> Result<ObservedContainer, OrchestratorError> {
+   | |_________________________________________________^
+
+warning: missing documentation for a function
+   --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation/container.rs:105:1
+    |
+105 | / pub fn receipt(
+106 | |     runner: &CheckRunner,
+107 | |     owned: Option<&OwnedContainer>,
+108 | |     before: ObservedContainer,
+109 | |     after: ObservedContainer,
+110 | | ) -> Result<Option<crate::container_receipts::ContainerReceipt>, OrchestratorError> {
+    | |___________________________________________________________________________________^
+
+warning: `velnor-actions-orchestrator-check-acquisition` (lib) generated 10 warnings
+   Compiling velnor-actions-orchestrator-check-evidence v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-check-evidence)
+warning: `velnor-actions-orchestrator-check-preparation` (lib) generated 19 warnings
+   Compiling velnor-actions-orchestrator-selection v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-selection)
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:19:5
+   |
+19 |     pub schema: u32,
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: requested on the command line with `-W missing-docs`
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:20:5
+   |
+20 |     pub source: String,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:21:5
+   |
+21 |     pub run_key: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:22:5
+   |
+22 |     pub head: String,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:23:5
+   |
+23 |     pub check_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:24:5
+   |
+24 |     pub task_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:25:5
+   |
+25 |     pub task_digest: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:26:5
+   |
+26 |     pub input_digest: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:27:5
+   |
+27 |     pub matrix_key: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:28:5
+   |
+28 |     pub platform: CheckPlatform,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:29:5
+   |
+29 |     pub evidence: Option<EvidenceReceipt>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:30:5
+   |
+30 |     pub container: Option<container::ContainerReceipt>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:31:5
+   |
+31 |     pub system_tools: Vec<velnor_actions_mise::checks::SystemToolProof>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:32:5
+   |
+32 |     pub qualified_tools: Vec<tools::QualifiedToolReceipt>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:43:1
+   |
+43 | / pub fn execution_receipt(
+44 | |     plan: &Plan,
+45 | |     entry: &MatrixEntry,
+46 | |     check_id: &str,
+...  |
+50 | |     qualified_tools: Vec<tools::QualifiedToolReceipt>,
+51 | | ) -> CheckExecutionReceipt {
+   | |__________________________^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:15:5
+   |
+15 |     pub schema: u32,
+   |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:16:5
+   |
+16 |     pub source: String,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:17:5
+   |
+17 |     pub head: String,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:18:5
+   |
+18 |     pub check_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:19:5
+   |
+19 |     pub platform: CheckPlatform,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:20:5
+   |
+20 |     pub scenarios: Vec<Scenario>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:25:1
+   |
+25 | pub struct Scenario {
+   | ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:26:5
+   |
+26 |     pub id: String,
+   |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:27:5
+   |
+27 |     pub executed: bool,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:28:5
+   |
+28 |     pub status: ScenarioStatus,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an enum
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:33:1
+   |
+33 | pub enum ScenarioStatus {
+   | ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:34:5
+   |
+34 |     Passed,
+   |     ^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:35:5
+   |
+35 |     Failed,
+   |     ^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:36:5
+   |
+36 |     Skipped,
+   |     ^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:43:5
+   |
+43 |     pub schema: u32,
+   |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:44:5
+   |
+44 |     pub check_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:45:5
+   |
+45 |     pub source: String,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:46:5
+   |
+46 |     pub head: String,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:47:5
+   |
+47 |     pub platform: CheckPlatform,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:48:5
+   |
+48 |     pub path: String,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:49:5
+   |
+49 |     pub digest: String,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:50:5
+   |
+50 |     pub scenarios: Vec<String>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:52:5
+   |
+52 |     pub bytes: Vec<u8>,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a function
+   --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:96:1
+    |
+ 96 | / pub fn validate_evidence(
+ 97 | |     evidence: &ScenarioEvidence,
+ 98 | |     declaration: &CheckEvidence,
+ 99 | |     id: &str,
+100 | |     head: &str,
+101 | |     platform: CheckPlatform,
+102 | | ) -> Result<(), OrchestratorError> {
+    | |__________________________________^
+
+   Compiling velnor-actions-orchestrator-external-data v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-external-data)
+   Compiling velnor-actions-orchestrator-merge-ports v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-merge-ports)
+warning: `velnor-actions-orchestrator-check-evidence` (lib) generated 39 warnings
+   Compiling velnor-actions-orchestrator-merge v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-merge)
+   Compiling velnor-actions-orchestrator-provisioning v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-provisioning)
+   Compiling velnor-actions-orchestrator-pins v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-pins)
+   Compiling velnor-actions-workflow-release v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-workflow-release)
+   Compiling velnor-actions-orchestrator-cover-compat v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-cover-compat)
+   Compiling velnor-actions-orchestrator-cover-baseline v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-cover-baseline)
+   Compiling velnor-actions-workflow-generator v0.1.5-visibility.20261009.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-workflow-generator)
+   Compiling velnor-actions-orchestrator-workflow-ir v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-workflow-ir)
+   Compiling velnor-actions-orchestrator-run-select v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-run-select)
+   Compiling velnor-actions-orchestrator-cover v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-cover)
+   Compiling velnor-actions-workflow-schema2 v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-workflow-schema2)
+   Compiling velnor-actions-orchestrator-staged-validation v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-staged-validation)
+   Compiling velnor-actions-orchestrator-covered-tasks v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-covered-tasks)
+   Compiling velnor-actions-orchestrator-request-event v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-request-event)
+   Compiling velnor-actions-orchestrator-retrieve-retry v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-retrieve-retry)
+   Compiling velnor-actions-orchestrator-retrieve v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-retrieve)
+   Compiling velnor-actions-orchestrator-generation v0.1.5-visibility.20261009.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-generation)
+   Compiling velnor-actions-orchestrator-merge-request-ports v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-merge-request-ports)
+   Compiling velnor-actions-orchestrator-task-report v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-task-report)
+   Compiling velnor-actions-orchestrator-baseline-publish v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-baseline-publish)
+   Compiling velnor-actions-orchestrator-merge-request v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-merge-request)
+   Compiling velnor-actions-orchestrator-plan v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-plan)
+   Compiling velnor-actions-orchestrator-plan-obligation v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-plan-obligation)
+   Compiling velnor-actions-orchestrator-internal v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source/crates/services/velnor-actions-orchestrator-internal)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 43.09s
+────────────
+ Nextest run ID 61a98ec0-3545-476d-bf09-404a54cc997e with nextest profile: default
+    Starting 2 tests across 3 binaries (85 tests skipped)
+        PASS [   0.028s] (1/2) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::committed_release_files_match_schema2_bytes
+        FAIL [   0.183s] (2/2) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::schema2_workflows_match_expected_bytes
+  stdout ───
+
+    running 1 test
+    Initialized empty Git repository in /private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/execution/runtime/tmp/.tmpppqmKN/.git/
+    test impl_schema2_routing::schema2_workflows_match_expected_bytes ... FAILED
+
+    failures:
+
+    failures:
+        impl_schema2_routing::schema2_workflows_match_expected_bytes
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 56 filtered out; finished in 0.17s
+
+  stderr ───
+
+    thread 'impl_schema2_routing::schema2_workflows_match_expected_bytes' (112240715) panicked at crates/services/velnor-actions-orchestrator-generation/tests/schema2_generator_release_snapshots.rs:126:5:
+        runs-on: ubuntu-26.04
+        timeout-minutes: 20
+        permissions:
+          actions: read
+          contents: read
+        steps:
+          - name: Check out
+            uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+            with:
+              fetch-depth: "1"
+              persist-credentials: "false"
+          - name: Setup Mise
+            uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5
+            with:
+              version: 2026.9.18
+              sha256: d24fe0bf7e613824ad99f7b8dac3f2b381a37b9f75f84dd250855217095a8de4
+              install: "false"
+              env: "false"
+              cache: "false"
+              cache_save: "false"
+          - name: Install pinned release gate tools
+            shell: bash
+            run: mise --no-config --no-env --no-hooks install gh@2.102.0 actionlint@1.7.12 shellcheck@0.11.0 zizmor@1.30.1
+          - name: Run actionlint
+            shell: bash
+            run: mise --no-config --no-env --no-hooks exec actionlint@1.7.12 shellcheck@0.11.0 -- actionlint -color
+          - name: Run zizmor
+            shell: bash
+            run: mise --no-config --no-env --no-hooks exec zizmor@1.30.1 -- zizmor --no-online-audits --config .zizmor.yml .github/workflows
+          - name: Check release freshness gate
+            shell: bash
+            run: bash scripts/check-freshness.sh
+          - name: Recheck selected source tag
+            shell: bash
+            run: "set -eu\ntest \"$GITHUB_REPOSITORY\" = 'tailrocks/velnor-new'\ntest \"$GITHUB_EVENT_NAME\" = 'push'\ntest \"$GITHUB_REF\" = 'refs/tags/v0.1.5-visibility.20261009.1'\ntest \"$GITHUB_WORKFLOW_SHA\" = \"$GITHUB_SHA\"\ntest \"$(git rev-parse HEAD)\" = \"$GITHUB_SHA\"\nrows=\"$(git ls-remote 'https://github.com/tailrocks/velnor-new.git' 'refs/tags/v0.1.5-visibility.20261009.1' 'refs/tags/v0.1.5-visibility.20261009.1^{}')\"\ndirect=\"$(printf '%s\\n' \"$rows\" | awk -v ref='refs/tags/v0.1.5-visibility.20261009.1' '$2 == ref { if (found != \"\") exit 2; found = $1 } END { if (found == \"\") exit 1; print found }')\"\npeeled=\"$(printf '%s\\n' \"$rows\" | awk -v ref='refs/tags/v0.1.5-visibility.20261009.1^{}' '$2 == ref { if (found != \"\") exit 2; found = $1 } END { if (found != \"\") print found }')\"\nvalid_sha() {\n  case \"$1\" in *[!0123456789abcdef]*|'') return 1 ;; esac\n  length=\"$(printf '%s' \"$1\" | wc -c | tr -d '[:space:]')\"\n  test \"$length\" -eq 40\n}\nvalid_sha \"$direct\"\nif test -n \"$peeled\"; then\n  valid_sha \"$peeled\"\n  target=\"$peeled\"\nelse\n  target=\"$direct\"\nfi\ntest \"$target\" = \"$GITHUB_SHA\""
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   0.213s] 2 tests run: 1 passed, 1 failed, 85 skipped
+        FAIL [   0.183s] (2/2) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::schema2_workflows_match_expected_bytes
+error: test run failed

@@ -1,0 +1,2925 @@
+{
+  "schema": "termrock-vis06-pair-build-evidence-archive/v1",
+  "created_at_utc": "2026-10-09T12:07:00.322Z",
+  "archive_scope": "A reviewed later-point-in-time reconstruction of one Rust/Nextest supervised Holla reference/candidate build attempt. No executable binaries or Cargo cache are copied.",
+  "task_scope": {
+    "work_id": "VIS-06",
+    "archived_under_allowed_path": "docs/implementation/visibility/evidence/subjects/**",
+    "read_only_reconstruction": true
+  },
+  "execution": {
+    "nextest_run_id": "dc5cad83-f98f-47ee-acda-b64559fa0925",
+    "selected_test": "supervises_real_holla_pair_build",
+    "raw_case_result": "ONE_SELECTED_CASE_PASS",
+    "raw_summary": "     Summary [ 131.200s] 1 test run: 1 passed (1 slow), 16 skipped",
+    "cargo_exit_code": 0,
+    "original_runner_conclusion": "PAIR_BUILD_GATE_INCOMPLETE",
+    "wrapper_exit_observation": {
+      "code": 125,
+      "observer": "Root coordinator report",
+      "stored_in_runner_result": false
+    },
+    "expected_generation": null,
+    "qualification_status": "blocked",
+    "product_launch": "NOT_RUN",
+    "capture": "NOT_RUN",
+    "admission": "NOT_RUN",
+    "separate_linker_execution_proven": false
+  },
+  "later_observation_limits": {
+    "generated_at_utc": "2026-10-09T12:00:58.557Z",
+    "suite_paths_unmaterialized_in_partial_build_project": 27,
+    "cache_seed_entries": 698,
+    "non_global_seed_entries_matching_later_observation": 697,
+    "non_global_seed_mismatches": 0,
+    "later_cache_extras": 8189,
+    "global_cache_current_bytes": 57344,
+    "interpretation": "These are later filesystem observations. Missing suite paths in the partial build project are not labeled as source drift; the suite source identity is bound through the run/preflight Git blob evidence. Later Cargo-created cache entries are not retroactive execution-time snapshots."
+  },
+  "source_provenance": {
+    "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+    "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+    "suite_revision": "termrock-e2e-2026-10-09.2",
+    "suite_sha256": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+    "executables": [
+      {
+        "role": "reference",
+        "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/targets/reference/aarch64-apple-darwin/release/holla",
+        "sha256": "6ccfd4331b60be17c9a4c2bda9902401180869c7d08e67c6b4b90eb686144688",
+        "copied": false
+      },
+      {
+        "role": "candidate",
+        "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/targets/candidate/aarch64-apple-darwin/release/holla",
+        "sha256": "6cb6754cf2a285c9e960a2e25a10e1008cf41c72062d1985458b8fe84512d62f",
+        "copied": false
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "collector/pair-build-postflight-reconstruction-r4.cjs",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-build-postflight-reconstruction-r4.cjs",
+      "bytes": 37669,
+      "sha256": "52ece44761b73f27dafeb9fcd37a8760cd833ae302811cee88964de41d3d93c0",
+      "source_mode": 420,
+      "archived_mode": 420
+    },
+    {
+      "path": "original-attempt/artifacts/build-environment.json",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build-environment.json",
+      "bytes": 4718,
+      "sha256": "a43f1d3c2d0c7694728ca25e9d6f91f60180f24ac9f7bafb433c40f765d8fc3a",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/artifacts/run.json",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/run.json",
+      "bytes": 14892,
+      "sha256": "e19ff24b314f2284de93d64dd535a104850102bd39ac27a809a1d5bc0da0127d",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/artifacts/source-inputs.json",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source-inputs.json",
+      "bytes": 4462,
+      "sha256": "09f8907cc8d54cadd5f1f761d67ffcd342be084ab51eb5f2b632c7f1763692d0",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/artifacts/subject-manifest.json",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/subject-manifest.json",
+      "bytes": 9938,
+      "sha256": "2faf06339fcbe01ad30d92cb7dd490e07d69c1bee41e755d07877f8f27a31767",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/artifacts/supervisor-result.json",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/supervisor/result.json",
+      "bytes": 1848,
+      "sha256": "d5b9dd3baaa1df780056ff3b74d609cf023bc2f3b3ef2d9115a3ebd916c8726c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/build/candidate/holla/build.argv.json",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build/candidate/holla/build.argv.json",
+      "bytes": 615,
+      "sha256": "3bd5a6090a56aca4c6506c8876627aa8b5017dc51dada29b0d21395527f8df37",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/build/candidate/holla/build.exit",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build/candidate/holla/build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/build/candidate/holla/build.stderr",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build/candidate/holla/build.stderr",
+      "bytes": 7067,
+      "sha256": "d53858e751a5b21d8590d08dc1001bdb60e7956785c3ac1c14f08723e16c99c9",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/build/candidate/holla/build.stdout",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build/candidate/holla/build.stdout",
+      "bytes": 145243,
+      "sha256": "f02d949cd67f8046c91f6d85ce23b81dbb7e47b516d5b5da1895bac69ee16e51",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/build/reference/holla/build.argv.json",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build/reference/holla/build.argv.json",
+      "bytes": 619,
+      "sha256": "63e99cc26fbf705f757c69fc4d113e98de0f95e0c3b7766dc3ef1d9b92444f22",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/build/reference/holla/build.exit",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build/reference/holla/build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/build/reference/holla/build.stderr",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build/reference/holla/build.stderr",
+      "bytes": 2722,
+      "sha256": "0103bf88b1883aa29bda88adf70379c118f7bbae79f3cade5b50cad0907d1edd",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/build/reference/holla/build.stdout",
+      "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build/reference/holla/build.stdout",
+      "bytes": 116645,
+      "sha256": "4933f0c0db08f1dcd739f5247c41cd6c8056b85341f361a4f2ea1e7e3690e83e",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.3WM99gdQ/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.3WM99gdQ/argv.nul",
+      "bytes": 8014,
+      "sha256": "c2a174a118586f749af99ce70c4bc9a468ff5c2e05c4b6ffdf339dd541844763",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.3WM99gdQ/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.3WM99gdQ/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.3WM99gdQ/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.3WM99gdQ/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "1f16e82849c34912155b170b8cae9dbf08d3b9817e98001cce907a29206b8b99",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.3WM99gdQ/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.3WM99gdQ/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.3WM99gdQ/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.3WM99gdQ/driver.stderr",
+      "bytes": 8524,
+      "sha256": "2a87abce700a773829a99f68c8c06941afd431bc2e8595f3573fa53156e78910",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.3WM99gdQ/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.3WM99gdQ/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.3WM99gdQ/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.3WM99gdQ/metadata.txt",
+      "bytes": 515,
+      "sha256": "44ade2c8dbdd614ffc33a4613931e42a31a25ba05b09c75efa025194dd45d481",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.4mpoeew6/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.4mpoeew6/argv.nul",
+      "bytes": 6417,
+      "sha256": "ddcbc2040beaf91e170d6ce3a9f9c6a17b73d688755a67f1705d2b16658acff6",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.4mpoeew6/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.4mpoeew6/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.4mpoeew6/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.4mpoeew6/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "2cbc262da94953f83a656d941b0485e485d787f263b8f6f474ca828df91b14f3",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.4mpoeew6/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.4mpoeew6/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.4mpoeew6/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.4mpoeew6/driver.stderr",
+      "bytes": 6911,
+      "sha256": "3cb411360fca59faf4e9773e2124bb78a054ff3c2d35314ce4a387c2fb5cc587",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.4mpoeew6/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.4mpoeew6/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.4mpoeew6/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.4mpoeew6/metadata.txt",
+      "bytes": 517,
+      "sha256": "cc9db4e83d0e94f0083e2cc5863347a4c5c19fc556487c8ff983c0f2eb360243",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.5VhtjNbi/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.5VhtjNbi/argv.nul",
+      "bytes": 3514,
+      "sha256": "d6b49bc164f404dcd9b02e049c95b180dc1e584113c807c982598b19d790cf75",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.5VhtjNbi/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.5VhtjNbi/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.5VhtjNbi/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.5VhtjNbi/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "b2c85e1bb29eb3648df86894d7d82a6f27bee9f6fb21be0ea15538989957b1fc",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.5VhtjNbi/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.5VhtjNbi/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.5VhtjNbi/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.5VhtjNbi/driver.stderr",
+      "bytes": 3985,
+      "sha256": "e12159dad8a530b1cd0491311d2354df4a4281be0723681b1f3ccea3fa52fd92",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.5VhtjNbi/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.5VhtjNbi/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.5VhtjNbi/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.5VhtjNbi/metadata.txt",
+      "bytes": 508,
+      "sha256": "29391357cc2e7f7da240cf9523b615ccfefceb752d57a89eca1838349d7afe13",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.8bJGQoqE/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.8bJGQoqE/argv.nul",
+      "bytes": 6417,
+      "sha256": "34c9b453f7178a4e6aba6fb49685b02d25d60d8161aad4c471a5904daa4363a5",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.8bJGQoqE/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.8bJGQoqE/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.8bJGQoqE/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.8bJGQoqE/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "6d8f545b24a78ff203a1baaa088d0e8539c0cc43e9917ef30d6781e58f4fe1cc",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.8bJGQoqE/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.8bJGQoqE/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.8bJGQoqE/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.8bJGQoqE/driver.stderr",
+      "bytes": 6911,
+      "sha256": "bac65e609002ebd7587a5d15017678efa10f70cda059ca8a896b29e920e87ad8",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.8bJGQoqE/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.8bJGQoqE/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.8bJGQoqE/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.8bJGQoqE/metadata.txt",
+      "bytes": 517,
+      "sha256": "d26beb7d70bdba04d08a55068d70cdc77bb15cd0027ececfe75ce604ae057450",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9ANpGriD/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9ANpGriD/argv.nul",
+      "bytes": 3754,
+      "sha256": "cc466f458defa7087889311df3ebf64380da08dc931ebdda054dffc9f5b0af4e",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9ANpGriD/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9ANpGriD/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9ANpGriD/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9ANpGriD/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "796ec358fa7a2cf5ca170758bec4dd78167fce05bc44b280a25d536b3189babb",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9ANpGriD/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9ANpGriD/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9ANpGriD/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9ANpGriD/driver.stderr",
+      "bytes": 4227,
+      "sha256": "76987a7dcdbddd8b7dab9a743cb378be12602c2d85fb86d34696136fcd35be2c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9ANpGriD/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9ANpGriD/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9ANpGriD/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9ANpGriD/metadata.txt",
+      "bytes": 508,
+      "sha256": "f1f44bde9e080babf108bc46813cafb5328457044f54400ba0a41b75561e6b3a",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9Sc8Z4rm/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9Sc8Z4rm/argv.nul",
+      "bytes": 5594,
+      "sha256": "fcd91b0d9a7e0e40639ea2a540ee49aca96b19d214304bb8603850a631c711f5",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9Sc8Z4rm/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9Sc8Z4rm/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9Sc8Z4rm/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9Sc8Z4rm/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "5f70bc009831a91287eccb549962c36f227fb0a091f17d0331151d4cd7f24fa3",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9Sc8Z4rm/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9Sc8Z4rm/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9Sc8Z4rm/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9Sc8Z4rm/driver.stderr",
+      "bytes": 6082,
+      "sha256": "df482aa80c9faf152a5db298c263c1cb1b97b783433a88e35f9e755d265f0979",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9Sc8Z4rm/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9Sc8Z4rm/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9Sc8Z4rm/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9Sc8Z4rm/metadata.txt",
+      "bytes": 514,
+      "sha256": "e33143f429f79e2f5db84a9b55238800a437fb72440953edb088e253401f5007",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9XXAJkIh/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9XXAJkIh/argv.nul",
+      "bytes": 4203,
+      "sha256": "3adaf4c164655e5795951c78c1713729ff59289f7f36b15bdab883bcaf740958",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9XXAJkIh/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9XXAJkIh/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9XXAJkIh/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9XXAJkIh/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "99f972daddb63efe2c3c0ea41611435b396528e3e61d076d2c6964cbb90410e9",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9XXAJkIh/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9XXAJkIh/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9XXAJkIh/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9XXAJkIh/driver.stderr",
+      "bytes": 4675,
+      "sha256": "050d44c3a2f3fd6d0d044693eab2cd1b1fe34dfcbf47b06fbf13dd4adf0cbb04",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9XXAJkIh/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9XXAJkIh/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.9XXAJkIh/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.9XXAJkIh/metadata.txt",
+      "bytes": 507,
+      "sha256": "7ef0c3b96894760eb1cafb794de451046e7d17abbf5bf9ee829948d75523c223",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.AiXvVQRQ/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.AiXvVQRQ/argv.nul",
+      "bytes": 3559,
+      "sha256": "7c82bcaef0b4870f5e2fc792c6fe081f3f847b195124cb43dc7be6438c3f0b5e",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.AiXvVQRQ/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.AiXvVQRQ/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.AiXvVQRQ/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.AiXvVQRQ/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "305a59efffd338f5c97758e065dc43ed952cbd7d877f463ee540f3da5bfc893f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.AiXvVQRQ/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.AiXvVQRQ/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.AiXvVQRQ/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.AiXvVQRQ/driver.stderr",
+      "bytes": 4030,
+      "sha256": "f1262e0fcc3345ebc86178403627f8ec53161e9d205ce8f7a56d27bf19458d33",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.AiXvVQRQ/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.AiXvVQRQ/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.AiXvVQRQ/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.AiXvVQRQ/metadata.txt",
+      "bytes": 519,
+      "sha256": "9cd8577d7f491771ac04f13ee77355e9ee34ceddf0798ea330927a7069e132b5",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Cj4e602d/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Cj4e602d/argv.nul",
+      "bytes": 17928,
+      "sha256": "35880d74093f6623080546a9222559ca0d11608cf77717cea9639269ef2e3614",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Cj4e602d/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Cj4e602d/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Cj4e602d/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Cj4e602d/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "269b12de0248dc861810e09a9f19cd4989a02c59c31abc36bdd8e9cd4c6c075b",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Cj4e602d/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Cj4e602d/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Cj4e602d/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Cj4e602d/driver.stderr",
+      "bytes": 18603,
+      "sha256": "e0a4a3db9655b8c697f948f3e28fc7a1e3e7308696ba77a3d3f84471c6f34142",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Cj4e602d/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Cj4e602d/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Cj4e602d/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Cj4e602d/metadata.txt",
+      "bytes": 474,
+      "sha256": "c35932f7225c642a3da4e214df1667d49e066c13037be7b08652d91e65e764ce",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.DbmX3cOV/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.DbmX3cOV/argv.nul",
+      "bytes": 4651,
+      "sha256": "d76c957fe8e86569a1928ca68ab73c628ca662eb3fed44e77722bdc853e72bd8",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.DbmX3cOV/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.DbmX3cOV/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.DbmX3cOV/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.DbmX3cOV/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "199567779c33f061f4d9f7c51290f6623f7e35224b94521b3d96fcdcfd67e46a",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.DbmX3cOV/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.DbmX3cOV/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.DbmX3cOV/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.DbmX3cOV/driver.stderr",
+      "bytes": 5127,
+      "sha256": "22ac6cf47af9d830806e5d6d1c49266859175507278f5c41a1645a6d2064e7d2",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.DbmX3cOV/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.DbmX3cOV/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.DbmX3cOV/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.DbmX3cOV/metadata.txt",
+      "bytes": 514,
+      "sha256": "2422ed477f6bb03def74eacb71864a61bb000fa0ddeca33dac33391890a32440",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.E3qZiQiQ/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.E3qZiQiQ/argv.nul",
+      "bytes": 3539,
+      "sha256": "9be87803351c6d758685d0617e26d7f6057c827ad01876ee04f4c31f3b799692",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.E3qZiQiQ/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.E3qZiQiQ/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.E3qZiQiQ/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.E3qZiQiQ/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "667cb471f7d5a044ef08e45c0880950f91263cef7c2c3144b283d6fa14fb0fda",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.E3qZiQiQ/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.E3qZiQiQ/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.E3qZiQiQ/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.E3qZiQiQ/driver.stderr",
+      "bytes": 4010,
+      "sha256": "fed195c28444e28f9c502c1b28cfc4b8a02073e145b5661d2bb324d67dc14d27",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.E3qZiQiQ/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.E3qZiQiQ/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.E3qZiQiQ/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.E3qZiQiQ/metadata.txt",
+      "bytes": 514,
+      "sha256": "bbb2fa164bf7e77bffe7177caeae2f32b6084cdcf65ab4173da0c7f321c49a13",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.HcGYesrp/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.HcGYesrp/argv.nul",
+      "bytes": 3539,
+      "sha256": "8761648ba03025cbacef1fc2e38f7250bda6a84c4b44b8dd78f719f3fcad3cf7",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.HcGYesrp/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.HcGYesrp/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.HcGYesrp/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.HcGYesrp/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "b2c85e1bb29eb3648df86894d7d82a6f27bee9f6fb21be0ea15538989957b1fc",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.HcGYesrp/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.HcGYesrp/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.HcGYesrp/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.HcGYesrp/driver.stderr",
+      "bytes": 4010,
+      "sha256": "28ecbb7b51893931cdb7d22ac5fe57c5ed2202f369031841c711abdb72aad29b",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.HcGYesrp/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.HcGYesrp/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.HcGYesrp/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.HcGYesrp/metadata.txt",
+      "bytes": 515,
+      "sha256": "90e4dacfa6d45925b1641e91d94e17fbcb708297ef65205af7632fe2d903cf6c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.J2yv77TN/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.J2yv77TN/argv.nul",
+      "bytes": 3539,
+      "sha256": "a512c0860eccaf7ca2790908a893f895acebbcf6fe5738c3bfd6b815c092be73",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.J2yv77TN/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.J2yv77TN/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.J2yv77TN/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.J2yv77TN/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "5b59be1b5371db010d7a6c97a5d83629d7fc7b6fdd76d490da27c15658169a19",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.J2yv77TN/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.J2yv77TN/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.J2yv77TN/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.J2yv77TN/driver.stderr",
+      "bytes": 4010,
+      "sha256": "25fdcf3205f5e7624f9eb2b15a64a28b5f34bfb05493645d66a2f489cc87d9d6",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.J2yv77TN/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.J2yv77TN/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.J2yv77TN/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.J2yv77TN/metadata.txt",
+      "bytes": 514,
+      "sha256": "1788317caa54b5e16b815f4dcdad051428a5baebc3cc446728becf50a06db4e4",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.MKRuGjZk/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.MKRuGjZk/argv.nul",
+      "bytes": 5228,
+      "sha256": "c810c18b673118914c7fac3f774bce3a7c99fbde005b2418998c1099e529bd6a",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.MKRuGjZk/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.MKRuGjZk/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.MKRuGjZk/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.MKRuGjZk/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "87f71dbc15b15f6bf84774abfddc14b5857d2d3fda83736a2bfb24fe06043939",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.MKRuGjZk/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.MKRuGjZk/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.MKRuGjZk/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.MKRuGjZk/driver.stderr",
+      "bytes": 5712,
+      "sha256": "627cc4018022cc8325dc7b0590a12f5c4372aaf3fb9536698eef8876bcc705b7",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.MKRuGjZk/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.MKRuGjZk/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.MKRuGjZk/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.MKRuGjZk/metadata.txt",
+      "bytes": 516,
+      "sha256": "30316610df306e9a89ad8371a89b298da04ae3cf87e0caab858fc136382662bc",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.QEjjf1xT/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.QEjjf1xT/argv.nul",
+      "bytes": 3764,
+      "sha256": "ad80cd09c9e2293c5b92b582f7812bea78785bfef727715281c4ec91436a54c5",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.QEjjf1xT/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.QEjjf1xT/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.QEjjf1xT/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.QEjjf1xT/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "99f972daddb63efe2c3c0ea41611435b396528e3e61d076d2c6964cbb90410e9",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.QEjjf1xT/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.QEjjf1xT/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.QEjjf1xT/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.QEjjf1xT/driver.stderr",
+      "bytes": 4237,
+      "sha256": "1851f7f416906eec40aff08afd71158530cd2afc49ea19a61c40bf215da946e6",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.QEjjf1xT/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.QEjjf1xT/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.QEjjf1xT/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.QEjjf1xT/metadata.txt",
+      "bytes": 508,
+      "sha256": "4b63a3ffce88f92c7d5f4124340cc4cbcf8fce5598e427d0ddd2f18521d6b714",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Qteayln7/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Qteayln7/argv.nul",
+      "bytes": 5515,
+      "sha256": "8871372a8c11139c5348a5b89b1637a8a063b682f73f4ad56a5f322f889a8e44",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Qteayln7/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Qteayln7/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Qteayln7/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Qteayln7/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "c3fca8089b0e551216fe8cd124870753eeab2d1f78c197c8c26966276eabafe9",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Qteayln7/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Qteayln7/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Qteayln7/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Qteayln7/driver.stderr",
+      "bytes": 6001,
+      "sha256": "96e00f269214987b499ec2f98f33eab3f09a99a53c2ae8c6567bba40d23dbb45",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Qteayln7/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Qteayln7/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Qteayln7/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Qteayln7/metadata.txt",
+      "bytes": 518,
+      "sha256": "b053d29add237ab6e08cef7105705e9195a09792744b7384fd6bac3033d8610e",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.RyHOl1L3/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.RyHOl1L3/argv.nul",
+      "bytes": 3319,
+      "sha256": "88f7a672033899eb5ba9548c3297c337a60c6319a42851ba6b27534825dda161",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.RyHOl1L3/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.RyHOl1L3/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.RyHOl1L3/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.RyHOl1L3/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "91f0a093ac6563551473c22a996c3fbdb76234d8465167796bf3ec7acf8bc53f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.RyHOl1L3/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.RyHOl1L3/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.RyHOl1L3/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.RyHOl1L3/driver.stderr",
+      "bytes": 3790,
+      "sha256": "f1789d7662a91358cae9c8f01c4b0d9e4590a081c9d8fc0a86b2b6628cf5f2eb",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.RyHOl1L3/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.RyHOl1L3/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.RyHOl1L3/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.RyHOl1L3/metadata.txt",
+      "bytes": 511,
+      "sha256": "7ecf35c0665cf19a84e389858fc1b5cdc5a6533e66adf09467ad108ab139f054",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.SdQ8k1WN/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.SdQ8k1WN/argv.nul",
+      "bytes": 3539,
+      "sha256": "90671161ecfdee60e6d0478c77b1da5a172da21274c05d11e994f73432bd294d",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.SdQ8k1WN/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.SdQ8k1WN/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.SdQ8k1WN/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.SdQ8k1WN/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "e52813b77183d94ea68ee2b302ee2e90bff5b49e9198bfd5ff7549e5e631a8a5",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.SdQ8k1WN/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.SdQ8k1WN/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.SdQ8k1WN/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.SdQ8k1WN/driver.stderr",
+      "bytes": 4010,
+      "sha256": "36e50b58c2572e05e8a20bde7e2fcd18d6f9cf651dacfaf90c7c2ba9612c5898",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.SdQ8k1WN/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.SdQ8k1WN/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.SdQ8k1WN/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.SdQ8k1WN/metadata.txt",
+      "bytes": 514,
+      "sha256": "1b24706b1478b0ab28477c0b00ca1e84264442ce5e468856bff9df81021a5e39",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TC9Amyk7/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TC9Amyk7/argv.nul",
+      "bytes": 3539,
+      "sha256": "534c4f5ab54efccfcf32bc011bc4964a79c13852ba7008a256c14a1f21f52fee",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TC9Amyk7/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TC9Amyk7/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TC9Amyk7/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TC9Amyk7/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "1f16e82849c34912155b170b8cae9dbf08d3b9817e98001cce907a29206b8b99",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TC9Amyk7/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TC9Amyk7/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TC9Amyk7/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TC9Amyk7/driver.stderr",
+      "bytes": 4010,
+      "sha256": "e6e1dfd4c395c4a9c7d465e2d70646b538734dc833b93c4eecccdd2b99005b45",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TC9Amyk7/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TC9Amyk7/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TC9Amyk7/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TC9Amyk7/metadata.txt",
+      "bytes": 514,
+      "sha256": "0ed15285e981f068e7b8a5144e223119450591054b0becfa2001829cfea8441d",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TaxTWZDd/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TaxTWZDd/argv.nul",
+      "bytes": 20665,
+      "sha256": "ab8a0c99d61ebecb0f4d01dec921c8f07ee61f8547646b693d70e0dea1e25759",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TaxTWZDd/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TaxTWZDd/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TaxTWZDd/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TaxTWZDd/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "1c3b996b8a7dd8ea66f4f8968e42ec631f81a925bdf9e09d993bb2e926b2edac",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TaxTWZDd/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TaxTWZDd/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TaxTWZDd/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TaxTWZDd/driver.stderr",
+      "bytes": 21256,
+      "sha256": "65ec6364c2ccbcc6f27c41eaa5dbc66471502c5f2e3473c9baba1220d9d5d5f6",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TaxTWZDd/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TaxTWZDd/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.TaxTWZDd/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.TaxTWZDd/metadata.txt",
+      "bytes": 503,
+      "sha256": "85c1560c32144809ddb127495ffae0d91995073cf5b4f29d409768cd3e1bd829",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ULccKwYZ/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ULccKwYZ/argv.nul",
+      "bytes": 3323,
+      "sha256": "aa78e529d7ccc940b1d52a67140ee8c744d7cd7546eed254a0cae6631b066a01",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ULccKwYZ/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ULccKwYZ/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ULccKwYZ/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ULccKwYZ/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "91f0a093ac6563551473c22a996c3fbdb76234d8465167796bf3ec7acf8bc53f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ULccKwYZ/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ULccKwYZ/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ULccKwYZ/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ULccKwYZ/driver.stderr",
+      "bytes": 3794,
+      "sha256": "da8fc4760551f48799246a8c31ca1aaa2c418d3511c41f2012d5b9f17f9fa006",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ULccKwYZ/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ULccKwYZ/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ULccKwYZ/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ULccKwYZ/metadata.txt",
+      "bytes": 514,
+      "sha256": "dd29346b206a732b9595c381526aaf0b03982078c948a834d53748c973642703",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.WopY4IZg/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.WopY4IZg/argv.nul",
+      "bytes": 3499,
+      "sha256": "32f44254c4811dc2581ed03b807419d26bf9b5409ffaf04ef7d1e849b33a0435",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.WopY4IZg/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.WopY4IZg/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.WopY4IZg/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.WopY4IZg/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "91f0a093ac6563551473c22a996c3fbdb76234d8465167796bf3ec7acf8bc53f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.WopY4IZg/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.WopY4IZg/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.WopY4IZg/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.WopY4IZg/driver.stderr",
+      "bytes": 3972,
+      "sha256": "790cdf0ecfccc5dbc4a073143ca1f1c85e11a2827afc0a4c6a9813fb7bb6aad5",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.WopY4IZg/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.WopY4IZg/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.WopY4IZg/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.WopY4IZg/metadata.txt",
+      "bytes": 508,
+      "sha256": "70c446941636b95e5d5e901b5c429cab0f2b674ee08045102ff473b4ea611d27",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XIOzka3D/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XIOzka3D/argv.nul",
+      "bytes": 5095,
+      "sha256": "56bb90c560a78df67d9d1c131698a3fe9690890d264988993b457ad23b1eb714",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XIOzka3D/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XIOzka3D/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XIOzka3D/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XIOzka3D/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "5d04e2fd7bfb5cbbe067440396d32409bb01df92fc56938af4627e708ff0f7d0",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XIOzka3D/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XIOzka3D/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XIOzka3D/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XIOzka3D/driver.stderr",
+      "bytes": 5575,
+      "sha256": "a8df7664bd07abadb48682e03083800711b15e459a58eb369e41cb930ed74dea",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XIOzka3D/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XIOzka3D/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XIOzka3D/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XIOzka3D/metadata.txt",
+      "bytes": 520,
+      "sha256": "73d11e6b981742794bad1958f0154013ea0a33ef3c8dbeffb6d9fa67292927a9",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XYiZdbFL/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XYiZdbFL/argv.nul",
+      "bytes": 8014,
+      "sha256": "06dd38d48be3c02bfc3060bd177f9ba94a1ca1e59ceca01d6e449705e257cc43",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XYiZdbFL/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XYiZdbFL/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XYiZdbFL/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XYiZdbFL/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "305a59efffd338f5c97758e065dc43ed952cbd7d877f463ee540f3da5bfc893f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XYiZdbFL/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XYiZdbFL/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XYiZdbFL/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XYiZdbFL/driver.stderr",
+      "bytes": 8524,
+      "sha256": "28be71132b317aaafbbe3c9d3374d7f3e3053cfea35e2151a74310805c03d53a",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XYiZdbFL/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XYiZdbFL/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.XYiZdbFL/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.XYiZdbFL/metadata.txt",
+      "bytes": 515,
+      "sha256": "8e57ccaa2df749e869d0970babb6e788c8c7705bfb22339a9b1944565e15c05b",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Y8K6xOv1/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Y8K6xOv1/argv.nul",
+      "bytes": 3531,
+      "sha256": "b0f8db882bbbfc5972b6fc7232ff6b691d5b8a3a58d41a188c6cdf39f8951593",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Y8K6xOv1/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Y8K6xOv1/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Y8K6xOv1/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Y8K6xOv1/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "ebb35735c01a795bcba3f8cef4d7a1440090a2e7453fe1dd4016e23ef245f0d9",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Y8K6xOv1/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Y8K6xOv1/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Y8K6xOv1/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Y8K6xOv1/driver.stderr",
+      "bytes": 4002,
+      "sha256": "b52753ab8ab98df694859cc101f2b22a3b10ac7fd8c261ed0650cd382b65b04f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Y8K6xOv1/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Y8K6xOv1/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.Y8K6xOv1/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.Y8K6xOv1/metadata.txt",
+      "bytes": 512,
+      "sha256": "7acce478184ccf3176375eb72a7e790a625585ba429703590dbc16ee3178be22",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.YzFCQXHZ/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.YzFCQXHZ/argv.nul",
+      "bytes": 5515,
+      "sha256": "9e3fe4d36d84452b4bf24c7544a45e18c617d35f550df1901fb401be15d420df",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.YzFCQXHZ/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.YzFCQXHZ/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.YzFCQXHZ/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.YzFCQXHZ/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "8eba07c1e01fe19d094354382922da5657aca94eda93553d343f307a45391a52",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.YzFCQXHZ/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.YzFCQXHZ/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.YzFCQXHZ/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.YzFCQXHZ/driver.stderr",
+      "bytes": 6001,
+      "sha256": "5b78f3a2d98991b1e64e34dea3c41824c227a3d8c1efcb7769432596bd9846aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.YzFCQXHZ/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.YzFCQXHZ/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.YzFCQXHZ/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.YzFCQXHZ/metadata.txt",
+      "bytes": 518,
+      "sha256": "048e62ba5895c48b81cc8bb0c88df37f31aedf49f6130b8f086af8d17bef83a6",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a3x0cNY4/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a3x0cNY4/argv.nul",
+      "bytes": 27498,
+      "sha256": "2ad325df41c1eff40f9edddc044f001e97ae2601b073ed73688d9442369a2208",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a3x0cNY4/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a3x0cNY4/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a3x0cNY4/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a3x0cNY4/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "60acf2fe17cfc97803aaf9f8a90f8ff676b13b9708506a501a03c77813fd4291",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a3x0cNY4/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a3x0cNY4/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a3x0cNY4/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a3x0cNY4/driver.stderr",
+      "bytes": 28307,
+      "sha256": "98c04b0e5213be4574506e10ffa6757c75410c87d23ba5c1b5dcb4f5c8e649f7",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a3x0cNY4/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a3x0cNY4/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a3x0cNY4/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a3x0cNY4/metadata.txt",
+      "bytes": 474,
+      "sha256": "41f416ab4ed1df82d0422a3bfbd590a9afb428aedcfe4423cac2fd730bedf545",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a8J2R1VC/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a8J2R1VC/argv.nul",
+      "bytes": 3559,
+      "sha256": "7468aec28c4087e772a177bb502bb553060d7114e1fd84915da112e294fae450",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a8J2R1VC/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a8J2R1VC/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a8J2R1VC/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a8J2R1VC/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "667cb471f7d5a044ef08e45c0880950f91263cef7c2c3144b283d6fa14fb0fda",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a8J2R1VC/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a8J2R1VC/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a8J2R1VC/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a8J2R1VC/driver.stderr",
+      "bytes": 4030,
+      "sha256": "68583cea5e7f9b2a676177cf1101b7b588851c517e4532a6cb5c8bc46d8f1ea0",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a8J2R1VC/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a8J2R1VC/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.a8J2R1VC/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.a8J2R1VC/metadata.txt",
+      "bytes": 519,
+      "sha256": "28ef15f45d6c2b4b02f3cea40d9f4c46f9f29e750cb4addbb37c5c8c317df311",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.dLy5ZA2r/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.dLy5ZA2r/argv.nul",
+      "bytes": 4203,
+      "sha256": "032cb6479d4a91fbe4e3f1ac08f23788bed9d8c42ea22e41b6d784ed59bdbf74",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.dLy5ZA2r/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.dLy5ZA2r/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.dLy5ZA2r/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.dLy5ZA2r/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "7d4a368f31866d3f756075de3c7d669a4ab1b791dbf390ddd2f956185f3bc269",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.dLy5ZA2r/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.dLy5ZA2r/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.dLy5ZA2r/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.dLy5ZA2r/driver.stderr",
+      "bytes": 4675,
+      "sha256": "251f76f3253409338da58ca305e1de9d4784c242f0ace4ce1f833cb02607ad61",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.dLy5ZA2r/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.dLy5ZA2r/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.dLy5ZA2r/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.dLy5ZA2r/metadata.txt",
+      "bytes": 507,
+      "sha256": "7898deaf1384d13a345d587fec067c558058ab208278636790832c33964e40f7",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.fIfhZz78/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.fIfhZz78/argv.nul",
+      "bytes": 5594,
+      "sha256": "43f3f21b7190d47979f454b64412bcb67b3f8cc696cafbac869bf4c811a6bf69",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.fIfhZz78/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.fIfhZz78/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.fIfhZz78/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.fIfhZz78/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "8b0b663773a3794c5d985fb7f2451d8bb1f18b195275986f3d96e8fe6126e92d",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.fIfhZz78/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.fIfhZz78/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.fIfhZz78/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.fIfhZz78/driver.stderr",
+      "bytes": 6082,
+      "sha256": "cc0049885fff9623d70abeb089ddaa32a640f730c4a9750f9a77ca21ad133db4",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.fIfhZz78/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.fIfhZz78/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.fIfhZz78/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.fIfhZz78/metadata.txt",
+      "bytes": 514,
+      "sha256": "3d5e861ec2503c278dda23b5391f736a518c9e4cc9b16978a2ce6671f9d0760c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.foTu56ry/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.foTu56ry/argv.nul",
+      "bytes": 6738,
+      "sha256": "16700a2de2d57b09ef5c9e9f4e24c7a5b8ee52f8b10b7413dec476367cbf5fc2",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.foTu56ry/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.foTu56ry/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.foTu56ry/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.foTu56ry/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "26ac227289f1e0446641b03af8a846b80709d76c7980b8ee9cf3072d561e3cf6",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.foTu56ry/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.foTu56ry/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.foTu56ry/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.foTu56ry/driver.stderr",
+      "bytes": 7236,
+      "sha256": "b2639351804442583382c39ad67a35e74cc3f44d028e99bbfa1f9a06d4a88aa6",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.foTu56ry/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.foTu56ry/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.foTu56ry/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.foTu56ry/metadata.txt",
+      "bytes": 513,
+      "sha256": "b5ebcfd13573f67510893f3fbf592a00121fd5d7bda672944144f64eb2c8b76a",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.gqkV3Av5/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.gqkV3Av5/argv.nul",
+      "bytes": 3539,
+      "sha256": "cce6b32db535029b694833bad83503e4af4edc730e78891064a7586113b137ff",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.gqkV3Av5/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.gqkV3Av5/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.gqkV3Av5/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.gqkV3Av5/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "36747d4bbf91e928cedd02a2ad6b1e32f0e575e338be61fa2ce6fa8951f0bfb3",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.gqkV3Av5/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.gqkV3Av5/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.gqkV3Av5/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.gqkV3Av5/driver.stderr",
+      "bytes": 4010,
+      "sha256": "57ac56d56f3b9e9d4b4eb8268ece23d45888e1eb053e6814632de32ced70814f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.gqkV3Av5/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.gqkV3Av5/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.gqkV3Av5/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.gqkV3Av5/metadata.txt",
+      "bytes": 515,
+      "sha256": "a9d526121a20741babece6b1edacb19cb6ad8cb5d6fff5124047a8772167fcae",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.hIYMIjSw/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.hIYMIjSw/argv.nul",
+      "bytes": 3323,
+      "sha256": "617f0b74085d99f59fdceb8f6580f722c6726271a3bb74c9e03d3bcda2c342a0",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.hIYMIjSw/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.hIYMIjSw/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.hIYMIjSw/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.hIYMIjSw/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "abb8307dd136b77f37f7bc2c86c8698cadce744e16c9350160407996d37ef6ea",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.hIYMIjSw/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.hIYMIjSw/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.hIYMIjSw/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.hIYMIjSw/driver.stderr",
+      "bytes": 3794,
+      "sha256": "e02b08d903df2b34b352c413cb6b9006e4f98f0ca279d3c2ea7b3ca52230eb23",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.hIYMIjSw/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.hIYMIjSw/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.hIYMIjSw/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.hIYMIjSw/metadata.txt",
+      "bytes": 514,
+      "sha256": "4c8e9323778005151bf752ec651efeebbaa5abeb774188bf4896df90ca4b986f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.kk9HdViI/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.kk9HdViI/argv.nul",
+      "bytes": 3299,
+      "sha256": "8ad841d0c7cc4ec7eb60a1b8a44641a6bb2073f218e1c0e78748ab207a1763c7",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.kk9HdViI/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.kk9HdViI/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.kk9HdViI/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.kk9HdViI/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "3ccd1bd962b6e7ad141f82fcc590917068cac5695dd25a18afad4506e8142cd7",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.kk9HdViI/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.kk9HdViI/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.kk9HdViI/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.kk9HdViI/driver.stderr",
+      "bytes": 3770,
+      "sha256": "aae8c6ef073c0639d6d041679360f3964388688e9d416d17fea97e7949610a26",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.kk9HdViI/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.kk9HdViI/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.kk9HdViI/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.kk9HdViI/metadata.txt",
+      "bytes": 507,
+      "sha256": "ebdff9e591bfeec8844c79b8274e0fe316ac4c0b52b1ef18b41a9971ee8fa450",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.m5LSAlp7/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.m5LSAlp7/argv.nul",
+      "bytes": 4651,
+      "sha256": "432bc07afaf9d1e2d80ff277b5ae4d2360c39a1b6ad8e846399dcf6dedb26d05",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.m5LSAlp7/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.m5LSAlp7/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.m5LSAlp7/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.m5LSAlp7/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "8ad6a3c76f7b6aa61608fb48141fc61bd1a2e28957eed3e06b2d5a95c25e1aaf",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.m5LSAlp7/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.m5LSAlp7/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.m5LSAlp7/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.m5LSAlp7/driver.stderr",
+      "bytes": 5127,
+      "sha256": "0bff3c301e7d93d50fbc50c4a1458190aaf758eaebce27597bd52d711910cc73",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.m5LSAlp7/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.m5LSAlp7/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.m5LSAlp7/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.m5LSAlp7/metadata.txt",
+      "bytes": 514,
+      "sha256": "25377ad41e072065f8ec2e485e59e4cb80b95a45d49a86203c81862943e87ed0",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.mgk7mCeH/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.mgk7mCeH/argv.nul",
+      "bytes": 5228,
+      "sha256": "22399c89262103193a032f545d06187c8eae7bad0abcd9bf12557b876254785c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.mgk7mCeH/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.mgk7mCeH/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.mgk7mCeH/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.mgk7mCeH/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "26f223f5fbee4c60a94fd37188205fe3d483c81a4b1e3c6c14b05031180e0214",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.mgk7mCeH/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.mgk7mCeH/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.mgk7mCeH/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.mgk7mCeH/driver.stderr",
+      "bytes": 5712,
+      "sha256": "7478a26972fa208af95f52f95905af68e850092e5bd8fa93f643a6cb1662ae31",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.mgk7mCeH/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.mgk7mCeH/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.mgk7mCeH/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.mgk7mCeH/metadata.txt",
+      "bytes": 516,
+      "sha256": "66ef819415c8ee595c11f1833ae45596c78bf9b1bc433e26b796c79ed10b70b1",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oHHCk0iw/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oHHCk0iw/argv.nul",
+      "bytes": 3531,
+      "sha256": "f92761f456248306b05514bb4a8368a7a72c45bd5c15540d435d9623f03db12c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oHHCk0iw/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oHHCk0iw/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oHHCk0iw/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oHHCk0iw/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "c18119e5b853d32f7381cb8a51e2228c0c7ed02393e8c8852fcbbc6bf09fd96c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oHHCk0iw/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oHHCk0iw/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oHHCk0iw/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oHHCk0iw/driver.stderr",
+      "bytes": 4002,
+      "sha256": "59a45faa7520bd3eb9b79ba6b333b7751c138ef5b03bc4c07c4d82a7b05e27a6",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oHHCk0iw/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oHHCk0iw/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oHHCk0iw/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oHHCk0iw/metadata.txt",
+      "bytes": 512,
+      "sha256": "1ce6377e1bc02181274720a267dac116f91badedb5443b1e319cdff10de75ec7",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oqsv1D7u/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oqsv1D7u/argv.nul",
+      "bytes": 3764,
+      "sha256": "0b11b7d5055528316ef794c17e4c09aaf0e30d314bf2e381c16e63b21a8a677c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oqsv1D7u/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oqsv1D7u/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oqsv1D7u/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oqsv1D7u/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "7d4a368f31866d3f756075de3c7d669a4ab1b791dbf390ddd2f956185f3bc269",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oqsv1D7u/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oqsv1D7u/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oqsv1D7u/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oqsv1D7u/driver.stderr",
+      "bytes": 4237,
+      "sha256": "00c13473dab2236bff29050e3b43c2412cff295da3655013cabf43fb25132942",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oqsv1D7u/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oqsv1D7u/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.oqsv1D7u/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.oqsv1D7u/metadata.txt",
+      "bytes": 508,
+      "sha256": "8650b2d9455ca4cccffd55fee3382d65a2a0d30c35f020ba87075065d8ba1be9",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ou3XKtCL/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ou3XKtCL/argv.nul",
+      "bytes": 3514,
+      "sha256": "2a89dafdf1e221e3cf7f51c552caf3cdcfae9a6246fc6b549e7e52258ca3e08d",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ou3XKtCL/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ou3XKtCL/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ou3XKtCL/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ou3XKtCL/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "36747d4bbf91e928cedd02a2ad6b1e32f0e575e338be61fa2ce6fa8951f0bfb3",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ou3XKtCL/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ou3XKtCL/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ou3XKtCL/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ou3XKtCL/driver.stderr",
+      "bytes": 3985,
+      "sha256": "bfcee78de671789515303d71b3cafb282428f9abab5b6bda2b855cda186df552",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ou3XKtCL/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ou3XKtCL/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.ou3XKtCL/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.ou3XKtCL/metadata.txt",
+      "bytes": 508,
+      "sha256": "ff18591babaf147852652ef4b7f431ecaf336bc866021318400be67272cb4b5c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.pPwVxvVg/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.pPwVxvVg/argv.nul",
+      "bytes": 3754,
+      "sha256": "145c3f706d263d07d36a2db6f6d9d50d2e175c3a146beeaa12523bc822d18243",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.pPwVxvVg/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.pPwVxvVg/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.pPwVxvVg/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.pPwVxvVg/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "8d9304e4bbf2afd46081ce1e198a3adf5799c5b882c63a59e946893c6ebbd88e",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.pPwVxvVg/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.pPwVxvVg/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.pPwVxvVg/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.pPwVxvVg/driver.stderr",
+      "bytes": 4227,
+      "sha256": "4c2d51f74083e3d932ccdfb9c4eee755ea02db69431427193f84685021b847b6",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.pPwVxvVg/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.pPwVxvVg/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.pPwVxvVg/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.pPwVxvVg/metadata.txt",
+      "bytes": 508,
+      "sha256": "7bf688490f73058e39c3af633ea65c3cace32d60f8b5868ad91209e70005b9d5",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.uztW4VlS/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.uztW4VlS/argv.nul",
+      "bytes": 3869,
+      "sha256": "28b7694a54bc864e5039e545b59cc27ceb57574f4fb5baa98390a2627b32bdf5",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.uztW4VlS/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.uztW4VlS/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.uztW4VlS/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.uztW4VlS/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "e68be6880d97e6992653dbaff102acd47ccc6c6e527f3f6d7effaccb088ac55b",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.uztW4VlS/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.uztW4VlS/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.uztW4VlS/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.uztW4VlS/driver.stderr",
+      "bytes": 4346,
+      "sha256": "8ed7b73b507ef40309cb5fc2a344c370dfc26ed183540641bc3f66c1e6e9dde2",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.uztW4VlS/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.uztW4VlS/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.uztW4VlS/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.uztW4VlS/metadata.txt",
+      "bytes": 508,
+      "sha256": "136f102c9cc5bae6349f975a55693c8469479b206301d5ae3d10d694ff4f523c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vVEqxP1v/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vVEqxP1v/argv.nul",
+      "bytes": 26739,
+      "sha256": "6f5471bcce2212ee127477554789a0cf8e838c027648896546face368b20f1ce",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vVEqxP1v/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vVEqxP1v/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vVEqxP1v/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vVEqxP1v/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "3d477871bc50a5cb4206f004cbabef8ed6a1c84d6d0bd0b1a601b99d7550ce09",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vVEqxP1v/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vVEqxP1v/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vVEqxP1v/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vVEqxP1v/driver.stderr",
+      "bytes": 27376,
+      "sha256": "feeb24caef7d056915372e952ae0cb9f813083ba10948311ae08f6859e005118",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vVEqxP1v/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vVEqxP1v/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vVEqxP1v/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vVEqxP1v/metadata.txt",
+      "bytes": 503,
+      "sha256": "c71fd57c1fd6404df0210a11e4896734bca289b6b0fda0f30d091c41917ec537",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vnpnUZCq/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vnpnUZCq/argv.nul",
+      "bytes": 3539,
+      "sha256": "78bf99dad2762d48bbcb9a03f657d98036f9cc19ecbfedf26b3f4fe57d21a6ca",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vnpnUZCq/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vnpnUZCq/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vnpnUZCq/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vnpnUZCq/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "ebb35735c01a795bcba3f8cef4d7a1440090a2e7453fe1dd4016e23ef245f0d9",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vnpnUZCq/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vnpnUZCq/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vnpnUZCq/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vnpnUZCq/driver.stderr",
+      "bytes": 4010,
+      "sha256": "0d5abe8a9f035008c8d9cfcfb1e98f3863ef4378ef94fbaf1a7bb9d76df932f6",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vnpnUZCq/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vnpnUZCq/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.vnpnUZCq/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.vnpnUZCq/metadata.txt",
+      "bytes": 514,
+      "sha256": "f55e8d331bfab8ce42ae39dd6f1fa95f53b31a43ed2d99f7b7209a37273031fa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wsvZrw3j/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wsvZrw3j/argv.nul",
+      "bytes": 3539,
+      "sha256": "3c8aa606a16443cc1c91d240a46e31291ed242f0aa3c13f1865b8a99d86ae37f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wsvZrw3j/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wsvZrw3j/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wsvZrw3j/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wsvZrw3j/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "305a59efffd338f5c97758e065dc43ed952cbd7d877f463ee540f3da5bfc893f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wsvZrw3j/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wsvZrw3j/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wsvZrw3j/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wsvZrw3j/driver.stderr",
+      "bytes": 4010,
+      "sha256": "ab657d415a5abbd9f7052aff1517ab417c59f8f7cd9e8ae9829d78aebab97a5c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wsvZrw3j/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wsvZrw3j/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wsvZrw3j/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wsvZrw3j/metadata.txt",
+      "bytes": 514,
+      "sha256": "711310b43c12d353e314a7658457256b88e41ec2423734fbb7a6f5745a8186aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wvZNuSwl/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wvZNuSwl/argv.nul",
+      "bytes": 5095,
+      "sha256": "990f1fa86ea8de776ed7451df15323de8383c95f00ae1ced36edda22442c217b",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wvZNuSwl/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wvZNuSwl/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wvZNuSwl/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wvZNuSwl/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "b1956cb245bc88c9c3334a7c72abb61af35caa886a3d76f2ddc837a7178a6086",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wvZNuSwl/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wvZNuSwl/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wvZNuSwl/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wvZNuSwl/driver.stderr",
+      "bytes": 5575,
+      "sha256": "034baee61254db31019d4439b7380d75acbcf9d351b7884657618c63fb6c6ab0",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wvZNuSwl/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wvZNuSwl/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.wvZNuSwl/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.wvZNuSwl/metadata.txt",
+      "bytes": 520,
+      "sha256": "886b58e7e7e12c259b8fb8039ea026c302ebaa94cd62ce4592f18ae9c3496e9b",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xfe5TrZ8/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xfe5TrZ8/argv.nul",
+      "bytes": 3456,
+      "sha256": "a333fcdba1c5a7dcf09ef8b9751a5a03b7e7169ebb6ccbda3619b66dd77446c3",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xfe5TrZ8/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xfe5TrZ8/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xfe5TrZ8/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xfe5TrZ8/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "e68be6880d97e6992653dbaff102acd47ccc6c6e527f3f6d7effaccb088ac55b",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xfe5TrZ8/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xfe5TrZ8/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xfe5TrZ8/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xfe5TrZ8/driver.stderr",
+      "bytes": 3929,
+      "sha256": "430f63feb39c03a5635edc2e027eaa11eba078ac0e164b00bba41960c4bc79c1",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xfe5TrZ8/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xfe5TrZ8/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xfe5TrZ8/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xfe5TrZ8/metadata.txt",
+      "bytes": 516,
+      "sha256": "9fdde418fb69ebfe72ac3aefcd2aeea10dc0f3ef8171e42ec3e9cf3bd70db0db",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xmzEiPmO/argv.nul",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xmzEiPmO/argv.nul",
+      "bytes": 6738,
+      "sha256": "066d49dfbc9241b044d9ac63f6f0aac85b48e39f0a7906ea7f1ae362483b08c0",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xmzEiPmO/compiler.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xmzEiPmO/compiler.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xmzEiPmO/completed_utc.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xmzEiPmO/completed_utc.txt",
+      "bytes": 21,
+      "sha256": "83624ade0da290939a052c6564c485bb97d80e8b42daad85f075fcfbd3edb765",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xmzEiPmO/driver.exit",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xmzEiPmO/driver.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xmzEiPmO/driver.stderr",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xmzEiPmO/driver.stderr",
+      "bytes": 7236,
+      "sha256": "5e90376dc0e4c164a8950e4947e00469e3c85778bad2e27e6ce68e1d09910a79",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xmzEiPmO/driver.stdout",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xmzEiPmO/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/compiler-traces/cc.xmzEiPmO/metadata.txt",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tool-traces/pair-178a-20261009-1052Z-r3/cc.xmzEiPmO/metadata.txt",
+      "bytes": 513,
+      "sha256": "6cdf357fc9e7407a8eb4f50182103cb577e702e627b8e3ca59d71e615775b224",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/invocation.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/invocation.json",
+      "bytes": 25462,
+      "sha256": "fe80455cda458c1ee78d358058250b2625df6421d941fc4d4b4c1a5f84aa0732",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/launch-grant.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/root-launch-grant-r4.json",
+      "bytes": 572,
+      "sha256": "38e625899ce320bf9710cda92730dc7c5004e62d9df26c114c51083c5901ee4c",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/logs/nextest.stderr.raw",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/logs/nextest.stderr.raw",
+      "bytes": 1832,
+      "sha256": "e80edc7d30e3aac2c34c3822678d187d4ee0427f8e4136eaa00b9aa5c61a16d1",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/logs/nextest.stdout.raw",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/logs/nextest.stdout.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/logs/process-events.jsonl",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/logs/process-events.jsonl",
+      "bytes": 754,
+      "sha256": "99620ee6c28fc002adeef42846cafbe33d63e46713c562347ccaf3a5f4208c9a",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/preflight.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/preflight.json",
+      "bytes": 28699,
+      "sha256": "c0e88ff9594195c1e509940f0a761dab689c2786b002183bb69f9a94af349212",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/provenance/cache-closure-r3.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/preparation/cache-closure-r3.json",
+      "bytes": 382076,
+      "sha256": "437eeadc8cf26858e372536688fc6e14d10683557c66bca56ee8ffb272e9d158",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/provenance/cache-closure-review.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/preparation/cache-closure-independent-review-luna.json",
+      "bytes": 3964,
+      "sha256": "823af41a3adb98d81f2694e03b9392fc13198241501fdeee4a6d52a16e3ee511",
+      "source_mode": 420,
+      "archived_mode": 420
+    },
+    {
+      "path": "original-attempt/provenance/suite-identity-r3.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/preparation/suite-identity-r3.json",
+      "bytes": 7754,
+      "sha256": "a9b028f77d9590b9215d79f10658ed7498706b8c10c81858f532100a6b81e45f",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "original-attempt/runner-result.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/runner-result.json",
+      "bytes": 2395081,
+      "sha256": "8f6204894095d1ed64cad234a5a47ecbeee6e5894ef3d1c41812a878ac70fe57",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "postflight-reconstruction.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-build-postflight-reconstruction-r4.json",
+      "bytes": 2765860,
+      "sha256": "88b489f3a0eaa7380e892bac0f9f12b175d2c6b0746e44e3aa168e831f491763",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "reviews/collector-static-review.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-build-postflight-reconstruction-r4-review-luna.json",
+      "bytes": 1807,
+      "sha256": "a1a6f80caf22c04b104be01f80f0daaff16afb7dfa40f8025fffdcfb8038dd0e",
+      "source_mode": 384,
+      "archived_mode": 384
+    },
+    {
+      "path": "reviews/original-runner-result-review.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/actual-result-review-luna.json",
+      "bytes": 6025,
+      "sha256": "08bb7571a165413316307f33c657965e7bffc2604a934b6a7166b779519a3727",
+      "source_mode": 420,
+      "archived_mode": 420
+    },
+    {
+      "path": "reviews/original-runner-static-review.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/review-luna.json",
+      "bytes": 3096,
+      "sha256": "afc2d08038e9d9ab102991881bdbd5029ae791e7706f2e473d50e611a1da68e4",
+      "source_mode": 420,
+      "archived_mode": 420
+    },
+    {
+      "path": "reviews/reconstruction-result-review.json",
+      "source_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-build-postflight-reconstruction-r4-actual-review-luna.json",
+      "bytes": 2513,
+      "sha256": "d58058db06bfed8f0dacb645505fe4f75e534febe60ea2adb5d98755d29a912c",
+      "source_mode": 384,
+      "archived_mode": 384
+    }
+  ]
+}

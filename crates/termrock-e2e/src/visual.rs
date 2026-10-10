@@ -10,7 +10,6 @@ use crate::{ArtifactReceipt, Case, ExpectedGenerationInput, Geometry, RendererId
 pub(crate) const EXPECTED_GENERATION_SCHEMA: &str = "termrock-spec/parity-expected-generation-v1";
 const EXPECTED_TREE_ALGORITHM: &str = "termrock-e2e/expected-tree-v1";
 const TUISCOTTI_REVISION: &str = "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274";
-const CHECKPOINT_IDS: [&str; 4] = ["00-boot", "01-help", "02-finder", "03-help-again"];
 const FRAME_VERSION: u8 = 3;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -259,7 +258,7 @@ pub(crate) fn load_expected_generation(
     )?;
     let root = resolved_root.path;
 
-    let files = read_exact_generation_tree(&root)?;
+    let (files, directories) = read_exact_generation_tree(&root)?;
     let manifest_bytes = files
         .get("expected-generation.json")
         .ok_or_else(|| "expected generation manifest is missing".to_string())?;
@@ -281,6 +280,7 @@ pub(crate) fn load_expected_generation(
         tuiscotti_revision,
         renderer,
     )?;
+    validate_generation_tree_layout(&files, &directories, &manifest.checkpoints)?;
     let tree_sha256 = expected_tree_sha256(&files)?;
     if tree_sha256 != expected.sha256 {
         return Err(format!(
@@ -290,9 +290,11 @@ pub(crate) fn load_expected_generation(
     }
 
     let strict_profile = tuiscotti::profile::RenderProfile::vendored();
-    let expected_png_size = strict_profile.image_size(case.geometry.cols, case.geometry.rows);
     let mut checkpoints = BTreeMap::new();
     for entry in &manifest.checkpoints {
+        let expected_geometry = &entry.geometry;
+        let expected_png_size =
+            strict_profile.image_size(expected_geometry.cols, expected_geometry.rows);
         let frame_bytes = files
             .get(&entry.frame.path)
             .ok_or_else(|| format!("expected frame file is missing: {}", entry.frame.path))?
@@ -304,7 +306,7 @@ pub(crate) fn load_expected_generation(
             entry.frame.bytes,
             &frame_bytes,
         )?;
-        let frame = parse_canonical_frame(&frame_bytes, &case.geometry)?;
+        let frame = parse_canonical_frame(&frame_bytes, expected_geometry)?;
         validate_screen_provenance(&frame, "expected")?;
 
         let png_bytes = files
@@ -462,30 +464,17 @@ fn validate_generation_manifest(
     ] {
         require_sha256_lower(name, digest)?;
     }
-    if case.id != "HELP-HOLLA-004"
-        || case.geometry.cols != 120
-        || case.geometry.rows != 40
-        || case.color_path != "truecolor"
-    {
-        return Err(
-            "expected-generation is only valid for HELP-HOLLA-004 at 120x40 truecolor".to_string(),
-        );
+    crate::validate_geometry(&case.geometry)?;
+    let case_checkpoints = crate::checkpoints(case);
+    if case_checkpoints.is_empty() {
+        return Err("expected-generation case has no checkpoints".to_string());
     }
-    let case_checkpoints = case
-        .steps
-        .iter()
-        .filter_map(|step| match step {
-            crate::Step::Checkpoint { id, .. } => Some(id.as_str()),
-            crate::Step::Press { .. } => None,
-        })
-        .collect::<Vec<_>>();
-    if case_checkpoints != CHECKPOINT_IDS {
-        return Err(
-            "HELP-HOLLA-004 checkpoint sequence does not match the fixed pilot".to_string(),
-        );
-    }
-    if manifest.checkpoints.len() != CHECKPOINT_IDS.len() {
-        return Err("expected-generation must contain exactly four checkpoints".to_string());
+    if manifest.checkpoints.len() != case_checkpoints.len() {
+        return Err(format!(
+            "expected-generation has {} checkpoints; case requires {}",
+            manifest.checkpoints.len(),
+            case_checkpoints.len()
+        ));
     }
     let expected_renderer = serde_json::to_value(renderer)
         .map_err(|error| format!("serialize resolved renderer identity: {error}"))?;
@@ -498,17 +487,17 @@ fn validate_generation_manifest(
     }
 
     let mut observation_ids = BTreeSet::new();
-    for (index, entry) in manifest.checkpoints.iter().enumerate() {
-        let id = CHECKPOINT_IDS[index];
+    for (entry, id) in manifest.checkpoints.iter().zip(case_checkpoints) {
+        let expected_geometry = crate::checkpoint_geometry(case, id)?;
+        crate::validate_geometry(&entry.geometry)?;
         if entry.id != id
             || entry.observation_id.trim().is_empty()
             || !observation_ids.insert(entry.observation_id.as_str())
-            || entry.geometry.cols != 120
-            || entry.geometry.rows != 40
-            || entry.color_path != "truecolor"
+            || entry.geometry != expected_geometry
+            || entry.color_path != case.color_path
         {
             return Err(format!(
-                "expected-generation checkpoint metadata is invalid for {id}"
+                "expected-generation checkpoint metadata does not match the selected case for {id}"
             ));
         }
         let frame_path = format!("checkpoints/{id}/frame.json");
@@ -520,22 +509,36 @@ fn validate_generation_manifest(
         }
         require_sha256_lower(&format!("{id} frame sha256"), &entry.frame.sha256)?;
         require_sha256_lower(&format!("{id} PNG sha256"), &entry.png.sha256)?;
-        if entry.png.width == 0 || entry.png.height == 0 {
-            return Err(format!("expected PNG dimensions are zero for {id}"));
+        let pixel_size = tuiscotti::profile::RenderProfile::vendored()
+            .image_size(expected_geometry.cols, expected_geometry.rows);
+        if (entry.png.width, entry.png.height) != pixel_size {
+            return Err(format!(
+                "expected PNG dimensions do not match geometry for {id}"
+            ));
         }
     }
     Ok(())
 }
 
-fn read_exact_generation_tree(root: &Path) -> Result<BTreeMap<String, Vec<u8>>, String> {
+fn read_exact_generation_tree(
+    root: &Path,
+) -> Result<(BTreeMap<String, Vec<u8>>, BTreeSet<String>), String> {
     let mut files = BTreeMap::new();
     let mut directories = BTreeSet::new();
     walk_generation_tree(root, root, &mut files, &mut directories)?;
-    let expected_files = expected_file_paths();
-    let expected_directories = expected_directory_paths();
+    let checkpoint_ids = directories
+        .iter()
+        .filter_map(|path| path.strip_prefix("checkpoints/"))
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    if checkpoint_ids.is_empty() || checkpoint_ids.iter().any(|id| !crate::valid_checkpoint_id(id))
+    {
+        return Err("expected-generation tree has invalid checkpoint directories".to_string());
+    }
+    let (expected_files, expected_directories) = generation_tree_paths(&checkpoint_ids);
     if files.keys().cloned().collect::<BTreeSet<_>>() != expected_files {
         return Err(
-            "expected-generation tree must contain exactly the nine fixed files".to_string(),
+            "expected-generation tree has missing or unexpected files".to_string(),
         );
     }
     if directories != expected_directories {
@@ -543,7 +546,30 @@ fn read_exact_generation_tree(root: &Path) -> Result<BTreeMap<String, Vec<u8>>, 
             "expected-generation tree contains a missing or unexpected directory".to_string(),
         );
     }
-    Ok(files)
+    Ok((files, directories))
+}
+
+fn validate_generation_tree_layout(
+    files: &BTreeMap<String, Vec<u8>>,
+    directories: &BTreeSet<String>,
+    checkpoints: &[ExpectedCheckpointManifest],
+) -> Result<(), String> {
+    let checkpoint_ids = checkpoints
+        .iter()
+        .map(|checkpoint| checkpoint.id.clone())
+        .collect::<Vec<_>>();
+    if checkpoint_ids.iter().any(|id| !crate::valid_checkpoint_id(id))
+        || checkpoint_ids.iter().collect::<BTreeSet<_>>().len() != checkpoint_ids.len()
+    {
+        return Err("expected-generation has invalid or duplicate checkpoint IDs".to_string());
+    }
+    let (expected_files, expected_directories) = generation_tree_paths(&checkpoint_ids);
+    if files.keys().cloned().collect::<BTreeSet<_>>() != expected_files
+        || directories != &expected_directories
+    {
+        return Err("expected-generation tree does not match its manifest checkpoints".to_string());
+    }
+    Ok(())
 }
 
 fn walk_generation_tree(
@@ -598,21 +624,15 @@ fn walk_generation_tree(
     Ok(())
 }
 
-fn expected_file_paths() -> BTreeSet<String> {
+fn generation_tree_paths(checkpoint_ids: &[String]) -> (BTreeSet<String>, BTreeSet<String>) {
     let mut files = BTreeSet::from(["expected-generation.json".to_string()]);
-    for checkpoint in CHECKPOINT_IDS {
+    let mut directories = BTreeSet::from(["checkpoints".to_string()]);
+    for checkpoint in checkpoint_ids {
         files.insert(format!("checkpoints/{checkpoint}/frame.json"));
         files.insert(format!("checkpoints/{checkpoint}/screen.png"));
-    }
-    files
-}
-
-fn expected_directory_paths() -> BTreeSet<String> {
-    let mut directories = BTreeSet::from(["checkpoints".to_string()]);
-    for checkpoint in CHECKPOINT_IDS {
         directories.insert(format!("checkpoints/{checkpoint}"));
     }
-    directories
+    (files, directories)
 }
 
 fn expected_tree_sha256(files: &BTreeMap<String, Vec<u8>>) -> Result<String, String> {
@@ -996,6 +1016,19 @@ impl Drop for SyntheticExpectedGenerationFixture {
 
 #[cfg(test)]
 pub(crate) fn synthetic_expected_generation_fixture() -> SyntheticExpectedGenerationFixture {
+    let case = crate::registry()
+        .expect("load synthetic expected-generation case")
+        .cases
+        .into_iter()
+        .find(|case| case.id == "HELP-HOLLA-004")
+        .expect("find Holla pilot case");
+    synthetic_expected_generation_fixture_for_case(case)
+}
+
+#[cfg(test)]
+pub(crate) fn synthetic_expected_generation_fixture_for_case(
+    case: Case,
+) -> SyntheticExpectedGenerationFixture {
     use tuiscotti::{Frame, Provenance};
 
     let root = fs::canonicalize(std::env::temp_dir())
@@ -1006,41 +1039,38 @@ pub(crate) fn synthetic_expected_generation_fixture() -> SyntheticExpectedGenera
             crate::CAPTURE_DIRECTORY_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         ));
     fs::create_dir(&root).expect("create synthetic expected-generation root");
-
-    let case = crate::registry()
-        .expect("load synthetic expected-generation case")
-        .cases
-        .into_iter()
-        .find(|case| case.id == "HELP-HOLLA-004")
-        .expect("find Holla pilot case");
-    let geometry = case.geometry.clone();
-    let frame = Frame::blank(
-        geometry.cols,
-        geometry.rows,
-        Provenance {
-            tool: "tuiscotti".to_string(),
-            tool_version: "synthetic-fixture".to_string(),
-            profile: "default".to_string(),
-            source: "screen".to_string(),
-            argv: Vec::new(),
-            created_unix: 0,
-        },
-    );
     let profile = tuiscotti::profile::RenderProfile::vendored();
     let mut renderer = tuiscotti::render::Renderer::for_render_profile(&profile)
         .expect("create synthetic fixture renderer");
-    let rendered = renderer
-        .render(&frame)
-        .expect("render synthetic fixture frame");
-    let png_bytes = rendered.png.clone();
-    let png_info = opaque_png_info(&png_bytes, profile.image_size(geometry.cols, geometry.rows))
-        .expect("synthetic fixture renders opaque RGB");
-    let frame_bytes = frame.to_json().into_bytes();
-    let frame_sha256 = crate::sha256_bytes(&frame_bytes);
-    let png_sha256 = crate::sha256_bytes(&png_bytes);
-    let checkpoint_entries = CHECKPOINT_IDS
-        .iter()
+    let checkpoint_entries = crate::checkpoints(&case)
+        .into_iter()
         .map(|id| {
+            let geometry = crate::checkpoint_geometry(&case, id)
+                .expect("derive synthetic checkpoint geometry");
+            let frame = Frame::blank(
+                geometry.cols,
+                geometry.rows,
+                Provenance {
+                    tool: "tuiscotti".to_string(),
+                    tool_version: "synthetic-fixture".to_string(),
+                    profile: "default".to_string(),
+                    source: "screen".to_string(),
+                    argv: Vec::new(),
+                    created_unix: 0,
+                },
+            );
+            let rendered = renderer
+                .render(&frame)
+                .expect("render synthetic fixture frame");
+            let png_bytes = rendered.png;
+            let png_info = opaque_png_info(
+                &png_bytes,
+                profile.image_size(geometry.cols, geometry.rows),
+            )
+            .expect("synthetic fixture renders opaque RGB");
+            let frame_bytes = frame.to_json().into_bytes();
+            let frame_sha256 = crate::sha256_bytes(&frame_bytes);
+            let png_sha256 = crate::sha256_bytes(&png_bytes);
             let frame_path = format!("checkpoints/{id}/frame.json");
             let png_path = format!("checkpoints/{id}/screen.png");
             let directory = root.join("checkpoints").join(id);
@@ -1049,18 +1079,18 @@ pub(crate) fn synthetic_expected_generation_fixture() -> SyntheticExpectedGenera
                 .expect("write synthetic canonical frame");
             fs::write(root.join(&png_path), &png_bytes).expect("write synthetic rendered PNG");
             ExpectedCheckpointManifest {
-                id: (*id).to_string(),
+                id: id.to_string(),
                 observation_id: format!("synthetic-{id}"),
-                geometry: geometry.clone(),
+                geometry,
                 color_path: case.color_path.clone(),
                 frame: ExpectedFrameFile {
                     path: frame_path,
-                    sha256: frame_sha256.clone(),
+                    sha256: frame_sha256,
                     bytes: frame_bytes.len() as u64,
                 },
                 png: ExpectedPngFile {
                     path: png_path,
-                    sha256: png_sha256.clone(),
+                    sha256: png_sha256,
                     bytes: png_bytes.len() as u64,
                     width: png_info.width,
                     height: png_info.height,
@@ -1102,7 +1132,7 @@ pub(crate) fn synthetic_expected_generation_fixture() -> SyntheticExpectedGenera
     let manifest_bytes = serde_json::to_vec(&manifest).expect("serialize synthetic manifest");
     fs::write(root.join("expected-generation.json"), manifest_bytes)
         .expect("write synthetic expected-generation manifest");
-    let files = read_exact_generation_tree(&root).expect("read exact synthetic generation tree");
+    let (files, _) = read_exact_generation_tree(&root).expect("read exact synthetic generation tree");
     let tree_sha256 = expected_tree_sha256(&files).expect("hash synthetic generation tree");
 
     SyntheticExpectedGenerationFixture {
@@ -1208,12 +1238,19 @@ mod tests {
         input: &ExpectedGenerationInput,
     ) -> Result<ExpectedGeneration, String> {
         let case = holla_case();
+        load_synthetic_generation_for_case_with_input(input, &case)
+    }
+
+    fn load_synthetic_generation_for_case_with_input(
+        input: &ExpectedGenerationInput,
+        case: &Case,
+    ) -> Result<ExpectedGeneration, String> {
         let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
         let profile = tuiscotti::profile::RenderProfile::vendored();
         let renderer = crate::renderer_identity(&profile);
         load_expected_generation(
             input,
-            &case,
+            case,
             &crate::digest_tree(&package_root.join("cases"))?,
             &crate::sha256_file(&package_root.join("profile.json"))?,
             &crate::sha256_file(&package_root.join("Cargo.lock"))?,
@@ -1233,7 +1270,7 @@ mod tests {
         edit(&mut manifest);
         let bytes = serde_json::to_vec(&manifest).expect("serialize synthetic expected manifest");
         fs::write(path, bytes).expect("rewrite synthetic expected manifest");
-        let files = read_exact_generation_tree(&fixture.root)
+        let (files, _) = read_exact_generation_tree(&fixture.root)
             .expect("read rewritten synthetic expected tree");
         fixture.input.sha256 =
             expected_tree_sha256(&files).expect("rehash synthetic expected tree");
@@ -1428,14 +1465,40 @@ mod tests {
         let fixture = synthetic_expected_generation_fixture();
         let loaded = load_synthetic_generation(&fixture).expect("load exact synthetic tree");
         assert_eq!(loaded.id, "synthetic-not-admitted");
-        assert_eq!(loaded.checkpoints.len(), CHECKPOINT_IDS.len());
+        let expected_case = holla_case();
+        let expected_ids = crate::checkpoints(&expected_case);
+        assert_eq!(loaded.checkpoints.len(), expected_ids.len());
         assert_eq!(
             loaded
                 .checkpoints
                 .keys()
                 .map(String::as_str)
                 .collect::<Vec<_>>(),
-            CHECKPOINT_IDS
+            expected_ids
+        );
+
+        let oversized = synthetic_expected_generation_fixture();
+        let manifest_path = oversized.root.join("expected-generation.json");
+        let manifest_bytes = fs::read(&manifest_path).expect("read synthetic manifest");
+        let manifest_value: serde_json::Value =
+            serde_json::from_slice(&manifest_bytes).expect("parse synthetic manifest value");
+        let first_frame_bytes = manifest_value["checkpoints"][0]["frame"]["bytes"]
+            .as_u64()
+            .expect("synthetic frame byte count");
+        let serialized_bytes =
+            String::from_utf8(manifest_bytes).expect("synthetic manifest is UTF-8");
+        let marker = format!("\"bytes\":{first_frame_bytes}");
+        assert!(serialized_bytes.contains(&marker));
+        let overflow_manifest = serialized_bytes.replacen(
+            &marker,
+            "\"bytes\":18446744073709551616",
+            1,
+        );
+        fs::write(&manifest_path, overflow_manifest).expect("write oversized manifest byte count");
+        let overflow_error = load_synthetic_generation(&oversized).unwrap_err();
+        assert!(
+            overflow_error.contains("parse expected-generation manifest"),
+            "oversized byte count was not rejected by the typed loader: {overflow_error}"
         );
 
         let mut stale_tree_digest = fixture.input.clone();
@@ -1452,7 +1515,7 @@ mod tests {
         let mut bytes = fs::read(&altered_file).expect("read synthetic frame file");
         bytes.push(b' ');
         fs::write(&altered_file, bytes).expect("alter synthetic frame file");
-        let altered_files = read_exact_generation_tree(&altered.root)
+        let (altered_files, _) = read_exact_generation_tree(&altered.root)
             .expect("read altered synthetic expected tree");
         altered.input.sha256 =
             expected_tree_sha256(&altered_files).expect("rehash altered synthetic tree");
@@ -1465,7 +1528,7 @@ mod tests {
         assert!(
             load_synthetic_generation(&extra)
                 .unwrap_err()
-                .contains("exactly the nine fixed files")
+                .contains("missing or unexpected files")
         );
     }
 
@@ -1488,7 +1551,7 @@ mod tests {
         assert!(
             load_synthetic_generation(&missing_checkpoint)
                 .unwrap_err()
-                .contains("exactly four checkpoints")
+                .contains("checkpoints; case requires")
         );
 
         let mut bad_profile = synthetic_expected_generation_fixture();
@@ -1509,6 +1572,61 @@ mod tests {
             load_synthetic_generation(&bad_renderer)
                 .unwrap_err()
                 .contains("renderer identity does not match vendored renderer")
+        );
+    }
+
+    #[test]
+    fn synthetic_generation_binds_resized_geometry_per_checkpoint() {
+        let mut case = holla_case();
+        case.steps
+            .insert(1, crate::Step::Resize { cols: 73, rows: 21 });
+        crate::validate_case_contract(&case).expect("resized case is valid");
+        let fixture = synthetic_expected_generation_fixture_for_case(case.clone());
+        let generation = load_synthetic_generation_for_case_with_input(&fixture.input, &case)
+            .expect("load generation bound to the resized case");
+
+        let initial = generation
+            .checkpoints
+            .get("00-boot")
+            .expect("initial checkpoint");
+        assert_eq!(initial.metadata.geometry, crate::Geometry { cols: 120, rows: 40 });
+        assert_eq!((initial.frame.cols, initial.frame.rows), (120, 40));
+
+        let resized = generation
+            .checkpoints
+            .get("01-help")
+            .expect("post-resize checkpoint");
+        assert_eq!(resized.metadata.geometry, crate::Geometry { cols: 73, rows: 21 });
+        assert_eq!((resized.frame.cols, resized.frame.rows), (73, 21));
+        assert_eq!(
+            (resized.png_info.width, resized.png_info.height),
+            tuiscotti::profile::RenderProfile::vendored().image_size(73, 21)
+        );
+
+        let mut stale_metadata = synthetic_expected_generation_fixture_for_case(case.clone());
+        rewrite_synthetic_manifest(&mut stale_metadata, |manifest| {
+            manifest.checkpoints[1].geometry = crate::Geometry { cols: 72, rows: 21 };
+        });
+        assert!(
+            load_synthetic_generation_for_case_with_input(&stale_metadata.input, &case)
+                .unwrap_err()
+                .contains("metadata does not match the selected case")
+        );
+
+        let mut wrong_case_id = case.clone();
+        wrong_case_id.id = "SHOWCASE-DIALOG-001".to_string();
+        assert!(
+            load_synthetic_generation_for_case_with_input(&fixture.input, &wrong_case_id)
+                .unwrap_err()
+                .contains("schema, case, ID")
+        );
+
+        let mut changed_case = case;
+        changed_case.color_path = "unregistered-color-path".to_string();
+        assert!(
+            load_synthetic_generation_for_case_with_input(&fixture.input, &changed_case)
+                .unwrap_err()
+                .contains("case input digest does not match")
         );
     }
 

@@ -1,0 +1,447 @@
+{
+  "schema": "termrock-vis04-product23-runplan/v1",
+  "mode": "prepared_not_launched",
+  "execution_prerequisite": "wait for VIS04 source handoff/commit and explicit root launch authorization",
+  "candidate_product_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+  "source_root": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/source",
+  "source_manifest_sha256": "aeea57da7e576c174e768e12876fe6303c4880c49ce826dacf2e448407a327cb",
+  "archive_path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/s1d-source.tar",
+  "archive_sha256": "a042bfc9e3a861660709fc345937c4ef2cecbebe6bb08c0646fafcdab7643edb",
+  "contract_reference_root": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/contract-source",
+  "contract_helper_sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0",
+  "contract_rust_harness_sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d",
+  "contract_reason_sidecar_sha256": "90a08a85047f0b30fa159ec6a2779375db37472d734199d74b097f5edcdd9d9d",
+  "package": "termrock-conformance",
+  "binary": "control_states",
+  "selected_count": 23,
+  "selected_names": [
+    "w01_brand_press_paints_distinct_from_hover",
+    "w02_button_disabled_suppresses_focus_gutter",
+    "w03_checkbox_compact_markers",
+    "w03_checkbox_checked_focus_hover_independent",
+    "w04_toggle_compact_markers",
+    "w05_radio_per_option_disabled",
+    "w05_radio_no_horizontal",
+    "w06_chipbar_closable_keyboard_dead",
+    "w06_chipbar_close_press_then_reorder_or_delete",
+    "w08_input_masked_clicks_follow_display",
+    "w08_input_down_only_does_not_edit",
+    "w08_input_navigation_paste_begins_editing",
+    "w08_input_external_change_is_not_silently_overwritten",
+    "w09_area_nav_enter_begins_without_newline",
+    "w09_area_nav_page_home_end_scroll_without_editing",
+    "w09_area_wheel_holds_past_caret_until_it_moves",
+    "w10_select_popup_edge_fade",
+    "w11_form_busy_enter_submit_blocked",
+    "w13_filter_backspace_removes_grapheme",
+    "w13_filter_wide_trail_cells_clear",
+    "w13_filter_reseed_selects_first_eligible",
+    "w16_steps_running_spinner_cycles_phases",
+    "w17_tabs_focused_pressed_bold"
+  ],
+  "selected_names_sha256": "b4d9dbc0eb0a262310536d3811709805ddc038080e8032c719d7ab355cd4fe98",
+  "stable_case_map": [
+    {
+      "id": "BD-01",
+      "cases": [
+        "W01-02"
+      ],
+      "test_name": "w01_brand_press_paints_distinct_from_hover",
+      "component": "W01",
+      "owner": "termrock-controls",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-02",
+      "cases": [
+        "W02-01"
+      ],
+      "test_name": "w02_button_disabled_suppresses_focus_gutter",
+      "component": "W02",
+      "owner": "termrock-controls",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-03",
+      "cases": [
+        "W03-01"
+      ],
+      "test_name": "w03_checkbox_compact_markers",
+      "component": "W03",
+      "owner": "termrock-controls",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-04",
+      "cases": [
+        "W03-01"
+      ],
+      "test_name": "w03_checkbox_checked_focus_hover_independent",
+      "component": "W03",
+      "owner": "termrock-controls",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-05",
+      "cases": [
+        "W04-01"
+      ],
+      "test_name": "w04_toggle_compact_markers",
+      "component": "W04",
+      "owner": "termrock-controls",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-06",
+      "cases": [
+        "W05-02",
+        "W05-04"
+      ],
+      "test_name": "w05_radio_per_option_disabled",
+      "component": "W05",
+      "owner": "termrock-controls",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-07",
+      "cases": [
+        "W05-04"
+      ],
+      "test_name": "w05_radio_no_horizontal",
+      "component": "W05",
+      "owner": "termrock-controls",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-08",
+      "cases": [
+        "W06-02",
+        "W06-05"
+      ],
+      "test_name": "w06_chipbar_closable_keyboard_dead",
+      "component": "W06",
+      "owner": "termrock-navigation",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-09",
+      "cases": [
+        "W06-02"
+      ],
+      "test_name": "w06_chipbar_close_press_then_reorder_or_delete",
+      "component": "W06",
+      "owner": "termrock-navigation",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-10",
+      "cases": [
+        "W08-02"
+      ],
+      "test_name": "w08_input_masked_clicks_follow_display",
+      "component": "W08",
+      "owner": "termrock-fields",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-11",
+      "cases": [
+        "W08-02"
+      ],
+      "test_name": "w08_input_down_only_does_not_edit",
+      "component": "W08",
+      "owner": "termrock-fields",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-12",
+      "cases": [
+        "W08-03"
+      ],
+      "test_name": "w08_input_navigation_paste_begins_editing",
+      "component": "W08",
+      "owner": "termrock-fields",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-13",
+      "cases": [
+        "W08-07"
+      ],
+      "test_name": "w08_input_external_change_is_not_silently_overwritten",
+      "component": "W08",
+      "owner": "termrock-fields",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-14",
+      "cases": [
+        "W09-01"
+      ],
+      "test_name": "w09_area_nav_enter_begins_without_newline",
+      "component": "W09",
+      "owner": "termrock-fields",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-15",
+      "cases": [
+        "W09-03"
+      ],
+      "test_name": "w09_area_nav_page_home_end_scroll_without_editing",
+      "component": "W09",
+      "owner": "termrock-fields",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-16",
+      "cases": [
+        "W09-05"
+      ],
+      "test_name": "w09_area_wheel_holds_past_caret_until_it_moves",
+      "component": "W09",
+      "owner": "termrock-fields",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-17",
+      "cases": [
+        "W10-05"
+      ],
+      "test_name": "w10_select_popup_edge_fade",
+      "component": "W10",
+      "owner": "termrock-overlays",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-18",
+      "cases": [
+        "W11-04"
+      ],
+      "test_name": "w11_form_busy_enter_submit_blocked",
+      "component": "W11",
+      "owner": "termrock-forms",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-20",
+      "cases": [
+        "W13-02"
+      ],
+      "test_name": "w13_filter_backspace_removes_grapheme",
+      "component": "W13",
+      "owner": "termrock-navigation",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-21",
+      "cases": [
+        "W13-05"
+      ],
+      "test_name": "w13_filter_wide_trail_cells_clear",
+      "component": "W13",
+      "owner": "termrock-navigation",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": true,
+      "ignore_reason": "PARITY W13-05: wide-char trail cells are never cleared, stale glyphs leak across repaints"
+    },
+    {
+      "id": "BD-22",
+      "cases": [
+        "W13-04"
+      ],
+      "test_name": "w13_filter_reseed_selects_first_eligible",
+      "component": "W13",
+      "owner": "termrock-navigation",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-23",
+      "cases": [
+        "W16-02"
+      ],
+      "test_name": "w16_steps_running_spinner_cycles_phases",
+      "component": "W16",
+      "owner": "termrock-navigation",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    },
+    {
+      "id": "BD-24",
+      "cases": [
+        "W17-01"
+      ],
+      "test_name": "w17_tabs_focused_pressed_bold",
+      "component": "W17",
+      "owner": "termrock-navigation",
+      "registry_status": "NOT_RUN",
+      "registered_ignored": false,
+      "ignore_reason": null
+    }
+  ],
+  "stable_case_map_sha256": "4b15961a374db0ed0aba07692fd8ee827c1c17b17adad7d4be61b5890a6574bd",
+  "normal_count": 22,
+  "ignored_ids": [
+    "BD-21"
+  ],
+  "run_ignored": "all",
+  "filterset": "package(=termrock-conformance) & binary(=control_states) & (test(=w01_brand_press_paints_distinct_from_hover) | test(=w02_button_disabled_suppresses_focus_gutter) | test(=w03_checkbox_compact_markers) | test(=w03_checkbox_checked_focus_hover_independent) | test(=w04_toggle_compact_markers) | test(=w05_radio_per_option_disabled) | test(=w05_radio_no_horizontal) | test(=w06_chipbar_closable_keyboard_dead) | test(=w06_chipbar_close_press_then_reorder_or_delete) | test(=w08_input_masked_clicks_follow_display) | test(=w08_input_down_only_does_not_edit) | test(=w08_input_navigation_paste_begins_editing) | test(=w08_input_external_change_is_not_silently_overwritten) | test(=w09_area_nav_enter_begins_without_newline) | test(=w09_area_nav_page_home_end_scroll_without_editing) | test(=w09_area_wheel_holds_past_caret_until_it_moves) | test(=w10_select_popup_edge_fade) | test(=w11_form_busy_enter_submit_blocked) | test(=w13_filter_backspace_removes_grapheme) | test(=w13_filter_wide_trail_cells_clear) | test(=w13_filter_reseed_selects_first_eligible) | test(=w16_steps_running_spinner_cycles_phases) | test(=w17_tabs_focused_pressed_bold)) - test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write|rebuild_review_html)/)",
+  "expected_failure_treatment": "none",
+  "list_argv": [
+    "run",
+    "1.98.1",
+    "cargo",
+    "nextest",
+    "list",
+    "--manifest-path",
+    "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/source/Cargo.toml",
+    "--locked",
+    "--offline",
+    "--package",
+    "termrock-conformance",
+    "--test",
+    "control_states",
+    "--build-jobs",
+    "2",
+    "--run-ignored",
+    "all",
+    "--user-config-file",
+    "none",
+    "--ignore-default-filter",
+    "--color",
+    "never",
+    "--show-progress",
+    "none",
+    "--filterset",
+    "package(=termrock-conformance) & binary(=control_states) & (test(=w01_brand_press_paints_distinct_from_hover) | test(=w02_button_disabled_suppresses_focus_gutter) | test(=w03_checkbox_compact_markers) | test(=w03_checkbox_checked_focus_hover_independent) | test(=w04_toggle_compact_markers) | test(=w05_radio_per_option_disabled) | test(=w05_radio_no_horizontal) | test(=w06_chipbar_closable_keyboard_dead) | test(=w06_chipbar_close_press_then_reorder_or_delete) | test(=w08_input_masked_clicks_follow_display) | test(=w08_input_down_only_does_not_edit) | test(=w08_input_navigation_paste_begins_editing) | test(=w08_input_external_change_is_not_silently_overwritten) | test(=w09_area_nav_enter_begins_without_newline) | test(=w09_area_nav_page_home_end_scroll_without_editing) | test(=w09_area_wheel_holds_past_caret_until_it_moves) | test(=w10_select_popup_edge_fade) | test(=w11_form_busy_enter_submit_blocked) | test(=w13_filter_backspace_removes_grapheme) | test(=w13_filter_wide_trail_cells_clear) | test(=w13_filter_reseed_selects_first_eligible) | test(=w16_steps_running_spinner_cycles_phases) | test(=w17_tabs_focused_pressed_bold)) - test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write|rebuild_review_html)/)",
+    "--cargo-quiet",
+    "--message-format",
+    "json"
+  ],
+  "run_argv": [
+    "run",
+    "1.98.1",
+    "cargo",
+    "nextest",
+    "run",
+    "--manifest-path",
+    "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/source/Cargo.toml",
+    "--locked",
+    "--offline",
+    "--package",
+    "termrock-conformance",
+    "--test",
+    "control_states",
+    "--build-jobs",
+    "2",
+    "--run-ignored",
+    "all",
+    "--user-config-file",
+    "none",
+    "--ignore-default-filter",
+    "--color",
+    "never",
+    "--show-progress",
+    "none",
+    "--filterset",
+    "package(=termrock-conformance) & binary(=control_states) & (test(=w01_brand_press_paints_distinct_from_hover) | test(=w02_button_disabled_suppresses_focus_gutter) | test(=w03_checkbox_compact_markers) | test(=w03_checkbox_checked_focus_hover_independent) | test(=w04_toggle_compact_markers) | test(=w05_radio_per_option_disabled) | test(=w05_radio_no_horizontal) | test(=w06_chipbar_closable_keyboard_dead) | test(=w06_chipbar_close_press_then_reorder_or_delete) | test(=w08_input_masked_clicks_follow_display) | test(=w08_input_down_only_does_not_edit) | test(=w08_input_navigation_paste_begins_editing) | test(=w08_input_external_change_is_not_silently_overwritten) | test(=w09_area_nav_enter_begins_without_newline) | test(=w09_area_nav_page_home_end_scroll_without_editing) | test(=w09_area_wheel_holds_past_caret_until_it_moves) | test(=w10_select_popup_edge_fade) | test(=w11_form_busy_enter_submit_blocked) | test(=w13_filter_backspace_removes_grapheme) | test(=w13_filter_wide_trail_cells_clear) | test(=w13_filter_reseed_selects_first_eligible) | test(=w16_steps_running_spinner_cycles_phases) | test(=w17_tabs_focused_pressed_bold)) - test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write|rebuild_review_html)/)",
+    "--cargo-quiet",
+    "--no-tests",
+    "fail",
+    "--no-fail-fast",
+    "--retries",
+    "0",
+    "--test-threads",
+    "1",
+    "--flaky-result",
+    "fail",
+    "--failure-output",
+    "immediate-final",
+    "--status-level",
+    "all",
+    "--final-status-level",
+    "all",
+    "--no-output-indent",
+    "--message-format",
+    "libtest-json-plus",
+    "--message-format-version",
+    "0.1"
+  ],
+  "program": "/Users/donbeave/.cargo/bin/rustup",
+  "cwd": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/source",
+  "rust": "1.98.1",
+  "cargo_path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+  "cargo_nextest_version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)",
+  "nextest_bin": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+  "rustup_bin": "/Users/donbeave/.cargo/bin/rustup",
+  "rustup_home": "/Users/donbeave/.rustup",
+  "cargo_home": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
+  "fixed_path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.cargo/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin",
+  "build_jobs": 2,
+  "test_threads": 1,
+  "retries": 0,
+  "no_fail_fast": true,
+  "offline": true,
+  "libtest_json_env": "NEXTEST_EXPERIMENTAL_LIBTEST_JSON=1",
+  "target_dir": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/target",
+  "scratch_dir": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/scratch",
+  "timeout_ms": 600000,
+  "term_grace_ms": 5000,
+  "combined_log_cap_bytes": 16777216,
+  "ledger_recording": {
+    "mode": "separate_external_record_api",
+    "record_script": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/record-ledger.cjs",
+    "record_script_sha256": "17bc0642b4daee1d8f0985a3f8bba1eca0b18c8c3786b2c0f06ae468fc5e90f6",
+    "writes_to_repository": false,
+    "expected_failure_treatment": "none",
+    "note": "Raw Nextest result receipt is immutable; a separate command maps 23 stable BD IDs to observed outcomes. BD-21 failures remain failures."
+  },
+  "launch_command": "\"/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node\" \"/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/run-controls.cjs\"",
+  "launch_script": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/launch.sh",
+  "runner": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/run-controls.cjs",
+  "launch_script_sha256": "ee2fc1f463e8348c6777b6ddd14ffeeb577fac8a69b251ac0f47a1c2ea725c47",
+  "runner_sha256": "310d4ab8a689f45b19ae5ef40cd276c85fe658de039db6f7c57627d08412d267",
+  "static_preflight_sha256": "3417eb080af2dfe74f8a33afda4d2ef89b514d4db3145b98d23633b1586cdc19",
+  "boundary": "Exactly the 23 canonical product assertions from S1d control_states.rs. 22 normal registrations plus ignored BD-21 selected with run-ignored all; no expected-failure inversion. Product tests do not include PTY qualification. No product source repair or ledger mutation is performed by this preparation."
+}

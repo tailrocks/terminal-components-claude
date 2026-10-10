@@ -1,0 +1,42 @@
+   Compiling libc v0.2.190
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling zmij v1.0.23
+   Compiling getrandom v0.4.3
+   Compiling cfg-if v1.0.5
+   Compiling rustix v1.1.5
+   Compiling serde_core v1.0.229
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling errno v0.3.14
+   Compiling serde_json v1.0.151
+   Compiling bitflags v2.13.2
+   Compiling digest v0.10.7
+   Compiling cpufeatures v0.2.17
+   Compiling once_cell v1.21.4
+   Compiling itoa v1.0.18
+   Compiling fastrand v2.5.0
+   Compiling memchr v2.8.3
+   Compiling tempfile v3.27.0
+   Compiling sha2 v0.10.9
+   Compiling termrock-visibility-tests v0.1.0 (/private/tmp/termrock-vis06-pair-build-r2-20261009/project/crates/termrock-visibility-tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.49s
+────────────
+ Nextest run ID dc5cad83-f98f-47ee-acda-b64559fa0925 with nextest profile: default
+    Starting 1 test across 1 binary (16 tests skipped)
+        SLOW [> 60.000s] (───) termrock-visibility-tests::subjects supervises_real_holla_pair_build
+        SLOW [>120.000s] (───) termrock-visibility-tests::subjects supervises_real_holla_pair_build
+        PASS [ 131.199s] (1/1) termrock-visibility-tests::subjects supervises_real_holla_pair_build
+────────────
+     Summary [ 131.200s] 1 test run: 1 passed (1 slow), 16 skipped
+        SLOW [ 131.199s] (1/1) termrock-visibility-tests::subjects supervises_real_holla_pair_build
+  stdout ───
+
+    running 1 test
+    test supervises_real_holla_pair_build has been running for over 60 seconds
+    test supervises_real_holla_pair_build ... ok
+
+    test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 131.19s
+
+

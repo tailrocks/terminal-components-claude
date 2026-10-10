@@ -1,0 +1,60 @@
+{
+  "record_type": "read_only_report_publication_ci_observation",
+  "repository": "tailrocks/terminal-components-claude",
+  "captured_at_utc": "2026-10-09T00:29:06Z",
+  "run": {
+    "id": 37864720297,
+    "head_sha": "b9e34b13ef47401865f1511b9babaab6e020eedc",
+    "status": "completed",
+    "conclusion": "failure",
+    "created_at": "2026-10-09T00:25:40Z",
+    "run_number": 799,
+    "run_attempt": 1,
+    "event": "push",
+    "workflow_path": ".github/workflows/ci.yml",
+    "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37864720297"
+  },
+  "jobs": {
+    "http_status": 200,
+    "total_count": 0,
+    "count": 0
+  },
+  "artifact_count": null,
+  "failure_cause": "UNKNOWN_NOT_CAPTURED",
+  "product_execution": "NOT_RUN",
+  "raw_requests": [
+    {
+      "method": "GET",
+      "url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37864720297",
+      "http_status": 200,
+      "body_path": "/private/tmp/termrock-vis01-b9-ci-observation-20261009T0028Z/run.body",
+      "body_sha256": "3839008a3268a757e69cbb34eaef3c97280b84dfe4276ea8d388b64c95cce8a9",
+      "headers_path": "/private/tmp/termrock-vis01-b9-ci-observation-20261009T0028Z/run.headers",
+      "headers_sha256": "df267c376eedbcaebb5b0be30c119fd03735d974dae562b819755cd6a24a726e"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37864720297/jobs?per_page=100",
+      "http_status": 200,
+      "body_path": "/private/tmp/termrock-vis01-b9-ci-observation-20261009T0028Z/jobs.body",
+      "body_sha256": "d232081185de70f0bf26e44b5c2a069ca080bf9da48bbc3a067d8670f67d052a",
+      "headers_path": "/private/tmp/termrock-vis01-b9-ci-observation-20261009T0028Z/jobs.headers",
+      "headers_sha256": "462e8b54796c2b284021616587751927d340ec08dd43d7c941925515514b5ef8"
+    }
+  ],
+  "publication_record": {
+    "path": "/private/tmp/termrock-vis10-foundation-publication-20261009.json",
+    "sha256": "6dbaf2e84e7befa9e6eda15f6a4885f706e657d33496bd4f1aa4d36dc64912c2"
+  },
+  "postcommit_review": {
+    "path": "/private/tmp/termrock-vis10-foundation-postcommit-review-technical.json",
+    "sha256": "5591df8eeeb9250f7cc50135d5cdb0ed11d3b569e7f6f591b0fcac63e1a0edd5"
+  },
+  "prior_publication_ci": {
+    "manifest_path": "/private/tmp/termrock-vis01-p169-ci-refresh-20261009T0018Z/manifest.json",
+    "manifest_sha256": "10ecf34f05dad57d128f273f78cadaebac1089e25d037d688a292d5dced33cd4",
+    "run_id": "37862074205",
+    "head_sha": "169380c7d6a4cff9f1c43ecef592abc715e6df6a"
+  },
+  "interpretation_limit": "This run is bound to report publication commit b9e34b13ef47401865f1511b9babaab6e020eedc. It is not a product execution on 1d797d41c8141fcbdc3f69d7f11eb8875ab54712/b274dd57f4dd078ade6e424d546d83efbd2e8526. The jobs endpoint has zero jobs; artifact count was not queried. Failure cause is unknown; no prior workflow-size annotation is transferred."
+}

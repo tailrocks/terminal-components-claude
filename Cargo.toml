@@ -45,6 +45,7 @@ members = [
     "crates/termrock-test-support",
     "crates/termrock-conformance",
     "crates/termrock-xtask",
+    "crates/termrock-visibility-publisher",
 ]
 default-members = [
     "crates/termrock",

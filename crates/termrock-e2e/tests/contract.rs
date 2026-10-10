@@ -5,11 +5,20 @@ use termrock_e2e::{
     builder_receipt_digest, deferred_row_count, registry, suite_digest, validate_subject_manifest,
 };
 
+fn holla_case() -> termrock_e2e::Case {
+    registry()
+        .expect("registry parses")
+        .cases
+        .into_iter()
+        .find(|case| case.id == "HELP-HOLLA-004")
+        .expect("Holla pilot remains registered")
+}
+
 #[test]
 fn registry_contains_four_seed_cases_and_holla_checkpointed_preconditions() {
     let registry = registry().expect("registry parses");
     assert_eq!(registry.schema, "termrock-e2e/case-registry-v1");
-    assert_eq!(registry.suite_revision, "termrock-e2e-2026-10-09.1");
+    assert_eq!(registry.suite_revision, "termrock-e2e-2026-10-09.2");
 
     let expected_ids = std::collections::BTreeSet::from([
         "HELP-HOLLA-004",
@@ -88,6 +97,484 @@ fn registry_contains_four_seed_cases_and_holla_checkpointed_preconditions() {
         }
     }
     assert!(termrock_e2e::validate_case_contract(&non_positive_prerequisite).is_err());
+}
+
+#[test]
+fn step_input_schema_deserializes_supported_events_and_rejects_unknown_variants() {
+    use termrock_e2e::Step;
+
+    let steps: Vec<Step> = serde_json::from_value(serde_json::json!([
+        {"op":"key_event", "key":"ctrl-a", "kind":"down"},
+        {"op":"key_event", "key":"ctrl-a", "kind":"repeat"},
+        {"op":"key_event", "key":"ctrl-a", "kind":"up"},
+        {"op":"text", "text":"typed text"},
+        {"op":"paste", "text":"pasted text"},
+        {"op":"mouse", "input":{"action":"click", "button":"left", "x":1, "y":2}},
+        {"op":"mouse", "input":{"action":"down", "button":"middle", "x":1, "y":2}},
+        {"op":"mouse", "input":{"action":"release", "x":1, "y":2}},
+        {"op":"mouse", "input":{"action":"move", "x":1, "y":2}},
+        {"op":"mouse", "input":{"action":"drag", "button":"right", "x":1, "y":2}},
+        {"op":"mouse", "input":{"action":"wheel", "direction":"down", "x":1, "y":2}},
+        {"op":"resize", "cols":72, "rows":20},
+        {"op":"expect_exit", "code":0}
+    ]))
+    .expect("all declared input events deserialize");
+    assert_eq!(steps.len(), 13);
+
+    assert!(serde_json::from_value::<Step>(serde_json::json!({
+        "op":"key_event", "key":"a", "kind":"press"
+    }))
+    .is_err());
+    assert!(serde_json::from_value::<Step>(serde_json::json!({
+        "op":"resize", "cols":80, "rows":24, "unchecked":true
+    }))
+    .is_err());
+    assert!(serde_json::from_value::<Step>(serde_json::json!({
+        "op":"mouse", "input":{"action":"release", "x":1, "y":2, "button":"left"}
+    }))
+    .is_err());
+}
+
+#[test]
+fn step_input_contract_validates_bounds_order_and_process_exit() {
+    use termrock_e2e::{KeyEventKind, MouseButton, MouseInput, Step, WheelDirection};
+
+    let mut valid = holla_case();
+    let events = [
+        Step::Resize { cols: 73, rows: 21 },
+        Step::KeyEvent {
+            key: "a".to_string(),
+            kind: KeyEventKind::Down,
+        },
+        Step::KeyEvent {
+            key: "a".to_string(),
+            kind: KeyEventKind::Repeat,
+        },
+        Step::KeyEvent {
+            key: "a".to_string(),
+            kind: KeyEventKind::Up,
+        },
+        Step::Text {
+            text: "text".to_string(),
+        },
+        Step::Paste {
+            text: "paste".to_string(),
+        },
+        Step::Mouse {
+            input: MouseInput::Click {
+                button: MouseButton::Left,
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+        Step::Mouse {
+            input: MouseInput::Down {
+                button: MouseButton::Middle,
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+        Step::Mouse {
+            input: MouseInput::Release {
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+        Step::Mouse {
+            input: MouseInput::Move {
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+        Step::Mouse {
+            input: MouseInput::Drag {
+                button: MouseButton::Right,
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+        Step::Mouse {
+            input: MouseInput::Wheel {
+                direction: WheelDirection::Down,
+                x: 72,
+                y: 20,
+                modifiers: Default::default(),
+            },
+        },
+    ];
+    valid.steps.splice(1..1, events);
+    valid.steps.push(Step::ExpectExit { code: 0 });
+    termrock_e2e::validate_case_contract(&valid)
+        .expect("valid events, resized coordinates, and final exit are accepted");
+
+    let mut invalid_key = holla_case();
+    invalid_key.steps.insert(
+        1,
+        Step::KeyEvent {
+            key: String::new(),
+            kind: KeyEventKind::Down,
+        },
+    );
+    assert!(
+        termrock_e2e::validate_case_contract(&invalid_key)
+            .unwrap_err()
+            .contains("invalid key chord")
+    );
+
+    let mut invalid_paste = holla_case();
+    invalid_paste.steps.insert(
+        1,
+        Step::Paste {
+            text: "prefix\u{1b}[200~payload".to_string(),
+        },
+    );
+    assert!(
+        termrock_e2e::validate_case_contract(&invalid_paste)
+            .unwrap_err()
+            .contains("bracketed-paste delimiter")
+    );
+
+    let mut invalid_resize = holla_case();
+    invalid_resize.steps.insert(
+        1,
+        Step::Resize {
+            cols: 1001,
+            rows: 24,
+        },
+    );
+    assert!(
+        termrock_e2e::validate_case_contract(&invalid_resize)
+            .unwrap_err()
+            .contains("invalid resize target")
+    );
+
+    let mut minimum_geometry = holla_case();
+    minimum_geometry.geometry = termrock_e2e::Geometry { cols: 1, rows: 1 };
+    termrock_e2e::validate_case_contract(&minimum_geometry)
+        .expect("Tuiscotti minimum geometry is accepted");
+    let mut maximum_geometry = holla_case();
+    maximum_geometry.geometry = termrock_e2e::Geometry {
+        cols: 1000,
+        rows: 1000,
+    };
+    termrock_e2e::validate_case_contract(&maximum_geometry)
+        .expect("Tuiscotti maximum geometry is accepted");
+    let mut zero_geometry = holla_case();
+    zero_geometry.geometry = termrock_e2e::Geometry { cols: 0, rows: 1 };
+    assert!(
+        termrock_e2e::validate_case_contract(&zero_geometry)
+            .unwrap_err()
+            .contains("outside Tuiscotti range")
+    );
+
+    let mut invalid_mouse = holla_case();
+    invalid_mouse.steps.splice(
+        1..1,
+        [
+            Step::Resize { cols: 73, rows: 21 },
+            Step::Mouse {
+                input: MouseInput::Move {
+                    x: 73,
+                    y: 20,
+                    modifiers: Default::default(),
+                },
+            },
+        ],
+    );
+    assert!(
+        termrock_e2e::validate_case_contract(&invalid_mouse)
+            .unwrap_err()
+            .contains("outside current geometry")
+    );
+
+    let mut no_checkpoint = holla_case();
+    no_checkpoint
+        .steps
+        .retain(|step| !matches!(step, Step::Checkpoint { .. }));
+    assert!(
+        termrock_e2e::validate_case_contract(&no_checkpoint)
+            .unwrap_err()
+            .contains("has no checkpoints")
+    );
+
+    let mut exit_before_checkpoint = holla_case();
+    exit_before_checkpoint
+        .steps
+        .insert(0, Step::ExpectExit { code: 0 });
+    assert!(
+        termrock_e2e::validate_case_contract(&exit_before_checkpoint)
+            .unwrap_err()
+            .contains("must follow at least one checkpoint")
+    );
+
+    let mut exit_not_last = holla_case();
+    exit_not_last.steps.push(Step::ExpectExit { code: 0 });
+    exit_not_last.steps.push(Step::Text {
+        text: "after-exit".to_string(),
+    });
+    assert!(
+        termrock_e2e::validate_case_contract(&exit_not_last)
+            .unwrap_err()
+            .contains("steps after expect_exit")
+    );
+
+    let mut duplicate_exit = holla_case();
+    duplicate_exit.steps.push(Step::ExpectExit { code: 0 });
+    duplicate_exit.steps.push(Step::ExpectExit { code: 1 });
+    assert!(
+        termrock_e2e::validate_case_contract(&duplicate_exit)
+            .unwrap_err()
+            .contains("more than one expect_exit step")
+    );
+}
+
+#[test]
+fn showcase_dialog_journey_starts_with_initial_frame_and_preserves_assertions() {
+    let registry = registry().expect("registry parses");
+    let case = registry
+        .cases
+        .iter()
+        .find(|case| case.id == "SHOWCASE-DIALOG-001")
+        .expect("Showcase dialog case remains registered");
+    termrock_e2e::validate_case_contract(case).expect("Showcase dialog case is valid");
+
+    let Some(termrock_e2e::Step::Checkpoint { id, wait, .. }) = case.steps.first() else {
+        panic!("Showcase dialog journey begins with a checkpoint");
+    };
+    assert_eq!(id, "00-dialogs-initial");
+    for needle in ["Open a dialog", "Delete branch…", "Nothing yet"] {
+        assert!(
+            wait.iter()
+                .any(|condition| condition.kind == "contains" && condition.needle == needle),
+            "initial checkpoint waits for {needle:?}"
+        );
+    }
+
+    let Some(termrock_e2e::Step::Press { key }) = case.steps.get(1) else {
+        panic!("Showcase dialog opens only after the initial checkpoint");
+    };
+    assert_eq!(key, "d");
+
+    let checkpoint_ids = case
+        .steps
+        .iter()
+        .filter_map(|step| match step {
+            termrock_e2e::Step::Checkpoint { id, .. } => Some(id.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        checkpoint_ids,
+        vec!["00-dialogs-initial", "dialog.open", "dialog.confirmed"]
+    );
+
+    for (id, kind, needle, requires) in [
+        ("dialog.title", "contains", "Delete branch?", None),
+        ("dialog.cancel", "contains", "Cancel", None),
+        ("dialog.confirm", "contains", "Delete branch", None),
+        (
+            "dialog.result",
+            "contains",
+            "Branch feat/rate-limit deleted",
+            None,
+        ),
+        (
+            "dialog.closed",
+            "absent",
+            "Delete branch?",
+            Some("dialog.title"),
+        ),
+    ] {
+        let assertion = case
+            .steps
+            .iter()
+            .find_map(|step| match step {
+                termrock_e2e::Step::Checkpoint { assertions, .. } => assertions
+                    .iter()
+                    .find(|assertion| assertion.id == id),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("original assertion {id} remains"));
+        assert_eq!(assertion.kind, kind, "assertion {id} keeps its kind");
+        assert_eq!(
+            assertion.needle.as_deref(),
+            Some(needle),
+            "assertion {id} keeps its needle"
+        );
+        assert_eq!(
+            assertion.requires.as_deref(),
+            requires,
+            "assertion {id} keeps its precondition"
+        );
+    }
+}
+
+#[test]
+fn jackin_save_preview_registry_preserves_reopen_and_second_cancel() {
+    let registry = registry().expect("registry parses");
+    let case = registry
+        .cases
+        .iter()
+        .find(|case| case.id == "JACKIN-EDITOR-SAVE-CANCEL-120X40-TRUECOLOR")
+        .expect("Jackin save-preview case remains registered");
+    termrock_e2e::validate_case_contract(case).expect("Jackin save-preview case is valid");
+
+    let checkpoint_ids = case
+        .steps
+        .iter()
+        .filter_map(|step| match step {
+            termrock_e2e::Step::Checkpoint { id, .. } => Some(id.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        checkpoint_ids,
+        vec![
+            "00-manager",
+            "01-editor",
+            "02-dirty",
+            "03-save-preview",
+            "04-cancelled",
+            "05-preview-reopened",
+            "06-cancelled-again",
+        ]
+    );
+
+    let presses = case
+        .steps
+        .iter()
+        .filter_map(|step| match step {
+            termrock_e2e::Step::Press { key } => Some(key.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        presses,
+        vec![
+            "e", "down", "down", "down", "space", "ctrl+s", "escape", "ctrl+s", "escape",
+        ]
+    );
+
+    let mut assertions = std::collections::BTreeMap::new();
+    let mut checkpoints = std::collections::BTreeMap::new();
+    for step in &case.steps {
+        if let termrock_e2e::Step::Checkpoint {
+            id,
+            assertions: checkpoint_assertions,
+            legacy_snapshot_path,
+            ..
+        } = step
+        {
+            checkpoints.insert(id.as_str(), legacy_snapshot_path.as_deref());
+            for assertion in checkpoint_assertions {
+                assertions.insert(assertion.id.as_str(), assertion);
+            }
+        }
+    }
+
+    let expected_assertion_ids = std::collections::BTreeSet::from([
+        "manager.chrome",
+        "manager.current_directory",
+        "editor.crumb",
+        "editor.dirty_count",
+        "preview.title",
+        "preview.keep_awake_diff",
+        "preview.workspace_name",
+        "preview.change_count",
+        "preview.dirty_badge",
+        "preview.dirty_tab",
+        "preview.cancel_focus",
+        "cancel.status",
+        "cancel.dirty_count",
+        "cancel.editor_crumb",
+        "cancel.preview_absent",
+        "reopened.title",
+        "reopened.diff",
+        "cancel_again.dirty_count",
+        "cancel_again.editor_crumb",
+        "cancel_again.preview_absent",
+        "cancel_again.diff_absent",
+    ]);
+    assert_eq!(assertions.len(), 21);
+    assert_eq!(assertions.keys().copied().collect::<std::collections::BTreeSet<_>>(), expected_assertion_ids);
+
+    let mut ordered_signatures = Vec::new();
+    for step in &case.steps {
+        if let termrock_e2e::Step::Checkpoint { assertions, .. } = step {
+            for assertion in assertions {
+                ordered_signatures.push((
+                    assertion.id.as_str(),
+                    assertion.kind.as_str(),
+                    assertion.needle.as_deref(),
+                    assertion.left.as_deref(),
+                    assertion.right.as_deref(),
+                    assertion.requires.as_deref(),
+                ));
+            }
+        }
+    }
+    assert_eq!(
+        ordered_signatures,
+        vec![
+            ("manager.chrome", "contains", Some("jackin❯"), None, None, None),
+            ("manager.current_directory", "contains", Some("Current directory"), None, None, None),
+            ("editor.crumb", "contains", Some("Workspaces › payments-platform › edit"), None, None, None),
+            ("editor.dirty_count", "contains", Some("• 1 change"), None, None, None),
+            ("preview.title", "contains", Some("Save workspace"), None, None, None),
+            ("preview.keep_awake_diff", "contains", Some("~ keep_awake true → false"), None, None, None),
+            ("preview.workspace_name", "contains", Some("payments-platform"), None, None, None),
+            ("preview.change_count", "contains", Some("1 change"), None, None, None),
+            ("preview.dirty_badge", "contains", Some("• 1 change"), None, None, None),
+            ("preview.dirty_tab", "contains", Some("General •"), None, None, None),
+            ("preview.cancel_focus", "same_line", None, Some("▎Cancel"), Some("Save"), None),
+            ("cancel.status", "contains", Some("Not saved · keep editing"), None, None, None),
+            ("cancel.dirty_count", "contains", Some("• 1 change"), None, None, None),
+            ("cancel.editor_crumb", "contains", Some("Workspaces › payments-platform › edit"), None, None, None),
+            ("cancel.preview_absent", "absent", Some("Save workspace"), None, None, Some("preview.title")),
+            ("reopened.title", "contains", Some("Save workspace"), None, None, None),
+            ("reopened.diff", "contains", Some("~ keep_awake true → false"), None, None, None),
+            ("cancel_again.dirty_count", "contains", Some("• 1 change"), None, None, None),
+            ("cancel_again.editor_crumb", "contains", Some("Workspaces › payments-platform › edit"), None, None, None),
+            ("cancel_again.preview_absent", "absent", Some("Save workspace"), None, None, Some("reopened.title")),
+            ("cancel_again.diff_absent", "absent", Some("~ keep_awake true → false"), None, None, Some("reopened.diff")),
+        ]
+    );
+    let cancel_focus = assertions["preview.cancel_focus"];
+    assert_eq!(cancel_focus.kind, "same_line");
+    assert_eq!(cancel_focus.left.as_deref(), Some("▎Cancel"));
+    assert_eq!(cancel_focus.right.as_deref(), Some("Save"));
+    assert_eq!(
+        assertions["cancel_again.preview_absent"].requires.as_deref(),
+        Some("reopened.title")
+    );
+    assert_eq!(
+        assertions["cancel_again.diff_absent"].requires.as_deref(),
+        Some("reopened.diff")
+    );
+    assert_eq!(
+        assertions["cancel.preview_absent"].requires.as_deref(),
+        Some("preview.title")
+    );
+    assert_eq!(checkpoints["05-preview-reopened"], None);
+    assert_eq!(checkpoints["06-cancelled-again"], None);
+
+    let mut missing_positive_precondition = (*case).clone();
+    for step in &mut missing_positive_precondition.steps {
+        if let termrock_e2e::Step::Checkpoint { assertions, .. } = step {
+            if let Some(assertion) = assertions
+                .iter_mut()
+                .find(|assertion| assertion.id == "cancel_again.diff_absent")
+            {
+                assertion.requires = Some("missing.positive".to_string());
+            }
+        }
+    }
+    assert!(termrock_e2e::validate_case_contract(&missing_positive_precondition).is_err());
 }
 
 #[test]
@@ -499,6 +986,27 @@ fn expected_generation_v1_schema_is_closed_and_pins_checkpoint_files() {
         "valid expected-generation fixture rejected: {manifest}"
     );
 
+    let mut maximum_file_bytes = valid_expected_generation_manifest();
+    for file_kind in ["frame", "png"] {
+        maximum_file_bytes["checkpoints"][0][file_kind]["bytes"] =
+            serde_json::json!(u64::MAX);
+    }
+    assert!(
+        validator.is_valid(&maximum_file_bytes),
+        "the exact u64 byte-count ceiling must remain valid"
+    );
+    let serialized_maximum =
+        serde_json::to_string(&maximum_file_bytes).expect("serialize u64 boundary fixture");
+    assert!(serialized_maximum.contains("18446744073709551615"));
+    let above_u64_maximum = serde_json::from_str::<serde_json::Value>(
+        &serialized_maximum.replace("18446744073709551615", "18446744073709551616"),
+    )
+    .expect("parse just-over-u64 schema fixture");
+    assert!(
+        !validator.is_valid(&above_u64_maximum),
+        "a file byte count above u64::MAX must be rejected"
+    );
+
     let mut missing = manifest.clone();
     missing.as_object_mut().unwrap().remove("oracle");
     assert!(!validator.is_valid(&missing));
@@ -508,13 +1016,31 @@ fn expected_generation_v1_schema_is_closed_and_pins_checkpoint_files() {
     assert!(!validator.is_valid(&unexpected));
 
     let mut duplicate_checkpoint = manifest.clone();
-    duplicate_checkpoint["checkpoints"][1]["id"] = serde_json::json!("00-boot");
+    duplicate_checkpoint["checkpoints"][1] = duplicate_checkpoint["checkpoints"][0].clone();
     assert!(!validator.is_valid(&duplicate_checkpoint));
 
     let mut moved_checkpoint_file = manifest;
     moved_checkpoint_file["checkpoints"][0]["png"]["path"] =
         serde_json::json!("checkpoints/00-boot/other.png");
     assert!(!validator.is_valid(&moved_checkpoint_file));
+
+    let mut resized_other_case = valid_expected_generation_manifest();
+    resized_other_case["case_id"] = serde_json::json!("SHOWCASE-DIALOG-001");
+    resized_other_case["checkpoints"][0]["geometry"] =
+        serde_json::json!({"cols": 73, "rows": 21});
+    resized_other_case["checkpoints"][0]["color_path"] = serde_json::json!("truecolor");
+    assert!(
+        validator.is_valid(&resized_other_case),
+        "generic schema should admit bounded values; Rust binds them to the selected case"
+    );
+
+    let mut outside_backend_range = resized_other_case;
+    outside_backend_range["checkpoints"][0]["geometry"]["cols"] = serde_json::json!(1001);
+    assert!(!validator.is_valid(&outside_backend_range));
+
+    let mut below_backend_range = valid_expected_generation_manifest();
+    below_backend_range["checkpoints"][0]["geometry"]["rows"] = serde_json::json!(0);
+    assert!(!validator.is_valid(&below_backend_range));
 }
 
 #[test]
