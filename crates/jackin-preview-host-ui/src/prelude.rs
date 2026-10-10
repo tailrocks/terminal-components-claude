@@ -252,8 +252,9 @@ impl PreludeScreen {
             }
         }
 
-        if is_narrow {
-            // Scrollbar at right edge of list
+        let fade_right = if is_narrow {
+            // Scrollbar at right edge of list. It stays outside the fade so
+            // the track glyph is not blended with the overflowing row.
             let sb_col = dialog.right().saturating_sub(4);
             ui.paint_str(Rect::new(sb_col, list_y, 1, 1), "┃", palette.primary);
             ui.paint_str(Rect::new(sb_col, list_y + 1, 1, 1), "┃", palette.primary);
@@ -265,7 +266,19 @@ impl PreludeScreen {
             );
             ui.paint_str(Rect::new(sb_col, list_y + 2, 1, 1), "│", dim_border);
             ui.paint_str(Rect::new(sb_col, list_y + 3, 1, 1), "│", dim_border);
-        }
+            sb_col
+        } else {
+            dialog.right()
+        };
+        // Six directory rows, four of them visible on the narrow dialog.
+        // `scroll_edges` owns the overflow fade (outer keep 0.55). A wide
+        // dialog shows every row, so the same call leaves them whole.
+        let mut scroll = termrock::ScrollState::new(items.len());
+        scroll.set_viewport(usize::from(list_h));
+        ui.scroll_edges(
+            Rect::new(x + 2, list_y, fade_right.saturating_sub(x + 2), list_h),
+            &scroll,
+        );
 
         // Checkbox: Mount read-only at bottom - 5
         let chk_y = dialog.bottom().saturating_sub(5);

@@ -8321,37 +8321,57 @@ impl App {
             let muted_bold = self.historical_span_style((128, 128, 128), (0, 0, 0), true);
 
             let start = area.x.saturating_add(area.width.saturating_sub(59) / 2);
+            // The five-cell leader is clipped on the left. The wide action
+            // override was measured with that leader on screen and bolds the
+            // wrong letters once it is cut. The clipped row keeps KeyHint's
+            // own action paint, over a container that has already marked the
+            // gaps the capture leaves bold.
+            let leader_clipped = start < 7;
 
             let container_slot = |ui: &mut Ui<'_>, cell: Rect| {
                 ui.fill(cell, normal_canvas);
-                if start >= 7 {
-                    ui.paint_str(
-                        Rect::new(start.saturating_sub(7), cell.y, 5, 1),
-                        "     ",
-                        bold_canvas,
-                    );
-                } else if start >= 2 {
+                if leader_clipped {
                     ui.paint_str(
                         Rect::new(start.saturating_sub(2), cell.y, 2, 1),
                         "  ",
                         bold_canvas,
                     );
+                    for x in [
+                        start.saturating_add(10),
+                        start.saturating_add(11),
+                        start.saturating_add(17),
+                        start.saturating_add(18),
+                        start.saturating_add(24),
+                        start.saturating_add(25),
+                        start.saturating_add(27),
+                        start.saturating_add(28),
+                        start.saturating_add(50),
+                        start.saturating_add(51),
+                    ] {
+                        ui.paint_str(Rect::new(x, cell.y, 1, 1), " ", bold_canvas);
+                    }
+                } else {
+                    ui.paint_str(
+                        Rect::new(start.saturating_sub(7), cell.y, 5, 1),
+                        "     ",
+                        bold_canvas,
+                    );
+                    ui.paint_str(
+                        Rect::new(start.saturating_add(5), cell.y, 1, 1),
+                        " ",
+                        bold_canvas,
+                    );
+                    ui.paint_str(
+                        Rect::new(start.saturating_add(10), cell.y, 2, 1),
+                        "  ",
+                        bold_canvas,
+                    );
+                    ui.paint_str(
+                        Rect::new(start.saturating_add(45), cell.y, 2, 1),
+                        "  ",
+                        bold_canvas,
+                    );
                 }
-                ui.paint_str(
-                    Rect::new(start.saturating_add(5), cell.y, 1, 1),
-                    " ",
-                    bold_canvas,
-                );
-                ui.paint_str(
-                    Rect::new(start.saturating_add(10), cell.y, 2, 1),
-                    "  ",
-                    bold_canvas,
-                );
-                ui.paint_str(
-                    Rect::new(start.saturating_add(45), cell.y, 2, 1),
-                    "  ",
-                    bold_canvas,
-                );
             };
 
             let action_slot = |ui: &mut Ui<'_>, cell: Rect| {
@@ -8393,10 +8413,13 @@ impl App {
                 }
             };
 
-            HintBar::new(APP.sub("hint"), &self.hint_layers.prelude)
-                .slot(Part::CONTAINER, &container_slot)
-                .slot(Part::ACTION, &action_slot)
-                .draw(ui, area);
+            let bar = HintBar::new(APP.sub("hint"), &self.hint_layers.prelude)
+                .slot(Part::CONTAINER, &container_slot);
+            if leader_clipped {
+                bar.draw(ui, area);
+            } else {
+                bar.slot(Part::ACTION, &action_slot).draw(ui, area);
+            }
             return;
         }
 
@@ -10139,6 +10162,51 @@ mod paint_contract_tests {
             .unwrap_or("")
             .trim_end()
             .to_string()
+    }
+
+    #[test]
+    fn prelude_overflow_row_uses_the_shared_scroll_fade() {
+        use termrock::{Color, Theme};
+        use termrock_test_support::Harness;
+        let open = |w, h| {
+            let mut harness = Harness::new(
+                App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 400),
+                Theme::junie(),
+                w,
+                h,
+            );
+            let _ = harness.key(KeyCode::Char('n'));
+            harness
+        };
+        let narrow = open(72, 20);
+        let (x, y) = narrow.find("scripts/").expect("narrow file list");
+        assert_eq!(
+            narrow.cell(x, y).fg,
+            Color::Rgb(151, 151, 152),
+            "the overflowing row fades through scroll_edges"
+        );
+        let wide = open(120, 40);
+        let (x, y) = wide.find("scripts/").expect("wide file list");
+        assert_eq!(
+            wide.cell(x, y).fg,
+            Color::Rgb(255, 255, 255),
+            "a list that fits does not fade"
+        );
+        let (nx, ny) = narrow.find("Open").expect("narrow footer");
+        assert!(
+            !narrow
+                .cell(nx, ny)
+                .modifier
+                .contains(termrock::Modifier::BOLD),
+            "clipped prelude footer does not bold Open"
+        );
+        let (wx, wy) = wide.find("Open").expect("wide footer");
+        assert!(
+            wide.cell(wx, wy)
+                .modifier
+                .contains(termrock::Modifier::BOLD),
+            "wide prelude footer bolds Open"
+        );
     }
 
     #[test]
