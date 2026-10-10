@@ -6,7 +6,9 @@ The workspace is a multi-crate Cargo layout under `crates/`, with the Termrock l
 and the `showcase`, `tablepro`, `jackin-preview`, and `holla` preview applications.
 Crate counts alone never prove reusable component adoption; the composition contract below owns that rule.
 
-**Current status:** [Visibility and refactor status](STATUS.md) reports measured source identities and current evidence.
+**Current status:** [Visibility and refactor status](STATUS.md) reports measured source identities and current evidence. At `2026-10-10T06:44:23Z`, the candidate is `38a897b179b6f01cf07dd6d889f7a278886e5226`, the reference is `4b473a98a8641a9dae8dbf9c31c0c94b15465496`, and the immutable tag object/commit remain `1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5` / `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`. Push CI run [38031202825](https://github.com/tailrocks/terminal-components-claude/actions/runs/38031202825) failed before runner jobs with 0 jobs and 0 artifacts; candidate DCO passed, reference DCO did not, and PR #17 is open/draft with a dirty merge state. Visibility, Refactor/Ready, Reference qualification, exact-command readiness, paired execution, visual parity, interaction parity, API adoption, ownership proof, and admission remain `NOT_RUN`.
+
+The local package `crates/termrock-e2e` at revision `termrock-e2e-2026-10-09.2` has 28 files and SHA-256 `5867f043a6b3e2913871770e70ac55553c235617852a646bd3fb525dd8940637`. A focused `cargo nextest` digest control passed 1/1. It is not product execution, not a paired run, and does not qualify the globally dirty checkout. Uncommitted product/library changes from another workstream are intentionally outside these measured facts.
 
 Some current source and package names still predate the Termrock identity.
 They remain implementation names until a later implementation change.
@@ -20,7 +22,7 @@ Their existing output and observable interactions are protected.
 Future Termrock implementations must preserve them one-for-one; product changes require a separate, explicitly approved change.
 The previews show how a real interface uses the library; they are not separate product redevelopment projects.
 
-The frozen source and expected output are pinned to commit [`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`](https://github.com/donbeave/terminal-components-claude/commit/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b), the commit resolved by the annotated `visual-baseline` tag. Candidate code cannot create, update, or approve its own expected baseline.
+The frozen source and expected output are pinned to commit [`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`](https://github.com/tailrocks/terminal-components-claude/commit/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b), the commit resolved by annotated tag object `1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5`. Candidate code cannot create, update, or approve its own expected baseline.
 
 ## Run the current applications
 

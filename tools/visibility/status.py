@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib.util
+import json
 import os
 import re
 import shlex
@@ -1505,6 +1506,177 @@ def load_status_report_control_observation(
         "independent_review": value["independent_review"],
         "review": review,
     }
+
+
+def validate_current_local_e2e_suite_observation(
+    value: Any, local: Mapping[str, Any]
+) -> Optional[Mapping[str, Any]]:
+    """Validate a package-only current digest/control without product claims."""
+    if value is None:
+        return None
+    require(isinstance(value, dict), "current local E2E suite observation is invalid")
+    timestamp(value.get("observed_at"), "current E2E suite observation time")
+    source_commit = sha(value.get("source_commit"), "current E2E source commit")
+    source_tree = sha(value.get("source_tree_sha"), "current E2E source tree")
+    require(source_commit == local["head_sha"] and source_tree == local["tree_sha"],
+            "current E2E package source does not match the latest local checkout")
+    require(value.get("scope") == "crates/termrock-e2e package files only",
+            "current E2E package scope changed")
+    require(value.get("revision") == "termrock-e2e-2026-10-09.2",
+            "current E2E package revision changed")
+    digest = sha256(value.get("package_sha256"), "current E2E package digest")
+    files = value.get("files")
+    require(isinstance(files, list) and bool(files)
+            and len(files) == value.get("file_count"),
+            "current E2E package file inventory is required")
+    inventory_identity = hashlib.sha256()
+    previous_path = ""
+    for index, item in enumerate(files):
+        label = "current E2E package files[{}]".format(index)
+        require(isinstance(item, dict), "{} must be an object".format(label))
+        path = item.get("path")
+        require(isinstance(path, str) and path and not path.startswith("/")
+                and path > previous_path and ".." not in Path(path).parts,
+                "{} path must be safe, unique, and sorted".format(label))
+        previous_path = path
+        byte_count = item.get("bytes")
+        require(type(byte_count) is int and byte_count >= 0,
+                "{} byte count is invalid".format(label))
+        file_digest = sha256(item.get("sha256"), "{}.sha256".format(label))
+        item_identity = {
+            "path": path, "bytes": byte_count, "sha256": file_digest,
+        }
+        encoded = json.dumps(item_identity, sort_keys=True,
+                             separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        inventory_identity.update(encoded)
+        inventory_identity.update(b"\n")
+    expected_inventory = sha256(value.get("inventory_sha256"),
+                                "current E2E inventory identity")
+    require(inventory_identity.hexdigest() == expected_inventory,
+            "current E2E package file inventory identity changed")
+    nextest = value.get("nextest")
+    require(isinstance(nextest, dict), "current E2E Nextest control is required")
+    require(nextest.get("source_suite_sha256") == digest,
+            "current E2E Nextest control source digest changed")
+    command = nextest.get("command")
+    require(isinstance(command, str) and "cargo nextest" in command
+            and "cargo test" not in command,
+            "current E2E control must use cargo nextest")
+    require(nextest.get("result") in {"PASS", "FAIL"},
+            "current E2E control result must be PASS or FAIL")
+    counts = {field: nextest.get(field) for field in (
+        "selected", "executed", "passed", "failed", "skipped",
+    )}
+    require(all(type(count) is int and count >= 0 for count in counts.values()),
+            "current E2E control counts must be nonnegative integers")
+    require(counts["executed"] == counts["passed"] + counts["failed"]
+            + counts["skipped"],
+            "current E2E control counts do not reconcile")
+    require(counts["selected"] == counts["executed"],
+            "current E2E control selection does not reconcile")
+    exit_code = nextest.get("exit_code")
+    require(type(exit_code) is int, "current E2E control exit code is required")
+    if nextest["result"] == "PASS":
+        require(exit_code == 0 and counts["failed"] == 0 and counts["passed"] > 0,
+                "current E2E PASS does not match its Nextest result")
+    else:
+        require(exit_code != 0 and counts["failed"] > 0,
+                "current E2E FAIL does not match its Nextest result")
+    require(isinstance(value.get("qualification"), str)
+            and "not a paired run" in value["qualification"].lower(),
+            "current E2E package control must deny paired-run qualification")
+    return value
+
+
+def validate_historical_current_status_observations(
+    value: Any, latest: Mapping[str, Any], queue_module: Any,
+) -> Sequence[Mapping[str, Any]]:
+    if value is None:
+        return []
+    require(isinstance(value, dict)
+            and value.get("schema")
+            == "termrock-status-current-observations-history/v1",
+            "unsupported historical current-status schema")
+    records = value.get("records")
+    require(isinstance(records, list) and bool(records),
+            "historical current-status records are required")
+    current_candidate = latest["candidate_remote"]["head_sha"]
+    current_reference = latest["reference_remote"]["head_sha"]
+    validated = []
+    for index, record in enumerate(records):
+        label = "historical_current_status_observations[{}]".format(index)
+        require(isinstance(record, dict), "{} must be an object".format(label))
+        superseded_at = timestamp(record.get("superseded_at"),
+                                  "{}.superseded_at".format(label))
+        observations = record.get("observations")
+        require(isinstance(observations, dict)
+                and observations.get("schema")
+                == "termrock-status-current-observations-v1",
+                "{} observations schema changed".format(label))
+        pair = observations.get("fixed_comparison_pair")
+        require(isinstance(pair, dict)
+                and pair.get("candidate_commit") != current_candidate
+                and pair.get("reference_commit") != current_reference,
+                "{} must not use the current source pair".format(label))
+        failure = observations.get("candidate_api_deferred_run")
+        require(isinstance(failure, dict)
+                and failure.get("measurement_status") == "FAILED"
+                and failure.get("review_verdict") == "VERIFIED_FAILED_RUN"
+                and failure.get("acceptance_decision") == "NOT_RECORDED",
+                "{} must preserve its failed source-bound candidate run".format(label))
+        receipt = read_pinned_json(failure.get("receipt"),
+                                   "{} candidate receipt".format(label), queue_module)
+        ledger = read_pinned_json(failure.get("ledger"),
+                                  "{} candidate ledger".format(label), queue_module)
+        review = read_pinned_json(failure.get("review"),
+                                  "{} candidate review".format(label), queue_module)
+        packet = validate_product_evidence_packet(
+            failure.get("packet_manifest"), failure, queue_module,
+        )
+        require(isinstance(receipt, dict) and isinstance(ledger, dict)
+                and isinstance(review, dict)
+                and isinstance(packet, dict)
+                and receipt.get("execution", {}).get("result")
+                == failure["measurement_status"]
+                and ledger.get("run", {}).get("receipt_sha256")
+                == failure["receipt"]["sha256"]
+                and review.get("verdict") == failure["review_verdict"],
+                "{} candidate receipt, ledger, and review do not reconcile".format(label))
+        readiness = observations.get("report_readiness")
+        require(isinstance(readiness, dict) and all(
+            readiness.get(field) == "NOT_RUN" for field in (
+                "visibility_complete", "refactor_ready", "reference_qualified",
+                "command_ready", "evidence_freshness",
+            )
+        ), "{} cannot promote readiness".format(label))
+        validated.append({"superseded_at": superseded_at,
+                          "observations": observations})
+    return validated
+
+
+def render_current_local_e2e_suite_observation(
+    value: Optional[Mapping[str, Any]],
+) -> str:
+    if value is None:
+        return ""
+    run = value["nextest"]
+    return "\n".join([
+        "## Current local package control",
+        "",
+        "| Observation | Result | Scope |",
+        "| --- | --- | --- |",
+        "| Package `{}`; {} files | SHA-256 `{}` | Current source commit `{}`; revision `{}`; package files only. |".format(
+            value["revision"], value["file_count"], value["package_sha256"],
+            value["source_commit"], value["revision"],
+        ),
+        "| `cargo nextest` digest control | {} ({}/{} selected; {} passed, {} failed, {} skipped) | Run `{}`; compiled/current digest sensitivity only; NOT product execution and NOT a paired run. |".format(
+            run["result"], run["executed"], run["selected"], run["passed"],
+            run["failed"], run["skipped"], run["run_id"],
+        ),
+        "",
+        value["qualification"],
+        "",
+    ])
 
 
 def render_local_validation_observations(
@@ -5428,6 +5600,9 @@ def render_status(
     status_controls = load_status_report_control_observation(
         facts.get("status_report_control_observation"), queue_module
     )
+    current_local_e2e_suite = validate_current_local_e2e_suite_observation(
+        facts.get("current_local_e2e_suite_observation"), local
+    )
     validation_execution = list(execution_observations)
     validation_execution.extend(
         item
@@ -5437,6 +5612,10 @@ def render_status(
     local_validation_section = render_local_validation_observations(
         local_e2e_suite, status_controls, validation_execution
     )
+    local_validation_section = "\n\n".join(section for section in (
+        render_current_local_e2e_suite_observation(current_local_e2e_suite),
+        local_validation_section,
+    ) if section)
     current_ci = validate_current_ci_observation(
         latest, facts.get("current_ci_observation")
     )
@@ -5445,6 +5624,9 @@ def render_status(
     )
     current_status_observations = validate_current_status_observations(
         facts.get("current_status_observations"), latest, authority, queue_module
+    )
+    historical_current_status = validate_historical_current_status_observations(
+        facts.get("historical_current_status_observations"), latest, queue_module
     )
     provider_observations = validate_provider_observations(
         facts.get("provider_observations"), latest, queue_module,
@@ -5559,7 +5741,14 @@ def render_status(
         candidate_source_label = "Candidate remote branch tip"
         reference_source_label = "Reference remote branch tip"
         source_observed_label = "Remote branch tips observed at"
-        source_timing_value = latest["observed_at"]
+        source_timing_value = (
+            "{}; branch last-update time unknown; remote commit committer dates "
+            "are metadata only (candidate {}, reference {})."
+        ).format(
+            latest["observed_at"],
+            remote_candidate.get("commit_committer_at", "unknown"),
+            remote_reference.get("commit_committer_at", "unknown"),
+        )
         prior_candidate = latest.get("prior_candidate_remote_observation", {})
         prior_candidate_description = (
             "{}; its retrieval time was not retained, and this tip is superseded by the "
@@ -5571,7 +5760,9 @@ def render_status(
         )
         source_section_heading = "Latest source and local checkout observations"
         ci_scope_label = "latest observed candidate branch tip"
-        history_section = ""
+        history_section = render_source_observation_history(
+            facts.get("source_observation_history", []), historical_evidence_gaps,
+        )
     local_dco = facts["latest_local_dco_trailer_observation"]
     ci_scope = ("matches" if ci["head_sha"] == remote_candidate["head_sha"]
                 else "does not match")
