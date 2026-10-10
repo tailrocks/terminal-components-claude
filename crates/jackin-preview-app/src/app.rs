@@ -6875,7 +6875,12 @@ impl App {
                 Route::Prelude => "Create",
                 _ => "",
             };
-            let state = if self.world.running_count() > 0 || self.route == Route::Capsule {
+            // Tag `construct_state`: entry completion counts even when no
+            // instance is running, so the post-intro manager is inside.
+            let state = if self.world.arbiter.entered_at_ms.is_some()
+                || self.world.running_count() > 0
+                || self.route == Route::Capsule
+            {
                 "inside the Construct"
             } else {
                 "outside the Construct"
