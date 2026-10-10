@@ -1,0 +1,180 @@
+{
+  "bindings": {
+    "nextest_stderr": {
+      "bytes": 4717,
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/nextest.stderr.raw",
+      "sha256": "5fbc97965a9971fe761ec82cb2191cfa59313d02023856212a20eb2d23eb8df0"
+    },
+    "nextest_stdout": {
+      "bytes": 9926,
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/nextest.stdout.raw",
+      "sha256": "1ee518960389024a6db12d7258fb9646ddcb51887e34379b2594d3bd1049fa85"
+    },
+    "r17_raw_list_stdout": {
+      "byte_length": 20527,
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-list-r3-20261010/attempt-01/nextest-list.stdout.json",
+      "sha256": "8d4725a0e550d231b499f2cb651ef46446824af59f90112437a5319c41af1c73",
+      "truncated": false
+    },
+    "r17_raw_run_stderr": {
+      "byte_length": 20201,
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/nextest.stderr.raw",
+      "sha256": "c5fb84331219798b0f56996a63d980c04d04adf8ccf72606d2f09f5ef6798363",
+      "truncated": false
+    },
+    "r17_raw_run_stdout": {
+      "byte_length": 40649,
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/nextest.stdout.jsonl",
+      "sha256": "07ed2f98bd7f0b50773ac1bc0fb9d4f3a0fb95ebb582ef378522da06727d5c08",
+      "truncated": false
+    },
+    "r17_reader_request": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/reader-request.json",
+      "sha256": "05a25bb87c115e1417e1fb257c3cadf63c1a317aeb86fd52615901c551f4adee"
+    },
+    "reader_output": {
+      "bytes": 18181,
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/reader-output/r17-reader.stdout.raw",
+      "sha256": "fa65686c727950353885a3ee513238db0501c06b66c0e477c3e22d7a2827f3da"
+    },
+    "runner_result": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/runner-result.json",
+      "sha256": "7d329389dbb22a5d9f1237428e832469930fa4a546ab27e9fd3f859ca4784ca7"
+    }
+  },
+  "current_r3_nextest": {
+    "all_runner_stages": [
+      {
+        "child_reaped": true,
+        "close_code": 0,
+        "exit_code": 0,
+        "output_limit_exceeded": false,
+        "stage": "nextest-run",
+        "stderr_sha256": "5fbc97965a9971fe761ec82cb2191cfa59313d02023856212a20eb2d23eb8df0",
+        "stdout_sha256": "1ee518960389024a6db12d7258fb9646ddcb51887e34379b2594d3bd1049fa85",
+        "timed_out": false
+      },
+      {
+        "child_reaped": true,
+        "close_code": 0,
+        "exit_code": 0,
+        "output_limit_exceeded": false,
+        "stage": "reader-build",
+        "stderr_sha256": "4dfecad0928dfa0de2b4b11b225aa5a925113522a4bba00ece9c67752edbf2f9",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timed_out": false
+      },
+      {
+        "child_reaped": true,
+        "close_code": 0,
+        "exit_code": 0,
+        "output_limit_exceeded": false,
+        "stage": "r17-rust-reader",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "fa65686c727950353885a3ee513238db0501c06b66c0e477c3e22d7a2827f3da",
+        "timed_out": false
+      }
+    ],
+    "all_terminal_events": "ok",
+    "exact_selector_identity_match": true,
+    "inputs_unchanged": true,
+    "raw_started": 26,
+    "raw_terminal": 26,
+    "result_top_level_state": "PASS",
+    "selected_filter_count": 26,
+    "test_binary_prefix": "termrock-visibility-tests::termrock_visibility_tests",
+    "test_identities": [
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::child_summary_is_checked_only_when_bound_to_one_suite",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::filtered_out_u64_values_are_preserved_and_inventory_anomalies_marked",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::human_nextest_contradiction_blocks_without_rewriting_machine_results",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::human_only_capture_is_unavailable_not_a_pass",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::identical_repeated_suite_snapshots_are_observations_not_extra_tests",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::list_ignored_and_filter_status_must_match_static_selection",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::list_ignored_does_not_become_run_filtered_out",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::preserves_child_pass_and_wrapper_125_as_distinct_process_facts",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::reads_machine_records_from_the_configured_stderr_stream",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::rejects_missing_extra_duplicate_and_suffix_terminal_identities",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::rejects_other_format_and_retry_stress_or_partition_invocations",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::rejects_structured_records_split_across_stdout_and_stderr",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::rejects_suite_start_after_terminal_snapshot",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::request_file_capture_metadata_and_trusted_selection_hash_are_checked",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::selected_filter_and_ignored_status_must_match_run_policy",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::terminal_identity_before_start_is_invalid",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::v2_accepts_142_selected_identities_across_four_targets",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::v2_accepts_empty_filter_and_exact_59_case_status_selection",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::v2_keeps_complete_failed_run_outcomes_separate_from_process_success",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::v2_rejects_count_and_target_mismatches",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::v2_rejects_empty_selection",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::v2_rejects_missing_duplicate_and_ambiguous_runtime_aliases",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::v2_rejects_oversized_selection",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::v2_rejects_unadmitted_runtime_metadata_and_test_prefixes",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::validates_exact_nine_selection_and_list_identities",
+      "termrock-visibility-tests::termrock_visibility_tests$nextest_result::tests::verifies_nine_observed_tests_across_two_binaries_and_plural_summary"
+    ],
+    "unique_started": 26,
+    "unique_terminal": 26
+  },
+  "fresh_reader_cli": {
+    "binary_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/target/debug/nextest-result-reader",
+    "binary_sha256": "6e04b44ab03aae70fec328eabda332293bedf1f71f66673d903af6566696366f",
+    "dep_info_dependencies": [
+      "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/src/lib.rs",
+      "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/src/nextest_result.rs",
+      "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/src/bin/nextest-result-reader.rs"
+    ],
+    "dep_info_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/target/debug/nextest-result-reader.d",
+    "dep_info_sha256": "763c107263f1effc9d1f1632c7922cf53ad6eb6a0ba5e42f310bb5b2a3f11252",
+    "dependency_source_sha256": {
+      "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/src/bin/nextest-result-reader.rs": "518d527af27dd880057db6c4ef029244d59fe8cdcfdf6d3822b8aad2e7b83500",
+      "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/src/lib.rs": "5ec6fe8e4a4bbb15e888c403fc91e35a6431c6541481c162d4da3aca996f2f2c",
+      "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/src/nextest_result.rs": "b3191ad38cf707255381f4c6851eb4be0f23dad45db42cd68dcbc6dbef9ead03"
+    },
+    "mode_octal": "0755"
+  },
+  "limitations": [
+    "The 26 passing tests are the selected Rust reader unit tests, not application/product behavior tests.",
+    "R17 reprocessing is evidence interpretation of an earlier captured 142-test run; that run has one failed test and remains non-accepted.",
+    "No source, cache, runner, or result file was modified."
+  ],
+  "r17_reprocess": {
+    "acceptance": "blocked",
+    "failed_identity": "tuiscotti-runtime$tui::tests::pty_tests::env_remove_drops_one_var",
+    "interpretation": "Reader CLI completed and emitted a verified report; the reprocessed target run itself exited 100 with 141/142 passing, so acceptance remains blocked. No product qualification claim.",
+    "list_inventory_by_binary": [
+      {
+        "binary_id": "tuiscotti-runtime",
+        "test_count": "75"
+      },
+      {
+        "binary_id": "tuiscotti-runtime::flood",
+        "test_count": "1"
+      },
+      {
+        "binary_id": "tuiscotti-runtime::tui",
+        "test_count": "39"
+      },
+      {
+        "binary_id": "tuiscotti-runtime::tui_shell",
+        "test_count": "27"
+      }
+    ],
+    "list_test_count": "142",
+    "machine_state": "verified",
+    "original_raw_failure_identity": "tuiscotti-runtime::tuiscotti_runtime$tui::tests::pty_tests::env_remove_drops_one_var",
+    "original_raw_run_machine_outcomes": {
+      "failed": 1,
+      "ok": 141,
+      "started": 142
+    },
+    "process_success": false,
+    "runner_cli_stage_exit": 0,
+    "selected_outcomes": {
+      "failed": 1,
+      "ok": 141
+    },
+    "selected_test_count": 142
+  },
+  "schema": "termrock-vis08-r3-actual-result-review/v1",
+  "scope": "Read-only independent review of the actual VIS-08 R3 result and R17 reprocessing; no Cargo/Nextest/tests were run by reviewer.",
+  "verdict": "READY_RAW_AND_READER_RESULT_REVIEW"
+}

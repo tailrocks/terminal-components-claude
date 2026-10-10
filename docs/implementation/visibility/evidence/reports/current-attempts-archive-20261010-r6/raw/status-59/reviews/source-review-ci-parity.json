@@ -1,0 +1,46 @@
+{
+  "schema": "termrock-vis01-product-phase-source-review/v1",
+  "reviewer": "ci_parity_review_luna",
+  "reviewed_at_utc": "2026-10-10",
+  "verdict": "READY",
+  "scope": "Focused static review of the frozen R3 source delta only. No Cargo, Nextest, tests, build, repository writes, commit, or ref update.",
+  "subject": {
+    "source_root": "/private/tmp/termrock-vis01-product-phases-r3-source-20261010",
+    "freeze_path": "/private/tmp/termrock-vis01-product-phases-r3-freeze-20261010/source-freeze.json",
+    "freeze_sha256": "d249bba0ce3ddce9e5b7c4debb50564bcf832cefcfd915ceb8abb52dd30100f5",
+    "patch_path": "/private/tmp/termrock-vis01-product-phases-r3-freeze-20261010/source-delta.patch",
+    "patch_sha256": "3c8b1c17098dbd7b95e69d7c22104cddb16f353c255fb0d1ab0e9fefb9b950df",
+    "base_commit": "57d505f343bf35e5041471f4cbab476cb92d67da",
+    "base_tree": "965aef70b90ca0a8a4be2f869da839a3711245d8",
+    "paths": [
+      {
+        "path": "tools/visibility/status.py",
+        "sha256": "2fcb0c6b45375656b4a23e8f5ea4fef86342fc56a1ec5fff162ff717c502a7f0"
+      },
+      {
+        "path": "crates/termrock-visibility-tests/tests/status.rs",
+        "sha256": "7efa372f27b1537cbdf5add2568e62c43d43c42d7a30f29c1fc2e1b661440e0f"
+      }
+    ],
+    "prior_r2_review": "/private/tmp/termrock-vis01-product-phases-r2-source-review-ci-parity-luna.json",
+    "prior_r2_review_sha256": "6cb078bc8de48fd19d6698a5cbb460835a0d717a1c2ae256c8894c2831fef433",
+    "design_review": "/private/tmp/termrock-vis01-product-phases-design-review-ci-parity-luna.json",
+    "design_review_sha256": "a0ccdbcff7ce2e1ac974885fc51b1d2239ee39bfc6b88a06ddbc84edce8b6175"
+  },
+  "verified": {
+    "freeze_patch_and_source_hashes_match": true,
+    "exact_two_path_scope_preserved": true,
+    "historical_pair_is_decoupled_from_latest_and_current_fixed_pair": true,
+    "candidate_reference_records_bind_exactly_to_facts_pair_role_kind_and_argv": true,
+    "strict_nine_layer_schema_and_status_enum_enforced": true,
+    "extra_layer_negative_case_added": true,
+    "na_is_neutral_when_other_display_phases_pass_and_all_na_is_not_applicable": true,
+    "current_readiness_remains_not_run_separate_from_historical_readiness": true,
+    "cleanup_remains_validated_but_is_not_displayed_or_used_for_historical_readiness": true
+  },
+  "findings": [],
+  "limitations": [
+    "The facts source_pair is an internally bound historical identity: each exact candidate/reference role record must match its commit, role, command kind, and registered argv; the pair evidence bytes must match a listed reports archive member and its hashes. The validator intentionally does not independently authenticate that pair against current branch tips or an external allowlist. This source review establishes schema and binding behavior, not authenticity or product qualification.",
+    "No runtime behavior or test success is claimed; R3 is NOT_RUN."
+  ]
+}

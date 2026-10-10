@@ -1,0 +1,115 @@
+{
+  "schema": "termrock.independent-nextest-reader-result-review/v1",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "verdict": "READY_READER_V2_RESULT_ACCEPTED",
+  "scope": "Independent semantic review of the frozen VIS-01 R2 Reader v2 result; no reader, Cargo, Nextest, or tests were rerun.",
+  "inputs": {
+    "review_request": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/review-request.json",
+      "sha256": "1eb246ddc6f771a8f6446e3a62a30b47e7df9946d060eb4d398bad1db7af840e"
+    },
+    "reader_request": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/reader-request.json",
+      "sha256": "2e6485cb514540c09f05673481f267b9e68a30ed562cbba308140ad561c5ce2b"
+    },
+    "selection": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/selection-v2.json",
+      "sha256": "30a9f314bafaf1f61049a4abb85650da8b344315764b757962cf779892fca924"
+    },
+    "static_test_name_inventory": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/test-names.json",
+      "sha256": "9166a8a4b4a30130c3ddb6f37945a565972f7f3ee9a615d23b08680aba4503c7"
+    },
+    "reader_report": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/reader-report-root.json",
+      "sha256": "0f0f7089554cf5457ab83e5f28373cb41791bb9e3f3cf5db61fe220f32603f76"
+    },
+    "raw_process_receipt": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/run-process.json",
+      "sha256": "ab9fa8dae49d6b0dfd631c2cb210924ac679eb42f2609f14cc8fd5ee030c1463"
+    },
+    "raw_stdout": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/nextest.stdout.jsonl",
+      "bytes": 17430,
+      "sha256": "14be4021ed8ce4b1c23457d52c47717c3375223dd0af6e28b018e6491fcaa3fc"
+    },
+    "raw_stderr": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/nextest.stderr.log",
+      "bytes": 14864,
+      "sha256": "97f9253c9973f71a670069af4321a159a31a269841b3bf8b42455a5c3b72de97"
+    },
+    "raw_process_events": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/process-events.jsonl",
+      "bytes": 1112,
+      "sha256": "4f3463f3641072a32e56b17f6b4bbe5c9778c8801ce441e28ee6785e59dff033"
+    },
+    "reader_binary": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/target/debug/nextest-result-reader",
+      "sha256": "7b01eee4165f1773f4427180bf192e9bf5cc493b587049b2d3d8097c788233a9"
+    },
+    "reader_dep_info": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/target/debug/nextest-result-reader.d",
+      "sha256": "2b996d84cecd8379a42fb80f3fdab0c65b58f29193181c9abc470da96c9ba890"
+    }
+  },
+  "findings": [],
+  "verified": {
+    "request_run_id_matches_report": "termrock-vis01-status-59-r2-20261010",
+    "request_selection_hash_and_report_selection_hash_match_selection_file": true,
+    "request_selection_expected_count_and_report_count": 59,
+    "selection_matches_all_59_static_inventory_names": true,
+    "selection_is_single_target_default_ignored_behavior_no_filter": true,
+    "raw_jsonl_records": 120,
+    "raw_suite_events": {
+      "started": 1,
+      "ok": 1,
+      "passed": 59,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 0
+    },
+    "raw_test_events": {
+      "started": 59,
+      "ok": 59,
+      "failed": 0,
+      "each_name_started_then_ok_once": true
+    },
+    "exact_raw_names_match_selection_and_reader_report": true,
+    "reader_report": {
+      "acceptance": "accepted",
+      "machine_state": "verified",
+      "selected": 59,
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "errors": [],
+      "count_anomalies": [],
+      "same_domain_contradictions": []
+    },
+    "human_summary": "Summary [ 124.098s] 59 tests run: 59 passed, 0 skipped; present verbatim in raw stderr",
+    "raw_capture_bindings": "Reader request stdout/stderr paths, byte lengths, SHA-256 values, and exit status match the preserved raw artifacts.",
+    "reader_binary_and_dep_info_hashes_match_review_request": true,
+    "process": {
+      "child_exit": 0,
+      "wrapper_exit": 0,
+      "direct_child_reaped": true,
+      "timed_out": false,
+      "cap_exceeded": false,
+      "forced_close": false
+    },
+    "input_stability": {
+      "source": true,
+      "cache": true,
+      "tools": true,
+      "packet_inputs_stable_before_at_spawn_after": true,
+      "no_post_errors": true
+    },
+    "target": {
+      "seed_tree_digest": "a6be1891c15335dd9a0117735aff6db3322fd06675349cb25b725ceefeb99983",
+      "same_digest_at_spawn": true,
+      "target_changed_after_spawn": "expected build/run output in the packet-local target"
+    }
+  },
+  "limitation": "This accepts the semantic interpretation of the exact 59-test Nextest capture only. It is not a product-qualification, application-journey, or current-readiness claim."
+}

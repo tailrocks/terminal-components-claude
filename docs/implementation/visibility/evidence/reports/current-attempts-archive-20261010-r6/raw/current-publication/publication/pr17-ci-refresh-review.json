@@ -1,0 +1,77 @@
+{
+  "schema": "termrock-pr17-ci-refresh-review/v1",
+  "reviewed_at_utc": "2026-10-10T02:42:31Z",
+  "repository": "tailrocks/terminal-components-claude",
+  "pull_request": 17,
+  "head_sha": "331b6fd95835ca505a9417581aaa37df52504797",
+  "base_sha": "81a8bf15cd3042f80649e2b48fed479829518dbd",
+  "observation": {
+    "actions_run": {
+      "id": 38016983578,
+      "workflow": ".github/workflows/ci.yml",
+      "event": "push",
+      "run_number": 868,
+      "status": "completed",
+      "conclusion": "failure",
+      "check_suite_id": 103009876668,
+      "created_at": "2026-10-10T02:26:42Z",
+      "updated_at": "2026-10-10T02:26:42Z"
+    },
+    "jobs": {"total_count": 0, "items": []},
+    "artifacts": {"total_count": 0, "items": []},
+    "commit_status": {"state": "pending", "total_count": 0, "items": []},
+    "checks": [{
+      "id": 114109357313,
+      "name": "DCO",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-10T02:26:50Z",
+      "completed_at": "2026-10-10T02:26:51Z",
+      "annotations_count": 0,
+      "head_commit_signoff": "Valid sign-off found"
+    }],
+    "check_suites": [
+      {"id": 103009875849, "app": "dco-2", "conclusion": "success"},
+      {"id": 103009876668, "app": "github-actions", "conclusion": "failure", "latest_check_runs_count": 0}
+    ],
+    "run_logs": {
+      "endpoint": "GET /repos/tailrocks/terminal-components-claude/actions/runs/38016983578/logs",
+      "http_status": 403,
+      "provider_message": "Must have admin rights to Repository.",
+      "captured_at_utc": "2026-10-10T02:42:03Z",
+      "interpretation": "Log retrieval was denied; this is an observation gap and does not establish the workflow failure cause."
+    },
+    "dco_annotations": {
+      "endpoint": "GET /repos/tailrocks/terminal-components-claude/check-runs/114109357313/annotations?per_page=100",
+      "http_status": 200,
+      "items": 0,
+      "captured_at_utc": "2026-10-10T02:42:03Z"
+    },
+    "workflow_source": {
+      "path": ".github/workflows/ci.yml",
+      "git_blob": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+      "bytes": 537470,
+      "comparison": "Candidate tree resolves this path to the same blob ID; workflow source is unchanged."
+    }
+  },
+  "conclusion": {
+    "state": "BLOCKED_CAUSE_UNDIAGNOSED",
+    "summary": "The exact-head push workflow completed as failure with zero jobs and zero artifacts. DCO passed. GitHub denied run-log download with HTTP 403, so available provider evidence does not identify why the workflow failed or produced no jobs.",
+    "no_failure_cause_inferred": true,
+    "no_tests_or_repository_writes": true
+  },
+  "raw_api_files": [
+    {"path":"raw-api/pr.json","sha256":"a5336fefe7bcd1b13daaf82b329b5f0bcf73b3e28098ffd2ced3c2946aa231f6"},
+    {"path":"raw-api/runs.json","sha256":"3a4bd4c3a44a4c4447c2c13c32b57bc25f0a6edb0ba0310ec841555abb485fb2"},
+    {"path":"raw-api/run.json","sha256":"122b3d8441ccfec34e6fbc4dc6f5c192500bd0a7258f467041e07d0dd048b884"},
+    {"path":"raw-api/jobs.json","sha256":"b40060f48acada8716b753e44014a69d16ebe84cc41a15639459920bd15c086f"},
+    {"path":"raw-api/artifacts.json","sha256":"d3ad979d01443a9d7342e7fbe39064b41ebdb340029293f1b099bcfb6c493c42"},
+    {"path":"raw-api/check_runs.json","sha256":"86116fea3190e27df2e97367bf82cff2567dff71bedaa353cbe2a4c2521bf3b6"},
+    {"path":"raw-api/check_suites.json","sha256":"0f05f78e0175885ef1e1f7f1656514df299037691cc7f75db2d4cb6319a21c48"},
+    {"path":"raw-api/statuses.json","sha256":"3345fdb0a31287494b8be9c9f398bc1a60fbcff2a39ed4e1774b22ff6519431a"},
+    {"path":"raw-api/run-logs.headers","sha256":"b13c74b53a8b940cc9bc2097871d30000ac7dc62b458950d70751e7d0f81e279"},
+    {"path":"raw-api/run-logs.body","sha256":"d16412e4e3437ac2a9ac7d8ad55deb39f4002a058e6deca762707ea555e06452"},
+    {"path":"raw-api/dco-annotations.headers","sha256":"6b3fe3b87eaf801aa43048d47a1c830e004ca6a9d20029fecd8b75d79178a990"},
+    {"path":"raw-api/dco-annotations.body","sha256":"2ba33ca0557f1bb5b7ba88d67f9d0093c7185a36ec51fe2b7bd9372d3e001d6d"}
+  ]
+}

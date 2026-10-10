@@ -1,0 +1,192 @@
+{
+  "schema": "termrock-vis08-r17-aliasfix-r3-execution-plan/v1",
+  "state": "PREPARED_NOT_AUTHORIZED",
+  "source": {
+    "freeze": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/source-freeze.json",
+      "sha256": "4db22b8ca79239f10fe112c192e788f8a8257407c82734ce25dc80ccf2a59c52"
+    },
+    "source_review": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-source-review-luna-20261010.json",
+      "sha256": "fbdb7da4747207cc2ebce4e29f2b17af75170dbfc155479f67ccde17f713575e"
+    },
+    "source_sha256": "b3191ad38cf707255381f4c6851eb4be0f23dad45db42cd68dcbc6dbef9ead03",
+    "package_digest": "bf8a25eb90e81eb65ab3ba384ace1ad23109f1ef29bc3f818f6f1884878038c3",
+    "changed_paths": [
+      "crates/termrock-visibility-tests/src/nextest_result.rs"
+    ]
+  },
+  "execution_packet": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/execution-packet.json",
+    "sha256": "1d7142ef6578a47c6265fa5ec5ea458fbcf67157ff6e65088f075fa6d40f182c"
+  },
+  "runner": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-runner-20261010/runner.cjs",
+    "sha256": "e7e75597f50861582aca5d1be96bf18978fea4b667c42dd0b11909ec64016876"
+  },
+  "preflight": {
+    "argv": [
+      "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+      "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-runner-20261010/runner.cjs",
+      "--preflight"
+    ],
+    "exit_code": 0,
+    "stdout": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/preflight-r3.stdout.json",
+      "sha256": "2c08f868ba3967456954ea2332b63a97f91f76f776742235b930c801adbe3339"
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/preflight-r3.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "no_cargo": true,
+    "no_tests": true
+  },
+  "launch": {
+    "argv": [
+      "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+      "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-runner-20261010/runner.cjs",
+      "--run"
+    ],
+    "requires_root_launch_grant": true,
+    "attempt_root": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010"
+  },
+  "selected_rust_tests": {
+    "count": 26,
+    "names": [
+      "v2_accepts_empty_filter_and_exact_59_case_status_selection",
+      "v2_rejects_empty_selection",
+      "v2_rejects_oversized_selection",
+      "v2_accepts_142_selected_identities_across_four_targets",
+      "v2_rejects_missing_duplicate_and_ambiguous_runtime_aliases",
+      "v2_rejects_unadmitted_runtime_metadata_and_test_prefixes",
+      "v2_keeps_complete_failed_run_outcomes_separate_from_process_success",
+      "v2_rejects_count_and_target_mismatches",
+      "validates_exact_nine_selection_and_list_identities",
+      "reads_machine_records_from_the_configured_stderr_stream",
+      "verifies_nine_observed_tests_across_two_binaries_and_plural_summary",
+      "rejects_structured_records_split_across_stdout_and_stderr",
+      "list_ignored_and_filter_status_must_match_static_selection",
+      "selected_filter_and_ignored_status_must_match_run_policy",
+      "rejects_missing_extra_duplicate_and_suffix_terminal_identities",
+      "terminal_identity_before_start_is_invalid",
+      "identical_repeated_suite_snapshots_are_observations_not_extra_tests",
+      "rejects_suite_start_after_terminal_snapshot",
+      "filtered_out_u64_values_are_preserved_and_inventory_anomalies_marked",
+      "list_ignored_does_not_become_run_filtered_out",
+      "human_nextest_contradiction_blocks_without_rewriting_machine_results",
+      "child_summary_is_checked_only_when_bound_to_one_suite",
+      "human_only_capture_is_unavailable_not_a_pass",
+      "preserves_child_pass_and_wrapper_125_as_distinct_process_facts",
+      "rejects_other_format_and_retry_stress_or_partition_invocations",
+      "request_file_capture_metadata_and_trusted_selection_hash_are_checked"
+    ],
+    "filterset": "test(=nextest_result::tests::v2_accepts_empty_filter_and_exact_59_case_status_selection) | test(=nextest_result::tests::v2_rejects_empty_selection) | test(=nextest_result::tests::v2_rejects_oversized_selection) | test(=nextest_result::tests::v2_accepts_142_selected_identities_across_four_targets) | test(=nextest_result::tests::v2_rejects_missing_duplicate_and_ambiguous_runtime_aliases) | test(=nextest_result::tests::v2_rejects_unadmitted_runtime_metadata_and_test_prefixes) | test(=nextest_result::tests::v2_keeps_complete_failed_run_outcomes_separate_from_process_success) | test(=nextest_result::tests::v2_rejects_count_and_target_mismatches) | test(=nextest_result::tests::validates_exact_nine_selection_and_list_identities) | test(=nextest_result::tests::reads_machine_records_from_the_configured_stderr_stream) | test(=nextest_result::tests::verifies_nine_observed_tests_across_two_binaries_and_plural_summary) | test(=nextest_result::tests::rejects_structured_records_split_across_stdout_and_stderr) | test(=nextest_result::tests::list_ignored_and_filter_status_must_match_static_selection) | test(=nextest_result::tests::selected_filter_and_ignored_status_must_match_run_policy) | test(=nextest_result::tests::rejects_missing_extra_duplicate_and_suffix_terminal_identities) | test(=nextest_result::tests::terminal_identity_before_start_is_invalid) | test(=nextest_result::tests::identical_repeated_suite_snapshots_are_observations_not_extra_tests) | test(=nextest_result::tests::rejects_suite_start_after_terminal_snapshot) | test(=nextest_result::tests::filtered_out_u64_values_are_preserved_and_inventory_anomalies_marked) | test(=nextest_result::tests::list_ignored_does_not_become_run_filtered_out) | test(=nextest_result::tests::human_nextest_contradiction_blocks_without_rewriting_machine_results) | test(=nextest_result::tests::child_summary_is_checked_only_when_bound_to_one_suite) | test(=nextest_result::tests::human_only_capture_is_unavailable_not_a_pass) | test(=nextest_result::tests::preserves_child_pass_and_wrapper_125_as_distinct_process_facts) | test(=nextest_result::tests::rejects_other_format_and_retry_stress_or_partition_invocations) | test(=nextest_result::tests::request_file_capture_metadata_and_trusted_selection_hash_are_checked)",
+    "ignored": "all selected names are source-declared nonignored tests"
+  },
+  "stages": [
+    {
+      "name": "nextest-run",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/Cargo.toml",
+        "--package",
+        "termrock-visibility-tests",
+        "--lib",
+        "--locked",
+        "--offline",
+        "--user-config-file",
+        "none",
+        "--no-tests",
+        "fail",
+        "--profile",
+        "default",
+        "--ignore-default-filter",
+        "--filterset",
+        "test(=nextest_result::tests::v2_accepts_empty_filter_and_exact_59_case_status_selection) | test(=nextest_result::tests::v2_rejects_empty_selection) | test(=nextest_result::tests::v2_rejects_oversized_selection) | test(=nextest_result::tests::v2_accepts_142_selected_identities_across_four_targets) | test(=nextest_result::tests::v2_rejects_missing_duplicate_and_ambiguous_runtime_aliases) | test(=nextest_result::tests::v2_rejects_unadmitted_runtime_metadata_and_test_prefixes) | test(=nextest_result::tests::v2_keeps_complete_failed_run_outcomes_separate_from_process_success) | test(=nextest_result::tests::v2_rejects_count_and_target_mismatches) | test(=nextest_result::tests::validates_exact_nine_selection_and_list_identities) | test(=nextest_result::tests::reads_machine_records_from_the_configured_stderr_stream) | test(=nextest_result::tests::verifies_nine_observed_tests_across_two_binaries_and_plural_summary) | test(=nextest_result::tests::rejects_structured_records_split_across_stdout_and_stderr) | test(=nextest_result::tests::list_ignored_and_filter_status_must_match_static_selection) | test(=nextest_result::tests::selected_filter_and_ignored_status_must_match_run_policy) | test(=nextest_result::tests::rejects_missing_extra_duplicate_and_suffix_terminal_identities) | test(=nextest_result::tests::terminal_identity_before_start_is_invalid) | test(=nextest_result::tests::identical_repeated_suite_snapshots_are_observations_not_extra_tests) | test(=nextest_result::tests::rejects_suite_start_after_terminal_snapshot) | test(=nextest_result::tests::filtered_out_u64_values_are_preserved_and_inventory_anomalies_marked) | test(=nextest_result::tests::list_ignored_does_not_become_run_filtered_out) | test(=nextest_result::tests::human_nextest_contradiction_blocks_without_rewriting_machine_results) | test(=nextest_result::tests::child_summary_is_checked_only_when_bound_to_one_suite) | test(=nextest_result::tests::human_only_capture_is_unavailable_not_a_pass) | test(=nextest_result::tests::preserves_child_pass_and_wrapper_125_as_distinct_process_facts) | test(=nextest_result::tests::rejects_other_format_and_retry_stress_or_partition_invocations) | test(=nextest_result::tests::request_file_capture_metadata_and_trusted_selection_hash_are_checked)",
+        "--no-fail-fast",
+        "--retries",
+        "0",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--color",
+        "never",
+        "--show-progress",
+        "none",
+        "--message-format",
+        "libtest-json-plus",
+        "--message-format-version",
+        "0.1"
+      ],
+      "expected_child_exit": 0,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "reader-build",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "build",
+        "--manifest-path",
+        "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/Cargo.toml",
+        "--package",
+        "termrock-visibility-tests",
+        "--bin",
+        "nextest-result-reader",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2"
+      ],
+      "expected_child_exit": 0,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "r17-rust-reader",
+      "argv": [
+        "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/target/debug/nextest-result-reader",
+        "--request",
+        "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/reader-request.json",
+        "--selection",
+        "/private/tmp/termrock-vis19-runtime-full142-selection-draft-r1-20261010/selection.json",
+        "--trusted-selection-sha256",
+        "e5a5ee87cc8b6df695f4541bc5f5e48850825c54ccc2d0dabdac5d4f16a444fd"
+      ],
+      "expected_child_exit": 0,
+      "timeout_ms": 30000
+    }
+  ],
+  "policy": {
+    "node_does_not_parse_nextest_json": true,
+    "node_does_not_parse_reader_report_json": true,
+    "raw_stdout_stderr_retained": true,
+    "one_shared_timeout_ms": 1800000,
+    "termination_grace_ms": 5000,
+    "post_kill_drain_ms": 5000,
+    "combined_stage_output_cap_bytes": 4194304,
+    "retries": 0,
+    "locked": true,
+    "offline": true,
+    "product_behavior": "NOT_TESTED",
+    "product_acceptance": "NOT_ESTABLISHED",
+    "r17_reprocessing": "Build and CLI are gated on successful prior stages. R3 result reports reader stage as NOT_RUN when skipped; success means the Rust CLI exited 0. Child test outcomes and process status remain separate."
+  },
+  "r17_inputs": {
+    "request_sha256": "05a25bb87c115e1417e1fb257c3cadf63c1a317aeb86fd52615901c551f4adee",
+    "selection_sha256": "e5a5ee87cc8b6df695f4541bc5f5e48850825c54ccc2d0dabdac5d4f16a444fd",
+    "run_stdout_sha256": "07ed2f98bd7f0b50773ac1bc0fb9d4f3a0fb95ebb582ef378522da06727d5c08",
+    "observed_run_exit": 100,
+    "prior_human_summary": "141 passed, 1 failed",
+    "preserve_original_files": true
+  },
+  "no_authorization_claimed": true,
+  "previous_attempt": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r2-execution-20261010/runner-result.json",
+    "sha256": "4519f6c78c3eac96dc928e708ae5d125ccc60c07af476560322befed1102bb99",
+    "observed": "Nextest 25/26, one fixture-input inconsistency; CLI build/reprocessing were skipped."
+  }
+}

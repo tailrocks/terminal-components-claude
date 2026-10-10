@@ -1,0 +1,285 @@
+{
+  "schema": "termrock-vis08-r17-aliasfix-execution-result/v2",
+  "state": "PASS",
+  "runner": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-runner-20261010/runner.cjs",
+    "sha256": "e7e75597f50861582aca5d1be96bf18978fea4b667c42dd0b11909ec64016876"
+  },
+  "packet": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/execution-packet.json",
+    "sha256": "1d7142ef6578a47c6265fa5ec5ea458fbcf67157ff6e65088f075fa6d40f182c"
+  },
+  "package": {
+    "root": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests",
+    "digest": "bf8a25eb90e81eb65ab3ba384ace1ad23109f1ef29bc3f818f6f1884878038c3",
+    "file_count": 12
+  },
+  "source_review": {
+    "freeze_sha256": "4db22b8ca79239f10fe112c192e788f8a8257407c82734ce25dc80ccf2a59c52",
+    "review_sha256": "fbdb7da4747207cc2ebce4e29f2b17af75170dbfc155479f67ccde17f713575e",
+    "patch_sha256": "122831e7392a0fd1fd43cd164ed2d63e5670a166c9b1c891d76f54f60561eb80",
+    "inventory_sha256": "cd7b2214b14766f71b6ecc9c593abc404caad385e3be1a602a4a69a3d5663acf",
+    "format_audit_sha256": "fd1733c013e3cf7affd5055d4644c5aed42f8a43912847279f8fd6f9a6185f8c",
+    "r1_erratum_sha256": "7a8e730e6d10b6a64e8fd1f70000fd3f7affdb073bfcfa7a73f032828a73637d",
+    "candidate_source_sha256": "b3191ad38cf707255381f4c6851eb4be0f23dad45db42cd68dcbc6dbef9ead03",
+    "projected_tree": null
+  },
+  "cache_copy": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/cache-copy-receipt.json",
+    "sha256": "0038138e12e7b47abd4af86214955ac8aab80aaa5abc9d8f192b19f95859fbba",
+    "file_count": 85,
+    "archive_count": 40,
+    "sparse_index_record_count": 44
+  },
+  "tool_versions": [
+    {
+      "name": "cargo",
+      "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "args": [
+        "--version"
+      ],
+      "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+      "version_first_line": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+      "stdout": "cargo 1.98.1 (797e8a9bc 2026-08-05)\n",
+      "stderr": "",
+      "stdout_sha256": "9950bbb2d5c3417b1a068f0e81f6d3cac991a363193bdf2a22d447f5acf8b503",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "rustc",
+      "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "args": [
+        "--version"
+      ],
+      "version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "version_first_line": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "stdout": "rustc 1.98.1 (48a229cea 2026-09-01)\n",
+      "stderr": "",
+      "stdout_sha256": "2073de5abf149185c2f4d7473dc833bc921b99135560d24ae7b2293f33a9c376",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "rustdoc",
+      "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "args": [
+        "--version"
+      ],
+      "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+      "version_first_line": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+      "stdout": "rustdoc 1.98.1 (48a229cea 2026-09-01)\n",
+      "stderr": "",
+      "stdout_sha256": "7b3536f4f4cceee8577f977a53540f0893b77b77b0fd2616db9e81d6d29b4dca",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "nextest",
+      "program": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "args": [
+        "--version"
+      ],
+      "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)",
+      "version_first_line": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)",
+      "stdout": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: aarch64-apple-darwin\n",
+      "stderr": "",
+      "stdout_sha256": "a147daa445fa0b62fd907b6e865d026c57ca9d2e385551428f9070c9252de3c7",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    }
+  ],
+  "stages": [
+    {
+      "stage": "nextest-run",
+      "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "args": [
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/Cargo.toml",
+        "--package",
+        "termrock-visibility-tests",
+        "--lib",
+        "--locked",
+        "--offline",
+        "--user-config-file",
+        "none",
+        "--no-tests",
+        "fail",
+        "--profile",
+        "default",
+        "--ignore-default-filter",
+        "--filterset",
+        "test(=nextest_result::tests::v2_accepts_empty_filter_and_exact_59_case_status_selection) | test(=nextest_result::tests::v2_rejects_empty_selection) | test(=nextest_result::tests::v2_rejects_oversized_selection) | test(=nextest_result::tests::v2_accepts_142_selected_identities_across_four_targets) | test(=nextest_result::tests::v2_rejects_missing_duplicate_and_ambiguous_runtime_aliases) | test(=nextest_result::tests::v2_rejects_unadmitted_runtime_metadata_and_test_prefixes) | test(=nextest_result::tests::v2_keeps_complete_failed_run_outcomes_separate_from_process_success) | test(=nextest_result::tests::v2_rejects_count_and_target_mismatches) | test(=nextest_result::tests::validates_exact_nine_selection_and_list_identities) | test(=nextest_result::tests::reads_machine_records_from_the_configured_stderr_stream) | test(=nextest_result::tests::verifies_nine_observed_tests_across_two_binaries_and_plural_summary) | test(=nextest_result::tests::rejects_structured_records_split_across_stdout_and_stderr) | test(=nextest_result::tests::list_ignored_and_filter_status_must_match_static_selection) | test(=nextest_result::tests::selected_filter_and_ignored_status_must_match_run_policy) | test(=nextest_result::tests::rejects_missing_extra_duplicate_and_suffix_terminal_identities) | test(=nextest_result::tests::terminal_identity_before_start_is_invalid) | test(=nextest_result::tests::identical_repeated_suite_snapshots_are_observations_not_extra_tests) | test(=nextest_result::tests::rejects_suite_start_after_terminal_snapshot) | test(=nextest_result::tests::filtered_out_u64_values_are_preserved_and_inventory_anomalies_marked) | test(=nextest_result::tests::list_ignored_does_not_become_run_filtered_out) | test(=nextest_result::tests::human_nextest_contradiction_blocks_without_rewriting_machine_results) | test(=nextest_result::tests::child_summary_is_checked_only_when_bound_to_one_suite) | test(=nextest_result::tests::human_only_capture_is_unavailable_not_a_pass) | test(=nextest_result::tests::preserves_child_pass_and_wrapper_125_as_distinct_process_facts) | test(=nextest_result::tests::rejects_other_format_and_retry_stress_or_partition_invocations) | test(=nextest_result::tests::request_file_capture_metadata_and_trusted_selection_hash_are_checked)",
+        "--no-fail-fast",
+        "--retries",
+        "0",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--color",
+        "never",
+        "--show-progress",
+        "none",
+        "--message-format",
+        "libtest-json-plus",
+        "--message-format-version",
+        "0.1"
+      ],
+      "cwd": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests",
+      "pid": 51566,
+      "process_group": 51566,
+      "detached": true,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "close": {
+        "code": 0,
+        "signal": null
+      },
+      "error": null,
+      "child_reaped": true,
+      "forced_close_timeout": false,
+      "timeout_ms": 900000,
+      "output_limit_bytes": 4194304,
+      "output_bytes_captured": 14643,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "termination_reason": null,
+      "elapsed_ms": 8852,
+      "stdout": {
+        "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/nextest.stdout.raw",
+        "bytes": 9926,
+        "sha256": "1ee518960389024a6db12d7258fb9646ddcb51887e34379b2594d3bd1049fa85"
+      },
+      "stderr": {
+        "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/nextest.stderr.raw",
+        "bytes": 4717,
+        "sha256": "5fbc97965a9971fe761ec82cb2191cfa59313d02023856212a20eb2d23eb8df0"
+      },
+      "stage_exit_ok": true
+    },
+    {
+      "stage": "reader-build",
+      "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "args": [
+        "build",
+        "--manifest-path",
+        "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/Cargo.toml",
+        "--package",
+        "termrock-visibility-tests",
+        "--bin",
+        "nextest-result-reader",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2"
+      ],
+      "cwd": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests",
+      "pid": 51761,
+      "process_group": 51761,
+      "detached": true,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "close": {
+        "code": 0,
+        "signal": null
+      },
+      "error": null,
+      "child_reaped": true,
+      "forced_close_timeout": false,
+      "timeout_ms": 900000,
+      "output_limit_bytes": 4194304,
+      "output_bytes_captured": 565,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "termination_reason": null,
+      "elapsed_ms": 1241,
+      "stdout": {
+        "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/reader-build.stdout.raw",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/reader-build.stderr.raw",
+        "bytes": 565,
+        "sha256": "4dfecad0928dfa0de2b4b11b225aa5a925113522a4bba00ece9c67752edbf2f9"
+      },
+      "stage_exit_ok": true
+    },
+    {
+      "stage": "r17-rust-reader",
+      "program": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/target/debug/nextest-result-reader",
+      "args": [
+        "--request",
+        "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/reader-request.json",
+        "--selection",
+        "/private/tmp/termrock-vis19-runtime-full142-selection-draft-r1-20261010/selection.json",
+        "--trusted-selection-sha256",
+        "e5a5ee87cc8b6df695f4541bc5f5e48850825c54ccc2d0dabdac5d4f16a444fd"
+      ],
+      "cwd": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests",
+      "pid": 51778,
+      "process_group": 51778,
+      "detached": true,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "close": {
+        "code": 0,
+        "signal": null
+      },
+      "error": null,
+      "child_reaped": true,
+      "forced_close_timeout": false,
+      "timeout_ms": 30000,
+      "output_limit_bytes": 1048576,
+      "output_bytes_captured": 18181,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "termination_reason": null,
+      "elapsed_ms": 342,
+      "stdout": {
+        "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/reader-output/r17-reader.stdout.raw",
+        "bytes": 18181,
+        "sha256": "fa65686c727950353885a3ee513238db0501c06b66c0e477c3e22d7a2827f3da"
+      },
+      "stderr": {
+        "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/reader-output/r17-reader.stderr.raw",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stage_exit_ok": true
+    }
+  ],
+  "r17_reprocess_status": "RAN_EXIT_0",
+  "r17_reader_output": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/reader-output/r17-reader.stdout.raw",
+    "bytes": 18181,
+    "sha256": "fa65686c727950353885a3ee513238db0501c06b66c0e477c3e22d7a2827f3da",
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "child_exit": 0
+  },
+  "source_cache_tool_r17_inputs_unchanged": true,
+  "after_snapshot_error": null,
+  "external_signal": null,
+  "raw_process_events": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/process-events.jsonl",
+    "sha256": "5ffb22a4476b32d2ca1aba9abe3d90ed0903124ff12c4eac08bc0d25d5265881"
+  },
+  "limitations": {
+    "test_identity_interpretation": "Rust source tests and exact static filter; Node records raw stage streams and process exits only",
+    "r17_actual_capture_reprocessed_by_rust_cli": true,
+    "r17_reprocess_status": "RAN_EXIT_0",
+    "product_behavior": "NOT_TESTED",
+    "product_acceptance": "NOT_ESTABLISHED",
+    "reader_report_semantics_not_parsed_by_Node": true
+  }
+}

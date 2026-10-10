@@ -1,0 +1,62 @@
+{
+  "schema": "termrock.review.vis08-r17-aliasfix-execution-runner-r3/v1",
+  "verdict": "READY_STATIC_PREFLIGHT_BOUNDED",
+  "scope": "Focused read-only review of the R3 execution packet, supervisor, and no-Cargo preflight. No Cargo, Nextest, CLI, tests, or build were launched by reviewer; this is not execution authorization.",
+  "bindings": {
+    "runner": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-runner-20261010/runner.cjs",
+      "sha256": "e7e75597f50861582aca5d1be96bf18978fea4b667c42dd0b11909ec64016876"
+    },
+    "packet": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/execution-packet.json",
+      "sha256": "1d7142ef6578a47c6265fa5ec5ea458fbcf67157ff6e65088f075fa6d40f182c"
+    },
+    "run_plan": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/run-plan.json",
+      "sha256": "6dff1aeadf24de06a4a322553716bd2edfd4beca87e6b2f999f53567b6985c53"
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/preflight-r3.stdout.json",
+      "sha256": "2c08f868ba3967456954ea2332b63a97f91f76f776742235b930c801adbe3339",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "source_freeze": "4db22b8ca79239f10fe112c192e788f8a8257407c82734ce25dc80ccf2a59c52",
+    "source_review": "fbdb7da4747207cc2ebce4e29f2b17af75170dbfc155479f67ccde17f713575e",
+    "source_patch": "122831e7392a0fd1fd43cd164ed2d63e5670a166c9b1c891d76f54f60561eb80",
+    "source_inventory": "cd7b2214b14766f71b6ecc9c593abc404caad385e3be1a602a4a69a3d5663acf",
+    "cache_source_receipt": "a68e51c1c21065ce2242a51905d3c678f0f4bc15be820fbb4d5b194b617b6d13",
+    "r17_selection_sha256": "e5a5ee87cc8b6df695f4541bc5f5e48850825c54ccc2d0dabdac5d4f16a444fd",
+    "r17_prior_failed_result": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r2-execution-20261010/runner-result.json",
+      "sha256": "4519f6c78c3eac96dc928e708ae5d125ccc60c07af476560322befed1102bb99"
+    }
+  },
+  "checks": [
+    {
+      "name": "source, review, cache, and R17 input bindings",
+      "result": "pass",
+      "detail": "R3 runner pins the 12-file package and recomputes its length-prefixed digest; validates the R3 source freeze/review/patch/inventory/format audit/R1 erratum; checks the exact R6 cache receipt and its 85 rows; and rechecks all eight immutable R17 request/selection/capture files. Preflight records the same source/review/cache/tool/R17 digests."
+    },
+    {
+      "name": "test selection and stage commands",
+      "result": "pass",
+      "detail": "The first child selects exactly the 26 source-derived lib tests through the complete pinned filter, with locked/offline mode, retries 0, build jobs 2, test threads 1, and libtest-json-plus v0.1. Reader build and R17 Rust CLI reprocessing are separate stages, gated on successful preceding stages; the CLI is passed the pinned request, selection, and trusted selection SHA. Node stores raw streams and child facts only; it does not parse Nextest or reader JSON."
+    },
+    {
+      "name": "skipped-stage status",
+      "result": "pass",
+      "detail": "Result field r17_reprocess_status is derived from actual stage objects: RAN_EXIT_0 / RAN_NONZERO_OR_SIGNALLED when the reader ran, NOT_RUN_READER_BUILD_FAILED when build ran unsuccessfully, and NOT_RUN_NEXTEST_FAILED_OR_CANCELLED when Nextest did not succeed or was cancelled. The limitations boolean is derived as Boolean(reader && reader.stage_exit_ok), not hard-coded true."
+    },
+    {
+      "name": "bounds and preflight",
+      "result": "pass",
+      "detail": "Runner uses detached process groups, one 30-minute deadline, 15-minute Nextest/build limits, a 30-second CLI limit, bounded TERM/KILL/reap windows, a 4 MiB per-stage and 1 MiB CLI output cap, and bounded raw capture. Preflight is PREFLIGHT_PASS_NO_CARGO_NO_TEST, binds runner and packet hashes, reports 26 selected tests, 85 source-cache files, pinned tools, and the fresh attempt root absent."
+    },
+    {
+      "name": "authorization boundary",
+      "result": "pass",
+      "detail": "Packet remains PREPARED_FOR_ROOT_REVIEW_NOT_AUTHORIZED; preflight says authorized=false. The R2 25/26 exit-100 fixture inconsistency is preserved as history, and its CLI build/reprocessing remain recorded as skipped."
+    }
+  ],
+  "execution_status": "NOT_RUN"
+}

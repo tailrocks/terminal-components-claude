@@ -1,0 +1,57 @@
+{
+  "state": "PREFLIGHT_PASS_NO_CARGO_NO_TEST",
+  "authorized": false,
+  "runner_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-runner-20261010/runner.cjs",
+  "runner_sha256": "e7e75597f50861582aca5d1be96bf18978fea4b667c42dd0b11909ec64016876",
+  "packet_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/execution-packet.json",
+  "packet_sha256": "1d7142ef6578a47c6265fa5ec5ea458fbcf67157ff6e65088f075fa6d40f182c",
+  "attempt_root": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010",
+  "source_package_digest": "bf8a25eb90e81eb65ab3ba384ace1ad23109f1ef29bc3f818f6f1884878038c3",
+  "source_review_bindings": {
+    "freeze_sha256": "4db22b8ca79239f10fe112c192e788f8a8257407c82734ce25dc80ccf2a59c52",
+    "review_sha256": "fbdb7da4747207cc2ebce4e29f2b17af75170dbfc155479f67ccde17f713575e",
+    "patch_sha256": "122831e7392a0fd1fd43cd164ed2d63e5670a166c9b1c891d76f54f60561eb80",
+    "inventory_sha256": "cd7b2214b14766f71b6ecc9c593abc404caad385e3be1a602a4a69a3d5663acf",
+    "format_audit_sha256": "fd1733c013e3cf7affd5055d4644c5aed42f8a43912847279f8fd6f9a6185f8c",
+    "r1_erratum_sha256": "7a8e730e6d10b6a64e8fd1f70000fd3f7affdb073bfcfa7a73f032828a73637d",
+    "candidate_source_sha256": "b3191ad38cf707255381f4c6851eb4be0f23dad45db42cd68dcbc6dbef9ead03",
+    "projected_tree": null
+  },
+  "source_cache_files": 85,
+  "source_cache_inventory_sha256": "68b85ebb40bbb89389afa5dfef2c3e9d0621f906dbd958766cf469258a868795",
+  "tools": {
+    "node": {
+      "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+      "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+      "version": "v24.20.0"
+    },
+    "cargo": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+      "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+    },
+    "rustc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+      "version": "rustc 1.98.1 (48a229cea 2026-09-01)"
+    },
+    "rustdoc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+      "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)"
+    },
+    "nextest": {
+      "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+      "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)"
+    }
+  },
+  "nextest_filterset": "test(=nextest_result::tests::v2_accepts_empty_filter_and_exact_59_case_status_selection) | test(=nextest_result::tests::v2_rejects_empty_selection) | test(=nextest_result::tests::v2_rejects_oversized_selection) | test(=nextest_result::tests::v2_accepts_142_selected_identities_across_four_targets) | test(=nextest_result::tests::v2_rejects_missing_duplicate_and_ambiguous_runtime_aliases) | test(=nextest_result::tests::v2_rejects_unadmitted_runtime_metadata_and_test_prefixes) | test(=nextest_result::tests::v2_keeps_complete_failed_run_outcomes_separate_from_process_success) | test(=nextest_result::tests::v2_rejects_count_and_target_mismatches) | test(=nextest_result::tests::validates_exact_nine_selection_and_list_identities) | test(=nextest_result::tests::reads_machine_records_from_the_configured_stderr_stream) | test(=nextest_result::tests::verifies_nine_observed_tests_across_two_binaries_and_plural_summary) | test(=nextest_result::tests::rejects_structured_records_split_across_stdout_and_stderr) | test(=nextest_result::tests::list_ignored_and_filter_status_must_match_static_selection) | test(=nextest_result::tests::selected_filter_and_ignored_status_must_match_run_policy) | test(=nextest_result::tests::rejects_missing_extra_duplicate_and_suffix_terminal_identities) | test(=nextest_result::tests::terminal_identity_before_start_is_invalid) | test(=nextest_result::tests::identical_repeated_suite_snapshots_are_observations_not_extra_tests) | test(=nextest_result::tests::rejects_suite_start_after_terminal_snapshot) | test(=nextest_result::tests::filtered_out_u64_values_are_preserved_and_inventory_anomalies_marked) | test(=nextest_result::tests::list_ignored_does_not_become_run_filtered_out) | test(=nextest_result::tests::human_nextest_contradiction_blocks_without_rewriting_machine_results) | test(=nextest_result::tests::child_summary_is_checked_only_when_bound_to_one_suite) | test(=nextest_result::tests::human_only_capture_is_unavailable_not_a_pass) | test(=nextest_result::tests::preserves_child_pass_and_wrapper_125_as_distinct_process_facts) | test(=nextest_result::tests::rejects_other_format_and_retry_stress_or_partition_invocations) | test(=nextest_result::tests::request_file_capture_metadata_and_trusted_selection_hash_are_checked)",
+  "selected_tests": 26,
+  "r17_input_files": 8,
+  "exact_launch_argv": [
+    "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+    "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-runner-20261010/runner.cjs",
+    "--run"
+  ]
+}

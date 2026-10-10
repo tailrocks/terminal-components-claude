@@ -1,0 +1,269 @@
+warning: unused import: `projection::project_cursor`
+  --> crates/tuiscotti-runtime/src/tui/mod.rs:68:16
+   |
+68 | pub(crate) use projection::project_cursor;
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:92:25
+   |
+92 |     InvalidDimensions { cols: u16, rows: u16 },
+   |                         ^^^^^^^^^
+   |
+   = note: requested on the command line with `-W missing-docs`
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:92:36
+   |
+92 |     InvalidDimensions { cols: u16, rows: u16 },
+   |                                    ^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:95:9
+   |
+95 |         snapshot_cols: u16,
+   |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:96:9
+   |
+96 |         snapshot_rows: u16,
+   |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:97:9
+   |
+97 |         cols: u16,
+   |         ^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:98:9
+   |
+98 |         rows: u16,
+   |         ^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:101:20
+    |
+101 |     CellRowCount { expected: usize, actual: usize },
+    |                    ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:101:37
+    |
+101 |     CellRowCount { expected: usize, actual: usize },
+    |                                     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:104:9
+    |
+104 |         row: usize,
+    |         ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:105:9
+    |
+105 |         expected: usize,
+    |         ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:106:9
+    |
+106 |         actual: usize,
+    |         ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:109:20
+    |
+109 |     RowWrapCount { expected: usize, actual: usize },
+    |                    ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:109:37
+    |
+109 |     RowWrapCount { expected: usize, actual: usize },
+    |                                     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:112:9
+    |
+112 |         snapshot: (u16, u16),
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:113:9
+    |
+113 |         cursor: (u16, u16),
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: `tuiscotti-runtime` (lib) generated 16 warnings (run `cargo fix --lib -p tuiscotti-runtime` to apply 1 suggestion)
+warning: `tuiscotti-runtime` (lib test) generated 15 warnings (15 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.41s
+────────────
+ Nextest run ID 48434060-6ddd-4357-87fb-eaf50ae68ee1 with nextest profile: default
+    Starting 142 tests across 4 binaries
+        PASS [   0.014s] (  1/142) tuiscotti-runtime proto::daemon::serve::tests::idle_secs_default_and_bounds
+        PASS [   0.032s] (  2/142) tuiscotti-runtime proto::daemon::status::tests::owner_alive_foreign_never_guessed
+        PASS [   0.017s] (  3/142) tuiscotti-runtime proto::daemon::status::tests::owner_dead_recorded_is_orphan
+        PASS [   0.021s] (  4/142) tuiscotti-runtime proto::daemon::status::tests::owner_live_match_serves
+        PASS [   0.017s] (  5/142) tuiscotti-runtime proto::daemon::transact::tests::transact_stream_rejects_crossed_id
+        PASS [   0.016s] (  6/142) tuiscotti-runtime proto::daemon::transact::tests::transact_stream_round_trip_and_errors
+        PASS [   0.032s] (  7/142) tuiscotti-runtime proto::daemon_proto::tests::bounds_mirror_endpoints_and_exceed_worker_round_trips
+        PASS [   0.025s] (  8/142) tuiscotti-runtime proto::daemon_proto::tests::framed_read_clean_eof_midline_and_caps
+        PASS [   0.054s] (  9/142) tuiscotti-runtime proto::daemon_proto::tests::request_parse_rejects_garbage
+        PASS [   0.047s] ( 10/142) tuiscotti-runtime proto::daemon_proto::tests::request_shapes_round_trip
+        PASS [   0.036s] ( 11/142) tuiscotti-runtime proto::daemon_proto::tests::response_ok_err_envelopes
+        PASS [   0.031s] ( 12/142) tuiscotti-runtime proto::journal::tests::bad_events_keep_line_numbers
+        PASS [   0.028s] ( 13/142) tuiscotti-runtime proto::journal::tests::bounded_read_matches_stream_and_trips_caps
+        PASS [   0.020s] ( 14/142) tuiscotti-runtime proto::log_tail::tests::lifetime_cap_skips_and_flags
+        PASS [   0.016s] ( 15/142) tuiscotti-runtime proto::log_tail::tests::per_poll_cap_chunks_a_large_write
+        PASS [   0.030s] ( 16/142) tuiscotti-runtime proto::log_tail::tests::poll_returns_only_new_bytes
+        PASS [   0.018s] ( 17/142) tuiscotti-runtime proto::log_tail::tests::replaced_file_reopens_and_flags
+        PASS [   0.028s] ( 18/142) tuiscotti-runtime proto::log_tail::tests::zero_caps_rejected
+        PASS [   1.457s] ( 19/142) tuiscotti-runtime proto::registry::pty_registry::spawn::tests::registry_admits_up_to_cap_then_rejects_without_strays
+        PASS [   0.457s] ( 20/142) tuiscotti-runtime proto::session_ops::start::tests::piped_start_refuses_at_cap_and_cleans_up_below_it
+        PASS [   0.028s] ( 21/142) tuiscotti-runtime proto::sessions::endpoint::tests::endpoint_rejects_bad_metadata
+        PASS [   0.027s] ( 22/142) tuiscotti-runtime proto::sessions::endpoint::tests::endpoint_rejects_bad_pids
+        PASS [   0.016s] ( 23/142) tuiscotti-runtime proto::sessions::endpoint::tests::endpoint_rejects_foreign_owner
+        PASS [   0.011s] ( 24/142) tuiscotti-runtime proto::sessions::endpoint::tests::endpoint_rejects_missing_owner
+        PASS [   0.010s] ( 25/142) tuiscotti-runtime proto::sessions::endpoint::tests::endpoint_rejects_name_mismatch
+        PASS [   0.010s] ( 26/142) tuiscotti-runtime proto::sessions::endpoint::tests::endpoint_rejects_oversize
+        PASS [   0.010s] ( 27/142) tuiscotti-runtime proto::sessions::endpoint::tests::endpoint_rejects_symlink_and_dir
+        PASS [   0.017s] ( 28/142) tuiscotti-runtime proto::sessions::endpoint::tests::endpoint_round_trip_and_missing
+        PASS [   0.312s] ( 29/142) tuiscotti-runtime proto::sessions::endpoint::tests::publish_tmpfiles_are_collision_resistant
+        PASS [   0.017s] ( 30/142) tuiscotti-runtime proto::sessions::endpoint::tests::write_endpoint_reports_failure
+        PASS [   0.010s] ( 31/142) tuiscotti-runtime proto::sessions::process::tests::kill_probe_uses_absolute_binary
+        PASS [   0.009s] ( 32/142) tuiscotti-runtime proto::sessions::process::tests::pid_validation_rejects_group_selection
+        PASS [   0.035s] ( 33/142) tuiscotti-runtime proto::sessions::reservation::tests::endpoint_daemon_pid_required_iff_pty
+        PASS [   0.010s] ( 34/142) tuiscotti-runtime proto::sessions::reservation::tests::reservation_is_exclusive
+        PASS [   0.098s] ( 35/142) tuiscotti-runtime proto::sessions::reservation::tests::reservation_racing_takeover_single_holder
+        PASS [   0.010s] ( 36/142) tuiscotti-runtime proto::sessions::reservation::tests::reservation_refuses_symlink_lock
+        PASS [   0.010s] ( 37/142) tuiscotti-runtime proto::sessions::reservation::tests::reservation_takes_over_stale_locks
+        PASS [   0.009s] ( 38/142) tuiscotti-runtime proto::sessions::runtime_dir::tests::current_uid_stable_no_zero_fallback
+        PASS [   0.009s] ( 39/142) tuiscotti-runtime proto::sessions::runtime_dir::tests::runtime_dir_fresh_is_usable
+        PASS [   0.009s] ( 40/142) tuiscotti-runtime proto::sessions::runtime_dir::tests::runtime_dir_rejects_file_in_place
+        PASS [   0.009s] ( 41/142) tuiscotti-runtime proto::sessions::runtime_dir::tests::runtime_dir_rejects_symlink
+        PASS [   0.008s] ( 42/142) tuiscotti-runtime proto::sessions::runtime_dir::tests::runtime_dir_repairs_loose_perms
+        PASS [   0.009s] ( 43/142) tuiscotti-runtime proto::sessions::validate::tests::checked_paths_stay_contained
+        PASS [   0.009s] ( 44/142) tuiscotti-runtime proto::sessions::validate::tests::names_invalid_rejected
+        PASS [   0.009s] ( 45/142) tuiscotti-runtime proto::sessions::validate::tests::names_valid_including_dotted
+        PASS [   0.011s] ( 46/142) tuiscotti-runtime runner::journal::tests::caps_fail_explicitly
+        PASS [   0.010s] ( 47/142) tuiscotti-runtime runner::journal::tests::status_names_a_beyond_window_tail
+        PASS [   0.016s] ( 48/142) tuiscotti-runtime runner::journal::tests::status_reads_large_journal_from_the_tail
+        PASS [   0.009s] ( 49/142) tuiscotti-runtime runner::junit::tests::binary_id_shapes
+        PASS [   0.008s] ( 50/142) tuiscotti-runtime runner::junit::tests::json_roundtrip
+        PASS [   0.008s] ( 51/142) tuiscotti-runtime runner::junit::tests::local_run_ids_unique
+        PASS [   0.008s] ( 52/142) tuiscotti-runtime tui::cursor_projection_tests::hidden_cursor_preserves_raw_coordinates_style_and_blink
+        PASS [   0.009s] ( 53/142) tuiscotti-runtime tui::cursor_projection_tests::hidden_pending_wrap_preserves_column_equal_to_width
+        PASS [   0.008s] ( 54/142) tuiscotti-runtime tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscusr_shapes
+        PASS [   0.008s] ( 55/142) tuiscotti-runtime tui::cursor_projection_tests::visibility_requires_backend_and_bounds_without_clamping_raw_position
+        PASS [   0.008s] ( 56/142) tuiscotti-runtime tui::projection::tests::records_all_cell_loss_reasons_with_full_original_cells
+        PASS [   0.008s] ( 57/142) tuiscotti-runtime tui::projection::tests::rejects_invalid_dimensions_and_snapshot_shapes_before_projection
+        PASS [   0.009s] ( 58/142) tuiscotti-runtime tui::projection::tests::retains_cursor_tristate_style_zero_and_source_screen_metadata
+        PASS [   0.063s] ( 59/142) tuiscotti-runtime tui::tests::join_one_detaches_stuck_thread
+        PASS [   0.009s] ( 60/142) tuiscotti-runtime tui::tests::join_one_records_panic
+        PASS [   0.008s] ( 61/142) tuiscotti-runtime tui::tests::join_one_returns_for_clean_thread
+        PASS [   0.066s] ( 62/142) tuiscotti-runtime tui::tests::pty_tests::close_input_eofs_canonical_cat
+        PASS [   0.140s] ( 63/142) tuiscotti-runtime tui::tests::pty_tests::close_input_raw_cat_is_data_not_eof
+        PASS [   0.031s] ( 64/142) tuiscotti-runtime tui::tests::pty_tests::env_clear_starts_empty
+        FAIL [   0.023s] ( 65/142) tuiscotti-runtime tui::tests::pty_tests::env_remove_drops_one_var
+  output ───
+
+    running 1 test
+
+    thread 'tui::tests::pty_tests::env_remove_drops_one_var' (113500068) panicked at crates/tuiscotti-runtime/src/tui/tests.rs:322:9:
+    untouched vars pass through, rows: ["/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-202", "61010/attempt-01/home", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    test tui::tests::pty_tests::env_remove_drops_one_var ... FAILED
+
+    failures:
+
+    failures:
+        tui::tests::pty_tests::env_remove_drops_one_var
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.01s
+
+
+        PASS [   0.057s] ( 66/142) tuiscotti-runtime tui::tests::pty_tests::env_remove_term_falls_back_to_default
+        PASS [   0.009s] ( 67/142) tuiscotti-runtime tui::tests::pty_tests::invalid_cwd_fails_spawn
+        PASS [   0.019s] ( 68/142) tuiscotti-runtime tui::tests::pty_tests::natural_exit_drain_is_eof
+        PASS [   0.017s] ( 69/142) tuiscotti-runtime tui::tests::pty_tests::non_unicode_argv_spawns
+        PASS [   0.014s] ( 70/142) tuiscotti-runtime tui::tests::pty_tests::nonexistent_target_fails_spawn
+        PASS [   0.020s] ( 71/142) tuiscotti-runtime tui::tests::pty_tests::wait_exit_returns_exit_revision
+        PASS [   0.046s] ( 72/142) tuiscotti-runtime tui::tests::pty_tests::worker_signal_kills_child
+        PASS [   0.009s] ( 73/142) tuiscotti-runtime tui::tests::reader_error_is_not_eof
+        PASS [   0.009s] ( 74/142) tuiscotti-runtime tui::tests::reader_retry_then_data_then_eof
+        PASS [   0.009s] ( 75/142) tuiscotti-runtime tui::tests::resolve_cargo_bin_matches_canonical_lookup
+        PASS [   8.078s] ( 76/142) tuiscotti-runtime::flood saturating_flood_stays_revision_bounded_and_drains
+        PASS [   0.079s] ( 77/142) tuiscotti-runtime::tui bound::click_delivers_at_the_resolved_revision
+        PASS [   0.107s] ( 78/142) tuiscotti-runtime::tui bound::click_refuses_a_target_shifted_by_resize
+        PASS [   0.265s] ( 79/142) tuiscotti-runtime::tui bound::click_tracks_the_target_across_injected_updates
+        PASS [   0.251s] ( 80/142) tuiscotti-runtime::tui bound::clicks_stay_fresh_under_resize_churn
+        PASS [   0.268s] ( 81/142) tuiscotti-runtime::tui bound::duplicate_matches_fail_unique_lookup_and_name_ambiguity_on_timeout
+        PASS [   1.137s] ( 82/142) tuiscotti-runtime::tui bound::expect_visible_waits_for_delayed_appearance
+        PASS [   0.010s] ( 83/142) tuiscotti-runtime::tui bound::pending_action_refuses_an_update_injected_before_delivery
+        PASS [   0.081s] ( 84/142) tuiscotti-runtime::tui bound::permanent_errors_fail_without_waiting
+        PASS [   0.261s] ( 85/142) tuiscotti-runtime::tui concurrent::independent_sessions_run_concurrently
+        PASS [   2.243s] ( 86/142) tuiscotti-runtime::tui concurrent::registry_sessions_operate_concurrently
+        PASS [   0.101s] ( 87/142) tuiscotti-runtime::tui concurrent::session_meta_is_cheap_and_current
+        PASS [   0.308s] ( 88/142) tuiscotti-runtime::tui input::cancel_mid_wait
+        PASS [   0.125s] ( 89/142) tuiscotti-runtime::tui input::child_env_and_cwd_are_child_only
+        PASS [   0.141s] ( 90/142) tuiscotti-runtime::tui input::focus_roundtrip
+        PASS [   0.136s] ( 91/142) tuiscotti-runtime::tui input::key_release_without_kitty_is_noop
+        PASS [   0.142s] ( 92/142) tuiscotti-runtime::tui input::mouse_click_sgr_roundtrip
+        PASS [   0.141s] ( 93/142) tuiscotti-runtime::tui input::mouse_refused_without_mode
+        PASS [   0.187s] ( 94/142) tuiscotti-runtime::tui input::mouse_wheel_and_drag_roundtrip
+        PASS [   0.238s] ( 95/142) tuiscotti-runtime::tui input::paste_negotiated_and_delimiter_rejected
+        PASS [   0.024s] ( 96/142) tuiscotti-runtime::tui input::profile_beyond_backend_rejected
+        PASS [   0.093s] ( 97/142) tuiscotti-runtime::tui input::raw_bytes_and_enter_key
+        PASS [   0.094s] ( 98/142) tuiscotti-runtime::tui input::signal_terminates_child
+        PASS [   0.132s] ( 99/142) tuiscotti-runtime::tui input::wait_frame_unsupported_with_evidence
+        PASS [   0.315s] (100/142) tuiscotti-runtime::tui input::wait_stable_settles
+        PASS [   0.019s] (101/142) tuiscotti-runtime::tui session::chord_parser_shapes
+        PASS [   0.093s] (102/142) tuiscotti-runtime::tui session::chord_press_sends_key
+        PASS [   0.132s] (103/142) tuiscotti-runtime::tui session::close_reaps_child_no_leak
+        PASS [   0.146s] (104/142) tuiscotti-runtime::tui session::drop_reaps_child_no_leak
+        PASS [   0.087s] (105/142) tuiscotti-runtime::tui session::exit_codes_observed
+        PASS [   0.035s] (106/142) tuiscotti-runtime::tui session::finish_eofs_cat_to_success
+        PASS [   1.129s] (107/142) tuiscotti-runtime::tui session::predicate_timeout_yields_evidence
+        PASS [   0.051s] (108/142) tuiscotti-runtime::tui session::printf_app_output_and_success
+        PASS [   0.028s] (109/142) tuiscotti-runtime::tui session::process_exists_pid_zero_is_absent
+        PASS [   0.134s] (110/142) tuiscotti-runtime::tui session::resize_changes_grid
+        PASS [   0.113s] (111/142) tuiscotti-runtime::tui session::spawn_and_observe
+        PASS [   0.227s] (112/142) tuiscotti-runtime::tui session::two_sessions_independent
+        PASS [   0.117s] (113/142) tuiscotti-runtime::tui session::typed_input_echoes
+        PASS [   0.083s] (114/142) tuiscotti-runtime::tui swap_pins::mouse_click_urxvt_maps_to_x10
+        PASS [   0.109s] (115/142) tuiscotti-runtime::tui swap_pins::profile_cell_blink_accepted_and_live
+        PASS [   0.371s] (116/142) tuiscotti-runtime::tui_shell guardian::guardian_contains_group
+        PASS [   0.382s] (117/142) tuiscotti-runtime::tui_shell guardian::guardian_drop_contains
+        PASS [   0.703s] (118/142) tuiscotti-runtime::tui_shell guardian::guardian_escape_boundary_setsid_outlives
+        PASS [   0.058s] (119/142) tuiscotti-runtime::tui_shell guardian::guardian_exited_child_degrades_without_killing
+        PASS [   0.056s] (120/142) tuiscotti-runtime::tui_shell replay::capture_raw_bounded_when_child_exits_silently
+        PASS [   0.091s] (121/142) tuiscotti-runtime::tui_shell replay::detailed_live_observation_pairs_core_screen_with_loss_from_one_worker_sample
+        PASS [   0.158s] (122/142) tuiscotti-runtime::tui_shell replay::direct_termpane_adapter_accepts_a_real_observation_and_checks_cursor_agreement
+        PASS [   0.073s] (123/142) tuiscotti-runtime::tui_shell replay::hidden_cup_cursor_coordinates_match_live_and_replay
+        PASS [   0.041s] (124/142) tuiscotti-runtime::tui_shell replay::hidden_pending_wrap_cursor_coordinates_match_live_and_replay
+        PASS [   0.026s] (125/142) tuiscotti-runtime::tui_shell replay::replay_bounded
+        PASS [   0.028s] (126/142) tuiscotti-runtime::tui_shell replay::replay_chunk_invariance_all_split_points
+        PASS [   0.025s] (127/142) tuiscotti-runtime::tui_shell replay::replay_input_never_fed_as_output
+        PASS [   0.044s] (128/142) tuiscotti-runtime::tui_shell replay::replay_matches_live_session
+        PASS [   0.149s] (129/142) tuiscotti-runtime::tui_shell replay::replay_recorded_pty_bytes_chunk_invariant
+        PASS [   0.146s] (130/142) tuiscotti-runtime::tui_shell shell::shell_cmd_exit_is_not_child_exit
+        PASS [   3.065s] (131/142) tuiscotti-runtime::tui_shell shell::shell_final_state_preserved_after_exit
+        PASS [   0.171s] (132/142) tuiscotti-runtime::tui_shell shell::shell_rejects_bad_commands
+        PASS [   0.128s] (133/142) tuiscotti-runtime::tui_shell shell::shell_run_echo
+        PASS [   0.196s] (134/142) tuiscotti-runtime::tui_shell shell::shell_truncation_flag
+        PASS [   2.133s] (135/142) tuiscotti-runtime::tui_shell shell::shell_unavailable_refuses_to_guess
+        PASS [   0.159s] (136/142) tuiscotti-runtime::tui_shell state::live_title_bells_modes_palette
+        PASS [   0.196s] (137/142) tuiscotti-runtime::tui_shell state::live_unsupported_state_reported_not_fabricated
+        PASS [   0.054s] (138/142) tuiscotti-runtime::tui_shell state::replay_blink_cells_projected
+        PASS [   0.022s] (139/142) tuiscotti-runtime::tui_shell state::replay_clipboard_selection_map_and_gates
+        PASS [   0.024s] (140/142) tuiscotti-runtime::tui_shell state::replay_empty_state_known_not_guessed
+        PASS [   0.022s] (141/142) tuiscotti-runtime::tui_shell state::replay_full_state_asserts
+        PASS [   0.025s] (142/142) tuiscotti-runtime::tui_shell state::replay_title_empty_resets_and_icon_folds
+────────────
+     Summary [  29.798s] 142 tests run: 141 passed, 1 failed, 0 skipped
+        FAIL [   0.023s] ( 65/142) tuiscotti-runtime tui::tests::pty_tests::env_remove_drops_one_var
+error: test run failed

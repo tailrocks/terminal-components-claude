@@ -1,0 +1,92 @@
+{
+  "schema": "termrock-nextest-reader-request/v2",
+  "invocation": {
+    "nextest_version": "0.9.146",
+    "message_format": "libtest-json-plus",
+    "message_format_version": "0.1",
+    "libtest_json_enabled": true,
+    "retries": 0,
+    "stress": "none",
+    "partition": "none",
+    "machine_stream": "stdout",
+    "filter_args": [],
+    "run_ignored": "default",
+    "expected_test_count": 142,
+    "targets": [
+      {
+        "package": "tuiscotti-runtime",
+        "binary_id": "tuiscotti-runtime",
+        "kind": "lib"
+      },
+      {
+        "package": "tuiscotti-runtime",
+        "binary_id": "tuiscotti-runtime::flood",
+        "kind": "test"
+      },
+      {
+        "package": "tuiscotti-runtime",
+        "binary_id": "tuiscotti-runtime::tui",
+        "kind": "test"
+      },
+      {
+        "package": "tuiscotti-runtime",
+        "binary_id": "tuiscotti-runtime::tui_shell",
+        "kind": "test"
+      }
+    ]
+  },
+  "list_capture": {
+    "stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-list-r3-20261010/attempt-01/nextest-list.stdout.json",
+      "byte_length": 20527,
+      "sha256": "8d4725a0e550d231b499f2cb651ef46446824af59f90112437a5319c41af1c73",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-list-r3-20261010/attempt-01/nextest-list.stderr.raw",
+      "byte_length": 7549,
+      "sha256": "57f6336f45d38fbc923b602bef841f5cb44b364d59f6aa1ec164c99b03f3dbd8",
+      "truncated": false
+    },
+    "termination": {
+      "kind": "exited",
+      "exit_code": 0
+    }
+  },
+  "run_capture": {
+    "stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/nextest.stdout.jsonl",
+      "byte_length": 40649,
+      "sha256": "07ed2f98bd7f0b50773ac1bc0fb9d4f3a0fb95ebb582ef378522da06727d5c08",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/nextest.stderr.raw",
+      "byte_length": 20201,
+      "sha256": "c5fb84331219798b0f56996a63d980c04d04adf8ccf72606d2f09f5ef6798363",
+      "truncated": false
+    },
+    "termination": {
+      "kind": "exited",
+      "exit_code": 100
+    }
+  },
+  "wrapper_capture": {
+    "stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/wrapper.stdout.raw",
+      "byte_length": 330,
+      "sha256": "59e1b546b7310bc8e2ad4de8934956458ee0be54269a17cb1c4115dce2a959c7",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/wrapper.stderr.raw",
+      "byte_length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "truncated": false
+    },
+    "termination": {
+      "kind": "exited",
+      "exit_code": 100
+    }
+  }
+}

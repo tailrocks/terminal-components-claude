@@ -1,0 +1,78 @@
+{
+  "schema": "termrock-nextest-reader-request/v2",
+  "invocation": {
+    "nextest_version": "0.9.146",
+    "message_format": "libtest-json-plus",
+    "message_format_version": "0.1",
+    "libtest_json_enabled": true,
+    "retries": 0,
+    "stress": "none",
+    "partition": "none",
+    "machine_stream": "stdout",
+    "filter_args": [],
+    "run_ignored": "default",
+    "run_id": "termrock-vis01-status-59-r2-20261010",
+    "expected_test_count": 59,
+    "targets": [
+      {
+        "package": "termrock-visibility-tests",
+        "binary_id": "termrock-visibility-tests::status",
+        "kind": "test"
+      }
+    ]
+  },
+  "list_capture": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/raw/list.stdout.json",
+      "byte_length": 9152,
+      "sha256": "00ad8ecbc2719e5fb3eed59eef5098221e64f2514c9a4f1878ce68fb11502289",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/raw/list.stderr.log",
+      "byte_length": 1092,
+      "sha256": "4f6271657128f04ea20669f6432f503ff272b3a68ef6a925fca4d4a80facb981",
+      "truncated": false
+    },
+    "termination": {
+      "kind": "exited",
+      "exit_code": 0
+    }
+  },
+  "run_capture": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/nextest.stdout.jsonl",
+      "byte_length": 17430,
+      "sha256": "14be4021ed8ce4b1c23457d52c47717c3375223dd0af6e28b018e6491fcaa3fc",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/nextest.stderr.log",
+      "byte_length": 14864,
+      "sha256": "97f9253c9973f71a670069af4321a159a31a269841b3bf8b42455a5c3b72de97",
+      "truncated": false
+    },
+    "termination": {
+      "kind": "exited",
+      "exit_code": 0
+    }
+  },
+  "wrapper_capture": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/wrapper-capture/supervisor.stdout.log",
+      "byte_length": 573,
+      "sha256": "2bd886eea3619a9c9468cf0fd9f7c03e2a7163cd01cbf4d6e6de4f8554ecd3a2",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/wrapper-capture/supervisor.stderr.log",
+      "byte_length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "truncated": false
+    },
+    "termination": {
+      "kind": "exited",
+      "exit_code": 0
+    }
+  }
+}
