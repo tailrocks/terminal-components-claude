@@ -31,8 +31,8 @@ test_runner = "cargo_nextest"
 run_ignored = "default"
 
 # Optional repository-relative POSIX globs excluded before detector input.
-# [discovery]
-# exclude = []
+[discovery]
+exclude = ["docs/implementation/visibility/evidence/**"]
 
 # Optional exact action-pin overrides. Omitted names use Velnor's bundled latest pins.
 # [actions.overrides]
