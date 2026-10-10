@@ -157,6 +157,73 @@ pub struct Registry {
     pub cases: Vec<Case>,
 }
 
+/// One row of the reviewed deferred-obligation inventory. This type records
+/// what is owed; it never converts `NOT_RUN` into a pass or expected pass.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct DeferredObligation {
+    pub id: String,
+    pub cases: Vec<String>,
+    pub legacy_test: String,
+    pub owner: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct DeferredInventory {
+    pub schema: String,
+    pub source: String,
+    pub rows: Vec<DeferredObligation>,
+    pub row_count: usize,
+    pub case_reference_count: usize,
+    pub missing_historical_id: String,
+    pub coverage_rule: String,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RegisteredCaseCoverage {
+    pub id: String,
+    pub app: String,
+    pub binary: String,
+    pub case_input_sha256: String,
+    pub checkpoint_count: usize,
+    pub assertion_count: usize,
+    pub selection_status: String,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct DeferredCoverage {
+    pub id: String,
+    pub cases: Vec<String>,
+    pub owner: String,
+    pub inventory_status: String,
+    pub paired_observation: String,
+}
+
+/// The full denominator carried by every run receipt. Counts are structural
+/// metadata only: they do not infer any pass, visual parity, or readiness.
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct CoverageReceipt {
+    pub schema: String,
+    pub suite_revision: String,
+    pub case_set_sha256: String,
+    pub profile_sha256: String,
+    pub selected_case_id: String,
+    pub registered_case_count: usize,
+    pub checkpoint_count: usize,
+    pub assertion_count: usize,
+    pub deferred_row_count: usize,
+    pub deferred_case_reference_count: usize,
+    pub missing_historical_id: String,
+    pub coverage_rule: String,
+    pub cases: Vec<RegisteredCaseCoverage>,
+    pub deferred: Vec<DeferredCoverage>,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Case {
@@ -390,7 +457,7 @@ pub struct BuildFacts {
     pub profile: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct BuildInputs {
     pub manifest_sha256: String,
@@ -500,6 +567,8 @@ struct ExecutableMetadata {
     len: u64,
     modified: Option<SystemTime>,
     #[cfg(unix)]
+    mode: u32,
+    #[cfg(unix)]
     device: u64,
     #[cfg(unix)]
     inode: u64,
@@ -511,6 +580,7 @@ pub struct RunReceipt {
     pub run_id: String,
     pub source_pair: Vec<SubjectIdentity>,
     pub suite: SuiteIdentity,
+    pub coverage: CoverageReceipt,
     pub expected_generation: Option<ExpectedGenerationReceipt>,
     pub build_evidence: BuildEvidenceReceipt,
     pub environment: EnvironmentReceipt,
@@ -1103,7 +1173,7 @@ pub struct SubjectIdentity {
     pub actual_output_root: PathBuf,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutableReceipt {
     pub path: PathBuf,
@@ -1119,9 +1189,49 @@ pub struct SuiteIdentity {
     pub compiled_digest: String,
     pub case_set_digest: String,
     pub profile_digest: String,
+    pub case_input_sha256: String,
     pub test_binary_digest: String,
     pub dependency_lock_sha256: String,
     pub platform: String,
+}
+
+/// Verified inputs given to a launcher before it starts a case. This is a
+/// handoff contract only: it does not certify trust, visual parity, or the
+/// external expected generation.
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct LauncherHandoff {
+    pub schema: String,
+    pub trust_status: String,
+    pub run_id: String,
+    pub suite_revision: String,
+    pub suite_sha256: String,
+    pub compiled_suite_sha256: String,
+    pub case_set_sha256: String,
+    pub case_input_sha256: String,
+    pub profile_sha256: String,
+    pub dependency_lock_sha256: String,
+    pub case_id: String,
+    pub binary: String,
+    pub args: Vec<String>,
+    pub subjects: Vec<LauncherSubjectIdentity>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct LauncherSubjectIdentity {
+    pub role: String,
+    pub source_commit: String,
+    pub build: BuildFacts,
+    pub build_inputs: BuildInputs,
+    pub builder_receipt_sha256: String,
+    pub executable: ExecutableReceipt,
+    pub executable_len: u64,
+    pub executable_modified: Option<SystemTime>,
+    #[cfg(unix)]
+    pub executable_device: u64,
+    #[cfg(unix)]
+    pub executable_inode: u64,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -1286,6 +1396,147 @@ pub fn deferred_row_count() -> Result<(usize, usize, String), String> {
         .ok_or_else(|| "missing historical ID must be a string".to_string())?
         .to_string();
     Ok((rows.len(), references, missing_id))
+}
+
+/// Bind the complete reviewed deferred inventory without interpreting any
+/// row as executed. Unknown fields and duplicate IDs are rejected so stale
+/// or hand-edited metadata cannot silently change the denominator.
+pub fn deferred_inventory() -> Result<DeferredInventory, String> {
+    reject_duplicate_json_keys(DEFERRED_JSON.as_bytes(), "deferred inventory")?;
+    let inventory: DeferredInventory = serde_json::from_str(DEFERRED_JSON)
+        .map_err(|error| format!("parse deferred inventory: {error}"))?;
+    if inventory.schema != "termrock-e2e/deferred-obligations-v1" {
+        return Err(format!(
+            "unexpected deferred inventory schema {:?}",
+            inventory.schema
+        ));
+    }
+    if inventory.rows.is_empty() {
+        return Err("deferred inventory has no rows".to_string());
+    }
+    let mut ids = BTreeSet::new();
+    for row in &inventory.rows {
+        if row.id.is_empty() || !ids.insert(row.id.as_str()) {
+            return Err(format!(
+                "deferred row ID must be unique and nonempty: {:?}",
+                row.id
+            ));
+        }
+        if row.cases.is_empty() {
+            return Err(format!("deferred row {} has no case reference", row.id));
+        }
+        if row.legacy_test.trim().is_empty() || row.owner.trim().is_empty() {
+            return Err(format!(
+                "deferred row {} must retain its owner and legacy test",
+                row.id
+            ));
+        }
+        if row.status != "NOT_RUN" {
+            return Err(format!(
+                "static deferred inventory row {} must remain NOT_RUN, got {:?}",
+                row.id, row.status
+            ));
+        }
+    }
+    if inventory.missing_historical_id != "BD-19" {
+        return Err("deferred inventory lost the BD-19 absence marker".to_string());
+    }
+    if inventory.row_count != inventory.rows.len() {
+        return Err(format!(
+            "deferred row_count {} does not bind {} rows",
+            inventory.row_count,
+            inventory.rows.len()
+        ));
+    }
+    let case_reference_count = inventory
+        .rows
+        .iter()
+        .map(|row| row.cases.len())
+        .sum::<usize>();
+    if inventory.case_reference_count != case_reference_count {
+        return Err(format!(
+            "deferred case_reference_count {} does not bind {} references",
+            inventory.case_reference_count, case_reference_count
+        ));
+    }
+    if inventory.coverage_rule.trim().is_empty() {
+        return Err("deferred inventory coverage rule is empty".to_string());
+    }
+    Ok(inventory)
+}
+
+/// Canonical digest of one selected case input, matching the digest bound by
+/// expected generations. This is distinct from the complete `cases/` digest.
+pub fn case_input_digest(case: &Case) -> Result<String, String> {
+    let bytes = serde_json::to_vec(case)
+        .map_err(|error| format!("serialize strict case input: {error}"))?;
+    Ok(sha256_bytes(&bytes))
+}
+
+pub fn coverage_receipt(
+    registry: &Registry,
+    selected_case: &Case,
+    case_set_sha256: &str,
+    profile_sha256: &str,
+) -> Result<CoverageReceipt, String> {
+    let deferred = deferred_inventory()?;
+    let mut cases = Vec::new();
+    let mut checkpoint_count = 0usize;
+    let mut assertion_count = 0usize;
+    for case in &registry.cases {
+        validate_case_contract(case)?;
+        let checkpoint_ids = checkpoints(case);
+        let case_assertions = case
+            .steps
+            .iter()
+            .filter_map(|step| match step {
+                Step::Checkpoint { assertions, .. } => Some(assertions.len()),
+                _ => None,
+            })
+            .sum::<usize>();
+        checkpoint_count += checkpoint_ids.len();
+        assertion_count += case_assertions;
+        cases.push(RegisteredCaseCoverage {
+            id: case.id.clone(),
+            app: case.app.clone(),
+            binary: case.binary.clone(),
+            case_input_sha256: case_input_digest(case)?,
+            checkpoint_count: checkpoint_ids.len(),
+            assertion_count: case_assertions,
+            selection_status: if case.id == selected_case.id {
+                "SELECTED_FOR_THIS_RECEIPT".to_string()
+            } else {
+                "NOT_SELECTED_FOR_THIS_RECEIPT".to_string()
+            },
+        });
+    }
+    let deferred_rows = deferred
+        .rows
+        .iter()
+        .map(|row| DeferredCoverage {
+            id: row.id.clone(),
+            cases: row.cases.clone(),
+            owner: row.owner.clone(),
+            inventory_status: row.status.clone(),
+            paired_observation: "NOT_DECLARED".to_string(),
+        })
+        .collect::<Vec<_>>();
+    Ok(CoverageReceipt {
+        schema: "termrock-e2e/coverage-metadata-v1".to_string(),
+        suite_revision: registry.suite_revision.clone(),
+        case_set_sha256: case_set_sha256.to_string(),
+        profile_sha256: profile_sha256.to_string(),
+        selected_case_id: selected_case.id.clone(),
+        registered_case_count: registry.cases.len(),
+        checkpoint_count,
+        assertion_count,
+        deferred_row_count: deferred.rows.len(),
+        deferred_case_reference_count: deferred.rows.iter().map(|row| row.cases.len()).sum(),
+        missing_historical_id: deferred.missing_historical_id,
+        coverage_rule: deferred.coverage_rule,
+        cases,
+        deferred: deferred_rows,
+    })
 }
 
 pub fn suite_digest() -> Result<String, String> {
@@ -1939,6 +2190,92 @@ pub fn validate_subject_manifest(manifest: &SubjectManifest) -> Result<(), Strin
             .and_then(|expected| expected.root.as_deref()),
     )?;
     Ok(())
+}
+
+/// Verify one already-built subject manifest for a selected case and return
+/// the exact values the PTY launcher must use. This deliberately does not
+/// load sidecar builder evidence or an external trust record; it explicitly
+/// marks trust `UNVERIFIED_AT_HANDOFF`.
+pub fn prepare_launcher_handoff(
+    manifest: &SubjectManifest,
+    case_id: &str,
+) -> Result<LauncherHandoff, String> {
+    let current_suite_digest = suite_digest()?;
+    verify_compiled_suite_digest(COMPILED_SUITE_SHA256, &current_suite_digest)?;
+    if manifest.suite_sha256 != current_suite_digest {
+        return Err(format!(
+            "launcher manifest suite digest {} does not match current suite {}",
+            manifest.suite_sha256, current_suite_digest
+        ));
+    }
+    validate_subject_manifest(manifest)?;
+    let registry = registry()?;
+    let case = registry
+        .cases
+        .iter()
+        .find(|case| case.id == case_id)
+        .ok_or_else(|| format!("launcher has unknown case ID {case_id}"))?;
+    validate_case_contract(case)?;
+    let profile: Profile = serde_json::from_str(PROFILE_JSON)
+        .map_err(|error| format!("parse suite profile: {error}"))?;
+    validate_profile_and_case(&profile, case)?;
+    if manifest
+        .subjects
+        .iter()
+        .any(|subject| subject.build.target_name != case.binary)
+    {
+        return Err(format!(
+            "launcher case {case_id} requires binary {}, but a subject target does not match",
+            case.binary
+        ));
+    }
+
+    let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let case_set_sha256 = digest_tree(&package_root.join("cases"))?;
+    let case_input_sha256 = case_input_digest(case)?;
+    let profile_sha256 = sha256_file(&package_root.join("profile.json"))?;
+    let dependency_lock_sha256 = sha256_file(&package_root.join("Cargo.lock"))?;
+    let mut subjects = manifest.subjects.clone();
+    subjects.sort_by(|left, right| left.role.cmp(&right.role));
+    let mut launcher_subjects = Vec::with_capacity(subjects.len());
+    for subject in &subjects {
+        let snapshot = verify_subject_executable(subject)?;
+        launcher_subjects.push(LauncherSubjectIdentity {
+            role: subject.role.clone(),
+            source_commit: subject.source_commit.clone(),
+            build: subject.build.clone(),
+            build_inputs: subject.build_inputs.clone(),
+            builder_receipt_sha256: subject.builder_receipt_sha256.clone(),
+            executable: ExecutableReceipt {
+                path: subject.executable.path.clone(),
+                expected_sha256: subject.executable.sha256.clone(),
+                actual_sha256: Some(snapshot.sha256),
+            },
+            executable_len: snapshot.metadata.len,
+            executable_modified: snapshot.metadata.modified,
+            #[cfg(unix)]
+            executable_device: snapshot.metadata.device,
+            #[cfg(unix)]
+            executable_inode: snapshot.metadata.inode,
+        });
+    }
+
+    Ok(LauncherHandoff {
+        schema: "termrock-spec/parity-launcher-handoff-v1".to_string(),
+        trust_status: "UNVERIFIED_AT_HANDOFF".to_string(),
+        run_id: manifest.run_id.clone(),
+        suite_revision: registry.suite_revision,
+        suite_sha256: current_suite_digest,
+        compiled_suite_sha256: COMPILED_SUITE_SHA256.to_string(),
+        case_set_sha256,
+        case_input_sha256,
+        profile_sha256,
+        dependency_lock_sha256,
+        case_id: case.id.clone(),
+        binary: case.binary.clone(),
+        args: case.args.clone(),
+        subjects: launcher_subjects,
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -3708,6 +4045,7 @@ pub fn validate_case_contract(case: &Case) -> Result<(), String> {
         }
         let mut has_positive_readiness = false;
         for condition in wait {
+            validate_branch_neutral_text(case, id, "readiness", &condition.needle)?;
             if condition.needle.trim().is_empty() {
                 return Err(format!(
                     "case {} checkpoint {id} has an empty readiness needle",
@@ -3738,6 +4076,26 @@ pub fn validate_case_contract(case: &Case) -> Result<(), String> {
             ));
         }
         for assertion in assertions {
+            let lowered_id = assertion.id.to_ascii_lowercase();
+            if ["reference", "candidate", "oracle"]
+                .iter()
+                .any(|role| lowered_id == *role || lowered_id.starts_with(&format!("{role}.")))
+            {
+                return Err(format!(
+                    "case {} assertion ID {:?} selects a subject role and is not branch-neutral",
+                    case.id, assertion.id
+                ));
+            }
+            for text in [
+                assertion.needle.as_deref(),
+                assertion.left.as_deref(),
+                assertion.right.as_deref(),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                validate_branch_neutral_text(case, &assertion.id, "assertion", text)?;
+            }
             if assertion.id.is_empty() || assertion_ids.contains(&assertion.id) {
                 return Err(format!(
                     "case {} has an empty or duplicate assertion ID {:?}",
@@ -3816,6 +4174,35 @@ pub fn validate_case_contract(case: &Case) -> Result<(), String> {
             }
             assertion_ids.insert(assertion.id.clone());
         }
+    }
+    Ok(())
+}
+
+fn validate_branch_neutral_text(
+    case: &Case,
+    checkpoint_or_assertion: &str,
+    field_kind: &str,
+    text: &str,
+) -> Result<(), String> {
+    let lowered = text.to_ascii_lowercase();
+    const FORBIDDEN: [&str; 6] = [
+        "refs/heads/",
+        "refs/remotes/",
+        "origin/",
+        "termrock-implementation",
+        "visual-baseline",
+        "source commit",
+    ];
+    if FORBIDDEN.iter().any(|needle| lowered.contains(needle))
+        || matches!(
+            lowered.as_str(),
+            "main" | "master" | "reference" | "candidate" | "oracle"
+        )
+    {
+        return Err(format!(
+            "case {} {} {checkpoint_or_assertion:?} contains branch/subject selection text and is not branch-neutral",
+            case.id, field_kind
+        ));
     }
     Ok(())
 }
@@ -3924,6 +4311,7 @@ pub fn prepare_holla_help_overlay_preflight() -> Result<WritePolicyPreflightRece
 
     let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let case_digest = digest_tree(&package_root.join("cases"))?;
+    let selected_case_digest = case_input_digest(case)?;
     let profile_digest = sha256_file(&package_root.join("profile.json"))?;
     let dependency_lock_digest = sha256_file(&package_root.join("Cargo.lock"))?;
     let current_binary =
@@ -4010,6 +4398,7 @@ pub fn prepare_holla_help_overlay_preflight() -> Result<WritePolicyPreflightRece
             digest: current_suite_digest,
             compiled_digest: COMPILED_SUITE_SHA256.to_string(),
             case_set_digest: case_digest,
+            case_input_sha256: selected_case_digest,
             profile_digest,
             test_binary_digest: test_binary_digest.clone(),
             dependency_lock_sha256: dependency_lock_digest,
@@ -5004,6 +5393,7 @@ pub fn prepare_frozen_tag_holla_preflight(case_id: &str) -> Result<TagCapturePre
 
     let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let case_set_digest = digest_tree(&package_root.join("cases"))?;
+    let case_input_sha256 = case_input_digest(case)?;
     let profile_digest = sha256_file(&package_root.join("profile.json"))?;
     let dependency_lock_digest = sha256_file(&package_root.join("Cargo.lock"))?;
     let test_binary =
@@ -5073,6 +5463,7 @@ pub fn prepare_frozen_tag_holla_preflight(case_id: &str) -> Result<TagCapturePre
             digest: current_suite_digest,
             compiled_digest: COMPILED_SUITE_SHA256.to_string(),
             case_set_digest,
+            case_input_sha256,
             profile_digest,
             test_binary_digest,
             dependency_lock_sha256: dependency_lock_digest,
@@ -6429,6 +6820,8 @@ pub fn run_case(case_id: &str) -> Result<RunReceipt, String> {
             "resolved Tuiscotti renderer identity does not match the suite profile".to_string(),
         );
     }
+    let selected_case_digest = case_input_digest(case)?;
+    let coverage = coverage_receipt(&registry, case, &case_digest, &profile_digest)?;
     let loaded_expected = manifest.expected_generation.as_ref().map(|expected| {
         visual::load_expected_generation(
             expected,
@@ -6575,11 +6968,13 @@ pub fn run_case(case_id: &str) -> Result<RunReceipt, String> {
             digest: current_suite_digest,
             compiled_digest: COMPILED_SUITE_SHA256.to_string(),
             case_set_digest: case_digest,
+            case_input_sha256: selected_case_digest,
             profile_digest,
             test_binary_digest,
             dependency_lock_sha256: dependency_lock_digest,
             platform: std::env::consts::OS.to_string(),
         },
+        coverage,
         expected_generation: manifest.expected_generation.as_ref().map(|expected| {
             ExpectedGenerationReceipt {
                 id: expected.id.clone(),
@@ -7742,6 +8137,16 @@ fn inspect_executable(path: &Path) -> Result<ExecutableSnapshot, String> {
             path.display()
         ));
     }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if path_before.permissions().mode() & 0o111 == 0 {
+            return Err(format!(
+                "executable has no execute permission bit: {}",
+                path.display()
+            ));
+        }
+    }
     let mut file =
         File::open(path).map_err(|error| format!("open executable {}: {error}", path.display()))?;
     let opened_before = file
@@ -7792,6 +8197,11 @@ fn executable_metadata(metadata: &fs::Metadata) -> ExecutableMetadata {
     ExecutableMetadata {
         len: metadata.len(),
         modified: metadata.modified().ok(),
+        #[cfg(unix)]
+        mode: {
+            use std::os::unix::fs::PermissionsExt;
+            metadata.permissions().mode()
+        },
         #[cfg(unix)]
         device: metadata.dev(),
         #[cfg(unix)]
@@ -10134,6 +10544,12 @@ mod tests {
         fs::create_dir_all(&root).expect("create executable test root");
         let path = root.join("holla");
         fs::write(&path, b"binary-v1").expect("write first executable");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755))
+                .expect("mark first executable");
+        }
         let initial = inspect_executable(&path).expect("inspect initial executable");
         let mut subject = test_subject("reference", root.join("captures"));
         subject.executable.path = path.clone();
@@ -10142,6 +10558,12 @@ mod tests {
         assert_eq!(verified, initial);
 
         fs::write(&path, b"binary-v2").expect("replace executable contents");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755))
+                .expect("mark changed executable");
+        }
         let current = inspect_executable(&path).expect("inspect changed executable");
         assert!(
             validate_executable_snapshot(&subject, &initial, &current)
@@ -10159,6 +10581,12 @@ mod tests {
         let path = root.join("holla");
         let retained = root.join("holla-old");
         fs::write(&path, b"same-binary").expect("write original executable");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755))
+                .expect("mark original executable");
+        }
         let initial = inspect_executable(&path).expect("inspect original executable");
         let mut subject = test_subject("reference", root.join("captures"));
         subject.executable.path = path.clone();
@@ -10166,6 +10594,12 @@ mod tests {
 
         fs::rename(&path, &retained).expect("retain original inode");
         fs::write(&path, b"same-binary").expect("write replacement executable");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755))
+                .expect("mark replacement executable");
+        }
         let replacement = inspect_executable(&path).expect("inspect replacement executable");
         assert_eq!(replacement.sha256, initial.sha256);
         assert!(
@@ -11810,10 +12244,41 @@ mod tests {
                 digest: "1".repeat(64),
                 compiled_digest: "2".repeat(64),
                 case_set_digest: "3".repeat(64),
+                case_input_sha256: "7".repeat(64),
                 profile_digest: "4".repeat(64),
                 test_binary_digest: "5".repeat(64),
                 dependency_lock_sha256: "6".repeat(64),
                 platform: std::env::consts::OS.to_string(),
+            },
+            coverage: CoverageReceipt {
+                schema: "termrock-e2e/coverage-metadata-v1".to_string(),
+                suite_revision: "test".to_string(),
+                case_set_sha256: "3".repeat(64),
+                profile_sha256: "4".repeat(64),
+                selected_case_id: "test-case".to_string(),
+                registered_case_count: 1,
+                checkpoint_count: 1,
+                assertion_count: 1,
+                deferred_row_count: 1,
+                deferred_case_reference_count: 1,
+                missing_historical_id: "BD-19".to_string(),
+                coverage_rule: "static test metadata".to_string(),
+                cases: vec![RegisteredCaseCoverage {
+                    id: "test-case".to_string(),
+                    app: "test".to_string(),
+                    binary: "test".to_string(),
+                    case_input_sha256: "7".repeat(64),
+                    checkpoint_count: 1,
+                    assertion_count: 1,
+                    selection_status: "SELECTED_FOR_THIS_RECEIPT".to_string(),
+                }],
+                deferred: vec![DeferredCoverage {
+                    id: "BD-00".to_string(),
+                    cases: vec!["W00-00".to_string()],
+                    owner: "test".to_string(),
+                    inventory_status: "NOT_RUN".to_string(),
+                    paired_observation: "NOT_DECLARED".to_string(),
+                }],
             },
             expected_generation: None,
             build_evidence: BuildEvidenceReceipt {
@@ -12914,11 +13379,13 @@ mod tests {
     }
 }
 
+pub fn status_is_blocking(status: &str) -> bool {
+    matches!(status, "FAIL" | "ERROR" | "BLOCKED" | "NOT_RUN" | "STALE")
+}
+
 pub fn receipt_has_blocking_result(receipt: &RunReceipt) -> bool {
-    receipt.checks.iter().any(|check| {
-        matches!(
-            check.status.as_str(),
-            "FAIL" | "ERROR" | "BLOCKED" | "NOT_RUN" | "STALE"
-        )
-    })
+    receipt
+        .checks
+        .iter()
+        .any(|check| status_is_blocking(&check.status))
 }
