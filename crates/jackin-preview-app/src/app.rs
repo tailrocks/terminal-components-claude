@@ -8611,53 +8611,17 @@ impl App {
         }
 
         if self.manager_inspect_open {
-            let palette = HistoricalPalette::new(ui);
-            let normal_canvas = palette.primary_on_canvas;
-            let bold_canvas = palette.primary_on_canvas_bold;
-            let muted_normal = palette.muted_on_canvas;
-            let muted_bold = palette
-                .muted_on_canvas
-                .add_modifier(termrock::author::Modifier::BOLD);
-
-            let container_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                ui.fill(cell, normal_canvas);
-                #[expect(clippy::single_match, reason = "avoid size comparison in hint slot")]
-                match cell.width {
-                    120 => {
-                        ui.paint_str(Rect::new(3, cell.y, 5, 1), "     ", bold_canvas);
-                        ui.paint_str(Rect::new(20, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(35, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(44, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(73, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(81, cell.y, 3, 1), "   ", bold_canvas);
-                        ui.paint_str(Rect::new(94, cell.y, 1, 1), " ", bold_canvas);
-                        ui.paint_str(Rect::new(106, cell.y, 1, 1), " ", bold_canvas);
-                    }
-                    _ => {}
-                }
-            };
-
-            let action_slot = |ui: &mut Ui<'_>, cell: Rect| match cell.width {
-                4 => {
-                    ui.paint_str(Rect::new(cell.x, cell.y, 3, 1), "Mov", muted_normal);
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(3), cell.y, 1, 1),
-                        "e",
-                        muted_bold,
-                    );
-                }
-                5 => {
-                    ui.paint_str(cell, "Close", muted_normal);
-                }
-                _ => {
-                    ui.paint_str(cell, "Copy", muted_normal);
-                }
-            };
-
-            HintBar::new(APP.sub("hint"), &self.hint_layers.manager_inspect)
-                .slot(Part::CONTAINER, &container_slot)
-                .slot(Part::ACTION, &action_slot)
-                .draw(ui, area);
+            // Tag `draw` paints the screen footer, then the modal, then the
+            // modal footer. The second fill keeps key-chip bold, so gaps the
+            // inspect hints do not replace stay weighted. The inspect status
+            // is the dialog title; the footer does not repeat it.
+            let under = self.manager_hints();
+            let mut under_bar = HintBar::new(APP.sub("hint"), &under);
+            if self.world.arbiter.discovery.is_err() {
+                under_bar = under_bar.status(Status::Warning);
+            }
+            under_bar.draw(ui, area);
+            HintBar::new(APP.sub("hint"), &self.hint_layers.manager_inspect).draw(ui, area);
             return;
         }
 
@@ -10225,7 +10189,7 @@ mod paint_contract_tests {
 
     #[test]
     fn inspect_facts_are_owned_by_props_list() {
-        use termrock::{Color, PartRef, Theme};
+        use termrock::{Color, ColorLevel, PartRef, Theme};
         use termrock_test_support::Harness;
         let mut harness = Harness::new(
             App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
@@ -10269,10 +10233,83 @@ mod paint_contract_tests {
             .expect("PropsList owns the focused fact");
         assert_eq!(owned.y, hy);
         assert!(owned.x <= hx && hx < owned.right());
+        let image_row = harness.row(hy + 1);
+        assert!(
+            image_row.contains("jackin/derived:payments-platform-7f3a"),
+            "image uses the instance public token: {image_row}"
+        );
+        assert!(
+            !image_row.contains("870a"),
+            "image does not show the run-id hash: {image_row}"
+        );
+        let run_row = harness
+            .find_row("Run id")
+            .map(|y| harness.row(y))
+            .expect("run id fact");
+        assert!(
+            run_row.contains("run-7f3a"),
+            "run id uses the instance public token: {run_row}"
+        );
+        assert!(
+            !run_row.contains("870afc68"),
+            "run id does not show the hash: {run_row}"
+        );
+        let footer = harness.row(39);
+        assert!(
+            footer.contains("y Copy"),
+            "inspect footer paints the Copy label: {footer}"
+        );
+        assert!(
+            !footer.contains("y Move"),
+            "the action slot must not rename Copy: {footer}"
+        );
+        let (copy_x, copy_y) = harness.find("Copy").expect("Copy label");
+        assert_eq!(copy_y, 39);
+        assert_eq!(harness.cell(copy_x, copy_y).fg, Color::Rgb(128, 128, 128));
+        assert!(
+            !harness
+                .cell(copy_x, copy_y)
+                .modifier
+                .contains(termrock::Modifier::BOLD),
+            "stock KeyHint paints Copy muted"
+        );
+        let (close_x, close_y) = harness.find("Close").expect("Close button");
+        assert_ne!(close_y, 39, "the button is above the footer");
+        assert_ne!(
+            harness.cell(close_x.saturating_sub(1), close_y).symbol(),
+            "▎",
+            "focused Close does not paint a focus bar"
+        );
+        assert!(
+            !harness
+                .cell(close_x, close_y)
+                .modifier
+                .contains(termrock::Modifier::BOLD),
+            "focused Close label stays unweighted"
+        );
         assert_eq!(
             harness.focus(),
             Some(crate::screens::manager::INSPECT_CLOSE),
             "Close keeps the focus ring"
+        );
+        let mut mono = Harness::new(
+            App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        )
+        .with_color(ColorLevel::Mono);
+        let _ = mono.key(KeyCode::Down);
+        let _ = mono.key(KeyCode::Char(' '));
+        let _ = mono.key(KeyCode::Down);
+        let _ = mono.key(KeyCode::Char('i'));
+        let (mono_x, mono_y) = mono.find("Close").expect("mono Close");
+        assert!(
+            !mono
+                .cell(mono_x, mono_y)
+                .modifier
+                .contains(termrock::Modifier::BOLD),
+            "mono focus does not weight Close"
         );
         let _ = harness.key(KeyCode::Enter);
         assert!(

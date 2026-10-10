@@ -722,7 +722,7 @@ pub fn inspect_facts(i: &Instance, world: &World) -> (String, Vec<Fact>) {
             format!(
                 "jackin/derived:{}-{}",
                 i.workdir.trim_start_matches("/workspace/"),
-                i.run_id.short().get(..4).unwrap_or_default()
+                short(&i.id)
             ),
             false,
         ),
@@ -749,7 +749,7 @@ pub fn inspect_facts(i: &Instance, world: &World) -> (String, Vec<Fact>) {
             ),
             false,
         ),
-        fact("Run id", i.run_id.to_string(), true),
+        fact("Run id", format!("run-{}", short(&i.id)), true),
         fact("Lifecycle", i.status.label(), false).tone(if i.status.is_live() {
             FactTone::Normal
         } else {

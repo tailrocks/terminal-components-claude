@@ -6,7 +6,7 @@
 
 use ratatui::layout::Rect;
 use termrock::author::{
-    Family, FgStep, Focusability, Id, ItemKey, Modifier, PaintStyle, Part, Role, StateFlags,
+    Family, FgStep, Focusability, Id, ItemKey, Modifier, PaintStyle, Part, Role, Slot, StateFlags,
     StyleDefaults, StylePatch, Surface, Ui, Variant,
 };
 use termrock::{
@@ -697,6 +697,22 @@ pub fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
 
 pub use crate::manager_actions::inspect_facts;
 
+/// Focus stays on Close so Enter dismisses. The frozen row has no focus
+/// bar and an unweighted label. This instance clears the gutter glyph, the
+/// container bold the focused secondary recipe adds, and the bold the mono
+/// fallback adds to a focused label.
+const INSPECT_CLOSE_PATCH: [(Part, StylePatch); 3] = [
+    (
+        Part::GUTTER,
+        StylePatch {
+            glyph: Slot::Clear,
+            ..StylePatch::new()
+        },
+    ),
+    (Part::CONTAINER, StylePatch::new().remove(Modifier::BOLD)),
+    (Part::LABEL, StylePatch::new().remove(Modifier::BOLD)),
+];
+
 const INSPECT_PANEL_PATCH: [(Part, StylePatch); 4] = [
     (
         Part::CONTAINER,
@@ -831,6 +847,7 @@ impl<'a> InspectDialog<'a> {
                     let btn_x = body.right().saturating_sub(9);
                     Button::new(INSPECT_CLOSE, "Close")
                         .variant(Variant::SECONDARY)
+                        .patch_part(&INSPECT_CLOSE_PATCH)
                         .draw(ui, Rect::new(btn_x, btn_y, 7, 1));
                 });
         });
