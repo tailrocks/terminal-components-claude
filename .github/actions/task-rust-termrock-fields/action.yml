@@ -56,9 +56,9 @@ runs:
         MISE_GITHUB_TOKEN: ""
         NODE_AUTH_TOKEN: ""
         NPM_TOKEN: ""
-        VELNOR_ASSET_SHA256: 4653dd3d446a089e0b734be6f0d823ddb5a9443161cb6a23439f255b503f4fd2
-        VELNOR_ASSET_URL: https://github.com/tailrocks/velnor-new/releases/download/v0.1.7-rc.1-known-gaps.1/velnor-actions-0.1.7-x86_64-unknown-linux-gnu
-        VELNOR_RELEASE_COMMIT: 8748a8ce5352d183967adef092c73a26cec55471
+        VELNOR_ASSET_SHA256: 0ba40ba91ff3c3d0ffac820855732a262615ce777bc7dc73f9ca7d1ad153bac2
+        VELNOR_ASSET_URL: https://github.com/tailrocks/velnor-new/releases/download/v0.1.7-rc.2-known-gaps.1/velnor-actions-0.1.7-x86_64-unknown-linux-gnu
+        VELNOR_RELEASE_COMMIT: 96b9196f99712422436addb422f5827d7f7a9cc7
       shell: bash
       run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; mkdir -p \"$RUNNER_TEMP/velnor/bin\" && s=\"/opt/velnor/seed/generator/velnor-actions-0.1.7\" d=\"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.7\" && if [ -f \"$s\" ] && echo \"$VELNOR_ASSET_SHA256  $s\" | sha256sum -c -; then cp \"$s\" \"$d\"; else curl -fsSL --proto '\\''=https'\\'' --tlsv1.2 \"$VELNOR_ASSET_URL\" -o \"$d\" && echo \"$VELNOR_ASSET_SHA256  $d\" | sha256sum -c -; fi && chmod +x \"$d\"'"
     - name: Download plan
