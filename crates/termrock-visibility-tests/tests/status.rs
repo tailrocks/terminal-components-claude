@@ -2714,7 +2714,7 @@ fn checked_in_records_render_from_exact_copies() {
     assert_eq!(output.stdout, repeated.stdout);
     assert!(report.contains(candidate_sha));
     assert!(report.contains(reference_sha));
-    assert_eq!(candidate_sha, "38a897b179b6f01cf07dd6d889f7a278886e5226");
+    assert_eq!(candidate_sha, "14d0e0e5aa569868f519fc9ca91e55a02589d72a");
     assert_eq!(reference_sha, "4b473a98a8641a9dae8dbf9c31c0c94b15465496");
     assert_eq!(candidate_sha, latest_candidate_sha);
     assert_eq!(reference_sha, latest_reference_sha);
@@ -2754,7 +2754,7 @@ fn checked_in_records_render_from_exact_copies() {
         history[5]["source_observation"]["candidate_remote"]["head_sha"],
         "1d797d41c8141fcbdc3f69d7f11eb8875ab54712"
     );
-    assert_eq!(history[5]["superseded_at"], "2026-10-10T06:44:23Z");
+    assert_eq!(history[5]["superseded_at"], "2026-10-10T09:48:16Z");
     assert!(facts["current_status_observations"].is_null());
     assert!(facts["current_publication_observation"].is_null());
     assert!(
@@ -2782,7 +2782,7 @@ fn checked_in_records_render_from_exact_copies() {
     let current_ci = facts["current_ci_observation"]["api_capture"]
         .as_object()
         .expect("current CI API capture");
-    assert_eq!(current_ci["candidate_run"]["run_id"], "38031202825");
+    assert_eq!(current_ci["candidate_run"]["run_id"], "38041666323");
     assert_eq!(current_ci["candidate_run"]["job_count"], 0);
     assert_eq!(current_ci["candidate_run"]["artifact_count"], 0);
     assert_eq!(current_ci["reference_query"]["query_total_count"], 0);
@@ -2791,36 +2791,37 @@ fn checked_in_records_render_from_exact_copies() {
         current_ci["workflow_source"]["raw_sha256"],
         "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
     );
-    assert_eq!(current_ci["candidate_dco"]["check_run_id"], "114152359863");
+    assert_eq!(current_ci["candidate_dco"]["check_run_id"], "114182994503");
     assert_eq!(current_ci["candidate_dco"]["conclusion"], "success");
     assert_eq!(current_ci["reference_dco"]["check_run_id"], "113974968877");
     assert_eq!(current_ci["reference_dco"]["conclusion"], "action_required");
     let provider = facts["current_ci_observation"]["provider_annotation_capture"]
         .as_object()
         .expect("current provider capture");
-    assert_eq!(provider["run_id"], "38031202825");
+    assert_eq!(provider["run_id"], "38041666323");
     assert_eq!(
         provider["raw_page_sha256"],
-        "f12d83f345f875c2cfc7abd88b4d728ffd13b8d74b5a2b3a054719f684b6e21b"
+        "790a75751944a97745fa93ec5a46c33e98f219ce9ea0277c94ab1234f9e7dc82"
     );
     assert_eq!(
         facts["pull_request_observation"]["merge_state_status"],
-        "DIRTY"
+        serde_json::Value::Null
     );
     let package = facts["current_local_e2e_suite_observation"]
         .as_object()
         .expect("current local package control");
-    assert_eq!(package["file_count"], 28);
+    assert_eq!(package["file_count"], 29);
     assert_eq!(
         package["package_sha256"],
-        "5867f043a6b3e2913871770e70ac55553c235617852a646bd3fb525dd8940637"
+        "9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6"
     );
+    assert_eq!(package["inventory_sha256"], "3912c8cb872429f718047008f488606d73755d67ae1f4269da6077d297ab0d1c");
     assert_eq!(package["nextest"]["selected"], 1);
     assert_eq!(package["nextest"]["passed"], 1);
     assert_eq!(package["nextest"]["failed"], 0);
     assert!(history[2]["source_observation"]["branch_last_update_at"].is_null());
     assert_eq!(history[4]["superseded_at"], "2026-10-08T23:25:02Z");
-    assert!(report.contains("2026-10-10T06:44:23Z"));
+    assert!(report.contains("2026-10-10T09:48:16Z"));
     assert_eq!(
         facts["latest_source_observation"]["reference_remote"]["commit_committer_at"],
         "2026-10-09T18:51:08Z"
@@ -2870,19 +2871,19 @@ fn checked_in_records_render_from_exact_copies() {
         .split("\n## ")
         .next()
         .expect("end of current CI report section");
-    assert!(current_ci_section.contains("38031202825"));
+    assert!(current_ci_section.contains("38041666323"));
     assert!(current_ci_section.contains("0 jobs; 0 artifacts"));
     assert!(current_ci_section.contains("Workflow file exceeds the maximum allowed size"));
     assert!(current_ci_section.contains("537470 bytes"));
     assert!(current_ci_section.contains("0 matching Actions runs"));
-    assert!(current_ci_section.contains("114152359863"));
+    assert!(current_ci_section.contains("114182994503"));
     assert!(current_ci_section.contains("113974968877"));
     assert_eq!(
         facts["latest_local_checkout_observation"]["head_sha"],
-        "38a897b179b6f01cf07dd6d889f7a278886e5226"
+        "14d0e0e5aa569868f519fc9ca91e55a02589d72a"
     );
     assert!(
-        report.contains("termrock-implementation at `38a897b179b6f01cf07dd6d889f7a278886e5226`")
+        report.contains("termrock-implementation at `14d0e0e5aa569868f519fc9ca91e55a02589d72a`")
             && report.contains("| Local publication | Published.")
             && facts["local_checkout_history"].as_array().is_some_and(|history| {
                 history.iter().any(|record| {
@@ -2910,7 +2911,7 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(report.contains("80 checks: 56 PASS, 8 BLOCKED, 16 NOT_APPLICABLE"));
     assert!(report.contains("Historical local E2E package"));
     assert!(report.contains("## Current local package control"));
-    assert!(report.contains("5867f043a6b3e2913871770e70ac55553c235617852a646bd3fb525dd8940637"));
+    assert!(report.contains("9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6"));
     assert!(report.contains("NOT product execution and NOT a paired run"));
     assert!(report.contains("## Local package and reporter controls"));
     assert!(report.contains("f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"));
@@ -3743,11 +3744,11 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     let report = output_text(&output);
     assert!(report.contains("1ea1c17707f0a8f1639af506be179013d5e2d52a"));
     assert!(report.contains("b682cb26d68b353aeeccf9e51653eddf097b39f5"));
-    assert!(report.contains("38a897b179b6f01cf07dd6d889f7a278886e5226"));
+    assert!(report.contains("14d0e0e5aa569868f519fc9ca91e55a02589d72a"));
     assert!(report.contains("4b473a98a8641a9dae8dbf9c31c0c94b15465496"));
     assert_eq!(
         original["latest_source_observation"]["candidate_remote"]["head_sha"],
-        "38a897b179b6f01cf07dd6d889f7a278886e5226"
+        "14d0e0e5aa569868f519fc9ca91e55a02589d72a"
     );
     assert_eq!(
         original["latest_source_observation"]["reference_remote"]["head_sha"],
@@ -3818,15 +3819,15 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     );
     assert_eq!(
         original["latest_source_observation"]["candidate_remote"]["head_sha"],
-        "38a897b179b6f01cf07dd6d889f7a278886e5226"
+        "14d0e0e5aa569868f519fc9ca91e55a02589d72a"
     );
     assert_eq!(
         original["latest_source_observation"]["reference_remote"]["head_sha"],
         "4b473a98a8641a9dae8dbf9c31c0c94b15465496"
     );
-    assert!(report.contains("38a897b179b6f01cf07dd6d889f7a278886e5226"));
+    assert!(report.contains("14d0e0e5aa569868f519fc9ca91e55a02589d72a"));
     assert!(report.contains("4b473a98a8641a9dae8dbf9c31c0c94b15465496"));
-    assert!(report.contains("| Remote branch tips observed at | 2026-10-10T06:44:23Z |",));
+    assert!(report.contains("| Remote branch tips observed at | 2026-10-10T09:48:16Z |",));
 
     // This checked-in pair uses a branch API observation, so its top-level CI
     // capture is optional. Exercise the explicit-fetch presence rule with a
@@ -4123,13 +4124,13 @@ fn reference_role_cli_renders_reference_presentation() {
     let report = output_text(&output);
     assert!(report.contains("| Local role | Reference (visual-baseline) |"));
     assert!(report.contains(
-        "[CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/38a897b179b6f01cf07dd6d889f7a278886e5226/CHECKLIST.md)"
+        "[CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/14d0e0e5aa569868f519fc9ca91e55a02589d72a/CHECKLIST.md)"
     ));
     assert!(report.contains(
-        "[checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/38a897b179b6f01cf07dd6d889f7a278886e5226/checklist.json)"
+        "[checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/14d0e0e5aa569868f519fc9ca91e55a02589d72a/checklist.json)"
     ));
     assert!(report.contains(
-        "[Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/38a897b179b6f01cf07dd6d889f7a278886e5226/tools/visibility/README.md)"
+        "[Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/14d0e0e5aa569868f519fc9ca91e55a02589d72a/tools/visibility/README.md)"
     ));
     assert!(!report.contains("[CHECKLIST.md](CHECKLIST.md)"));
     assert!(!report.contains("[checklist.json](checklist.json)"));
@@ -4791,12 +4792,12 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
     assert!(
         report.contains("## Current CI and Developer Certificate of Origin (DCO) observations")
     );
-    assert!(report.contains("38031202825"));
+    assert!(report.contains("38041666323"));
     assert!(report.contains("0 jobs; 0 artifacts"));
     assert!(report.contains("Workflow file exceeds the maximum allowed size"));
     assert!(report.contains("537470 bytes"));
     assert!(report.contains("0 matching Actions runs"));
-    assert!(report.contains("114152359863"));
+    assert!(report.contains("114182994503"));
     assert!(report.contains("113974968877"));
 
     // The superseded current report remains preserved as historical evidence.

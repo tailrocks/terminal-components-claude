@@ -109,34 +109,34 @@ qualification.
 ## Current source pair and CI/DCO snapshot
 
 The current comparison pair is candidate
-`38a897b179b6f01cf07dd6d889f7a278886e5226` and reference
+`14d0e0e5aa569868f519fc9ca91e55a02589d72a` and reference
 `4b473a98a8641a9dae8dbf9c31c0c94b15465496`, observed at
-`2026-10-10T06:44:23Z` through read-only GitHub branch APIs. The API supplied
+`2026-10-10T09:48:16Z` through read-only GitHub branch APIs. The API supplied
 commit heads and committer timestamps but no branch-update timestamp. The
-candidate commit date is `2026-10-10T06:30:48Z`; the reference commit date is
+candidate commit date is `2026-10-10T09:30:58Z`; the reference commit date is
 `2026-10-09T18:51:08Z`. Commit dates are metadata, not branch-update times.
 
 The latest push CI run is
-[38031202825](https://github.com/tailrocks/terminal-components-claude/actions/runs/38031202825),
-created at `2026-10-10T06:30:56Z`. It is completed/failure with zero jobs and
+[38041666323](https://github.com/tailrocks/terminal-components-claude/actions/runs/38041666323),
+created at `2026-10-10T09:31:04Z`. It is completed/failure with zero jobs and
 zero artifacts. Its workflow remains 537,470 bytes with SHA-256
 `607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24`; the run
 page records the 500 KB workflow-size annotation. The raw page SHA-256 is
-`f12d83f345f875c2cfc7abd88b4d728ffd13b8d74b5a2b3a054719f684b6e21b`, and the
+`790a75751944a97745fa93ec5a46c33e98f219ce9ea0277c94ab1234f9e7dc82`, and the
 ephemeral capture-manifest SHA-256 is
-`9da3c771c29012a1bb2d1f9de09dbab144958cf51e64361832f307245326b2b8`. Raw API and
+`8902e3f6c80c88e6a93b6a62dc3f424d0d85290e89869336a8f0c740b6d462cb`. Raw API and
 page bodies were not archived. The reference Actions query returned zero
-matching runs. Candidate DCO check `114152359863` passed; reference DCO check
+matching runs. Candidate DCO check `114182994503` passed; reference DCO check
 `113974968877` is action_required with 14 reported commits. These are
 repository observations only.
 
 PR #17 is an open draft at the current candidate head with base `main` at
 `81a8bf15cd3042f80649e2b48fed479829518dbd`. GitHub reports `mergeable=false`
-and `mergeable_state=dirty`. No conflict resolution, merge, rebase, reset, or
+and no merge-state value. No conflict resolution, merge, rebase, reset, or
 readiness inference is included.
 
 The latest local checkout is the published commit above, tree
-`3efa46acfcc9612c6e752dc0d5f958fbf57a28ba`, signature status `N`, and the exact
+`8a4d09c3d29eb28e0f9cdf5a084c6546dbbced2d`, signature status `N`, and the exact
 required DCO trailer. The shared worktree is dirty from another workstream.
 Those dirty files are outside this measurement and are not qualified. The 766
 and f61 local checkout observations remain in local history.
@@ -231,10 +231,10 @@ the Holla journey. The historical Holla receipt uses suite SHA-256
 differs from f307. The f307 Holla product result remains NOT_RUN.
 
 The current package-only observation binds commit
-`38a897b179b6f01cf07dd6d889f7a278886e5226`, 28 files, revision
+`14d0e0e5aa569868f519fc9ca91e55a02589d72a`, 29 files, revision
 `termrock-e2e-2026-10-09.2`, and package SHA-256
-`5867f043a6b3e2913871770e70ac55553c235617852a646bd3fb525dd8940637`. A focused
-`cargo nextest` digest-control run (`e3a31e85-4c4f-4004-ac68-ab8f73819ec0`)
+`9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6`. A focused
+`cargo nextest` digest-control run (`0266dbb7-5fbc-4c83-8021-f5c9af2b65ca`)
 passed 1/1. This checks compiled/current digest sensitivity only. It is not a
 product execution, not a paired run, and does not qualify the globally dirty
 checkout.

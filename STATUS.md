@@ -32,7 +32,7 @@ This is the earlier source pair captured at the timestamp below. The branch tips
 | Identity | Value |
 | --- | --- |
 | Local role | Candidate (termrock-implementation) |
-| Candidate observed commit (recorded pair) | [38a897b179b6f01cf07dd6d889f7a278886e5226](https://github.com/tailrocks/terminal-components-claude/commit/38a897b179b6f01cf07dd6d889f7a278886e5226) |
+| Candidate observed commit (recorded pair) | [14d0e0e5aa569868f519fc9ca91e55a02589d72a](https://github.com/tailrocks/terminal-components-claude/commit/14d0e0e5aa569868f519fc9ca91e55a02589d72a) |
 | Reference observed commit (recorded pair) | [4b473a98a8641a9dae8dbf9c31c0c94b15465496](https://github.com/tailrocks/terminal-components-claude/commit/4b473a98a8641a9dae8dbf9c31c0c94b15465496) |
 | Immutable visual tag object | 1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5 |
 | Immutable visual tag commit | [4a79c0a2d40fca46fc406b77157ce3b3f12ec16b](https://github.com/tailrocks/terminal-components-claude/commit/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b) |
@@ -44,18 +44,18 @@ This is the earlier source pair captured at the timestamp below. The branch tips
 
 | Observation | Value |
 | --- | --- |
-| Candidate remote branch tip | [38a897b179b6f01cf07dd6d889f7a278886e5226](https://github.com/tailrocks/terminal-components-claude/commit/38a897b179b6f01cf07dd6d889f7a278886e5226) |
+| Candidate remote branch tip | [14d0e0e5aa569868f519fc9ca91e55a02589d72a](https://github.com/tailrocks/terminal-components-claude/commit/14d0e0e5aa569868f519fc9ca91e55a02589d72a) |
 | Reference remote branch tip | [4b473a98a8641a9dae8dbf9c31c0c94b15465496](https://github.com/tailrocks/terminal-components-claude/commit/4b473a98a8641a9dae8dbf9c31c0c94b15465496) |
 | Source observation method | read-only GitHub branch API observation |
-| Remote branch tips observed at | 2026-10-10T06:44:23Z |
-| Source timestamp meaning | 2026-10-10T06:44:23Z; branch last-update time unknown; remote commit committer dates are metadata only (candidate 2026-10-10T06:30:48Z, reference 2026-10-09T18:51:08Z). |
+| Remote branch tips observed at | 2026-10-10T09:48:16Z |
+| Source timestamp meaning | 2026-10-10T09:48:16Z; branch last-update time unknown; remote commit committer dates are metadata only (candidate 2026-10-10T09:30:58Z, reference 2026-10-09T18:51:08Z). |
 | Earlier source observations | No earlier candidate tip recorded; its retrieval time was not retained, and this tip is superseded by the observation above. |
-| Captured local checkout (source facts) | termrock-implementation at `38a897b179b6f01cf07dd6d889f7a278886e5226`; compare this recorded identity with the selected source commit above. |
+| Captured local checkout (source facts) | termrock-implementation at `14d0e0e5aa569868f519fc9ca91e55a02589d72a`; compare this recorded identity with the selected source commit above. |
 | Captured local cryptographic commit signature | `N` from `git show -s --format='%G?' HEAD` (Git reported no cryptographic signature). |
-| Captured local Developer Certificate of Origin (DCO) trailer | Expected line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is present in commit `38a897b179b6f01cf07dd6d889f7a278886e5226`. |
+| Captured local Developer Certificate of Origin (DCO) trailer | Expected line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is present in commit `14d0e0e5aa569868f519fc9ca91e55a02589d72a`. |
 | Parsed local DCO trailers | Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com> |
-| Captured local commit subject | docs(visibility): record E2E coverage review limits |
-| Captured local commit observation time | 2026-10-10T06:44:23Z |
+| Captured local commit subject | docs(visibility): record queue transition review limits |
+| Captured local commit observation time | 2026-10-10T09:48:16Z |
 | Local publication | Published. Local HEAD and tree were read from the existing checkout; the working tree is dirty, so this is a commit identity observation and does not qualify dirty product files. |
 
 The DCO observations above describe the captured local commit message. They do not report a remote DCO check.
@@ -73,7 +73,7 @@ These source snapshots remain historical. Their CI and Developer Certificate of 
 | `e22d54708fe58670d92c2dac7c1ace6c97fac164` / `68d98ac99238c8580464f238a65b0f862ecc3dbd` | 2026-10-08T10:13:57Z | read-only GitHub branch API observation | No CI/DCO capture recorded; source-only observation. (evidence SHA-256 `ba6862438a415fcccc04a756be15a06e63b9eee17c4e0edf7442bf6fe982f301`) | No CI capture | 2026-10-08T10:19:24Z |
 | `cee7e2e307514e49a70d8b8fcb028923ccdc7322` / `68d98ac99238c8580464f238a65b0f862ecc3dbd` | 2026-10-08T10:19:24Z | explicit HTTPS refs/heads fetch | run 37762481719 failure (0 jobs, 0 artifacts); reference query returned 0 runs; candidate/reference DCO 113262062732 / 113195062894; product execution NOT_RUN (evidence SHA-256 `6645a0d40d4777d8fc8af0f74e64bf2c701986ed9bf2d5d30aa1d73a82e1db3c`) | API 2026-10-08T10:22:44Z; provider page 2026-10-08T10:22:44Z | 2026-10-08T15:11:33Z |
 | `1ea1c17707f0a8f1639af506be179013d5e2d52a` / `b682cb26d68b353aeeccf9e51653eddf097b39f5` | 2026-10-08T15:11:33Z | explicit HTTPS refs/heads fetch | run 37793991551 failure (0 jobs, 0 artifacts); reference query returned 0 runs; candidate/reference DCO 113368579050 / 113326850483; product execution NOT_RUN (evidence SHA-256 `367121e3eb643453d46d33b598388752c41b1c5fa23e9c099e751c280e0568aa`) | API 2026-10-08T15:22:16Z; provider page 2026-10-08T15:22:16Z | 2026-10-08T23:25:02Z |
-| `1d797d41c8141fcbdc3f69d7f11eb8875ab54712` / `b274dd57f4dd078ade6e424d546d83efbd2e8526` | 2026-10-08T23:25:02Z | read-only GitHub branch API observation; local fetched refs verified afterward | No CI/DCO capture recorded; source-only observation. (evidence SHA-256 `fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d`) | No CI capture | 2026-10-10T06:44:23Z |
+| `1d797d41c8141fcbdc3f69d7f11eb8875ab54712` / `b274dd57f4dd078ade6e424d546d83efbd2e8526` | 2026-10-08T23:25:02Z | read-only GitHub branch API observation; local fetched refs verified afterward | No CI/DCO capture recorded; source-only observation. (evidence SHA-256 `fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d`) | No CI capture | 2026-10-10T09:48:16Z |
 
 Historical raw-evidence coverage gap: normalized source/CI summaries for 6 retained records remain, but their original raw source and CI capture files are not in the repository archive. The gap does not change the fixed source pair or the current readiness assessment; current candidate measurements and paired-result gaps determine readiness separately.
 
@@ -82,19 +82,19 @@ Historical raw-evidence coverage gap: normalized source/CI summaries for 6 retai
 
 | Check | Observation | Scope |
 | --- | --- | --- |
-| [CI run 38031202825](https://github.com/tailrocks/terminal-components-claude/actions/runs/38031202825) | failure at 38a897b179b6f01cf07dd6d889f7a278886e5226; 0 jobs; 0 artifacts. Failure reason: Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information.; [source](https://github.com/tailrocks/terminal-components-claude/actions/runs/38031202825). | The run head matches the latest observed candidate branch tip. This recorded workflow result is historical and is not a product test result. |
-| [DCO check 114152359863](https://github.com/tailrocks/terminal-components-claude/commit/38a897b179b6f01cf07dd6d889f7a278886e5226/checks) | success; No commits are reported with sign-off problems. | The check head matches the latest observed candidate branch tip. This is a repository gate, separate from product results; no remote history change is inferred. |
+| [CI run 38031202825](https://github.com/tailrocks/terminal-components-claude/actions/runs/38031202825) | failure at 38a897b179b6f01cf07dd6d889f7a278886e5226; 0 jobs; 0 artifacts. Failure reason: Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information.; [source](https://github.com/tailrocks/terminal-components-claude/actions/runs/38031202825). | The run head does not match the latest observed candidate branch tip. This recorded workflow result is historical and is not a product test result. |
+| [DCO check 114182994503](https://github.com/tailrocks/terminal-components-claude/commit/14d0e0e5aa569868f519fc9ca91e55a02589d72a/checks) | success; No commits are reported with sign-off problems. | The check head matches the latest observed candidate branch tip. This is a repository gate, separate from product results; no remote history change is inferred. |
 
 ## Current CI and Developer Certificate of Origin (DCO) observations
 
 | Check | Observation | Scope |
 | --- | --- | --- |
-| Candidate Actions run [38031202825](https://github.com/tailrocks/terminal-components-claude/actions/runs/38031202825) | failure at `38a897b179b6f01cf07dd6d889f7a278886e5226`; 0 jobs; 0 artifacts. Provider run-page annotation: “Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information.” [run page](https://github.com/tailrocks/terminal-components-claude/actions/runs/38031202825) [GitHub workflow-size limit](https://docs.github.com/en/actions/reference/limits#workflow-file-size). The matching workflow source is 537470 bytes, SHA-256 `607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24`. | Workflow-level result; product execution remains NOT_RUN. |
+| Candidate Actions run [38041666323](https://github.com/tailrocks/terminal-components-claude/actions/runs/38041666323) | failure at `14d0e0e5aa569868f519fc9ca91e55a02589d72a`; 0 jobs; 0 artifacts. Provider run-page annotation: “Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information.” [run page](https://github.com/tailrocks/terminal-components-claude/actions/runs/38041666323) [GitHub workflow-size limit](https://docs.github.com/en/actions/reference/limits#workflow-file-size). The matching workflow source is 537470 bytes, SHA-256 `607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24`. | Workflow-level result; product execution remains NOT_RUN. |
 | Reference Actions query | The reference Actions API query completed successfully and returned 0 matching Actions runs for this source tip. | Query source SHA `4b473a98a8641a9dae8dbf9c31c0c94b15465496`; this is not a paired execution. |
-| Candidate DCO status | [success](https://github.com/tailrocks/terminal-components-claude/runs/114152359863); No commits are reported with sign-off problems. | Repository gate at `38a897b179b6f01cf07dd6d889f7a278886e5226`; separate from product results. |
+| Candidate DCO status | [success](https://github.com/tailrocks/terminal-components-claude/runs/114182994503); No commits are reported with sign-off problems. | Repository gate at `14d0e0e5aa569868f519fc9ca91e55a02589d72a`; separate from product results. |
 | Reference DCO status | [action_required](https://github.com/tailrocks/terminal-components-claude/runs/113974968877); 14 commits are reported with sign-off problems. | Repository gate at `4b473a98a8641a9dae8dbf9c31c0c94b15465496`; separate from product results. |
 
-GitHub API capture at 2026-10-10T06:42:23Z: manifest SHA-256 `9da3c771c29012a1bb2d1f9de09dbab144958cf51e64361832f307245326b2b8`. Its source pair is candidate `38a897b179b6f01cf07dd6d889f7a278886e5226` and reference `4b473a98a8641a9dae8dbf9c31c0c94b15465496`. The candidate workflow source is `.github/workflows/ci.yml` at `38a897b179b6f01cf07dd6d889f7a278886e5226`, 537470 bytes, SHA-256 `607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24`. Provider annotation capture at 2026-10-10T06:42:23Z: manifest SHA-256 `9da3c771c29012a1bb2d1f9de09dbab144958cf51e64361832f307245326b2b8`; raw run-page SHA-256 `f12d83f345f875c2cfc7abd88b4d728ffd13b8d74b5a2b3a054719f684b6e21b`.
+GitHub API capture at 2026-10-10T09:48:16Z: manifest SHA-256 `8902e3f6c80c88e6a93b6a62dc3f424d0d85290e89869336a8f0c740b6d462cb`. Its source pair is candidate `14d0e0e5aa569868f519fc9ca91e55a02589d72a` and reference `4b473a98a8641a9dae8dbf9c31c0c94b15465496`. The candidate workflow source is `.github/workflows/ci.yml` at `14d0e0e5aa569868f519fc9ca91e55a02589d72a`, 537470 bytes, SHA-256 `607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24`. Provider annotation capture at 2026-10-10T09:48:16Z: manifest SHA-256 `8902e3f6c80c88e6a93b6a62dc3f424d0d85290e89869336a8f0c740b6d462cb`; raw run-page SHA-256 `790a75751944a97745fa93ec5a46c33e98f219ce9ea0277c94ab1234f9e7dc82`.
 
 No runner jobs were recorded, so product execution remains NOT_RUN. Paired, visual, interaction, API, ownership, Ready, and Visibility Complete results remain NOT_RUN.
 
@@ -117,7 +117,7 @@ Publication record `docs/implementation/visibility/evidence/reports/status-sourc
 These workflow runs belong to their exact report publication commits. Neither run provides product checks on the selected 1d/b274 source pair; no failure cause or artifact count is inferred.
 
 
-Tool versions recorded at 2026-10-10T06:44:23Z: Python 3.14.8, Rust 1.98.1, and cargo-nextest 0.9.143 through mise on aarch64-apple-darwin. This records installed tools only; it does not show that a product check ran.
+Tool versions recorded at 2026-10-10T09:48:16Z: Python 3.14.8, Rust 1.98.1, and cargo-nextest 0.9.143 through mise on aarch64-apple-darwin. This records installed tools only; it does not show that a product check ran.
 
 ## Applications
 
@@ -178,10 +178,10 @@ This partial case does not cover the 293-case, 421-checkpoint, or 7,550-snapshot
 
 | Observation | Result | Scope |
 | --- | --- | --- |
-| Package `termrock-e2e-2026-10-09.2`; 28 files | SHA-256 `5867f043a6b3e2913871770e70ac55553c235617852a646bd3fb525dd8940637` | Current source commit `38a897b179b6f01cf07dd6d889f7a278886e5226`; revision `termrock-e2e-2026-10-09.2`; package files only. |
-| `cargo nextest` digest control | PASS (1/1 selected; 1 passed, 0 failed, 0 skipped) | Run `e3a31e85-4c4f-4004-ac68-ab8f73819ec0`; compiled/current digest sensitivity only; NOT product execution and NOT a paired run. |
+| Package `termrock-e2e-2026-10-09.2`; 29 files | SHA-256 `9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6` | Current source commit `14d0e0e5aa569868f519fc9ca91e55a02589d72a`; revision `termrock-e2e-2026-10-09.2`; package files only. |
+| `cargo nextest` digest control | PASS (1/1 selected; 1 passed, 0 failed, 0 skipped) | Run `0266dbb7-5fbc-4c83-8021-f5c9af2b65ca`; compiled/current digest sensitivity only; NOT product execution and NOT a paired run. |
 
-Package source identity and one local Rust control passed. This is not a paired run and the repository checkout was dirty, so no whole-commit or product qualification is asserted.
+Package source identity and one local Rust control passed. This is not a paired run and the repository remains globally dirty; product behavior and readiness are NOT_RUN.
 
 
 ## Local package and reporter controls
@@ -204,7 +204,7 @@ No compatible previous complete required-set run is recorded, so trend changes a
 
 ## Next work
 
-Highest open priority: **P0**, from accepted queue revision 71.
+Highest open priority: **P0**, from accepted queue revision 73.
 
 | Work | State | Owner | Reviewer | Priority reason |
 | --- | --- | --- | --- | --- |

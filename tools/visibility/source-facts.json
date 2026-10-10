@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "repository": "tailrocks/terminal-components-claude",
-  "observed_at": "2026-10-10T06:44:23Z",
+  "observed_at": "2026-10-10T09:48:16Z",
   "latest_source_observation": {
-    "observed_at": "2026-10-10T06:44:23Z",
+    "observed_at": "2026-10-10T09:48:16Z",
     "method": "read-only GitHub branch API observation",
     "candidate_remote": {
       "branch": "termrock-implementation",
-      "head_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
-      "commit_committer_at": "2026-10-10T06:30:48Z"
+      "head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
+      "commit_committer_at": "2026-10-10T09:30:58Z"
     },
     "reference_remote": {
       "branch": "visual-baseline",
@@ -31,33 +31,33 @@
     }
   },
   "latest_local_checkout_observation": {
-    "observed_at": "2026-10-10T06:44:23Z",
+    "observed_at": "2026-10-10T09:48:16Z",
     "branch": "termrock-implementation",
-    "head_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
-    "tree_sha": "3efa46acfcc9612c6e752dc0d5f958fbf57a28ba",
+    "head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
+    "tree_sha": "8a4d09c3d29eb28e0f9cdf5a084c6546dbbced2d",
     "signature_status": "N",
     "signature_command": "git show -s --format='%G?' HEAD",
     "publication_status": "published",
     "qualification": "Local HEAD and tree were read from the existing checkout; the working tree is dirty, so this is a commit identity observation and does not qualify dirty product files."
   },
   "latest_local_dco_trailer_observation": {
-    "observed_at": "2026-10-10T06:44:23Z",
-    "commit_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
+    "observed_at": "2026-10-10T09:48:16Z",
+    "commit_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
     "expected_trailer": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
     "trailer_present": true,
     "parsed_trailers": [
       "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>"
     ],
-    "message_subject": "docs(visibility): record E2E coverage review limits",
+    "message_subject": "docs(visibility): record queue transition review limits",
     "inspection_command": "git show -s --format=%B HEAD | git interpret-trailers --parse",
     "qualification": "The exact required DCO trailer is present in the observed local commit message. Git signature status N and dirty files are separate observations."
   },
   "candidate": {
     "branch": "termrock-implementation",
-    "head_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
-    "local_head_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
-    "remote_head_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
-    "remote_commit_committer_at": "2026-10-10T06:30:48Z",
+    "head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
+    "local_head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
+    "remote_head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
+    "remote_commit_committer_at": "2026-10-10T09:30:58Z",
     "remote_updated_at": null
   },
   "reference": {
@@ -102,42 +102,42 @@
     }
   },
   "dco_observation": {
-    "check_run_id": "114152359863",
+    "check_run_id": "114182994503",
     "name": "DCO",
-    "head_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
+    "head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
     "status": "completed",
     "conclusion": "success",
     "details_url": "https://github.com/cncf/dco2",
-    "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/114152359863",
-    "started_at": "2026-10-10T06:31:04Z",
-    "completed_at": "2026-10-10T06:31:05Z",
+    "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/114182994503",
+    "started_at": "2026-10-10T09:31:12Z",
+    "completed_at": "2026-10-10T09:31:13Z",
     "summary": "All commits are signed off, the check passed.",
     "affected_commit_count": 0,
     "affected_commits": []
   },
   "current_ci_observation": {
     "api_capture": {
-      "captured_at": "2026-10-10T06:42:23Z",
-      "manifest_path": "NOT_ARCHIVED/termrock-vis01-current-provider-capture-20261010T064500Z/provider-manifest.json",
-      "manifest_sha256": "9da3c771c29012a1bb2d1f9de09dbab144958cf51e64361832f307245326b2b8",
+      "captured_at": "2026-10-10T09:48:16Z",
+      "manifest_path": "NOT_ARCHIVED/termrock-vis01-q73-provider-capture-20261010T094816Z/provider-manifest.json",
+      "manifest_sha256": "8902e3f6c80c88e6a93b6a62dc3f424d0d85290e89869336a8f0c740b6d462cb",
       "preservation_status": "NOT_ARCHIVED_EPHEMERAL",
       "source_pair": {
-        "candidate_head_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
+        "candidate_head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
         "reference_head_sha": "4b473a98a8641a9dae8dbf9c31c0c94b15465496"
       },
       "candidate_run": {
-        "run_id": "38031202825",
+        "run_id": "38041666323",
         "workflow_path": ".github/workflows/ci.yml",
-        "head_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
+        "head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
         "status": "completed",
         "conclusion": "failure",
-        "created_at": "2026-10-10T06:30:56Z",
-        "run_number": 881,
+        "created_at": "2026-10-10T09:31:04Z",
+        "run_number": 891,
         "run_attempt": 1,
         "head_sha_query_total_count": 1,
         "job_count": 0,
         "artifact_count": 0,
-        "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38031202825"
+        "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38041666323"
       },
       "reference_query": {
         "query_status": "success",
@@ -149,20 +149,20 @@
       },
       "workflow_source": {
         "path": ".github/workflows/ci.yml",
-        "commit_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
+        "commit_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
         "github_blob_sha": "672078dc6c964a768c05b53f73de8bb99b90bffa",
         "size_bytes": 537470,
         "raw_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
       },
       "candidate_dco": {
-        "check_run_id": "114152359863",
+        "check_run_id": "114182994503",
         "name": "DCO",
-        "head_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
+        "head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
         "status": "completed",
         "conclusion": "success",
         "affected_commit_count": 0,
         "annotations_count": 0,
-        "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/114152359863"
+        "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/114182994503"
       },
       "reference_dco": {
         "check_run_id": "113974968877",
@@ -175,18 +175,19 @@
         "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/113974968877"
       }
     },
+    "failure_reason": null,
     "provider_annotation_capture": {
-      "captured_at": "2026-10-10T06:42:23Z",
-      "manifest_path": "NOT_ARCHIVED/termrock-vis01-current-provider-capture-20261010T064500Z/provider-manifest.json",
-      "manifest_sha256": "9da3c771c29012a1bb2d1f9de09dbab144958cf51e64361832f307245326b2b8",
-      "run_id": "38031202825",
-      "run_page_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38031202825",
+      "captured_at": "2026-10-10T09:48:16Z",
+      "manifest_path": "NOT_ARCHIVED/termrock-vis01-q73-provider-capture-20261010T094816Z/provider-manifest.json",
+      "manifest_sha256": "8902e3f6c80c88e6a93b6a62dc3f424d0d85290e89869336a8f0c740b6d462cb",
+      "run_id": "38041666323",
+      "run_page_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38041666323",
+      "raw_page_sha256": "790a75751944a97745fa93ec5a46c33e98f219ce9ea0277c94ab1234f9e7dc82",
       "workflow_path": ".github/workflows/ci.yml",
-      "workflow_commit_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
+      "workflow_commit_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
       "workflow_source_size_bytes": 537470,
       "workflow_source_sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24",
       "page_annotation_count": 1,
-      "raw_page_sha256": "f12d83f345f875c2cfc7abd88b4d728ffd13b8d74b5a2b3a054719f684b6e21b",
       "page_status": "Failure",
       "annotation": "Workflow file exceeds the maximum allowed size of 500 KB. See https://docs.github.com/actions/reference/limits#workflow-file-size for more information."
     }
@@ -199,22 +200,22 @@
     "host": "aarch64-apple-darwin"
   },
   "observation_sources": {
-    "observed_at": "2026-10-10T06:44:23Z",
+    "observed_at": "2026-10-10T09:48:16Z",
     "candidate_branch_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/termrock-implementation",
-    "candidate_commit": "https://github.com/tailrocks/terminal-components-claude/commit/85b51da2e9832dba642abf7d64d032f848cade0e",
-    "candidate_manifest": "https://github.com/tailrocks/terminal-components-claude/blob/85b51da2e9832dba642abf7d64d032f848cade0e/.velnor/release-manifest.json",
-    "candidate_workflow": "https://github.com/tailrocks/terminal-components-claude/blob/85b51da2e9832dba642abf7d64d032f848cade0e/.github/workflows/ci.yml",
+    "candidate_commit": "https://github.com/tailrocks/terminal-components-claude/commit/14d0e0e5aa569868f519fc9ca91e55a02589d72a",
+    "candidate_manifest": "https://github.com/tailrocks/terminal-components-claude/blob/14d0e0e5aa569868f519fc9ca91e55a02589d72a/tools/visibility/source-facts.json",
+    "candidate_workflow": "https://github.com/tailrocks/terminal-components-claude/blob/14d0e0e5aa569868f519fc9ca91e55a02589d72a/.github/workflows/ci.yml",
     "reference_branch_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/visual-baseline",
     "visual_tag_ref_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/git/ref/tags/visual-baseline",
     "visual_tag_object_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/git/tags/1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
     "visual_release_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/releases/tags/visual-baseline",
-    "ci_run_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37736017446",
-    "ci_jobs_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37736017446/jobs",
-    "ci_artifacts_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37736017446/artifacts",
-    "ci_run_page": "https://github.com/tailrocks/terminal-components-claude/actions/runs/37736017446",
+    "ci_run_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38041666323",
+    "ci_jobs_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38041666323/jobs?per_page=100",
+    "ci_artifacts_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38041666323/artifacts?per_page=100",
+    "ci_run_page": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38041666323",
     "ci_limit_documentation": "https://docs.github.com/actions/reference/limits#workflow-file-size",
-    "dco_check_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/check-runs/113175645948",
-    "dco_result_page": "https://github.com/tailrocks/terminal-components-claude/runs/113175645948",
+    "dco_check_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/check-runs/114182994503",
+    "dco_result_page": "https://github.com/tailrocks/terminal-components-claude/runs/114182994503",
     "pull_request_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/pulls/17",
     "pull_request_commits_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/pulls/17/commits?per_page=100",
     "pull_request_page": "https://github.com/tailrocks/terminal-components-claude/pull/17",
@@ -248,12 +249,12 @@
     "state": "OPEN",
     "is_draft": true,
     "mergeable": false,
-    "merge_state_status": "DIRTY",
-    "head_sha": "38a897b179b6f01cf07dd6d889f7a278886e5226",
+    "merge_state_status": null,
+    "head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
     "head_branch": "termrock-implementation",
     "base_branch": "main",
     "base_sha": "81a8bf15cd3042f80649e2b48fed479829518dbd",
-    "updated_at": "2026-10-10T06:30:56Z",
+    "updated_at": "2026-10-10T09:31:04Z",
     "url": "https://github.com/tailrocks/terminal-components-claude/pull/17",
     "current_ci_status": "failure",
     "current_dco_status": "success"
@@ -861,7 +862,7 @@
         "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis06-current-source-facts-20261008T233054Z-luna.json",
         "sha256": "fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d"
       },
-      "superseded_at": "2026-10-10T06:44:23Z"
+      "superseded_at": "2026-10-10T09:48:16Z"
     }
   ],
   "local_e2e_suite_observation": {
@@ -1467,16 +1468,163 @@
     ]
   },
   "current_local_e2e_suite_observation": {
-    "observed_at": "2026-10-10T06:44:23Z",
-    "source_commit": "38a897b179b6f01cf07dd6d889f7a278886e5226",
-    "source_tree_sha": "3efa46acfcc9612c6e752dc0d5f958fbf57a28ba",
     "scope": "crates/termrock-e2e package files only",
-    "revision": "termrock-e2e-2026-10-09.2",
-    "file_count": 28,
-    "package_sha256": "5867f043a6b3e2913871770e70ac55553c235617852a646bd3fb525dd8940637",
+    "source_commit": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
+    "source_tree_sha": "8a4d09c3d29eb28e0f9cdf5a084c6546dbbced2d",
+    "file_count": 29,
+    "package_sha256": "9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6",
+    "files": [
+      {
+        "path": "crates/termrock-e2e/Cargo.lock",
+        "bytes": 50065,
+        "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e"
+      },
+      {
+        "path": "crates/termrock-e2e/Cargo.toml",
+        "bytes": 758,
+        "sha256": "39f5e8e0af5db6df748b8fe7f27ead263bd64105e270ae176b0cb1face907c9c"
+      },
+      {
+        "path": "crates/termrock-e2e/README.md",
+        "bytes": 17377,
+        "sha256": "32d44a295758f52e140957391af9ef454575813cdbaa1d6071c403dfe4ea2e94"
+      },
+      {
+        "path": "crates/termrock-e2e/build.rs",
+        "bytes": 2198,
+        "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64"
+      },
+      {
+        "path": "crates/termrock-e2e/cases/deferred-obligations.json",
+        "bytes": 3675,
+        "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464"
+      },
+      {
+        "path": "crates/termrock-e2e/cases/registry.json",
+        "bytes": 18993,
+        "sha256": "7327cdf90044499444c93d627747237912abe27b41708a64f0fed2a363c78476"
+      },
+      {
+        "path": "crates/termrock-e2e/profile.json",
+        "bytes": 1043,
+        "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/expected-generation-v1.schema.json",
+        "bytes": 8492,
+        "sha256": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/generation-admission-v1.schema.json",
+        "bytes": 3679,
+        "sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/oracle-capture-receipt-v1.schema.json",
+        "bytes": 21009,
+        "sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/oracle-capture-receipt-v2.schema.json",
+        "bytes": 21815,
+        "sha256": "53c670d668778b48359b47bd9442dda7e4394c8072ad7b9759f026c71cde988f"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/qualification-review-v1.schema.json",
+        "bytes": 4146,
+        "sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/receipt-v1.schema.json",
+        "bytes": 11472,
+        "sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/receipt-v2.schema.json",
+        "bytes": 22929,
+        "sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/receipt-v3.schema.json",
+        "bytes": 42060,
+        "sha256": "aa201a66cca5dfbe1f78ed9b62bcb7c11d2b38eda4b87260cfefcf3e5cff1f17"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/subject-manifest-v1.schema.json",
+        "bytes": 6026,
+        "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/subject-manifest-v2.schema.json",
+        "bytes": 9807,
+        "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/tag-validator-toolchain-v1.schema.json",
+        "bytes": 943,
+        "sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/trust-record-v1.schema.json",
+        "bytes": 2535,
+        "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555"
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/trust-record-v2.schema.json",
+        "bytes": 4418,
+        "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b"
+      },
+      {
+        "path": "crates/termrock-e2e/src/admission.rs",
+        "bytes": 19654,
+        "sha256": "2c3b57ac207a64d31fdadae274e90a1d90b9b0e1ddbf620493f83bfb03d5b566"
+      },
+      {
+        "path": "crates/termrock-e2e/src/bin/admit_expected_generation.rs",
+        "bytes": 1927,
+        "sha256": "947064afb21c3938aa783d9b8d62af2738d4c357d21d2694e96accb1e2f87f1e"
+      },
+      {
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "bytes": 562845,
+        "sha256": "fba5087c2ebf8506aa6694289102d55f1315dc5c9bd7108b19f198161cd9449c"
+      },
+      {
+        "path": "crates/termrock-e2e/src/visual.rs",
+        "bytes": 66484,
+        "sha256": "a918e73a811f6d2f22b82bf3fce5ac9f800d68131991831d5ce399a4493e4a52"
+      },
+      {
+        "path": "crates/termrock-e2e/tests/command_lane.rs",
+        "bytes": 175665,
+        "sha256": "c8b27dc512a751d39a1263aa0678d25ec364d9621b21be3bb4ee38831a99f611"
+      },
+      {
+        "path": "crates/termrock-e2e/tests/contract.rs",
+        "bytes": 69689,
+        "sha256": "7e2e90f803f89a8fb4449fbbeaf9df22f47cc444989454d6de9a02ee464579fe"
+      },
+      {
+        "path": "crates/termrock-e2e/tests/holla_help_overlay.rs",
+        "bytes": 3897,
+        "sha256": "64bcaae6070ca7bfac6e7caaf8c355e2b8e942a3ba670b4c7aab808e808472b8"
+      },
+      {
+        "path": "crates/termrock-e2e/tests/holla_tag_capture.rs",
+        "bytes": 14892,
+        "sha256": "085c463f6b60cfb9323ba00f2c7d065ee7212a6e518c03aad1dac4914ab85d5d"
+      },
+      {
+        "path": "crates/termrock-e2e/tests/shared_journeys.rs",
+        "bytes": 1529,
+        "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639"
+      }
+    ],
+    "inventory_sha256": "3912c8cb872429f718047008f488606d73755d67ae1f4269da6077d297ab0d1c",
+    "observed_at": "2026-10-10T09:50:44Z",
     "nextest": {
       "command": "mise exec -- cargo nextest run --manifest-path crates/termrock-e2e/Cargo.toml --locked --lib -E 'test(suite_digest_is_sensitive_and_matches_its_compiled_value)'",
-      "run_id": "e3a31e85-4c4f-4004-ac68-ab8f73819ec0",
+      "run_id": "0266dbb7-5fbc-4c83-8021-f5c9af2b65ca",
       "exit_code": 0,
       "selected": 1,
       "executed": 1,
@@ -1485,154 +1633,10 @@
       "skipped": 0,
       "result": "PASS",
       "scope": "Compiled digest/current-tree digest sensitivity control only; NOT product execution and NOT a paired run.",
-      "source_suite_sha256": "5867f043a6b3e2913871770e70ac55553c235617852a646bd3fb525dd8940637"
+      "source_suite_sha256": "9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6"
     },
-    "qualification": "Package source identity and one local Rust control passed. This is not a paired run and the repository checkout was dirty, so no whole-commit or product qualification is asserted.",
-    "files": [
-      {
-        "path": "Cargo.lock",
-        "bytes": 50065,
-        "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e"
-      },
-      {
-        "path": "Cargo.toml",
-        "bytes": 758,
-        "sha256": "39f5e8e0af5db6df748b8fe7f27ead263bd64105e270ae176b0cb1face907c9c"
-      },
-      {
-        "path": "README.md",
-        "bytes": 17377,
-        "sha256": "32d44a295758f52e140957391af9ef454575813cdbaa1d6071c403dfe4ea2e94"
-      },
-      {
-        "path": "build.rs",
-        "bytes": 2198,
-        "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64"
-      },
-      {
-        "path": "cases/deferred-obligations.json",
-        "bytes": 3675,
-        "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464"
-      },
-      {
-        "path": "cases/registry.json",
-        "bytes": 18993,
-        "sha256": "7327cdf90044499444c93d627747237912abe27b41708a64f0fed2a363c78476"
-      },
-      {
-        "path": "profile.json",
-        "bytes": 1043,
-        "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6"
-      },
-      {
-        "path": "schemas/expected-generation-v1.schema.json",
-        "bytes": 8492,
-        "sha256": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc"
-      },
-      {
-        "path": "schemas/generation-admission-v1.schema.json",
-        "bytes": 3679,
-        "sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5"
-      },
-      {
-        "path": "schemas/oracle-capture-receipt-v1.schema.json",
-        "bytes": 21009,
-        "sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20"
-      },
-      {
-        "path": "schemas/qualification-review-v1.schema.json",
-        "bytes": 4146,
-        "sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0"
-      },
-      {
-        "path": "schemas/receipt-v1.schema.json",
-        "bytes": 11472,
-        "sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61"
-      },
-      {
-        "path": "schemas/receipt-v2.schema.json",
-        "bytes": 22929,
-        "sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d"
-      },
-      {
-        "path": "schemas/receipt-v3.schema.json",
-        "bytes": 42060,
-        "sha256": "aa201a66cca5dfbe1f78ed9b62bcb7c11d2b38eda4b87260cfefcf3e5cff1f17"
-      },
-      {
-        "path": "schemas/subject-manifest-v1.schema.json",
-        "bytes": 6026,
-        "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1"
-      },
-      {
-        "path": "schemas/subject-manifest-v2.schema.json",
-        "bytes": 9807,
-        "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0"
-      },
-      {
-        "path": "schemas/tag-validator-toolchain-v1.schema.json",
-        "bytes": 943,
-        "sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6"
-      },
-      {
-        "path": "schemas/trust-record-v1.schema.json",
-        "bytes": 2535,
-        "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555"
-      },
-      {
-        "path": "schemas/trust-record-v2.schema.json",
-        "bytes": 4418,
-        "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b"
-      },
-      {
-        "path": "src/admission.rs",
-        "bytes": 19654,
-        "sha256": "2c3b57ac207a64d31fdadae274e90a1d90b9b0e1ddbf620493f83bfb03d5b566"
-      },
-      {
-        "path": "src/bin/admit_expected_generation.rs",
-        "bytes": 1927,
-        "sha256": "947064afb21c3938aa783d9b8d62af2738d4c357d21d2694e96accb1e2f87f1e"
-      },
-      {
-        "path": "src/lib.rs",
-        "bytes": 513713,
-        "sha256": "c15b5e81c37a6def17b22293418d364957c5dbfd7146fc8a5930d7243f6b70eb"
-      },
-      {
-        "path": "src/visual.rs",
-        "bytes": 66484,
-        "sha256": "a918e73a811f6d2f22b82bf3fce5ac9f800d68131991831d5ce399a4493e4a52"
-      },
-      {
-        "path": "tests/command_lane.rs",
-        "bytes": 175665,
-        "sha256": "c8b27dc512a751d39a1263aa0678d25ec364d9621b21be3bb4ee38831a99f611"
-      },
-      {
-        "path": "tests/contract.rs",
-        "bytes": 69689,
-        "sha256": "7e2e90f803f89a8fb4449fbbeaf9df22f47cc444989454d6de9a02ee464579fe"
-      },
-      {
-        "path": "tests/holla_help_overlay.rs",
-        "bytes": 3897,
-        "sha256": "64bcaae6070ca7bfac6e7caaf8c355e2b8e942a3ba670b4c7aab808e808472b8"
-      },
-      {
-        "path": "tests/holla_tag_capture.rs",
-        "bytes": 1823,
-        "sha256": "255f840b9f6953e462a67aabb7afbbeffb92214e5bcb6f5f860e513043dff31e"
-      },
-      {
-        "path": "tests/shared_journeys.rs",
-        "bytes": 1529,
-        "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639"
-      }
-    ],
-    "inventory_digest_method": "SHA-256 over sorted relative path length BE64 + UTF-8 path + file length BE64 + raw file bytes",
-    "inventory_sha256": "7745755bba8868cd2b5e483c153eec0cac6c3d798409afcefb7e86b007036953",
-    "inventory_sha256_method": "SHA-256 over each canonical JSON file record (sort_keys, separators comma/colon) followed by LF"
+    "revision": "termrock-e2e-2026-10-09.2",
+    "qualification": "Package source identity and one local Rust control passed. This is not a paired run and the repository remains globally dirty; product behavior and readiness are NOT_RUN."
   },
   "historical_current_publication_observations": {
     "schema": "termrock-status-current-publication-history/v1",
