@@ -2714,8 +2714,8 @@ fn checked_in_records_render_from_exact_copies() {
     assert_eq!(output.stdout, repeated.stdout);
     assert!(report.contains(candidate_sha));
     assert!(report.contains(reference_sha));
-    assert_eq!(candidate_sha, "14d0e0e5aa569868f519fc9ca91e55a02589d72a");
-    assert_eq!(reference_sha, "4b473a98a8641a9dae8dbf9c31c0c94b15465496");
+    assert_eq!(candidate_sha, "d7c03139d0131157f1bd40eaf379d46c2e3814f8");
+    assert_eq!(reference_sha, "2ae351dd27f0ee7d7d52ff6093208b0a57f62698");
     assert_eq!(candidate_sha, latest_candidate_sha);
     assert_eq!(reference_sha, latest_reference_sha);
     assert!(facts["latest_source_observation"]["branch_last_update_at"].is_null());
@@ -2754,7 +2754,30 @@ fn checked_in_records_render_from_exact_copies() {
         history[5]["source_observation"]["candidate_remote"]["head_sha"],
         "1d797d41c8141fcbdc3f69d7f11eb8875ab54712"
     );
-    assert_eq!(history[5]["superseded_at"], "2026-10-10T09:48:16Z");
+    assert_eq!(history[5]["superseded_at"], "2026-10-10T22:26:30Z");
+    let superseded_current = &facts["superseded_current_observations"]["records"][0];
+    assert_eq!(
+        superseded_current["candidate_head_sha"],
+        "14d0e0e5aa569868f519fc9ca91e55a02589d72a"
+    );
+    assert_eq!(
+        superseded_current["reference_head_sha"],
+        "4b473a98a8641a9dae8dbf9c31c0c94b15465496"
+    );
+    assert_eq!(
+        superseded_current["current_ci_observation"]["api_capture"]["candidate_run"]["run_id"],
+        "38041666323"
+    );
+    assert_eq!(superseded_current["superseded_at"], "2026-10-10T22:26:30Z");
+    let partial_current = &facts["superseded_current_observations"]["records"][1];
+    assert_eq!(partial_current["observation_kind"], "partial_queued_ci");
+    assert_eq!(partial_current["candidate_head_sha"], candidate_sha);
+    assert_eq!(partial_current["reference_head_sha"], reference_sha);
+    assert_eq!(
+        partial_current["current_ci_observation"]["api_capture"]["candidate_run"]["job_count"],
+        49
+    );
+    assert_eq!(partial_current["superseded_at"], "2026-10-10T22:54:12Z");
     assert!(facts["current_status_observations"].is_null());
     assert!(facts["current_publication_observation"].is_null());
     assert!(
@@ -2782,27 +2805,48 @@ fn checked_in_records_render_from_exact_copies() {
     let current_ci = facts["current_ci_observation"]["api_capture"]
         .as_object()
         .expect("current CI API capture");
-    assert_eq!(current_ci["candidate_run"]["run_id"], "38041666323");
-    assert_eq!(current_ci["candidate_run"]["job_count"], 0);
-    assert_eq!(current_ci["candidate_run"]["artifact_count"], 0);
+    assert_eq!(current_ci["candidate_run"]["run_id"], "38090751977");
+    assert_eq!(current_ci["candidate_run"]["status"], "completed");
+    assert_eq!(current_ci["candidate_run"]["conclusion"], "failure");
+    assert_eq!(current_ci["candidate_run"]["job_count"], 51);
+    assert_eq!(current_ci["candidate_run"]["artifact_count"], 49);
     assert_eq!(current_ci["reference_query"]["query_total_count"], 0);
-    assert_eq!(current_ci["workflow_source"]["size_bytes"], 537_470);
+    assert_eq!(current_ci["workflow_source"]["size_bytes"], 115_446);
     assert_eq!(
         current_ci["workflow_source"]["raw_sha256"],
-        "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24"
+        "664fe57510323c3d148cdad3f9a416bf383fa54276fa40efb4af95bd3b57804f"
     );
-    assert_eq!(current_ci["candidate_dco"]["check_run_id"], "114182994503");
+    assert_eq!(current_ci["candidate_dco"]["check_run_id"], "114326526502");
     assert_eq!(current_ci["candidate_dco"]["conclusion"], "success");
-    assert_eq!(current_ci["reference_dco"]["check_run_id"], "113974968877");
+    assert_eq!(current_ci["reference_dco"]["check_run_id"], "114328215608");
     assert_eq!(current_ci["reference_dco"]["conclusion"], "action_required");
-    let provider = facts["current_ci_observation"]["provider_annotation_capture"]
+    assert!(facts["current_ci_observation"]["provider_annotation_capture"].is_null());
+    let job_execution = current_ci["job_execution_observation"]
         .as_object()
-        .expect("current provider capture");
-    assert_eq!(provider["run_id"], "38041666323");
-    assert_eq!(
-        provider["raw_page_sha256"],
-        "790a75751944a97745fa93ec5a46c33e98f219ce9ea0277c94ab1234f9e7dc82"
+        .expect("current final job execution capture");
+    assert_eq!(job_execution["run_status"], "completed");
+    assert_eq!(job_execution["completed"], 51);
+    assert_eq!(job_execution["in_progress"], 0);
+    assert_eq!(job_execution["queued"], 0);
+    assert_eq!(job_execution["success_count"], 37);
+    assert_eq!(job_execution["failure_count"], 13);
+    assert_eq!(job_execution["skipped_count"], 1);
+    assert_eq!(job_execution["failed_jobs"].as_array().unwrap().len(), 13);
+    assert_eq!(job_execution["skipped_jobs"].as_array().unwrap().len(), 1);
+    assert!(
+        job_execution["failed_jobs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|job| job["name"] == "Required"),
+        "aggregate Required failure must remain explicit"
     );
+    assert_eq!(current_ci["artifact_observation"]["artifact_count"], 49);
+    assert_eq!(
+        current_ci["artifact_observation"]["partial_snapshot"],
+        false
+    );
+    assert_eq!(job_execution["product_execution"], "NOT_RUN");
     assert_eq!(
         facts["pull_request_observation"]["merge_state_status"],
         serde_json::Value::Null
@@ -2815,25 +2859,25 @@ fn checked_in_records_render_from_exact_copies() {
         package["package_sha256"],
         "9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6"
     );
-    assert_eq!(package["inventory_sha256"], "3912c8cb872429f718047008f488606d73755d67ae1f4269da6077d297ab0d1c");
+    assert_eq!(
+        package["inventory_sha256"],
+        "3912c8cb872429f718047008f488606d73755d67ae1f4269da6077d297ab0d1c"
+    );
     assert_eq!(package["nextest"]["selected"], 1);
     assert_eq!(package["nextest"]["passed"], 1);
     assert_eq!(package["nextest"]["failed"], 0);
     assert!(history[2]["source_observation"]["branch_last_update_at"].is_null());
     assert_eq!(history[4]["superseded_at"], "2026-10-08T23:25:02Z");
-    assert!(report.contains("2026-10-10T09:48:16Z"));
+    assert!(report.contains("2026-10-10T22:54:12Z"));
     assert_eq!(
         facts["latest_source_observation"]["reference_remote"]["commit_committer_at"],
-        "2026-10-09T18:51:08Z"
+        "2026-10-10T22:24:41Z"
     );
     assert_eq!(
-        facts["source_observation_history"][5]["source_observation"]["reference_remote"]
-            ["commit_committer_at"],
+        facts["source_observation_history"][5]["source_observation"]["reference_remote"]["commit_committer_at"],
         "2026-10-08T16:13:33Z"
     );
-    assert!(report.contains(
-        "read-only GitHub branch API observation; local fetched refs verified afterward"
-    ));
+    assert!(report.contains("read-only GitHub branch API observation"));
     assert!(report.contains("branch last-update time unknown"));
     let historical_snapshot = facts["historical_latest_ci_snapshots"]["records"][0]["snapshot"]
         .as_object()
@@ -2871,25 +2915,33 @@ fn checked_in_records_render_from_exact_copies() {
         .split("\n## ")
         .next()
         .expect("end of current CI report section");
-    assert!(current_ci_section.contains("38041666323"));
-    assert!(current_ci_section.contains("0 jobs; 0 artifacts"));
-    assert!(current_ci_section.contains("Workflow file exceeds the maximum allowed size"));
-    assert!(current_ci_section.contains("537470 bytes"));
+    assert!(current_ci_section.contains("38090751977"));
+    assert!(current_ci_section.contains("51 jobs; 49 artifacts"));
+    assert!(current_ci_section.contains("No correlated provider annotation is recorded"));
+    assert!(current_ci_section.contains("115446 bytes"));
+    assert!(current_ci_section.contains("Rust / jackin-preview-app"));
+    assert!(current_ci_section.contains("Rust / jackin-preview"));
+    assert!(current_ci_section.contains("Rust / termrock-visibility-tests"));
+    assert!(current_ci_section.contains("Rust / termrock-viewport"));
+    assert!(current_ci_section.contains("Required"));
+    assert!(current_ci_section.contains("Publish baseline"));
     assert!(current_ci_section.contains("0 matching Actions runs"));
-    assert!(current_ci_section.contains("114182994503"));
-    assert!(current_ci_section.contains("113974968877"));
+    assert!(current_ci_section.contains("114326526502"));
+    assert!(current_ci_section.contains("114328215608"));
     assert_eq!(
         facts["latest_local_checkout_observation"]["head_sha"],
-        "14d0e0e5aa569868f519fc9ca91e55a02589d72a"
+        "d7c03139d0131157f1bd40eaf379d46c2e3814f8"
     );
     assert!(
-        report.contains("termrock-implementation at `14d0e0e5aa569868f519fc9ca91e55a02589d72a`")
+        report.contains("termrock-implementation at `d7c03139d0131157f1bd40eaf379d46c2e3814f8`")
             && report.contains("| Local publication | Published.")
-            && facts["local_checkout_history"].as_array().is_some_and(|history| {
-                history.iter().any(|record| {
-                    record["checkout"]["head_sha"] == "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
+            && facts["local_checkout_history"]
+                .as_array()
+                .is_some_and(|history| {
+                    history.iter().any(|record| {
+                        record["checkout"]["head_sha"] == "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
+                    })
                 })
-            })
             && report.contains("f61abd3dfba1b4f867a539ab18ed7e4760b24a18"),
         "latest and historical local checkout identities must remain distinct"
     );
@@ -3744,15 +3796,15 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     let report = output_text(&output);
     assert!(report.contains("1ea1c17707f0a8f1639af506be179013d5e2d52a"));
     assert!(report.contains("b682cb26d68b353aeeccf9e51653eddf097b39f5"));
-    assert!(report.contains("14d0e0e5aa569868f519fc9ca91e55a02589d72a"));
-    assert!(report.contains("4b473a98a8641a9dae8dbf9c31c0c94b15465496"));
+    assert!(report.contains("d7c03139d0131157f1bd40eaf379d46c2e3814f8"));
+    assert!(report.contains("2ae351dd27f0ee7d7d52ff6093208b0a57f62698"));
     assert_eq!(
         original["latest_source_observation"]["candidate_remote"]["head_sha"],
-        "14d0e0e5aa569868f519fc9ca91e55a02589d72a"
+        "d7c03139d0131157f1bd40eaf379d46c2e3814f8"
     );
     assert_eq!(
         original["latest_source_observation"]["reference_remote"]["head_sha"],
-        "4b473a98a8641a9dae8dbf9c31c0c94b15465496"
+        "2ae351dd27f0ee7d7d52ff6093208b0a57f62698"
     );
     assert!(report.contains("Visibility / Complete | NOT_RUN"));
     assert!(report.contains("Refactor / Ready | NOT_RUN"));
@@ -3819,15 +3871,15 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     );
     assert_eq!(
         original["latest_source_observation"]["candidate_remote"]["head_sha"],
-        "14d0e0e5aa569868f519fc9ca91e55a02589d72a"
+        "d7c03139d0131157f1bd40eaf379d46c2e3814f8"
     );
     assert_eq!(
         original["latest_source_observation"]["reference_remote"]["head_sha"],
-        "4b473a98a8641a9dae8dbf9c31c0c94b15465496"
+        "2ae351dd27f0ee7d7d52ff6093208b0a57f62698"
     );
-    assert!(report.contains("14d0e0e5aa569868f519fc9ca91e55a02589d72a"));
-    assert!(report.contains("4b473a98a8641a9dae8dbf9c31c0c94b15465496"));
-    assert!(report.contains("| Remote branch tips observed at | 2026-10-10T09:48:16Z |",));
+    assert!(report.contains("d7c03139d0131157f1bd40eaf379d46c2e3814f8"));
+    assert!(report.contains("2ae351dd27f0ee7d7d52ff6093208b0a57f62698"));
+    assert!(report.contains("| Remote branch tips observed at | 2026-10-10T22:26:30Z |",));
 
     // This checked-in pair uses a branch API observation, so its top-level CI
     // capture is optional. Exercise the explicit-fetch presence rule with a
@@ -4124,13 +4176,13 @@ fn reference_role_cli_renders_reference_presentation() {
     let report = output_text(&output);
     assert!(report.contains("| Local role | Reference (visual-baseline) |"));
     assert!(report.contains(
-        "[CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/14d0e0e5aa569868f519fc9ca91e55a02589d72a/CHECKLIST.md)"
+        "[CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/d7c03139d0131157f1bd40eaf379d46c2e3814f8/CHECKLIST.md)"
     ));
     assert!(report.contains(
-        "[checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/14d0e0e5aa569868f519fc9ca91e55a02589d72a/checklist.json)"
+        "[checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/d7c03139d0131157f1bd40eaf379d46c2e3814f8/checklist.json)"
     ));
     assert!(report.contains(
-        "[Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/14d0e0e5aa569868f519fc9ca91e55a02589d72a/tools/visibility/README.md)"
+        "[Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/d7c03139d0131157f1bd40eaf379d46c2e3814f8/tools/visibility/README.md)"
     ));
     assert!(!report.contains("[CHECKLIST.md](CHECKLIST.md)"));
     assert!(!report.contains("[checklist.json](checklist.json)"));
@@ -4792,13 +4844,26 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
     assert!(
         report.contains("## Current CI and Developer Certificate of Origin (DCO) observations")
     );
-    assert!(report.contains("38041666323"));
-    assert!(report.contains("0 jobs; 0 artifacts"));
-    assert!(report.contains("Workflow file exceeds the maximum allowed size"));
-    assert!(report.contains("537470 bytes"));
+    assert!(report.contains("38090751977"));
+    assert!(report.contains("51 jobs; 49 artifacts"));
+    assert!(report.contains("failure"));
+    assert!(report.contains("37 successful, 13 failed, and 1 skipped"));
+    assert!(report.contains("115446 bytes"));
+    assert!(report.contains("Rust / jackin-preview-app"));
+    assert!(report.contains("Rust / jackin-preview"));
+    assert!(report.contains("Rust / termrock-e2e"));
+    assert!(report.contains("Rust / termrock-visibility-tests"));
+    assert!(report.contains("Rust / termrock-viewport"));
+    assert!(report.contains("Required"));
+    assert!(report.contains("Publish baseline"));
+    assert!(report.contains("No correlated provider annotation is recorded"));
     assert!(report.contains("0 matching Actions runs"));
-    assert!(report.contains("114182994503"));
-    assert!(report.contains("113974968877"));
+    assert!(report.contains("114326526502"));
+    assert!(report.contains("114328215608"));
+    assert!(report.contains("## Current E2E subtree parity"));
+    assert!(report.contains("140d74e6552b7cec6db30dd4c32c3e5cbc675aef"));
+    assert!(report.contains("**equal**"));
+    assert!(report.contains("not a paired execution"));
 
     // The superseded current report remains preserved as historical evidence.
     let historical = &facts["historical_current_status_observations"]["records"][0]["observations"];
@@ -4838,6 +4903,72 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
         report
             .contains("If no current run receipt is present, the product result remains NOT_RUN.")
     );
+}
+
+#[test]
+fn partial_job_and_subtree_observations_reject_drift_without_product_claims() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture
+        .repo
+        .root()
+        .join("tools/visibility/source-facts.json");
+    let facts: serde_json::Value =
+        serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
+            .expect("parse copied source facts");
+
+    let mut bad_jobs = facts.clone();
+    bad_jobs["current_ci_observation"]["api_capture"]["job_execution_observation"]["completed"] =
+        serde_json::json!(23);
+    fixture.write_facts(&bad_jobs.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("job state counts do not reconcile"));
+
+    let mut bad_skip = facts.clone();
+    bad_skip["current_ci_observation"]["api_capture"]["job_execution_observation"]["skipped_count"] =
+        serde_json::json!(2);
+    fixture.write_facts(&bad_skip.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("completed job outcomes do not reconcile"));
+
+    let mut pending_completed = facts.clone();
+    let run = &mut pending_completed["current_ci_observation"]["api_capture"]["candidate_run"];
+    run["job_count"] = serde_json::json!(52);
+    let execution = &mut pending_completed["current_ci_observation"]["api_capture"]["job_execution_observation"];
+    execution["job_count"] = serde_json::json!(52);
+    execution["in_progress"] = serde_json::json!(1);
+    fixture.write_facts(&pending_completed.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(
+        error_text(&output)
+            .contains("completed workflow run still has pending or partial job counts")
+    );
+
+    let mut bad_artifacts = facts.clone();
+    bad_artifacts["current_ci_observation"]["api_capture"]["artifact_observation"]["artifact_count"] =
+        serde_json::json!(50);
+    fixture.write_facts(&bad_artifacts.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("artifact count does not match its run"));
+
+    let mut bad_parity = facts.clone();
+    bad_parity["current_e2e_subtree_parity_observation"]["reference_tree_sha"] =
+        serde_json::json!("0000000000000000000000000000000000000000");
+    fixture.write_facts(&bad_parity.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("subtree comparison is not equal"));
+
+    let mut product_claim = facts;
+    product_claim["current_ci_observation"]["api_capture"]["job_execution_observation"]["product_execution"] =
+        serde_json::json!("PASS");
+    fixture.write_facts(&product_claim.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("cannot claim product execution"));
 }
 
 #[test]

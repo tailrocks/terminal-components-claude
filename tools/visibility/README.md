@@ -304,6 +304,50 @@ For --role reference, the report links checklist and source-instructions files
 at the immutable candidate report commit because those files are absent from
 the reference tree.
 
+## Current source-facts refresh
+
+At `2026-10-10T22:54:12Z`, the measured candidate/reference pair is
+`d7c03139d0131157f1bd40eaf379d46c2e3814f8` /
+`2ae351dd27f0ee7d7d52ff6093208b0a57f62698`. The local checkout records the same
+candidate commit and tree, while its globally dirty working tree remains outside
+that identity. The frozen tag object/commit remain unchanged.
+
+CI run `38090751977` completed as a failure. Its workflow source was
+115,446 bytes (SHA-256
+`664fe57510323c3d148cdad3f9a416bf383fa54276fa40efb4af95bd3b57804f`), so the
+earlier workflow-size failure no longer applies. No correlated provider run-page
+annotation states the final failure cause. The terminal job snapshot has 51
+jobs: 37 successful, 13 failed, and 1 skipped. The failures include
+`Required` and these Rust package jobs: `jackin-preview-app`, `jackin-preview`,
+`termrock-conformance`, `termrock-e2e`, `termrock`, `tablepro`,
+`termrock-visibility-publisher`, `tablepro-ui`, `jackin-preview-host-ui`,
+`termrock-xtask`, `termrock-visibility-tests`, and `termrock-viewport`.
+`Publish baseline` was skipped. The run produced 49 non-expired artifacts.
+These are repository workflow observations, not product results.
+
+Candidate DCO check `114326526502` passed with no sign-off findings. Reference
+DCO check `114328215608` was `action_required` with 14 sign-off findings. The
+reference Actions query returned no matching runs. PR #17 remained an open draft
+with `mergeable=false`, merge state `dirty`, and no provider merge-state value.
+
+The `crates/termrock-e2e` Git subtree is
+`140d74e6552b7cec6db30dd4c32c3e5cbc675aef` in both measured commits. That
+structural parity is not visual, interaction, API, ownership, or product
+readiness. The current 29-file package SHA-256 remains
+`9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6`; its
+historical focused Nextest digest control remains 1/1 and unpaired.
+
+Historical snapshots are retained in `superseded_current_observations`. The
+first preserves source pair
+`14d0e0e5aa569868f519fc9ca91e55a02589d72a` /
+`4b473a98a8641a9dae8dbf9c31c0c94b15465496`, CI run `38041666323` (failure with
+zero jobs and artifacts, the 537,470-byte workflow-size condition), both DCO
+results, PR state, and the bound local E2E package observation. The second
+preserves this same pair's partial queued run capture (49 jobs, 2 known
+failures, 7 queued, and 21 artifacts) before the terminal refresh. The six
+ordered source-history rows and other historical evidence records remain
+unchanged.
+
 ## Generate and check
 
 Run the report CLI from the repository root with Python 3.9 or later:
@@ -337,6 +381,6 @@ The reporter does not validate an accepted complete case registry or active
 required set, enforce monotonic receipt freshness across product runs, calculate
 trends, produce component checkpoint pages, or publish reports. Those results
 remain incomplete until their records and evidence are accepted.
-Current CI had zero runner jobs, so no CI product result exists. The current
-package digest control is local and unpaired. All product readiness conclusions
-remain NOT_RUN.
+Current CI's final job snapshot includes 13 failures, but no CI job result is a
+product result and no paired product run exists. The current package digest
+control is local and unpaired. All product readiness conclusions remain NOT_RUN.

@@ -2277,6 +2277,107 @@ def validate_current_ci_observation(
                 "https://github.com/{}/runs/{}".format(REPOSITORY, check_id),
                 "current {} DCO result URL does not match its ID".format(role))
 
+    job_execution = api.get("job_execution_observation")
+    if job_execution is not None:
+        require(isinstance(job_execution, dict)
+                and job_execution.get("schema")
+                == "termrock-status-workflow-job-execution/v1",
+                "unsupported current workflow job execution schema")
+        timestamp(job_execution.get("observed_at"),
+                  "current workflow job execution observed_at")
+        require(job_execution.get("run_id") == run["run_id"],
+                "current workflow job execution binds another run")
+        require(job_execution.get("run_status") == run["status"],
+                "current workflow job execution run status disagrees")
+        total = job_execution.get("job_count")
+        require(type(total) is int and total >= 0
+                and total == run["job_count"],
+                "current workflow job count does not match its run")
+        buckets = {
+            field: job_execution.get(field)
+            for field in ("completed", "in_progress", "queued")
+        }
+        require(all(type(count) is int and count >= 0 for count in buckets.values()),
+                "current workflow job state counts must be nonnegative integers")
+        require(sum(buckets.values()) == total,
+                "current workflow job state counts do not reconcile")
+        skipped_count = job_execution.get("skipped_count", 0)
+        outcome_counts = {
+            field: job_execution.get(field)
+            for field in ("success_count", "failure_count")
+        }
+        outcome_counts["skipped_count"] = skipped_count
+        require(all(type(count) is int and count >= 0
+                    for count in outcome_counts.values()),
+                "current workflow job outcome counts must be nonnegative integers")
+        require(buckets["completed"]
+                == outcome_counts["success_count"]
+                + outcome_counts["failure_count"]
+                + outcome_counts["skipped_count"],
+                "current workflow completed job outcomes do not reconcile")
+        if run["status"] == "completed":
+            require(buckets["completed"] == total
+                    and buckets["in_progress"] == 0
+                    and buckets["queued"] == 0,
+                    "completed workflow run still has pending or partial job counts")
+            if run["conclusion"] == "failure":
+                require(outcome_counts["failure_count"] > 0,
+                        "failed workflow run cannot record zero failed jobs")
+        failures = job_execution.get("failed_jobs")
+        require(isinstance(failures, list)
+                and len(failures) == outcome_counts["failure_count"],
+                "current workflow failed jobs do not match the failure count")
+        skipped_jobs = job_execution.get("skipped_jobs", [])
+        require(isinstance(skipped_jobs, list)
+                and len(skipped_jobs) == outcome_counts["skipped_count"],
+                "current workflow skipped jobs do not match the skipped count")
+        seen_execution_job_ids = set()
+        for kind, jobs in (("failed", failures), ("skipped", skipped_jobs)):
+            for index, failure in enumerate(jobs):
+                label = "current workflow {} jobs[{}]".format(kind, index)
+                require(isinstance(failure, dict), "{} must be an object".format(label))
+                job_id = failure.get("id")
+                require(isinstance(job_id, str) and job_id.isdigit(),
+                        "{} ID must be numeric text".format(label))
+                require(job_id not in seen_execution_job_ids,
+                        "current workflow outcome job IDs must be unique")
+                seen_execution_job_ids.add(job_id)
+                require(isinstance(failure.get("name"), str) and failure["name"].strip(),
+                        "{} name is required".format(label))
+                require(failure.get("html_url")
+                        == "https://github.com/{}/actions/runs/{}/job/{}".format(
+                            REPOSITORY, run["run_id"], job_id,
+                        ),
+                        "{} URL does not match its ID".format(label))
+        require(job_execution.get("raw_api_responses_preserved") is False,
+                "current workflow job capture preservation state must be explicit")
+        require(job_execution.get("product_execution") == "NOT_RUN",
+                "workflow job metadata cannot claim product execution")
+
+    artifact_observation = api.get("artifact_observation")
+    if artifact_observation is not None:
+        require(isinstance(artifact_observation, dict)
+                and artifact_observation.get("schema")
+                == "termrock-status-workflow-artifact-count/v1",
+                "unsupported current workflow artifact observation schema")
+        timestamp(artifact_observation.get("observed_at"),
+                  "current workflow artifact observation observed_at")
+        require(artifact_observation.get("run_id") == run["run_id"],
+                "current workflow artifact observation binds another run")
+        artifact_count = artifact_observation.get("artifact_count")
+        require(type(artifact_count) is int and artifact_count >= 0
+                and artifact_count == run["artifact_count"],
+                "current workflow artifact count does not match its run")
+        expired_count = artifact_observation.get("expired_count")
+        require(type(expired_count) is int and 0 <= expired_count <= artifact_count,
+                "current workflow expired artifact count is invalid")
+        require(artifact_observation.get("query_status") == "success",
+                "current workflow artifact query must be successful for a count")
+        require(type(artifact_observation.get("partial_snapshot")) is bool,
+                "current workflow artifact snapshot state must be boolean")
+        require(artifact_observation.get("raw_api_responses_preserved") is False,
+                "current workflow artifact capture preservation state must be explicit")
+
     provider = observation.get("provider_annotation_capture")
     if provider is not None:
         require(isinstance(provider, dict),
@@ -2719,6 +2820,66 @@ def dco_status_link(label: str, result_url: Optional[str]) -> str:
     return "{} (result URL unavailable)".format(label)
 
 
+def render_job_execution_observation(api: Mapping[str, Any]) -> str:
+    execution = api.get("job_execution_observation")
+    if execution is None:
+        return ""
+    failures = execution["failed_jobs"]
+    skipped_jobs = execution.get("skipped_jobs", [])
+    failure_text = "; ".join(
+        "[{}]({})".format(cell(item["name"]), item["html_url"])
+        for item in failures
+    ) or "none"
+    skipped_text = "; ".join(
+        "[{}]({})".format(cell(item["name"]), item["html_url"])
+        for item in skipped_jobs
+    ) or "none"
+    skipped_count = execution.get("skipped_count", 0)
+    snapshot_label = (
+        "Final repository workflow job snapshot"
+        if execution["run_status"] == "completed"
+        else "Partial repository workflow job snapshot"
+    )
+    return (
+        "| Candidate job execution snapshot | At `{observed_at}`: {total} jobs; "
+        "{completed} completed, {in_progress} in progress, {queued} queued; "
+        "{success_count} successful, {failure_count} failed, and {skipped_count} "
+        "skipped. Failed jobs: {failures}. Skipped jobs: {skipped}. | "
+        "{snapshot_label}; these job results do not qualify product checks and "
+        "product readiness remains NOT_RUN. |\n"
+    ).format(
+        observed_at=execution["observed_at"],
+        total=execution["job_count"],
+        completed=execution["completed"],
+        in_progress=execution["in_progress"],
+        queued=execution["queued"],
+        success_count=execution["success_count"],
+        failure_count=execution["failure_count"],
+        skipped_count=skipped_count,
+        failures=failure_text,
+        skipped=skipped_text,
+        snapshot_label=snapshot_label,
+    )
+
+
+def render_e2e_subtree_parity_observation(value: Optional[Mapping[str, Any]]) -> str:
+    if value is None:
+        return ""
+    equal = "equal" if value["equal"] else "NOT_EQUAL"
+    return "\n".join([
+        "## Current E2E subtree parity",
+        "",
+        "| Observation | Value | Scope |",
+        "| --- | --- | --- |",
+        "| `{path}` subtree identity | Candidate `{candidate_tree_sha}`; reference "
+        "`{reference_tree_sha}`; **{parity}** | Structural `git rev-parse` comparison of "
+        "candidate `{candidate_commit}` and reference `{reference_commit}` at "
+        "`{observed_at}`. It is not a paired execution and does not establish visual, "
+        "interaction, API, ownership, or product readiness. |",
+        "",
+    ]).format(parity=equal, **value)
+
+
 def render_current_ci_observation(
     observation: Optional[Mapping[str, Any]], *, partial_execution: bool = False
 ) -> str:
@@ -2732,6 +2893,7 @@ def render_current_ci_observation(
     candidate_dco = api["candidate_dco"]
     reference_dco = api["reference_dco"]
     provider = observation.get("provider_annotation_capture")
+    job_execution_row = render_job_execution_observation(api)
 
     if run["conclusion"] == "failure":
         if provider_annotation_is_correlated(observation):
@@ -2804,7 +2966,7 @@ def render_current_ci_observation(
     provider_evidence = ""
     if provider is not None:
         provider_evidence = (
-            "Provider annotation capture at {}: manifest SHA-256 `{}`; raw run-page "
+            " Provider annotation capture at {}: manifest SHA-256 `{}`; raw run-page "
             "SHA-256 `{}`."
         ).format(
             provider["captured_at"],
@@ -2830,11 +2992,11 @@ def render_current_ci_observation(
 | Check | Observation | Scope |
 | --- | --- | --- |
 | Candidate Actions run [{run_id}]({run_url}) | {conclusion} at `{head_sha}`; {job_count} jobs; {artifact_count} artifacts. {ci_note} | Workflow-level result; product execution remains NOT_RUN. |
-| Reference Actions query | {reference_ci} | Query source SHA `{reference_sha}`; this is not a paired execution. |
+{job_execution_row}| Reference Actions query | {reference_ci} | Query source SHA `{reference_sha}`; this is not a paired execution. |
 | Candidate DCO status | {candidate_dco_note} | Repository gate at `{candidate_dco_sha}`; separate from product results. |
 | Reference DCO status | {reference_dco_note} | Repository gate at `{reference_dco_sha}`; separate from product results. |
 
-{api_evidence} The candidate workflow source is `{workflow_path}` at `{workflow_sha}`, {workflow_bytes} bytes, SHA-256 `{workflow_hash}`. {provider_evidence}
+{api_evidence} The candidate workflow source is `{workflow_path}` at `{workflow_sha}`, {workflow_bytes} bytes, SHA-256 `{workflow_hash}`.{provider_evidence}
 
 {product_note} {product_scope_note}
 """.format(
@@ -2844,6 +3006,7 @@ def render_current_ci_observation(
         head_sha=run["head_sha"],
         job_count=run["job_count"],
         artifact_count=run["artifact_count"],
+        job_execution_row=job_execution_row,
         ci_note=ci_note,
         reference_ci=reference_ci,
         reference_sha=source_pair["reference_head_sha"],
@@ -5422,6 +5585,41 @@ def validate_facts(facts: Any) -> Mapping[str, Any]:
             and local_dco["qualification"].strip(),
             "local DCO trailer qualification is required")
 
+    e2e_parity = facts.get("current_e2e_subtree_parity_observation")
+    if e2e_parity is not None:
+        require(isinstance(e2e_parity, dict)
+                and e2e_parity.get("schema")
+                == "termrock-status-e2e-subtree-parity/v1",
+                "unsupported current E2E subtree parity schema")
+        timestamp(e2e_parity.get("observed_at"),
+                  "current E2E subtree parity observed_at")
+        require(sha(e2e_parity.get("candidate_commit"),
+                    "current E2E candidate commit")
+                == remote_candidate["head_sha"],
+                "current E2E subtree parity candidate changed")
+        require(sha(e2e_parity.get("reference_commit"),
+                    "current E2E reference commit")
+                == remote_reference["head_sha"],
+                "current E2E subtree parity reference changed")
+        require(e2e_parity.get("path") == "crates/termrock-e2e",
+                "current E2E subtree path changed")
+        candidate_tree = sha(e2e_parity.get("candidate_tree_sha"),
+                             "current E2E candidate subtree SHA")
+        reference_tree = sha(e2e_parity.get("reference_tree_sha"),
+                             "current E2E reference subtree SHA")
+        require(candidate_tree == reference_tree,
+                "current E2E subtree comparison is not equal but claims parity")
+        require(e2e_parity.get("equal") is True,
+                "current E2E subtree parity must explicitly record equality")
+        require(e2e_parity.get("method")
+                == "git rev-parse <commit>:crates/termrock-e2e",
+                "current E2E subtree comparison method changed")
+        require(e2e_parity.get("raw_api_responses_preserved") is False,
+                "current E2E subtree capture preservation state must be explicit")
+        require(isinstance(e2e_parity.get("qualification"), str)
+                and "not a paired execution" in e2e_parity["qualification"].lower(),
+                "current E2E subtree parity must deny execution qualification")
+
     authority = facts.get("visual_authority")
     require(isinstance(authority, dict), "visual authority is missing")
     require(authority.get("tag") == "visual-baseline"
@@ -5602,6 +5800,12 @@ def render_status(
     )
     current_local_e2e_suite = validate_current_local_e2e_suite_observation(
         facts.get("current_local_e2e_suite_observation"), local
+    )
+    e2e_subtree_parity_section = render_e2e_subtree_parity_observation(
+        facts.get("current_e2e_subtree_parity_observation")
+    )
+    e2e_subtree_parity_layout = (
+        e2e_subtree_parity_section + "\n\n" if e2e_subtree_parity_section else ""
     )
     validation_execution = list(execution_observations)
     validation_execution.extend(
@@ -6018,7 +6222,7 @@ The DCO observations above describe the captured local commit message. They do n
 
 {current_ci_section}
 
-{current_status_observations_section}
+{e2e_subtree_parity_layout}{current_status_observations_section}
 
 {execution_attempt_history_layout}{provider_observations_layout}{current_publication_section}
 
@@ -6125,6 +6329,7 @@ The required shared-case and per-component checkpoint sets are unknown until the
         final_evidence_note=final_evidence_note,
         task_section=task_section,
         current_ci_section=current_ci_section,
+        e2e_subtree_parity_layout=e2e_subtree_parity_layout,
         current_status_observations_section=current_status_observations_section,
         execution_attempt_history_layout=execution_attempt_history_layout,
         provider_observations_layout=provider_observations_layout,
