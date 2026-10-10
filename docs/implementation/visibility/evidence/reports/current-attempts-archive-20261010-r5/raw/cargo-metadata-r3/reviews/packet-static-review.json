@@ -1,0 +1,26 @@
+{
+  "schema": "termrock.focused-independent-review/v1",
+  "reviewer": "/root/current_branch_comparison_luna",
+  "verdict": "READY_FOR_ROOT_EXECUTION_DECISION",
+  "scope": "Static review of the frozen R3 Cargo metadata/index-resolution packet only. This is not execution or qualification approval beyond Root's separate authorization decision.",
+  "pins": {
+    "packet_root": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010",
+    "plan_sha256": "2931c206b37031b01877a096998e990cf55b13edaaa153c5d0ce1cd0b4916485",
+    "runner_sha256": "c3a790ba36cd16604456aecba23cd25d2d17d56528a0465ddd8524cde29f398d",
+    "review_request_sha256": "16886f693028d6b315cef647c3972aebdf12860c2bdb1edfc76afaee677da5c5",
+    "readme_sha256": "60f583c6c092b7fcbe2929584807c52e2545422e577013864063dde74a18d0f9",
+    "sha256sums_sha256": "c850b6c145e0930598570d6ac2dbadf2a230838e1cd01373d7fb52a6ab301186",
+    "preflight_stdout_sha256": "c0b3c8fba357509913a75c62152acca38729fcee1e67ae058d43389cb27394a7",
+    "preflight_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "git_guard_sha256": "638ef221a35c44979eb017a96cde44c2cb973f3fbe980a65f48cdf8ca5e9e4ab"
+  },
+  "findings": [
+    "All announced packet pins match the current files, and all entries in SHA256SUMS verify.",
+    "The runner and plan bind one exact Cargo 1.98.1 command: update --workspace --dry-run --locked --manifest-path <candidate>/Cargo.toml. The runner spawns one child, with a 600-second deadline, 10-second TERM/KILL and close bounds, and an 8 MiB combined stdout/stderr cap; there is no retry loop.",
+    "R2's metadata attempt and R3b's offline generator failure are hash-pinned and checked before execution. R2 is accurately classified incomplete (45 packages/members, resolve=null, reqwest index absent, no cache delta); R3b remains a failed offline attempt with no preview.",
+    "Candidate HEAD/tree/index/status/lock/config, exact locked source kinds and cached Tuiscotti revision are verified. The R3b private Cargo home is re-walked and pinned; only additions/updates under registry/index and bounded content changes to three exact pre-existing Cargo bookkeeping files are accepted. Root physical-directory identity/mode is rechecked after the child. Crate archives, registry/src, Git source, target and all other deltas fail closed.",
+    "The clean child environment uses private HOME/TMP/XDG/target and the pinned Git wrapper for Git CLI operations; source/tool hashes and Cargo config search paths are checked. The current preflight reports PREFLIGHT_PASS_NOT_RUN and confirms the R3 run-root is absent."
+  ],
+  "important_limit": "Cargo 1.98.1 update dry-run resolves before warning that it will not write the lockfile, and skips the writer where --locked mismatch validation occurs. Accordingly the packet correctly does not claim that --locked validates a hypothetical updated graph; actual Cargo.lock byte identity is checked. A successful run would only establish the narrowly stated index-resolution result, not complete cache closure, build/test/generator qualification, or release qualification.",
+  "reviewer_actions": "Read-only file/source inspection and SHA-256 verification only. No Cargo, CLI, tests, network, cache mutation, or source edits were performed."
+}

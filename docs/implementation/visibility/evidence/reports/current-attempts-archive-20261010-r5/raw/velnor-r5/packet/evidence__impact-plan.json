@@ -1,0 +1,316 @@
+{
+  "schema": "termrock.velnor-prerelease-v2-nextest-impact-plan.v1",
+  "status": "READY_FOR_INDEPENDENT_REVIEW_AND_ROOT_EXECUTION_DECISION_NOT_RUN",
+  "qualification": "NOT_QUALIFIED",
+  "execution": "NOT_RUN",
+  "scope": "Root-only exact 48-case Nextest gate on the admitted R8 Git-less source snapshot. It is an affected-case test gate, not full-workspace, tool, release, or product qualification.",
+  "source": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+    "identity": "Git-less R8 external source snapshot. The fixture-admission record binds the one approved source-tag fixture update to the R8 tree; this gate claims no Git commit, branch, tag, release, or broader tool qualification.",
+    "full_tree": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/evidence/full-source-tree-r1.json",
+      "sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+      "bytes": 755222,
+      "mode": "644"
+    },
+    "post_metadata_inventory": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/evidence/source-file-inventory-r1.json",
+      "sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+      "bytes": 642941,
+      "mode": "644",
+      "entry_count": 2615,
+      "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4"
+    },
+    "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "lock_bytes": 127941,
+    "test_source_map": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r4-r8-20261010/evidence/test-source-map.json",
+      "sha256": "48d45264e38ac2f82192e46bf1c24a5e8472866277d906b2cae12a018a18ef55",
+      "bytes": 23209,
+      "mode": "444"
+    },
+    "selected_unique_tests": 48
+  },
+  "metadata_lock_delta": {
+    "old_lock_sha256": "cc629cea1224e2cc4b5dcbdd1aca701a829518633b98ca872635af6170936f53",
+    "new_lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "package_record_changes": [
+      "velnor-actions-cli: version 0.1.5 to 0.1.5-visibility.20261009.1",
+      "velnor-actions-contract-release: added direct semver dependency",
+      "velnor-actions-orchestrator-generation: version 0.1.5 to 0.1.5-visibility.20261009.1",
+      "velnor-actions-workflow-generator: version 0.1.5 to 0.1.5-visibility.20261009.1"
+    ],
+    "metadata_counts": {
+      "packages": 484,
+      "workspace_members": 78,
+      "resolve_nodes": 484,
+      "targets": 2259
+    }
+  },
+  "prior_35_case_evidence": {
+    "packet": {
+      "path": "/private/tmp/termrock-vis11-combined-trigger-v1-35-gate-r7-20261009/evidence/gate-packet.json",
+      "sha256": "87039bca0c9baa1f1a5f1a88e09b970df1965e2d154582116bae8374101f2b61"
+    },
+    "actual_receipt": {
+      "path": "/private/tmp/termrock-vis11-combined-trigger-v1-35-gate-r7-20261009/run-root/execution/receipt.json",
+      "sha256": "48c9fa7b86f94dada95400029170895be0bae506f82863322215680fdd1dd14d",
+      "overall_status": "failed_or_incomplete_preserved",
+      "qualification": "NOT_QUALIFIED"
+    },
+    "mapping": [
+      {
+        "old_commands": [
+          1
+        ],
+        "selected_count": 15,
+        "result": "NOT_RUN",
+        "reason": "Cargo exited 101 before test execution at manifest/publish.rs:20 with E0061 (stale assets::ci_check_script caller).",
+        "current_group": "orchestrator_generation_affected_and_source_cases"
+      },
+      {
+        "old_commands": [
+          2
+        ],
+        "selected_count": 10,
+        "result": "NOT_RUN",
+        "reason": "Cargo exited 101 before test execution at the same E0061 compile error.",
+        "current_group": "workflow_generator_source_and_stable_branch_cases"
+      },
+      {
+        "old_commands": [
+          3,
+          4
+        ],
+        "selected_count": 10,
+        "result": "PASS_HISTORICAL_ONLY_RERUN_REQUIRED",
+        "reason": "Six contract-workflow and four workflow-renderer tests passed exactly. Their test/package directories are byte-identical to the current source, but both packages directly depend on velnor-actions-contract-release, whose source/manifest and lock dependency edge changed to add semver. Do not carry these passes into current qualification; rerun all ten."
+      }
+    ],
+    "command_receipts": [
+      {
+        "index": 1,
+        "path": "/private/tmp/termrock-vis11-combined-trigger-v1-35-gate-r7-20261009/run-root/execution/command-1-receipt.json",
+        "sha256": "d4aeef150397f085876bcb0235b7c12729e85d059ebf0140f7b6029a5506b6f2",
+        "exit_code": 101,
+        "expected_tests": 15,
+        "passed_test_ids": []
+      },
+      {
+        "index": 2,
+        "path": "/private/tmp/termrock-vis11-combined-trigger-v1-35-gate-r7-20261009/run-root/execution/command-2-receipt.json",
+        "sha256": "d1174eedf91fe94427129aa52dc0703915733deef9543b93fe2c226e6062d624",
+        "exit_code": 101,
+        "expected_tests": 10,
+        "passed_test_ids": []
+      },
+      {
+        "index": 3,
+        "path": "/private/tmp/termrock-vis11-combined-trigger-v1-35-gate-r7-20261009/run-root/execution/command-3-receipt.json",
+        "sha256": "66b3ab2cb90336cd9453cdbb0aa733eda1720c87bc1608be73a86fd0530f4550",
+        "exit_code": 0,
+        "executed": 6,
+        "passed": 6,
+        "failed": 0
+      },
+      {
+        "index": 4,
+        "path": "/private/tmp/termrock-vis11-combined-trigger-v1-35-gate-r7-20261009/run-root/execution/command-4-receipt.json",
+        "sha256": "d89437bcfa83825a5b9cf7bbe8b33c428630d9b763a7776e36f85d5b4665473b",
+        "exit_code": 0,
+        "executed": 4,
+        "passed": 4,
+        "failed": 0
+      }
+    ],
+    "exact_old_ids": {
+      "not_run_command_1": [
+        "impl_ci_observer::enabled_generation_rejects_537470_byte_ci_without_touching_output",
+        "impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing",
+        "impl_ci_observer::opt_in_is_private_and_main_ci_stays_byte_identical",
+        "impl_ci_observer::private_config_rejects_malformed_and_unknown_fields",
+        "impl_ci_observer::rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload",
+        "impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+        "impl_ci_observer::rendered_runtime_paginates_and_measures_exact_run_attempt_and_source",
+        "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+        "impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+        "impl_ci_observer::runtime_reports_transport_and_workflow_source_errors",
+        "impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run",
+        "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+        "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+        "ci_observer::tests::input_snapshot_rejects_a_precommit_edit",
+        "routing::generator_release_pins::tests::source_selection_resolves_config_tag_and_branch_to_typed_pins"
+      ],
+      "not_run_command_2": [
+        "generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+        "generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed",
+        "generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required",
+        "generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file",
+        "generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification",
+        "impl_generator_mise_setup::source_tag_build_mode_binds_version_and_preserves_all_targets",
+        "impl_generator_mise_setup::source_tag_rejects_version_mismatch_unsafe_ref_and_publication",
+        "generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci",
+        "generator_release::source_gate::tests::stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt",
+        "generator_release::tests::stable_branch_publisher_uses_manual_dispatch"
+      ],
+      "passed_command_3": [
+        "impl_contract_reusable_call::contract_accepts_sha_pinned_reusable_call",
+        "impl_contract_reusable_call::contract_rejects_mutable_or_malformed_refs",
+        "impl_contract_reusable_call::contract_accepts_only_fixed_github_input_contexts",
+        "impl_contract_reusable_call::contract_rejects_untyped_or_privileged_call_fields",
+        "impl_contract_reusable_call::contract_requires_push_branch_guard_for_write",
+        "impl_contract_reusable_call::contract_rejects_job_collisions_and_invalid_dependencies"
+      ],
+      "passed_command_4": [
+        "impl_renderer_reusable_call::renderer_emits_valid_job_level_call",
+        "impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts",
+        "impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output",
+        "impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege"
+      ]
+    }
+  },
+  "commands": [
+    {
+      "index": 1,
+      "label": "contract_config_rc_and_branch_guards",
+      "package": "velnor-actions-contract-config",
+      "test_target": "velnor_contract_config",
+      "expected_count": 2,
+      "selected_tests": [
+        "impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false",
+        "impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component"
+      ]
+    },
+    {
+      "index": 2,
+      "label": "contract_release_rc_manifest_policy",
+      "package": "velnor-actions-contract-release",
+      "test_target": "velnor_contract_release",
+      "expected_count": 2,
+      "selected_tests": [
+        "impl_contract::manifest::manifest_schemas_validate_and_lookup_targets",
+        "impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only"
+      ]
+    },
+    {
+      "index": 3,
+      "label": "orchestrator_generation_affected_and_source_cases",
+      "package": "velnor-actions-orchestrator-generation",
+      "test_target": "velnor_orchestrator_generation plus library unit tests",
+      "expected_count": 23,
+      "selected_tests": [
+        "ci_observer::tests::input_snapshot_rejects_a_precommit_edit",
+        "routing::generator_release_pins::tests::source_selection_resolves_config_tag_and_branch_to_typed_pins",
+        "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+        "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+        "impl_ci_observer::opt_in_is_private_and_main_ci_stays_byte_identical",
+        "impl_ci_observer::private_config_rejects_malformed_and_unknown_fields",
+        "impl_ci_observer::enabled_generation_rejects_537470_byte_ci_without_touching_output",
+        "impl_ci_observer::rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload",
+        "impl_ci_observer::rendered_runtime_paginates_and_measures_exact_run_attempt_and_source",
+        "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+        "impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+        "impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing",
+        "impl_ci_observer::runtime_reports_transport_and_workflow_source_errors",
+        "impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+        "impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run",
+        "impl_prepare::prepare_accepts_consumer_repo_with_default_branch",
+        "impl_prepare::prepare_rejects_missing_default_branch_without_git",
+        "impl_prepare::prepare_rejects_non_directory",
+        "impl_prepare::prepare_reports_default_runner_label",
+        "impl_prepare::freshness_disabled_for_consumer",
+        "impl_prepare::release_disabled_without_release_config",
+        "impl_prepare::finalized_jobs_lists_plan_and_required",
+        "impl_prepare::prepare_acquires_matching_prerelease_and_rejects_stable_manifest"
+      ]
+    },
+    {
+      "index": 4,
+      "label": "workflow_generator_source_tag_and_stable_branch_cases",
+      "package": "velnor-actions-workflow-generator",
+      "test_target": "velnor_workflow_generator plus library unit tests",
+      "expected_count": 11,
+      "selected_tests": [
+        "generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+        "generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed",
+        "generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required",
+        "generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file",
+        "generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification",
+        "generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci",
+        "generator_release::source_gate::tests::stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt",
+        "generator_release::tests::stable_branch_publisher_uses_manual_dispatch",
+        "impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected",
+        "impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets",
+        "impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication"
+      ]
+    },
+    {
+      "index": 5,
+      "label": "reusable_call_contract_revalidation",
+      "package": "velnor-actions-contract-workflow",
+      "test_target": "velnor_contract_workflow",
+      "expected_count": 6,
+      "selected_tests": [
+        "impl_contract_reusable_call::contract_accepts_sha_pinned_reusable_call",
+        "impl_contract_reusable_call::contract_rejects_mutable_or_malformed_refs",
+        "impl_contract_reusable_call::contract_accepts_only_fixed_github_input_contexts",
+        "impl_contract_reusable_call::contract_rejects_untyped_or_privileged_call_fields",
+        "impl_contract_reusable_call::contract_requires_push_branch_guard_for_write",
+        "impl_contract_reusable_call::contract_rejects_job_collisions_and_invalid_dependencies"
+      ],
+      "prior_result": "6/6 PASS on old lock; rerun because contract-release dependency closure changed."
+    },
+    {
+      "index": 6,
+      "label": "reusable_call_renderer_revalidation",
+      "package": "velnor-actions-workflow-renderer",
+      "test_target": "velnor_workflow_renderer",
+      "expected_count": 4,
+      "selected_tests": [
+        "impl_renderer_reusable_call::renderer_emits_valid_job_level_call",
+        "impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts",
+        "impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output",
+        "impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege"
+      ],
+      "prior_result": "4/4 PASS on old lock; rerun because contract-release dependency closure changed."
+    }
+  ],
+  "execution_profile": {
+    "runner_owner": "Root only",
+    "cargo": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "cargo_sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+    "rustc_sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+    "rustdoc_sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+    "nextest_path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+    "nextest_sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+    "nextest_version": "0.9.146",
+    "cargo_home": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home",
+    "cache_manifest_sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+    "cache_closure_sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+    "cache_build_receipt_sha256": "2d4c73853826b06450ffcfe63bd1a91806069c91427190e2e52ebca64336b3ec",
+    "warm_target": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target",
+    "cache_and_target_use": "The R9 target is a build input produced from this exact R8 source root/tree/lock by a one-test run. Its prior one-test PASS is historical and counts zero toward this 48-case gate. Cargo registry inputs remain pinned with qualification NOT_QUALIFIED.",
+    "nextest_common_options": [
+      "--locked",
+      "--offline",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--no-tests",
+      "fail",
+      "--user-config-file",
+      "none",
+      "--ignore-default-filter",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--color",
+      "never"
+    ],
+    "test_selection": "Exact 48 selected test IDs, six groups [2,2,23,11,6,4], sourced from the current R8 test-source-map. No expected-failure exclusions or carry-forward results.",
+    "nextest_experimental_libtest_json": "1",
+    "tests_run": false,
+    "build_run": false
+  }
+}

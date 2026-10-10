@@ -1,0 +1,58 @@
+{
+  "revision": "VIS-08 Nextest reader implementation R3",
+  "status": "frozen external source candidate; Rustfmt only; not compiled or executed",
+  "supersedes": {
+    "revision": "R2",
+    "freeze_path": "/private/tmp/termrock-vis08-nextest-reader-impl-r2-v2/source-freeze.json",
+    "freeze_sha256": "6d3bc022ffc4977b233f7ac508cc88744cf236e446f0f46b2355aee150d433c2",
+    "patch_path": "/private/tmp/termrock-vis08-nextest-reader-impl-r2-v2/source.patch",
+    "patch_sha256": "b5ec2d8cd92d120381c75edcf7d136bac79e494046d0a920d63966d43e750e75",
+    "preserved": true
+  },
+  "base_commit": "6b00cb1c5cd10ab2e82014c306a603e92ea5e694",
+  "base_tree": "f10bd01e2d1b38b8e5f50f397fa070a348149cfe",
+  "base_package": "/private/tmp/termrock-vis08-nextest-reader-impl-r1-h7eXcs/base-extract/crates/termrock-visibility-tests",
+  "candidate_package": "/private/tmp/termrock-vis08-nextest-reader-impl-r3-v1/crates/termrock-visibility-tests",
+  "candidate_patch": "/private/tmp/termrock-vis08-nextest-reader-impl-r3-v1/source.patch",
+  "candidate_patch_sha256": "64724702c3be2ca4e884ae0224bbba1658a327ad7f51b5de1a3b840c01fe64b0",
+  "r2_to_r3_patch": "/private/tmp/termrock-vis08-nextest-reader-impl-r3-v1/r2-to-r3.patch",
+  "r2_to_r3_patch_sha256": "a459f021d9cf66ef7fce5aeee61c4279d35dda41346ba91e1b19cf24cb268544",
+  "r2_review": {
+    "path": "/private/tmp/termrock-vis08-nextest-reader-impl-r2-v2/review-r2.json",
+    "sha256": "28ff65ceef0611849390278c99e3628b8086ddec150fad8351b3a9c54760578f",
+    "verdict": "CHANGES_REQUIRED"
+  },
+  "source_delta_from_r2": "Only nextest_result.rs changed. Reject suite.started events after the matching suite's terminal snapshot while preserving identical starts before closure. Compare one child harness summary only when exactly one structured suite makes the binding unambiguous; report multiple/unbound summaries as unverified diagnostics. Add Rust regressions for post-close suite start and child-only contradiction plus multi-suite unbound diagnostics.",
+  "scope_check": "Archive comparison found exactly three changed source paths from the base. Comparison to frozen R2 found only nextest_result.rs changed. Cargo.toml, Cargo.lock, fixture, README, and integration tests are byte-identical.",
+  "allowed_paths": [
+    {
+      "path": "crates/termrock-visibility-tests/src/lib.rs",
+      "sha256": "5ec6fe8e4a4bbb15e888c403fc91e35a6431c6541481c162d4da3aca996f2f2c"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/nextest_result.rs",
+      "sha256": "74c6511da26473c70ed3a9e2592668862bb2dcba47913029cc60b652d69ec7fd"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/bin/nextest-result-reader.rs",
+      "sha256": "518d527af27dd880057db6c4ef029244d59fe8cdcfdf6d3822b8aad2e7b83500"
+    }
+  ],
+  "protocol": {
+    "nextest": "0.9.146",
+    "format": "libtest-json-plus 0.1",
+    "dependencies": "existing serde_json and sha2 only",
+    "selected_test_count": 9,
+    "suite_shape": "4 selected lib tests plus 5 selected test-binary cases; suite terminal test_count is optional",
+    "capture_limits": {
+      "request_bytes": 1048576,
+      "selection_bytes": 1048576,
+      "each_raw_stream_bytes": 8388608
+    }
+  },
+  "verification_plan": {
+    "formatting": "Rustfmt 1.98.1 direct invocation only. No Cargo/compiler/tests run by author.",
+    "root_gate": "cargo nextest run --manifest-path <candidate>/Cargo.toml --package termrock-visibility-tests --lib --locked --offline --no-fail-fast --retries 0 --jobs 2 --test-threads 1",
+    "cli_exercise": "After the locked build, invoke nextest-result-reader with a bounded request, trusted selection digest, and separate hashed list/run/wrapper stdout/stderr files; verify one report JSON and distinct child/wrapper exit results. Actual Node orchestrator wiring remains a later increment."
+  }
+}

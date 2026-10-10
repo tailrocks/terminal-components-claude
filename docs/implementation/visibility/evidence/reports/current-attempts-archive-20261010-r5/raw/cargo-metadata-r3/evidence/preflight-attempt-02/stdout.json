@@ -1,0 +1,406 @@
+{
+  "status": "PREFLIGHT_PASS_NOT_RUN",
+  "execution": "NOT_RUN",
+  "qualification": "NOT_QUALIFIED",
+  "plan_sha256": "2931c206b37031b01877a096998e990cf55b13edaaa153c5d0ce1cd0b4916485",
+  "runner_sha256": "c3a790ba36cd16604456aecba23cd25d2d17d56528a0465ddd8524cde29f398d",
+  "inputs": {
+    "plan": {
+      "schema": "termrock.vis11.diagnostic-generator-registry-index-fill-plan/v3",
+      "status": "FROZEN_PENDING_ROOT_EXECUTION_DECISION",
+      "execution": "NOT_RUN",
+      "qualification": "NOT_QUALIFIED",
+      "purpose": "One Root-run cargo update --workspace --dry-run --locked command may resolve the exact locked workspace and populate missing crates.io sparse-index metadata in the already-isolated R3b Cargo home. The dry-run branch avoids lockfile writes. Cargo 1.98.1 source shows that this branch skips the writer where --locked mismatch validation occurs, so --locked is not treated as proof that a hypothetical updated graph equals Cargo.lock. This is diagnostic preparation only, not build, test, generator, release, or qualification.",
+      "authorization": {
+        "operator": "Root only after independent review",
+        "network_scope": "Crates.io sparse-index resolution for the existing workspace and lock input only. CARGO_NET_OFFLINE is explicitly false for this one Cargo child. A pinned Git wrapper blocks Git network subcommands; the exact locked tuiscotti source is already cached. The runner rejects every post-run cache delta outside registry/index/ and the three exact pre-existing Cargo bookkeeping files.",
+        "forbidden": [
+          "Any Cargo command other than the exact `update --workspace --dry-run --locked --manifest-path <candidate>/Cargo.toml` command pinned below.",
+          "Cargo build, check, test, nextest, fetch, Velnor CLI invocation, or generator execution.",
+          "Git source fetch or any candidate/source/donor write.",
+          "Any actual Cargo.lock mutation; the post-run lock hash must remain byte-identical. A hypothetical dry-run graph change is recorded from raw output but is not certified as lock-compatible.",
+          "Crate archive downloads, registry/src writes, generation, preview output, release, publication, or qualification claim.",
+          "Global Cargo, Rust, Mise, Git, or shell configuration changes."
+        ]
+      },
+      "candidate": {
+        "root": "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010",
+        "head": "e0bcfa26ec174241f09de17d04f3f45379be3452",
+        "tree": "6985c14d76029b01c2d8ee55d66cf3db801a29ef",
+        "status_porcelain_v1": " M .velnor/config.toml\n",
+        "index_path": "/private/tmp/termrock-root-integration-20261010.git/worktrees/termrock-vis11-diagnostic-candidate-e0bc-20261010/index",
+        "index_sha256": "422b24dbb2d41463db1eb30bb6b3e66bf0baf95fca4dda8b6f61881e25269401",
+        "cargo_lock": {
+          "path": "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010/Cargo.lock",
+          "sha256": "a43fdf2640e4934ecb60289c215363298b5932effdc9f161495269159f1f917e"
+        },
+        "generator_config_overlay": {
+          "path": "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010/.velnor/config.toml",
+          "sha256": "6c1de7a7e7962308021e3d47909cc0853eb2c40e523e2ab3f9cc57ba92952279"
+        },
+        "cargo_config_files": "No .cargo/config or .cargo/config.toml exists in the candidate or any ancestor directory up to /private/tmp, /private, or /; no config/config.toml exists in the isolated CARGO_HOME. HOME and CARGO_HOME remain explicitly isolated.",
+        "cargo_config_search_directories": [
+          "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010",
+          "/private/tmp",
+          "/private",
+          "/"
+        ]
+      },
+      "prior_diagnostic_attempt": {
+        "packet_root": "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010",
+        "packet_sums_sha256": "cccc7f436ac7c161bc28fccb83e38bc43f66ee5cce5531451031e81669b2b718",
+        "result_path": "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010/run-root/execution/result.json",
+        "result_sha256": "d3c2bc1ee512d80cc6345de03b29bbd20788211f067ab2fe55d8bf0f6bd70d30",
+        "stderr_path": "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010/run-root/execution/diagnostic-render.stderr.bin",
+        "stderr_sha256": "7a0334a65e5654743ea453f8a9b77ecb0e5bbd5891471bcc0ab97d13bcb8a91b",
+        "classification": "R3b copied and verified its private cache, then the offline generator preparation stopped because the crates.io sparse index lacked reqwest. No preview was written. Candidate source, lock, index, and immutable donor remained unchanged."
+      },
+      "working_cache": {
+        "path": "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010/run-root/private/cargo-home",
+        "disposition": "Existing isolated R3b copy is reused as an explicitly mutable working cache for this one metadata operation; no recopy is performed. R3b result records copied_tree hash fca99e44c62a4c1bd6fd1b274d143b7dac1e54e9f9751d4ea7856a329ba888f9, 23570 entries, 573227343 bytes, copy_verified true, and zero shared inodes.",
+        "pre_metadata_tree_sha256": "fca99e44c62a4c1bd6fd1b274d143b7dac1e54e9f9751d4ea7856a329ba888f9",
+        "pre_metadata_entries": 23570,
+        "pre_metadata_regular_files": 19820,
+        "pre_metadata_directories": 3748,
+        "pre_metadata_symlinks": 2,
+        "pre_metadata_file_bytes": 573227343,
+        "root_mode": "755",
+        "expected_missing_index_path": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/re/qw/reqwest",
+        "expected_missing_index_preflight": true,
+        "allowed_mutations": "Allowed deltas: additions or updates only under registry/index/; and content changes only to the three pre-existing top-level regular Cargo bookkeeping files listed below. No removals are permitted. No other path, including registry/cache/, registry/src/, git/, or package archives, may change. Each bookkeeping file must remain a regular non-symlink mode-0644 file and be at most 1 MiB. The Cargo home root must remain the same physical non-symlink directory with unchanged device, inode, and mode 0755.",
+        "cached_git_source": {
+          "package": "tuiscotti",
+          "lock_source": "git+https://github.com/tailrocks/tuiscotti?rev=a47c9aaefb34e4c00026f99d8a8dd7ee5916b274#a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+          "revision": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+          "checkout": "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010/run-root/private/cargo-home/git/checkouts/tuiscotti-9317ad0850957efe/a47c9aa"
+        },
+        "mutable_bookkeeping_paths": [
+          ".global-cache",
+          ".package-cache",
+          ".package-cache-mutate"
+        ],
+        "mutable_bookkeeping_max_bytes_per_file": 1048576,
+        "mutable_bookkeeping_preimages": {
+          ".global-cache": {
+            "type": "file",
+            "mode": "644",
+            "bytes": 81920,
+            "sha256": "709f053140a76abdb8305c9839a4f3930a4db9392b5697a68c1548afe261b0e5"
+          },
+          ".package-cache": {
+            "type": "file",
+            "mode": "644",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          ".package-cache-mutate": {
+            "type": "file",
+            "mode": "644",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "root_postcondition": "After Cargo closes: lstat the cache root; require a physical directory, not a symlink, mode 0755, with dev and ino equal to the pre-command lstat values.",
+        "current_baseline_method": "Fresh full canonical walk performed for R2 preflight against the current R3b working cache; R2 does not infer a current cache baseline from the immutable donor or claim that cache bookkeeping never changed during prior failed metadata attempts."
+      },
+      "locked_source_kinds": {
+        "registry": "All 433 registry source rows are crates.io: registry+https://github.com/rust-lang/crates.io-index.",
+        "git": "Five package rows share only the cached tuiscotti revision a47c9aaefb34e4c00026f99d8a8dd7ee5916b274."
+      },
+      "generator_source_context": {
+        "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r7-build-only-lock-luna-20261010/source",
+        "full_tree_inventory": "/private/tmp/termrock-vis11-tool-fixture-capture-r15-build-only-lock-luna-20261010/evidence/full-source-tree-r15.json",
+        "full_tree_inventory_sha256": "4b3bb9389d0277167632a33a1e24c2a9cdf6e9583012c441f6bba68e4ed6e800",
+        "source_manifest": "/private/tmp/termrock-vis11-tool-fixture-admission-r7-build-only-lock-luna-20261010/review/candidate-source-manifest.json",
+        "source_manifest_sha256": "fa3d4662cbdae5c088c210352b680ef10f81f2f773b54f9d217291bb0160e62e",
+        "role": "Bound context only. This command invokes Cargo update on the Termrock candidate; it does not execute the Velnor generator or alter these source files."
+      },
+      "tools": {
+        "node": {
+          "path": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node",
+          "sha256": "f75a79e4c96954709a130427e452d6720b35c90318ca8293727a4c6376198453",
+          "version": "v26.11.0"
+        },
+        "cargo": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d"
+        },
+        "rustc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+        },
+        "rustdoc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee"
+        },
+        "git": {
+          "path": "/usr/bin/git",
+          "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2"
+        },
+        "git_network_guard": {
+          "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/tools/git",
+          "sha256": "638ef221a35c44979eb017a96cde44c2cb973f3fbe980a65f48cdf8ca5e9e4ab",
+          "behavior": "Forwards local Git operations to /usr/bin/git but refuses Git network subcommands; Cargo is configured to use this wrapper for Git fetch paths."
+        }
+      },
+      "command": {
+        "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "argv": [
+          "update",
+          "--workspace",
+          "--dry-run",
+          "--locked",
+          "--manifest-path",
+          "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010/Cargo.toml"
+        ],
+        "cwd": "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010",
+        "timeout_ms": 600000,
+        "retry_limit": 1,
+        "combined_output_limit_bytes": 8388608
+      },
+      "environment": {
+        "inherited_environment": false,
+        "cargo_home": "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010/run-root/private/cargo-home",
+        "cargo_target_dir": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/run-root/private/cargo-target (fresh; must remain empty)",
+        "cargo_net_offline": "false",
+        "cargo_registries_crates_io_protocol": "sparse",
+        "cargo_net_git_fetch_with_cli": "true (routes Git operations through the pinned deny-network wrapper)",
+        "cargo_http_timeout_seconds": "30",
+        "cargo_net_retry": "1",
+        "mise_auto_install": false,
+        "home_tmp_xdg": "Fresh private metadata packet directories only.",
+        "cargo_registry_network": "One Cargo update dry-run resolves registry index metadata. The exact command includes --locked, but the dry-run path does not invoke the writer check; the complete before/after cache walk independently rejects every registry/cache/, registry/src/, Git, or archive change.",
+        "git_network_guard": "Execution creates run-root/private/bin/git as a symlink to the pinned tools/git wrapper, and puts that directory first in PATH while CARGO_NET_GIT_FETCH_WITH_CLI=true."
+      },
+      "outputs": {
+        "root": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/run-root",
+        "execution": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/run-root/execution",
+        "preview": "No preview output is part of this index-resolution-only operation."
+      },
+      "postconditions": [
+        "Cargo exits 0 with the exact dry-run warning emitted, no timeout, signal, spawn error, or output-cap breach.",
+        "Cargo.lock bytes/hash and candidate HEAD/tree/status/index/config remain unchanged. The --locked flag is present in the exact argv, but the dry-run path is not used as proof that a hypothetical updated graph would pass lockfile validation.",
+        "The CARGO_HOME root remains the same physical non-symlink directory with identical device, inode, and mode 0755.",
+        "Complete cache before/after inventory is recorded. Only additions or updates below registry/index/ and changes to the three exact pre-existing Cargo bookkeeping regular files may occur; no removals, wrong types/modes, or files above 1 MiB are accepted. Every other path delta fails closed.",
+        "The exact reqwest sparse-index entry exists afterward as a regular file.",
+        "No registry archive/cache/, registry/src/, cached Git source, candidate source, target, or immutable donor path changes; the fresh target remains unchanged.",
+        "No preview is produced; the result does not qualify the candidate, generator, workflow, or release."
+      ],
+      "predecessor_review": {
+        "packet_root": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r1-luna-20261010",
+        "plan_sha256": "ea71ec8dd3499c6e08eb3621bf0c34e6a6e9d015055a1ae16a6250227a793d1a",
+        "runner_sha256": "31c4755f8029254df18dc04f7b94e747330bf983f362e48615863c0c342fd6a1",
+        "review_receipt_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r1-independent-review-current-branch-comparison-luna-20261010.json",
+        "review_receipt_sha256": "6aef478cf2a2823917e903dd089ee35a23ba8466068ce38d41abf07987ca8e8c",
+        "finding": "R1-CACHE-ROOT-001: after-command cache root was not re-lstat-validated as a physical non-symlink directory, and its mode was recorded but not included in the pass predicate. R2 adds physical type, non-symlink, device, inode, and mode equality and includes the predicate in success.",
+        "r2_actual_result_review_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-actual-result-review-current-branch-comparison-luna-20261010.json",
+        "r2_actual_result_review_sha256": "c3cfd8e7870636bb9c96a6982feb993a6377e1eeafb4b05f5299945ab209530e",
+        "r2_actual_result_sha256": "f8bab9a7222c94eb170cf0ca26fe0c849c44fdc8955091d81f2ccf2c84418562"
+      },
+      "prior_r2_metadata_attempt": {
+        "packet_root": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010",
+        "plan_sha256": "1d1f04db2f0cae97713ca358bed39b028360b084903c5aac605737c3dbad7dfb",
+        "runner_sha256": "697aa3ae07d5c44412a13bce25eeca95ccf13cf5c3d04c7b60a629eedbdd4d56",
+        "result_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/run-root/execution/result.json",
+        "result_sha256": "f8bab9a7222c94eb170cf0ca26fe0c849c44fdc8955091d81f2ccf2c84418562",
+        "stdout_sha256": "ea715e8d6c826037ffe895a696dfc66a6b715933a04b6997bc3a1074ba909494",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "actual_review_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-actual-result-review-current-branch-comparison-luna-20261010.json",
+        "actual_review_sha256": "c3cfd8e7870636bb9c96a6982feb993a6377e1eeafb4b05f5299945ab209530e",
+        "conclusion": "R2 cargo metadata --no-deps exited 0 with valid 45-package/45-member JSON but resolve=null; reqwest sparse-index entry remained absent and the full Cargo-home tree had zero changes. It is preserved as incomplete, not a successful resolver attempt."
+      },
+      "cargo_source_basis": {
+        "pinned_local_binary": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "version": "Cargo 1.98.1, already observed by Root using the same binary; this packet makes no new version probe."
+        },
+        "primary_documentation": [
+          {
+            "url": "https://doc.rust-lang.org/cargo/commands/cargo-update.html",
+            "relevant_sections": [
+              "--workspace",
+              "--dry-run",
+              "--locked"
+            ],
+            "implications": "The documentation describes workspace update scope, dry-run lockfile-write suppression, and --locked behavior generally. Combined behavior is qualified by the implementation-source observation below."
+          },
+          {
+            "url": "https://doc.rust-lang.org/stable/nightly-rustc/src/cargo/ops/cargo_update.rs.html",
+            "relevant_source": "update_lockfile: loads previous lockfile, resolves with previous graph, prints update status, and when dry_run warns `not updating lockfile due to dry run` instead of calling write_pkg_lockfile; registry queries use PackageRegistry/index summary resolution.",
+            "limitation": "Published source explains the selected operation; the exact local executable is separately bound by SHA-256. No claim of a byte-identical Cargo source build is made."
+          },
+          {
+            "url": "https://doc.rust-lang.org/stable/nightly-rustc/cargo/ops/resolve/index.html",
+            "relevant_source": "Resolver index separates RegistryIndex/package Summary resolution from resolved package materialization.",
+            "limitation": "Resolution may query index metadata; this packet does not claim a hypothetical lock update is acceptable."
+          },
+          {
+            "url": "https://doc.rust-lang.org/stable/nightly-rustc/cargo/sources/registry/index/index.html",
+            "relevant_source": "Registry index queries resolve package summaries.",
+            "limitation": "Pinned Cargo binary and cache before/after checks are the runtime bindings."
+          },
+          {
+            "url": "https://doc.rust-lang.org/stable/nightly-rustc/cargo/sources/registry/download/index.html",
+            "relevant_source": "Crate archive download is a separate registry source operation from index-summary resolution.",
+            "limitation": "The runner independently rejects any archive/cache or registry/src delta."
+          }
+        ],
+        "combined_flag_behavior": "In update_lockfile source, previous lock loading and resolve_with_previous precede print_lockfile_updates. The dry_run branch emits `not updating lockfile due to dry run` and skips write_pkg_lockfile; therefore this run does not claim --locked validates a hypothetical graph change on this branch. Only actual lockfile byte identity is enforced after execution."
+      },
+      "nonclaims": [
+        "One exact cargo update --workspace --dry-run --locked command only; no build, check, test, Nextest, Velnor CLI, generation, publication, or release.",
+        "A successful result means only that the dry-run resolver command completed, the expected reqwest sparse-index entry exists, Cargo.lock stayed byte-identical, and no crate archives or source trees changed.",
+        "This does not prove complete cache closure, a build, a generator result, workflow qualification, release identity, or provider acceptance.",
+        "Because Cargo dry-run skips the lockfile writer, success does not prove that a hypothetical updated resolution would pass the --locked writer check or equal the existing graph."
+      ],
+      "superseded_preflight_attempts": [
+        {
+          "id": "r3-preflight-01",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "f4cbda0d36553b3c9b5248f03da83ca3462cc282e2fd14776ba9b7fd29caf969",
+          "exit_code": 1,
+          "execution_started": false,
+          "cargo_child_spawned": false,
+          "cache_mutated": false,
+          "cause": "Copied R2 runner had one extra `e` in its expected R2 SHA256SUMS literal; failed before execution. This attempt is preserved and not current preflight evidence."
+        }
+      ]
+    },
+    "tools": [
+      {
+        "path": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node",
+        "sha256": "f75a79e4c96954709a130427e452d6720b35c90318ca8293727a4c6376198453",
+        "mode": "555"
+      },
+      {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+        "mode": "755"
+      },
+      {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+        "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+        "mode": "755"
+      },
+      {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+        "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+        "mode": "755"
+      },
+      {
+        "path": "/usr/bin/git",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "mode": "755"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/tools/git",
+        "sha256": "638ef221a35c44979eb017a96cde44c2cb973f3fbe980a65f48cdf8ca5e9e4ab",
+        "mode": "700"
+      }
+    ],
+    "previous_failure_sha256": "d3c2bc1ee512d80cc6345de03b29bbd20788211f067ab2fe55d8bf0f6bd70d30",
+    "prior_r2_metadata": {
+      "result_sha256": "f8bab9a7222c94eb170cf0ca26fe0c849c44fdc8955091d81f2ccf2c84418562",
+      "stdout_sha256": "ea715e8d6c826037ffe895a696dfc66a6b715933a04b6997bc3a1074ba909494",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review_sha256": "c3cfd8e7870636bb9c96a6982feb993a6377e1eeafb4b05f5299945ab209530e",
+      "status": "METADATA_INDEX_FILL_FAILED_OR_INCOMPLETE",
+      "package_count": 45,
+      "workspace_member_count": 45,
+      "resolve_present": false,
+      "cache_changed_paths": 0,
+      "reqwest_index_present": false
+    },
+    "candidate": {
+      "root": "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010",
+      "head": "e0bcfa26ec174241f09de17d04f3f45379be3452",
+      "tree": "6985c14d76029b01c2d8ee55d66cf3db801a29ef",
+      "status": " M .velnor/config.toml\n",
+      "index_path": "/private/tmp/termrock-root-integration-20261010.git/worktrees/termrock-vis11-diagnostic-candidate-e0bc-20261010/index",
+      "index_sha256": "422b24dbb2d41463db1eb30bb6b3e66bf0baf95fca4dda8b6f61881e25269401",
+      "cargo_lock_sha256": "a43fdf2640e4934ecb60289c215363298b5932effdc9f161495269159f1f917e",
+      "config_sha256": "6c1de7a7e7962308021e3d47909cc0853eb2c40e523e2ab3f9cc57ba92952279"
+    },
+    "cache_before": {
+      "inventory_schema": "runner-walkTree-canonical/v1",
+      "tree_sha256": "fca99e44c62a4c1bd6fd1b274d143b7dac1e54e9f9751d4ea7856a329ba888f9",
+      "entries": 23570,
+      "files": 19820,
+      "directories": 3748,
+      "symlinks": 2,
+      "file_bytes": 573227343,
+      "root_mode": "755"
+    },
+    "cache_root_identity": {
+      "type": "directory",
+      "symlink": false,
+      "mode": "755",
+      "dev": 16777234,
+      "ino": 90502622
+    },
+    "mutable_bookkeeping_before": {
+      ".global-cache": {
+        "path": ".global-cache",
+        "type": "file",
+        "mode": "644",
+        "bytes": 81920,
+        "sha256": "709f053140a76abdb8305c9839a4f3930a4db9392b5697a68c1548afe261b0e5"
+      },
+      ".package-cache": {
+        "path": ".package-cache",
+        "type": "file",
+        "mode": "644",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".package-cache-mutate": {
+        "path": ".package-cache-mutate",
+        "type": "file",
+        "mode": "644",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "cached_git_source": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010/run-root/private/cargo-home/git/checkouts/tuiscotti-9317ad0850957efe/a47c9aa",
+      "head": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+      "git_tree": "618b561d867f1bda0c1678d18a8f531a06c6469d"
+    },
+    "lock_source_kinds": {
+      "registry_source": "registry+https://github.com/rust-lang/crates.io-index",
+      "registry_rows": 433,
+      "git_source": "git+https://github.com/tailrocks/tuiscotti?rev=a47c9aaefb34e4c00026f99d8a8dd7ee5916b274#a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+      "git_rows": 5
+    },
+    "cargo_config_paths_checked": [
+      "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010/.cargo/config",
+      "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010/.cargo/config.toml",
+      "/private/tmp/.cargo/config",
+      "/private/tmp/.cargo/config.toml",
+      "/private/.cargo/config",
+      "/private/.cargo/config.toml",
+      "/.cargo/config",
+      "/.cargo/config.toml",
+      "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010/run-root/private/cargo-home/config",
+      "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010/run-root/private/cargo-home/config.toml"
+    ],
+    "reqwest_index_absent": true,
+    "output_root_absent": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/run-root"
+  },
+  "command": {
+    "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "argv": [
+      "update",
+      "--workspace",
+      "--dry-run",
+      "--locked",
+      "--manifest-path",
+      "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010/Cargo.toml"
+    ],
+    "network": "crates.io sparse index resolution only, with Git network subcommands blocked; complete cache diff rejects archives/sources"
+  },
+  "output_root_absent": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r3-luna-20261010/run-root",
+  "cargo_child_spawned": false,
+  "cache_mutated": false
+}

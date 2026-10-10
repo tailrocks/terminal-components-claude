@@ -1,0 +1,9 @@
+   Compiling velnor-actions-contract-release v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/core/velnor-actions-contract-release)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.59s
+────────────
+ Nextest run ID a5fbf641-7d7e-454d-a0fb-f6a287199428 with nextest profile: default
+    Starting 2 tests across 2 binaries (34 tests skipped)
+        PASS [   0.012s] (1/2) velnor-actions-contract-release::velnor_contract_release impl_contract::manifest::manifest_schemas_validate_and_lookup_targets
+        PASS [   0.013s] (2/2) velnor-actions-contract-release::velnor_contract_release impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only
+────────────
+     Summary [   0.026s] 2 tests run: 2 passed, 34 skipped

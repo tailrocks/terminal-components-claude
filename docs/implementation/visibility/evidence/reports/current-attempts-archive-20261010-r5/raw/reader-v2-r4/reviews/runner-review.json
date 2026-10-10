@@ -1,0 +1,36 @@
+{
+  "schema": "termrock-focused-runner-review/v1",
+  "verdict": "READY_STATIC_REVIEW_ONLY",
+  "review_scope": "VIS-08 v2 reader 23-test R4 runner and no-Cargo preflight; no Cargo, Nextest, tests, or CLI build was executed by reviewer.",
+  "bindings": {
+    "runner_path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-runner-20261010/runner.cjs",
+    "runner_sha256": "08feb21cd426aad630a9e8506cd6df6cf409319adbefb5f77bf9c868d60f9882",
+    "packet_path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-packet-20261010/packet.json",
+    "packet_sha256": "a7c175440b0b534ff3c576ec66aac97178510b7a85c24a09197c92459595531d",
+    "preflight_path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-runner-20261010/preflight.stdout.json",
+    "preflight_sha256": "835afc1657d8522b8a52fa0e15d1e6e5c9b16db0f687c672e9e7bbd8938aebe7",
+    "source_review_sha256": "a92bb50e0db6fd13fcc1b3274692a6c525a29b38ea4adc70515554ab02a5858c",
+    "source_module_sha256": "8f4a8d77aa1f32250bd0df79138daf0e77ee6c47afb9b71a9ebe7347a4729c8d",
+    "parent_freeze_sha256": "1431a38f87b7eaaa0c20a2323547f902538f850e6ff6ee425e7d24a3a34fb8e2",
+    "parent_review_sha256": "5601a240c13a15b76cb802af07f41afac4d697e795c128bbbfceba1bd94c29be",
+    "package_digest": "4bb9caa4df4014301044bb1f59ff1f7ffa61236a007a73da3c97e57104b7e240"
+  },
+  "reviewed_contract": {
+    "selection": "Exact 23 nextest_result::tests names, one --lib target, default ignored policy and exact filterset pinned in both runner and packet.",
+    "ordered_stages": ["Nextest 23-test run", "locked/offline reader CLI build", "synthetic v1 nine-case CLI exercise", "synthetic v2 59-case CLI exercise"],
+    "deadline": "One monotonic 900000 ms deadline starts before packet/input snapshot; cache copy and tool version probes use remaining time; each child gets min(stage limit, remaining budget); later stages do not start after deadline; pass requires elapsed time through the final protected-input snapshot to remain within deadline.",
+    "cleanup": "Process-group TERM/KILL/reap/pipe-close limits remain 5000 ms plus 5000 ms and are recorded separately from the work deadline.",
+    "isolation": "Attempt root must be absent. Cargo home, target, HOME, TMP, logs, CLI output are fresh private descendants; offline mode and jobs=2 are pinned.",
+    "integrity": "Runner rechecks exact 12-file package inventory/digest, source review and parent freeze/patch bindings, 85-file unused cache receipt and bytes, tools, and synthetic CLI fixture bytes before/after; source/fixture/cache identities are included in result.",
+    "output": "4 MiB combined stage cap and 1 MiB cap per synthetic CLI exercise; raw logs are create-new and retained.",
+    "evidence_limits": "Packet explicitly labels product behavior NOT_TESTED and product acceptance NOT_ESTABLISHED; the two CLI exercises use synthetic inputs."
+  },
+  "exact_launch_argv": [
+    "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+    "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-runner-20261010/runner.cjs",
+    "--run"
+  ],
+  "caveat": "Elapsed pass/fail measurement includes the final protected-input snapshot; bounded process-group cleanup is separately allowed up to 10 seconds. Final receipt serialization and wrapper stdout occur after the elapsed value is captured, so this is not a hard-kill guarantee for the Node supervisor's own finalization path.",
+  "execution_authorization": "NOT_GRANTED_BY_THIS_REVIEW",
+  "preflight": "Supplied preflight is PREFLIGHT_PASS_NO_CARGO_NO_TEST with authorized=false and fresh attempt root; it is not execution authorization."
+}

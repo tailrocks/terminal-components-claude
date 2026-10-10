@@ -1,0 +1,4 @@
+    Updating crates.io index
+     Locking 0 packages to latest Rust 1.88 compatible versions
+note: pass `--verbose` to see 50 unchanged dependencies behind latest
+warning: not updating lockfile due to dry run

@@ -1,0 +1,113 @@
+{
+  "index": 1,
+  "label": "contract_config_rc_and_branch_guards",
+  "package": "velnor-actions-contract-config",
+  "expected_tests": 2,
+  "test_ids": [
+    "impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false",
+    "impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component"
+  ],
+  "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+  "argv": [
+    "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "nextest",
+    "run",
+    "--locked",
+    "--offline",
+    "-p",
+    "velnor-actions-contract-config",
+    "--build-jobs",
+    "2",
+    "--test-threads",
+    "1",
+    "--no-tests",
+    "fail",
+    "--user-config-file",
+    "none",
+    "--ignore-default-filter",
+    "--retries",
+    "0",
+    "--no-fail-fast",
+    "--color",
+    "never",
+    "-E",
+    "test(=impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false) | test(=impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component)"
+  ],
+  "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+  "started_utc": "2026-10-10T00:59:53.989Z",
+  "pid": 74887,
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "interrupted": false,
+  "terminal_reason": null,
+  "launch_error": null,
+  "exit_event_received": true,
+  "close_event_received": true,
+  "kill_signals": [
+    {
+      "signal": "SIGKILL",
+      "sent": false,
+      "error": "kill ESRCH",
+      "reason": "final_group_cleanup"
+    }
+  ],
+  "output_capture": {
+    "gate_cap_bytes": 4194304,
+    "stored_gate_bytes": 2585,
+    "observed_gate_bytes": 2585,
+    "stored_command_bytes": 2585,
+    "observed_command_bytes": 2585,
+    "limit_exceeded": false,
+    "write_error": null
+  },
+  "finished_utc": "2026-10-10T01:00:23.326Z",
+  "post_kill_close_grace_expired": false,
+  "summary_lines": [
+    "Summary [   0.026s] 2 tests run: 2 passed, 88 skipped"
+  ],
+  "measured_counts": {
+    "executed": 2,
+    "passed": 2,
+    "failed": 0
+  },
+  "passed_test_ids": [
+    "impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component",
+    "impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false"
+  ],
+  "counts_exact": true,
+  "output": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-1.log",
+    "bytes": 2585,
+    "sha256": "afef78388b616519f740a5aa92de013ab7f9e86a8780aa83309135bfa882cc3e",
+    "complete": true
+  },
+  "status": "completed",
+  "terminal_receipt": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-1-terminal.json",
+    "bytes": 2604,
+    "sha256": "0b95daae5b16fd09ac2fea89ea3f1ce53ee0d77f6f2b07246fb2fbd1d6f4efe6"
+  },
+  "source_before": {
+    "ok": true,
+    "closure": {
+      "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+      "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+      "full_tree_entries": 3457,
+      "regular_files": 2608,
+      "directories": 842,
+      "symlinks": 7,
+      "post_metadata_inventory_sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+      "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+      "selected_source_functions": 48,
+      "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+    }
+  },
+  "source_after": {
+    "ok": true,
+    "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+    "entries": 3457
+  },
+  "source_changed_or_unverifiable": false,
+  "command_pass": true
+}

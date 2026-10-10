@@ -1,0 +1,23 @@
+{
+  "test-count": 9,
+  "rust-suites": {
+    "reader-cli-smoke::reader_cli_smoke": {
+      "package-name": "reader-cli-smoke",
+      "binary-id": "reader-cli-smoke::reader_cli_smoke",
+      "binary-name": "reader_cli_smoke",
+      "kind": "test",
+      "status": "listed",
+      "testcases": {
+        "case_0": {"kind":"test","ignored":true,"filter-match":{"status":"matches"}},
+        "case_1": {"kind":"test","ignored":false,"filter-match":{"status":"matches"}},
+        "case_2": {"kind":"test","ignored":false,"filter-match":{"status":"matches"}},
+        "case_3": {"kind":"test","ignored":false,"filter-match":{"status":"matches"}},
+        "case_4": {"kind":"test","ignored":false,"filter-match":{"status":"matches"}},
+        "case_5": {"kind":"test","ignored":false,"filter-match":{"status":"matches"}},
+        "case_6": {"kind":"test","ignored":false,"filter-match":{"status":"matches"}},
+        "case_7": {"kind":"test","ignored":false,"filter-match":{"status":"matches"}},
+        "case_8": {"kind":"test","ignored":false,"filter-match":{"status":"matches"}}
+      }
+    }
+  }
+}

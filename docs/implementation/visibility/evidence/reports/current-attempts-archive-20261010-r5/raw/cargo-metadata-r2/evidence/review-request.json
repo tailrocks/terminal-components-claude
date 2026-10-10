@@ -1,0 +1,90 @@
+{
+  "schema": "termrock.vis11.diagnostic-generator-registry-index-fill-review-request/v2",
+  "scope": "Independent read-only delta review of the frozen R2 metadata-only packet and its no-Cargo preflight. Do not execute Cargo, the Velnor CLI, tests, builds, cache copies, or network probes.",
+  "packet_root": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010",
+  "pins": {
+    "plan": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/evidence/plan.json",
+      "sha256": "1d1f04db2f0cae97713ca358bed39b028360b084903c5aac605737c3dbad7dfb"
+    },
+    "runner": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/runner.cjs",
+      "sha256": "697aa3ae07d5c44412a13bce25eeca95ccf13cf5c3d04c7b60a629eedbdd4d56"
+    },
+    "git_network_guard": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/tools/git",
+      "sha256": "638ef221a35c44979eb017a96cde44c2cb973f3fbe980a65f48cdf8ca5e9e4ab"
+    },
+    "readme": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/README.md",
+      "sha256": "8361a25bf3986e3fb4fbba7e4a8362e65ee24cfeaa8bf02fdded13734ffa3f14"
+    },
+    "current_preflight": {
+      "argv": [
+        "/opt/homebrew/Cellar/node/26.11.0_1/bin/node",
+        "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/runner.cjs",
+        "--preflight"
+      ],
+      "stdout_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/evidence/preflight.stdout.json",
+      "stdout_sha256": "2fe4d6143427c6e4786b9f469816e398633201b89bf297131e1966a681f7263f",
+      "stderr_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/evidence/preflight.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0,
+      "status": "PREFLIGHT_PASS_NOT_RUN",
+      "execution": "NOT_RUN",
+      "qualification": "NOT_QUALIFIED",
+      "run_root_absent": true,
+      "cargo_child_spawned": false,
+      "cache_mutated": false
+    },
+    "superseded_preflights": [
+      {
+        "stdout_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/evidence/preflight-attempt-01.stdout.json",
+        "stdout_sha256": "16c042b71a3f9cde60167dbd6b777316fd378c3f27401e5ef13ed9859910b847",
+        "exit_code": 0,
+        "reason": "Recorded before plan and runner were finalized; it remains preserved and was not used as current preflight evidence."
+      },
+      {
+        "stdout_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/evidence/preflight-attempt-02.stdout.json",
+        "stdout_sha256": "3d44dd2441fdac0f66ffae0a3aab3bb3738dd3221bc98c065d35f0a06fe630d1",
+        "exit_code": 0,
+        "reason": "Recorded before the final pinned Git guard was symlinked into the execution PATH; it remains preserved and was not used as current preflight evidence."
+      }
+    ],
+    "superseded_r1_packet": {
+      "packet_root": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r1-luna-20261010",
+      "plan_sha256": "ea71ec8dd3499c6e08eb3621bf0c34e6a6e9d015055a1ae16a6250227a793d1a",
+      "runner_sha256": "31c4755f8029254df18dc04f7b94e747330bf983f362e48615863c0c342fd6a1",
+      "review_receipt_sha256": "6aef478cf2a2823917e903dd089ee35a23ba8466068ce38d41abf07987ca8e8c",
+      "execution": "NOT_RUN"
+    },
+    "r1_review": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r1-independent-review-current-branch-comparison-luna-20261010.json",
+      "sha256": "6aef478cf2a2823917e903dd089ee35a23ba8466068ce38d41abf07987ca8e8c",
+      "verdict": "CHANGES_REQUIRED"
+    }
+  },
+  "review_checks": [
+    "Review the minimal R1→R2 delta only; source, candidate, locked command, pinned tools, and R3b cache context remain inherited unchanged.",
+    "Verify the post-command CARGO_HOME lstat requires the same physical non-symlink directory and equal device, inode, and 0755 mode; this condition participates in the pass predicate. If the root is unsafe, no child walk follows it and the receipt fails closed.",
+    "Verify current preflight binds the exact freshly walked 23,570-entry working-cache snapshot and the pre-existing `.global-cache`, `.package-cache`, and `.package-cache-mutate` regular-file preimages.",
+    "Verify only additions/updates beneath registry/index/ and changes at those exact three existing bookkeeping paths are permitted; no deletions, additions of bookkeeping paths, wrong type/mode, or file over 1 MiB; every other path delta fails.",
+    "Verify complete cache changes and post-root observation are recorded, and no build/test/Nextest/CLI/preview/qualification claim is introduced.",
+    "Check that R1 packet and its CHANGES_REQUIRED receipt remain preserved and R2 preflight itself spawned no Cargo child or mutated the cache."
+  ],
+  "preserved_predecessors": {
+    "r3b_result_sha256": "d3c2bc1ee512d80cc6345de03b29bbd20788211f067ab2fe55d8bf0f6bd70d30",
+    "r3b_stderr_sha256": "7a0334a65e5654743ea453f8a9b77ecb0e5bbd5891471bcc0ab97d13bcb8a91b",
+    "r2_failure_result_sha256": "b159449423e8de3afbcd405b9ae845f18a45c65e9b87efcc861175d84df0a0dc",
+    "r2_failure_review_sha256": "09ea2f927bd506435958dda078c7bba98f466646c44d4288b79716c7576569d2"
+  },
+  "reviewer_actions": "Return a durable READY or CHANGES_REQUIRED receipt bound to every R2 pin. Do not execute Cargo, the Velnor CLI, a cache copy, tests, builds, or network probes.",
+  "predecessor_r1": {
+    "packet_root": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r1-luna-20261010",
+    "plan_sha256": "ea71ec8dd3499c6e08eb3621bf0c34e6a6e9d015055a1ae16a6250227a793d1a",
+    "runner_sha256": "31c4755f8029254df18dc04f7b94e747330bf983f362e48615863c0c342fd6a1",
+    "review_receipt_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r1-independent-review-current-branch-comparison-luna-20261010.json",
+    "review_receipt_sha256": "6aef478cf2a2823917e903dd089ee35a23ba8466068ce38d41abf07987ca8e8c",
+    "execution": "NOT_RUN"
+  }
+}

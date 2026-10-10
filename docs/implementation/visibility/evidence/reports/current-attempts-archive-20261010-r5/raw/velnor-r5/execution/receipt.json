@@ -1,0 +1,1467 @@
+{
+  "schema": "termrock.vis11.prerelease-v2-rust-nextest-gate-receipt/v1",
+  "status": "failed_or_incomplete_preserved",
+  "qualification": "NOT_QUALIFIED",
+  "scope": "48 selected Rust Nextest cases only; no full-workspace or product/release qualification.",
+  "packet_sha256": "5ab40a5ced48ea768f56c974ab177a64bca8639367a9a67444b1ad045625ccc1",
+  "runner_sha256": "0096bffe42a95984693c035cd00e562d2bfe346eac0b28841742caeddd92a083",
+  "source_root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+  "source_before": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+    "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+    "full_tree_entries": 3457,
+    "regular_files": 2608,
+    "directories": 842,
+    "symlinks": 7,
+    "post_metadata_inventory_sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+    "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "selected_source_functions": 48,
+    "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+  },
+  "source_after": {
+    "ok": true,
+    "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+    "entries": 3457
+  },
+  "immutable_cache_before": {
+    "archive_manifest_sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+    "archive_count": 406,
+    "archive_bytes": 59163074,
+    "source_index_closure_sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+    "source_index_files": 20133,
+    "source_index_directories": 3666,
+    "source_index_entry_bytes": 441286079,
+    "raw_closure_declared_file_bytes": 200791635,
+    "derived_source_package_directories": 406,
+    "archive_manifest_declared_unpacked_source_package_directories": 345,
+    "exact_cargo_ok_markers": 406,
+    "qualification": "NOT_QUALIFIED"
+  },
+  "immutable_cache_after": {
+    "archive_manifest_sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+    "archive_count": 406,
+    "archive_bytes": 59163074,
+    "source_index_closure_sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+    "source_index_files": 20133,
+    "source_index_directories": 3666,
+    "source_index_entry_bytes": 441286079,
+    "raw_closure_declared_file_bytes": 200791635,
+    "derived_source_package_directories": 406,
+    "archive_manifest_declared_unpacked_source_package_directories": 345,
+    "exact_cargo_ok_markers": 406,
+    "qualification": "NOT_QUALIFIED"
+  },
+  "mutable_global_cache_before": {
+    "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home/.global-cache",
+    "kind": "regular_file",
+    "size_bytes": 118784,
+    "sha256": "d914b4df873c4dd8b4434b4ffa36b9d8346b0ada2bf26b94f533980df052caa1",
+    "mode": "644",
+    "status": "recorded_mutable_not_input"
+  },
+  "mutable_global_cache_after": {
+    "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home/.global-cache",
+    "kind": "regular_file",
+    "size_bytes": 118784,
+    "sha256": "4037f888fc03bd68ee689c160c7e27a8b6cadbe31b119040f2b33d724ed8191f",
+    "mode": "644",
+    "status": "recorded_mutable_not_input"
+  },
+  "runtime_seed_after": {
+    "ok": true,
+    "closure": [
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/actionlint/remote_versions-de691.msgpack.z",
+        "bytes": 1368,
+        "sha256": "3da46c8a3e6ac6c5e5a1053efc9bff162124605625274996e3f806c866b67d13",
+        "mode": "644"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/github/koalaman-shellcheck-1c2b670d0db853eb-all-releases-a2849.msgpack.z",
+        "bytes": 5808,
+        "sha256": "cbff76959e54a2da50ea4dff3d0ce6ac0b8e3d8da7986efee8a0a78a2e506053",
+        "mode": "644"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/github/rhysd-actionlint-228bd911006f7087-all-releases-a2849.msgpack.z",
+        "bytes": 23111,
+        "sha256": "88b7239e352d6c6658647f7cfc2a2d46fadd5ba1fa18ae3a152ca1916b1d16c5",
+        "mode": "644"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/github/rust-lang-rust-fde818873e897373-all-releases-a2849.msgpack.z",
+        "bytes": 2608,
+        "sha256": "7e8cf965d7ef92e2aad12782897cd53ab98972ab3eb3fe9b49c6583773c579a6",
+        "mode": "644"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/github/zizmorcore-zizmor-8f0169e9cbcbd61d-all-releases-a2849.msgpack.z",
+        "bytes": 22476,
+        "sha256": "1fffb3f28c8121490815e59a2908ca3ed8f6aec1a035e9b1b8adcfa303e352c0",
+        "mode": "644"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/rust/remote_versions-b00d5.msgpack.z",
+        "bytes": 2033,
+        "sha256": "bf30c8a59f6401ab9256da403a752ae67eb9653ec510a8122fa66ff1914e40fe",
+        "mode": "644"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/shellcheck/remote_versions-dafdb.msgpack.z",
+        "bytes": 357,
+        "sha256": "670b5d2fdcdf9ce489f700e8f23b4a1010a72eba27ab03e42216c70f3c0ef533",
+        "mode": "644"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/zizmor/remote_versions-7066a.msgpack.z",
+        "bytes": 2165,
+        "sha256": "25cc43d95e15df21aade97761a65bd04ded7b8719caac8f6a45046c38f7f6df5",
+        "mode": "644"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-data/migrations/runtime-symlink-dirs-v2",
+        "bytes": 3,
+        "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+        "mode": "644"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/config/global.toml",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": "600"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/tool-bin/actionlint",
+        "bytes": 5829842,
+        "sha256": "8db11704dc296f096216db4db65d86cd7f0ebfdf4c38453a1da276b137b88388",
+        "mode": "700"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/tool-bin/shellcheck",
+        "bytes": 61551911,
+        "sha256": "61c17246d69f012cd458ae82f244c46023dac75d1b69733ca1cc7d28fb270fd7",
+        "mode": "700"
+      },
+      {
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/tool-bin/zizmor",
+        "bytes": 22909456,
+        "sha256": "0cd1e69b329cdbc2ded5cd3b5161f21ffd89652eab6563153e4af5a69344c64d",
+        "mode": "700"
+      }
+    ]
+  },
+  "runtime_output_tree": {
+    "bin": {
+      "type": "directory",
+      "mode": 448
+    },
+    "bin/mise": {
+      "type": "symlink",
+      "target": "/Users/donbeave/Projects/tailrocks/.termrock-visibility-runtime-20261009/mise-2026.9.18-macos-arm64/mise-v2026.9.18-macos-arm64",
+      "mode": 493
+    },
+    "config": {
+      "type": "directory",
+      "mode": 448
+    },
+    "config/global.toml": {
+      "type": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    "home": {
+      "type": "directory",
+      "mode": 448
+    },
+    "home/Library": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_bootlocale.cpython-39.pyc": {
+      "type": "file",
+      "size": 1306,
+      "sha256": "3fee0dffeacf8bc4e7edc5b987b07742d78c34b035b65ad17290543e5239145b",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_collections_abc.cpython-39.pyc": {
+      "type": "file",
+      "size": 31816,
+      "sha256": "025aa2366cfa4ee5c784895870e6fa69a5cc893de4a06b6600c4bb66b080dfa6",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_sitebuiltins.cpython-39.pyc": {
+      "type": "file",
+      "size": 3580,
+      "sha256": "875887203fa6ca2b711c3a8782499fd297e8df75ec5cdac3cf69a4257d619db0",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_weakrefset.cpython-39.pyc": {
+      "type": "file",
+      "size": 7752,
+      "sha256": "6d1560f5699b1dfeabc7e38fe232c743bc6666f14d72a144c2164b834ad342e7",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/abc.cpython-39.pyc": {
+      "type": "file",
+      "size": 5854,
+      "sha256": "24800010f8463d60da6aac473fe4c6fc2e589219029f89c67d895dcc9ba8186a",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/base64.cpython-39.pyc": {
+      "type": "file",
+      "size": 16534,
+      "sha256": "00fd8e6cf9776fcb3d624c3bb8c6e6b0c1fbd7096e62a4885ae824dc870a8f7a",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/codecs.cpython-39.pyc": {
+      "type": "file",
+      "size": 33967,
+      "sha256": "13f18b89f0af59e3e83868d76980eb55acc63e1a576899fd3dc8ab09e551096f",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/collections": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/collections/__init__.cpython-39.pyc": {
+      "type": "file",
+      "size": 48180,
+      "sha256": "4627009af4e7a19a24d5024a1107b8bd455855969eed9e2f53f80170b1656333",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/collections/abc.cpython-39.pyc": {
+      "type": "file",
+      "size": 383,
+      "sha256": "8e059bd9c5811c5ae2716c2fedf497aadb6aa2c807094f3034973d726120f375",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/contextlib.cpython-39.pyc": {
+      "type": "file",
+      "size": 19567,
+      "sha256": "e4ff5cfd2d4586217a3c079565292e7d35ab53c1a8e7275125ce0d20a6273ddd",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/copyreg.cpython-39.pyc": {
+      "type": "file",
+      "size": 4509,
+      "sha256": "38460391f66aee00b24fb68e5660ba3beb2b65ec73208760f172dd791b255a2e",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/encodings": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/encodings/__init__.cpython-39.pyc": {
+      "type": "file",
+      "size": 4004,
+      "sha256": "223ec7f89962a503ce772f26e266ea7cecbcc94f57b6c888732dfd9740320a4f",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/encodings/aliases.cpython-39.pyc": {
+      "type": "file",
+      "size": 6409,
+      "sha256": "6f7cf93d22539994c14fb00b53030786c881d7b156b5848e4fa623a875539273",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/encodings/cp437.cpython-39.pyc": {
+      "type": "file",
+      "size": 7927,
+      "sha256": "39b9fadae0704d0b46e24009d325efddf6ea0f779d6ecec44b7fc207b3148a26",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/encodings/latin_1.cpython-39.pyc": {
+      "type": "file",
+      "size": 1974,
+      "sha256": "d3bc32a4af5f6bad032c9ee2f69a7b62910ab593c7ea809ea3f87bd6fd3de9b2",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/encodings/utf_8.cpython-39.pyc": {
+      "type": "file",
+      "size": 1711,
+      "sha256": "dada6b69eb28b5ef21ba73925957c5890b8744c8a2e65705858494d8bf1a2867",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/enum.cpython-39.pyc": {
+      "type": "file",
+      "size": 26099,
+      "sha256": "92ec435c8a9e79fc0413125dbb291cd4586adfca82a7e6df93bf2f095850e8fa",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/fnmatch.cpython-39.pyc": {
+      "type": "file",
+      "size": 4021,
+      "sha256": "c5234937d7c44ef1db1e17d7fc5981ff4e217eb7d7117ab4ae688151b55326d2",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/functools.cpython-39.pyc": {
+      "type": "file",
+      "size": 28261,
+      "sha256": "240bda2407fd90c9c8624a6e1a6575e4d33d643d5cbdcdbf63a22e00f3a39000",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/genericpath.cpython-39.pyc": {
+      "type": "file",
+      "size": 4103,
+      "sha256": "6e14dc3d4a58678abbf15465f87e3126b80712a2faea87a24f8cb2758864fe83",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/hashlib.cpython-39.pyc": {
+      "type": "file",
+      "size": 6770,
+      "sha256": "19faf959767a51565807876b17c3d0ad14bc376f23b24ab311318b70c61bd3e7",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/heapq.cpython-39.pyc": {
+      "type": "file",
+      "size": 14119,
+      "sha256": "f0de64ed9c3517417faecb1d42fa2f3330200413f84cb59a5c51d5c81897dd6d",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/io.cpython-39.pyc": {
+      "type": "file",
+      "size": 3487,
+      "sha256": "bb126ce95c68ceaf9c09810027ee9456b79b1332bea24bec277ef08a858c4818",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/__init__.cpython-39.pyc": {
+      "type": "file",
+      "size": 12372,
+      "sha256": "426e2aebcd14e5763fdf76f15ab025868759f5a0df8495616a7a1fe8dcc7e686",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/decoder.cpython-39.pyc": {
+      "type": "file",
+      "size": 9887,
+      "sha256": "d1436299846d5026fc4f59ea1b18bdb4230a2191e8c5e4a6dfabee90c23a4fb4",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/encoder.cpython-39.pyc": {
+      "type": "file",
+      "size": 11210,
+      "sha256": "10e1bf18f1a5d475c46730c885a145de4904bf9ec67b37144348ee31c850a14f",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/scanner.cpython-39.pyc": {
+      "type": "file",
+      "size": 2032,
+      "sha256": "3a0cda12dbc371d47094fc207cb96aa03c45365a61c558b73e3982919b9f1961",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/keyword.cpython-39.pyc": {
+      "type": "file",
+      "size": 995,
+      "sha256": "6818fb8054ba5f3923460697b25c267e71a50fec9ce3cd66b3ef9bc355dc2374",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/ntpath.cpython-39.pyc": {
+      "type": "file",
+      "size": 14621,
+      "sha256": "8e38364097adc6d4618687a9a49e7cb6f8bc3bdce53427c9754dd2cd6146a438",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/operator.cpython-39.pyc": {
+      "type": "file",
+      "size": 13827,
+      "sha256": "7d3e8814d3d3a9afeb0803333f93755b9262ffaff47d171569c899657d30af42",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/os.cpython-39.pyc": {
+      "type": "file",
+      "size": 32076,
+      "sha256": "71244e2fa9bd81f978d18cc49b83c690d51ed074715c64088c3b91a35e00e41a",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.cpython-39.pyc": {
+      "type": "file",
+      "size": 44748,
+      "sha256": "0c34444831e618cba29275fc618d76611aa5b49a3ef98ddc8ad71aebc08b5a11",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/posixpath.cpython-39.pyc": {
+      "type": "file",
+      "size": 10408,
+      "sha256": "285edce983f9020588bbd2d157ee15bf4f2c0f99c03853bbb3df1cff770d189e",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/re.cpython-39.pyc": {
+      "type": "file",
+      "size": 14441,
+      "sha256": "8e99494a8d90e4f40de96345fa62fa38a2324c15f8377eee4a98f4e0127fadf1",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/reprlib.cpython-39.pyc": {
+      "type": "file",
+      "size": 5386,
+      "sha256": "d3c279b2fd5f17aa0a5c311c62d2e9b9cbdbf16cd7b3c0fa918b7a6e0e0603cd",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/selectors.cpython-39.pyc": {
+      "type": "file",
+      "size": 17324,
+      "sha256": "ae210d3a93f98f163f77c4b6ce7a1dbfe98fa650febae481b1ed2d940366d462",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/signal.cpython-39.pyc": {
+      "type": "file",
+      "size": 2902,
+      "sha256": "f035c7a3b437ee1e238149d45267f0184695a6429cf96a9521522d32c11cfb14",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.cpython-39.pyc": {
+      "type": "file",
+      "size": 17473,
+      "sha256": "0e7de55ccedec23d507b2da822e37ce38913f8dfce85346ad88ce4ca59ec8f0f",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/sre_compile.cpython-39.pyc": {
+      "type": "file",
+      "size": 15132,
+      "sha256": "f210bde6fc19296f1145fc52c9cca0d919bcfdd54bd7283196ad2c1731d6f513",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/sre_constants.cpython-39.pyc": {
+      "type": "file",
+      "size": 6396,
+      "sha256": "4a531fb23bc1ec022587caddbd1f2ce8223943957db7867bc739bc2a8f1576e1",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/sre_parse.cpython-39.pyc": {
+      "type": "file",
+      "size": 21682,
+      "sha256": "e025850f5063447cb73823f28916a8f226e29c86cc66a80b8d40c7e215a01493",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/stat.cpython-39.pyc": {
+      "type": "file",
+      "size": 4451,
+      "sha256": "84ac2f711bce1e14a192167a32090f0daa69576aa4102cd6bae963ae8ae0117a",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/struct.cpython-39.pyc": {
+      "type": "file",
+      "size": 385,
+      "sha256": "cde9a4294a277d94e9cf6b18e991194953ddddba0493e708870d60ef444723a4",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.cpython-39.pyc": {
+      "type": "file",
+      "size": 44225,
+      "sha256": "49ff7cdff5f26a790cff7cb63f34a700cbe5dbea4c7566862bd39d017afe69e1",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/threading.cpython-39.pyc": {
+      "type": "file",
+      "size": 42164,
+      "sha256": "af99b4dfeb9353af8128ff194c8764cb85c345ba6ccca08e0fa114e8ac7f75a2",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/types.cpython-39.pyc": {
+      "type": "file",
+      "size": 9300,
+      "sha256": "31c0d2c8a229c749012c662897158ac14ea22a2e49e9621ce63e48b985a4461a",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/urllib": {
+      "type": "directory",
+      "mode": 493
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/urllib/__init__.cpython-39.pyc": {
+      "type": "file",
+      "size": 209,
+      "sha256": "60de0d3ef2d0098ec9cf19cf1175d06a9a680acf57aa5185c1d3e513b91f5810",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/urllib/parse.cpython-39.pyc": {
+      "type": "file",
+      "size": 35002,
+      "sha256": "ae2ae273f1cc2716e50f5eaed1b38968cd8674ef21f6132445ed5d0745d94295",
+      "mode": 420
+    },
+    "home/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/warnings.cpython-39.pyc": {
+      "type": "file",
+      "size": 13684,
+      "sha256": "a409e7d6cdd69aca7c23e28f1edb191963f4eb38aacb14fe41eefe9ac1538f83",
+      "mode": 420
+    },
+    "mise-cache": {
+      "type": "directory",
+      "mode": 448
+    },
+    "mise-cache/actionlint": {
+      "type": "directory",
+      "mode": 448
+    },
+    "mise-cache/actionlint/remote_versions-de691.msgpack.z": {
+      "type": "file",
+      "size": 1368,
+      "sha256": "3da46c8a3e6ac6c5e5a1053efc9bff162124605625274996e3f806c866b67d13",
+      "mode": 420
+    },
+    "mise-cache/github": {
+      "type": "directory",
+      "mode": 448
+    },
+    "mise-cache/github/koalaman-shellcheck-1c2b670d0db853eb-all-releases-a2849.msgpack.z": {
+      "type": "file",
+      "size": 5808,
+      "sha256": "cbff76959e54a2da50ea4dff3d0ce6ac0b8e3d8da7986efee8a0a78a2e506053",
+      "mode": 420
+    },
+    "mise-cache/github/rhysd-actionlint-228bd911006f7087-all-releases-a2849.msgpack.z": {
+      "type": "file",
+      "size": 23111,
+      "sha256": "88b7239e352d6c6658647f7cfc2a2d46fadd5ba1fa18ae3a152ca1916b1d16c5",
+      "mode": 420
+    },
+    "mise-cache/github/rust-lang-rust-fde818873e897373-all-releases-a2849.msgpack.z": {
+      "type": "file",
+      "size": 2608,
+      "sha256": "7e8cf965d7ef92e2aad12782897cd53ab98972ab3eb3fe9b49c6583773c579a6",
+      "mode": 420
+    },
+    "mise-cache/github/zizmorcore-zizmor-8f0169e9cbcbd61d-all-releases-a2849.msgpack.z": {
+      "type": "file",
+      "size": 22476,
+      "sha256": "1fffb3f28c8121490815e59a2908ca3ed8f6aec1a035e9b1b8adcfa303e352c0",
+      "mode": 420
+    },
+    "mise-cache/rust": {
+      "type": "directory",
+      "mode": 448
+    },
+    "mise-cache/rust/remote_versions-b00d5.msgpack.z": {
+      "type": "file",
+      "size": 2033,
+      "sha256": "bf30c8a59f6401ab9256da403a752ae67eb9653ec510a8122fa66ff1914e40fe",
+      "mode": 420
+    },
+    "mise-cache/shellcheck": {
+      "type": "directory",
+      "mode": 448
+    },
+    "mise-cache/shellcheck/remote_versions-dafdb.msgpack.z": {
+      "type": "file",
+      "size": 357,
+      "sha256": "670b5d2fdcdf9ce489f700e8f23b4a1010a72eba27ab03e42216c70f3c0ef533",
+      "mode": 420
+    },
+    "mise-cache/zizmor": {
+      "type": "directory",
+      "mode": 448
+    },
+    "mise-cache/zizmor/remote_versions-7066a.msgpack.z": {
+      "type": "file",
+      "size": 2165,
+      "sha256": "25cc43d95e15df21aade97761a65bd04ded7b8719caac8f6a45046c38f7f6df5",
+      "mode": 420
+    },
+    "mise-data": {
+      "type": "directory",
+      "mode": 448
+    },
+    "mise-data/migrations": {
+      "type": "directory",
+      "mode": 448
+    },
+    "mise-data/migrations/runtime-symlink-dirs-v2": {
+      "type": "file",
+      "size": 3,
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+      "mode": 420
+    },
+    "mise-state": {
+      "type": "directory",
+      "mode": 448
+    },
+    "tmp": {
+      "type": "directory",
+      "mode": 448
+    },
+    "tool-bin": {
+      "type": "directory",
+      "mode": 448
+    },
+    "tool-bin/actionlint": {
+      "type": "file",
+      "size": 5829842,
+      "sha256": "8db11704dc296f096216db4db65d86cd7f0ebfdf4c38453a1da276b137b88388",
+      "mode": 448
+    },
+    "tool-bin/shellcheck": {
+      "type": "file",
+      "size": 61551911,
+      "sha256": "61c17246d69f012cd458ae82f244c46023dac75d1b69733ca1cc7d28fb270fd7",
+      "mode": 448
+    },
+    "tool-bin/zizmor": {
+      "type": "file",
+      "size": 22909456,
+      "sha256": "0cd1e69b329cdbc2ded5cd3b5161f21ffd89652eab6563153e4af5a69344c64d",
+      "mode": 448
+    }
+  },
+  "selected_tests_expected": 48,
+  "selected_tests_executed": 47,
+  "selected_tests_passed": 14,
+  "selected_tests_failed_or_unverified": 34,
+  "command_count_expected": 6,
+  "commands": [
+    {
+      "index": 1,
+      "label": "contract_config_rc_and_branch_guards",
+      "package": "velnor-actions-contract-config",
+      "expected_tests": 2,
+      "test_ids": [
+        "impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false",
+        "impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component"
+      ],
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "velnor-actions-contract-config",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--no-tests",
+        "fail",
+        "--user-config-file",
+        "none",
+        "--ignore-default-filter",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--color",
+        "never",
+        "-E",
+        "test(=impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false) | test(=impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component)"
+      ],
+      "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+      "started_utc": "2026-10-10T00:59:53.989Z",
+      "pid": 74887,
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "interrupted": false,
+      "terminal_reason": null,
+      "launch_error": null,
+      "exit_event_received": true,
+      "close_event_received": true,
+      "kill_signals": [
+        {
+          "signal": "SIGKILL",
+          "sent": false,
+          "error": "kill ESRCH",
+          "reason": "final_group_cleanup"
+        }
+      ],
+      "output_capture": {
+        "gate_cap_bytes": 4194304,
+        "stored_gate_bytes": 2585,
+        "observed_gate_bytes": 2585,
+        "stored_command_bytes": 2585,
+        "observed_command_bytes": 2585,
+        "limit_exceeded": false,
+        "write_error": null
+      },
+      "finished_utc": "2026-10-10T01:00:23.326Z",
+      "post_kill_close_grace_expired": false,
+      "summary_lines": [
+        "Summary [   0.026s] 2 tests run: 2 passed, 88 skipped"
+      ],
+      "measured_counts": {
+        "executed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "passed_test_ids": [
+        "impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component",
+        "impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false"
+      ],
+      "counts_exact": true,
+      "output": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-1.log",
+        "bytes": 2585,
+        "sha256": "afef78388b616519f740a5aa92de013ab7f9e86a8780aa83309135bfa882cc3e",
+        "complete": true
+      },
+      "status": "completed",
+      "terminal_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-1-terminal.json",
+        "bytes": 2604,
+        "sha256": "0b95daae5b16fd09ac2fea89ea3f1ce53ee0d77f6f2b07246fb2fbd1d6f4efe6"
+      },
+      "source_before": {
+        "ok": true,
+        "closure": {
+          "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+          "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+          "full_tree_entries": 3457,
+          "regular_files": 2608,
+          "directories": 842,
+          "symlinks": 7,
+          "post_metadata_inventory_sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+          "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+          "selected_source_functions": 48,
+          "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+        }
+      },
+      "source_after": {
+        "ok": true,
+        "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+        "entries": 3457
+      },
+      "source_changed_or_unverifiable": false,
+      "command_pass": true,
+      "final_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-1-receipt.json",
+        "bytes": 3764,
+        "sha256": "d125acdcbcdbcd4d8ff545fb89ba80fe9382c162a139046ba01197f1d9799df8"
+      }
+    },
+    {
+      "index": 2,
+      "label": "contract_release_rc_manifest_policy",
+      "package": "velnor-actions-contract-release",
+      "expected_tests": 2,
+      "test_ids": [
+        "impl_contract::manifest::manifest_schemas_validate_and_lookup_targets",
+        "impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only"
+      ],
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "velnor-actions-contract-release",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--no-tests",
+        "fail",
+        "--user-config-file",
+        "none",
+        "--ignore-default-filter",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--color",
+        "never",
+        "-E",
+        "test(=impl_contract::manifest::manifest_schemas_validate_and_lookup_targets) | test(=impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only)"
+      ],
+      "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+      "started_utc": "2026-10-10T01:00:23.656Z",
+      "pid": 75303,
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "interrupted": false,
+      "terminal_reason": null,
+      "launch_error": null,
+      "exit_event_received": true,
+      "close_event_received": true,
+      "kill_signals": [
+        {
+          "signal": "SIGKILL",
+          "sent": false,
+          "error": "kill ESRCH",
+          "reason": "final_group_cleanup"
+        }
+      ],
+      "output_capture": {
+        "gate_cap_bytes": 4194304,
+        "stored_gate_bytes": 3466,
+        "observed_gate_bytes": 3466,
+        "stored_command_bytes": 881,
+        "observed_command_bytes": 881,
+        "limit_exceeded": false,
+        "write_error": null
+      },
+      "finished_utc": "2026-10-10T01:00:26.029Z",
+      "post_kill_close_grace_expired": false,
+      "summary_lines": [
+        "Summary [   0.026s] 2 tests run: 2 passed, 34 skipped"
+      ],
+      "measured_counts": {
+        "executed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "passed_test_ids": [
+        "impl_contract::manifest::manifest_schemas_validate_and_lookup_targets",
+        "impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only"
+      ],
+      "counts_exact": true,
+      "output": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-2.log",
+        "bytes": 881,
+        "sha256": "6ed314a9c064502e2e22339565cb50d6a893b96aa571837f442f4ed3ede9cea5",
+        "complete": true
+      },
+      "status": "completed",
+      "terminal_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-2-terminal.json",
+        "bytes": 2596,
+        "sha256": "e384d909821c8744ac1a5670d6c13660cf902f0cebab6bfa9a8e912568857bf4"
+      },
+      "source_before": {
+        "ok": true,
+        "closure": {
+          "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+          "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+          "full_tree_entries": 3457,
+          "regular_files": 2608,
+          "directories": 842,
+          "symlinks": 7,
+          "post_metadata_inventory_sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+          "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+          "selected_source_functions": 48,
+          "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+        }
+      },
+      "source_after": {
+        "ok": true,
+        "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+        "entries": 3457
+      },
+      "source_changed_or_unverifiable": false,
+      "command_pass": true,
+      "final_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-2-receipt.json",
+        "bytes": 3756,
+        "sha256": "99148804a3175ff17d414c7bf65c5b3d07899ec6f233d108b09b989e6d8906e5"
+      }
+    },
+    {
+      "index": 3,
+      "label": "orchestrator_generation_affected_and_source_cases",
+      "package": "velnor-actions-orchestrator-generation",
+      "expected_tests": 23,
+      "test_ids": [
+        "ci_observer::tests::input_snapshot_rejects_a_precommit_edit",
+        "routing::generator_release_pins::tests::source_selection_resolves_config_tag_and_branch_to_typed_pins",
+        "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+        "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+        "impl_ci_observer::opt_in_is_private_and_main_ci_stays_byte_identical",
+        "impl_ci_observer::private_config_rejects_malformed_and_unknown_fields",
+        "impl_ci_observer::enabled_generation_rejects_537470_byte_ci_without_touching_output",
+        "impl_ci_observer::rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload",
+        "impl_ci_observer::rendered_runtime_paginates_and_measures_exact_run_attempt_and_source",
+        "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+        "impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+        "impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing",
+        "impl_ci_observer::runtime_reports_transport_and_workflow_source_errors",
+        "impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+        "impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run",
+        "impl_prepare::prepare_accepts_consumer_repo_with_default_branch",
+        "impl_prepare::prepare_rejects_missing_default_branch_without_git",
+        "impl_prepare::prepare_rejects_non_directory",
+        "impl_prepare::prepare_reports_default_runner_label",
+        "impl_prepare::freshness_disabled_for_consumer",
+        "impl_prepare::release_disabled_without_release_config",
+        "impl_prepare::finalized_jobs_lists_plan_and_required",
+        "impl_prepare::prepare_acquires_matching_prerelease_and_rejects_stable_manifest"
+      ],
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "velnor-actions-orchestrator-generation",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--no-tests",
+        "fail",
+        "--user-config-file",
+        "none",
+        "--ignore-default-filter",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--color",
+        "never",
+        "-E",
+        "test(=ci_observer::tests::input_snapshot_rejects_a_precommit_edit) | test(=routing::generator_release_pins::tests::source_selection_resolves_config_tag_and_branch_to_typed_pins) | test(=impl_schema2_routing::schema2_workflows_match_expected_bytes) | test(=impl_schema2_routing::committed_release_files_match_schema2_bytes) | test(=impl_ci_observer::opt_in_is_private_and_main_ci_stays_byte_identical) | test(=impl_ci_observer::private_config_rejects_malformed_and_unknown_fields) | test(=impl_ci_observer::enabled_generation_rejects_537470_byte_ci_without_touching_output) | test(=impl_ci_observer::rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload) | test(=impl_ci_observer::rendered_runtime_paginates_and_measures_exact_run_attempt_and_source) | test(=impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims) | test(=impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association) | test(=impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing) | test(=impl_ci_observer::runtime_reports_transport_and_workflow_source_errors) | test(=impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors) | test(=impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run) | test(=impl_prepare::prepare_accepts_consumer_repo_with_default_branch) | test(=impl_prepare::prepare_rejects_missing_default_branch_without_git) | test(=impl_prepare::prepare_rejects_non_directory) | test(=impl_prepare::prepare_reports_default_runner_label) | test(=impl_prepare::freshness_disabled_for_consumer) | test(=impl_prepare::release_disabled_without_release_config) | test(=impl_prepare::finalized_jobs_lists_plan_and_required) | test(=impl_prepare::prepare_acquires_matching_prerelease_and_rejects_stable_manifest)"
+      ],
+      "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+      "started_utc": "2026-10-10T01:00:26.359Z",
+      "pid": 75410,
+      "exit_code": 100,
+      "signal": null,
+      "timed_out": false,
+      "interrupted": false,
+      "terminal_reason": null,
+      "launch_error": null,
+      "exit_event_received": true,
+      "close_event_received": true,
+      "kill_signals": [
+        {
+          "signal": "SIGKILL",
+          "sent": false,
+          "error": "kill ESRCH",
+          "reason": "final_group_cleanup"
+        }
+      ],
+      "output_capture": {
+        "gate_cap_bytes": 4194304,
+        "stored_gate_bytes": 27856,
+        "observed_gate_bytes": 27856,
+        "stored_command_bytes": 24390,
+        "observed_command_bytes": 24390,
+        "limit_exceeded": false,
+        "write_error": null
+      },
+      "finished_utc": "2026-10-10T01:00:31.100Z",
+      "post_kill_close_grace_expired": false,
+      "summary_lines": [
+        "Summary [   4.087s] 23 tests run: 22 passed, 1 failed, 64 skipped"
+      ],
+      "measured_counts": {
+        "executed": 23,
+        "passed": 22,
+        "failed": 1
+      },
+      "passed_test_ids": [
+        "ci_observer::tests::input_snapshot_rejects_a_precommit_edit",
+        "impl_ci_observer::enabled_generation_rejects_537470_byte_ci_without_touching_output",
+        "impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing",
+        "impl_ci_observer::opt_in_is_private_and_main_ci_stays_byte_identical",
+        "impl_ci_observer::private_config_rejects_malformed_and_unknown_fields",
+        "impl_ci_observer::rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload",
+        "impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+        "impl_ci_observer::rendered_runtime_paginates_and_measures_exact_run_attempt_and_source",
+        "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+        "impl_ci_observer::runtime_reports_transport_and_workflow_source_errors",
+        "impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run",
+        "impl_prepare::finalized_jobs_lists_plan_and_required",
+        "impl_prepare::freshness_disabled_for_consumer",
+        "impl_prepare::prepare_accepts_consumer_repo_with_default_branch",
+        "impl_prepare::prepare_acquires_matching_prerelease_and_rejects_stable_manifest",
+        "impl_prepare::prepare_rejects_missing_default_branch_without_git",
+        "impl_prepare::prepare_rejects_non_directory",
+        "impl_prepare::prepare_reports_default_runner_label",
+        "impl_prepare::release_disabled_without_release_config",
+        "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+        "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+        "routing::generator_release_pins::tests::source_selection_resolves_config_tag_and_branch_to_typed_pins"
+      ],
+      "counts_exact": false,
+      "output": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-3.log",
+        "bytes": 24390,
+        "sha256": "52b1f809f7baed6ca5210f40d277b275c9775c4673a82eeec91beffb1191935c",
+        "complete": true
+      },
+      "status": "completed",
+      "terminal_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-3-terminal.json",
+        "bytes": 7475,
+        "sha256": "3a942fbb3d3022a9f986823b604bef00138f968e68c4904869ceb5004f1a348c"
+      },
+      "source_before": {
+        "ok": true,
+        "closure": {
+          "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+          "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+          "full_tree_entries": 3457,
+          "regular_files": 2608,
+          "directories": 842,
+          "symlinks": 7,
+          "post_metadata_inventory_sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+          "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+          "selected_source_functions": 48,
+          "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+        }
+      },
+      "source_after": {
+        "ok": true,
+        "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+        "entries": 3457
+      },
+      "source_changed_or_unverifiable": false,
+      "command_pass": false,
+      "final_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-3-receipt.json",
+        "bytes": 8636,
+        "sha256": "b83e30acd7ae9b5bee280861b51b4d772cae93cbd37d952bca9005bb0331cb8c"
+      }
+    },
+    {
+      "index": 4,
+      "label": "workflow_generator_source_tag_and_stable_branch_cases",
+      "package": "velnor-actions-workflow-generator",
+      "expected_tests": 11,
+      "test_ids": [
+        "generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+        "generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed",
+        "generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required",
+        "generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file",
+        "generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification",
+        "generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci",
+        "generator_release::source_gate::tests::stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt",
+        "generator_release::tests::stable_branch_publisher_uses_manual_dispatch",
+        "impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected",
+        "impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets",
+        "impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication"
+      ],
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "velnor-actions-workflow-generator",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--no-tests",
+        "fail",
+        "--user-config-file",
+        "none",
+        "--ignore-default-filter",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--color",
+        "never",
+        "-E",
+        "test(=generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit) | test(=generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed) | test(=generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required) | test(=generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file) | test(=generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification) | test(=generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci) | test(=generator_release::source_gate::tests::stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt) | test(=generator_release::tests::stable_branch_publisher_uses_manual_dispatch) | test(=impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected) | test(=impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets) | test(=impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication)"
+      ],
+      "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+      "started_utc": "2026-10-10T01:00:31.443Z",
+      "pid": 75892,
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "interrupted": false,
+      "terminal_reason": null,
+      "launch_error": null,
+      "exit_event_received": true,
+      "close_event_received": true,
+      "kill_signals": [
+        {
+          "signal": "SIGKILL",
+          "sent": false,
+          "error": "kill ESRCH",
+          "reason": "final_group_cleanup"
+        }
+      ],
+      "output_capture": {
+        "gate_cap_bytes": 4194304,
+        "stored_gate_bytes": 31745,
+        "observed_gate_bytes": 31745,
+        "stored_command_bytes": 3889,
+        "observed_command_bytes": 3889,
+        "limit_exceeded": false,
+        "write_error": null
+      },
+      "finished_utc": "2026-10-10T01:00:42.016Z",
+      "post_kill_close_grace_expired": false,
+      "summary_lines": [
+        "Summary [   6.383s] 10 tests run: 10 passed, 32 skipped"
+      ],
+      "measured_counts": {
+        "executed": 10,
+        "passed": 10,
+        "failed": 0
+      },
+      "passed_test_ids": [
+        "generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file",
+        "generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification",
+        "generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+        "generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed",
+        "generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required",
+        "generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci",
+        "generator_release::tests::stable_branch_publisher_uses_manual_dispatch",
+        "impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected",
+        "impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets",
+        "impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication"
+      ],
+      "counts_exact": false,
+      "output": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-4.log",
+        "bytes": 3889,
+        "sha256": "b637a5c0f6d555d69c8be4dcbe7f62b76680252b68561c8fe9f9fc8483c52690",
+        "complete": true
+      },
+      "status": "completed",
+      "terminal_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-4-terminal.json",
+        "bytes": 5347,
+        "sha256": "30902e7e41e483b8c3f841cc8dec50a9ab98517078597756f3797d444e1962a8"
+      },
+      "source_before": {
+        "ok": true,
+        "closure": {
+          "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+          "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+          "full_tree_entries": 3457,
+          "regular_files": 2608,
+          "directories": 842,
+          "symlinks": 7,
+          "post_metadata_inventory_sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+          "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+          "selected_source_functions": 48,
+          "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+        }
+      },
+      "source_after": {
+        "ok": true,
+        "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+        "entries": 3457
+      },
+      "source_changed_or_unverifiable": false,
+      "command_pass": false,
+      "final_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-4-receipt.json",
+        "bytes": 6508,
+        "sha256": "5601f7ca22aaf900a9b768ceb149bd6130c8d44b9e42c1c1a69bee4cdafa389c"
+      }
+    },
+    {
+      "index": 5,
+      "label": "reusable_call_contract_revalidation",
+      "package": "velnor-actions-contract-workflow",
+      "expected_tests": 6,
+      "test_ids": [
+        "impl_contract_reusable_call::contract_accepts_sha_pinned_reusable_call",
+        "impl_contract_reusable_call::contract_rejects_mutable_or_malformed_refs",
+        "impl_contract_reusable_call::contract_accepts_only_fixed_github_input_contexts",
+        "impl_contract_reusable_call::contract_rejects_untyped_or_privileged_call_fields",
+        "impl_contract_reusable_call::contract_requires_push_branch_guard_for_write",
+        "impl_contract_reusable_call::contract_rejects_job_collisions_and_invalid_dependencies"
+      ],
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "velnor-actions-contract-workflow",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--no-tests",
+        "fail",
+        "--user-config-file",
+        "none",
+        "--ignore-default-filter",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--color",
+        "never",
+        "-E",
+        "test(=impl_contract_reusable_call::contract_accepts_sha_pinned_reusable_call) | test(=impl_contract_reusable_call::contract_rejects_mutable_or_malformed_refs) | test(=impl_contract_reusable_call::contract_accepts_only_fixed_github_input_contexts) | test(=impl_contract_reusable_call::contract_rejects_untyped_or_privileged_call_fields) | test(=impl_contract_reusable_call::contract_requires_push_branch_guard_for_write) | test(=impl_contract_reusable_call::contract_rejects_job_collisions_and_invalid_dependencies)"
+      ],
+      "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+      "started_utc": "2026-10-10T01:00:42.670Z",
+      "pid": 76865,
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "interrupted": false,
+      "terminal_reason": null,
+      "launch_error": null,
+      "exit_event_received": true,
+      "close_event_received": true,
+      "kill_signals": [
+        {
+          "signal": "SIGKILL",
+          "sent": false,
+          "error": "kill ESRCH",
+          "reason": "final_group_cleanup"
+        }
+      ],
+      "output_capture": {
+        "gate_cap_bytes": 4194304,
+        "stored_gate_bytes": 33984,
+        "observed_gate_bytes": 33984,
+        "stored_command_bytes": 2239,
+        "observed_command_bytes": 2239,
+        "limit_exceeded": false,
+        "write_error": null
+      },
+      "finished_utc": "2026-10-10T01:00:54.635Z",
+      "post_kill_close_grace_expired": false,
+      "summary_lines": [
+        "Summary [   0.088s] 6 tests run: 6 passed, 82 skipped"
+      ],
+      "measured_counts": {
+        "executed": 6,
+        "passed": 6,
+        "failed": 0
+      },
+      "passed_test_ids": [
+        "impl_contract_reusable_call::contract_accepts_only_fixed_github_input_contexts",
+        "impl_contract_reusable_call::contract_accepts_sha_pinned_reusable_call",
+        "impl_contract_reusable_call::contract_rejects_job_collisions_and_invalid_dependencies",
+        "impl_contract_reusable_call::contract_rejects_mutable_or_malformed_refs",
+        "impl_contract_reusable_call::contract_rejects_untyped_or_privileged_call_fields",
+        "impl_contract_reusable_call::contract_requires_push_branch_guard_for_write"
+      ],
+      "counts_exact": true,
+      "output": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-5.log",
+        "bytes": 2239,
+        "sha256": "ea945be3c76cba66f9f5da217a7d2d3f7d987c439272d9b386ad9f7b7850ad89",
+        "complete": true
+      },
+      "status": "completed",
+      "terminal_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-5-terminal.json",
+        "bytes": 3589,
+        "sha256": "974252b76fc3c10dd1c770bc5eaf085f8e4af913cee35a93f8cb1bff2b42e6c9"
+      },
+      "source_before": {
+        "ok": true,
+        "closure": {
+          "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+          "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+          "full_tree_entries": 3457,
+          "regular_files": 2608,
+          "directories": 842,
+          "symlinks": 7,
+          "post_metadata_inventory_sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+          "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+          "selected_source_functions": 48,
+          "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+        }
+      },
+      "source_after": {
+        "ok": true,
+        "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+        "entries": 3457
+      },
+      "source_changed_or_unverifiable": false,
+      "command_pass": true,
+      "final_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-5-receipt.json",
+        "bytes": 4749,
+        "sha256": "1f0f51467bd460a717a19fcfd616af7685ce99713751b463bd92c420111bd1ba"
+      }
+    },
+    {
+      "index": 6,
+      "label": "reusable_call_renderer_revalidation",
+      "package": "velnor-actions-workflow-renderer",
+      "expected_tests": 4,
+      "test_ids": [
+        "impl_renderer_reusable_call::renderer_emits_valid_job_level_call",
+        "impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts",
+        "impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output",
+        "impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege"
+      ],
+      "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "velnor-actions-workflow-renderer",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--no-tests",
+        "fail",
+        "--user-config-file",
+        "none",
+        "--ignore-default-filter",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--color",
+        "never",
+        "-E",
+        "test(=impl_renderer_reusable_call::renderer_emits_valid_job_level_call) | test(=impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts) | test(=impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output) | test(=impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege)"
+      ],
+      "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+      "started_utc": "2026-10-10T01:00:55.243Z",
+      "pid": 77047,
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "interrupted": false,
+      "terminal_reason": null,
+      "launch_error": null,
+      "exit_event_received": true,
+      "close_event_received": true,
+      "kill_signals": [
+        {
+          "signal": "SIGKILL",
+          "sent": false,
+          "error": "kill ESRCH",
+          "reason": "final_group_cleanup"
+        }
+      ],
+      "output_capture": {
+        "gate_cap_bytes": 4194304,
+        "stored_gate_bytes": 36589,
+        "observed_gate_bytes": 36589,
+        "stored_command_bytes": 2605,
+        "observed_command_bytes": 2605,
+        "limit_exceeded": false,
+        "write_error": null
+      },
+      "finished_utc": "2026-10-10T01:01:06.847Z",
+      "post_kill_close_grace_expired": false,
+      "summary_lines": [
+        "Summary [   0.084s] 4 tests run: 4 passed, 121 skipped"
+      ],
+      "measured_counts": {
+        "executed": 4,
+        "passed": 4,
+        "failed": 0
+      },
+      "passed_test_ids": [
+        "impl_renderer_reusable_call::renderer_emits_valid_job_level_call",
+        "impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output",
+        "impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege",
+        "impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts"
+      ],
+      "counts_exact": true,
+      "output": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-6.log",
+        "bytes": 2605,
+        "sha256": "11059c1f58631491e5c96f0567af8dd0503fa09c4924530491e4a2ed6a3bae7f",
+        "complete": true
+      },
+      "status": "completed",
+      "terminal_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-6-terminal.json",
+        "bytes": 3055,
+        "sha256": "268aecd41a98b607521140a6c066946bd7b7e668b8de4c8df86763020171518d"
+      },
+      "source_before": {
+        "ok": true,
+        "closure": {
+          "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+          "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+          "full_tree_entries": 3457,
+          "regular_files": 2608,
+          "directories": 842,
+          "symlinks": 7,
+          "post_metadata_inventory_sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+          "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+          "selected_source_functions": 48,
+          "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+        }
+      },
+      "source_after": {
+        "ok": true,
+        "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+        "entries": 3457
+      },
+      "source_changed_or_unverifiable": false,
+      "command_pass": true,
+      "final_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-6-receipt.json",
+        "bytes": 4215,
+        "sha256": "c8c19891227a9e2d91c9becd6bfca78d02d7e5f71f26586f2b4734b1b8600bbb"
+      }
+    }
+  ],
+  "raw_gate_output": {
+    "combined_cap_bytes": 4194304,
+    "stored_bytes": 36589,
+    "observed_bytes": 36589,
+    "limit_exceeded": false,
+    "limit_trigger_command": null
+  },
+  "deadline": {
+    "started_utc": "2026-10-10T00:59:51.596Z",
+    "deadline_utc": "2026-10-10T01:19:51.596Z",
+    "finished_utc": "2026-10-10T01:01:13.832Z",
+    "elapsed_ms": 82236,
+    "limit_ms": 1200000,
+    "within_deadline": true
+  },
+  "ready_receipt": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/ready.json",
+    "bytes": 17993,
+    "sha256": "916bde8540fd1f06df1d8bf84b584507f68e541895a39220cd1149ad5b80e1df"
+  },
+  "metadata_only_result_not_counted": true,
+  "nonclaims": [
+    "Prior 35-case results remain preserved and are not counted here.",
+    "No result counts without exact raw PASS rows, summary counts, exit 0, and closed child process.",
+    "No full-workspace green, CLI/generator qualification, release qualification, or Git identity claim."
+  ]
+}

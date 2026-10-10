@@ -1,0 +1,27 @@
+warning: missing documentation for a function
+   --> crates/core/velnor-actions-contract-workflow/src/workflow/artifact_build/reconcile.rs:198:1
+    |
+198 | / pub fn validate_downloaded_outputs(
+199 | |     result: &[super::ArtifactBuildFile],
+200 | |     expected: &[velnor_actions_contract_config::ArtifactBuildOutput],
+201 | |     downloaded: &[super::DownloadedArtifactOutput],
+202 | | ) -> Result<(), ContractError> {
+    | |______________________________^
+    |
+    = note: requested on the command line with `-W missing-docs`
+
+   Compiling velnor-actions-contract-workflow v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/core/velnor-actions-contract-workflow)
+warning: `velnor-actions-contract-workflow` (lib) generated 1 warning
+warning: `velnor-actions-contract-workflow` (lib test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.60s
+────────────
+ Nextest run ID c07cb95f-285d-4792-ac35-20f9e878f2ca with nextest profile: default
+    Starting 6 tests across 2 binaries (82 tests skipped)
+        PASS [   0.012s] (1/6) velnor-actions-contract-workflow::velnor_contract_workflow impl_contract_reusable_call::contract_accepts_only_fixed_github_input_contexts
+        PASS [   0.019s] (2/6) velnor-actions-contract-workflow::velnor_contract_workflow impl_contract_reusable_call::contract_accepts_sha_pinned_reusable_call
+        PASS [   0.012s] (3/6) velnor-actions-contract-workflow::velnor_contract_workflow impl_contract_reusable_call::contract_rejects_job_collisions_and_invalid_dependencies
+        PASS [   0.013s] (4/6) velnor-actions-contract-workflow::velnor_contract_workflow impl_contract_reusable_call::contract_rejects_mutable_or_malformed_refs
+        PASS [   0.016s] (5/6) velnor-actions-contract-workflow::velnor_contract_workflow impl_contract_reusable_call::contract_rejects_untyped_or_privileged_call_fields
+        PASS [   0.015s] (6/6) velnor-actions-contract-workflow::velnor_contract_workflow impl_contract_reusable_call::contract_requires_push_branch_guard_for_write
+────────────
+     Summary [   0.088s] 6 tests run: 6 passed, 82 skipped

@@ -1,0 +1,61 @@
+{
+  "schema": "termrock-nextest-reader-request/v1",
+  "invocation": {
+    "nextest_version": "0.9.146",
+    "message_format": "libtest-json-plus",
+    "message_format_version": "0.1",
+    "libtest_json_enabled": true,
+    "retries": 0,
+    "stress": "none",
+    "partition": "none",
+    "machine_stream": "stdout",
+    "filter_args": ["exact-cli-smoke"],
+    "run_ignored": "all",
+    "run_id": "vis08-r3-cli-smoke"
+  },
+  "list_capture": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/list.json",
+      "byte_length": 1094,
+      "sha256": "22b1cdb6bc6bfdc21459299bad875710a77e402e3b1acf5415218f6b44db355d",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/empty.raw",
+      "byte_length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "truncated": false
+    },
+    "termination": {"kind": "exited", "exit_code": 0}
+  },
+  "run_capture": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/run.jsonl",
+      "byte_length": 1980,
+      "sha256": "7be6e2184c7de138cf1bba4733c63d672309845c492e662b95a009aa604fb047",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/empty.raw",
+      "byte_length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "truncated": false
+    },
+    "termination": {"kind": "exited", "exit_code": 0}
+  },
+  "wrapper_capture": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/empty.raw",
+      "byte_length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/empty.raw",
+      "byte_length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "truncated": false
+    },
+    "termination": {"kind": "exited", "exit_code": 0}
+  }
+}

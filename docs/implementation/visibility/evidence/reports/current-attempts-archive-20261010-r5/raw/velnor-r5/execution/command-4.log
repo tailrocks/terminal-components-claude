@@ -1,0 +1,42 @@
+warning: missing documentation for a function
+   --> crates/core/velnor-actions-contract-workflow/src/workflow/artifact_build/reconcile.rs:198:1
+    |
+198 | / pub fn validate_downloaded_outputs(
+199 | |     result: &[super::ArtifactBuildFile],
+200 | |     expected: &[velnor_actions_contract_config::ArtifactBuildOutput],
+201 | |     downloaded: &[super::DownloadedArtifactOutput],
+202 | | ) -> Result<(), ContractError> {
+    | |______________________________^
+    |
+    = note: requested on the command line with `-W missing-docs`
+
+warning: `velnor-actions-contract-workflow` (lib) generated 1 warning
+   Compiling velnor-actions-workflow-steps v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/services/velnor-actions-workflow-steps)
+   Compiling velnor-actions-workflow-tree v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/services/velnor-actions-workflow-tree)
+   Compiling velnor-actions-workflow-release v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/services/velnor-actions-workflow-release)
+   Compiling velnor-actions-workflow-generator v0.1.5-visibility.20261009.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/services/velnor-actions-workflow-generator)
+warning: unused import: `std::fs`
+ --> crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests/branch_rejections.rs:3:5
+  |
+3 | use std::fs;
+  |     ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `velnor-actions-workflow-generator` (lib test) generated 1 warning (run `cargo fix --lib -p velnor-actions-workflow-generator --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.41s
+────────────
+ Nextest run ID 452ffe1c-a9e8-4308-bd31-85faa85c95f5 with nextest profile: default
+    Starting 10 tests across 2 binaries (32 tests skipped)
+        PASS [   0.029s] ( 1/10) velnor-actions-workflow-generator generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file
+        PASS [   0.025s] ( 2/10) velnor-actions-workflow-generator generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification
+        PASS [   0.859s] ( 3/10) velnor-actions-workflow-generator generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit
+        PASS [   1.644s] ( 4/10) velnor-actions-workflow-generator generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed
+        PASS [   2.973s] ( 5/10) velnor-actions-workflow-generator generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required
+        PASS [   0.744s] ( 6/10) velnor-actions-workflow-generator generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci
+        PASS [   0.025s] ( 7/10) velnor-actions-workflow-generator generator_release::tests::stable_branch_publisher_uses_manual_dispatch
+        PASS [   0.024s] ( 8/10) velnor-actions-workflow-generator::velnor_workflow_generator impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected
+        PASS [   0.024s] ( 9/10) velnor-actions-workflow-generator::velnor_workflow_generator impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets
+        PASS [   0.035s] (10/10) velnor-actions-workflow-generator::velnor_workflow_generator impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication
+────────────
+     Summary [   6.383s] 10 tests run: 10 passed, 32 skipped
