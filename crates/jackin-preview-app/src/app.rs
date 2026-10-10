@@ -8078,9 +8078,25 @@ impl App {
         );
     }
 
-    fn draw_capsule_hints(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
+    fn capsule_hint_layer(hints: &'static [(&'static str, &'static str)]) -> HintLayer {
+        HintLayer {
+            hints: hints
+                .iter()
+                .enumerate()
+                .map(|(i, &(key, label))| Hint {
+                    key: HintKey::Label(key),
+                    label,
+                    priority: 100u8
+                        .saturating_sub(u8::try_from(i).unwrap_or(u8::MAX).saturating_mul(10)),
+                })
+                .collect(),
+            badge: None,
+            status: None,
+            centered: true,
+        }
+    }
 
+    fn draw_capsule_hints(&self, ui: &mut Ui<'_>, area: Rect) {
         const BASE_HINTS: &[(&str, &str)] = &[
             ("Ctrl+B", "Prefix"),
             ("F10", "Menu"),
@@ -8089,18 +8105,6 @@ impl App {
             ("right-click", "Tab menu"),
             ("Ctrl+Q", "Quit"),
         ];
-
-        let hint_base = ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(Role::Surface(termrock::Surface::Canvas)),
-        );
-        let hint_key = ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
-        );
-        let hint_action = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
 
         let is_modal = self.capsule_palette_open
             || self.capsule_new_tab_open
@@ -8139,68 +8143,42 @@ impl App {
             BASE_HINTS
         };
 
-        let runs: &[(&[(&str, &str)], bool)] = if is_modal {
-            &[(BASE_HINTS, true), (hints, false)]
-        } else {
-            &[(hints, false)]
-        };
-
-        let str_w = |s: &str| s.chars().count() as u16;
-
-        for &(run_hints, blank_after) in runs {
-            let mut right_w = 0u16;
-            if let Some(r) = self.status.as_deref() {
-                let w = str_w(r);
-                if w > 0 && area.width > w + 2 {
-                    let sx = area.right().saturating_sub(w).saturating_sub(1);
-                    ui.paint_str(Rect::new(sx, area.y, w, 1), r, palette.secondary_on_canvas);
-                    right_w = w + 3;
-                }
-            }
-
-            let limit = area.right().saturating_sub(right_w);
-            let hint_w = |(k, a): &(&str, &str)| str_w(k) + 1 + str_w(a) + 2;
-            let mut used = 0u16;
-            let mut n = 0usize;
-            for (i, h) in run_hints.iter().enumerate() {
-                let reserve = if i + 1 < run_hints.len() { 2 } else { 0 };
-                if 1 + used + hint_w(h) + reserve > limit {
-                    break;
-                }
-                used += hint_w(h);
-                n += 1;
-            }
-            if n < run_hints.len() {
-                used += 2;
-            }
-            let free = area.width.saturating_sub(used);
-            let mid = area.x + free / 2;
-            let mut x = mid
-                .max(area.x + 1)
-                .min(limit.saturating_sub(used).max(area.x + 1));
-
-            let mut drawn = 0usize;
-            for (i, (key, action)) in run_hints.iter().enumerate() {
-                let kw = str_w(key);
-                let aw = str_w(action);
-                let w = kw + 1 + aw + 2;
-                let reserve = if i + 1 < run_hints.len() { 2 } else { 0 };
-                if x + w + reserve > limit {
-                    break;
-                }
-                ui.paint_str(Rect::new(x, area.y, kw, 1), key, hint_key);
-                ui.paint_str(Rect::new(x + kw + 1, area.y, aw, 1), action, hint_action);
-                x += w;
-                drawn += 1;
-            }
-            if drawn < run_hints.len() && x < limit {
-                ui.paint_str(Rect::new(x, area.y, 1, 1), "…", palette.border_on_canvas);
-            }
-            if blank_after {
-                let spaces = " ".repeat(area.width as usize);
-                ui.paint_str(area, &spaces, hint_base);
-            }
+        // Canvas row, secondary status, faint cut marker. The modal pass
+        // paints the screen keys first. The next fill keeps their bold in
+        // the gaps the modal text does not replace.
+        const PARTS: &[(Part, StylePatch)] = &[
+            (
+                Part::CONTAINER,
+                StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Canvas)),
+            ),
+            (
+                Part::LABEL,
+                StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Secondary))
+                    .remove(Modifier::BOLD),
+            ),
+            (
+                Part::OVERFLOW,
+                StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Faint))
+                    .remove(Modifier::BOLD),
+            ),
+        ];
+        let status = self.status.as_deref();
+        if is_modal {
+            let under = Self::capsule_hint_layer(BASE_HINTS);
+            HintBar::new(APP.sub("hint"), &under)
+                .status_text(status)
+                .patch_part(PARTS)
+                .draw(ui, area);
         }
+        let layer = Self::capsule_hint_layer(hints);
+        HintBar::new(APP.sub("hint"), &layer)
+            .status_text(status)
+            .patch_part(PARTS)
+            .draw(ui, area);
     }
 
     /// Bottom chrome as a [`StatusBar`] composition: the work (branch or PR
