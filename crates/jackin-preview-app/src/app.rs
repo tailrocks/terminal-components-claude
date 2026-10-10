@@ -47,7 +47,7 @@ use crate::screens::{
     manager::{LaunchCandidate, ManagerRowKey, ManagerState},
     prelude::{PreludeState, PreludeUiState},
     settings::{SettingsFocus, SettingsScreen, SettingsState},
-    usage::{Tab as UsageTab, UsageState},
+    usage::UsageState,
 };
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun};
 use crate::sim::provider;
@@ -5328,6 +5328,7 @@ impl App {
                     }
                 } else if self.route == Route::Accounts {
                     self.usage_detail = false;
+                    self.usage.close_detail();
                     if self.usage.selected().is_none() {
                         let selected = match self.accounts.selected.clone() {
                             AccountSel::Account(id) => Some(id),
@@ -5498,21 +5499,14 @@ impl App {
             }
             CMD_USAGE => {
                 self.usage_detail = false;
+                self.usage.close_detail();
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.capsule_usage = true;
                     self.status = Some("Usage".into());
                 } else {
-                    if self.usage.selected().is_none() {
-                        let selected = self
-                            .world
-                            .accounts
-                            .sorted()
-                            .first()
-                            .map(|account| account.id.clone());
-                        self.usage.select(selected);
-                    }
                     self.route = Route::Usage;
+                    cx.focus(crate::screens::usage::LIST);
                 }
                 Some(Response::changed())
             }
@@ -5970,7 +5964,12 @@ impl App {
                 Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.route == Route::Usage => {
+                if self.usage.selected().is_none() {
+                    self.usage.move_account(&self.world, 1);
+                }
                 self.usage_detail = true;
+                let _ = self.usage.open_detail();
+                cx.focus(crate::screens::usage::DETAIL.sub("title"));
                 Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.route == Route::Editor => {
@@ -6400,7 +6399,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_NAV_DOWN if self.route == Route::Usage => {
-                self.usage.next_tab();
+                self.usage.move_account(&self.world, 1);
                 Some(Response::changed())
             }
             _ => None,
@@ -7193,31 +7192,8 @@ impl App {
     }
 
     fn draw_usage(&self, ui: &mut Ui<'_>, area: Rect) {
-        let summary = crate::domain::usage::OverallSummary::compute(&self.world.accounts.accounts);
-        let tab = match self.usage.tab {
-            UsageTab::Overview => "Overview",
-            UsageTab::Registration => "Registration",
-            UsageTab::Quota => "Quota",
-        };
-        let lines = [
-            "Usage · read-only".to_owned(),
-            tab.to_owned(),
-            "Limits".to_owned(),
-            format!("Health · {}", summary.health.label()),
-            format!(
-                "Accounts · {} total · {} enabled · {} disabled",
-                summary.counts.accounts, summary.counts.enabled, summary.counts.disabled
-            ),
-            format!(
-                "Providers · {} · warnings {} · exhausted {}",
-                summary.counts.providers, summary.counts.warnings, summary.counts.exhausted
-            ),
-            format!(
-                "Freshness · stale {} · failed {} · unresolved identities {}",
-                summary.counts.stale, summary.counts.failed, summary.counts.unresolved_identity
-            ),
-        ];
-        paint_lines(ui, area, &lines);
+        let focused = !self.help_open;
+        crate::screens::usage::UsageScreen::draw(ui, area, &self.usage, &self.world, focused);
     }
 
     fn draw_settings(&self, ui: &mut Ui<'_>, _area: Rect) {
@@ -8555,6 +8531,14 @@ impl App {
             return;
         }
 
+        if self.route == Route::Usage {
+            let hints = crate::screens::usage::UsageScreen::hints(self.usage.detail_open());
+            HintBar::new(APP.sub("hint"), &hints)
+                .status_text(self.status.as_deref())
+                .draw(ui, area);
+            return;
+        }
+
         if self.route == Route::Settings {
             let hints = SettingsScreen::hints(self.settings_tab, self.settings.focus);
             HintBar::new(APP.sub("hint"), &hints)
@@ -9275,18 +9259,6 @@ impl TuiApp for App {
                 return;
             }
         }
-        if self.route == Route::Usage
-            && (full.width, full.height) == (120, 40)
-            && self.motion == Motion::Paused
-        {
-            if self.usage_detail {
-                self.draw_historical_usage_detail_120_40(ui, full);
-                return;
-            } else {
-                self.draw_historical_usage_overview_120_40(ui, full);
-            }
-        }
-
         let header = Rect::new(full.x, full.y, full.width, 1);
         let footer = Rect::new(full.x, full.bottom().saturating_sub(1), full.width, 1);
         let body = if self.route == Route::Cockpit || self.route == Route::Launch {
