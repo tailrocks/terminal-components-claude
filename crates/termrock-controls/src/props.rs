@@ -428,6 +428,8 @@ pub struct PropsList<'a> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
+    focused: Option<bool>,
+    focusable: bool,
 }
 
 impl fmt::Debug for PropsList<'_> {
@@ -437,6 +439,8 @@ impl fmt::Debug for PropsList<'_> {
             .field("variant", &self.variant)
             .field("patch", &self.patch.is_some())
             .field("parts", &self.parts.len())
+            .field("focused", &self.focused)
+            .field("focusable", &self.focusable)
             .finish_non_exhaustive()
     }
 }
@@ -447,6 +451,7 @@ impl<'a> PropsList<'a> {
         Part::CONTAINER,
         Part::META,
         Part::LABEL,
+        Part::HELP,
         Part::ROW,
         Part::TRACK,
         Part::THUMB,
@@ -460,7 +465,29 @@ impl<'a> PropsList<'a> {
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
+            focused: None,
+            focusable: true,
         }
+    }
+
+    /// When false, the list paints and does not enter the focus ring.
+    ///
+    /// A dialog can show a cursor row while Close remains the only stop.
+    /// The default keeps the list as a focusable control.
+    #[must_use]
+    pub const fn focusable(mut self, yes: bool) -> Self {
+        self.focusable = yes;
+        self
+    }
+
+    /// Override whether the cursor row wears focus.
+    ///
+    /// `None` follows the runtime focus of this list. A dialog can show the
+    /// fact cursor while another control, such as Close, holds the focus ring.
+    #[must_use]
+    pub const fn focused(mut self, yes: bool) -> Self {
+        self.focused = Some(yes);
+        self
     }
 
     /// Select the theme variant.
@@ -745,11 +772,17 @@ impl<'a> PropsList<'a> {
         if area.is_empty() {
             return area;
         }
-        if !ui.is_inert() {
+        if !ui.is_inert() && self.focusable {
             ui.register_control(self.id, area, Focusability::Focusable);
         }
-        let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
-        if !ui.is_inert() {
+        let runtime = ui.state(self.id);
+        let live_flags = match self.focused {
+            Some(true) => runtime | StateFlags::FOCUSED,
+            Some(false) => runtime.difference(StateFlags::FOCUSED),
+            None => runtime,
+        };
+        let live = PartStyle::flags(live_flags, StateFlags::empty());
+        if !ui.is_inert() && self.focusable {
             ui.publish_bindings(self.id, live, &PROPS_BINDINGS);
         }
 

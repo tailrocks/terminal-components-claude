@@ -11,11 +11,11 @@ use termrock::author::{
 };
 use termrock::{
     Button, Empty, EmptyState, GlyphRole, Insets, LayerSize, LayerSpec, ListState, Panel,
-    PanelKind, Props, PropsRow, RowUi, ScrollState, SplitAxis, SplitPane, SplitPaneState, Tree,
-    TreeNode, TreeState, truncate, width,
+    PanelKind, Props, PropsList, PropsRow, PropsState, RowUi, ScrollState, SplitAxis, SplitPane,
+    SplitPaneState, Tree, TreeNode, TreeState, truncate, width,
 };
 
-use crate::manager_actions::{Fact, role_label};
+use crate::manager_actions::{Fact, FactTone, role_label};
 use jackin_preview_domain::account::AccountId;
 use jackin_preview_domain::agent::Agent;
 use jackin_preview_domain::clock::format_duration;
@@ -30,8 +30,14 @@ const FAINT_DETAIL_PATCH: [(Part, StylePatch); 1] = [(
 )];
 
 const TREE_PANEL_PATCH: [(Part, StylePatch); 2] = [
-    (Part::DETAIL, StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
-    (Part::META, StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+    (
+        Part::DETAIL,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+    ),
+    (
+        Part::META,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+    ),
 ];
 
 /// Cursor-row tint. Unfocused rows stay on the tree container.
@@ -694,26 +700,26 @@ pub use crate::manager_actions::inspect_facts;
 const INSPECT_PANEL_PATCH: [(Part, StylePatch); 4] = [
     (
         Part::CONTAINER,
-        StylePatch::new().set_bg(Role::Surface(Surface::Surface)),
+        StylePatch::new().set_bg(Role::Surface(Surface::Elevated)),
     ),
     (
         Part::BORDER,
         StylePatch::new()
-            .set_fg(Role::BorderSubtle)
-            .set_bg(Role::Surface(Surface::Surface)),
+            .set_fg(Role::BorderStrong)
+            .set_bg(Role::Surface(Surface::Elevated)),
     ),
     (
         Part::TITLE,
         StylePatch::new()
             .set_fg(Role::Fg(FgStep::Primary))
-            .set_bg(Role::Surface(Surface::Surface))
+            .set_bg(Role::Surface(Surface::Elevated))
             .add(Modifier::BOLD),
     ),
     (
         Part::DETAIL,
         StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Muted))
-            .set_bg(Role::Surface(Surface::Surface)),
+            .set_fg(Role::Fg(FgStep::Faint))
+            .set_bg(Role::Surface(Surface::Elevated)),
     ),
 ];
 
@@ -741,12 +747,13 @@ impl<'a> InspectDialog<'a> {
     }
 
     pub fn layer_spec(id: Id) -> LayerSpec {
-        LayerSpec::modal(id).size(LayerSize::Fixed(66, 14))
+        LayerSpec::modal(id)
+            .size(LayerSize::Fixed(66, 14))
+            .initial_focus(id.sub("close"))
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        ui.with_surface(Surface::Surface, |ui| {
-            let palette = ManagerPalette::new(ui);
+        ui.with_surface(Surface::Elevated, |ui| {
             let dialog_w = 66u16.min(area.width);
             let dialog_h = 14u16.min(area.height);
             let dialog_area = Rect::new(
@@ -765,138 +772,66 @@ impl<'a> InspectDialog<'a> {
                 .patch_part(&INSPECT_PANEL_PATCH)
                 .inner_inset(Insets::all(1))
                 .draw(ui, dialog_area, |ui, body| {
-                    let focus_bar_style =
-                        resolve_style(ui, Role::Focus, Role::Surface(Surface::Surface), true);
-                    let label_style = palette.card_secondary;
-                    let text_style = palette.card_primary;
-                    let bold_style = palette.card_primary_bold;
-                    let shortcut_style = palette.card_muted;
-
-                    for (i, fact) in self.facts.iter().enumerate() {
-                        let y = body.y.saturating_add(i as u16);
-                        if y >= body.bottom() {
-                            break;
-                        }
-                        let is_focused = i == self.focused_index;
-                        ui.paint_str(Rect::new(body.x, y, 1, 1), " ", label_style);
-                        if is_focused {
-                            ui.paint_str(
-                                Rect::new(body.x.saturating_add(1), y, 1, 1),
-                                "▎",
-                                focus_bar_style,
-                            );
-                            ui.paint_str(
-                                Rect::new(body.x.saturating_add(2), y, 1, 1),
-                                " ",
-                                bold_style,
-                            );
-                            ui.paint_str(
-                                Rect::new(body.x.saturating_add(3), y, fact.label.len() as u16, 1),
-                                fact.label,
-                                label_style,
-                            );
-
-                            let val_start = body
-                                .x
-                                .saturating_add(3)
-                                .saturating_add(fact.label.len() as u16);
-                            let hint_start = body.right().saturating_sub(9);
-                            let val_col = body.x.saturating_add(14);
-                            let lead_spaces = val_col.saturating_sub(val_start);
-                            let trail_spaces = hint_start
-                                .saturating_sub(val_col.saturating_add(fact.value.len() as u16));
-                            let val_str = format!(
-                                "{}{}{}",
-                                " ".repeat(lead_spaces as usize),
-                                fact.value,
-                                " ".repeat(trail_spaces as usize)
-                            );
-                            ui.paint_str(
-                                Rect::new(val_start, y, val_str.len() as u16, 1),
-                                &val_str,
-                                bold_style,
-                            );
-
-                            if fact.copyable {
-                                ui.paint_str(
-                                    Rect::new(hint_start, y, 6, 1),
-                                    "y copy",
-                                    shortcut_style,
-                                );
-                            } else {
-                                ui.paint_str(Rect::new(hint_start, y, 6, 1), "      ", bold_style);
+                    // The fact cursor sits one cell in from the frame. The
+                    // list stops two cells before the right border, which
+                    // puts `y copy` on the same column as the frozen row.
+                    let rows: Vec<PropsRow<'_>> = self
+                        .facts
+                        .iter()
+                        .enumerate()
+                        .map(|(i, fact)| {
+                            let row =
+                                PropsRow::new(ItemKey::index(i), fact.label, fact.value.as_str())
+                                    .copyable_if(fact.copyable);
+                            match fact.tone {
+                                FactTone::Normal => row,
+                                FactTone::Secondary => row.tone(Role::Fg(FgStep::Secondary)),
+                                FactTone::Warning => row.tone(Role::Warning),
+                                FactTone::Error => row.tone(Role::Danger),
                             }
-                            ui.paint_str(
-                                Rect::new(hint_start.saturating_add(6), y, 1, 1),
-                                " ",
-                                bold_style,
-                            );
-                            ui.paint_str(
-                                Rect::new(body.right().saturating_sub(2), y, 2, 1),
-                                "  ",
-                                label_style,
-                            );
-                        } else {
-                            ui.paint_str(
-                                Rect::new(body.x.saturating_add(1), y, 1, 1),
-                                " ",
-                                resolve_style(
-                                    ui,
-                                    Role::Surface(Surface::Surface),
-                                    Role::Surface(Surface::Surface),
-                                    false,
-                                ),
-                            );
-                            ui.paint_str(
-                                Rect::new(body.x.saturating_add(2), y, 1, 1),
-                                " ",
-                                text_style,
-                            );
-                            ui.paint_str(
-                                Rect::new(body.x.saturating_add(3), y, fact.label.len() as u16, 1),
-                                fact.label,
-                                label_style,
-                            );
-
-                            let val_start = body
-                                .x
-                                .saturating_add(3)
-                                .saturating_add(fact.label.len() as u16);
-                            let val_end = body.right().saturating_sub(2);
-                            let val_col = body.x.saturating_add(14);
-                            let lead_spaces = val_col.saturating_sub(val_start);
-                            let trail_spaces = val_end
-                                .saturating_sub(val_col.saturating_add(fact.value.len() as u16));
-                            let val_str = format!(
-                                "{}{}{}",
-                                " ".repeat(lead_spaces as usize),
-                                fact.value,
-                                " ".repeat(trail_spaces as usize)
-                            );
-                            ui.paint_str(
-                                Rect::new(val_start, y, val_str.len() as u16, 1),
-                                &val_str,
-                                text_style,
-                            );
-
-                            ui.paint_str(
-                                Rect::new(body.right().saturating_sub(2), y, 2, 1),
-                                "  ",
-                                label_style,
-                            );
-                        }
+                        })
+                        .collect();
+                    let mut props = PropsState::default();
+                    if !rows.is_empty() {
+                        let index = self.focused_index.min(rows.len() - 1);
+                        props.set_cursor(index, ItemKey::index(index));
                     }
+                    let row_h = u16::try_from(rows.len()).unwrap_or(u16::MAX);
+                    const ROWS: [(Part, StylePatch); 2] = [
+                        (
+                            Part::META,
+                            StylePatch::new()
+                                .set_fg(Role::Fg(FgStep::Muted))
+                                .remove(Modifier::BOLD),
+                        ),
+                        (
+                            Part::HELP,
+                            StylePatch::new()
+                                .set_fg(Role::Fg(FgStep::Faint))
+                                .remove(Modifier::BOLD),
+                        ),
+                    ];
+                    PropsList::new(self.id.sub("facts"))
+                        .focused(true)
+                        .focusable(false)
+                        .patch_part(&ROWS)
+                        .draw(
+                            ui,
+                            Rect::new(
+                                body.x.saturating_add(1),
+                                body.y,
+                                body.width.saturating_sub(3),
+                                row_h.min(body.height.saturating_sub(1)),
+                            ),
+                            &props,
+                            &rows,
+                        );
 
                     let btn_y = body.bottom().saturating_sub(1);
                     let btn_x = body.right().saturating_sub(9);
                     Button::new(INSPECT_CLOSE, "Close")
                         .variant(Variant::SECONDARY)
                         .draw(ui, Rect::new(btn_x, btn_y, 7, 1));
-                    ui.paint_str(
-                        Rect::new(body.right().saturating_sub(2), btn_y, 2, 1),
-                        "  ",
-                        label_style,
-                    );
                 });
         });
     }

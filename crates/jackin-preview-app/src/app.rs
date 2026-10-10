@@ -10224,6 +10224,64 @@ mod paint_contract_tests {
     }
 
     #[test]
+    fn inspect_facts_are_owned_by_props_list() {
+        use termrock::{Color, PartRef, Theme};
+        use termrock_test_support::Harness;
+        let mut harness = Harness::new(
+            App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = harness.key(KeyCode::Down);
+        let _ = harness.key(KeyCode::Char(' '));
+        let _ = harness.key(KeyCode::Down);
+        let _ = harness.key(KeyCode::Char('i'));
+        let (hx, hy) = harness.find("y copy").expect("copy hint");
+        assert_eq!(harness.cell(hx, hy).fg, Color::Rgb(77, 77, 77));
+        assert!(
+            !harness
+                .cell(hx, hy)
+                .modifier
+                .contains(termrock::Modifier::BOLD)
+        );
+        let marker = (0..hx).find(|x| harness.cell(*x, hy).symbol() == "▎");
+        let marker = marker.expect("focus bar");
+        assert_eq!(harness.cell(marker, hy).fg, Color::Rgb(72, 224, 84));
+        assert!(
+            harness
+                .cell(marker, hy)
+                .modifier
+                .contains(termrock::Modifier::BOLD)
+        );
+        let image = harness.row(hy + 1);
+        let label_at = image.find("Image").expect("image label");
+        assert_eq!(
+            harness.cell(label_at as u16, hy + 1).fg,
+            Color::Rgb(128, 128, 128),
+            "fact labels stay muted"
+        );
+        let owned = harness
+            .area_of_part(
+                crate::screens::manager::INSPECT.sub("facts"),
+                PartRef::item(Part::ROW, ItemKey::index(0)),
+            )
+            .expect("PropsList owns the focused fact");
+        assert_eq!(owned.y, hy);
+        assert!(owned.x <= hx && hx < owned.right());
+        assert_eq!(
+            harness.focus(),
+            Some(crate::screens::manager::INSPECT_CLOSE),
+            "Close keeps the focus ring"
+        );
+        let _ = harness.key(KeyCode::Enter);
+        assert!(
+            harness.find("y copy").is_none(),
+            "Enter on Close dismisses the inspect dialog"
+        );
+    }
+
+    #[test]
     fn host_header_facts_are_owned_by_status_bar() {
         use termrock::{PartRef, Theme};
         use termrock_test_support::Harness;
