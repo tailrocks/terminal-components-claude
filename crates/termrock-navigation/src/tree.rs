@@ -700,8 +700,8 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     row: R,
     render_row: Option<TreeRowRenderer<'a, T>>,
     node: Option<&'a dyn Fn(&T) -> TreeNode>,
-    icon: Option<&'a dyn Fn(&T) -> Option<(&'static str, StylePatch)>>,
-    trailing_mark: Option<&'a dyn Fn(&T) -> Option<(GlyphRole, StylePatch)>>,
+    icon: Option<TreeIconFn<'a, T>>,
+    trailing_mark: Option<TreeTrailingMarkFn<'a, T>>,
     focused_patch: Option<&'a StylePatch>,
     publish_keymap: bool,
     branch_activation: TreeBranchActivation,
@@ -730,6 +730,12 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     fwd_slot: Option<(Part, SlotFn<'a>)>,
     _t: PhantomData<fn(&T)>,
 }
+
+/// Borrowed tree icon callback.
+pub type TreeIconFn<'a, T> = &'a dyn Fn(&T) -> Option<(&'static str, StylePatch)>;
+
+/// Borrowed tree trailing-mark callback.
+pub type TreeTrailingMarkFn<'a, T> = &'a dyn Fn(&T) -> Option<(GlyphRole, StylePatch)>;
 
 type TreeRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
 
@@ -820,7 +826,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
     /// paint a second icon. `Some` paints that one-cell string with the
     /// patch.
     #[must_use]
-    pub const fn icon(mut self, f: &'a dyn Fn(&T) -> Option<(&'static str, StylePatch)>) -> Self {
+    pub const fn icon(mut self, f: TreeIconFn<'a, T>) -> Self {
         self.icon = Some(f);
         self
     }
@@ -830,10 +836,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
     /// `None` leaves the row width unchanged. `Some` shrinks that row's
     /// [`RowUi`] by two cells and paints the glyph at the row's right-2.
     #[must_use]
-    pub const fn trailing_mark(
-        mut self,
-        f: &'a dyn Fn(&T) -> Option<(GlyphRole, StylePatch)>,
-    ) -> Self {
+    pub const fn trailing_mark(mut self, f: TreeTrailingMarkFn<'a, T>) -> Self {
         self.trailing_mark = Some(f);
         self
     }

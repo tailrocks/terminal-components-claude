@@ -61,7 +61,8 @@ pub use nav_list::{BadgeFn, NavList, NavListAction, NavListCmd, NavListState, Na
 pub use steps::{StepMetaFn, StepState, Steps, StepsAction, StepsCmd, StepsState};
 pub use tabs::{Tabs, TabsAction, TabsCmd, TabsState};
 pub use tree::{
-    NodeKind, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode, TreeState,
+    NodeKind, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeIconFn,
+    TreeNode, TreeState, TreeTrailingMarkFn,
 };
 
 // Re-export PropsList types from termrock-controls per CRATES.md
