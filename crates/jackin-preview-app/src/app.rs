@@ -8517,16 +8517,29 @@ impl App {
         }
 
         if self.manager_launch_picker_open() {
-            let (status, status_text) = match &self.world.arbiter.discovery {
-                Err(err) => (
-                    Status::Warning,
-                    Some(format!(
-                        "Could not confirm running instances: {} · entered without the ritual",
-                        err.label()
-                    )),
-                ),
-                Ok(_) => (Status::Ready, None),
+            // Tag `draw` paints the screen footer, then the picker modal,
+            // then this footer. The second fill keeps key-chip weight in
+            // the gaps. The labels are Move, Choose, and Cancel; a slot
+            // must not repaint Move from the cell's x.
+            let under = self.manager_hints();
+            let warning = match &self.world.arbiter.discovery {
+                Err(err) => Some(format!(
+                    "Could not confirm running instances: {} · entered without the ritual",
+                    err.label()
+                )),
+                Ok(_) => None,
             };
+            // The degraded screen footer already carries the warning, so its
+            // bold key chips are what the modal fill leaves behind. Painting
+            // that same warning underneath keeps those chips and does not
+            // lay centered keys under the status text.
+            let mut under_bar = HintBar::new(APP.sub("hint"), &under);
+            if warning.is_some() {
+                under_bar = under_bar
+                    .status(Status::Warning)
+                    .status_text(warning.as_deref());
+            }
+            under_bar.draw(ui, area);
             let hints = HintLayer {
                 hints: vec![
                     Hint {
@@ -8549,54 +8562,9 @@ impl App {
                 status: None,
                 centered: true,
             };
-            let palette = HistoricalPalette::new(ui);
-            let normal_canvas = palette.primary_on_canvas;
-            let bold_canvas = palette.primary_on_canvas_bold;
-            let muted_normal = palette.muted_on_canvas;
-            let muted_bold = palette
-                .muted_on_canvas
-                .add_modifier(termrock::author::Modifier::BOLD);
-
-            let container_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                ui.fill(cell, normal_canvas);
-                if status == Status::Warning {
-                    ui.paint_str(Rect::new(1, cell.y, 5, 1), "     ", bold_canvas);
-                } else {
-                    ui.paint_str(Rect::new(14, cell.y, 5, 1), "     ", bold_canvas);
-                    ui.paint_str(Rect::new(28, cell.y, 1, 1), " ", bold_canvas);
-                    ui.paint_str(Rect::new(35, cell.y, 1, 1), " ", bold_canvas);
-                    ui.paint_str(Rect::new(77, cell.y, 1, 1), " ", bold_canvas);
-                    ui.paint_str(Rect::new(89, cell.y, 1, 1), " ", bold_canvas);
-                    ui.paint_str(Rect::new(97, cell.y, 1, 1), " ", bold_canvas);
-                }
-            };
-
-            let action_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                if status != Status::Warning && cell.x < 50 {
-                    ui.paint_str(Rect::new(cell.x, cell.y, 1, 1), "M", muted_bold);
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(1), cell.y, 3, 1),
-                        "ove",
-                        muted_normal,
-                    );
-                } else {
-                    let label = if cell.x < 50 {
-                        "Move"
-                    } else if cell.x < 65 {
-                        "Choose"
-                    } else {
-                        "Cancel"
-                    };
-                    ui.paint_str(cell, label, muted_normal);
-                }
-            };
-
-            let mut bar = HintBar::new(APP.sub("hint"), &hints)
-                .status(status)
-                .slot(Part::CONTAINER, &container_slot)
-                .slot(Part::ACTION, &action_slot);
-            if let Some(text) = status_text.as_deref() {
-                bar = bar.status_text(Some(text));
+            let mut bar = HintBar::new(APP.sub("hint"), &hints);
+            if warning.is_some() {
+                bar = bar.status(Status::Warning).status_text(warning.as_deref());
             }
             bar.draw(ui, area);
             return;
@@ -10328,6 +10296,77 @@ mod paint_contract_tests {
                 "stock KeyHint paints Scroll"
             );
         }
+    }
+
+    #[test]
+    fn launch_picker_footer_is_owned_by_hint_bar() {
+        use termrock::Theme;
+        use termrock_test_support::Harness;
+        let open = |scenario, w, h| {
+            let mut harness = Harness::new(
+                App::for_scenario_at(scenario, Motion::Paused, 40),
+                Theme::junie(),
+                w,
+                h,
+            );
+            let _ = harness.key(KeyCode::Enter);
+            harness
+        };
+        for (w, h, path) in [
+            (
+                72,
+                20,
+                "baselines/tuiscotti-v1/jackin/manager/launch-picker/72x20/truecolor.txt",
+            ),
+            (
+                80,
+                24,
+                "baselines/tuiscotti-v1/jackin/manager/launch-picker/80x24/truecolor.txt",
+            ),
+            (
+                100,
+                30,
+                "baselines/tuiscotti-v1/jackin/manager/launch-picker/100x30/truecolor.txt",
+            ),
+            (
+                120,
+                40,
+                "baselines/tuiscotti-v1/jackin/manager/launch-picker/120x40/truecolor.txt",
+            ),
+            (
+                160,
+                50,
+                "baselines/tuiscotti-v1/jackin/manager/launch-picker/160x50/truecolor.txt",
+            ),
+        ] {
+            let harness = open(Scenario::Returning, w, h);
+            let y = h - 1;
+            let footer = harness.row(y).trim_end().to_string();
+            assert_eq!(footer, frozen_last(path), "{w}x{h} launch picker footer");
+            assert!(
+                footer.contains("Move") && footer.contains("Choose") && footer.contains("Cancel"),
+                "{footer}"
+            );
+            let move_x = (0..w).find(|x| {
+                harness.cell(*x, y).symbol() == "M"
+                    && harness.cell(x.saturating_add(1), y).symbol() == "o"
+            });
+            let move_x = move_x.expect("Move on the footer row");
+            assert_eq!(
+                harness.cell(move_x, y).fg,
+                termrock::Color::Rgb(128, 128, 128),
+                "stock KeyHint paints Move"
+            );
+        }
+        let hard = open(Scenario::HardCases, 120, 40);
+        let hard_footer = hard.row(39).trim_end().to_string();
+        assert_eq!(
+            hard_footer,
+            frozen_last(
+                "baselines/tuiscotti-v1/jackin/manager/hard-launch-picker/120x40/truecolor.txt"
+            ),
+            "{hard_footer}"
+        );
     }
 
     #[test]
