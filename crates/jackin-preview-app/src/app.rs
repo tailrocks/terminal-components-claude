@@ -143,6 +143,8 @@ const CAPSULE_TAB_MENU: Id = APP.sub("capsule-tab-menu");
 const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
 /// Capsule container identity dialog.
 const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
+/// Property list inside the container identity dialog.
+const CONTAINER_INFO_PROPS: Id = CAPSULE_CONTAINER_INFO.sub("props");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
 const MANAGER_HELP: Id = APP.sub("manager-help");
 pub const MANAGER_INSPECT: Id = crate::screens::manager::INSPECT;
@@ -893,6 +895,7 @@ pub struct App {
     capsule_menu_state: MenuState,
     manager_menu_state: MenuState,
     container_info_state: DialogState,
+    container_info_props: PropsState,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
@@ -1098,6 +1101,7 @@ impl App {
             capsule_menu_state: MenuState::default(),
             manager_menu_state: MenuState::default(),
             container_info_state: DialogState::default(),
+            container_info_props: PropsState::default(),
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
@@ -1742,12 +1746,26 @@ impl App {
         Dialog::info(CAPSULE_CONTAINER_INFO, "Container info").body_rows(9)
     }
 
-    fn container_info_lines(&self) -> Vec<String> {
+    /// Borrowed rows for [`PropsList`]. Labels and copyability follow the
+    /// tag info dialog; values stay on the instance record.
+    fn container_info_rows(facts: &[ContainerInfoFact]) -> Vec<PropsRow<'_>> {
+        facts
+            .iter()
+            .enumerate()
+            .map(|(index, fact)| {
+                let row =
+                    PropsRow::new(ItemKey::num(index as u64), fact.label, fact.value.as_str());
+                if fact.copyable { row.copyable() } else { row }
+            })
+            .collect()
+    }
+
+    fn container_info_facts(&self) -> Vec<ContainerInfoFact> {
         let Some(instance_id) = self.active_running_instance_id() else {
-            return vec!["No running Capsule instance is attached.".into()];
+            return vec![ContainerInfoFact::detached()];
         };
         let Some(instance) = self.world.instance(&instance_id) else {
-            return vec!["No running Capsule instance is attached.".into()];
+            return vec![ContainerInfoFact::detached()];
         };
         let focused = self
             .world
@@ -1768,27 +1786,40 @@ impl App {
             },
         );
         vec![
-            format!("Container       {}", instance.container_id()),
-            format!("Container ID    {}", instance.container_uid()),
-            format!("Role            {}", instance.role),
-            format!("Agent           {agent}"),
-            format!("Workdir         {}", instance.workdir),
-            format!("Instance        {}", instance.id.trim_start_matches("jk-")),
-            "Capsule         0.9.2".into(),
-            format!("Invocation ID   {}-4f11", instance.run_id),
-            format!(
-                "Host log        file:///Users/alexey/.jackin/logs/{}.log",
-                instance.run_id
+            ContainerInfoFact::new("Container", instance.container_id(), true),
+            ContainerInfoFact::new("Container ID", instance.container_uid(), true),
+            ContainerInfoFact::new("Role", instance.role.clone(), false),
+            ContainerInfoFact::new("Agent", agent, false),
+            ContainerInfoFact::new("Workdir", instance.workdir.clone(), false),
+            ContainerInfoFact::new(
+                "Instance",
+                instance.id.trim_start_matches("jk-").to_owned(),
+                false,
+            ),
+            ContainerInfoFact::new("Capsule", "0.9.2".to_owned(), false),
+            ContainerInfoFact::new("Invocation ID", format!("{}-4f11", instance.run_id), true),
+            ContainerInfoFact::new(
+                "Host log",
+                format!("file:///Users/alexey/.jackin/logs/{}.log", instance.run_id),
+                false,
             ),
         ]
     }
 
     fn open_container_info(&mut self, cx: &mut Cx<'_>) {
         self.container_info_state = DialogState::default();
-        cx.open_layer(
-            CAPSULE_CONTAINER_INFO,
-            Self::container_info_dialog().layer(cx),
-        );
+        self.container_info_props = PropsState::default();
+        let mut spec = Self::container_info_dialog().layer(cx);
+        spec.initial_focus = Some(CONTAINER_INFO_PROPS);
+        cx.open_layer(CAPSULE_CONTAINER_INFO, spec);
+        let facts = self.container_info_facts();
+        let rows = Self::container_info_rows(&facts);
+        if let Some(row) = rows.first() {
+            self.container_info_props.set_cursor(0, row.key);
+        }
+        let _ = PropsList::new(CONTAINER_INFO_PROPS)
+            .update(cx, &mut self.container_info_props, &rows)
+            .erase();
         self.status = Some("Container info".into());
     }
 
@@ -3582,6 +3613,23 @@ impl App {
             self.status = None;
         }
         result |= response.erase();
+        if cx.is_open(CAPSULE_CONTAINER_INFO) {
+            let facts = self.container_info_facts();
+            let rows = Self::container_info_rows(&facts);
+            let props = PropsList::new(CONTAINER_INFO_PROPS).update(
+                cx,
+                &mut self.container_info_props,
+                &rows,
+            );
+            if let Some(PropsAction::Copy(key)) = props.action_ref().copied()
+                && let Some(row) = rows.iter().find(|row| row.key == key)
+                && let Some(text) = row.value.text()
+            {
+                self.world.clipboard = Some(text.to_owned());
+                self.status = Some("Copied to the preview clipboard".into());
+            }
+            result |= props.erase();
+        }
 
         // Drain the dialog and its body control while a child picker is
         // open too.  Layer dismissal intents are addressed to the underlying
@@ -9277,9 +9325,15 @@ impl App {
         });
         let info = Self::container_info_dialog();
         let _ = ui.layer(CAPSULE_CONTAINER_INFO, |ui, area| {
-            let info_lines = self.container_info_lines();
+            let facts = self.container_info_facts();
+            let rows = Self::container_info_rows(&facts);
             info.draw(ui, area, &self.container_info_state, |ui, body| {
-                paint_lines(ui, body, &info_lines)
+                PropsList::new(CONTAINER_INFO_PROPS).draw(
+                    ui,
+                    body,
+                    &self.container_info_props,
+                    &rows,
+                );
             })
         });
         let dialog = Self::launch_dialog();
@@ -10022,6 +10076,31 @@ fn provider_label(provider: Provider) -> &'static str {
     }
 }
 
+/// One container-info fact. The preview owns the text; [`PropsList`] owns the row.
+struct ContainerInfoFact {
+    label: &'static str,
+    value: String,
+    copyable: bool,
+}
+
+impl ContainerInfoFact {
+    fn new(label: &'static str, value: String, copyable: bool) -> Self {
+        Self {
+            label,
+            value,
+            copyable,
+        }
+    }
+
+    fn detached() -> Self {
+        Self::new(
+            "Capsule",
+            "No running Capsule instance is attached.".to_owned(),
+            false,
+        )
+    }
+}
+
 fn source_label(index: u8) -> &'static str {
     match index {
         1 => "Local agent folder",
@@ -10149,6 +10228,46 @@ mod tests {
 #[cfg(test)]
 mod paint_contract_tests {
     use super::*;
+    #[test]
+    fn container_info_rows_are_owned_by_props_list() {
+        use termrock::Theme;
+        use termrock_test_support::Harness;
+        let app = App::for_scenario(Scenario::CapsuleMulti, Motion::Paused);
+        let instance = app
+            .active_running_instance_id()
+            .as_deref()
+            .and_then(|id| app.world.instance(id))
+            .expect("capsule scenario attaches a running instance");
+        let uid = instance.container_uid();
+        let mut h = Harness::new(app, Theme::junie(), 120, 40);
+        let _ = h.ctrl('b');
+        let _ = h.key(KeyCode::Char('i'));
+        assert!(
+            h.area_of(CONTAINER_INFO_PROPS).is_some(),
+            "PropsList must register the dialog body"
+        );
+        let (label_x, role_y) = h.find("Role").expect("PropsList paints the role label");
+        assert!(
+            h.find(&uid).is_some(),
+            "instance container id reaches the list"
+        );
+        assert!(h.find("Invocation ID").is_some());
+        let gutter = label_x.saturating_sub(2);
+        assert_eq!(
+            h.cell(gutter, role_y.saturating_sub(2)).symbol(),
+            "▎",
+            "the first property row carries the list cursor"
+        );
+        let _ = h.key(KeyCode::Down);
+        let (label_x, role_y) = h.find("Role").expect("role label stays after cursor move");
+        let gutter = label_x.saturating_sub(2);
+        assert_eq!(h.cell(gutter, role_y.saturating_sub(1)).symbol(), "▎");
+        assert_eq!(h.cell(gutter, role_y.saturating_sub(2)).symbol(), " ");
+        assert_eq!(h.app().container_info_props.cursor_index(), 1);
+        let _ = h.key(KeyCode::Char('y'));
+        assert_eq!(h.app().world.clipboard.as_deref(), Some(uid.as_str()));
+    }
+
     #[test]
     fn historical_failure_and_action_labels_remain_readable_in_mono() {
         use termrock::{ColorLevel, Theme};
