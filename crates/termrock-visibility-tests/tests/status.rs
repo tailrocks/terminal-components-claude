@@ -651,6 +651,10 @@ const PROVIDER_ARCHIVE_DIR: &str =
     "docs/implementation/visibility/evidence/reports/provider-observations-test";
 const PROVIDER_SOURCE_SHA: &str = "3333333333333333333333333333333333333333";
 const PROVIDER_SOURCE_TREE: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const PROVIDER_POLL_ARCHIVE_DIR: &str =
+    "docs/implementation/visibility/evidence/reports/provider-poll-observations-test";
+const PROVIDER_POLL_SOURCE_SHA: &str = "58de6bb6c8e23da8a1f66237db179d7c58c79b28";
+const PROVIDER_POLL_SOURCE_TREE: &str = "c4b73494c2913910366dd9fcedf4cf712806298b";
 
 fn write_provider_capture(
     fixture: &StatusFixture,
@@ -848,6 +852,246 @@ fn provider_observations_bundle(
     })
 }
 
+fn write_provider_poll_capture(
+    fixture: &StatusFixture,
+    name: &str,
+    bytes: &[u8],
+    files: &mut Vec<serde_json::Value>,
+) -> serde_json::Value {
+    let member_path = format!("raw/{name}");
+    let repo_path = format!("{PROVIDER_POLL_ARCHIVE_DIR}/{member_path}");
+    let path = fixture.repo.root().join(&repo_path);
+    fs::create_dir_all(path.parent().expect("provider poll member parent"))
+        .expect("create provider poll archive directory");
+    fs::write(path, bytes).expect("write provider poll archive member");
+    files.push(serde_json::json!({
+        "path": member_path,
+        "source_path": format!("/fixture/provider-poll/{name}"),
+        "bytes": bytes.len(),
+        "sha256": sha256_hex(bytes),
+        "source_mode": "600",
+        "description": format!("synthetic provider poll evidence {name}"),
+    }));
+    serde_json::json!({
+        "path": repo_path,
+        "sha256": sha256_hex(bytes),
+        "bytes": bytes.len(),
+    })
+}
+
+fn write_provider_poll_json_capture(
+    fixture: &StatusFixture,
+    name: &str,
+    value: &serde_json::Value,
+    files: &mut Vec<serde_json::Value>,
+) -> serde_json::Value {
+    let bytes = serde_json::to_vec(value).expect("serialize provider poll JSON");
+    write_provider_poll_capture(fixture, name, &bytes, files)
+}
+
+fn provider_poll_observations_bundle(fixture: &StatusFixture) -> serde_json::Value {
+    let observed_at = "2026-10-10T04:12:40Z";
+    let created_at = "2026-10-10T03:42:50Z";
+    let run_id = 38021527173_u64;
+    let run_number = 871_u64;
+    let run_attempt = 1_u64;
+    let workflow_id = 349610291_u64;
+    let run_url = format!(
+        "https://github.com/tailrocks/terminal-components-claude/actions/runs/{run_id}"
+    );
+    let run_api_url = format!(
+        "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/{run_id}"
+    );
+    let workflow_path = ".github/workflows/ci.yml";
+    let mut files = Vec::new();
+    let pull_request = serde_json::json!({
+        "number": 17,
+        "head": {"ref": "termrock-implementation", "sha": PROVIDER_POLL_SOURCE_SHA},
+        "base": {"ref": "main", "sha": "81a8bf15cd3042f80649e2b48fed479829518dbd"}
+    });
+    let candidate_ref = serde_json::json!({
+        "ref": "refs/heads/termrock-implementation",
+        "object": {"sha": PROVIDER_POLL_SOURCE_SHA, "type": "commit"}
+    });
+    let commit = serde_json::json!({
+        "sha": PROVIDER_POLL_SOURCE_SHA,
+        "commit": {"tree": {"sha": PROVIDER_POLL_SOURCE_TREE}}
+    });
+    let run_api = serde_json::json!({
+        "id": run_id,
+        "run_number": run_number,
+        "run_attempt": run_attempt,
+        "workflow_id": workflow_id,
+        "name": workflow_path,
+        "path": workflow_path,
+        "head_branch": "termrock-implementation",
+        "head_sha": PROVIDER_POLL_SOURCE_SHA,
+        "event": "push",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": created_at,
+        "url": run_api_url,
+        "html_url": run_url
+    });
+    let run_view = serde_json::json!({
+        "databaseId": run_id,
+        "workflowName": "CI",
+        "headBranch": "termrock-implementation",
+        "headSha": PROVIDER_POLL_SOURCE_SHA,
+        "status": "completed",
+        "conclusion": "failure",
+        "event": "push",
+        "createdAt": created_at,
+        "updatedAt": created_at,
+        "jobs": [],
+        "url": run_url
+    });
+    let jobs_api = serde_json::json!({
+        "message": "Not Found",
+        "documentation_url": "https://docs.github.com/rest",
+        "status": "404"
+    });
+    let artifacts_api = serde_json::json!({"total_count": 0, "artifacts": []});
+    let dco_checks = serde_json::json!({
+        "total_count": 1,
+        "check_runs": [{
+            "id": 114123397279_u64,
+            "name": "DCO",
+            "head_sha": PROVIDER_POLL_SOURCE_SHA,
+            "status": "completed",
+            "conclusion": "success"
+        }]
+    });
+
+    let mut captures = serde_json::Map::new();
+    for (role, name, value) in [
+        ("pull_request", "pull-17.json", Some(&pull_request)),
+        ("candidate_ref", "head-termrock-implementation.json", Some(&candidate_ref)),
+        ("commit", "commit-object.json", Some(&commit)),
+        ("run_api", "run-api.json", Some(&run_api)),
+        ("run_view", "run-view.json", Some(&run_view)),
+        ("jobs_api", "run-jobs-api.json", Some(&jobs_api)),
+        ("artifacts_api", "run-artifacts-api.json", Some(&artifacts_api)),
+        ("dco_checks", "check-runs-retry.json", Some(&dco_checks)),
+    ] {
+        captures.insert(
+            role.to_string(),
+            write_provider_poll_json_capture(
+                fixture, name, value.expect("JSON provider capture"), &mut files,
+            ),
+        );
+    }
+    for (role, name, bytes) in [
+        ("jobs_api_stderr", "run-jobs-api.stderr", &b"gh: Not Found (HTTP 404)\n"[..]),
+        ("run_log_stdout", "run-log.txt", &b""[..]),
+        ("run_log_stderr", "run-log.stderr", &b"failed to get run log: log not found\n"[..]),
+    ] {
+        captures.insert(
+            role.to_string(),
+            write_provider_poll_capture(fixture, name, bytes, &mut files),
+        );
+    }
+
+    let mut sums: Vec<(String, String)> = files
+        .iter()
+        .map(|file| {
+            (
+                file["path"].as_str().expect("raw member path")
+                    .strip_prefix("raw/").expect("raw member prefix").to_string(),
+                file["sha256"].as_str().expect("raw member hash").to_string(),
+            )
+        })
+        .collect();
+    sums.sort_by(|left, right| left.0.cmp(&right.0));
+    let checksum_bytes = sums
+        .iter()
+        .map(|(name, digest)| format!("{digest}  {name}\n"))
+        .collect::<String>()
+        .into_bytes();
+    let checksums_pin = write_provider_poll_capture(
+        fixture, "SHA256SUMS", &checksum_bytes, &mut files,
+    );
+
+    let summary = serde_json::json!({
+        "schema": "termrock-live-pr-observation/v1",
+        "repository": "tailrocks/terminal-components-claude",
+        "observed_at_utc": observed_at,
+        "pull_request": {
+            "number": 17,
+            "head_ref": "termrock-implementation",
+            "requested_head_sha": PROVIDER_POLL_SOURCE_SHA,
+            "observed_head_sha": PROVIDER_POLL_SOURCE_SHA,
+            "remote_head_ref_sha": PROVIDER_POLL_SOURCE_SHA,
+            "head_commit_tree_sha": PROVIDER_POLL_SOURCE_TREE,
+            "base_ref": "main",
+            "observed_base_sha": "81a8bf15cd3042f80649e2b48fed479829518dbd"
+        },
+        "current_ci_observation": {
+            "workflow_run_id": run_id,
+            "workflow_run_number": run_number,
+            "workflow_id": workflow_id,
+            "workflow_name": "CI",
+            "event": "push",
+            "head_sha": PROVIDER_POLL_SOURCE_SHA,
+            "status": "completed",
+            "conclusion": "failure",
+            "created_at": created_at,
+            "jobs_visible_in_gh_run_view": 0,
+            "jobs_api": "HTTP 404 Not Found",
+            "artifacts_total_count": 0,
+            "logs": "not found; no log body returned",
+            "provider_failure_cause": "NOT_EXPOSED"
+        },
+        "checks": {"dco": "PASS", "check_runs_count": 1},
+        "raw_closure": {
+            "path": "SHA256SUMS",
+            "sha256": sha256_hex(&checksum_bytes),
+            "entries": sums.len(),
+            "entry_scope": "Every file under raw/; checksum file itself is excluded."
+        }
+    });
+    let summary_bytes = serde_json::to_vec(&summary).expect("serialize provider poll summary");
+    let summary_pin = write_provider_poll_capture(
+        fixture, "observation.json", &summary_bytes, &mut files,
+    );
+    captures.insert("checksums".to_string(), checksums_pin);
+    captures.insert("summary".to_string(), summary_pin);
+
+    let manifest = serde_json::json!({
+        "schema": "termrock-status-provider-poll-archive/v1",
+        "increment": "provider-poll-observations-test",
+        "status": "FIXTURE",
+        "source_baseline": {"note": "synthetic archived provider poll"},
+        "files": files
+    });
+    let manifest_raw = serde_json::to_vec(&manifest).expect("serialize provider poll manifest");
+    let manifest_path = format!("{PROVIDER_POLL_ARCHIVE_DIR}/MANIFEST.json");
+    fixture.repo.write_file(Path::new(&manifest_path), &manifest_raw)
+        .expect("write provider poll manifest");
+    let poll = serde_json::json!({
+        "sequence": 1,
+        "observed_at": observed_at,
+        "scope": "HISTORICAL",
+        "kind": "workflow_run_poll",
+        "source_binding": {
+            "kind": "candidate_commit",
+            "branch": "termrock-implementation",
+            "commit_sha": PROVIDER_POLL_SOURCE_SHA,
+            "tree_sha": PROVIDER_POLL_SOURCE_TREE
+        },
+        "captures": captures
+    });
+    serde_json::json!({
+        "schema": "termrock-status-provider-observations/v2",
+        "archive_manifest": {
+            "path": manifest_path,
+            "sha256": sha256_hex(&manifest_raw),
+            "bytes": manifest_raw.len()
+        },
+        "observations": [poll]
+    })
+}
+
 #[test]
 fn provider_observation_accepts_zero_jobs_and_forbidden_logs_without_cause_inference() {
     let fixture = StatusFixture::new();
@@ -989,6 +1233,175 @@ fn provider_observation_rejects_source_drift_archive_tampering_and_out_of_order_
     let out_of_order = fixture.run(&[]);
     assert_eq!(out_of_order.exit_code, Some(2));
     assert!(error_text(&out_of_order).contains("timestamps are out of order"));
+}
+
+#[test]
+fn provider_poll_variant_preserves_error_and_historical_boundaries() {
+    let fixture = StatusFixture::new();
+    let bundle = provider_poll_observations_bundle(&fixture);
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+    facts["provider_observations"] = bundle;
+    write_json_facts(&fixture, &facts);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
+    let report = output_text(&output);
+    let row = report.lines()
+        .find(|line| line.contains("38021527173"))
+        .expect("historical provider poll is rendered");
+    assert!(row.contains("HISTORICAL"));
+    assert!(row.contains("CLI-visible jobs 0"));
+    assert!(row.contains("jobs API error status field 404"));
+    assert!(row.contains("artifacts 0"));
+    assert!(row.contains("logs body NOT_FOUND"));
+    assert!(row.contains("log HTTP status NOT_CAPTURED"));
+    assert!(row.contains("failure cause NOT_EXPOSED"));
+    assert!(row.contains("DCO completed / success"));
+    assert!(!row.contains("HTTP 404"));
+    assert!(!row.contains("jobs API error status field 0"));
+    assert!(row.contains(PROVIDER_POLL_SOURCE_SHA));
+    assert_ne!(PROVIDER_POLL_SOURCE_SHA, PROVIDER_SOURCE_SHA);
+    assert!(report.contains("Refactor / Ready | NOT_RUN"));
+    assert!(report.contains("Visibility / Complete | NOT_RUN"));
+    assert!(report.contains("does not promote current CI or product readiness"));
+}
+
+#[test]
+fn provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_bytes() {
+    let fixture = StatusFixture::new();
+    let bundle = provider_poll_observations_bundle(&fixture);
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+    facts["provider_observations"] = bundle.clone();
+
+    facts["provider_observations"]["observations"][0]["source_binding"]["tree_sha"] =
+        serde_json::json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    write_json_facts(&fixture, &facts);
+    let source_drift = fixture.run(&[]);
+    assert_eq!(source_drift.exit_code, Some(2));
+    assert!(error_text(&source_drift).contains("summary pull-request identity differs"));
+
+    facts["provider_observations"] = bundle.clone();
+    facts["provider_observations"]["observations"][0]["captures"]
+        .as_object_mut().expect("provider poll captures").remove("run_view");
+    write_json_facts(&fixture, &facts);
+    let missing_capture = fixture.run(&[]);
+    assert_eq!(missing_capture.exit_code, Some(2));
+    assert!(error_text(&missing_capture).contains("pin the exact poll evidence roles"));
+
+    facts["provider_observations"] = bundle.clone();
+    let manifest_path = facts["provider_observations"]["archive_manifest"]["path"]
+        .as_str().expect("provider poll manifest path");
+    let manifest_file = fixture.repo.root().join(manifest_path);
+    let original_manifest_bytes = fs::read(&manifest_file)
+        .expect("read original provider poll manifest");
+    let mut manifest: serde_json::Value = serde_json::from_slice(&original_manifest_bytes)
+        .expect("parse provider poll manifest");
+    let run_view_path =
+        facts["provider_observations"]["observations"][0]["captures"]["run_view"]["path"]
+            .as_str().expect("run view capture path");
+    let relative_run_view = run_view_path
+        .strip_prefix(&format!("{PROVIDER_POLL_ARCHIVE_DIR}/"))
+        .expect("run view path is under poll archive");
+    let members = manifest["files"].as_array_mut().expect("provider manifest files");
+    let member_index = members.iter().position(|member| {
+        member["path"].as_str() == Some(relative_run_view)
+    }).expect("run view member exists");
+    members.remove(member_index);
+    let manifest_bytes = serde_json::to_vec(&manifest).expect("serialize missing-member manifest");
+    fs::write(&manifest_file, &manifest_bytes).expect("write missing-member manifest");
+    facts["provider_observations"]["archive_manifest"]["sha256"] =
+        serde_json::json!(sha256_hex(&manifest_bytes));
+    facts["provider_observations"]["archive_manifest"]["bytes"] =
+        serde_json::json!(manifest_bytes.len());
+    write_json_facts(&fixture, &facts);
+    let missing_member = fixture.run(&[]);
+    assert_eq!(missing_member.exit_code, Some(2));
+    assert!(error_text(&missing_member).contains("not bound to its archive member"));
+
+    fs::write(&manifest_file, &original_manifest_bytes)
+        .expect("restore original provider poll manifest");
+    facts["provider_observations"] = bundle.clone();
+    facts["provider_observations"]["observations"][0]["captures"]["run_view"]["path"] =
+        serde_json::json!(
+            "docs/implementation/visibility/evidence/reports/provider-poll-observations-test/raw/not-listed.json"
+        );
+    write_json_facts(&fixture, &facts);
+    let unlisted_capture = fixture.run(&[]);
+    assert_eq!(unlisted_capture.exit_code, Some(2));
+    assert!(error_text(&unlisted_capture).contains("not bound to its archive member"));
+
+    facts["provider_observations"] = bundle;
+    let run_view_path = facts["provider_observations"]["observations"][0]["captures"]["run_view"]["path"]
+        .as_str().expect("run view capture path");
+    fs::write(fixture.repo.root().join(run_view_path), b"{\"tampered\":true}")
+        .expect("tamper provider poll evidence");
+    write_json_facts(&fixture, &facts);
+    let tampered = fixture.run(&[]);
+    assert_eq!(tampered.exit_code, Some(2));
+    assert!(error_text(&tampered).contains("bytes do not match the recorded SHA-256"));
+}
+
+#[test]
+fn provider_poll_variant_rejects_duplicate_attempts_nonmonotone_rows_and_unknown_kind() {
+    let fixture = StatusFixture::new();
+    let bundle = provider_poll_observations_bundle(&fixture);
+    let mut facts: serde_json::Value =
+        serde_json::from_str(&base_facts()).expect("parse base source facts");
+
+    let mut duplicate = bundle.clone();
+    let mut second = duplicate["observations"][0].clone();
+    second["sequence"] = serde_json::json!(2);
+    duplicate["observations"].as_array_mut()
+        .expect("provider poll observations").push(second.clone());
+    facts["provider_observations"] = duplicate;
+    write_json_facts(&fixture, &facts);
+    let duplicate_run = fixture.run(&[]);
+    assert_eq!(duplicate_run.exit_code, Some(2));
+    assert!(error_text(&duplicate_run).contains("repeat a run attempt"));
+
+    let mut out_of_order = bundle.clone();
+    second["observed_at"] = serde_json::json!("2026-10-10T04:11:00Z");
+    out_of_order["observations"].as_array_mut()
+        .expect("provider poll observations").push(second);
+    facts["provider_observations"] = out_of_order;
+    write_json_facts(&fixture, &facts);
+    let timestamp_order = fixture.run(&[]);
+    assert_eq!(timestamp_order.exit_code, Some(2));
+    assert!(error_text(&timestamp_order).contains("timestamps are out of order"));
+
+    let mut current_scope = bundle.clone();
+    current_scope["observations"][0]["scope"] = serde_json::json!("CURRENT");
+    facts["provider_observations"] = current_scope;
+    write_json_facts(&fixture, &facts);
+    let promoted = fixture.run(&[]);
+    assert_eq!(promoted.exit_code, Some(2));
+    assert!(error_text(&promoted).contains("must remain HISTORICAL"));
+
+    let mut unknown_schema = bundle.clone();
+    unknown_schema["schema"] = serde_json::json!("termrock-status-provider-observations/v999");
+    facts["provider_observations"] = unknown_schema;
+    write_json_facts(&fixture, &facts);
+    let rejected_schema = fixture.run(&[]);
+    assert_eq!(rejected_schema.exit_code, Some(2));
+    assert!(error_text(&rejected_schema).contains("unsupported provider observations schema or fields"));
+
+    let mut extra_field = bundle.clone();
+    extra_field["observations"][0]["unreviewed_field"] = serde_json::json!(true);
+    facts["provider_observations"] = extra_field;
+    write_json_facts(&fixture, &facts);
+    let rejected_field = fixture.run(&[]);
+    assert_eq!(rejected_field.exit_code, Some(2));
+    assert!(error_text(&rejected_field).contains("missing, unknown, or unsupported variant fields"));
+
+    let mut unknown_kind = bundle;
+    unknown_kind["observations"][0]["kind"] = serde_json::json!("endpoint_capture_v1");
+    facts["provider_observations"] = unknown_kind;
+    write_json_facts(&fixture, &facts);
+    let unsupported = fixture.run(&[]);
+    assert_eq!(unsupported.exit_code, Some(2));
+    assert!(error_text(&unsupported).contains("unsupported variant fields"));
 }
 
 const PRODUCT_PHASE_ARCHIVE_DIR: &str =
