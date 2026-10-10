@@ -8,6 +8,7 @@
     "run_id",
     "source_pair",
     "suite",
+    "coverage",
     "expected_generation",
     "trust",
     "write_policy",
@@ -53,6 +54,7 @@
         "digest",
         "compiled_digest",
         "case_set_digest",
+        "case_input_sha256",
         "profile_digest",
         "test_binary_digest",
         "dependency_lock_sha256",
@@ -70,6 +72,9 @@
           "$ref": "#/$defs/sha256"
         },
         "case_set_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "case_input_sha256": {
           "$ref": "#/$defs/sha256"
         },
         "profile_digest": {
@@ -97,6 +102,9 @@
           "$ref": "#/$defs/expected_generation"
         }
       ]
+    },
+    "coverage": {
+      "$ref": "#/$defs/coverage"
     },
     "trust": {
       "type": "object",
@@ -403,6 +411,159 @@
     "sha256": {
       "type": "string",
       "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "schema",
+        "suite_revision",
+        "case_set_sha256",
+        "profile_sha256",
+        "selected_case_id",
+        "registered_case_count",
+        "checkpoint_count",
+        "assertion_count",
+        "deferred_row_count",
+        "deferred_case_reference_count",
+        "missing_historical_id",
+        "coverage_rule",
+        "cases",
+        "deferred"
+      ],
+      "properties": {
+        "schema": {
+          "const": "termrock-e2e/coverage-metadata-v1"
+        },
+        "suite_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "case_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "selected_case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "registered_case_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "checkpoint_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "assertion_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "deferred_row_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "deferred_case_reference_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "missing_historical_id": {
+          "const": "BD-19"
+        },
+        "coverage_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "app",
+              "binary",
+              "case_input_sha256",
+              "checkpoint_count",
+              "assertion_count",
+              "selection_status"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "app": {
+                "type": "string",
+                "minLength": 1
+              },
+              "binary": {
+                "type": "string",
+                "minLength": 1
+              },
+              "case_input_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "checkpoint_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "assertion_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "selection_status": {
+                "enum": [
+                  "SELECTED_FOR_THIS_RECEIPT",
+                  "NOT_SELECTED_FOR_THIS_RECEIPT"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "deferred": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "cases",
+              "owner",
+              "inventory_status",
+              "paired_observation"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cases": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "owner": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inventory_status": {
+                "const": "NOT_RUN"
+              },
+              "paired_observation": {
+                "const": "NOT_DECLARED"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
     },
     "source_commit": {
       "type": "string",
