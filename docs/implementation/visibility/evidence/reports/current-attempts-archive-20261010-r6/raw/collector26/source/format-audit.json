@@ -1,0 +1,23 @@
+{
+  "schema": "termrock-vis08-source-format-audit/v1",
+  "formatter": {
+    "command": "rustfmt +1.98.1 --check <file>",
+    "version": "rustfmt 1.9.0-stable (48a229ceae 2026-09-01)",
+    "writes_performed": false
+  },
+  "base": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r2-20261010/base/crates/termrock-visibility-tests/src/nextest_result.rs",
+    "sha256": "8f4a8d77aa1f32250bd0df79138daf0e77ee6c47afb9b71a9ebe7347a4729c8d",
+    "check_exit": 1,
+    "check_output_sha256": "fc3b2ec4ef446b9aaaeb446c37d11aad31ebc0fac0fdee57a83d4ae7df7f8ceb",
+    "diff_hunk_line_starts": [10, 815, 2712, 2726, 2798, 2814, 2830, 2842, 2854, 2941, 2958, 2998, 3122, 3190]
+  },
+  "candidate": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r2-20261010/candidate/crates/termrock-visibility-tests/src/nextest_result.rs",
+    "sha256": "f059d89089f0b79e63084f462454f659a33f4a6fe4a4096913b66a37cb133436",
+    "check_exit": 1,
+    "check_output_sha256": "4a6dc2e16c5ccd2b5fe2bc7911c4f8601fa45946628749db84638bbc0204833f",
+    "diff_hunk_line_starts": [10, 815, 2930, 2944, 3016, 3032, 3048, 3060, 3072, 3159, 3176, 3216, 3340, 3408]
+  },
+  "comparison": "The candidate has the same 14 rustfmt diff hunks as the base. The first two are unchanged; every later hunk is shifted by the 218 inserted source lines. The newly added alias assertions were adjusted to rustfmt output in the R2 copy. The remaining check failure is inherited baseline formatting, with no new format hunk from this change."
+}

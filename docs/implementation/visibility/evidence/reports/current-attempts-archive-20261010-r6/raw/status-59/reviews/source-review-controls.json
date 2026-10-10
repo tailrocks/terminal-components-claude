@@ -1,0 +1,31 @@
+{
+  "schema": "termrock-vis01-product-phase-source-review/v1",
+  "reviewer": "controls_wrapper_review_luna",
+  "reviewed_at_utc": "2026-10-10T00:00:00Z",
+  "verdict": "READY_SOURCE_DELTA_ONLY",
+  "scope": "Focused read-only review of R3 corrections to historical/current pair separation, NOT_APPLICABLE readiness, and layer-key rejection. No tests, Cargo, builds, or source edits were performed.",
+  "inputs": {
+    "source_freeze_path": "/private/tmp/termrock-vis01-product-phases-r3-freeze-20261010/source-freeze.json",
+    "source_freeze_sha256": "d249bba0ce3ddce9e5b7c4debb50564bcf832cefcfd915ceb8abb52dd30100f5",
+    "source_patch_path": "/private/tmp/termrock-vis01-product-phases-r3-freeze-20261010/source-delta.patch",
+    "source_patch_sha256": "3c8b1c17098dbd7b95e69d7c22104cddb16f353c255fb0d1ab0e9fefb9b950df",
+    "base_commit": "57d505f343bf35e5041471f4cbab476cb92d67da",
+    "base_tree": "965aef70b90ca0a8a4be2f869da839a3711245d8",
+    "status_py_path": "/private/tmp/termrock-vis01-product-phases-r3-source-20261010/tools/visibility/status.py",
+    "status_py_sha256": "2fcb0c6b45375656b4a23e8f5ea4fef86342fc56a1ec5fff162ff717c502a7f0",
+    "status_test_path": "/private/tmp/termrock-vis01-product-phases-r3-source-20261010/crates/termrock-visibility-tests/tests/status.rs",
+    "status_test_sha256": "7efa372f27b1537cbdf5add2568e62c43d43c42d7a30f29c1fc2e1b661440e0f",
+    "prior_r2_review_path": "/private/tmp/termrock-vis01-product-phases-r2-independent-review-controls-luna-20261010.json",
+    "prior_r2_review_sha256": "d65cd6e611c09df5fcb530e1d144d3e112cc60524c67ff3c6e658ac605d6be27"
+  },
+  "findings": [],
+  "verified": [
+    "Historical observation validation no longer requires the historical pair to equal current source heads or current status observations; role source_commit values still must match the observation's exact historical pair.",
+    "The new regression uses the checked-in current pair 1d797d41c8141fcbdc3f69d7f11eb8875ab54712/b274dd57f4dd078ade6e424d546d83efbd2e8526 and an archived historical pair 333.../444..., then asserts the historical row remains NOT_READY while the current Command/Ready field remains NOT_RUN.",
+    "Readiness tests cover ownership NOT_APPLICABLE with all other displayed phases PASS (neutral, yielding READY based on those passes), all displayed phases NOT_APPLICABLE (NOT_APPLICABLE), and a required phase NOT_APPLICABLE with the others NOT_RUN (NOT_RUN precedence).",
+    "The invalid-layer test now adds an unregistered extra layer and asserts fail-closed rejection; the implementation still requires exactly the nine layer keys.",
+    "The prior checked-in report compatibility test still asserts product_phase_observations is absent and output bytes exactly equal the checked-in STATUS snapshot.",
+    "Archive path, manifest/member binding, strict outer/nested schemas, source/command checks, duplicate RUN-03 rejection, and cleanup exclusion remain intact in the reviewed source."
+  ],
+  "limits": "Static source/test review only. This does not establish archive publication, runtime behavior, test success, product qualification, or current readiness."
+}

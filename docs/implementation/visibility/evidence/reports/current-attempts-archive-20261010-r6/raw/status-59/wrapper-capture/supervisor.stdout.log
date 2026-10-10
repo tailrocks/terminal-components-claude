@@ -1,0 +1,13 @@
+{
+  "result": "RAW_NEXTTEST_CAPTURE_COMPLETE",
+  "semantic_parse": "NOT_PERFORMED",
+  "record": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/run-process.json",
+  "child_termination": {
+    "kind": "exited",
+    "exit_code": 0
+  },
+  "wrapper_exit_code": 0,
+  "stdout_sha256": "14be4021ed8ce4b1c23457d52c47717c3375223dd0af6e28b018e6491fcaa3fc",
+  "stderr_sha256": "97f9253c9973f71a670069af4321a159a31a269841b3bf8b42455a5c3b72de97",
+  "process_events_sha256": "4f3463f3641072a32e56b17f6b4bbe5c9778c8801ce441e28ee6785e59dff033"
+}

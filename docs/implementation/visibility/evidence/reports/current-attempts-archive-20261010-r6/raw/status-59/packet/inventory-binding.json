@@ -1,0 +1,26 @@
+{
+  "schema": "termrock-vis01-nextest-static-inventory-binding/v1",
+  "source_freeze": {
+    "path": "/private/tmp/termrock-vis01-product-phases-r3-freeze-20261010/source-freeze.json",
+    "sha256": "d249bba0ce3ddce9e5b7c4debb50564bcf832cefcfd915ceb8abb52dd30100f5"
+  },
+  "status_test_source": {
+    "path": "crates/termrock-visibility-tests/tests/status.rs",
+    "sha256": "7efa372f27b1537cbdf5add2568e62c43d43c42d7a30f29c1fc2e1b661440e0f",
+    "source_test_count": 59,
+    "ignored_tests": 0
+  },
+  "inventory": {
+    "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-inputs-20261010/test-names.json",
+    "sha256": "9166a8a4b4a30130c3ddb6f37945a565972f7f3ee9a615d23b08680aba4503c7"
+  },
+  "selection": {
+    "package": "termrock-visibility-tests",
+    "target": "--test status",
+    "filter": null,
+    "expected_selected_tests": 59,
+    "fixture_binary_role": "build_dependency_only; one fixture source unit test is inventoried but unselected; executable and dependency-info provenance remain required"
+  },
+  "execution": "NOT_RUN; this is a source-derived static inventory, not a Nextest list/run result",
+  "owner": "Root"
+}

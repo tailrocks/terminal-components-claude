@@ -1,0 +1,1376 @@
+{
+  "schema": "termrock-vis08-r6-runtime-cache-copy/v1",
+  "state": "COPIED_AND_VERIFIED_FOR_ONE_OFFLINE_RUN",
+  "source_receipt_sha256": "a68e51c1c21065ce2242a51905d3c678f0f4bc15be820fbb4d5b194b617b6d13",
+  "source_cargo_home": "/private/tmp/termrock-vis18-cache-source-audit-r6-20261010/cargo-home",
+  "runtime_cargo_home": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/cargo-home",
+  "file_count": 85,
+  "archive_count": 40,
+  "sparse_index_record_count": 44,
+  "config_count": 1,
+  "extracted_sources_copied": 0,
+  "git_sources_copied": 0,
+  "copy_method": "independent byte copies; no symlinks or hardlinks",
+  "files": [
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/adler2-2.0.1.crate",
+      "bytes": 13366,
+      "mode": 420,
+      "sha256": "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726124",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114671",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2.crate",
+      "bytes": 51678,
+      "mode": 420,
+      "sha256": "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726125",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114672",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/block-buffer-0.10.4.crate",
+      "bytes": 10538,
+      "mode": 420,
+      "sha256": "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726126",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114673",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/cfg-if-1.0.5.crate",
+      "bytes": 9578,
+      "mode": 420,
+      "sha256": "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726127",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114674",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/cpufeatures-0.2.17.crate",
+      "bytes": 13466,
+      "mode": 420,
+      "sha256": "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726128",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114675",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.2.crate",
+      "bytes": 48100,
+      "mode": 420,
+      "sha256": "01a7799fd6b852db0e61728dde9a204c423b44d689dbd432522543614b490e78",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726129",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114676",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/crypto-common-0.1.7.crate",
+      "bytes": 9619,
+      "mode": 420,
+      "sha256": "78c8292055d1c1df0cce5d180393dc8cce0abec0a7102adb6c7b1eef6016d60a",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726130",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114677",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/digest-0.10.7.crate",
+      "bytes": 19557,
+      "mode": 420,
+      "sha256": "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726131",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114678",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/errno-0.3.14.crate",
+      "bytes": 12002,
+      "mode": 420,
+      "sha256": "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726132",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114679",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/fastrand-2.5.0.crate",
+      "bytes": 20782,
+      "mode": 420,
+      "sha256": "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726133",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114680",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/filetime-0.2.29.crate",
+      "bytes": 16977,
+      "mode": 420,
+      "sha256": "5c287a33c7f0a620c38e641e7f60827713987b3c0f26e8ddc9462cc69cf75759",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726134",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114681",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/flate2-1.1.10.crate",
+      "bytes": 80244,
+      "mode": 420,
+      "sha256": "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726135",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114682",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/generic-array-0.14.7.crate",
+      "bytes": 15950,
+      "mode": 420,
+      "sha256": "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726136",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114683",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/getrandom-0.4.3.crate",
+      "bytes": 52437,
+      "mode": 420,
+      "sha256": "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726137",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114684",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/itoa-1.0.18.crate",
+      "bytes": 15935,
+      "mode": 420,
+      "sha256": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726138",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114685",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/libc-0.2.190.crate",
+      "bytes": 853678,
+      "mode": 420,
+      "sha256": "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726139",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114686",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.12.1.crate",
+      "bytes": 3006116,
+      "mode": 420,
+      "sha256": "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726140",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114687",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/memchr-2.8.3.crate",
+      "bytes": 99165,
+      "mode": 420,
+      "sha256": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726141",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114688",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/miniz_oxide-0.9.1.crate",
+      "bytes": 70519,
+      "mode": 420,
+      "sha256": "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726144",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114689",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/once_cell-1.21.4.crate",
+      "bytes": 35010,
+      "mode": 420,
+      "sha256": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726147",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114690",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107.crate",
+      "bytes": 59588,
+      "mode": 420,
+      "sha256": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726150",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114691",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/quote-1.0.47.crate",
+      "bytes": 31622,
+      "mode": 420,
+      "sha256": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726151",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114692",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/r-efi-6.0.0.crate",
+      "bytes": 65303,
+      "mode": 420,
+      "sha256": "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726152",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114693",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/rustix-1.1.5.crate",
+      "bytes": 425681,
+      "mode": 420,
+      "sha256": "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726153",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114694",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/serde-1.0.229.crate",
+      "bytes": 83669,
+      "mode": 420,
+      "sha256": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726154",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114695",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.229.crate",
+      "bytes": 63100,
+      "mode": 420,
+      "sha256": "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726155",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114696",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229.crate",
+      "bytes": 59864,
+      "mode": 420,
+      "sha256": "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726156",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114697",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151.crate",
+      "bytes": 156556,
+      "mode": 420,
+      "sha256": "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726157",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114698",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/sha2-0.10.9.crate",
+      "bytes": 29271,
+      "mode": 420,
+      "sha256": "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726158",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114699",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/simd-adler32-0.3.10.crate",
+      "bytes": 18760,
+      "mode": 420,
+      "sha256": "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726159",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114700",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/syn-3.0.6.crate",
+      "bytes": 313821,
+      "mode": 420,
+      "sha256": "8593e8e72159ed2257d083c7a454a85cbf854f37a0966d8d483aff8c8a3ebcee",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726160",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114701",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/tar-0.4.46.crate",
+      "bytes": 70809,
+      "mode": 420,
+      "sha256": "3f6221d9a6003c78398e3b239969f352578258df48c8eb051caadae0015bc840",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726161",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114702",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/tempfile-3.27.0.crate",
+      "bytes": 44780,
+      "mode": 420,
+      "sha256": "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726162",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114703",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/typenum-1.20.1.crate",
+      "bytes": 105479,
+      "mode": 420,
+      "sha256": "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726163",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114704",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.26.crate",
+      "bytes": 48425,
+      "mode": 420,
+      "sha256": "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726164",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114705",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5.crate",
+      "bytes": 15554,
+      "mode": 420,
+      "sha256": "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726165",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114706",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/windows-link-0.2.1.crate",
+      "bytes": 6133,
+      "mode": 420,
+      "sha256": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726166",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114707",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/windows-sys-0.61.2.crate",
+      "bytes": 2517186,
+      "mode": 420,
+      "sha256": "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726167",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114708",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/zlib-rs-0.6.8.crate",
+      "bytes": 215857,
+      "mode": 420,
+      "sha256": "b268e58e7c693d7c271f93ffc4ba3b380412554231c85bf61ca7af91042a4112",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726284",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114709",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/cache/index.crates.io-1949cf8c6b5b557f/zmij-1.0.23.crate",
+      "bytes": 28612,
+      "mode": 420,
+      "sha256": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726168",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114710",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/s/syn",
+      "bytes": 653259,
+      "mode": 420,
+      "sha256": "f35e574cec97617c7ad87aef5c0b1add6ad4407d12b0371a2f203c2fa79f6159",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726174",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114711",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/3/t/tar",
+      "bytes": 44160,
+      "mode": 420,
+      "sha256": "ad9945ad7787e2767814a9210ba908bf69783953d3c797e3740ccf0cfc1428ed",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726176",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114712",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ad/le/adler2",
+      "bytes": 1094,
+      "mode": 420,
+      "sha256": "70c3aa11518c152c87074799e1d8bb8334fbcc81ea8d8c7bb99a415d107ccb05",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726179",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114713",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/bi/tf/bitflags",
+      "bytes": 64166,
+      "mode": 420,
+      "sha256": "6713b703da401faa62e3df0a4a42a7d14a9d777511ac010512a5dd7b3417faaa",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726182",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114714",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/bl/oc/block-buffer",
+      "bytes": 21310,
+      "mode": 420,
+      "sha256": "01c56856aa2b0252ce0d90752ec2c0106edff7db2c1bdf35d60244762fd18419",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726185",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114715",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cf/g-/cfg-if",
+      "bytes": 5121,
+      "mode": 420,
+      "sha256": "8f6eaea0f7fc5f6848486cbdf55738698871d39e9120c4c1c68fe5c964696d7d",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726188",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114716",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cp/uf/cpufeatures",
+      "bytes": 17848,
+      "mode": 420,
+      "sha256": "dd29f42e05ee3cf258f4ecf10c43c47625306fbb3f041106ac48cf33d02b1435",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726191",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114717",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cr/c3/crc32fast",
+      "bytes": 13439,
+      "mode": 420,
+      "sha256": "77502739ecf077d359e3f0ce50aa3105996e8dfd1c3b6469c4b26dae3ee05956",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726194",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114718",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/cr/yp/crypto-common",
+      "bytes": 22622,
+      "mode": 420,
+      "sha256": "888aa37a81634f87ae790d68b432c51f0c88a238fc08a760171958e263daef2f",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726196",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114719",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/di/ge/digest",
+      "bytes": 53601,
+      "mode": 420,
+      "sha256": "4a9f0a9b47df415003371f47ed05c5a48bab33e642a3476e8ad1d4124178cfa3",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726199",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114720",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/do/cu/document-features",
+      "bytes": 4027,
+      "mode": 420,
+      "sha256": "35993cec3464bd2a3f0ff47678735bcc1e905731328550e2fa040bc0f083e0e3",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726287",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114721",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/er/rn/errno",
+      "bytes": 25180,
+      "mode": 420,
+      "sha256": "609acf9108184ab8ca087991bf5d634262cea1dc157c6e31e4b7051c08d30fa6",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726202",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114722",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/fa/st/fastrand",
+      "bytes": 25640,
+      "mode": 420,
+      "sha256": "bb3497dd4b879758b900190b56912c6cc1995c4b64f701904b44c048912b1505",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726207",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114723",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/fi/le/filetime",
+      "bytes": 31944,
+      "mode": 420,
+      "sha256": "a07c2bf651b208188745c28594879d00c8f4f158f043cc3deb797d19f6b5fa2a",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726210",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114724",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/fl/at/flate2",
+      "bytes": 104478,
+      "mode": 420,
+      "sha256": "b3bda12f0291a5f7a6445e374b6c87df5cc074807324be9b0f5dc054363cf96d",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726213",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114725",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ge/ne/generic-array",
+      "bytes": 70395,
+      "mode": 420,
+      "sha256": "ca57d9fc384febb27edb69462550ed8e38f8e11d2c074260759055af41affcb4",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726218",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114726",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ge/tr/getrandom",
+      "bytes": 92014,
+      "mode": 420,
+      "sha256": "ea3ebfe89a8153e02e45194ad58f9fddf29158f70392ed66fec931a14f885192",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726220",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114727",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/it/oa/itoa",
+      "bytes": 9750,
+      "mode": 420,
+      "sha256": "358ec410c0eb6e99d0bd115834b6f94aa92791f87d684c29f2dc7a62b7887b48",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726225",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114728",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/li/bc/libc",
+      "bytes": 83511,
+      "mode": 420,
+      "sha256": "1dae18b02aef1302b10f109173ea770359038aa3e1646eded4e97578996b7826",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726228",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114729",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/li/bz/libz-ng-sys",
+      "bytes": 8859,
+      "mode": 420,
+      "sha256": "2523480e9f269f539ad0585ce771a642682e38f8dfa000124c6adfed3470bf39",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726289",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114730",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/li/bz/libz-sys",
+      "bytes": 49460,
+      "mode": 420,
+      "sha256": "bb57cc98110d51e04cb320940ea57ccd4b63d11d931d2b64f512e3fe8d7f4c90",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726290",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114731",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/li/nu/linux-raw-sys",
+      "bytes": 81593,
+      "mode": 420,
+      "sha256": "e20d72e863f9d5a06f29138ba8505b919eb7127bedb6bee3b4e294328b8cfb5e",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726230",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114732",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/me/mc/memchr",
+      "bytes": 28753,
+      "mode": 420,
+      "sha256": "fd6ae4fcce894bf67403c653f73a6fe48bfa1fac66a04e2caec70e1f36343d05",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726233",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114733",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/mi/ni/miniz_oxide",
+      "bytes": 36942,
+      "mode": 420,
+      "sha256": "f3b29fb89becacdf3395b20271f0b697561ac935be82fc85322610892fc06e00",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726236",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114734",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/on/ce/once_cell",
+      "bytes": 51392,
+      "mode": 420,
+      "sha256": "482e2ff5884947e2bcaaa63d01cc99d0fb6090cdff0a51ee22869f1362126efe",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726239",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114735",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/pr/oc/proc-macro2",
+      "bytes": 93770,
+      "mode": 420,
+      "sha256": "95228f72462ea6fa119430877d1c7abb7a22346da05473c37ecc12e678174b69",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726242",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114736",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/qu/ot/quote",
+      "bytes": 42698,
+      "mode": 420,
+      "sha256": "bf97b4d031ad9a1159e896720b9227fb39947f370b48cb8ded9abd27b1515feb",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726245",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114737",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/r-/ef/r-efi",
+      "bytes": 8339,
+      "mode": 420,
+      "sha256": "a2f9390340035b66c560c9a7190a0002daabce5ac0834d43d5daff52750b2591",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726248",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114738",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ru/st/rustix",
+      "bytes": 1137387,
+      "mode": 420,
+      "sha256": "7ac5a490ff7d3339b90f9b3a01953921723f4c1a3152fb7c3d7cb2866e0edd91",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726251",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114739",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde",
+      "bytes": 167236,
+      "mode": 420,
+      "sha256": "8fa7dcf631674523357d78dd82a9e8ec91e6822bf658e996962382d5b03a06f2",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726254",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114740",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde_core",
+      "bytes": 6606,
+      "mode": 420,
+      "sha256": "00f5412df941bf2bb3aa7fe7e2456fabff8ce96f324060645cb84a1a0200647c",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726255",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114741",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde_derive",
+      "bytes": 198632,
+      "mode": 420,
+      "sha256": "04e32a953a39f321a61f4914b3b22025f8476f6d5f7140025e3766c28c6af06d",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726256",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114742",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/se/rd/serde_json",
+      "bytes": 278595,
+      "mode": 420,
+      "sha256": "a558e6db3da2d63e247ea734320ef3483b4538a97d4f650ba99af9d377037dc1",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726257",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114743",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/sh/a2/sha2",
+      "bytes": 54830,
+      "mode": 420,
+      "sha256": "267d7e974971d33790232ae905c481d424ab7ade021e631236bb5363f0849a7f",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726260",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114744",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/si/md/simd-adler32",
+      "bytes": 8672,
+      "mode": 420,
+      "sha256": "1811841194c4ac4d8ea7ded04a5c6a6a128cc541cc708cb3242dd85ccdda65b5",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726263",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114745",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/te/mp/tempfile",
+      "bytes": 60033,
+      "mode": 420,
+      "sha256": "d3e996668f54466ea0af9253a623ac853b4943937f3181de73bad365f29f7098",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726266",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114746",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ty/pe/typenum",
+      "bytes": 9437,
+      "mode": 420,
+      "sha256": "0aa39a82563fb4c1959ea3ce514ada50075c436f0ed5f6edcdabb90e995f7f18",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726269",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114747",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/un/ic/unicode-ident",
+      "bytes": 24866,
+      "mode": 420,
+      "sha256": "d7a3b34b99cae1bfc222b39b920b67ec93b1adb17d33880cb452a452bbfb314a",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726272",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114748",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ve/rs/version_check",
+      "bytes": 2362,
+      "mode": 420,
+      "sha256": "3b59bb407ec049518d98a4baee28599d2724767aad5c95c1b2f25ef511008a3d",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726275",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114749",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows-link",
+      "bytes": 1761,
+      "mode": 420,
+      "sha256": "d22f6b9ac1dea4587d049cfe5acaa4a769c18feb63dd29aa61bee99837a06546",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726278",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114750",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/wi/nd/windows-sys",
+      "bytes": 491504,
+      "mode": 420,
+      "sha256": "beab389ed4ab8a0aca87fde6a1195814c27d62aae5f6ffb39bb2207ad2f9ad66",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726279",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114751",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/xa/tt/xattr",
+      "bytes": 17612,
+      "mode": 420,
+      "sha256": "37b1fbcde3e91fac5c80fcc3d4cbdb5f36b75556a46381691b07f7494c868ef3",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726296",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114752",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/zl/ib/zlib-rs",
+      "bytes": 26558,
+      "mode": 420,
+      "sha256": "29d042789a9a3e142432cebf04b77e4a5a6d151aa7dbe47172b1a0155927e070",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726293",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114753",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/.cache/zm/ij/zmij",
+      "bytes": 35499,
+      "mode": 420,
+      "sha256": "2292a52a2f4a8089d5327151f1d5e68496608311cfec6e1d564a6f5202a1931e",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726282",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114754",
+        "nlink": 1
+      }
+    },
+    {
+      "relative": "registry/index/index.crates.io-1949cf8c6b5b557f/config.json",
+      "bytes": 76,
+      "mode": 420,
+      "sha256": "5b943a2c6f7eb743f7308aba07bdbb47d9ae44aafecd832d7f15df186afbafb3",
+      "source": {
+        "dev": "16777234",
+        "ino": "89726283",
+        "nlink": 1
+      },
+      "destination": {
+        "dev": "16777234",
+        "ino": "91114755",
+        "nlink": 1
+      }
+    }
+  ]
+}

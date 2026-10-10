@@ -864,6 +864,7 @@ fn capture_json(capture: &CaptureBytes) -> Value {
 struct ListResult {
     test_count: u64,
     inventory: BTreeMap<String, u64>,
+    runtime_aliases: BTreeMap<String, TargetIdentity>,
     matched_selection: bool,
 }
 
@@ -921,6 +922,7 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
         .as_object()
         .ok_or_else(|| ReaderError("list.rust-suites must be an object".into()))?;
     let mut inventory = BTreeMap::new();
+    let mut runtime_aliases = BTreeMap::new();
     let mut total_cases = 0u64;
     for (suite_key, suite_value) in suites {
         let suite = suite_value
@@ -942,6 +944,21 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
             return Err(ReaderError(format!(
                 "list contains an undeclared target: {binary_id}"
             )));
+        }
+        if selection.protocol == ProtocolVersion::V2 {
+            let binary_name =
+                nonempty_string_field(suite, "binary-name", &format!("list suite {suite_key}"))?;
+            let runtime_id = format!("{package}::{binary_name}");
+            let target = TargetIdentity {
+                package: package.to_owned(),
+                binary_id: binary_id.to_owned(),
+                kind: kind.to_owned(),
+            };
+            if runtime_aliases.insert(runtime_id.clone(), target).is_some() {
+                return Err(ReaderError(format!(
+                    "duplicate runtime suite alias in list: {runtime_id}"
+                )));
+            }
         }
         let testcases = required(suite, "testcases", &format!("list suite {suite_key}"))?
             .as_object()
@@ -1023,6 +1040,7 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
         }
     }
     if selection.protocol == ProtocolVersion::V2 {
+        validate_runtime_aliases(&runtime_aliases)?;
         for target in &selection.targets {
             if !inventory.contains_key(&target.binary_id) {
                 return Err(ReaderError(format!(
@@ -1040,8 +1058,71 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
     Ok(ListResult {
         test_count,
         inventory,
+        runtime_aliases,
         matched_selection: true,
     })
+}
+
+fn validate_runtime_aliases(
+    runtime_aliases: &BTreeMap<String, TargetIdentity>,
+) -> Result<(), ReaderError> {
+    let aliases = runtime_aliases.keys().collect::<Vec<_>>();
+    for (index, left) in aliases.iter().enumerate() {
+        let left_prefix = format!("{left}$");
+        for right in aliases.iter().skip(index + 1) {
+            let right_prefix = format!("{right}$");
+            if left_prefix.starts_with(&right_prefix) || right_prefix.starts_with(&left_prefix) {
+                return Err(ReaderError(format!(
+                    "ambiguous runtime event aliases in list: {left} and {right}"
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn admitted_suite_id(
+    metadata: &SuiteMetadata,
+    selection: &Selection,
+    list: Option<&ListResult>,
+) -> Result<String, ReaderError> {
+    if selection.protocol == ProtocolVersion::V1 {
+        return Ok(metadata.binary_id.clone());
+    }
+    let target = list
+        .and_then(|result| result.runtime_aliases.get(&metadata.binary_id))
+        .ok_or_else(|| {
+            ReaderError(format!(
+                "run suite alias is not admitted by the list: {}",
+                metadata.binary_id
+            ))
+        })?;
+    if metadata.package != target.package || metadata.kind != target.kind {
+        return Err(ReaderError(format!(
+            "run suite metadata does not match admitted alias: {}",
+            metadata.binary_id
+        )));
+    }
+    Ok(target.binary_id.clone())
+}
+
+fn admitted_test_event_name(
+    event_name: &str,
+    selection: &Selection,
+    list: Option<&ListResult>,
+) -> Option<String> {
+    if selection.protocol == ProtocolVersion::V1 {
+        return Some(event_name.to_owned());
+    }
+    let list = list?;
+    list.runtime_aliases
+        .iter()
+        .find_map(|(runtime_id, target)| {
+            let prefix = format!("{runtime_id}$");
+            event_name
+                .strip_prefix(prefix.as_str())
+                .map(|test_name| format!("{}${test_name}", target.binary_id))
+        })
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1389,37 +1470,34 @@ fn parse_machine_run(
                         continue;
                     }
                 };
-                let expected = selected_per_suite.get(&metadata.binary_id);
+                let binary_id = match admitted_suite_id(&metadata, selection, list) {
+                    Ok(binary_id) => binary_id,
+                    Err(error) => {
+                        errors.push(error.0);
+                        continue;
+                    }
+                };
+                let expected = selected_per_suite.get(&binary_id);
                 let Some((expected_count, expected_package, expected_kind)) = expected else {
-                    errors.push(format!(
-                        "unexpected suite in run output: {}",
-                        metadata.binary_id
-                    ));
+                    errors.push(format!("unexpected suite in run output: {binary_id}"));
                     continue;
                 };
                 if metadata.test_count != Some(*expected_count)
                     || metadata.package != *expected_package
                     || metadata.kind != *expected_kind
                 {
-                    errors.push(format!(
-                        "suite test_count mismatch for {}",
-                        metadata.binary_id
-                    ));
+                    errors.push(format!("suite test_count mismatch for {binary_id}"));
                     continue;
                 }
-                match suite_states.get_mut(&metadata.binary_id) {
+                match suite_states.get_mut(&binary_id) {
                     Some(previous) if previous.closed => errors.push(format!(
-                        "suite started after terminal snapshot: {}",
-                        metadata.binary_id
+                        "suite started after terminal snapshot: {binary_id}"
                     )),
                     Some(previous) if Some(previous.test_count) == metadata.test_count => {}
-                    Some(_) => errors.push(format!(
-                        "conflicting suite start for {}",
-                        metadata.binary_id
-                    )),
+                    Some(_) => errors.push(format!("conflicting suite start for {binary_id}")),
                     None => {
                         suite_states.insert(
-                            metadata.binary_id,
+                            binary_id.clone(),
                             SuiteState {
                                 test_count: *expected_count,
                                 terminal: None,
@@ -1437,7 +1515,11 @@ fn parse_machine_run(
                         continue;
                     }
                 };
-                let Some(expected) = expected_by_event.get(&name) else {
+                let Some(stable_name) = admitted_test_event_name(&name, selection, list) else {
+                    errors.push(format!("unexpected test start: {name}"));
+                    continue;
+                };
+                let Some(expected) = expected_by_event.get(&stable_name) else {
                     errors.push(format!("unexpected test start: {name}"));
                     continue;
                 };
@@ -1445,7 +1527,7 @@ fn parse_machine_run(
                     errors.push(format!("test started before its suite: {name}"));
                     continue;
                 }
-                if let Some(state) = test_states.get_mut(&name) {
+                if let Some(state) = test_states.get_mut(&stable_name) {
                     if state.started {
                         errors.push(format!("duplicate test start: {name}"));
                     } else {
@@ -1461,11 +1543,15 @@ fn parse_machine_run(
                         continue;
                     }
                 };
-                let Some(expected) = expected_by_event.get(&name) else {
+                let Some(stable_name) = admitted_test_event_name(&name, selection, list) else {
                     errors.push(format!("unexpected terminal test identity: {name}"));
                     continue;
                 };
-                let Some(state) = test_states.get_mut(&name) else {
+                let Some(expected) = expected_by_event.get(&stable_name) else {
+                    errors.push(format!("unexpected terminal test identity: {name}"));
+                    continue;
+                };
+                let Some(state) = test_states.get_mut(&stable_name) else {
                     continue;
                 };
                 if !state.started {
@@ -1489,11 +1575,15 @@ fn parse_machine_run(
                         continue;
                     }
                 };
-                let Some(state) = suite_states.get_mut(&metadata.binary_id) else {
-                    errors.push(format!(
-                        "suite terminal occurred before start: {}",
-                        metadata.binary_id
-                    ));
+                let binary_id = match admitted_suite_id(&metadata, selection, list) {
+                    Ok(binary_id) => binary_id,
+                    Err(error) => {
+                        errors.push(error.0);
+                        continue;
+                    }
+                };
+                let Some(state) = suite_states.get_mut(&binary_id) else {
+                    errors.push(format!("suite terminal occurred before start: {binary_id}"));
                     continue;
                 };
                 if metadata
@@ -1501,8 +1591,7 @@ fn parse_machine_run(
                     .is_some_and(|test_count| state.test_count != test_count)
                 {
                     errors.push(format!(
-                        "suite terminal test_count mismatch for {}",
-                        metadata.binary_id
+                        "suite terminal test_count mismatch for {binary_id}"
                     ));
                     continue;
                 }
@@ -1517,8 +1606,7 @@ fn parse_machine_run(
                 if let Some(previous) = &state.terminal {
                     if previous != &snapshot {
                         errors.push(format!(
-                            "conflicting repeated suite snapshot for {}",
-                            metadata.binary_id
+                            "conflicting repeated suite snapshot for {binary_id}"
                         ));
                     }
                 } else {
@@ -2304,7 +2392,7 @@ mod tests {
 
     fn v2_multi_target_fixture() -> (Vec<Value>, Value, Value, Vec<u8>) {
         let specs = [
-            ("pkg", "pkg::pkg", "lib", "pkg", 35usize),
+            ("pkg", "pkg", "lib", "pkg", 35usize),
             ("pkg", "pkg::flood", "test", "flood", 35usize),
             ("pkg", "pkg::tui", "test", "tui", 36usize),
             ("pkg", "pkg::tui_shell", "test", "tui_shell", 36usize),
@@ -2355,7 +2443,7 @@ mod tests {
                 "nextest":{"crate":package,"test_binary":binary,"kind":kind},
             }));
             for index in 0..*count {
-                let name = format!("{binary_id}$case_{target_index}_{index}");
+                let name = format!("{package}::{binary}$case_{target_index}_{index}");
                 events.push(json!({"type":"test","event":"started","name":name}));
                 events.push(json!({
                     "type":"test",
@@ -2434,6 +2522,7 @@ mod tests {
         ListResult {
             test_count: 9,
             inventory: BTreeMap::from([("pkg::bin".to_owned(), 9)]),
+            runtime_aliases: BTreeMap::new(),
             matched_selection: true,
         }
     }
@@ -2702,6 +2791,136 @@ mod tests {
         assert_eq!(report["acceptance"], "accepted");
         assert_eq!(report["selection_count"], "142");
         assert_eq!(report["targets"].as_array().unwrap().len(), 4);
+        let selected = report["run"]["selected_tests"].as_array().unwrap();
+        assert_eq!(selected.len(), 142);
+        assert!(selected
+            .iter()
+            .any(|test| { test["identity"] == "pkg$case_0_0" && test["outcome"] == "ok" }));
+    }
+
+    #[test]
+    fn v2_rejects_missing_duplicate_and_ambiguous_runtime_aliases() {
+        let (_, selection_value, list_value, _) = v2_multi_target_fixture();
+        let selection = parse_selection(&serde_json::to_vec(&selection_value).unwrap()).unwrap();
+
+        let mut missing = list_value.clone();
+        missing["rust-suites"]["pkg"]
+            .as_object_mut()
+            .unwrap()
+            .remove("binary-name");
+        assert!(validate_list_value(&missing, &selection)
+            .unwrap_err()
+            .to_string()
+            .contains("binary-name"));
+
+        let mut duplicate = list_value.clone();
+        duplicate["rust-suites"]["pkg::flood"]["binary-name"] = json!("pkg");
+        assert!(validate_list_value(&duplicate, &selection)
+            .unwrap_err()
+            .to_string()
+            .contains("duplicate runtime suite alias"));
+
+        let mut ambiguous = list_value;
+        ambiguous["rust-suites"]["pkg::flood"]["binary-name"] = json!("pkg$nested");
+        assert!(validate_list_value(&ambiguous, &selection)
+            .unwrap_err()
+            .to_string()
+            .contains("ambiguous runtime event aliases"));
+    }
+
+    #[test]
+    fn v2_rejects_unadmitted_runtime_metadata_and_test_prefixes() {
+        let (_, selection_value, list_value, run) = v2_multi_target_fixture();
+        let selection = parse_selection(&serde_json::to_vec(&selection_value).unwrap()).unwrap();
+        let list = validate_list_value(&list_value, &selection).unwrap();
+
+        let mut wrong_crate = event_lines(&run);
+        wrong_crate[0]["nextest"]["crate"] = json!("other-package");
+        let wrong_crate = run_bytes(&wrong_crate);
+        let lines = String::from_utf8(wrong_crate)
+            .unwrap()
+            .lines()
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        let result = parse_machine_run(&lines, &selection, Some(&list));
+        assert!(result
+            .errors
+            .iter()
+            .any(|error| { error.contains("run suite alias is not admitted by the list") }));
+
+        let mut wrong_kind = event_lines(&run);
+        wrong_kind[0]["nextest"]["kind"] = json!("test");
+        let wrong_kind = run_bytes(&wrong_kind);
+        let lines = String::from_utf8(wrong_kind)
+            .unwrap()
+            .lines()
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        let result = parse_machine_run(&lines, &selection, Some(&list));
+        assert!(result
+            .errors
+            .iter()
+            .any(|error| { error.contains("run suite metadata does not match admitted alias") }));
+
+        let mut unknown_test_alias = event_lines(&run);
+        unknown_test_alias[1]["name"] = json!("pkg::unlisted$case_0_0");
+        let unknown_test_alias = run_bytes(&unknown_test_alias);
+        let lines = String::from_utf8(unknown_test_alias)
+            .unwrap()
+            .lines()
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        let result = parse_machine_run(&lines, &selection, Some(&list));
+        assert!(result
+            .errors
+            .iter()
+            .any(|error| { error.contains("unexpected test start: pkg::unlisted$case_0_0") }));
+    }
+
+    #[test]
+    fn v2_keeps_complete_failed_run_outcomes_separate_from_process_success() {
+        let (targets, selection_value, list_value, run) = v2_multi_target_fixture();
+        let selection = parse_selection(&serde_json::to_vec(&selection_value).unwrap()).unwrap();
+        let request =
+            parse_request(&serde_json::to_vec(&v2_status_request_json(142, targets)).unwrap())
+                .unwrap();
+        let mut events = event_lines(&run);
+        events[2]["event"] = json!("failed");
+        let library_terminal = events
+            .iter_mut()
+            .find(|event| {
+                event["type"] == "suite"
+                    && event["event"] == "ok"
+                    && event["nextest"]["kind"] == "lib"
+            })
+            .unwrap();
+        library_terminal["event"] = json!("failed");
+        library_terminal["passed"] = json!(34);
+        library_terminal["failed"] = json!(1);
+
+        let report = evaluate(
+            &request.invocation,
+            &selection,
+            &"a".repeat(64),
+            &success_process(serde_json::to_vec(&list_value).unwrap(), Vec::new()),
+            &process(run_bytes(&events), Vec::new(), Termination::Exited(100)),
+            &success_process(Vec::new(), Vec::new()),
+        );
+        let run_report = &report["run"];
+        assert_eq!(run_report["machine_state"], "verified");
+        assert_eq!(run_report["selected_tests"].as_array().unwrap().len(), 142);
+        assert_eq!(
+            run_report["selected_tests"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|test| test["outcome"] == "failed")
+                .count(),
+            1
+        );
+        assert_eq!(run_report["all_selected_passed"], false);
+        assert_eq!(run_report["process_success"], false);
+        assert_eq!(report["acceptance"], "blocked");
     }
 
     #[test]

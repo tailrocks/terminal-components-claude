@@ -646,6 +646,158 @@ fn write_attempt_json(
     write_attempt_artifact(fixture, name, &bytes, "json")
 }
 
+const PRODUCT_PHASE_ARCHIVE_DIR: &str =
+    "docs/implementation/visibility/evidence/reports/current-attempts-archive-test";
+const PRODUCT_PHASE_MANIFEST_PATH: &str =
+    "docs/implementation/visibility/evidence/reports/current-attempts-archive-test/MANIFEST.json";
+const PRODUCT_PHASE_PAIR_PATH: &str =
+    "docs/implementation/visibility/evidence/reports/current-attempts-archive-test/raw/run03/pair-evidence.json";
+const PRODUCT_PHASE_CANDIDATE: &str = "1d797d41c8141fcbdc3f69d7f11eb8875ab54712";
+const PRODUCT_PHASE_REFERENCE: &str = "b274dd57f4dd078ade6e424d546d83efbd2e8526";
+
+fn product_phase_layer(status: &str) -> serde_json::Value {
+    serde_json::json!({
+        "evidence": [format!("fixture evidence for {status}")],
+        "reason": format!("fixture records {status}"),
+        "status": status,
+    })
+}
+
+fn product_phase_role(role: &str, source_commit: &str) -> serde_json::Value {
+    let statuses = if role == "candidate" {
+        ["PASS", "PASS", "PASS", "FAIL", "PASS", "BLOCKED", "BLOCKED", "BLOCKED", "PASS"]
+    } else {
+        ["PASS", "PASS", "PASS", "FAIL", "BLOCKED", "BLOCKED", "BLOCKED", "NOT_APPLICABLE", "BLOCKED"]
+    };
+    let names = [
+        "build", "launch", "first_frame", "interaction", "exit", "restoration",
+        "visual", "ownership", "cleanup",
+    ];
+    let layers: serde_json::Map<String, serde_json::Value> = names
+        .iter()
+        .zip(statuses)
+        .map(|(name, status)| ((*name).to_owned(), product_phase_layer(status)))
+        .collect();
+    serde_json::json!({
+        "argv": ["cargo", "run", "--release", "--bin", "holla"],
+        "cwd": format!("/fixture/{role}"),
+        "kind": "ExactRootCommand",
+        "layers": layers,
+        "pre_command_executable_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "role": role,
+        "source_commit": source_commit,
+        "source_manifest": format!("/fixture/{role}/Cargo.toml"),
+        "source_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    })
+}
+
+fn product_phase_pair_evidence() -> serde_json::Value {
+    serde_json::json!({
+        "case_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "compiled_suite_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "receipt": {
+            "rows": [{
+                "candidate": product_phase_role("candidate", PRODUCT_PHASE_CANDIDATE),
+                "direct_executable_diagnostics": [],
+                "exact_command": "cargo run --release --bin holla",
+                "id": "RUN-03",
+                "reference": product_phase_role("reference", PRODUCT_PHASE_REFERENCE),
+                "status": "FAIL",
+            }],
+            "schema": "termrock-spec/visibility-command-lane-v1",
+        },
+        "runs": [],
+        "schema": "termrock-e2e/run03-pair-evidence-v1",
+    })
+}
+
+fn write_product_phase_archive(
+    fixture: &StatusFixture,
+    pair: &serde_json::Value,
+) -> serde_json::Value {
+    let pair_raw = serde_json::to_vec(pair).expect("serialize pair-evidence fixture");
+    let pair_sha = sha256_hex(&pair_raw);
+    fixture
+        .repo
+        .write_file(Path::new(PRODUCT_PHASE_PAIR_PATH), &pair_raw)
+        .expect("write pair-evidence fixture");
+    let manifest = serde_json::json!({
+        "schema": "termrock-vis13-raw-attempt-archive/v1",
+        "increment": "current-attempts-archive-test",
+        "source_baseline": {"note": "synthetic bounded test fixture"},
+        "files": [{
+            "path": PRODUCT_PHASE_PAIR_PATH,
+            "source_path": "fixture/pair-evidence.json",
+            "bytes": pair_raw.len(),
+            "sha256": pair_sha,
+            "description": "synthetic RUN-03 pair evidence",
+        }],
+        "file_count": 1,
+        "total_bytes": pair_raw.len(),
+        "limits": ["Synthetic one-member archive for CLI contract tests."],
+    });
+    let manifest_raw = serde_json::to_vec(&manifest).expect("serialize archive manifest fixture");
+    fixture
+        .repo
+        .write_file(Path::new(PRODUCT_PHASE_MANIFEST_PATH), &manifest_raw)
+        .expect("write archive manifest fixture");
+    serde_json::json!({
+        "schema": "termrock-status-product-phase-observations/v1",
+        "scope": "HISTORICAL",
+        "source_pair": {
+            "candidate_commit": PRODUCT_PHASE_CANDIDATE,
+            "reference_commit": PRODUCT_PHASE_REFERENCE,
+        },
+        "archive_manifest": {
+            "path": PRODUCT_PHASE_MANIFEST_PATH,
+            "sha256": sha256_hex(&manifest_raw),
+            "bytes": manifest_raw.len(),
+        },
+        "commands": [{
+            "command_id": "RUN-03",
+            "exact_command": "cargo run --release --bin holla",
+            "pair_evidence": {
+                "path": PRODUCT_PHASE_PAIR_PATH,
+                "sha256": pair_sha,
+                "bytes": pair_raw.len(),
+            },
+        }],
+    })
+}
+
+fn rebind_product_phase_archive(
+    fixture: &StatusFixture,
+    facts: &mut serde_json::Value,
+    pair: &serde_json::Value,
+) {
+    let pair_raw = serde_json::to_vec(pair).expect("serialize rebound pair-evidence fixture");
+    let pair_sha = sha256_hex(&pair_raw);
+    fs::write(
+        fixture.repo.root().join(PRODUCT_PHASE_PAIR_PATH),
+        &pair_raw,
+    )
+    .expect("write rebound pair-evidence fixture");
+    let manifest_path = fixture.repo.root().join(PRODUCT_PHASE_MANIFEST_PATH);
+    let mut manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(&manifest_path).expect("read archive manifest fixture"),
+    )
+    .expect("parse archive manifest fixture");
+    manifest["files"][0]["bytes"] = serde_json::json!(pair_raw.len());
+    manifest["files"][0]["sha256"] = serde_json::json!(&pair_sha);
+    manifest["total_bytes"] = serde_json::json!(pair_raw.len());
+    let manifest_raw = serde_json::to_vec(&manifest).expect("serialize rebound manifest");
+    fs::write(&manifest_path, &manifest_raw).expect("write rebound manifest");
+    facts["product_phase_observations"]["archive_manifest"]["sha256"] =
+        serde_json::json!(sha256_hex(&manifest_raw));
+    facts["product_phase_observations"]["archive_manifest"]["bytes"] =
+        serde_json::json!(manifest_raw.len());
+    facts["product_phase_observations"]["commands"][0]["pair_evidence"]["sha256"] =
+        serde_json::json!(pair_sha);
+    facts["product_phase_observations"]["commands"][0]["pair_evidence"]["bytes"] =
+        serde_json::json!(pair_raw.len());
+    write_json_facts(fixture, facts);
+}
+
 fn paired_attempt_fixture(fixture: &StatusFixture) -> serde_json::Value {
     let source_binding = serde_json::json!({
         "kind": "candidate_reference_pair",
@@ -1688,6 +1840,10 @@ fn checked_in_records_render_from_exact_copies() {
         facts.get("execution_attempt_history").is_none(),
         "checked-in source facts must exercise absent optional attempt history"
     );
+    assert!(
+        facts.get("product_phase_observations").is_none(),
+        "checked-in source facts must exercise absent optional product phases"
+    );
 
     let output = fixture.run(&[]);
     let repeated = fixture.run(&[]);
@@ -1833,6 +1989,338 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(report.contains("The f307 Holla product result remains NOT_RUN."));
     assert!(report.contains("| Visibility / Complete | NOT_RUN |"));
     assert!(report.contains("| Refactor / Ready | NOT_READY |"));
+}
+
+#[test]
+fn historical_product_phases_render_run03_without_promoting_current_readiness() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts for phase projection"),
+    )
+    .expect("parse source facts for phase projection");
+    let pair = product_phase_pair_evidence();
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    write_json_facts(&fixture, &facts);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
+    let report = output_text(&output);
+    assert!(report.contains("| Command / Ready | NOT_RUN |"));
+    let commands = report
+        .split("## Required commands\n")
+        .nth(1)
+        .expect("required command table")
+        .split("\n## Recorded source pair")
+        .next()
+        .expect("end of required command table");
+    let run03 = commands
+        .lines()
+        .find(|line| line.starts_with("| RUN-03 |"))
+        .expect("historical RUN-03 table row");
+    assert!(run03.contains("historical pair: candidate `1d797d41c8141fcbdc3f69d7f11eb8875ab54712`"));
+    assert!(run03.contains("reference `b274dd57f4dd078ade6e424d546d83efbd2e8526`"));
+    assert!(run03.contains("Reference: FAIL; Candidate: FAIL"));
+    assert!(run03.contains(
+        "Current: NOT_RUN; historical required: Reference NOT_READY; Candidate NOT_READY"
+    ));
+    assert!(!run03.contains("cleanup"), "cleanup is validated but not a table dimension");
+    let run02 = commands
+        .lines()
+        .find(|line| line.starts_with("| RUN-02 |"))
+        .expect("unobserved RUN-02 table row");
+    assert!(run02.contains("Reference: NOT_RUN; Candidate: NOT_RUN"));
+}
+
+#[test]
+fn historical_product_phase_pair_remains_valid_when_current_pair_differs() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts for historical pair test"),
+    )
+    .expect("parse source facts for historical pair test");
+    let mut pair = product_phase_pair_evidence();
+    let historical_candidate = "3333333333333333333333333333333333333333";
+    let historical_reference = "4444444444444444444444444444444444444444";
+    pair["receipt"]["rows"][0]["candidate"]["source_commit"] =
+        serde_json::json!(historical_candidate);
+    pair["receipt"]["rows"][0]["reference"]["source_commit"] =
+        serde_json::json!(historical_reference);
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    facts["product_phase_observations"]["source_pair"]["candidate_commit"] =
+        serde_json::json!(historical_candidate);
+    facts["product_phase_observations"]["source_pair"]["reference_commit"] =
+        serde_json::json!(historical_reference);
+    rebind_product_phase_archive(&fixture, &mut facts, &pair);
+
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
+    let report = output_text(&output);
+    let commands = report
+        .split("## Required commands\n")
+        .nth(1)
+        .expect("required command table")
+        .split("\n## Recorded source pair")
+        .next()
+        .expect("end of required command table");
+    let run03 = commands
+        .lines()
+        .find(|line| line.starts_with("| RUN-03 |"))
+        .expect("historical RUN-03 row remains visible");
+    assert!(run03.contains("historical pair: candidate `3333333333333333333333333333333333333333`"));
+    assert!(run03.contains("reference `4444444444444444444444444444444444444444`"));
+    assert!(run03.contains("Current: NOT_RUN; historical required: Reference NOT_READY; Candidate NOT_READY"));
+    assert!(report.contains("fixed comparison pair"));
+}
+
+#[test]
+fn historical_product_phase_not_applicable_readiness_is_explicit() {
+    let phase_names = [
+        "build", "launch", "first_frame", "interaction", "exit", "restoration",
+        "visual", "ownership", "cleanup",
+    ];
+
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts for N/A readiness test"),
+    )
+    .expect("parse source facts for N/A readiness test");
+    let mut pair = product_phase_pair_evidence();
+    for role in ["candidate", "reference"] {
+        for name in phase_names {
+            pair["receipt"]["rows"][0][role]["layers"][name]["status"] =
+                serde_json::json!("PASS");
+        }
+    }
+    pair["receipt"]["rows"][0]["reference"]["layers"]["ownership"]["status"] =
+        serde_json::json!("NOT_APPLICABLE");
+    pair["receipt"]["rows"][0]["status"] = serde_json::json!("PASS");
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    rebind_product_phase_archive(&fixture, &mut facts, &pair);
+    let neutral_na = fixture.run(&[]);
+    assert_eq!(neutral_na.exit_code, Some(0), "{}", error_text(&neutral_na));
+    assert!(output_text(&neutral_na).contains(
+        "Current: NOT_RUN; historical required: Reference READY; Candidate READY"
+    ));
+
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts for all-N/A readiness test"),
+    )
+    .expect("parse source facts for all-N/A readiness test");
+    let mut pair = product_phase_pair_evidence();
+    for role in ["candidate", "reference"] {
+        for name in phase_names {
+            pair["receipt"]["rows"][0][role]["layers"][name]["status"] =
+                serde_json::json!("NOT_APPLICABLE");
+        }
+    }
+    pair["receipt"]["rows"][0]["status"] = serde_json::json!("NOT_APPLICABLE");
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    rebind_product_phase_archive(&fixture, &mut facts, &pair);
+    let all_na = fixture.run(&[]);
+    assert_eq!(all_na.exit_code, Some(0), "{}", error_text(&all_na));
+    assert!(output_text(&all_na).contains(
+        "Current: NOT_RUN; historical required: Reference NOT_APPLICABLE; Candidate NOT_APPLICABLE"
+    ));
+
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts for required N/A test"),
+    )
+    .expect("parse source facts for required N/A test");
+    let mut pair = product_phase_pair_evidence();
+    for role in ["candidate", "reference"] {
+        for name in phase_names {
+            pair["receipt"]["rows"][0][role]["layers"][name]["status"] =
+                serde_json::json!("NOT_RUN");
+        }
+    }
+    pair["receipt"]["rows"][0]["candidate"]["layers"]["build"]["status"] =
+        serde_json::json!("NOT_APPLICABLE");
+    pair["receipt"]["rows"][0]["status"] = serde_json::json!("NOT_RUN");
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    rebind_product_phase_archive(&fixture, &mut facts, &pair);
+    let required_na = fixture.run(&[]);
+    assert_eq!(required_na.exit_code, Some(0), "{}", error_text(&required_na));
+    assert!(output_text(&required_na).contains(
+        "Current: NOT_RUN; historical required: Reference NOT_RUN; Candidate NOT_RUN"
+    ));
+}
+
+#[test]
+fn historical_product_phase_archive_rejects_missing_tampered_and_unlisted_members() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
+    let pair = product_phase_pair_evidence();
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    write_json_facts(&fixture, &facts);
+    fs::remove_file(fixture.repo.root().join(PRODUCT_PHASE_PAIR_PATH))
+        .expect("remove pinned pair evidence");
+    let missing = fixture.run(&[]);
+    assert_eq!(missing.exit_code, Some(2));
+    assert!(error_text(&missing).contains("product phase pair evidence cannot be opened"));
+    assert!(missing.stdout.is_empty());
+
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
+    let pair = product_phase_pair_evidence();
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    write_json_facts(&fixture, &facts);
+    fs::write(fixture.repo.root().join(PRODUCT_PHASE_PAIR_PATH), b"tampered")
+        .expect("tamper pair evidence");
+    let tampered = fixture.run(&[]);
+    assert_eq!(tampered.exit_code, Some(2));
+    assert!(error_text(&tampered).contains("pair evidence bytes do not match"));
+    assert!(tampered.stdout.is_empty());
+
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
+    let pair = product_phase_pair_evidence();
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    facts["product_phase_observations"]["commands"][0]["pair_evidence"]["path"] =
+        serde_json::json!(format!("{PRODUCT_PHASE_ARCHIVE_DIR}/raw/run03/unlisted.json"));
+    write_json_facts(&fixture, &facts);
+    let unlisted = fixture.run(&[]);
+    assert_eq!(unlisted.exit_code, Some(2));
+    assert!(error_text(&unlisted).contains("not listed in the archive manifest"));
+    assert!(unlisted.stdout.is_empty());
+
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
+    let pair = product_phase_pair_evidence();
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    facts["product_phase_observations"]["commands"][0]["pair_evidence"]["path"] =
+        serde_json::json!(format!("{PRODUCT_PHASE_ARCHIVE_DIR}/raw/run03/../pair-evidence.json"));
+    write_json_facts(&fixture, &facts);
+    let escaped = fixture.run(&[]);
+    assert_eq!(escaped.exit_code, Some(2));
+    assert!(error_text(&escaped).contains("normalized repository-relative path"));
+    assert!(escaped.stdout.is_empty());
+}
+
+#[test]
+fn historical_product_phase_rejects_command_and_source_pair_drift() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
+    let pair = product_phase_pair_evidence();
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    facts["product_phase_observations"]["commands"][0]["exact_command"] =
+        serde_json::json!("cargo run --release --bin showcase");
+    write_json_facts(&fixture, &facts);
+    let command_drift = fixture.run(&[]);
+    assert_eq!(command_drift.exit_code, Some(2));
+    assert!(error_text(&command_drift).contains("registered RUN-03 command"));
+    assert!(command_drift.stdout.is_empty());
+
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
+    let mut pair = product_phase_pair_evidence();
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    pair["receipt"]["rows"][0]["candidate"]["source_commit"] =
+        serde_json::json!("1111111111111111111111111111111111111111");
+    rebind_product_phase_archive(&fixture, &mut facts, &pair);
+    let source_drift = fixture.run(&[]);
+    assert_eq!(source_drift.exit_code, Some(2));
+    assert!(error_text(&source_drift).contains("role does not bind the exact command and source"));
+    assert!(source_drift.stdout.is_empty());
+}
+
+#[test]
+fn historical_product_phase_rejects_duplicate_run03_and_invalid_layers() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
+    let mut pair = product_phase_pair_evidence();
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    let duplicate = pair["receipt"]["rows"][0].clone();
+    pair["receipt"]["rows"].as_array_mut().expect("receipt rows").push(duplicate);
+    rebind_product_phase_archive(&fixture, &mut facts, &pair);
+    let duplicate_run = fixture.run(&[]);
+    assert_eq!(duplicate_run.exit_code, Some(2));
+    assert!(error_text(&duplicate_run).contains("row IDs must be unique"));
+    assert!(duplicate_run.stdout.is_empty());
+
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
+    let mut pair = product_phase_pair_evidence();
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    pair["receipt"]["rows"][0]["candidate"]["layers"]
+        .as_object_mut()
+        .expect("candidate layers")
+        .remove("ownership");
+    rebind_product_phase_archive(&fixture, &mut facts, &pair);
+    let missing_layer = fixture.run(&[]);
+    assert_eq!(missing_layer.exit_code, Some(2));
+    assert!(error_text(&missing_layer).contains("exactly the nine recorded layers"));
+    assert!(missing_layer.stdout.is_empty());
+
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
+    let mut pair = product_phase_pair_evidence();
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    pair["receipt"]["rows"][0]["candidate"]["layers"]["interaction"]["status"] =
+        serde_json::json!("UNVERIFIED");
+    rebind_product_phase_archive(&fixture, &mut facts, &pair);
+    let invalid_layer = fixture.run(&[]);
+    assert_eq!(invalid_layer.exit_code, Some(2));
+    assert!(error_text(&invalid_layer).contains("invalid fields or status"));
+    assert!(invalid_layer.stdout.is_empty());
+
+    let fixture = StatusFixture::from_checked_in_records();
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
+    let mut pair = product_phase_pair_evidence();
+    pair["receipt"]["rows"][0]["candidate"]["layers"]["unregistered"] =
+        product_phase_layer("PASS");
+    facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
+    rebind_product_phase_archive(&fixture, &mut facts, &pair);
+    let extra_layer = fixture.run(&[]);
+    assert_eq!(extra_layer.exit_code, Some(2));
+    assert!(error_text(&extra_layer).contains("exactly the nine recorded layers"));
+    assert!(extra_layer.stdout.is_empty());
 }
 
 #[test]

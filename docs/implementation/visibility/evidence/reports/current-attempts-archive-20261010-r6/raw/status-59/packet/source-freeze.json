@@ -1,0 +1,71 @@
+{
+  "schema": "termrock-vis01-product-phase-source-freeze/v1",
+  "source_root": "/private/tmp/termrock-vis01-product-phases-r3-source-20261010",
+  "base_commit": "57d505f343bf35e5041471f4cbab476cb92d67da",
+  "base_tree": "965aef70b90ca0a8a4be2f869da839a3711245d8",
+  "allowed_paths": [
+    "tools/visibility/status.py",
+    "crates/termrock-visibility-tests/tests/status.rs"
+  ],
+  "files": [
+    {
+      "path": "tools/visibility/status.py",
+      "base_blob": "7399a413e3662e5a5d73ece6b34beea7a99cd17f",
+      "base_sha256": "857b9958ec588fcb18aa1f5263a156cd1c6e24192a4cf56d8a99d0af7520732e",
+      "candidate_bytes": 273249,
+      "candidate_sha256": "2fcb0c6b45375656b4a23e8f5ea4fef86342fc56a1ec5fff162ff717c502a7f0"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "base_blob": "9c26cb72283478f379ee3dc2cbe51d8925327d84",
+      "base_sha256": "dbdceffc8252c44923da70e5296a54a54c40c2396b34986bb6055d5b2d206d7e",
+      "candidate_bytes": 186754,
+      "candidate_sha256": "7efa372f27b1537cbdf5add2568e62c43d43c42d7a30f29c1fc2e1b661440e0f"
+    }
+  ],
+  "patch_path": "/private/tmp/termrock-vis01-product-phases-r3-freeze-20261010/source-delta.patch",
+  "patch_bytes": 44030,
+  "patch_sha256": "3c8b1c17098dbd7b95e69d7c22104cddb16f353c255fb0d1ab0e9fefb9b950df",
+  "prior_freeze": {
+    "path": "/private/tmp/termrock-vis01-product-phases-r2-freeze-20261010/source-freeze.json",
+    "sha256": "f69aa5452f61b768357297b579259d6ea220e58d7a9f49bb2e13aa61e8abe086"
+  },
+  "design_review": {
+    "path": "/private/tmp/termrock-vis01-product-phases-design-review-ci-parity-luna.json",
+    "sha256": "a0ccdbcff7ce2e1ac974885fc51b1d2239ee39bfc6b88a06ddbc84edce8b6175"
+  },
+  "prior_source_reviews": [
+    {
+      "path": "/private/tmp/termrock-vis01-product-phases-r2-source-review-ci-parity-luna.json",
+      "sha256": "6cb078bc8de48fd19d6698a5cbb460835a0d717a1c2ae256c8894c2831fef433"
+    },
+    {
+      "path": "/private/tmp/termrock-vis01-product-phases-r2-independent-review-controls-luna-20261010.json",
+      "sha256": "d65cd6e611c09df5fcb530e1d144d3e112cc60524c67ff3c6e658ac605d6be27"
+    }
+  ],
+  "pair_evidence": {
+    "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r4/raw/run03/pair-evidence.json",
+    "bytes": 106804,
+    "sha256": "edbf0997737ab83136509c2d963e87b25dcb337c9f22041fe03433cd1ead4d6b",
+    "source_pair": {
+      "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526"
+    }
+  },
+  "test_count": 59,
+  "new_test_cases": [
+    "historical_product_phases_render_run03_without_promoting_current_readiness",
+    "historical_product_phase_pair_remains_valid_when_current_pair_differs",
+    "historical_product_phase_not_applicable_readiness_is_explicit",
+    "historical_product_phase_archive_rejects_missing_tampered_and_unlisted_members",
+    "historical_product_phase_rejects_command_and_source_pair_drift",
+    "historical_product_phase_rejects_duplicate_run03_and_invalid_layers"
+  ],
+  "additional_negative_coverage": [
+    "unknown extra layer key is rejected as not exactly the nine recorded layers"
+  ],
+  "compatibility_case": "checked_in_records_render_from_exact_copies",
+  "execution": "NOT_RUN; no Cargo, Nextest, Python tests, or build were run for this freeze",
+  "canonical_mutation": "NONE; source files and diff are external only"
+}

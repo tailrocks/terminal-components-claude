@@ -1,0 +1,76 @@
+{
+  "schema": "termrock.vis01.r5b-binding-review/v1",
+  "verdict": "READY_STATIC_BINDING_REVIEW_ONLY",
+  "reviewer": "controls_wrapper_review_luna",
+  "reviewed_at": "2026-10-10",
+  "scope": "R5b packet binding, corrected cache-closure path, fresh packet-local target/output paths, request/preflight consistency, and disclosure wording. No preflight, Cargo, Nextest, list capture, or tests were run by this reviewer.",
+  "packet_root": "/private/tmp/termrock-vis01-product-phases-r3-nextest-r5b-20261010/packet",
+  "pins": {
+    "runner": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-r5b-20261010/packet/capture-list.cjs",
+      "sha256": "ca8d5e773a24053b82cb1a54ee450eeee934b39652aec3db940b8ead2878edd3"
+    },
+    "runplan": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-r5b-20261010/packet/runplan.json",
+      "sha256": "ba624e9a6f33afbca28a2da560c75f7d158ad41bb442a33d90bd23b396e23221"
+    },
+    "source_manifest": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-r5b-20261010/packet/source-manifest.json",
+      "sha256": "d1ff1d7f9a93c4da1cd3afe4eab547c02b163e691a9fdb454547ab5b9f96fcf4"
+    },
+    "review_request": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-r5b-20261010/packet/review-request.json",
+      "sha256": "7745c313eab28a526d01b62f603e19d0e202bd79ee1431fd3bd8d9ba7f3746bf"
+    },
+    "sha256sums": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-r5b-20261010/packet/SHA256SUMS",
+      "sha256": "7f2d49d78a033f75ebd77c1df881c39297d73f39056240e2c88c67439da219b8",
+      "verification": "All nine listed packet files verified OK."
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-r5b-20261010/packet/preflight/preflight.json",
+      "sha256": "7c9344802785675965b870f9f1d8d28eec9a02089a51e797280ac65a294abe42"
+    }
+  },
+  "findings": [
+    {
+      "id": "R5B-CACHE-PATH",
+      "status": "PASS",
+      "detail": "Compared R4 and R5b source manifests. The only manifest value changes are cache.closure_path, now pointing to this packet's cache-closure.json, and warm_target.target_dir, now pointing to this packet's target-list. The cache closure SHA and Cargo home remain the reviewed R8/R10 closure. The runner checks source.cache.closure_path equals its packet-local CACHE_PATH and checks closure SHA and cargo_home against the closure file."
+    },
+    {
+      "id": "R5B-ISOLATED-PATHS",
+      "status": "PASS",
+      "detail": "Runplan target and CARGO_TARGET_DIR both resolve to packet-local target-list; it is mode 0700 and empty, with a current snapshot digest matching the preflight receipt. raw-list-output is packet-local and absent; HOME and TMPDIR are beneath it."
+    },
+    {
+      "id": "R5B-REQUEST-PREFLIGHT-PINS",
+      "status": "PASS",
+      "detail": "The review request pins the runner, runplan, source manifest, test inventory, cache closure, source freeze, delta patch, inventory binding, and SHA256SUMS. These agree with the preflight's recorded packet_input_pins and direct hashes. The preflight reports PREFLIGHT_READY_NO_CARGO, cargo_spawned=false, nextest_spawned=false, tests_run=false, network_used=false, 59 source-derived tests, no filter, and the matching runner/runplan/manifest/request/checksum hashes."
+    },
+    {
+      "id": "R5B-PRIOR-DISCLOSURE",
+      "status": "PASS",
+      "detail": "The request and README disclose the earlier edits to an R5 directory with owner unconfirmed, enumerate the five touched files and known hashes, state that the directory is excluded from R5b and has not been modified further, and avoid asserting ownership or a known original timestamp. The R4 preflight failure is labeled Root-reported with its raw transcript explicitly marked not archived."
+    }
+  ],
+  "checks": {
+    "request_and_preflight_pin_maps_match": true,
+    "source_root_matches_runplan": true,
+    "source_manifest_cache_closure_path_is_packet_local": true,
+    "source_manifest_cache_closure_digest_matches_file": true,
+    "cache_home_and_package_lock_bindings_match": true,
+    "source_manifest_build_input_count": 108,
+    "cache_registry_archive_count": 40,
+    "cache_sparse_index_count": 44,
+    "target_private_empty_and_preflight_digest_matches": true,
+    "output_root_absent": true,
+    "sha256sums_verified": true,
+    "runner_bytes_unchanged_from_reviewed_r4": true
+  },
+  "evidence_limits": [
+    "The Node preflight receipt is an owner-provided recorded artifact; this reviewer did not execute it.",
+    "The source-derived 59-test inventory is not an actual Nextest list result; raw-list capture and independent Rust-reader validation remain pending.",
+    "No tests, product readiness, qualification, capture, or admission are claimed."
+  ]
+}

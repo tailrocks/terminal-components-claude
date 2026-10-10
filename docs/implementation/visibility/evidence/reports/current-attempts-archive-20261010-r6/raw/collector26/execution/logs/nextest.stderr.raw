@@ -1,0 +1,62 @@
+   Compiling libc v0.2.190
+   Compiling version_check v0.9.5
+   Compiling cfg-if v1.0.5
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling serde_core v1.0.229
+   Compiling getrandom v0.4.3
+   Compiling crc32fast v1.5.2
+   Compiling rustix v1.1.5
+   Compiling zmij v1.0.23
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling errno v0.3.14
+   Compiling simd-adler32 v0.3.10
+   Compiling serde_json v1.0.151
+   Compiling bitflags v2.13.2
+   Compiling adler2 v2.0.1
+   Compiling miniz_oxide v0.9.1
+   Compiling digest v0.10.7
+   Compiling cpufeatures v0.2.17
+   Compiling filetime v0.2.29
+   Compiling fastrand v2.5.0
+   Compiling itoa v1.0.18
+   Compiling once_cell v1.21.4
+   Compiling memchr v2.8.3
+   Compiling tempfile v3.27.0
+   Compiling tar v0.4.46
+   Compiling sha2 v0.10.9
+   Compiling flate2 v1.1.10
+   Compiling termrock-visibility-tests v0.1.0 (/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.64s
+────────────
+ Nextest run ID cddc786b-2fe7-41b4-881d-f6ef08512eb8 with nextest profile: default
+    Starting 26 tests across 1 binary (14 tests skipped)
+        PASS [   0.013s] termrock-visibility-tests nextest_result::tests::child_summary_is_checked_only_when_bound_to_one_suite
+        PASS [   0.010s] termrock-visibility-tests nextest_result::tests::filtered_out_u64_values_are_preserved_and_inventory_anomalies_marked
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::human_nextest_contradiction_blocks_without_rewriting_machine_results
+        PASS [   0.008s] termrock-visibility-tests nextest_result::tests::human_only_capture_is_unavailable_not_a_pass
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::identical_repeated_suite_snapshots_are_observations_not_extra_tests
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::list_ignored_and_filter_status_must_match_static_selection
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::list_ignored_does_not_become_run_filtered_out
+        PASS [   0.010s] termrock-visibility-tests nextest_result::tests::preserves_child_pass_and_wrapper_125_as_distinct_process_facts
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::reads_machine_records_from_the_configured_stderr_stream
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::rejects_missing_extra_duplicate_and_suffix_terminal_identities
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::rejects_other_format_and_retry_stress_or_partition_invocations
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::rejects_structured_records_split_across_stdout_and_stderr
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::rejects_suite_start_after_terminal_snapshot
+        PASS [   0.012s] termrock-visibility-tests nextest_result::tests::request_file_capture_metadata_and_trusted_selection_hash_are_checked
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::selected_filter_and_ignored_status_must_match_run_policy
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::terminal_identity_before_start_is_invalid
+        PASS [   0.020s] termrock-visibility-tests nextest_result::tests::v2_accepts_142_selected_identities_across_four_targets
+        PASS [   0.017s] termrock-visibility-tests nextest_result::tests::v2_accepts_empty_filter_and_exact_59_case_status_selection
+        PASS [   0.021s] termrock-visibility-tests nextest_result::tests::v2_keeps_complete_failed_run_outcomes_separate_from_process_success
+        PASS [   0.012s] termrock-visibility-tests nextest_result::tests::v2_rejects_count_and_target_mismatches
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::v2_rejects_empty_selection
+        PASS [   0.013s] termrock-visibility-tests nextest_result::tests::v2_rejects_missing_duplicate_and_ambiguous_runtime_aliases
+        PASS [   0.023s] termrock-visibility-tests nextest_result::tests::v2_rejects_oversized_selection
+        PASS [   0.025s] termrock-visibility-tests nextest_result::tests::v2_rejects_unadmitted_runtime_metadata_and_test_prefixes
+        PASS [   0.009s] termrock-visibility-tests nextest_result::tests::validates_exact_nine_selection_and_list_identities
+        PASS [   0.011s] termrock-visibility-tests nextest_result::tests::verifies_nine_observed_tests_across_two_binaries_and_plural_summary
+────────────
+     Summary [   0.312s] 26 tests run: 26 passed, 14 skipped

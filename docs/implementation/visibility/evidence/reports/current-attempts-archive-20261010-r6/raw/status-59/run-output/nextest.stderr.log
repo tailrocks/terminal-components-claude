@@ -1,0 +1,143 @@
+   Compiling libc v0.2.190
+   Compiling generic-array v0.14.7
+   Compiling zmij v1.0.23
+   Compiling getrandom v0.4.3
+   Compiling errno v0.3.14
+   Compiling serde_core v1.0.229
+   Compiling crc32fast v1.5.2
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling serde_json v1.0.151
+   Compiling digest v0.10.7
+   Compiling rustix v1.1.5
+   Compiling cpufeatures v0.2.17
+   Compiling filetime v0.2.29
+   Compiling tempfile v3.27.0
+   Compiling tar v0.4.46
+   Compiling sha2 v0.10.9
+   Compiling flate2 v1.1.10
+   Compiling termrock-visibility-tests v0.1.0 (/private/tmp/termrock-vis01-product-phases-r3-nextest-20261010/source-root/crates/termrock-visibility-tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.38s
+────────────
+ Nextest run ID 76360add-6093-4f79-b04d-a990531236e1 with nextest profile: default
+    Starting 59 tests across 1 binary
+        PASS [   0.345s] termrock-visibility-tests::status absent_optional_current_ci_capture_keeps_only_historical_rows
+        PASS [   0.366s] termrock-visibility-tests::status accepts_new_typed_observations_and_unknown_conclusions
+        PASS [   0.453s] termrock-visibility-tests::status attempt_history_rejects_count_sequence_and_artifact_pin_drift
+        PASS [   0.150s] termrock-visibility-tests::status bounded_execution_receipts_render_partial_results_without_ready_claims
+        PASS [   5.769s] termrock-visibility-tests::status checked_in_records_render_from_exact_copies
+        PASS [   0.366s] termrock-visibility-tests::status ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs
+        PASS [   0.265s] termrock-visibility-tests::status current_ci_snapshot_binds_each_gate_and_keeps_products_not_run
+        PASS [   0.704s] termrock-visibility-tests::status current_ci_source_pair_run_head_workflow_and_url_mismatches_are_rejected
+        PASS [   0.285s] termrock-visibility-tests::status current_dco_heads_must_match_their_candidate_and_reference_tips
+        PASS [   2.243s] termrock-visibility-tests::status current_observations_render_source_bound_branch_and_candidate_failure
+        PASS [   0.494s] termrock-visibility-tests::status does_not_accept_wrong_or_partial_dco_trailers
+        PASS [   0.155s] termrock-visibility-tests::status execution_attempt_history_keeps_test_wrapper_and_readiness_states_separate
+        PASS [   0.162s] termrock-visibility-tests::status execution_evidence_fifo_is_rejected_without_blocking_or_report
+        PASS [   0.318s] termrock-visibility-tests::status execution_evidence_rejects_tmp_traversal_and_symlinked_parent
+        PASS [   0.167s] termrock-visibility-tests::status execution_receipt_json_rejects_duplicate_keys
+        PASS [   0.308s] termrock-visibility-tests::status execution_receipts_reject_source_pair_mismatch_and_changed_bytes
+        PASS [   2.819s] termrock-visibility-tests::status explicit_source_ci_capture_distinguishes_null_from_missing
+        PASS [   0.554s] termrock-visibility-tests::status generation_is_byte_deterministic
+        PASS [   9.047s] termrock-visibility-tests::status historical_product_phase_archive_rejects_missing_tampered_and_unlisted_members
+        PASS [   6.678s] termrock-visibility-tests::status historical_product_phase_not_applicable_readiness_is_explicit
+        PASS [   2.227s] termrock-visibility-tests::status historical_product_phase_pair_remains_valid_when_current_pair_differs
+        PASS [   4.520s] termrock-visibility-tests::status historical_product_phase_rejects_command_and_source_pair_drift
+        PASS [   9.178s] termrock-visibility-tests::status historical_product_phase_rejects_duplicate_run03_and_invalid_layers
+        PASS [   2.345s] termrock-visibility-tests::status historical_product_phases_render_run03_without_promoting_current_readiness
+        PASS [   1.659s] termrock-visibility-tests::status holla_executable_and_builder_receipt_hashes_are_cross_bound
+        PASS [   0.688s] termrock-visibility-tests::status holla_receipt_rejects_unexpected_or_missing_check_and_artifact_rows
+        PASS [   0.346s] termrock-visibility-tests::status holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes
+        PASS [   0.166s] termrock-visibility-tests::status initial_status_keeps_products_not_run_and_pairs_exact
+        PASS [   0.167s] termrock-visibility-tests::status keeps_ci_dco_observations_separate
+        PASS [   2.455s] termrock-visibility-tests::status keeps_historical_raw_capture_gap_separate_from_readiness
+        PASS [   0.156s] termrock-visibility-tests::status keeps_visual_interaction_api_ownership_distinct
+        PASS [  15.374s] termrock-visibility-tests::status local_package_and_report_control_metadata_rejects_unbound_inputs
+        PASS [   0.713s] termrock-visibility-tests::status mismatched_or_absent_provider_capture_does_not_supply_failure_cause
+        PASS [   0.276s] termrock-visibility-tests::status missing_or_failed_reference_query_is_unknown_not_zero
+        PASS [   2.223s] termrock-visibility-tests::status reference_role_cli_renders_reference_presentation
+        PASS [   0.559s] termrock-visibility-tests::status rejects_a_stale_source_evidence_archive_manifest_pin
+        PASS [   2.346s] termrock-visibility-tests::status rejects_a_temporary_root_locator_in_checked_in_source_facts
+        PASS [   0.372s] termrock-visibility-tests::status rejects_ambiguous_or_nonfinite_source_facts_without_status_output
+        PASS [   0.215s] termrock-visibility-tests::status rejects_candidate_remote_identity_mismatch
+        PASS [   4.679s] termrock-visibility-tests::status rejects_changed_current_observation_evidence_pin
+        PASS [   0.197s] termrock-visibility-tests::status rejects_changed_frozen_tag
+        PASS [   0.310s] termrock-visibility-tests::status rejects_duplicate_task_ids_and_unknown_states
+        PASS [   7.522s] termrock-visibility-tests::status rejects_misbound_latest_ci_publication_and_historical_execution
+        PASS [   1.078s] termrock-visibility-tests::status rejects_missing_archived_current_observation_input
+        PASS [   0.229s] termrock-visibility-tests::status rejects_previous_source_facts_schema_version
+        PASS [   6.375s] termrock-visibility-tests::status rejects_relabeling_a_verified_candidate_failure_as_not_run
+        PASS [   5.640s] termrock-visibility-tests::status rejects_tampered_candidate_measurement_packet_member
+        PASS [   0.480s] termrock-visibility-tests::status rejects_unknown_state_negative_count_and_non_https_reason_source
+        PASS [   3.906s] termrock-visibility-tests::status rejects_unrecorded_candidate_acceptance_promotion
+        PASS [   0.157s] termrock-visibility-tests::status renders_all_seven_exact_commands_and_layers
+        PASS [   0.151s] termrock-visibility-tests::status reports_latest_remote_refs_and_local_checkout_separately
+        PASS [   0.253s] termrock-visibility-tests::status role_changes_local_label_and_uses_reference_links
+        PASS [   3.348s] termrock-visibility-tests::status source_history_accepts_four_predecessors_and_rejects_malformed_bindings
+        PASS [   0.278s] termrock-visibility-tests::status stale_attempt_must_be_historical_and_does_not_promote_readiness
+        PASS [   0.167s] termrock-visibility-tests::status status_accepts_q47_reference_branch_scope
+        PASS [   0.248s] termrock-visibility-tests::status status_fails_closed_when_adjacent_queue_is_missing_or_symlinked
+        PASS [   0.139s] termrock-visibility-tests::status status_fails_closed_when_adjacent_queue_lacks_v1_validator
+        PASS [   0.661s] termrock-visibility-tests::status status_rejects_malformed_or_incomplete_q47_v1_records
+        PASS [  10.641s] termrock-visibility-tests::status status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2
+────────────
+     Summary [ 124.098s] 59 tests run: 59 passed, 0 skipped
+        PASS [   0.345s] termrock-visibility-tests::status absent_optional_current_ci_capture_keeps_only_historical_rows
+        PASS [   0.366s] termrock-visibility-tests::status accepts_new_typed_observations_and_unknown_conclusions
+        PASS [   0.453s] termrock-visibility-tests::status attempt_history_rejects_count_sequence_and_artifact_pin_drift
+        PASS [   0.150s] termrock-visibility-tests::status bounded_execution_receipts_render_partial_results_without_ready_claims
+        PASS [   5.769s] termrock-visibility-tests::status checked_in_records_render_from_exact_copies
+        PASS [   0.366s] termrock-visibility-tests::status ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs
+        PASS [   0.265s] termrock-visibility-tests::status current_ci_snapshot_binds_each_gate_and_keeps_products_not_run
+        PASS [   0.704s] termrock-visibility-tests::status current_ci_source_pair_run_head_workflow_and_url_mismatches_are_rejected
+        PASS [   0.285s] termrock-visibility-tests::status current_dco_heads_must_match_their_candidate_and_reference_tips
+        PASS [   2.243s] termrock-visibility-tests::status current_observations_render_source_bound_branch_and_candidate_failure
+        PASS [   0.494s] termrock-visibility-tests::status does_not_accept_wrong_or_partial_dco_trailers
+        PASS [   0.155s] termrock-visibility-tests::status execution_attempt_history_keeps_test_wrapper_and_readiness_states_separate
+        PASS [   0.162s] termrock-visibility-tests::status execution_evidence_fifo_is_rejected_without_blocking_or_report
+        PASS [   0.318s] termrock-visibility-tests::status execution_evidence_rejects_tmp_traversal_and_symlinked_parent
+        PASS [   0.167s] termrock-visibility-tests::status execution_receipt_json_rejects_duplicate_keys
+        PASS [   0.308s] termrock-visibility-tests::status execution_receipts_reject_source_pair_mismatch_and_changed_bytes
+        PASS [   2.819s] termrock-visibility-tests::status explicit_source_ci_capture_distinguishes_null_from_missing
+        PASS [   0.554s] termrock-visibility-tests::status generation_is_byte_deterministic
+        PASS [   9.047s] termrock-visibility-tests::status historical_product_phase_archive_rejects_missing_tampered_and_unlisted_members
+        PASS [   6.678s] termrock-visibility-tests::status historical_product_phase_not_applicable_readiness_is_explicit
+        PASS [   2.227s] termrock-visibility-tests::status historical_product_phase_pair_remains_valid_when_current_pair_differs
+        PASS [   4.520s] termrock-visibility-tests::status historical_product_phase_rejects_command_and_source_pair_drift
+        PASS [   9.178s] termrock-visibility-tests::status historical_product_phase_rejects_duplicate_run03_and_invalid_layers
+        PASS [   2.345s] termrock-visibility-tests::status historical_product_phases_render_run03_without_promoting_current_readiness
+        PASS [   1.659s] termrock-visibility-tests::status holla_executable_and_builder_receipt_hashes_are_cross_bound
+        PASS [   0.688s] termrock-visibility-tests::status holla_receipt_rejects_unexpected_or_missing_check_and_artifact_rows
+        PASS [   0.346s] termrock-visibility-tests::status holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes
+        PASS [   0.166s] termrock-visibility-tests::status initial_status_keeps_products_not_run_and_pairs_exact
+        PASS [   0.167s] termrock-visibility-tests::status keeps_ci_dco_observations_separate
+        PASS [   2.455s] termrock-visibility-tests::status keeps_historical_raw_capture_gap_separate_from_readiness
+        PASS [   0.156s] termrock-visibility-tests::status keeps_visual_interaction_api_ownership_distinct
+        PASS [  15.374s] termrock-visibility-tests::status local_package_and_report_control_metadata_rejects_unbound_inputs
+        PASS [   0.713s] termrock-visibility-tests::status mismatched_or_absent_provider_capture_does_not_supply_failure_cause
+        PASS [   0.276s] termrock-visibility-tests::status missing_or_failed_reference_query_is_unknown_not_zero
+        PASS [   2.223s] termrock-visibility-tests::status reference_role_cli_renders_reference_presentation
+        PASS [   0.559s] termrock-visibility-tests::status rejects_a_stale_source_evidence_archive_manifest_pin
+        PASS [   2.346s] termrock-visibility-tests::status rejects_a_temporary_root_locator_in_checked_in_source_facts
+        PASS [   0.372s] termrock-visibility-tests::status rejects_ambiguous_or_nonfinite_source_facts_without_status_output
+        PASS [   0.215s] termrock-visibility-tests::status rejects_candidate_remote_identity_mismatch
+        PASS [   4.679s] termrock-visibility-tests::status rejects_changed_current_observation_evidence_pin
+        PASS [   0.197s] termrock-visibility-tests::status rejects_changed_frozen_tag
+        PASS [   0.310s] termrock-visibility-tests::status rejects_duplicate_task_ids_and_unknown_states
+        PASS [   7.522s] termrock-visibility-tests::status rejects_misbound_latest_ci_publication_and_historical_execution
+        PASS [   1.078s] termrock-visibility-tests::status rejects_missing_archived_current_observation_input
+        PASS [   0.229s] termrock-visibility-tests::status rejects_previous_source_facts_schema_version
+        PASS [   6.375s] termrock-visibility-tests::status rejects_relabeling_a_verified_candidate_failure_as_not_run
+        PASS [   5.640s] termrock-visibility-tests::status rejects_tampered_candidate_measurement_packet_member
+        PASS [   0.480s] termrock-visibility-tests::status rejects_unknown_state_negative_count_and_non_https_reason_source
+        PASS [   3.906s] termrock-visibility-tests::status rejects_unrecorded_candidate_acceptance_promotion
+        PASS [   0.157s] termrock-visibility-tests::status renders_all_seven_exact_commands_and_layers
+        PASS [   0.151s] termrock-visibility-tests::status reports_latest_remote_refs_and_local_checkout_separately
+        PASS [   0.253s] termrock-visibility-tests::status role_changes_local_label_and_uses_reference_links
+        PASS [   3.348s] termrock-visibility-tests::status source_history_accepts_four_predecessors_and_rejects_malformed_bindings
+        PASS [   0.278s] termrock-visibility-tests::status stale_attempt_must_be_historical_and_does_not_promote_readiness
+        PASS [   0.167s] termrock-visibility-tests::status status_accepts_q47_reference_branch_scope
+        PASS [   0.248s] termrock-visibility-tests::status status_fails_closed_when_adjacent_queue_is_missing_or_symlinked
+        PASS [   0.139s] termrock-visibility-tests::status status_fails_closed_when_adjacent_queue_lacks_v1_validator
+        PASS [   0.661s] termrock-visibility-tests::status status_rejects_malformed_or_incomplete_q47_v1_records
+        PASS [  10.641s] termrock-visibility-tests::status status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2

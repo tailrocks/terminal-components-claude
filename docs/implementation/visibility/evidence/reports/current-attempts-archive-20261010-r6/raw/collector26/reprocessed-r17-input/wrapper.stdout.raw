@@ -1,0 +1,10 @@
+{
+  "status": "SUPERVISOR_CAPTURE_INCOMPLETE",
+  "receipt": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/supervisor-result.json",
+  "cargo_exit": 100,
+  "stdout_bytes": 40649,
+  "stderr_bytes": 20201,
+  "inputs_stable": true,
+  "target_stable": true,
+  "cleanup_clean": true
+}
