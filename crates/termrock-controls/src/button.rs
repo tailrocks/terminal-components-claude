@@ -403,6 +403,13 @@ impl<'a> Button<'a> {
         if self.checked != Some(true) {
             live = live.difference(StateFlags::SELECTED);
         }
+        // `.disabled` is the authority for this frame. The focus ring still
+        // reports last frame's registration, so a button that was disabled
+        // on the previous selection would otherwise stay faint after it
+        // becomes enabled.
+        if !self.disabled {
+            live = live.difference(StateFlags::DISABLED);
+        }
         if self.disabled {
             live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
         }
@@ -858,6 +865,35 @@ mod tests {
             runtime.focus(),
             Some(OTHER),
             "a disabled button must not be focused by autofocus"
+        );
+    }
+
+    /// The disabled colour follows `.disabled` on this frame. Last frame's
+    /// ring entry must not keep the label faint after the prop flips.
+    #[test]
+    fn enabled_button_drops_the_previous_frames_disabled_flag() {
+        use ratatui_core::style::Color;
+
+        let area = Rect::new(0, 0, 13, 1);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                Button::new(BUTTON, "Set default")
+                    .disabled(true)
+                    .draw(ui, area);
+            })
+            .commit_presented();
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                Button::new(BUTTON, "Set default").draw(ui, area);
+            })
+            .commit_presented();
+        let fg = buffer.cell(Position::new(1, 0)).map(|cell| cell.fg);
+        assert_ne!(
+            fg,
+            Some(Color::Rgb(0x4d, 0x4d, 0x4d)),
+            "an enabled button must not keep the disabled foreground"
         );
     }
 

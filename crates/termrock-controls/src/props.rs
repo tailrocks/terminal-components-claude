@@ -1117,6 +1117,13 @@ fn paint_piece(
 pub struct Props<'a> {
     rows: PropsRows<'a>,
     ov: PartStyle<'a>,
+    /// Columns between the label column and the value. The default is 2.
+    /// Cells in the gap are not painted, so they keep the parent fill.
+    gap: u16,
+    /// Absolute value start, measured from the props origin. Zero keeps
+    /// `widest label + gap`. A wider column lines up separate groups that
+    /// share one inspector. Cells before the value stay the parent fill.
+    label_column: u16,
 }
 
 #[derive(Clone, Copy)]
@@ -1151,6 +1158,8 @@ impl<'a> Props<'a> {
         Props {
             rows: PropsRows::Pairs(rows),
             ov: PartStyle::new(),
+            gap: 2,
+            label_column: 0,
         }
     }
 
@@ -1163,6 +1172,39 @@ impl<'a> Props<'a> {
         Props {
             rows: PropsRows::Rich(rows),
             ov: PartStyle::new(),
+            gap: 2,
+            label_column: 0,
+        }
+    }
+
+    /// Columns between the label column and the value.
+    ///
+    /// The default is 2. A wider gap leaves the extra cells on the parent
+    /// fill instead of painting them with the label or value style.
+    #[must_use]
+    pub const fn value_gap(mut self, gap: u16) -> Self {
+        self.gap = gap;
+        self
+    }
+
+    /// Start every value at `column` cells from the props origin.
+    ///
+    /// Zero keeps the default (`widest label + gap`). A caller that draws
+    /// several groups in one inspector passes the same column so a short
+    /// group does not pull its values left. The column is at least the
+    /// widest label in the group. Cells between a short label and the
+    /// value are not painted.
+    #[must_use]
+    pub const fn label_column(mut self, column: u16) -> Self {
+        self.label_column = column;
+        self
+    }
+
+    fn column(&self, natural: u16) -> u16 {
+        if self.label_column == 0 {
+            natural.saturating_add(self.gap)
+        } else {
+            self.label_column.max(natural)
         }
     }
 
@@ -1189,7 +1231,8 @@ impl<'a> Props<'a> {
         if area.is_empty() {
             return area;
         }
-        let lw = self.label_width().min(area.width);
+        let natural = self.label_width().min(area.width);
+        let lw = self.column(natural).min(area.width);
         let ov = self.ov;
         let owner = Id::root("tui.props");
         let key_style = ov
@@ -1216,8 +1259,8 @@ impl<'a> Props<'a> {
         for (row, (k, v)) in area.rows().zip(rows.iter()) {
             ui.paint_str(row, k, key_style);
             let value = Rect {
-                x: row.x.saturating_add(lw).saturating_add(2),
-                width: row.width.saturating_sub(lw).saturating_sub(2),
+                x: row.x.saturating_add(lw),
+                width: row.width.saturating_sub(lw),
                 ..row
             };
             let truncated = termrock_text::truncate(v, value.width);
@@ -1235,8 +1278,9 @@ impl<'a> Props<'a> {
             return Rect { height: 0, ..area };
         }
         let owner = Id::root("tui.props");
-        let label_width = PropsList::label_width(rows).min(area.width);
-        let value_width = PropsList::value_width(rows, area.width);
+        let natural = PropsList::label_width(rows).min(area.width);
+        let label_width = self.column(natural).min(area.width);
+        let value_width = area.width.saturating_sub(label_width);
         let key_style = self
             .ov
             .style(
@@ -1303,7 +1347,7 @@ impl<'a> Props<'a> {
             paint_value(
                 ui,
                 Rect {
-                    x: area.x.saturating_add(label_width).saturating_add(2),
+                    x: area.x.saturating_add(label_width),
                     y,
                     width: value_width,
                     height,

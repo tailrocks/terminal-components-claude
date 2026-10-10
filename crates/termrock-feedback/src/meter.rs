@@ -803,7 +803,8 @@ impl<'a> Meter<'a> {
                                 live,
                                 StylePatch::new()
                                     .set_fg(fill_fg)
-                                    .set_bg(Role::Meter(tone.role())),
+                                    .set_bg(Role::Meter(tone.role()))
+                                    .add(Modifier::BOLD),
                             )
                             .style;
                         ui.paint_style(filled, on_fill);

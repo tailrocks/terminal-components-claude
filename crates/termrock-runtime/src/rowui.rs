@@ -14,7 +14,7 @@ use ratatui_core::style::Modifier;
 use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
 use crate::response::StateFlags;
-use crate::text::{Span, truncate_middle, width};
+use crate::text::{Span, truncate, truncate_middle, width};
 use crate::theme::{Align, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
@@ -50,6 +50,8 @@ pub struct MetaPaint {
     pub need: u16,
     /// Painted width (0 when dropped, else equal to `need`).
     pub painted: u16,
+    /// Column where the meta text starts. Zero when nothing was painted.
+    pub x: u16,
 }
 
 /// A painter for one collection row, its parts pre-styled.
@@ -70,6 +72,10 @@ pub struct RowUi<'u> {
     last_meta: Option<MetaPaint>,
     /// Drop meta text unconditionally (column-level veto repaint).
     suppress_meta: bool,
+    /// Leave the cell past the label slot as the row fill.
+    keep_tail: bool,
+    /// `label_end` painted the row's last cell with the label style.
+    padded_tail: bool,
 }
 
 impl fmt::Debug for RowUi<'_> {
@@ -140,6 +146,8 @@ impl<'u> RowUi<'u> {
             right: 0,
             last_meta: None,
             suppress_meta: false,
+            keep_tail: false,
+            padded_tail: false,
         }
     }
 
@@ -314,6 +322,58 @@ impl<'u> RowUi<'u> {
         self.left = self.left.saturating_add(slot);
     }
 
+    /// End-truncate the label, then pad the rest of the label slot.
+    ///
+    /// The ellipsis stays one cell inside the row. A label that fits also
+    /// paints the slot's last cell, so the pad before a trailing mark keeps
+    /// the label color. Callers that want the row's own last column to stay
+    /// the row fill keep that column out of this slot.
+    pub fn label_end(&mut self, s: &str, p: &StylePatch) {
+        let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
+        let st = self
+            .ui
+            .style_patched(self.family, self.variant, Part::LABEL, self.flags, &patch)
+            .style;
+        let area = self.remaining();
+        let slot = area.width.saturating_sub(1);
+        if slot == 0 {
+            return;
+        }
+        let text = truncate(s, slot);
+        let used = self.ui.paint_str(
+            Rect {
+                width: slot,
+                ..area
+            },
+            &text,
+            st,
+        );
+        let pad = slot.saturating_sub(used);
+        if pad > 0 {
+            self.ui.fill(
+                Rect {
+                    x: area.x.saturating_add(used),
+                    width: pad,
+                    ..area
+                },
+                st,
+            );
+        }
+        if !self.keep_tail && width(s) <= slot && area.width > slot {
+            self.ui.fill(
+                Rect {
+                    x: area.x.saturating_add(slot),
+                    width: 1,
+                    ..area
+                },
+                st,
+            );
+            self.padded_tail = true;
+            self.left = self.left.saturating_add(1);
+        }
+        self.left = self.left.saturating_add(slot);
+    }
+
     /// Paint the label with bold emphasis at matched grapheme ordinals
     /// (oracle picker rows bold `matched` bytes).
     pub fn label_matched(&mut self, s: &str, matched: &[usize]) {
@@ -389,12 +449,17 @@ impl<'u> RowUi<'u> {
         let need = width(s);
         let area = self.remaining();
         if need == 0 || self.suppress_meta || need.saturating_add(2) > area.width {
-            self.last_meta = Some(MetaPaint { need, painted: 0 });
+            self.last_meta = Some(MetaPaint {
+                need,
+                painted: 0,
+                x: 0,
+            });
             return;
         }
         let st = self.style_of(Part::META);
+        let x = area.right().saturating_sub(need).saturating_sub(1);
         let cell = Rect {
-            x: area.right().saturating_sub(need).saturating_sub(1),
+            x,
             y: area.y,
             width: need,
             height: 1,
@@ -404,6 +469,7 @@ impl<'u> RowUi<'u> {
         self.last_meta = Some(MetaPaint {
             need,
             painted: need,
+            x,
         });
     }
 
@@ -416,15 +482,20 @@ impl<'u> RowUi<'u> {
         let need = width(s);
         let area = self.remaining();
         if need == 0 || self.suppress_meta || need.saturating_add(2) > area.width {
-            self.last_meta = Some(MetaPaint { need, painted: 0 });
+            self.last_meta = Some(MetaPaint {
+                need,
+                painted: 0,
+                x: 0,
+            });
             return;
         }
         let st = self
             .ui
             .style_patched(self.family, self.variant, Part::META, self.flags, p)
             .style;
+        let x = area.right().saturating_sub(need).saturating_sub(1);
         let cell = Rect {
-            x: area.right().saturating_sub(need).saturating_sub(1),
+            x,
             y: area.y,
             width: need,
             height: 1,
@@ -434,7 +505,67 @@ impl<'u> RowUi<'u> {
         self.last_meta = Some(MetaPaint {
             need,
             painted: need,
+            x,
         });
+    }
+
+    /// Leave the cell past the label slot as the row fill.
+    pub fn keep_row_tail(&mut self) {
+        self.keep_tail = true;
+    }
+
+    /// Whether `label_end` covered the row's last cell with the label style.
+    ///
+    /// `label` and `label_fmt` put a glyph there and leave this false.
+    pub const fn padded_tail(&self) -> bool {
+        self.padded_tail
+    }
+
+    /// Keep the next `label_*` call off the rightmost `n` columns.
+    pub fn reserve_right(&mut self, n: u16) {
+        self.right = self.right.saturating_add(n);
+    }
+
+    /// Paint `role` four columns before the meta just painted.
+    ///
+    /// The baseline cluster is the mark, three spaces, then the meta, with
+    /// the meta ending one cell before the row edge. No-op when meta was
+    /// dropped. The cell's existing background is kept so a focused tint
+    /// stays behind the mark.
+    pub fn glyph_before_meta(&mut self, role: GlyphRole, patch: &StylePatch) {
+        let Some(meta) = self.last_meta else {
+            return;
+        };
+        if meta.painted == 0 {
+            return;
+        }
+        let x = meta.x.saturating_sub(4);
+        if x < self.row.x {
+            return;
+        }
+        let mut st = self
+            .ui
+            .style_patched(self.family, self.variant, Part::ICON, self.flags, patch)
+            .style;
+        if let Some(bg) = self
+            .ui
+            .peek()
+            .0
+            .cell(Position::new(x, self.row.y))
+            .and_then(|cell| cell.style().bg)
+        {
+            st = st.bg(bg);
+        }
+        self.ui.glyph(
+            Rect {
+                x,
+                y: self.row.y,
+                width: 1,
+                height: 1,
+            },
+            role,
+            st,
+        );
     }
 
     /// Right-aligned trailing text with an instance patch (dropped when it
@@ -1186,6 +1317,34 @@ mod tests {
                 .unwrap()
                 .modifier
                 .contains(Modifier::BOLD)
+        );
+    }
+
+    #[test]
+    fn label_end_truncates_at_the_end_and_pads_the_slot() {
+        let patch = StylePatch::new().add(Modifier::BOLD);
+        let long = "Archived contractor laptop profile";
+        let page = paint(Rect::new(0, 0, 16, 1), |row| {
+            row.label_end(long, &patch);
+        });
+        let slot = crate::text::truncate(long, 15);
+        assert_eq!(row_text(&page, 0, 0, 15), slot);
+        assert!(slot.ends_with('…'), "{slot}");
+        assert!(slot.starts_with("Archived"), "{slot}");
+        assert!(!slot.contains("profile"), "{slot}");
+        assert!(
+            page.cell((14, 0))
+                .unwrap()
+                .modifier
+                .contains(Modifier::BOLD)
+        );
+        assert!(
+            !page
+                .cell((15, 0))
+                .unwrap()
+                .modifier
+                .contains(Modifier::BOLD),
+            "a truncated label leaves the cell past the slot as the row fill"
         );
     }
 

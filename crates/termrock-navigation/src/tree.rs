@@ -708,6 +708,11 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     branch_click: TreeBranchClick,
     activate_selected_on_click: bool,
     gutter_gap: u16,
+    /// Cells reserved at the row's right for a trailing mark, including the
+    /// one-cell pad. The glyph is painted at `right - trailing_reserve`.
+    /// Two matches the default mark (`right - 2`). A wider reserve keeps
+    /// that pad and shifts the glyph left.
+    trailing_reserve: u16,
     disclosure_hit_width: u16,
     cursor_selected: bool,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
@@ -763,6 +768,7 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             branch_click: TreeBranchClick::Toggle,
             activate_selected_on_click: false,
             gutter_gap: 0,
+            trailing_reserve: 2,
             disclosure_hit_width: 1,
             cursor_selected: false,
             disabled_item: None,
@@ -885,6 +891,17 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
+    /// How many right-edge cells a trailing mark reserves.
+    ///
+    /// The default is 2: the glyph sits at `right - 2` and the last cell
+    /// stays the row pad. A larger value shifts that glyph left by the
+    /// same amount and shortens only the marked row's label.
+    #[must_use]
+    pub const fn trailing_reserve(mut self, cells: u16) -> Self {
+        self.trailing_reserve = if cells < 2 { 2 } else { cells };
+        self
+    }
+
     /// Disclosure hit width, starting at its glyph and clipped to the row.
     /// Defaults to one; zero disables the disclosure hit without changing paint.
     #[must_use]
@@ -918,6 +935,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             branch_click: self.branch_click,
             activate_selected_on_click: self.activate_selected_on_click,
             gutter_gap: self.gutter_gap,
+            trailing_reserve: self.trailing_reserve,
             disclosure_hit_width: self.disclosure_hit_width,
             cursor_selected: self.cursor_selected,
             disabled_item: self.disabled_item,
@@ -966,6 +984,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             branch_click: self.branch_click,
             activate_selected_on_click: self.activate_selected_on_click,
             gutter_gap: self.gutter_gap,
+            trailing_reserve: self.trailing_reserve,
             disclosure_hit_width: self.disclosure_hit_width,
             cursor_selected: self.cursor_selected,
             disabled_item: self.disabled_item,
@@ -2201,6 +2220,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 .style;
             // Paint over the row fill. A patch with no background keeps that
             // fill, and `remove(BOLD)` can drop the fill's bold on this cell.
+            // A patch that does not set a background keeps the row fill,
+            // including a focused tint. Only the patched channels change.
+            let style = if matches!(patch.bg, Slot::Inherit) {
+                style.with_bg_from(rs.style)
+            } else {
+                style
+            };
             ui.paint_str(fold, text, style);
         } else if let Some(f) = self.ov.slot_for(Part::ICON) {
             f(ui, fold);
@@ -2252,8 +2278,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 .min(row.rect.width),
             ..row.rect
         };
-        if trailing.is_some() {
-            rest.width = rest.width.saturating_sub(2);
+        let reserve = if trailing.is_some() {
+            self.trailing_reserve.max(2)
+        } else {
+            0
+        };
+        if reserve > 0 {
+            rest.width = rest.width.saturating_sub(reserve);
         }
         let mut vetoed = false;
         if rest.width > 0 && rest.x < row.rect.right() {
@@ -2273,9 +2304,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             r.set_suppress_meta(suppress_meta);
             self.row.row(item, &mut r);
             vetoed = !suppress_meta && r.meta_paint().is_some_and(|m| m.need > 0 && m.painted == 0);
+            // `label_end` covers the last cell so a trailing mark keeps a
+            // colored pad. With no mark, that pad is the row fill again.
+            // `label` puts its last glyph on the same cell, so leave it.
+            if trailing.is_none() && r.padded_tail() {
+                let edge = cell_at(rest, rest.right().saturating_sub(1));
+                ui.fill(edge, rs.style);
+            }
         }
         if let Some((role, patch)) = trailing {
-            let mark = cell_at(row.rect, row.rect.right().saturating_sub(2));
+            let mark = cell_at(row.rect, row.rect.right().saturating_sub(reserve));
             let style = ui
                 .style_patched(
                     Family::TREE,
@@ -2285,6 +2323,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     &patch,
                 )
                 .style;
+            // No explicit background keeps the row fill, so a focused tint
+            // stays behind the mark.
+            let style = if matches!(patch.bg, Slot::Inherit) {
+                style.with_bg_from(rs.style)
+            } else {
+                style
+            };
             ui.glyph(mark, role, style);
         }
         if ui.is_inert() {
@@ -3116,6 +3161,36 @@ mod tests {
             branch_buffer.cell(Position::new(1, 0)).map(|cell| cell.fg),
             Some(secondary),
             "a real disclosure glyph must retain the ICON recipe"
+        );
+    }
+
+    #[test]
+    fn label_that_fills_the_row_keeps_its_last_glyph() {
+        let name = "abcdefghijklmnopqrstu";
+        let items = [N(name, 0, false)];
+        let row = |n: &N, ui: &mut RowUi<'_>| ui.label(n.0);
+        let tree = Tree::new(TREE).node(&node).row(row);
+        let buffer = render(Theme::junie(), &tree, &TreeState::new(), &items);
+        assert_eq!(
+            buffer.cell(Position::new(23, 0)).map(BufferCell::symbol),
+            Some("u"),
+            "the last glyph of a full label must stay on the row"
+        );
+    }
+
+    #[test]
+    fn label_end_without_a_trailing_mark_restores_the_row_fill() {
+        let items = [N("short", 0, false)];
+        let row = |n: &N, ui: &mut RowUi<'_>| {
+            ui.label_end(n.0, &StylePatch::new().add(Modifier::BOLD));
+        };
+        let tree = Tree::new(TREE).node(&node).row(row);
+        let buffer = render(Theme::junie(), &tree, &TreeState::new(), &items);
+        let last = buffer.cell(Position::new(23, 0)).expect("last cell");
+        assert_eq!(last.symbol(), " ");
+        assert!(
+            !last.modifier.contains(Modifier::BOLD),
+            "a label pad with no trailing mark returns to the row fill"
         );
     }
 

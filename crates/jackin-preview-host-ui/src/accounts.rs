@@ -10,13 +10,14 @@ use std::collections::HashSet;
 
 use ratatui::layout::Rect;
 use termrock::author::{
-    Family, FgStep, Focusability, Id, Modifier, PaintStyle, Part, Role, StateFlags, StyleDefaults,
-    StylePatch, Surface, Ui, Variant,
+    Family, FgStep, Focusability, Id, ItemKey, Modifier, PaintStyle, Part, Role, Slot, StateFlags,
+    StyleDefaults, StylePatch, Surface, Ui, Variant,
 };
 use termrock::{
-    Button, Chord, Empty, EmptyState, Hint, HintKey, HintLayer, Insets, KeyCode, ListState, Meter,
-    MeterTone, MeterVisual, Panel, PanelKind, ScrollState, SplitAxis, SplitPane, SplitPaneState,
-    TextInputState, truncate, width, wrap,
+    Button, Chord, Empty, EmptyState, GlyphRole, Hint, HintKey, HintLayer, Insets, KeyCode,
+    ListState, Meter, MeterTone, MeterVisual, Panel, PanelKind, Props, PropsRow, RowUi,
+    ScrollRegion, ScrollState, SplitAxis, SplitPane, SplitPaneState, TextInputState, Tree,
+    TreeNode, TreeState, truncate, width, wrap,
 };
 
 use jackin_preview_domain::account::{
@@ -37,6 +38,8 @@ use crate::manager::{plural, position_label};
 pub const LIST: Id = Id::root("jackin.accounts.list");
 /// Accounts tree control.
 pub const TREE: Id = Id::root("jackin.accounts.tree");
+/// Filter query. Drawn only while a filter draft is being typed.
+pub const FILTER: Id = TREE.sub("filter");
 /// Accounts inspector control.
 pub const INSPECTOR: Id = Id::root("jackin.accounts.inspector");
 /// Split seam between tree and inspector.
@@ -1241,10 +1244,198 @@ const FAINT_DETAIL_PATCH: [(Part, StylePatch); 1] = [(
     StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
 )];
 
-fn fit(text: &str, width: u16) -> String {
-    let truncated = truncate(text, width);
-    let pad = width.saturating_sub(termrock::width(&truncated));
-    format!("{truncated}{}", " ".repeat(pad as usize))
+/// Focused drawer: strong frame and title, without a focus bar over the rule.
+const DRAWER_PANEL: [(Part, StylePatch); 2] = [
+    (
+        Part::DETAIL,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+    ),
+    (
+        Part::GUTTER,
+        StylePatch {
+            glyph: Slot::Clear,
+            ..StylePatch::new()
+        },
+    ),
+];
+
+/// Card interior text is muted. Empty cells keep the card background.
+fn inspector_label_column(lines: &[InspLine]) -> u16 {
+    let max = lines
+        .iter()
+        .map(|line| match line {
+            InspLine::Prop(label, _, _) | InspLine::Meter(label, _, _, _) => width(label),
+            _ => 0,
+        })
+        .max()
+        .unwrap_or(13);
+    max.clamp(13, 22) + 1
+}
+
+/// Cursor-row tint. Unfocused rows stay on the tree container.
+const ACCOUNTS_TREE_FOCUS: StylePatch = StylePatch::new().set_bg(Role::AccentTint);
+
+/// Modal backdrop: unpainted row fill reads muted, matching an open form.
+const DIM_TREE: [(Part, StylePatch); 2] = [
+    (
+        Part::THUMB,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
+    ),
+    (
+        Part::CONTAINER,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
+    ),
+];
+
+/// Drawer bar: primary thumb and subtle track on the canvas.
+const DRAWER_SCROLL: [(Part, StylePatch); 2] = [
+    (
+        Part::TRACK,
+        StylePatch::new()
+            .set_fg(Role::BorderSubtle)
+            .set_bg(Role::Surface(Surface::Canvas)),
+    ),
+    (
+        Part::THUMB,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Surface(Surface::Canvas)),
+    ),
+];
+
+/// Wide-card bar: muted thumb and subtle track on the surface.
+const CARD_SCROLL: [(Part, StylePatch); 2] = [
+    (
+        Part::TRACK,
+        StylePatch::new()
+            .set_fg(Role::BorderSubtle)
+            .set_bg(Role::Surface(Surface::Surface)),
+    ),
+    (
+        Part::THUMB,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::Surface(Surface::Surface)),
+    ),
+];
+
+/// Unfilled block-meter remainder: muted on the card, not the track glyph.
+const METER_REST: [(Part, StylePatch); 1] = [(
+    Part::TRACK,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
+)];
+
+fn account_tree_key(row: &AccountRow) -> ItemKey {
+    let key = match &row.sel {
+        AccountSel::Overview => "overview".to_owned(),
+        AccountSel::Provider(surface) => format!("provider:{}", surface.surface_name()),
+        AccountSel::Account(id) => format!("account:{id}"),
+        AccountSel::Add => "add".to_owned(),
+    };
+    ItemKey::text(&key)
+}
+
+fn account_tree_node(row: &AccountRow) -> TreeNode {
+    let node = if row.expandable {
+        TreeNode::parent(row.depth)
+    } else {
+        TreeNode::leaf(row.depth)
+    };
+    node.keyed(account_tree_key(row))
+}
+
+fn account_tree_icon(row: &AccountRow) -> Option<(&'static str, StylePatch)> {
+    let patch = StylePatch::new()
+        .set_fg(Role::Fg(FgStep::Secondary))
+        .remove(Modifier::BOLD);
+    if row.expandable {
+        Some((if row.expanded { "▾" } else { "▸" }, patch))
+    } else if row.star {
+        Some(("★", patch))
+    } else {
+        // A blank icon keeps the secondary foreground. `None` would leave
+        // the row fill, which is primary white.
+        Some((" ", patch))
+    }
+}
+
+fn account_tree_trailing(row: &AccountRow) -> Option<(GlyphRole, StylePatch)> {
+    let (glyph, tone) = row.health?;
+    let role = match glyph {
+        "!" => GlyphRole::Error,
+        "▲" => GlyphRole::WarningMark,
+        _ => return None,
+    };
+    Some((role, StylePatch::new().set_fg(tone)))
+}
+
+fn account_tree_row(row: &AccountRow, ui: &mut RowUi<'_>, show_meta: bool, is_cursor: bool) {
+    let focused = ui.flags().contains(StateFlags::FOCUSED);
+    let label = if row.faint {
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Faint))
+            .remove(Modifier::BOLD)
+    } else if matches!(row.sel, AccountSel::Add) {
+        if focused {
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD)
+        } else {
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .remove(Modifier::BOLD)
+        }
+    } else if focused {
+        StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD)
+    } else if is_cursor {
+        StylePatch::new()
+            .set_fg(Role::Accent)
+            .remove(Modifier::BOLD)
+    } else {
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .remove(Modifier::BOLD)
+    };
+    if show_meta && !row.meta.is_empty() {
+        ui.meta_patched(
+            &row.meta,
+            &StylePatch::new()
+                .set_fg(row.meta_tone)
+                .remove(Modifier::BOLD),
+        );
+        // The mark and the three spaces after it stay the row fill.
+        // A row with no mark keeps the full label slot so a truncated
+        // name still places its ellipsis on the baseline column.
+        if account_health_role(row).is_some() {
+            ui.reserve_right(3);
+        } else {
+            ui.keep_row_tail();
+        }
+    }
+    ui.label_end(&row.label, &label);
+    // The label slot fills through the mark's column. Paint the mark after
+    // the label so it stays to the left of the meta.
+    if show_meta
+        && !row.meta.is_empty()
+        && let Some(role) = account_health_role(row)
+    {
+        ui.glyph_before_meta(
+            role,
+            &StylePatch::new().set_fg(
+                row.health
+                    .map(|(_, tone)| tone)
+                    .unwrap_or(Role::Fg(FgStep::Muted)),
+            ),
+        );
+    }
+}
+
+fn account_health_role(row: &AccountRow) -> Option<GlyphRole> {
+    match row.health.map(|(glyph, _)| glyph) {
+        Some("!") => Some(GlyphRole::Error),
+        Some("▲") => Some(GlyphRole::WarningMark),
+        _ => None,
+    }
 }
 
 /// The accounts route screen: tree plus inspector.
@@ -1252,7 +1443,14 @@ pub struct AccountsScreen;
 
 impl AccountsScreen {
     /// Draw the tree and inspector panes for the route body area.
-    pub fn draw(ui: &mut Ui<'_>, area: Rect, state: &AccountsState, world: &World, focused: bool) {
+    pub fn draw(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        state: &AccountsState,
+        world: &World,
+        focused: bool,
+        dim: bool,
+    ) {
         let palette = AccountsPalette::new(ui);
         let full = ui.full();
         let stage = Rect::new(
@@ -1261,7 +1459,14 @@ impl AccountsScreen {
             full.width,
             full.height.saturating_sub(2),
         );
-        ui.fill(stage, palette.canvas);
+        ui.fill(
+            stage,
+            if dim {
+                palette.muted_on_canvas
+            } else {
+                palette.canvas
+            },
+        );
         let rows = build_account_rows(world, state.filter.as_deref(), &state.folded);
         let is_narrow = area.width < 100;
 
@@ -1282,9 +1487,51 @@ impl AccountsScreen {
                 focused && !drawer,
                 &rows,
                 &palette,
+                dim,
             );
             if drawer {
                 Self::draw_inspector(ui, area, state, world, focused, true, &palette);
+                // The drawer covers the tree after its scroll edge has
+                // faded. The panel fill clears that `DIM`; the baseline
+                // overpaint keeps it. Put the cue back on the tree edge.
+                let inner = Rect::new(
+                    tree_area.x.saturating_add(2),
+                    tree_area.y.saturating_add(1),
+                    tree_area.width.saturating_sub(4),
+                    tree_area.height.saturating_sub(2),
+                );
+                let mut tree_scroll = ScrollState::new(rows.len());
+                tree_scroll.set_viewport(usize::from(inner.height));
+                let cursor = rows.iter().position(|row| row.sel == state.selected);
+                if let Some(index) = cursor {
+                    tree_scroll.ensure_visible(index);
+                }
+                if tree_scroll.overflows() {
+                    // One column in from the tree body, and one short of the
+                    // scrollbar: that is the row the tree fade marked.
+                    let content = Rect::new(
+                        inner.x.saturating_add(1),
+                        inner.y,
+                        inner.width.saturating_sub(2),
+                        inner.height,
+                    );
+                    let mut kept = [0u16; 1];
+                    let keep: &[u16] = if let Some(index) = cursor {
+                        let offset = tree_scroll.offset();
+                        let end = offset.saturating_add(tree_scroll.viewport_len());
+                        if index >= offset && index < end {
+                            kept[0] = content
+                                .y
+                                .saturating_add(u16::try_from(index - offset).unwrap_or(u16::MAX));
+                            &kept
+                        } else {
+                            &[]
+                        }
+                    } else {
+                        &[]
+                    };
+                    ui.scroll_edge_dim_only(content, &tree_scroll, keep);
+                }
             } else {
                 let summary_area = Rect::new(area.x, tree_area.bottom() + 1, area.width, summary_h);
                 Self::draw_summary(ui, summary_area, state, world, &palette);
@@ -1308,6 +1555,7 @@ impl AccountsScreen {
                 focused && !state.drawer_open,
                 &rows,
                 &palette,
+                dim,
             );
             Self::draw_inspector(
                 ui,
@@ -1484,7 +1732,8 @@ impl AccountsScreen {
         world: &World,
         focused: bool,
         rows: &[AccountRow],
-        palette: &AccountsPalette,
+        _palette: &AccountsPalette,
+        dim: bool,
     ) {
         let summary = OverallSummary::compute(&world.accounts.accounts);
         let cursor = rows.iter().position(|row| row.sel == state.selected);
@@ -1528,113 +1777,46 @@ impl AccountsScreen {
                 b: 1,
             })
             .draw(ui, area, |ui, inner| {
-                let has_sb = scroll.overflows();
-                let row_w = inner.width.saturating_sub(u16::from(has_sb));
-                let show_meta = row_w >= 40;
-                for (k, i) in scroll.visible_range().enumerate() {
-                    let y = inner.y + k as u16;
-                    if i >= rows.len() {
-                        break;
-                    }
-                    let row = &rows[i];
-                    let is_selected = cursor == Some(i);
-                    let is_focused = focused && is_selected;
-                    let rect = Rect::new(inner.x, y, row_w, 1);
-                    if is_focused {
-                        ui.fill(rect, palette.primary_on_accent_tint_bold);
-                        ui.paint_str(
-                            Rect::new(rect.x, y, 1, 1),
-                            "▎",
-                            palette.accent_on_accent_tint_bold,
-                        );
-                    } else {
-                        ui.fill(rect, palette.canvas);
-                        ui.paint_str(Rect::new(rect.x, y, 1, 1), " ", palette.gutter_unfocused);
-                    }
-                    let mut x = rect.x + 2 + row.depth * 2;
-                    let glyph = if row.expandable {
-                        if row.expanded { "▾" } else { "▸" }
-                    } else if row.star {
-                        "★"
-                    } else {
-                        " "
-                    };
-                    let gs = if row.star {
-                        if is_focused {
-                            palette.primary_on_accent_tint_bold
-                        } else {
-                            palette.secondary_on_canvas
-                        }
-                    } else if is_focused {
-                        palette.secondary_on_accent_tint
-                    } else {
-                        palette.secondary_on_canvas
-                    };
-                    ui.paint_str(Rect::new(x, y, 1, 1), glyph, gs);
-                    x += 2;
-                    let meta_w = if show_meta { width(&row.meta) } else { 0 };
-                    let avail = rect.right().saturating_sub(x + 1);
-                    let hw: u16 = if row.health.is_some() { 2 } else { 0 };
-                    let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 0 } + hw);
-                    let label_style = if row.faint {
-                        palette.tree_tone(Role::Fg(FgStep::Faint), is_focused)
-                    } else if row.sel == AccountSel::Add {
-                        if is_focused {
-                            palette.primary_on_accent_tint_bold
-                        } else {
-                            palette.secondary_on_canvas
-                        }
-                    } else if is_focused {
-                        palette.accent_on_accent_tint_bold
-                    } else if is_selected {
-                        palette.accent_on_canvas
-                    } else {
-                        palette.primary_on_canvas
-                    };
-                    ui.paint_str(
-                        Rect::new(x, y, lw, 1),
-                        &fit(&truncate(&row.label, lw), lw),
-                        label_style,
-                    );
-                    if let Some((glyph, tone)) = row.health {
-                        ui.paint_str(
-                            Rect::new(x + lw, y, 1, 1),
-                            glyph,
-                            palette.tree_tone(tone, is_focused),
-                        );
-                    }
-                    if meta_w > 0 && meta_w + 4 < avail {
-                        ui.paint_str(
-                            Rect::new(rect.right().saturating_sub(meta_w + 1), y, meta_w, 1),
-                            &row.meta,
-                            palette.tree_tone(row.meta_tone, is_focused),
-                        );
+                let mut tree_state = TreeState::new();
+                for row in rows {
+                    if row.expanded {
+                        tree_state.expand(account_tree_key(row));
                     }
                 }
-                if has_sb {
-                    ui.scroll_edges(
-                        Rect::new(
-                            inner.x,
-                            inner.y,
-                            (inner.right() - 1).saturating_sub(inner.x),
-                            inner.height,
-                        ),
-                        &scroll,
-                    );
-                    let sb_rect =
-                        Rect::new(inner.right().saturating_sub(1), inner.y, 1, inner.height);
-                    let track_len = usize::from(sb_rect.height);
-                    let (thumb_start, thumb_len) = scroll.thumb(track_len);
-                    for row in 0..track_len {
-                        let y = sb_rect.y + row as u16;
-                        let pos = Rect::new(sb_rect.x, y, 1, 1);
-                        if row >= thumb_start && row < thumb_start + thumb_len {
-                            ui.paint_str(pos, "┃", palette.primary_on_canvas);
-                        } else {
-                            ui.paint_str(pos, "│", palette.border_on_canvas);
-                        }
-                    }
+                if let Some(index) = cursor
+                    && let Some(row) = rows.get(index)
+                {
+                    tree_state.set_cursor(index, account_tree_key(row));
                 }
+                let show_meta = inner.width >= 40;
+                let selected = state.selected.clone();
+                // A visible meta owns the right edge. The health mark is
+                // painted just left of that meta. With meta hidden, the mark
+                // stays in the reserved right column.
+                let mark = move |row: &AccountRow| -> Option<(GlyphRole, StylePatch)> {
+                    if show_meta {
+                        None
+                    } else {
+                        account_tree_trailing(row)
+                    }
+                };
+                // The route focuses `LIST`. The tree must use that id or the
+                // host menu bar keeps the focus gutter.
+                let tree = Tree::new(LIST)
+                    .node(&account_tree_node)
+                    .key(account_tree_key)
+                    .row(move |row, ui_row| {
+                        account_tree_row(row, ui_row, show_meta, row.sel == selected);
+                    })
+                    .icon(&account_tree_icon)
+                    .trailing_mark(&mark)
+                    .trailing_reserve(3)
+                    .focused_patch(&ACCOUNTS_TREE_FOCUS)
+                    .publish_keymap(false)
+                    .gutter_gap(1)
+                    .focused(focused)
+                    .patch_part(if dim { &DIM_TREE } else { &[] });
+                tree.draw(ui, inner, &tree_state, rows);
             });
     }
 
@@ -1650,6 +1832,7 @@ impl AccountsScreen {
         let actions = inspector_actions(world, &state.selected);
         let (title, scope, lines) =
             inspector_lines(world, &state.selected, area.width.saturating_sub(6));
+        let label_column = inspector_label_column(&lines);
         let kind = if as_drawer {
             PanelKind::Framed
         } else {
@@ -1660,7 +1843,11 @@ impl AccountsScreen {
             .title(&title)
             .meta(&scope)
             .focused(focused)
-            .patch_part(&FAINT_DETAIL_PATCH);
+            .patch_part(if as_drawer {
+                &DRAWER_PANEL
+            } else {
+                &FAINT_DETAIL_PATCH
+            });
         if kind == PanelKind::Card {
             panel = panel.inner_inset(Insets {
                 l: 2,
@@ -1670,12 +1857,13 @@ impl AccountsScreen {
             });
         } else {
             panel = panel.inner_inset(Insets {
-                l: 2,
+                l: 3,
                 t: 1,
                 r: 2,
                 b: 1,
             });
         }
+        let mut action_row = None;
         panel.draw(ui, area, |ui, inner| {
             let body_h = inner.height.saturating_sub(2);
             let body = Rect::new(inner.x, inner.y, inner.width, body_h);
@@ -1722,38 +1910,44 @@ impl AccountsScreen {
             } else {
                 14
             };
-            let (label_style, heading_style, faint_style) = if as_drawer {
+            let (heading_style, faint_style) = if as_drawer {
+                // Narrow drawer headings sit on the canvas. Baseline keeps
+                // them secondary and bold; the card path uses the surface.
                 (
-                    palette.muted_on_canvas,
-                    palette.secondary_on_canvas,
+                    palette.secondary_on_canvas.add_modifier(Modifier::BOLD),
                     palette.faint_on_canvas,
                 )
             } else {
-                (
-                    palette.card_muted,
-                    palette.card_secondary_bold,
-                    palette.card_faint,
-                )
+                (palette.card_secondary_bold, palette.card_faint)
             };
-            for (k, i) in scroll.visible_range().enumerate() {
+            let visible: Vec<usize> = scroll.visible_range().collect();
+            let mut k = 0;
+            while k < visible.len() {
+                let i = visible[k];
                 let y = body.y + k as u16;
                 match &rendered[i] {
-                    InspLine::Prop(label, value, tone) => {
-                        ui.paint_str(
-                            Rect::new(body.x, y, label_w.min(body.width), 1),
-                            &truncate(label, label_w.min(body.width)),
-                            label_style,
-                        );
-                        let tone_style = if as_drawer {
-                            palette.tree_tone(*tone, false)
-                        } else {
-                            palette.card_tone(*tone)
-                        };
-                        ui.paint_str(
-                            Rect::new(body.x + label_w, y, body.width.saturating_sub(label_w), 1),
-                            &truncate(value, body.width.saturating_sub(label_w)),
-                            tone_style,
-                        );
+                    InspLine::Prop(_, _, _) => {
+                        let start = k;
+                        let mut owned: Vec<(String, String, Role)> = Vec::new();
+                        while k < visible.len() {
+                            if let InspLine::Prop(label, value, tone) = &rendered[visible[k]] {
+                                owned.push((label.clone(), value.clone(), *tone));
+                                k += 1;
+                            } else {
+                                break;
+                            }
+                        }
+                        let rows: Vec<PropsRow<'_>> = owned
+                            .iter()
+                            .enumerate()
+                            .map(|(n, (label, value, tone))| {
+                                PropsRow::new(ItemKey::index(start + n), label, value).tone(*tone)
+                            })
+                            .collect();
+                        let height = (k - start) as u16;
+                        Props::rich(&rows)
+                            .label_column(label_column)
+                            .draw(ui, Rect::new(body.x, y, body.width, height));
                     }
                     InspLine::Text(text, tone) => {
                         let tone_style = if as_drawer {
@@ -1766,6 +1960,7 @@ impl AccountsScreen {
                             &truncate(text, body.width),
                             tone_style,
                         );
+                        k += 1;
                     }
                     InspLine::Heading(heading, meta) => {
                         ui.paint_str(
@@ -1783,6 +1978,7 @@ impl AccountsScreen {
                                 faint_style,
                             );
                         }
+                        k += 1;
                     }
                     InspLine::Meter(label, pct, value, tone) => {
                         ui.paint_str(
@@ -1802,6 +1998,7 @@ impl AccountsScreen {
                             .value(&pct_text)
                             .tone(*tone)
                             .visual(MeterVisual::Block)
+                            .patch_part(&METER_REST)
                             .draw(ui, Rect::new(mx, y, mw + 6, 1));
                         let vx = mx + mw + 8;
                         if vx < body.right() {
@@ -1815,8 +2012,11 @@ impl AccountsScreen {
                                 },
                             );
                         }
+                        k += 1;
                     }
-                    InspLine::Blank => {}
+                    InspLine::Blank => {
+                        k += 1;
+                    }
                 }
             }
             if scroll.overflows() {
@@ -1830,39 +2030,31 @@ impl AccountsScreen {
                     &scroll,
                 );
                 let sb_rect = Rect::new(inner.right() - 1, body.y, 1, body_h);
-                let track_len = usize::from(sb_rect.height);
-                let (thumb_start, thumb_len) = scroll.thumb(track_len);
-                for row in 0..track_len {
-                    let y = sb_rect.y + row as u16;
-                    let pos = Rect::new(sb_rect.x, y, 1, 1);
-                    if row >= thumb_start && row < thumb_start + thumb_len {
-                        ui.paint_str(
-                            pos,
-                            "┃",
-                            if as_drawer {
-                                palette.primary_on_canvas
-                            } else {
-                                palette.card_primary
-                            },
-                        );
+                ScrollRegion::new(INSPECTOR.sub("scroll"))
+                    .fill_container(false)
+                    .focused(false)
+                    .patch_part(if as_drawer {
+                        &DRAWER_SCROLL
                     } else {
-                        ui.paint_str(
-                            pos,
-                            "│",
-                            if as_drawer {
-                                palette.border_on_canvas
-                            } else {
-                                palette.card_border
-                            },
-                        );
-                    }
-                }
+                        &CARD_SCROLL
+                    })
+                    .draw(ui, sb_rect, &scroll, rendered.len());
             }
-            let ay = inner.bottom().saturating_sub(1);
-            let mut x = inner.x.saturating_sub(1);
+            action_row = Some(Rect::new(
+                inner.x.saturating_sub(1),
+                inner.bottom().saturating_sub(1),
+                inner.width.saturating_add(1),
+                1,
+            ));
+        });
+        // The panel clips to its content inset. The first button's gutter
+        // sits one cell left of that inset, on the card padding, so it is
+        // drawn on the unclipped ui.
+        if let Some(row) = action_row {
+            let mut x = row.x;
             for (id, label, danger, disabled) in &actions {
                 let button_w = width(label) + 2;
-                let avail = inner.right().saturating_add(1).saturating_sub(x);
+                let avail = row.right().saturating_sub(x);
                 let button_w = button_w.min(avail);
                 if button_w == 0 {
                     break;
@@ -1874,10 +2066,10 @@ impl AccountsScreen {
                 if *disabled {
                     button = button.disabled(true);
                 }
-                button.draw(ui, Rect::new(x, ay, button_w, 1));
+                button.draw(ui, Rect::new(x, row.y, button_w, 1));
                 x = x.saturating_add(button_w).saturating_add(2);
             }
-        });
+        }
     }
 
     fn draw_summary(
@@ -1991,6 +2183,10 @@ pub struct AccountsState {
     pub folded: HashSet<UsageSurface>,
     /// Applied tree filter text, if any.
     pub filter: Option<String>,
+    /// Characters typed into the filter field before commit.
+    pub filter_draft: String,
+    /// Filter field edit state. Idle Enter begins editing; the next Enter commits.
+    pub filter_input: TextInputState,
     /// Whether the inspector drawer holds focus.
     pub drawer_open: bool,
     /// Whether the account form is visible.
@@ -2038,6 +2234,8 @@ impl core::fmt::Debug for AccountsState {
             .field("selected", &self.selected)
             .field("folded", &self.folded)
             .field("filter", &self.filter)
+            .field("filter_draft", &self.filter_draft)
+            .field("filter_input", &self.filter_input)
             .field("drawer_open", &self.drawer_open)
             .field("form_open", &self.form_open)
             .field("started", &self.started)

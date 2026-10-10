@@ -127,6 +127,55 @@ impl Ui<'_> {
         *remaining != 0
     }
 
+    /// Re-apply only the reduced-palette `DIM` cue on a scroll edge.
+    ///
+    /// A later fill resets modifiers, so a tree edge faded before a drawer
+    /// covers it loses the `DIM` the baseline `set_style` paint would have
+    /// kept. RGB cells are left alone: truecolor already blended, and
+    /// blending the covering paint would change a row that must stay solid.
+    pub fn scroll_edge_dim_only(&mut self, area: Rect, state: &ScrollState, keep: &[u16]) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() || area.height < FADE_MIN_ROWS {
+            return;
+        }
+        let up = state.offset() > 0;
+        let down = state.viewport_len() > 0
+            && state.offset().saturating_add(state.viewport_len()) < state.content_len();
+        if !up && !down {
+            return;
+        }
+        // Do not require the current background to still be the container.
+        // A drawer paints over the faded row and changes some backgrounds
+        // while the baseline keeps the `DIM` the earlier fade applied.
+        // Cursor and selected rows stay undimmed, matching `scroll_edges_except`.
+        let mark = |ui: &mut Self, y: u16| {
+            let protected = keep.contains(&y)
+                || ui
+                    .frame
+                    .cursors
+                    .iter()
+                    .any(|cursor| cursor.pos.y == y && area.contains(cursor.pos));
+            if protected {
+                return;
+            }
+            for x in area.x..area.right() {
+                let pos = Position::new(x, y);
+                if let Some(cell) = ui.buffer().cell_mut(pos)
+                    && !cell.modifier.contains(Modifier::REVERSED)
+                    && !matches!(cell.fg, Color::Rgb(_, _, _))
+                {
+                    cell.modifier |= Modifier::DIM;
+                }
+            }
+        };
+        if up {
+            mark(self, area.y);
+        }
+        if down {
+            mark(self, area.bottom().saturating_sub(1));
+        }
+    }
+
     /// Fade the viewport edge rows that conceal more scrollable content.
     /// Call after drawing the scroll region, passing its returned content rect.
     /// The scrollbar lies outside that rect. Compatible foregrounds blend on
@@ -237,6 +286,29 @@ impl Ui<'_> {
         color
     }
 
+    /// True when the authored truecolor fade would change this cell.
+    ///
+    /// Limited palettes collapse distinct roles onto one color. The outer
+    /// scroll edge still marks that lost blend with `DIM`, and leaves a
+    /// foreground that was already the background alone.
+    fn semantic_outer_fade(&self, pos: Position) -> bool {
+        let roles = self.roles_at(pos);
+        let Some(role) = roles.fg else {
+            return false;
+        };
+        let Some(fg) = authored_rgb(self.theme, role, self.surface) else {
+            return false;
+        };
+        let bg = roles
+            .bg
+            .and_then(|role| authored_rgb(self.theme, role, self.surface))
+            .unwrap_or(Color::Rgb(0, 0, 0));
+        match fade_mix(fg, bg, FADE_OUTER_KEEP) {
+            FadeOutcome::Blended(color) => color != fg,
+            FadeOutcome::ApplyDim | FadeOutcome::Unchanged => false,
+        }
+    }
+
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
         if let Target::Layer(i) = self.target
             && let Some(d) = self.frame.layers.active_mut().get_mut(i)
@@ -253,6 +325,13 @@ impl Ui<'_> {
             if !self.cell_written(pos) {
                 continue;
             }
+            let fade = self.buffer().cell(pos).and_then(|cell| {
+                (cell.bg == container && !cell.modifier.contains(Modifier::REVERSED))
+                    .then_some(fade_mix(cell.fg, container, keep))
+            });
+            let semantic_dim = outer
+                && matches!(fade, Some(FadeOutcome::Unchanged))
+                && self.semantic_outer_fade(pos);
             if let Some(cell) = self.buffer().cell_mut(pos)
                 && cell.bg == container
                 && !cell.modifier.contains(Modifier::REVERSED)
@@ -260,6 +339,10 @@ impl Ui<'_> {
                 match fade_mix(cell.fg, container, keep) {
                     FadeOutcome::Blended(color) => cell.fg = color,
                     FadeOutcome::ApplyDim if outer => cell.modifier |= Modifier::DIM,
+                    // Reduced-color text can collapse onto the row background.
+                    // Dim it only when the authored RGB fade would have changed
+                    // the glyph. An already-black cell stays undimmed.
+                    FadeOutcome::Unchanged if semantic_dim => cell.modifier |= Modifier::DIM,
                     FadeOutcome::Unchanged | FadeOutcome::ApplyDim => {}
                 }
             }
@@ -637,6 +720,38 @@ impl Ui<'_> {
     }
 }
 
+fn authored_rgb(theme: &Theme, role: Role, surface: Surface) -> Option<Color> {
+    let tokens = theme
+        .capability_palettes
+        .as_ref()
+        .map(|palettes| palettes.source)
+        .unwrap_or(theme.color);
+    let surface_bg = |surface: Surface| match surface {
+        Surface::Field => tokens.field,
+        Surface::FieldHover => tokens.field_hover,
+        ladder => tokens
+            .surfaces
+            .get(ladder.level().unwrap_or(0))
+            .copied()
+            .unwrap_or(Color::Reset),
+    };
+    Some(match role {
+        Role::Fg(step) => tokens.fg.get(step.index()).copied()?,
+        Role::CurrentSurface => surface_bg(surface),
+        Role::Surface(surface) => surface_bg(surface),
+        Role::RaisedSurface => surface_bg(theme.raise(surface)),
+        Role::BorderSubtle => tokens.border_subtle,
+        Role::BorderStrong => tokens.border_strong,
+        Role::Accent | Role::AccentHover | Role::AccentPressed => tokens.accent,
+        Role::Danger | Role::DangerSoft => tokens.danger,
+        Role::Warning => tokens.warning,
+        Role::Success => tokens.success,
+        Role::Focus | Role::FocusRing => tokens.focus,
+        Role::OnAccent => tokens.on_accent,
+        _ => return None,
+    })
+}
+
 const FADE_OUTER_KEEP: f32 = 0.55;
 const FADE_INNER_KEEP: f32 = 0.8;
 const FADE_DEEP_FROM: u16 = 12;
@@ -734,6 +849,47 @@ mod tests {
         let edge = page.cell(Position::new(0, 0)).expect("edge cell");
         let middle = page.cell(Position::new(0, 1)).expect("middle cell");
         assert_ne!(edge.fg, middle.fg, "the edge foreground was faded");
+    }
+
+    #[test]
+    fn scroll_edge_dim_only_skips_the_kept_cursor_row() {
+        let theme = Theme::junie().downgrade(ColorLevel::Ansi256);
+        let area = Rect::new(0, 0, 4, 6);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let style = ui.paint_patch(
+                &crate::theme::StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::CurrentSurface),
+            );
+            for y in area.y..area.bottom() {
+                ui.paint_str(Rect::new(area.x, y, area.width, 1), "abcd", style);
+            }
+            let mut state = ScrollState::new(30);
+            state.set_viewport(usize::from(area.height));
+            // Index 10 lands on the last visible row once the viewport reveals it.
+            state.ensure_visible(10);
+            ui.scroll_edge_dim_only(area, &state, &[area.bottom() - 1]);
+        }
+        let bottom = page.cell(Position::new(0, 5)).expect("bottom");
+        let top = page.cell(Position::new(0, 0)).expect("top");
+        assert!(
+            !matches!(top.fg, Color::Rgb(_, _, _)),
+            "the probe must stay on a reduced palette"
+        );
+        assert!(
+            top.modifier.contains(Modifier::DIM),
+            "the revealed upper edge is still dimmed"
+        );
+        assert!(
+            !bottom.modifier.contains(Modifier::DIM),
+            "the cursor row on the lower edge stays undimmed"
+        );
     }
 
     /// Paint `symbol` at `(0, 0)` carrying `fg` as its recorded foreground

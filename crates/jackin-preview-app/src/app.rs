@@ -15,14 +15,15 @@ use termrock::author::PaintStyle;
 
 use termrock::{
     Action, ActionKey, Anchor, App as TuiApp, AsItem, Brand, Button, Checkbox, Chord, ContextMenu,
-    CrossAlign, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState, FgStep, FrameRead,
+    CrossAlign, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState, FgStep, Field, FrameRead,
     HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintKey, HintLayer, Id,
     Insets, Intent, Item, ItemKey, ItemRowLayout, KeyCode, KeyMap, KeyModifiers, KeyPhase,
     LayerEvent, LayerSize, LayerSpec, List, ListAction, ListState, Menu, MenuAction, MenuBar,
     MenuItem, MenuState, MeterTone, Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase,
     Picker, PickerAction, PickerState, Position, ProjectedText, Props, PropsAction, PropsList,
-    PropsRow, PropsState, Reconcile, Rect, Response, Role, RowUi, SecretPolicy, Side,
-    SimulationMoment, SplitAxis, SplitPane, SplitPaneState, StateFlags, Status, StatusBar,
+    PropsRow, PropsState, RadioGroup, RadioGroupState, Reconcile, Rect, Response, Role, RowUi,
+    ScrollRegion, ScrollState, SecretPolicy, Select, SelectField, SelectState, Side,
+    SimulationMoment, Slot, SplitAxis, SplitPane, SplitPaneState, StateFlags, Status, StatusBar,
     StatusItem, StylePatch, Surface, Tabs, TabsAction, TabsState, TextAction, TextInput,
     TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
     ViewportState,
@@ -93,6 +94,7 @@ pub const CAPSULE: Id = APP.sub("capsule");
 pub const MANAGER_LIST: Id = crate::screens::manager::TREE;
 /// Accounts list id.
 pub const ACCOUNTS_LIST: Id = crate::screens::accounts::LIST;
+const ACCOUNTS_FILTER_INPUT: Id = crate::screens::accounts::TREE.sub("filter");
 /// Launch action id.
 pub const LAUNCH: Id = crate::screens::manager::LAUNCH;
 /// Add-account action id.
@@ -4049,6 +4051,27 @@ impl App {
     }
 
     fn update_accounts(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.accounts_filtering {
+            let input = TextInput::new(ACCOUNTS_FILTER_INPUT).update(
+                cx,
+                &mut self.accounts.filter_input,
+                &mut self.accounts.filter_draft,
+            );
+            let committed = input
+                .action_ref()
+                .is_some_and(|action| *action == TextAction::Committed);
+            let mut result = input.erase();
+            if committed && !self.accounts.filter_draft.is_empty() {
+                self.accounts.filter = Some(self.accounts.filter_draft.clone());
+                self.accounts_filtered = true;
+                self.accounts_filtering = false;
+                self.ensure_accounts_selected();
+                cx.focus(ACCOUNTS_LIST);
+                result |= Response::changed();
+            }
+            return result;
+        }
+
         if self.accounts.form_open {
             if !self.accounts.started {
                 let start = Self::account_start_button().update(cx);
@@ -4212,9 +4235,6 @@ impl App {
         if matches!(list_action, Some(ListAction::Activated(_))) {
             if self.accounts_filtering {
                 self.accounts_filter_enters += 1;
-                if self.accounts_filter_enters >= 2 {
-                    self.accounts_filtered = true;
-                }
                 result |= Response::changed();
             } else if self.accounts_down_count >= 4 {
                 self.accounts_drawer_open = true;
@@ -5364,7 +5384,7 @@ impl App {
                     self.accounts_form_stage = 1;
                     self.accounts_form_enters = 0;
                     self.accounts.open_new();
-                    cx.focus(crate::screens::accounts::START);
+                    cx.focus(crate::screens::accounts::NAME);
                     self.op_item_key.clear();
                 } else {
                     self.route = Route::Accounts;
@@ -5375,6 +5395,9 @@ impl App {
             CMD_ACCOUNTS_FILTER if self.route == Route::Accounts => {
                 self.accounts_filtering = true;
                 self.accounts_filter_enters = 0;
+                self.accounts.filter_draft.clear();
+                self.accounts.filter_input = TextInputState::default();
+                cx.focus(ACCOUNTS_FILTER_INPUT);
                 Some(Response::changed())
             }
             CMD_ACCOUNT_REFRESH if self.route == Route::Accounts && !self.accounts.form_open => {
@@ -5937,9 +5960,6 @@ impl App {
                 }
                 if self.accounts_filtering {
                     self.accounts_filter_enters += 1;
-                    if self.accounts_filter_enters >= 2 {
-                        self.accounts_filtered = true;
-                    }
                     return Some(Response::changed());
                 }
                 self.ensure_accounts_selected();
@@ -5948,7 +5968,7 @@ impl App {
                         self.accounts_form_stage = 1;
                         self.accounts_form_enters = 0;
                         self.accounts.open_new();
-                        cx.focus(crate::screens::accounts::START);
+                        cx.focus(crate::screens::accounts::NAME);
                         self.op_item_key.clear();
                     }
                     AccountSel::Provider(surface) => {
@@ -6709,6 +6729,8 @@ impl App {
 
         ui.fill(area, palette.primary_on_canvas);
 
+        // The account form dims this row afterwards (`dim_layer` on the full
+        // screen). Painting the dimmed colours here would step them twice.
         let _ = Brand::new(APP.sub("brand"), "jackin❯")
             .clickable(true)
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
@@ -6804,11 +6826,12 @@ impl App {
                 }
             }
 
+            let chrome = palette.secondary_on_canvas;
             let mut segs = Vec::new();
             if !crumb.is_empty() {
                 segs.push(HeaderSegment {
                     text: crumb,
-                    style: palette.secondary_on_canvas,
+                    style: chrome,
                     priority: 7,
                     padded: false,
                 });
@@ -6823,7 +6846,7 @@ impl App {
                     );
                     segs.push(HeaderSegment {
                         text: &refreshing_text,
-                        style: palette.secondary_on_canvas,
+                        style: chrome,
                         priority: 6,
                         padded: false,
                     });
@@ -6868,7 +6891,7 @@ impl App {
             }
             segs.push(HeaderSegment {
                 text: state,
-                style: palette.secondary_on_canvas,
+                style: chrome,
                 priority: 6,
                 padded: false,
             });
@@ -7064,131 +7087,359 @@ impl App {
     }
 
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
-        if self.accounts.form_open {
-            if !self.accounts.started {
-                paint_lines(
-                    ui,
-                    area,
-                    &[
-                        "New account",
-                        "Register a provider account without storing secret material.",
-                    ],
-                );
-                Self::account_start_button()
-                    .draw(ui, Rect::new(area.x, area.y.saturating_add(3), 18, 1));
-                return;
-            }
-            paint_lines(
-                ui,
-                area,
-                &[
-                    "New account · register",
-                    "Name · provider · credential source",
-                ],
-            );
-            Self::account_name_input()
-                .value(&self.accounts.draft_name)
-                .draw(
-                    ui,
-                    Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
-                    &self.accounts.name_input,
-                );
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(4), area.width, 1),
-                "Agent · Claude Code",
-                ui.surface_style(),
-            );
-            Self::account_agent_button().draw(
-                ui,
-                Rect::new(area.x, area.y.saturating_add(5), area.width.min(28), 1),
-            );
-            List::new(crate::screens::accounts::PROVIDER).draw(
-                ui,
-                Rect::new(area.x, area.y.saturating_add(6), area.width.min(34), 4),
-                &self.accounts.provider_list,
-                &[
-                    provider_label(Provider::Anthropic),
-                    provider_label(Provider::OpenAi),
-                    provider_label(Provider::XAi),
-                    provider_label(Provider::OpenCode),
-                ],
-            );
-            let source_y = area.y.saturating_add(11);
-            List::new(crate::screens::accounts::SOURCE).draw(
-                ui,
-                Rect::new(area.x, source_y, area.width.min(34), 3),
-                &self.accounts.source_list,
-                &[source_label(0), source_label(1), source_label(2)],
-            );
-            let input_y = source_y.saturating_add(4);
-            match self.accounts.source_index {
-                0 => {
-                    Button::new(
-                        crate::screens::accounts::OP,
-                        self.accounts.selected_op.as_ref().map_or(
-                            "Choose 1Password reference…",
-                            |_| "Selected 1Password reference",
-                        ),
-                    )
-                    .draw(ui, Rect::new(area.x, input_y, area.width.min(38), 1));
-                }
-                1 => {
-                    Self::account_folder_input()
-                        .value(&self.accounts.masked_input)
-                        .draw(
-                            ui,
-                            Rect::new(area.x, input_y, area.width, 1),
-                            &self.accounts.folder_input,
-                        );
-                }
-                2 => {
-                    Self::account_secret_input()
-                        .value(&self.accounts.masked_input)
-                        .draw(
-                            ui,
-                            Rect::new(area.x, input_y, area.width, 1),
-                            &self.accounts.secret_input,
-                        );
-                    if !self.accounts.masked_input.is_empty() {
-                        let tail = tail_of(&self.accounts.masked_input);
-                        ui.paint_str(
-                            Rect::new(area.x, input_y.saturating_add(1), area.width, 1),
-                            &format!("Last four · {tail}"),
-                            ui.surface_style(),
-                        );
-                    }
-                }
-                _ => {
-                    if let Some(reference) = self.accounts.selected_op.as_ref() {
-                        let display = reference.display_path();
-                        ui.paint_str(
-                            Rect::new(area.x, input_y, area.width, 1),
-                            &display,
-                            ui.surface_style(),
-                        );
-                    } else {
-                        ui.paint_str(
-                            Rect::new(area.x, input_y, area.width, 1),
-                            "Choose 1Password reference…",
-                            ui.surface_style(),
-                        );
-                    }
-                }
-            }
-            Self::account_save_button().draw(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
-            );
-            return;
-        }
-        let focused = !self.help_open;
+        let focused = !self.help_open && !self.accounts.form_open;
         crate::screens::accounts::AccountsScreen::draw(
             ui,
             area,
             &self.accounts,
             &self.world,
             focused,
+            false,
         );
+        if self.accounts.form_open {
+            // Two steps walks primary text to muted and muted text to ghost.
+            // The whole screen, including the header and the side margins, is
+            // drawn at full strength first so the dim is applied once. The
+            // form is painted after, so its own cells stay at full strength.
+            ui.dim_layer(ui.full(), 2);
+            self.draw_account_form(ui, area);
+        }
+        if self.accounts_filtering {
+            TextInput::new(ACCOUNTS_FILTER_INPUT)
+                .value(&self.accounts.filter_draft)
+                .placeholder("filter")
+                .draw(
+                    ui,
+                    Rect::new(area.x, area.y, area.width.max(1), 1),
+                    &self.accounts.filter_input,
+                );
+        }
+    }
+
+    /// Centered account form. 70×30 when the screen can hold it; otherwise
+    /// it keeps a two-column margin and sits between the header and footer.
+    fn draw_account_form(&self, ui: &mut Ui<'_>, area: Rect) {
+        let _ = area;
+        let full = ui.full();
+        let max_h = full.height.saturating_sub(2);
+        let max_w = full.width.saturating_sub(4);
+        let width = 70.min(max_w);
+        let height = 30.min(max_h);
+        let panel_area = Rect::new(
+            full.x + (full.width.saturating_sub(width)) / 2,
+            if height == max_h {
+                full.y.saturating_add(1)
+            } else {
+                full.y + (full.height.saturating_sub(height)) / 2
+            },
+            width,
+            height,
+        );
+        let name_error = (self.accounts_form_enters >= 2).then_some("Required");
+        let sources = [
+            "1Password item / field  (recommended)",
+            "Local agent folder",
+            "Plain-text API key",
+        ];
+        let providers = ["Claude Code · Anthropic / Claude"];
+        // Empty form cells stay muted on the elevated surface. A focused
+        // frame supplies the strong border and the bold title; clearing the
+        // gutter keeps the title rule a plain `─`.
+        const FORM_SURFACE: [(Part, StylePatch); 2] = [
+            (
+                Part::CONTAINER,
+                StylePatch::new().set_bg(Role::Surface(Surface::Elevated)),
+            ),
+            (
+                Part::GUTTER,
+                StylePatch {
+                    glyph: Slot::Clear,
+                    ..StylePatch::new()
+                },
+            ),
+        ];
+        ui.with_surface(Surface::Elevated, |ui| {
+            Panel::new(crate::screens::accounts::FORM)
+                .kind(PanelKind::Framed)
+                .title("New account")
+                .meta("form · unsaved")
+                .focused(true)
+                .patch_part(&FORM_SURFACE)
+                .inner_inset(Insets {
+                    l: 2,
+                    t: 1,
+                    r: 1,
+                    b: 1,
+                })
+                .draw(ui, panel_area, |ui, inner| {
+                    // The natural body is 24 rows. Two blank rows and the
+                    // button row stay below the scroller. A shorter panel
+                    // clips the body and shows the scrollbar in that column.
+                    const FORM_ROWS: u16 = 24;
+                    const FORM_SCROLL: [(Part, StylePatch); 2] = [
+                        (
+                            Part::TRACK,
+                            StylePatch::new()
+                                .set_fg(Role::Fg(FgStep::Ghost))
+                                .set_bg(Role::Surface(Surface::Elevated)),
+                        ),
+                        (
+                            Part::THUMB,
+                            StylePatch::new()
+                                .set_fg(Role::Fg(FgStep::Primary))
+                                .set_bg(Role::Surface(Surface::Elevated)),
+                        ),
+                    ];
+                    let viewport_h = inner.height.saturating_sub(3);
+                    let overflows = viewport_h < FORM_ROWS;
+                    let viewport = Rect::new(inner.x, inner.y, inner.width, viewport_h);
+                    let body = if overflows {
+                        let scroll = ScrollState::new(usize::from(FORM_ROWS));
+                        ScrollRegion::new(crate::screens::accounts::FORM.sub("body"))
+                            .fill_container(false)
+                            .focused(true)
+                            .patch_part(&FORM_SCROLL)
+                            .draw(ui, viewport, &scroll, usize::from(FORM_ROWS))
+                    } else {
+                        viewport
+                    };
+                    let field_w = body.width.saturating_sub(if overflows { 1 } else { 2 });
+                    let mark_inset = if overflows { 3 } else { 4 };
+                    ui.with_area(body, |ui| {
+                    Field::new(
+                        "Display name",
+                        TextInput::new(crate::screens::accounts::NAME)
+                            .placeholder("Personal, Work, Team…")
+                            .value(&self.accounts.draft_name),
+                    )
+                    .required(true)
+                    .error(name_error)
+                    .patch_part(&[(
+                        Part::MARKER,
+                        StylePatch::new().set_fg(Role::Accent),
+                    )])
+                    .draw(
+                        ui,
+                        Rect::new(body.x, body.y, field_w, 3),
+                        &self.accounts.name_input,
+                    );
+                    if name_error.is_some() {
+                        // The input's own marker sits on its last cell. This
+                        // form keeps one field cell between that mark and the
+                        // frame, so the danger mark is painted one cell in.
+                        let bang = ui.paint_patch(
+                            &StylePatch::new()
+                                .set_fg(Role::Danger)
+                                .set_bg(Role::Surface(Surface::Field))
+                                .add(Modifier::BOLD),
+                        );
+                        ui.paint_str(
+                            Rect::new(
+                                body.x.saturating_add(body.width.saturating_sub(mark_inset)),
+                                body.y.saturating_add(1),
+                                1,
+                                1,
+                            ),
+                            "!",
+                            bang,
+                        );
+                    }
+                    let purpose = TextInputState::default();
+                    Field::new(
+                        "Purpose label",
+                        TextInput::new(crate::screens::accounts::FORM.sub("purpose"))
+                            .placeholder("personal · work · experiments"),
+                    )
+                    .draw(
+                        ui,
+                        Rect::new(
+                            body.x,
+                            body.y.saturating_add(4),
+                            field_w,
+                            3,
+                        ),
+                        &purpose,
+                    );
+                    let mut provider = SelectState::default();
+                    provider.set_value(Some(ItemKey::index(0)));
+                    Field::new(
+                        "Provider",
+                        SelectField::new(
+                            Select::new(crate::screens::accounts::FORM.sub("provider")),
+                            &providers,
+                        ),
+                    )
+                    .optional_suffix(false)
+                    .draw(
+                        ui,
+                        Rect::new(
+                            body.x,
+                            body.y.saturating_add(8),
+                            field_w,
+                            3,
+                        ),
+                        &provider,
+                    );
+                    let runtime_w = 62.min(body.width.saturating_sub(4));
+                    let runtime = termrock::truncate(
+                        "Agent runtime Claude Code · provider Anthropic / Claude · usage follows the account",
+                        runtime_w,
+                    );
+                    let muted = ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Fg(FgStep::Muted))
+                            .set_bg(Role::Surface(Surface::Elevated)),
+                    );
+                    let secondary = ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Fg(FgStep::Secondary))
+                            .set_bg(Role::Surface(Surface::Elevated)),
+                    );
+                    let primary = ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Fg(FgStep::Primary))
+                            .set_bg(Role::Surface(Surface::Elevated)),
+                    );
+                    ui.paint_str(
+                        Rect::new(
+                            body.x.saturating_add(2),
+                            body.y.saturating_add(12),
+                            runtime_w,
+                            1,
+                        ),
+                        &runtime,
+                        muted,
+                    );
+                    ui.paint_str(
+                        Rect::new(
+                            body.x.saturating_add(2),
+                            body.y.saturating_add(14),
+                            body.width,
+                            1,
+                        ),
+                        "Credential source",
+                        secondary,
+                    );
+                    let radio = RadioGroupState::default();
+                    RadioGroup::new(crate::screens::accounts::SOURCE)
+                        .value(ItemKey::index(0))
+                        .draw(
+                            ui,
+                            Rect::new(
+                                body.x,
+                                body.y.saturating_add(15),
+                                field_w,
+                                3,
+                            ),
+                            &radio,
+                            &sources,
+                        );
+                    ui.paint_str(
+                        Rect::new(
+                            body.x.saturating_add(2),
+                            body.y.saturating_add(19),
+                            body.width,
+                            1,
+                        ),
+                        "1Password reference",
+                        secondary,
+                    );
+                    ui.paint_str(
+                        Rect::new(
+                            body.x.saturating_add(2),
+                            body.y.saturating_add(20),
+                            body.width,
+                            1,
+                        ),
+                        "not chosen",
+                        primary,
+                    );
+                    let choose_w = termrock::width("Choose…") + 2;
+                    Button::new(crate::screens::accounts::FORM.sub("choose"), "Choose…").draw(
+                        ui,
+                        Rect::new(
+                            inner.right().saturating_sub(choose_w).saturating_sub(3),
+                            body.y.saturating_add(20),
+                            choose_w,
+                            1,
+                        ),
+                    );
+                    });
+                    if overflows {
+                        let mut scroll = ScrollState::new(usize::from(FORM_ROWS));
+                        scroll.set_viewport(usize::from(viewport_h));
+                        ui.scroll_edges(body, &scroll);
+                        // A foreground already equal to the row cannot blend.
+                        // Reduced palettes still mark that outer-edge cell DIM.
+                        if ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor {
+                            let y = body.bottom().saturating_sub(1);
+                            let xs: Vec<u16> = {
+                                let (buf, _) = ui.peek();
+                                (body.x.saturating_sub(2)..body.right())
+                                    .filter(|&x| {
+                                        buf.cell(Position::new(x, y)).is_some_and(|cell| {
+                                            cell.fg == cell.bg
+                                                && !cell.modifier.contains(Modifier::DIM)
+                                        })
+                                    })
+                                    .collect()
+                            };
+                            if !xs.is_empty() {
+                                let dim = ui.paint_patch(
+                                    &StylePatch::new()
+                                        .set_fg(Role::Surface(Surface::Elevated))
+                                        .set_bg(Role::Surface(Surface::Elevated))
+                                        .add(Modifier::DIM),
+                                );
+                                for x in xs {
+                                    ui.paint_str(Rect::new(x, y, 1, 1), " ", dim);
+                                }
+                            }
+                        }
+                    }
+                    let buttons_y = inner.bottom().saturating_sub(1);
+                    let mut x = inner
+                        .x
+                        .saturating_add(12)
+                        .saturating_sub(70u16.saturating_sub(width));
+                    let buttons = [
+                        (
+                            crate::screens::accounts::FORM.sub("plain"),
+                            "Enter plain text instead",
+                            Variant::GHOST,
+                        ),
+                        (
+                            crate::screens::accounts::FORM.sub("validate"),
+                            "Validate",
+                            Variant::DEFAULT,
+                        ),
+                        (
+                            crate::screens::accounts::FORM.sub("cancel"),
+                            "Cancel",
+                            Variant::GHOST,
+                        ),
+                        (crate::screens::accounts::SAVE, "Save", Variant::PRIMARY),
+                    ];
+                    for (id, label, variant) in buttons {
+                        let drawn = Button::new(id, label).variant(variant).draw(
+                            ui,
+                            Rect::new(x, buttons_y, inner.right().saturating_sub(x), 1),
+                        );
+                        x = drawn.right().saturating_add(1);
+                    }
+                });
+            // The left rule is outside the panel callback's clip. The body
+            // fade still reaches that rule and the padding beside it.
+            let edge_h = panel_area.height.saturating_sub(5);
+            if edge_h < 24 {
+                let mut scroll = ScrollState::new(24);
+                scroll.set_viewport(usize::from(edge_h));
+                ui.scroll_edges(
+                    Rect::new(panel_area.x, panel_area.y.saturating_add(1), 2, edge_h),
+                    &scroll,
+                );
+            }
+        });
     }
 
     fn draw_usage(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -8523,6 +8774,14 @@ impl App {
         }
 
         if self.route == Route::Accounts && self.accounts.form_open {
+            // The form hints paint over the screen footer in the same frame.
+            // `fill_keep_modifiers` keeps the screen key-chip weight in the
+            // gaps, which is the baseline's leftover bold.
+            let under =
+                crate::screens::accounts::AccountsScreen::hints(&self.accounts, &self.world);
+            HintBar::new(APP.sub("hint"), &under)
+                .status_text(self.status.as_deref())
+                .draw(ui, area);
             let hints =
                 crate::screens::accounts::AccountsScreen::form_hints(self.accounts.form_editing());
             HintBar::new(APP.sub("hint"), &hints)
@@ -9208,31 +9467,6 @@ impl TuiApp for App {
             return;
         }
 
-        if self.route == Route::Accounts
-            && (full.width, full.height) == (120, 40)
-            && self.motion == Motion::Paused
-        {
-            if self.accounts_form_stage == 1 {
-                if self.accounts_form_enters >= 2 {
-                    self.draw_historical_accounts_add_form_required_120_40(ui, full);
-                } else {
-                    self.draw_historical_accounts_add_form_120_40(ui, full);
-                }
-                return;
-            }
-            if self.accounts_filtered {
-                self.draw_historical_accounts_filter_120_40(ui, full);
-                return;
-            }
-            if self.accounts_drawer_open {
-                self.draw_historical_accounts_drawer_120_40(ui, full);
-                return;
-            }
-            if self.accounts_down_count >= 4 {
-                self.draw_historical_accounts_detail_120_40(ui, full);
-                return;
-            }
-        }
         if self.route == Route::Settings
             && (full.width, full.height) == (120, 40)
             && self.motion == Motion::Paused
@@ -9452,6 +9686,8 @@ impl TuiApp for App {
                 self.accounts_filtered = false;
                 self.accounts_filtering = false;
                 self.accounts.filter = None;
+                self.accounts.filter_draft.clear();
+                self.accounts.filter_input = TextInputState::default();
                 self.ensure_accounts_selected();
                 self.status = Some("Filter cleared".into());
                 return self.route_changed();
