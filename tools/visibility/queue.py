@@ -948,7 +948,7 @@ def amend_branch_scope_record(
     _exact_keys(
         amendment_value,
         {"expected_primary", "branch_scopes", "authorization_evidence", "plan_sha256", "review_sha256"},
-        set(),
+        {"current_branch_scopes"},
         "branch-scope amendment",
     )
     expected_primary = amendment_value["expected_primary"]
@@ -967,7 +967,7 @@ def amend_branch_scope_record(
     _exact_keys(
         accepted_plan,
         {"expected_primary", "branch_scopes", "authorization_evidence"},
-        {"work_id"},
+        {"work_id", "current_branch_scopes"},
         "accepted branch-scope plan request",
     )
     if "work_id" not in accepted_plan:
@@ -976,6 +976,23 @@ def amend_branch_scope_record(
     else:
         require(accepted_plan["work_id"] == work_id,
                 "accepted VIS-10 plan request work_id differs from the target task")
+
+    declared_current_scopes: list[dict[str, Any]] | None = None
+    operational_current_scopes: list[dict[str, Any]] | None = None
+    if "current_branch_scopes" in accepted_plan:
+        declared_current_scopes = _validated_branch_scopes(
+            accepted_plan["current_branch_scopes"], "accepted VIS-10 plan", work_id,
+        )
+        require("current_branch_scopes" in amendment_value,
+                "branch-scope amendment must declare current_branch_scopes")
+        operational_current_scopes = _validated_branch_scopes(
+            amendment_value["current_branch_scopes"], "branch-scope amendment", work_id,
+        )
+        require(operational_current_scopes == declared_current_scopes,
+                "current_branch_scopes differs from the accepted VIS-10 plan")
+    else:
+        require("current_branch_scopes" not in amendment_value,
+                "current_branch_scopes is unsupported without an accepted plan declaration")
 
     replacement = _validated_branch_scopes(amendment_value["branch_scopes"], work_id, work_id)
     accepted_scopes = _validated_branch_scopes(accepted_plan["branch_scopes"], work_id, work_id)
@@ -1006,8 +1023,12 @@ def amend_branch_scope_record(
         require(task.get(field) == value,
                 "{} {} differs from the accepted primary assignment".format(work_id, field))
     current_scopes = _validated_branch_scopes(task.get("branch_scopes", []), work_id, work_id)
-    require(current_scopes in ([], accepted_scopes),
-            "existing visual-baseline grant differs from the accepted VIS-10 plan")
+    if declared_current_scopes is None:
+        require(current_scopes in ([], accepted_scopes),
+                "existing visual-baseline grant differs from the accepted VIS-10 plan")
+    else:
+        require(current_scopes == declared_current_scopes,
+                "existing visual-baseline grant differs from the accepted VIS-10 plan")
     require(replacement != current_scopes, "branch-scope amendment is a no-op")
 
     authorization_evidence = _text(

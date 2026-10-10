@@ -4219,6 +4219,87 @@ impl BranchScopeFixture {
         })
     }
 
+    fn amendment_for_with_current(
+        &self, work_id: &str, current: Value, replacement: Value,
+    ) -> Value {
+        let mut amendment = self.amendment_for(work_id, replacement);
+        amendment["current_branch_scopes"] = current;
+        amendment
+    }
+
+    fn set_branch_scopes(&self, work_id: &str, scopes: Value) {
+        let mut records = self.read_records();
+        let task = records["tasks"]
+            .as_array_mut()
+            .expect("task array")
+            .iter_mut()
+            .find(|task| task["work_id"] == work_id)
+            .expect("branch-scope task");
+        task["branch_scopes"] = scopes;
+        self.install_records(records);
+    }
+
+    fn install_transition_plan(
+        &mut self,
+        current_scopes: Option<Value>,
+        replacement_scopes: Value,
+        authorization_evidence: &str,
+    ) {
+        let task = self.read_task("VIS-02");
+        let primary = json!({
+            "owner": task["owner"],
+            "reviewer": task["reviewer"],
+            "priority": task["priority"],
+            "branch": task["branch"],
+            "base_sha": task["base_sha"],
+            "allowed_paths": task["allowed_paths"]
+        });
+        let mut accepted_plan = json!({
+            "expected_primary": primary,
+            "branch_scopes": replacement_scopes,
+            "authorization_evidence": authorization_evidence
+        });
+        if let Some(current_scopes) = current_scopes {
+            accepted_plan["current_branch_scopes"] = current_scopes;
+        }
+        let plan_bytes = format!(
+            "# Accepted nonempty branch-scope transition fixture\n\n```json\n{}\n```\n",
+            serde_json::to_string_pretty(&accepted_plan).expect("serialize transition plan")
+        )
+        .into_bytes();
+        let review_bytes = br#"{"decision":"READY"}"#;
+        fs::write(&self.plan_path, &plan_bytes).expect("write transition plan");
+        let review_path = self
+            .plan_path
+            .parent()
+            .expect("plan parent")
+            .join("accepted-branch-scope-review.json");
+        fs::write(&review_path, review_bytes).expect("write transition review");
+        self.plan_sha256 = sha256_hex(&plan_bytes);
+        self.review_sha256 = sha256_hex(review_bytes);
+        self.accepted_authorization_evidence = authorization_evidence.to_owned();
+
+        let mut records = self.read_records();
+        let plan_evidence = format!(
+            "Integrator acceptance: reviewed v1 branch-scope amendment plan {} SHA-256 {}; independent review {} SHA-256 {}.",
+            path_text(&self.plan_path),
+            self.plan_sha256,
+            path_text(&review_path),
+            self.review_sha256
+        );
+        let vis10 = records["tasks"]
+            .as_array_mut()
+            .expect("task array")
+            .iter_mut()
+            .find(|task| task["work_id"] == "VIS-10")
+            .expect("VIS-10 transition-plan authority");
+        vis10["evidence"]
+            .as_array_mut()
+            .expect("VIS-10 evidence")
+            .push(json!(plan_evidence));
+        self.install_records(records);
+    }
+
     fn install_task_specific_plan(
         &mut self, work_id: &str, allowed_paths: &[String], authorization_evidence: &str,
     ) {
@@ -4383,6 +4464,14 @@ fn branch_scope_task(
         "handoff": null,
         "accepted_queue_revision": 35
     })
+}
+
+fn branch_scope_at_base(base_sha: &str) -> Value {
+    json!([{
+        "branch": "visual-baseline",
+        "base_sha": base_sha,
+        "allowed_paths": [BRANCH_SCOPE_PATH]
+    }])
 }
 
 fn branch_scope_command(revision: u64, token: &str, record_path: &Path) -> Vec<String> {
@@ -5343,4 +5432,201 @@ fn accept_cannot_preseed_an_additional_branch_scope() {
         unchanged,
         "preseeded grant must not alter queue"
     );
+}
+
+#[test]
+#[cfg(unix)]
+fn branch_scope_transition_from_declared_nonempty_to_replacement_succeeds() {
+    let mut fixture = BranchScopeFixture::new_with_reference_tip_plan();
+    let current_base = BRANCH_SCOPE_PLAN_BASE_SHA.to_owned();
+    let replacement_base = fixture.accepted_reference_base.clone();
+    let current_scopes = branch_scope_at_base(&current_base);
+    let replacement_scopes = branch_scope_at_base(&replacement_base);
+    let authorization = "TEST ONLY synthetic nonempty transition authorization.".to_owned();
+    fixture.set_branch_scopes("VIS-02", current_scopes.clone());
+    fixture.install_transition_plan(
+        Some(current_scopes.clone()),
+        replacement_scopes.clone(),
+        &authorization,
+    );
+
+    let before = fixture.read_task("VIS-02");
+    let revision = fixture.revision();
+    let amendment = fixture.amendment_for_with_current(
+        "VIS-02",
+        current_scopes.clone(),
+        replacement_scopes.clone(),
+    );
+    assert_eq!(amendment.get("work_id"), None);
+    assert_success(&fixture.amend_with_env(amendment, &[]));
+
+    let records = fixture.read_records();
+    let after = fixture.read_task("VIS-02");
+    assert_eq!(records["queue_revision"], json!(revision + 1));
+    assert_eq!(after["branch_scopes"], replacement_scopes);
+    for field in ["owner", "reviewer", "priority", "branch", "base_sha", "allowed_paths", "state"] {
+        assert_eq!(after[field], before[field], "primary field {field} changed");
+    }
+    assert_eq!(after.get("claim_history"), before.get("claim_history"));
+    let evidence = after["evidence"].as_array().expect("task evidence");
+    assert_eq!(
+        evidence.len(),
+        before["evidence"].as_array().unwrap().len() + 2
+    );
+    assert!(evidence.iter().any(|entry| entry.as_str().unwrap() == authorization));
+    assert!(evidence.iter().any(|entry| {
+        let text = entry.as_str().unwrap();
+        text.contains("amended branch scopes at queue revision")
+            && text.contains("previous [")
+            && text.contains(&current_base)
+            && text.contains("replacement [")
+            && text.contains(&replacement_base)
+            && text.contains(&fixture.plan_sha256)
+            && text.contains(&fixture.review_sha256)
+    }));
+    let rendered = String::from_utf8(fixture.queue_files().1).expect("rendered view UTF-8");
+    assert!(rendered.contains(&replacement_base));
+}
+
+#[test]
+#[cfg(unix)]
+fn branch_scope_transition_rejects_wrong_operational_current_before_probe() {
+    let mut fixture = BranchScopeFixture::new_with_reference_tip_plan();
+    let current_scopes = branch_scope_at_base(BRANCH_SCOPE_PLAN_BASE_SHA);
+    let replacement_scopes = fixture.add_scope();
+    fixture.set_branch_scopes("VIS-02", current_scopes.clone());
+    fixture.install_transition_plan(
+        Some(current_scopes.clone()),
+        replacement_scopes.clone(),
+        "TEST ONLY synthetic current mismatch authorization.",
+    );
+    let wrong_current = branch_scope_at_base(&fixture.accepted_reference_base);
+    let amendment = fixture.amendment_for_with_current(
+        "VIS-02",
+        wrong_current,
+        replacement_scopes,
+    );
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.amend_with_env(amendment, &[]),
+        "current_branch_scopes differs from the accepted VIS-10 plan",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+}
+
+#[test]
+#[cfg(unix)]
+fn branch_scope_transition_requires_actual_current_to_equal_declared_current() {
+    let mut fixture = BranchScopeFixture::new_with_reference_tip_plan();
+    let current_scopes = branch_scope_at_base(BRANCH_SCOPE_PLAN_BASE_SHA);
+    let replacement_scopes = fixture.add_scope();
+    fixture.set_branch_scopes("VIS-02", current_scopes.clone());
+    fixture.install_transition_plan(
+        Some(current_scopes.clone()),
+        replacement_scopes.clone(),
+        "TEST ONLY synthetic actual-current mismatch authorization.",
+    );
+    fixture.set_branch_scopes("VIS-02", replacement_scopes.clone());
+    let amendment = fixture.amendment_for_with_current(
+        "VIS-02",
+        current_scopes,
+        replacement_scopes,
+    );
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.amend_with_env(amendment, &[]),
+        "existing visual-baseline grant differs from the accepted VIS-10 plan",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+}
+
+#[test]
+#[cfg(unix)]
+fn branch_scope_transition_rejects_missing_plan_and_operational_declarations() {
+    let replacement_scopes = branch_scope_at_base(&"c".repeat(40));
+    let current_scopes = branch_scope_at_base(BRANCH_SCOPE_PLAN_BASE_SHA);
+
+    let mut missing_plan = BranchScopeFixture::new_with_reference_tip_plan();
+    missing_plan.set_branch_scopes("VIS-02", current_scopes.clone());
+    missing_plan.install_transition_plan(
+        None,
+        replacement_scopes.clone(),
+        "TEST ONLY synthetic missing plan declaration.",
+    );
+    let amendment = missing_plan.amendment_for_with_current(
+        "VIS-02",
+        current_scopes.clone(),
+        replacement_scopes.clone(),
+    );
+    let unchanged = missing_plan.queue_files();
+    assert_error(
+        &missing_plan.amend_with_env(amendment, &[]),
+        "current_branch_scopes is unsupported without an accepted plan declaration",
+    );
+    assert_eq!(missing_plan.queue_files(), unchanged);
+
+    let mut missing_operational = BranchScopeFixture::new_with_reference_tip_plan();
+    missing_operational.set_branch_scopes("VIS-02", current_scopes.clone());
+    missing_operational.install_transition_plan(
+        Some(current_scopes),
+        replacement_scopes.clone(),
+        "TEST ONLY synthetic missing operational declaration.",
+    );
+    let amendment = missing_operational.amendment_for("VIS-02", replacement_scopes);
+    let unchanged = missing_operational.queue_files();
+    assert_error(
+        &missing_operational.amend_with_env(amendment, &[]),
+        "branch-scope amendment must declare current_branch_scopes",
+    );
+    assert_eq!(missing_operational.queue_files(), unchanged);
+}
+
+#[test]
+#[cfg(unix)]
+fn branch_scope_transition_rejects_an_altered_replacement() {
+    let mut fixture = BranchScopeFixture::new_with_reference_tip_plan();
+    let current_scopes = branch_scope_at_base(BRANCH_SCOPE_PLAN_BASE_SHA);
+    let replacement_scopes = fixture.add_scope();
+    fixture.set_branch_scopes("VIS-02", current_scopes.clone());
+    fixture.install_transition_plan(
+        Some(current_scopes.clone()),
+        replacement_scopes.clone(),
+        "TEST ONLY synthetic altered replacement authorization.",
+    );
+    let altered_replacement = branch_scope_at_base(&"d".repeat(40));
+    let amendment = fixture.amendment_for_with_current(
+        "VIS-02",
+        current_scopes,
+        altered_replacement,
+    );
+    let unchanged = fixture.queue_files();
+    assert_error(
+        &fixture.amend_with_env(amendment, &[]),
+        "branch-scope replacement differs from the accepted VIS-10 plan",
+    );
+    assert_eq!(fixture.queue_files(), unchanged);
+}
+
+#[test]
+#[cfg(unix)]
+fn legacy_branch_scope_amendment_without_declaration_keeps_empty_or_equal_rules() {
+    let fixture = BranchScopeFixture::new_with_reference_tip_plan();
+    let current_scopes = branch_scope_at_base(&fixture.accepted_reference_base);
+    fixture.set_branch_scopes("VIS-02", current_scopes.clone());
+    assert_success(&fixture.amend_with_env(fixture.amendment(json!([])), &[]));
+    let removed = fixture.read_task("VIS-02");
+    assert_eq!(removed["branch_scopes"], json!([]));
+
+    let forbidden = BranchScopeFixture::new_with_reference_tip_plan();
+    let amendment = forbidden.amendment_for_with_current(
+        "VIS-02",
+        current_scopes,
+        forbidden.add_scope(),
+    );
+    let unchanged = forbidden.queue_files();
+    assert_error(
+        &forbidden.amend_with_env(amendment, &[]),
+        "current_branch_scopes is unsupported without an accepted plan declaration",
+    );
+    assert_eq!(forbidden.queue_files(), unchanged);
 }

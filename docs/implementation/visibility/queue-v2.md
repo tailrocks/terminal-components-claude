@@ -535,8 +535,10 @@ The request is an operation, not a replacement `tasks.json`. It binds the
 current owner, reviewer, priority, candidate branch, candidate base, and
 candidate paths in `expected_primary`; supplies the replacement
 `branch_scopes` list, exact user authorization text, and the accepted plan and
-independent-review SHA-256 references. The current VIS-10 evidence must contain
-that accepted plan/review pair. The queue reads both referenced artifacts,
+independent-review SHA-256 references. The CLI operation never takes a
+`work_id` field; the positional work ID is the only target binding. The current
+VIS-10 evidence must contain that accepted plan/review pair. The queue reads
+both referenced artifacts,
 checks their raw SHA-256 values, and extracts the exact primary assignment,
 reference branch grant, and authorization text from the plan's reviewed JSON
 request. The caller cannot choose another task, primary assignment, branch
@@ -574,6 +576,18 @@ Setting `branch_scopes` to `[]` removes the additional grant through another
 CAS. The operation appends both the authorization statement and an evidence
 entry containing the previous and replacement grants, queue revision, fresh
 reference tip, and accepted plan/review references.
+
+An accepted plan may also declare `current_branch_scopes`. This separates the
+expected starting grant from the reviewed replacement grant, which supports a
+nonempty-to-different-reference transition. When the plan declares the field,
+the operational request must declare it too and the two normalized values must
+be exactly equal; the task's actual `branch_scopes` must also equal that
+declared value before CAS. When the plan omits the field, the operational
+request must omit it, preserving the old fail-closed behavior: the actual
+current grant must be empty or equal to the accepted replacement. In every
+case the operational replacement must equal the accepted plan replacement, the
+request must not be a no-op, and failed validation writes neither canonical
+queue file.
 
 This increment keeps the existing VIS-02 request shape and adds exact task
 binding for VIS-01 and VIS-11. The accepted VIS-02 plan may omit `work_id`; that
