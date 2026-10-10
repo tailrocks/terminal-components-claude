@@ -145,6 +145,8 @@ const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
 const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
 /// Property list inside the container identity dialog.
 const CONTAINER_INFO_PROPS: Id = CAPSULE_CONTAINER_INFO.sub("props");
+/// Stage lines on the cockpit-to-capsule handoff body.
+const HANDOFF_LINES: Id = APP.sub("handoff-lines");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
 const MANAGER_HELP: Id = APP.sub("manager-help");
 pub const MANAGER_INSPECT: Id = crate::screens::manager::INSPECT;
@@ -7185,14 +7187,9 @@ impl App {
             }
             crate::rain::HandoffStage::Capsule => "Capsule ready".into(),
         };
-        paint_lines(
-            ui,
-            area,
-            &[
-                label,
-                "The daemon owns pane state; the shell owns the handoff.".to_owned(),
-            ],
-        );
+        let detail = "The daemon owns pane state; the shell owns the handoff.";
+        let lines = [label.as_str(), detail];
+        paint_owned_lines(ui, HANDOFF_LINES, area, &lines);
     }
 
     fn draw_outro(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -10109,20 +10106,6 @@ fn source_label(index: u8) -> &'static str {
     }
 }
 
-fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {
-    let style = ui.surface_style();
-    for (index, line) in lines.iter().enumerate() {
-        let Ok(offset) = u16::try_from(index) else {
-            break;
-        };
-        let y = area.y.saturating_add(offset);
-        if y >= area.bottom() {
-            break;
-        }
-        ui.paint_str(Rect::new(area.x, y, area.width, 1), line.as_ref(), style);
-    }
-}
-
 /// One bare list owns these shell rows. The canvas patch is the same
 /// primary-on-canvas fill the shell already painted behind them.
 fn paint_owned_lines(ui: &mut Ui<'_>, id: Id, area: Rect, lines: &[&str]) {
@@ -10228,6 +10211,38 @@ mod tests {
 #[cfg(test)]
 mod paint_contract_tests {
     use super::*;
+    #[test]
+    fn handoff_stage_lines_are_owned_by_list() {
+        use termrock::Theme;
+        use termrock_test_support::Harness;
+        let cockpit = App::for_scenario_at(Scenario::LaunchRunning, Motion::Paused, 0);
+        assert_eq!(cockpit.route(), Route::Cockpit);
+        let cockpit_frame = Harness::new(cockpit, Theme::junie(), 120, 40);
+        assert!(cockpit_frame.area_of(HANDOFF_LINES).is_none());
+        assert!(cockpit_frame.find("The daemon owns pane state").is_none());
+
+        // Clean launch durations sum to 298 ticks. Frame 400 is past Ready,
+        // so the constructor itself enters handoff at stage 0.
+        let app = App::for_scenario_at(Scenario::LaunchRunning, Motion::Paused, 400);
+        assert_eq!(app.route(), Route::Handoff);
+        let h = Harness::new(app, Theme::junie(), 120, 40);
+        let area = h
+            .area_of(HANDOFF_LINES)
+            .expect("the handoff body is a List");
+        let (x, y) = h
+            .find("fading launch cockpit (1/4)")
+            .expect("stage 0 label");
+        assert_eq!(h.cell(x, y).symbol(), "f");
+        assert!(
+            area.contains(Position::new(x, y)),
+            "the stage label is inside the handoff list"
+        );
+        let (detail_x, detail_y) = h
+            .find("The daemon owns pane state; the shell owns the handoff.")
+            .expect("handoff detail");
+        assert!(area.contains(Position::new(detail_x, detail_y)));
+    }
+
     #[test]
     fn container_info_rows_are_owned_by_props_list() {
         use termrock::Theme;
