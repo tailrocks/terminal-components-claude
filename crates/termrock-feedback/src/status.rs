@@ -87,6 +87,8 @@ pub struct StatusItem<'a> {
     ratio: Option<f64>,
     meter_tone: Option<MeterTone>,
     spinner: Option<usize>,
+    /// Paint one space on each side with the item style, outside the gap math.
+    padded: bool,
 }
 
 impl<'a> StatusItem<'a> {
@@ -104,6 +106,7 @@ impl<'a> StatusItem<'a> {
             ratio: None,
             meter_tone: None,
             spinner: None,
+            padded: false,
         }
     }
 
@@ -130,6 +133,17 @@ impl<'a> StatusItem<'a> {
     #[must_use]
     pub const fn priority(mut self, p: u8) -> Self {
         self.priority = p;
+        self
+    }
+
+    /// Paint one space on each side in the item's own style.
+    ///
+    /// The spaces sit in the separator and the trailing edge. They do not
+    /// change the item's measured width, so the neighbour stays put. This is
+    /// the clickable tag segment, whose muted run includes those spaces.
+    #[must_use]
+    pub const fn padded(mut self) -> Self {
+        self.padded = true;
         self
     }
 
@@ -364,6 +378,9 @@ pub struct StatusBar<'a> {
     variant: Variant,
     status: Status,
     frame: usize,
+    /// `None` uses [`Self::GAP`]. A caller that matches an older two-cell
+    /// segment strip sets `2` without moving the default.
+    gap: Option<u16>,
     /// Kept beside `ov` so an item's inline [`Meter`] can be built with the
     /// caller's own overrides: it paints `TRACK` and `THUMB` under *this*
     /// strip's `Id`, so a bare construction dropped the caller's `.patch`
@@ -427,6 +444,7 @@ impl<'a> StatusBar<'a> {
             variant: Variant::DEFAULT,
             status: Status::Ready,
             frame: 0,
+            gap: None,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -457,6 +475,55 @@ impl<'a> StatusBar<'a> {
     pub const fn right(mut self, items: &'a [StatusItem<'a>]) -> Self {
         self.right = items;
         self
+    }
+
+    /// Cells between items. `None` keeps [`Self::GAP`].
+    #[must_use]
+    pub const fn gap(mut self, gap: u16) -> Self {
+        self.gap = Some(gap);
+        self
+    }
+
+    fn item_gap(&self) -> u16 {
+        self.gap.unwrap_or(Self::GAP)
+    }
+
+    /// The padded item's flanking spaces. Width math ignores them.
+    fn paint_padded_flanks(
+        &self,
+        ui: &mut Ui<'_>,
+        it: &StatusItem<'_>,
+        cell: Rect,
+        bounds: Rect,
+        live: StateFlags,
+    ) {
+        if !it.padded || cell.is_empty() {
+            return;
+        }
+        let style = self.item_style(ui, it, live);
+        if cell.x > bounds.x {
+            ui.paint_str(
+                Rect {
+                    x: cell.x.saturating_sub(1),
+                    width: 1,
+                    ..cell
+                },
+                " ",
+                style,
+            );
+        }
+        let right = cell.x.saturating_add(cell.width);
+        if right < bounds.right() {
+            ui.paint_str(
+                Rect {
+                    x: right,
+                    width: 1,
+                    ..cell
+                },
+                " ",
+                style,
+            );
+        }
     }
 
     /// Set the variant.
@@ -841,7 +908,7 @@ impl<'a> StatusBar<'a> {
             let ov = self.ov;
             let id = self.id;
             let d = ui.design();
-            let gap = Self::GAP;
+            let gap = self.item_gap();
             let edge = d.space.gutter.max(1);
             let metrics = ItemMetrics {
                 meter_columns: Self::meter_columns(ui),
@@ -904,6 +971,7 @@ impl<'a> StatusBar<'a> {
                     ..area
                 };
                 let used = self.paint_item(ui, it, cell, live, metrics);
+                self.paint_padded_flanks(ui, it, cell, area, live);
                 x = x.saturating_add(used).saturating_add(gap);
             }
             let left_end = x.saturating_sub(gap);
@@ -927,6 +995,7 @@ impl<'a> StatusBar<'a> {
                     ..area
                 };
                 self.paint_item(ui, it, cell, live, metrics);
+                self.paint_padded_flanks(ui, it, cell, area, live);
                 rx = rx.saturating_sub(gap);
             }
             let right_start = if right_mask == 0 {
@@ -954,6 +1023,7 @@ impl<'a> StatusBar<'a> {
                         ..area
                     };
                     self.paint_item(ui, it, cell, live, metrics);
+                    self.paint_padded_flanks(ui, it, cell, area, live);
                     cx = cx.saturating_add(w).saturating_add(gap);
                 }
             }
@@ -967,7 +1037,7 @@ impl<'a> StatusBar<'a> {
             meter_columns: Self::meter_columns(ui),
             spinner_frames: ui.design().motion.spinner_frames,
         };
-        let gap = Self::GAP;
+        let gap = self.item_gap();
         let edge = ui.design().space.gutter.max(1);
         let full = self.all_alive_keep();
         let preferred = self.needed(full, metrics, gap, edge, 0);
@@ -1320,6 +1390,47 @@ mod tests {
         assert!(
             before.abs_diff(after) <= 1,
             "the centre group is centred in the free span: {before} before, {after} after, in {row:?}"
+        );
+    }
+
+    /// A two-cell gap keeps the neighbour where the tag segment strip put it,
+    /// and a padded item paints its flanks without moving that neighbour.
+    #[test]
+    fn gap_two_and_padded_flanks_keep_the_neighbour() {
+        const ROW: Rect = Rect {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 1,
+        };
+        const LEFT: [StatusItem<'static>; 1] = [StatusItem::new("alpha").priority(9)];
+        const RIGHT: [StatusItem<'static>; 2] = [
+            StatusItem::new("beta").priority(6),
+            StatusItem::new("? help").padded().priority(4),
+        ];
+        let bar = StatusBar::new(Id::root("status.gap"))
+            .gap(2)
+            .left(&LEFT)
+            .right(&RIGHT);
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(ROW);
+        rt.draw_scene(ROW, &mut buf, |ui, area| {
+            bar.draw(ui, area);
+        })
+        .commit_presented();
+        let row = painted_row(&buf, ROW.width);
+        let help = row.find("? help").expect(&row);
+        let beta = row.find("beta").expect(&row);
+        assert_eq!(help - (beta + "beta".len()), 2, "{row:?}");
+        assert_eq!(
+            buf.cell(Position::new((help - 1) as u16, 0))
+                .map(|c| c.symbol()),
+            Some(" ")
+        );
+        assert_eq!(
+            buf.cell(Position::new((help + "? help".len()) as u16, 0))
+                .map(|c| c.symbol()),
+            Some(" ")
         );
     }
 }

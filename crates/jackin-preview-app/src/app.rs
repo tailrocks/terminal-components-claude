@@ -147,6 +147,10 @@ const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
 const CONTAINER_INFO_PROPS: Id = CAPSULE_CONTAINER_INFO.sub("props");
 /// Stage lines on the cockpit-to-capsule handoff body.
 const HANDOFF_LINES: Id = APP.sub("handoff-lines");
+/// Right-aligned facts on a host screen header.
+const HOST_HEADER: Id = APP.sub("host-header");
+/// Cockpit and handoff breadcrumb strip.
+const ROUTE_STRIP: Id = APP.sub("route-strip");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
 const MANAGER_HELP: Id = APP.sub("manager-help");
 pub const MANAGER_INSPECT: Id = crate::screens::manager::INSPECT;
@@ -6681,100 +6685,35 @@ fn truncate_middle(s: &str, max: usize) -> String {
     format!("{head}…{tail}")
 }
 
-struct HeaderSegment<'a> {
-    text: &'a str,
-    style: PaintStyle,
-    priority: u8,
-    padded: bool,
-}
-
-fn render_header_segments(
+/// The host and cockpit strips. Gap 2 is the tag segment separator.
+/// The container fill matches the row already painted behind the strip.
+fn draw_header_status(
     ui: &mut Ui<'_>,
+    id: Id,
     area: Rect,
-    left: &[HeaderSegment<'_>],
-    right: &[HeaderSegment<'_>],
+    left: &[StatusItem<'_>],
+    right: &[StatusItem<'_>],
+    dim: bool,
 ) {
-    if area.is_empty() {
-        return;
-    }
-    let sep = 2u16;
-    let seg_w =
-        |s: &HeaderSegment<'_>| (s.text.chars().count() as u16) + if s.padded { 2 } else { 0 };
-
-    let mut keep_l = vec![true; left.len()];
-    let mut keep_r = vec![true; right.len()];
-
-    let total = |kl: &[bool], kr: &[bool]| -> u16 {
-        let l: u16 = left
-            .iter()
-            .zip(kl)
-            .filter(|(_, k)| **k)
-            .map(|(s, _)| seg_w(s) + sep)
-            .sum();
-        let r: u16 = right
-            .iter()
-            .zip(kr)
-            .filter(|(_, k)| **k)
-            .map(|(s, _)| seg_w(s) + sep)
-            .sum();
-        // Tag `segments::render` keeps two spare cells past the segments;
-        // `+ 1` wrongly keeps the breadcrumb at 72-wide host headers.
-        l + r + 2
-    };
-
-    while total(&keep_l, &keep_r) > area.width {
-        let mut best: Option<(u8, bool, usize)> = None;
-        for (i, s) in left.iter().enumerate() {
-            if keep_l[i] && best.is_none_or(|b| s.priority < b.0) {
-                best = Some((s.priority, true, i));
-            }
-        }
-        for (i, s) in right.iter().enumerate() {
-            if keep_r[i] && best.is_none_or(|b| s.priority <= b.0) {
-                best = Some((s.priority, false, i));
-            }
-        }
-        match best {
-            Some((_, true, i)) => keep_l[i] = false,
-            Some((_, false, i)) => keep_r[i] = false,
-            None => break,
-        }
-    }
-
-    let mut x = area.x;
-    for (s, k) in left.iter().zip(&keep_l) {
-        if !k {
-            continue;
-        }
-        let w = seg_w(s);
-        let start = if s.padded { x.saturating_add(1) } else { x };
-        ui.paint_str(
-            Rect::new(start, area.y, s.text.chars().count() as u16, 1),
-            s.text,
-            s.style,
-        );
-        x = x.saturating_add(w).saturating_add(sep);
-    }
-
-    let mut rx = area.right().saturating_sub(1);
-    for (s, k) in right.iter().zip(&keep_r).rev() {
-        if !k {
-            continue;
-        }
-        let sw = s.text.chars().count() as u16;
-        rx = rx.saturating_sub(sw);
-        let start = if s.padded { rx.saturating_sub(1) } else { rx };
-        if s.padded {
-            let padded_text = format!(" {} ", s.text);
-            ui.paint_str(
-                Rect::new(start, area.y, padded_text.chars().count() as u16, 1),
-                &padded_text,
-                s.style,
-            );
-        } else {
-            ui.paint_str(Rect::new(start, area.y, sw, 1), s.text, s.style);
-        }
-        rx = rx.saturating_sub(sep);
+    const CANVAS: [(Part, StylePatch); 1] = [(
+        Part::CONTAINER,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Surface(Surface::Canvas))
+            .remove(Modifier::BOLD),
+    )];
+    const DIM: [(Part, StylePatch); 1] = [(
+        Part::CONTAINER,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::Surface(Surface::Canvas))
+            .remove(Modifier::BOLD),
+    )];
+    let bar = StatusBar::new(id).gap(2).left(left).right(right);
+    if dim {
+        bar.patch_part(&DIM).draw(ui, area);
+    } else {
+        bar.patch_part(&CANVAS).draw(ui, area);
     }
 }
 
@@ -6813,8 +6752,6 @@ impl App {
         if self.route == Route::Prelude {
             let canvas = self.historical_span_style((128, 128, 128), (0, 0, 0), false);
             ui.fill(area, canvas);
-            let dim_sec = self.historical_span_style((77, 77, 77), (0, 0, 0), false);
-            let dim_muted = self.historical_span_style((38, 38, 38), (0, 0, 0), false);
             Brand::new(APP.sub("brand"), "jackin❯")
                 .patch_part(&Self::PRELUDE_BRAND_DIM)
                 .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
@@ -6829,28 +6766,26 @@ impl App {
             let rest_x = area.x.saturating_add(31);
             let rest_w = area.right().saturating_sub(rest_x);
             if rest_w > 0 {
+                let faint = Role::Fg(FgStep::Faint);
                 let segs = [
-                    HeaderSegment {
-                        text: "Workspaces › new workspace",
-                        style: dim_sec,
-                        priority: 7,
-                        padded: false,
-                    },
-                    HeaderSegment {
-                        text: "inside the Construct",
-                        style: dim_sec,
-                        priority: 6,
-                        padded: false,
-                    },
-                    HeaderSegment {
-                        text: "no instances",
-                        style: dim_muted,
-                        priority: 5,
-                        padded: false,
-                    },
+                    StatusItem::new("Workspaces › new workspace")
+                        .tone(faint)
+                        .priority(7),
+                    StatusItem::new("inside the Construct")
+                        .tone(faint)
+                        .priority(6),
+                    StatusItem::new("no instances")
+                        .tone(Role::Fg(FgStep::Ghost))
+                        .priority(5),
                 ];
-
-                render_header_segments(ui, Rect::new(rest_x, area.y, rest_w, 1), &[], &segs);
+                draw_header_status(
+                    ui,
+                    HOST_HEADER,
+                    Rect::new(rest_x, area.y, rest_w, 1),
+                    &[],
+                    &segs,
+                    true,
+                );
             }
             return;
         }
@@ -6939,35 +6874,30 @@ impl App {
             // it fails (`! {label}`, error tone), and a stale daemon adds
             // its warning badge after the count segment.
             let running_text: String;
-            let running_style;
+            let running_tone;
             let running_priority;
             match self.world.arbiter.running() {
                 Ok(0) => {
                     running_text = "no instances".to_owned();
-                    running_style = palette.muted_on_canvas;
+                    running_tone = Role::Fg(FgStep::Muted);
                     running_priority = 5;
                 }
                 Ok(n) => {
                     running_text = format!("{n} running");
-                    running_style = palette.muted_on_canvas;
+                    running_tone = Role::Fg(FgStep::Muted);
                     running_priority = 5;
                 }
                 Err(err) => {
                     running_text = format!("! {}", err.label());
-                    running_style = palette.danger_on_canvas;
+                    running_tone = Role::Danger;
                     running_priority = 8;
                 }
             }
 
-            let chrome = palette.secondary_on_canvas;
+            let chrome = Role::Fg(FgStep::Secondary);
             let mut segs = Vec::new();
             if !crumb.is_empty() {
-                segs.push(HeaderSegment {
-                    text: crumb,
-                    style: chrome,
-                    priority: 7,
-                    padded: false,
-                });
+                segs.push(StatusItem::new(crumb).tone(chrome).priority(7));
             }
             let refreshing_text;
             if self.route == Route::Accounts {
@@ -6977,12 +6907,7 @@ impl App {
                         "{} refreshing {n}",
                         crate::screens::accounts::spinner_frame(self.world.now_ms() as u64 / 80)
                     );
-                    segs.push(HeaderSegment {
-                        text: &refreshing_text,
-                        style: chrome,
-                        priority: 6,
-                        padded: false,
-                    });
+                    segs.push(StatusItem::new(&refreshing_text).tone(chrome).priority(6));
                 }
             }
             let change_text;
@@ -6991,23 +6916,21 @@ impl App {
                 let n = self.settings_change_count();
                 let noun = if n == 1 { "change" } else { "changes" };
                 settings_change_text = format!("• {n} {noun}");
-                segs.push(HeaderSegment {
-                    text: &settings_change_text,
-                    style: palette.warning_on_canvas,
-                    priority: 8,
-                    padded: false,
-                });
+                segs.push(
+                    StatusItem::new(&settings_change_text)
+                        .tone(Role::Warning)
+                        .priority(8),
+                );
             }
             if self.route == Route::Editor && self.editor.change_count() > 0 {
                 let n = self.editor.change_count();
                 let noun = if n == 1 { "change" } else { "changes" };
                 change_text = format!("• {n} {noun}");
-                segs.push(HeaderSegment {
-                    text: &change_text,
-                    style: palette.warning_on_canvas,
-                    priority: 8,
-                    padded: false,
-                });
+                segs.push(
+                    StatusItem::new(&change_text)
+                        .tone(Role::Warning)
+                        .priority(8),
+                );
             }
             let row_status_text;
             if self.route == Route::Editor
@@ -7015,40 +6938,43 @@ impl App {
                 && let Some(status) = self.editor_mount_row_status(area.width)
             {
                 row_status_text = status;
-                segs.push(HeaderSegment {
-                    text: &row_status_text,
-                    style: palette.muted_on_canvas,
-                    priority: 3,
-                    padded: false,
-                });
+                segs.push(
+                    StatusItem::new(&row_status_text)
+                        .tone(Role::Fg(FgStep::Muted))
+                        .priority(3),
+                );
             }
-            segs.push(HeaderSegment {
-                text: state,
-                style: chrome,
-                priority: 6,
-                padded: false,
-            });
-            segs.push(HeaderSegment {
-                text: &running_text,
-                style: running_style,
-                priority: running_priority,
-                padded: false,
-            });
+            segs.push(
+                StatusItem::new(state)
+                    .tone(chrome)
+                    .priority(6)
+                    .key(ItemKey::text("construct")),
+            );
+            segs.push(
+                StatusItem::new(&running_text)
+                    .tone(running_tone)
+                    .priority(running_priority),
+            );
             if self.world.daemon_health == DaemonHealth::Stale {
-                segs.push(HeaderSegment {
-                    text: "▲ daemon stale",
-                    style: palette.warning_on_canvas,
-                    priority: 8,
-                    padded: false,
-                });
+                segs.push(
+                    StatusItem::new("▲ daemon stale")
+                        .tone(Role::Warning)
+                        .priority(8),
+                );
             }
 
-            render_header_segments(ui, Rect::new(rest_x, area.y, rest_w, 1), &[], &segs);
+            draw_header_status(
+                ui,
+                HOST_HEADER,
+                Rect::new(rest_x, area.y, rest_w, 1),
+                &[],
+                &segs,
+                false,
+            );
         }
     }
 
     fn draw_strip(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
         let _ = Brand::new(APP.sub("brand"), "jackin❯")
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
         let state = "entering the Construct";
@@ -7072,52 +6998,36 @@ impl App {
             "2/11 stages".to_owned()
         };
 
+        let primary = Role::Fg(FgStep::Primary);
+        let secondary = Role::Fg(FgStep::Secondary);
+        let muted = Role::Fg(FgStep::Muted);
         let left_segs = [
-            HeaderSegment {
-                text: state,
-                style: palette.primary_on_canvas,
-                priority: 9,
-                padded: false,
-            },
-            HeaderSegment {
-                text: &running_text,
-                style: palette.secondary_on_canvas,
-                priority: 8,
-                padded: false,
-            },
-            HeaderSegment {
-                text: &crumb,
-                style: palette.secondary_on_canvas,
-                priority: 7,
-                padded: false,
-            },
+            StatusItem::new(state)
+                .tone(primary)
+                .priority(9)
+                .key(ItemKey::text("entering")),
+            StatusItem::new(&running_text).tone(secondary).priority(8),
+            StatusItem::new(&crumb).tone(secondary).priority(7),
         ];
-
+        // The help run is clickable in the tag, so its muted style includes
+        // the spaces on either side. Dim then walks those spaces to ghost.
         let right_segs = [
-            HeaderSegment {
-                text: &stage_text,
-                style: palette.muted_on_canvas,
-                priority: 6,
-                padded: false,
-            },
-            HeaderSegment {
-                text: "? help",
-                style: palette.muted_on_canvas,
-                priority: 4,
-                // Clickable in the tag, so the muted run includes the
-                // surrounding spaces. Dim then walks those spaces to ghost.
-                padded: true,
-            },
+            StatusItem::new(&stage_text).tone(muted).priority(6),
+            StatusItem::new("? help").tone(muted).priority(4).padded(),
         ];
 
-        let strip_x = area.x.saturating_add(11);
+        // One gutter of inset, so the left fact still starts where the old
+        // strip started and the right fact still ends one cell in.
+        let strip_x = area.x.saturating_add(11).saturating_sub(1);
         let strip_w = area.right().saturating_sub(strip_x);
         if strip_w > 0 {
-            render_header_segments(
+            draw_header_status(
                 ui,
+                ROUTE_STRIP,
                 Rect::new(strip_x, area.y, strip_w, 1),
                 &left_segs,
                 &right_segs,
+                false,
             );
         }
     }
@@ -8025,39 +7935,46 @@ impl App {
                 String::new()
             };
 
-            let mut segs: Vec<HeaderSegment> = Vec::new();
+            let mut segs = Vec::new();
             if self.capsule_prefix {
-                segs.push(HeaderSegment {
-                    text: "prefix…",
-                    style: palette.primary_on_canvas_bold,
-                    priority: 10,
-                    padded: false,
-                });
+                segs.push(
+                    StatusItem::new("prefix…")
+                        .tone(Role::Fg(FgStep::Primary))
+                        .strong()
+                        .priority(10),
+                );
             }
-            segs.push(HeaderSegment {
-                text: &role_text,
-                style: palette.primary_on_canvas_bold,
-                priority: 9,
-                padded: false,
-            });
+            segs.push(
+                StatusItem::new(&role_text)
+                    .tone(Role::Fg(FgStep::Primary))
+                    .strong()
+                    .priority(9)
+                    .key(ItemKey::text("capsule-role")),
+            );
             if !chip_text.is_empty() {
-                segs.push(HeaderSegment {
-                    text: &chip_text,
-                    style: palette.muted_on_canvas,
-                    priority: 6,
-                    padded: true,
-                });
+                segs.push(
+                    StatusItem::new(&chip_text)
+                        .tone(Role::Fg(FgStep::Muted))
+                        .priority(6)
+                        .padded(),
+                );
             }
             if n > 1 {
-                segs.push(HeaderSegment {
-                    text: &n_text,
-                    style: palette.border_on_canvas,
-                    priority: 3,
-                    padded: false,
-                });
+                segs.push(
+                    StatusItem::new(&n_text)
+                        .tone(Role::BorderStrong)
+                        .priority(3),
+                );
             }
 
-            render_header_segments(ui, Rect::new(rest_x, area.y, rest_w, 1), &[], &segs);
+            draw_header_status(
+                ui,
+                HOST_HEADER,
+                Rect::new(rest_x, area.y, rest_w, 1),
+                &[],
+                &segs,
+                false,
+            );
         }
 
         if self.capsule_prefix {
@@ -10211,6 +10128,95 @@ mod tests {
 #[cfg(test)]
 mod paint_contract_tests {
     use super::*;
+    fn frozen_row(path: &str) -> String {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join(path);
+        std::fs::read_to_string(root)
+            .unwrap_or_else(|err| panic!("read {path}: {err}"))
+            .lines()
+            .next()
+            .unwrap_or("")
+            .trim_end()
+            .to_string()
+    }
+
+    #[test]
+    fn host_header_facts_are_owned_by_status_bar() {
+        use termrock::{PartRef, Theme};
+        use termrock_test_support::Harness;
+        let key = ItemKey::text("construct");
+        let wide = Harness::new(
+            App::for_scenario_at(Scenario::Returning, Motion::Paused, 0),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let wide_row = wide.row(0).trim_end().to_string();
+        assert_eq!(
+            wide_row,
+            frozen_row(
+                "baselines/tuiscotti-v1/jackin/manager/scenario-returning/120x40/truecolor.txt"
+            )
+        );
+        let owned = wide
+            .area_of_part(HOST_HEADER, PartRef::item(Part::LABEL, key))
+            .expect("StatusBar owns the construct phrase");
+        let (x, y) = wide.find("inside the Construct").expect("phrase");
+        assert_eq!((owned.x, owned.y), (x, y));
+
+        let narrow = Harness::new(
+            App::for_scenario_at(Scenario::Returning, Motion::Paused, 0),
+            Theme::junie(),
+            72,
+            20,
+        );
+        assert_eq!(
+            narrow.row(0).trim_end(),
+            frozen_row(
+                "baselines/tuiscotti-v1/jackin/manager/scenario-returning/72x20/truecolor.txt"
+            )
+        );
+
+        let cockpit = Harness::new(
+            App::for_scenario_at(Scenario::LaunchRunning, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_eq!(
+            cockpit.row(0).trim_end(),
+            frozen_row("baselines/tuiscotti-v1/jackin/cockpit/debug/120x40/truecolor.txt")
+        );
+        let entering = cockpit
+            .area_of_part(
+                ROUTE_STRIP,
+                PartRef::item(Part::LABEL, ItemKey::text("entering")),
+            )
+            .expect("StatusBar owns the cockpit phrase");
+        let (x, y) = cockpit.find("entering the Construct").expect("phrase");
+        assert_eq!((entering.x, entering.y), (x, y));
+
+        let capsule = Harness::new(
+            App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_eq!(
+            capsule.row(0).trim_end(),
+            frozen_row("baselines/tuiscotti-v1/jackin/capsule/menu/120x40/truecolor.txt")
+        );
+        let role = capsule
+            .area_of_part(
+                HOST_HEADER,
+                PartRef::item(Part::LABEL, ItemKey::text("capsule-role")),
+            )
+            .expect("StatusBar owns the capsule role");
+        let (x, y) = capsule.find("the-architect").expect("role");
+        assert!(role.contains(Position::new(x, y)));
+    }
+
     #[test]
     fn handoff_stage_lines_are_owned_by_list() {
         use termrock::Theme;
