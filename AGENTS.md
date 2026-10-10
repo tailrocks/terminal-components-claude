@@ -2,25 +2,24 @@
 
 ## Active Visibility Prerequisite
 
-At the start of every task, read the [work queue](WORK_QUEUE.md) and the accepted task record in [tasks.json](docs/implementation/visibility/tasks.json). The VIS-01 owner publishes the first [status report](STATUS.md). Until that file exists, use the queue and accepted record for the initial visibility work. After its publication, read the status report at the start of every task. Compare each observed source commit with the current candidate sources, and review changes to measured sources since then. The commit that publishes a status report may differ from the observed source commit; keep those identities separate. Ask the integrator to reconcile stale source facts before relying on the report. Confirm that the claim token and allowed paths match the accepted task record. Confirm that the task remains open at its assigned priority. Ask the integrator to reconcile any mismatch before implementation. P0 visibility work takes priority; broad product refactoring waits until this prerequisite is closed.
+Before each task:
+
+- Read [WORK_QUEUE.md](WORK_QUEUE.md) and the accepted record in [tasks.json](docs/implementation/visibility/tasks.json).
+- If [STATUS.md](STATUS.md) exists, read it. If it is missing, the VIS-01 owner must use the queue and accepted record to publish an honest initial STATUS.md as the first visibility work. Read it before starting the next task.
+- Before STATUS.md exists, use the accepted record and its source evidence to identify candidate and reference commits. Compare them with current branch heads.
+- After STATUS.md exists, compare its recorded source commits with current branch heads. Review changes to measured sources since their recorded commits.
+- Check evidence freshness before you rely on a result. Record the source commit used for each result separately from the commit that publishes the report.
+- Read assigned contracts and scoped AGENTS.md files before editing.
+- Confirm that the task remains open and that its priority, claim token, owner, reviewer, base commit, and allowed paths match the accepted record.
+- If any field differs, ask the integrator to resolve it before editing.
+- If automatic instruction discovery does not load an applicable scoped AGENTS.md, the coordinator must give its full path to the owner and reviewer.
+- Keep broad product refactoring on hold until the visibility acceptance checks pass. Continue accepted visibility work.
 
 These instructions and records are not enforced automatically. `STATUS.md` reports current state. The accepted task records define scope. `WORK_QUEUE.md` lists task priorities. The public API, component ownership, checklist, review, and verification requirements remain in force. Never move, delete, recreate, or retarget the frozen `visual-baseline` tag or release. Do not reset or rebase `termrock-implementation`, merge `main` into it, force-push it, or rewrite its history. Product-source changes belong only on `termrock-implementation`. The only branch exception is test, report, and CI updates on `origin/visual-baseline`; do not change product source or the frozen tag or release there. Use `origin/visual-baseline` as a test and scenario reference only. Do not use captures from that branch as expected visual output. `main` is structural evidence only, never expected visual output. Run Rust tests with `cargo nextest`; do not use `cargo test`.
 
-## Canonical Two-Stage Execution Model
-
-1. **Stage A: Preparation on `termrock-refactor`**
-   - Focus: snapshot, interaction, verification, and CI preparation.
-   - Scope: `src/**` is strictly read-only; no refactoring of production behavior.
-   - Deliverables: executable requirements registry, live/reference captures across all formats, independent admission, CI workflows, and acceptance evidence.
-
-2. **Stage B: Termrock Refactor on `termrock-implementation`**
-   - Execution: the Rust Termrock library refactor is executed exclusively on `termrock-implementation`.
-   - Branch origin: `termrock-implementation` is created only from the exact accepted Stage A commit after passing its acceptance gate.
-   - Scope: canonical P1–P7 implementation sequence, bounded consumer-adoption checkpoints across all four applications (`showcase`, `tablepro`, `jackin-preview`, `holla`), and final parity verification. Never continue production refactoring on `termrock-refactor`.
-
 ## Read First
 
-Read the active task in [GOAL.md](GOAL.md) before any other document.
+After reading STATUS.md if it exists, WORK_QUEUE.md, and the accepted task record, read the active task in [GOAL.md](GOAL.md).
 Read the [component composition contract](docs/architecture/component-composition.md).
 Read the [per-commit review procedure](docs/process/per-commit-review.md).
 Read the [ownership and parity contract](docs/verification/ownership-and-parity.md).
@@ -101,23 +100,6 @@ Use synthetic test data. Do not capture real credentials.
 Keep expected snapshots read-only during candidate verification.
 Do not change expected output, tests, or thresholds to hide a regression.
 Report not-run, failed, skipped, and passed checks separately.
-
-## Active Implementation Task
-
-Stage B implementation is active exclusively on `termrock-implementation`.
-This task finishes the Rust Termrock refactor across all 44 workspace crates,
-all four preview applications, the required test coverage, and reproducible CI.
-
-Authorized write scope includes:
-- Rust source (`crates/**/src/**`, `Cargo.toml`, `Cargo.lock`)
-- Integration, characterization, and conformance tests (`crates/**/tests/**`)
-- Repository tools and xtasks (`crates/termrock-xtask/**`, `.velnor/**`)
-- Generated CI configurations and workflows (`.github/**`)
-- Documentation, specifications, recipes, and checklists (`docs/**`, `SPECIFICATION.md`, `CRATES.md`, `CHECKLIST.md`, `checklist.json`, `component-ownership.json`, `crate-map.json`, `GOAL.md`, `AGENTS.md`)
-- Review receipts (`docs/implementation/review-receipts/**`)
-
-Do not modify frozen baseline artifacts (`baselines/**`) or retarget the `visual-baseline` tag.
-Do not stage or commit the `termrock-doc-guardrails/` input pack.
 
 ## Invariant Rules
 
