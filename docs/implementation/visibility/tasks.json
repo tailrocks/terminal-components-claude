@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "queue_revision": 77,
+  "queue_revision": 78,
   "accepted_by": "/root",
   "acceptance_mode": "single-integrator bootstrap",
   "accepted_at": "2026-10-08T02:55:05.893785+00:00",
@@ -2256,6 +2256,53 @@
       "state": "claimed",
       "work_id": "VIS-19",
       "accepted_queue_revision": 66
+    },
+    {
+      "allowed_paths": [
+        "crates/jackin-preview-host-ui/src/accounts.rs",
+        "crates/jackin-preview-host-ui/src/manager.rs",
+        "crates/jackin-preview-host-ui/src/settings.rs",
+        "crates/jackin-preview-host-ui/src/usage.rs",
+        "crates/tablepro-ui/src/app.rs",
+        "crates/tablepro-ui/src/workbench.rs",
+        "crates/termrock-feedback/src/status.rs",
+        "crates/termrock-navigation/src/steps.rs",
+        "crates/termrock-navigation/src/tree.rs",
+        "crates/termrock-overlays/src/dialog.rs",
+        "crates/termrock-runtime/src/runtime.rs",
+        "crates/termrock-viewport/src/viewport.rs",
+        "crates/termrock-visibility-tests/.config/nextest.toml",
+        "crates/termrock-xtask/exceptions/v1.json",
+        "crates/termrock/tests/ex01_button.rs",
+        "crates/termrock/tests/ex02_text_input.rs",
+        "docs/components/tree.md"
+      ],
+      "base_sha": "c89d60e1fc324225db7921868d0ac7b5f5ab2ad0",
+      "branch": "termrock-implementation",
+      "claim_token": "visibility-vis20-uncovered-staged-paths-q77-20261011-01",
+      "dependencies": [],
+      "evidence": [
+        "External proposal only; this object is not an accepted queue record.",
+        "Round 1 proposed 40 paths and produced conflicts with active grants.",
+        "Round 2 narrowed the proposal to these 17 uncovered staged paths.",
+        "Paths overlapping active grants were excluded from the 17 exact paths.",
+        "No dependencies are declared.",
+        "Acceptance requires compare-and-swap at live queue revision 77."
+      ],
+      "expiry": "2026-10-12T12:00:00Z",
+      "handoff": null,
+      "owner": "/root/ci_product_repair_luna",
+      "priority": "P0",
+      "priority_reason": "P0 repair for the 17 uncovered staged paths.",
+      "requirement_ids": [
+        "VIS-V01",
+        "VIS-P02",
+        "VIS-T01"
+      ],
+      "reviewer": "/root/current_branch_comparison_luna",
+      "state": "claimed",
+      "work_id": "VIS-20",
+      "accepted_queue_revision": 78
     }
   ]
 }
