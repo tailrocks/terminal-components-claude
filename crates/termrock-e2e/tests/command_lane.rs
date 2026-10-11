@@ -1292,6 +1292,7 @@ pub mod executor {
     }
 
     pub trait FrameRecorder {
+        #[allow(clippy::too_many_arguments)] // The recorder receives each independently pinned capture input.
         fn capture(
             &mut self,
             command_id: &str,
@@ -1312,10 +1313,10 @@ pub mod executor {
         process_group_error: Option<String>,
     }
 
-    impl PtyFactory for TermpaneFactory {
+        impl PtyFactory for TermpaneFactory {
         fn spawn(
             &self,
-            subject: &FrozenCommandSubject,
+            _subject: &FrozenCommandSubject,
             plan: &InvocationPlan,
             env: &ExecutionEnvelope,
         ) -> Result<Box<dyn CommandPty>, String> {
@@ -1925,8 +1926,10 @@ pub struct RestorationReceipt {
         loop {
             let sample = port.sample()?;
             let boundary = tracker.update(kind, executable, &sample)?;
-            if boundary.is_some() && checkpoint_matches(plan, id, &sample.text) {
-                return Ok((sample, boundary.expect("checked boundary")));
+            if let Some(boundary) = boundary
+                && checkpoint_matches(plan, id, &sample.text)
+            {
+                return Ok((sample, boundary));
             }
             if port.has_exited() {
                 return Err(format!("child exited before checkpoint {id}"));
@@ -1940,7 +1943,8 @@ pub struct RestorationReceipt {
         }
     }
 
-    fn record_checkpoint(
+#[allow(clippy::too_many_arguments)] // The checkpoint receipt fields are independently recorded.
+fn record_checkpoint(
         command_id: &str,
         role: &str,
         kind: InvocationKind,
@@ -2087,8 +2091,10 @@ pub struct RestorationReceipt {
         let mut after_exit_cursor = None;
         let mut last_observation = None;
         let started_pid = port.process_id();
-        if started_pid.is_some() && plan.kind == InvocationKind::DirectExecutableDiagnostic {
-            set_layer(&mut invocation, Layer::Launch, Status::Pass, "PTY child process was created", vec![format!("pid={}", started_pid.unwrap())]);
+        if let Some(pid) = started_pid
+            && plan.kind == InvocationKind::DirectExecutableDiagnostic
+        {
+            set_layer(&mut invocation, Layer::Launch, Status::Pass, "PTY child process was created", vec![format!("pid={pid}")]);
         } else if started_pid.is_none() {
             set_layer(&mut invocation, Layer::Launch, Status::Fail, "PTY backend did not report the direct child PID", vec![]);
         }
@@ -2115,8 +2121,9 @@ pub struct RestorationReceipt {
                     }
                 };
                 let running = tracker.update(plan.kind, &subject.executable, &sample);
-                if !build_recorded {
-                    if let Some(boundary) = tracker.finished_boundary.filter(|boundary| *boundary <= sample.output_log.len()) {
+                if !build_recorded
+                    && let Some(boundary) = tracker.finished_boundary.filter(|boundary| *boundary <= sample.output_log.len())
+                {
                         build_recorded = true;
                         match sink.store(
                             &format!("{}/{}/{}/build.raw", plan.command_id, subject.role, invocation_slug(plan.kind)),
@@ -2132,7 +2139,6 @@ pub struct RestorationReceipt {
                             Err(error) => set_layer(&mut invocation, Layer::Build, Status::Fail,
                                 format!("Cargo Finished marker was observed but its build artifact failed: {error}"), vec![]),
                         }
-                    }
                 }
                 match running {
                     Ok(Some(boundary)) => {
@@ -2140,10 +2146,10 @@ pub struct RestorationReceipt {
                             set_layer(&mut invocation, Layer::Build, Status::Fail,
                                 "Cargo emitted a Running line without a complete Finished line", vec![format!("running_boundary={boundary}")]);
                         }
-                        if started_pid.is_some() {
+                        if let Some(pid) = started_pid {
                             set_layer(&mut invocation, Layer::Launch, Status::Pass,
                                 "Cargo emitted a complete Running line naming the frozen selected release executable",
-                                vec![format!("pid={}", started_pid.unwrap()), format!("running_boundary={boundary}")]);
+                                vec![format!("pid={pid}"), format!("running_boundary={boundary}")]);
                         } else {
                             set_layer(&mut invocation, Layer::Launch, Status::Fail,
                                 "Cargo Running line was seen but PTY did not report its direct child PID", vec![]);
@@ -2261,11 +2267,11 @@ pub struct RestorationReceipt {
                         if !sent {
                             interaction_failed = true;
                         }
-                        if is_final_exit {
-                            if let Some(sample) = &last_observation {
-                                before_exit_modes = Some(sample.modes.clone());
-                                before_exit_cursor = Some(sample.cursor.clone());
-                            }
+                        if is_final_exit
+                            && let Some(sample) = &last_observation
+                        {
+                            before_exit_modes = Some(sample.modes.clone());
+                            before_exit_cursor = Some(sample.cursor.clone());
                         }
                     }
                 }
@@ -2353,8 +2359,9 @@ pub struct RestorationReceipt {
             Ok(artifact) => artifact_refs.push(artifact),
             Err(error) => artifact_error = Some(format!("launch log artifact write failed: {error}")),
         }
-        if let Some(boundary) = tracker.running_boundary {
-            if boundary <= full_log.len() {
+        if let Some(boundary) = tracker.running_boundary
+            && boundary <= full_log.len()
+        {
                 match sink.store(
                     &format!("{}/{}/{}/application.raw", plan.command_id, subject.role, invocation_slug(plan.kind)),
                     &full_log[boundary..],
@@ -2363,7 +2370,6 @@ pub struct RestorationReceipt {
                     Err(error) => artifact_error = Some(format!("application log artifact write failed: {error}")),
                 }
             }
-        }
         match serde_json::to_vec_pretty(&inputs)
             .map_err(|error| format!("serialize {} input events: {error}", plan.command_id))
             .and_then(|bytes| sink.store(&format!("{}/{}/{}/inputs.json", plan.command_id, subject.role, invocation_slug(plan.kind)), &bytes))
@@ -2408,7 +2414,7 @@ pub struct RestorationReceipt {
                 reason: "child PTY mode state is recorded but parent/slave termios and shell continuation remain required and unobserved".into(),
                 before_exit: before_exit_modes,
                 after_exit: after_exit_modes,
-                before_exit_cursor: before_exit_cursor,
+                before_exit_cursor,
                 after_exit_cursor,
                 host_terminal_state: "not_observed".into(),
                 child_pty_state: "live cursor and DEC mode facts recorded from termpane observations".into(),
@@ -2814,7 +2820,7 @@ pub struct RestorationReceipt {
         statuses.extend(row.reference.iter().flat_map(|item| item.layers.values().map(|layer| layer.status)));
         statuses.extend(row.candidate.iter().flat_map(|item| item.layers.values().map(|layer| layer.status)));
         statuses.extend(row.direct_executable_diagnostics.iter().flat_map(|item| item.layers.values().map(|layer| layer.status)));
-        if statuses.iter().any(|status| *status == Status::Fail) { Status::Fail }
+        if statuses.contains(&Status::Fail) { Status::Fail }
         else if statuses.iter().any(|status| *status == Status::Blocked || *status == Status::Unknown || *status == Status::NotRun) { Status::Blocked }
         else { Status::Pass }
     }
@@ -2895,7 +2901,7 @@ pub struct RestorationReceipt {
         struct FakeRecorder;
         impl FrameRecorder for FakeRecorder {
             fn capture(&mut self, _command_id: &str, _role: &str, _kind: InvocationKind, checkpoint: &str,
-                sample: &LiveSample, _recording: &tuiscotti::tui_shell::Recording,
+                _sample: &LiveSample, _recording: &tuiscotti::tui_shell::Recording,
                 _sink: &mut dyn ArtifactSink) -> Result<CaptureProof, String> {
                 Ok(CaptureProof {
                     artifacts: vec![], frame_digest: checkpoint.into(),
@@ -3719,5 +3725,4 @@ mod tests {
             "RUN03 aggregate stays blocked while restoration, visual admission, and candidate ownership are unproven");
     }
 }
-
 }
