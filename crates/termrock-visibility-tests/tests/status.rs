@@ -112,6 +112,7 @@ impl StatusFixture {
         }
     }
 
+    #[allow(dead_code)] // Preserves the archived q59 report audit fixture.
     fn from_checked_in_report_snapshot() -> Self {
         let fixture = Self::from_checked_in_records();
         let task_snapshot_path = fixture.repo.root().join(
@@ -693,6 +694,7 @@ fn write_provider_json_capture(
     write_provider_capture(fixture, prefix, name, &bytes, files)
 }
 
+#[allow(clippy::too_many_arguments)] // Test fixture fields mirror the provider payload.
 fn provider_observation(
     fixture: &StatusFixture,
     files: &mut Vec<serde_json::Value>,
@@ -2714,7 +2716,7 @@ fn checked_in_records_render_from_exact_copies() {
     assert_eq!(output.stdout, repeated.stdout);
     assert!(report.contains(candidate_sha));
     assert!(report.contains(reference_sha));
-    assert_eq!(candidate_sha, "d7c03139d0131157f1bd40eaf379d46c2e3814f8");
+    assert_eq!(candidate_sha, "9b11039bace9333a40f578c71e2e997e1182e415");
     assert_eq!(reference_sha, "2ae351dd27f0ee7d7d52ff6093208b0a57f62698");
     assert_eq!(candidate_sha, latest_candidate_sha);
     assert_eq!(reference_sha, latest_reference_sha);
@@ -2723,7 +2725,7 @@ fn checked_in_records_render_from_exact_copies() {
         facts["latest_source_observation"]["timestamp_provenance"]["committer_dates_are_branch_update_times"],
         false
     );
-    assert_eq!(history.len(), 6);
+    assert_eq!(history.len(), 7);
     assert_eq!(
         history[0]["source_observation"]["candidate_remote"]["head_sha"],
         "931bbba00bad43de79731912f48e29fe88751cb8"
@@ -2755,6 +2757,16 @@ fn checked_in_records_render_from_exact_copies() {
         "1d797d41c8141fcbdc3f69d7f11eb8875ab54712"
     );
     assert_eq!(history[5]["superseded_at"], "2026-10-10T22:26:30Z");
+    assert_eq!(
+        history[6]["source_observation"]["candidate_remote"]["head_sha"],
+        "d7c03139d0131157f1bd40eaf379d46c2e3814f8"
+    );
+    assert!(history[6]["current_ci_observation"].is_object());
+    assert_eq!(
+        history[6]["current_ci_observation"]["api_capture"]["candidate_run"]["run_id"],
+        "38090751977"
+    );
+    assert_eq!(history[6]["superseded_at"], "2026-10-11T03:58:22Z");
     let superseded_current = &facts["superseded_current_observations"]["records"][0];
     assert_eq!(
         superseded_current["candidate_head_sha"],
@@ -2771,8 +2783,14 @@ fn checked_in_records_render_from_exact_copies() {
     assert_eq!(superseded_current["superseded_at"], "2026-10-10T22:26:30Z");
     let partial_current = &facts["superseded_current_observations"]["records"][1];
     assert_eq!(partial_current["observation_kind"], "partial_queued_ci");
-    assert_eq!(partial_current["candidate_head_sha"], candidate_sha);
-    assert_eq!(partial_current["reference_head_sha"], reference_sha);
+    assert_eq!(
+        partial_current["candidate_head_sha"],
+        "d7c03139d0131157f1bd40eaf379d46c2e3814f8"
+    );
+    assert_eq!(
+        partial_current["reference_head_sha"],
+        "2ae351dd27f0ee7d7d52ff6093208b0a57f62698"
+    );
     assert_eq!(
         partial_current["current_ci_observation"]["api_capture"]["candidate_run"]["job_count"],
         49
@@ -2805,7 +2823,7 @@ fn checked_in_records_render_from_exact_copies() {
     let current_ci = facts["current_ci_observation"]["api_capture"]
         .as_object()
         .expect("current CI API capture");
-    assert_eq!(current_ci["candidate_run"]["run_id"], "38090751977");
+    assert_eq!(current_ci["candidate_run"]["run_id"], "38108486387");
     assert_eq!(current_ci["candidate_run"]["status"], "completed");
     assert_eq!(current_ci["candidate_run"]["conclusion"], "failure");
     assert_eq!(current_ci["candidate_run"]["job_count"], 51);
@@ -2816,7 +2834,7 @@ fn checked_in_records_render_from_exact_copies() {
         current_ci["workflow_source"]["raw_sha256"],
         "664fe57510323c3d148cdad3f9a416bf383fa54276fa40efb4af95bd3b57804f"
     );
-    assert_eq!(current_ci["candidate_dco"]["check_run_id"], "114326526502");
+    assert_eq!(current_ci["candidate_dco"]["check_run_id"], "114378959885");
     assert_eq!(current_ci["candidate_dco"]["conclusion"], "success");
     assert_eq!(current_ci["reference_dco"]["check_run_id"], "114328215608");
     assert_eq!(current_ci["reference_dco"]["conclusion"], "action_required");
@@ -2915,7 +2933,7 @@ fn checked_in_records_render_from_exact_copies() {
         .split("\n## ")
         .next()
         .expect("end of current CI report section");
-    assert!(current_ci_section.contains("38090751977"));
+    assert!(current_ci_section.contains("38108486387"));
     assert!(current_ci_section.contains("51 jobs; 49 artifacts"));
     assert!(current_ci_section.contains("No correlated provider annotation is recorded"));
     assert!(current_ci_section.contains("115446 bytes"));
@@ -2926,14 +2944,14 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(current_ci_section.contains("Required"));
     assert!(current_ci_section.contains("Publish baseline"));
     assert!(current_ci_section.contains("0 matching Actions runs"));
-    assert!(current_ci_section.contains("114326526502"));
+    assert!(current_ci_section.contains("114378959885"));
     assert!(current_ci_section.contains("114328215608"));
     assert_eq!(
         facts["latest_local_checkout_observation"]["head_sha"],
-        "d7c03139d0131157f1bd40eaf379d46c2e3814f8"
+        "9b11039bace9333a40f578c71e2e997e1182e415"
     );
     assert!(
-        report.contains("termrock-implementation at `d7c03139d0131157f1bd40eaf379d46c2e3814f8`")
+        report.contains("termrock-implementation at `9b11039bace9333a40f578c71e2e997e1182e415`")
             && report.contains("| Local publication | Published.")
             && facts["local_checkout_history"]
                 .as_array()
@@ -3787,7 +3805,7 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
             .as_array()
             .unwrap()
             .len(),
-        6
+        7
     );
 
     fixture.write_facts(&original.to_string());
@@ -3800,7 +3818,7 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     assert!(report.contains("2ae351dd27f0ee7d7d52ff6093208b0a57f62698"));
     assert_eq!(
         original["latest_source_observation"]["candidate_remote"]["head_sha"],
-        "d7c03139d0131157f1bd40eaf379d46c2e3814f8"
+        "9b11039bace9333a40f578c71e2e997e1182e415"
     );
     assert_eq!(
         original["latest_source_observation"]["reference_remote"]["head_sha"],
@@ -3871,7 +3889,7 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     );
     assert_eq!(
         original["latest_source_observation"]["candidate_remote"]["head_sha"],
-        "d7c03139d0131157f1bd40eaf379d46c2e3814f8"
+        "9b11039bace9333a40f578c71e2e997e1182e415"
     );
     assert_eq!(
         original["latest_source_observation"]["reference_remote"]["head_sha"],
@@ -3879,7 +3897,7 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     );
     assert!(report.contains("d7c03139d0131157f1bd40eaf379d46c2e3814f8"));
     assert!(report.contains("2ae351dd27f0ee7d7d52ff6093208b0a57f62698"));
-    assert!(report.contains("| Remote branch tips observed at | 2026-10-10T22:26:30Z |",));
+    assert!(report.contains("| Remote branch tips observed at | 2026-10-11T03:58:22Z |",));
 
     // This checked-in pair uses a branch API observation, so its top-level CI
     // capture is optional. Exercise the explicit-fetch presence rule with a
@@ -4176,13 +4194,13 @@ fn reference_role_cli_renders_reference_presentation() {
     let report = output_text(&output);
     assert!(report.contains("| Local role | Reference (visual-baseline) |"));
     assert!(report.contains(
-        "[CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/d7c03139d0131157f1bd40eaf379d46c2e3814f8/CHECKLIST.md)"
+        "[CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/CHECKLIST.md)"
     ));
     assert!(report.contains(
-        "[checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/d7c03139d0131157f1bd40eaf379d46c2e3814f8/checklist.json)"
+        "[checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/checklist.json)"
     ));
     assert!(report.contains(
-        "[Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/d7c03139d0131157f1bd40eaf379d46c2e3814f8/tools/visibility/README.md)"
+        "[Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/tools/visibility/README.md)"
     ));
     assert!(!report.contains("[CHECKLIST.md](CHECKLIST.md)"));
     assert!(!report.contains("[checklist.json](checklist.json)"));
@@ -4844,7 +4862,7 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
     assert!(
         report.contains("## Current CI and Developer Certificate of Origin (DCO) observations")
     );
-    assert!(report.contains("38090751977"));
+    assert!(report.contains("38108486387"));
     assert!(report.contains("51 jobs; 49 artifacts"));
     assert!(report.contains("failure"));
     assert!(report.contains("37 successful, 13 failed, and 1 skipped"));

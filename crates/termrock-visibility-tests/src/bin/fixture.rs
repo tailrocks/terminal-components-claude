@@ -165,12 +165,12 @@ fn cargo(args: &[String]) -> i32 {
                 Err(message) => return fail(message),
             };
             let result = emit_file(NEXTTEST_RUN_ENV, NEXTTEST_EXIT_ENV, 0);
-            if let Some(signal) = signal {
-                if let Err(error) = terminate_by_signal(signal) {
-                    return fail(format!(
-                        "cannot terminate fixture with signal {signal}: {error}"
-                    ));
-                }
+            if let Some(signal) = signal
+                && let Err(error) = terminate_by_signal(signal)
+            {
+                return fail(format!(
+                    "cannot terminate fixture with signal {signal}: {error}"
+                ));
             }
             result
         }
@@ -470,10 +470,10 @@ fn emit_file(path_env: &str, exit_env: &str, default_exit: i32) -> i32 {
 }
 
 fn emit_env_file<W: Write>(name: &str, mut output: W) {
-    if let Some(path) = env::var_os(name) {
-        if let Err(error) = copy_file(&PathBuf::from(path), &mut output) {
-            eprintln!("cannot emit fixture stderr: {error}");
-        }
+    if let Some(path) = env::var_os(name)
+        && let Err(error) = copy_file(&PathBuf::from(path), &mut output)
+    {
+        eprintln!("cannot emit fixture stderr: {error}");
     }
 }
 

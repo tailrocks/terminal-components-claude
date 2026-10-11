@@ -628,6 +628,7 @@ struct TagSourceSnapshotEvidence {
     materialized_root: String,
     source_commit: String,
     tree_oid: String,
+    #[allow(dead_code)] // Preserves the evidence-declared object-replacement policy.
     git_object_replacement_policy: String,
     recipe: String,
     archive_argv: Vec<String>,
@@ -706,6 +707,7 @@ struct TagMetadataTargetEvidence {
 #[serde(deny_unknown_fields)]
 pub struct TagValidatedEvidenceReference {
     path: PathBuf,
+    #[allow(dead_code)] // Preserves the exact evidence-file identity for diagnostics.
     sha256: String,
 }
 
@@ -792,6 +794,7 @@ struct TagNormalizedExistingBuildIdentityV2 {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)] // Deserialized evidence variants share the bounded capture lifetime.
 enum TagCaptureValidatedIdentity {
     V1(TagValidatedIdentity),
     NormalizedExistingV2(TagNormalizedExistingBuildIdentityV2),
@@ -808,10 +811,10 @@ impl TagCaptureValidatedIdentity {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-struct NormalizedExistingBuildOriginV2 {
-    schema: String,
-    normalization_addendum: EvidenceReference,
-    build_result: EvidenceReference,
+pub struct NormalizedExistingBuildOriginV2 {
+    pub schema: String,
+    pub normalization_addendum: EvidenceReference,
+    pub build_result: EvidenceReference,
 }
 
 #[derive(Clone, Debug)]
@@ -982,6 +985,7 @@ struct LoadedTagBuildEvidence {
     validator_helper: TagValidatedEvidenceReference,
     validator_execution: TagValidatorExecutionEvidence,
     path: PathBuf,
+    #[allow(dead_code)] // Preserves the exact evidence-file identity for diagnostics.
     sha256: String,
     source_snapshot_root: PathBuf,
     build_artifact_root: PathBuf,
@@ -1239,6 +1243,7 @@ struct BuilderRunEvidence {
     toolchain_binaries: BTreeMap<String, ToolchainBinaryEvidence>,
     git_identity: GitIdentityEvidence,
     reference_branch_oid: String,
+    #[allow(dead_code)] // Preserves the evidence-declared object-replacement policy.
     git_object_replacement_policy: String,
     cargo_version: String,
     rustc_version: String,
@@ -2431,7 +2436,7 @@ fn validate_build_evidence_chain(
     build_environment_path: &Path,
     build_environment_sha256: &str,
     builder_run: &BuilderRunEvidence,
-    builder_run_path: &Path,
+    _builder_run_path: &Path,
     builder_run_sha256: &str,
 ) -> Result<(), String> {
     let run_root = manifest_path
@@ -3075,6 +3080,7 @@ fn load_write_policy_input() -> Result<WritePolicyInput, String> {
     })
 }
 
+#[allow(clippy::too_many_arguments)] // Evidence inputs are separately pinned and validated.
 fn resolve_write_policy_with_evidence<S: CaptureSubject>(
     input: WritePolicyInput,
     subjects: &[S],
@@ -3772,6 +3778,7 @@ fn write_policy_digest(policy: &WritePolicyReceipt) -> Result<String, String> {
     Ok(sha256_bytes(&bytes))
 }
 
+#[allow(clippy::too_many_arguments)] // Trust inputs are separately pinned and validated.
 fn load_and_verify_trust_record(
     manifest: &SubjectManifest,
     subjects: &[Subject],
@@ -3805,14 +3812,14 @@ fn load_and_verify_trust_record(
         }
     }
 
-    let bytes = fs::read(&canonical_record_path).map_err(|error| {
+    let bytes = fs::read(canonical_record_path).map_err(|error| {
         format!(
             "read external trust record {}: {error}",
             canonical_record_path.display()
         )
     })?;
     let record_sha256 = sha256_bytes(&bytes);
-    verify_external_record_digest(&expected_record_sha, &record_sha256)?;
+    verify_external_record_digest(expected_record_sha, &record_sha256)?;
     let record: TrustRecord = serde_json::from_slice(&bytes)
         .map_err(|error| format!("parse external trust record: {error}"))?;
     let receipt_sha256 = validate_trust_record(
@@ -3851,6 +3858,7 @@ fn verify_external_record_digest(expected: &str, actual: &str) -> Result<(), Str
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)] // Trust inputs are separately pinned and validated.
 fn validate_trust_record(
     record: &TrustRecord,
     manifest: &SubjectManifest,
@@ -4436,10 +4444,10 @@ pub(crate) fn checkpoint_geometries(case: &Case) -> Result<BTreeMap<String, Geom
     for step in &case.steps {
         match step {
             Step::Resize { cols, rows } => geometry = Geometry { cols: *cols, rows: *rows },
-            Step::Checkpoint { id, .. } => {
-                if checkpoints.insert(id.clone(), geometry.clone()).is_some() {
-                    return Err(format!("case {} has duplicate checkpoint ID {id:?}", case.id));
-                }
+            Step::Checkpoint { id, .. }
+                if checkpoints.insert(id.clone(), geometry.clone()).is_some() =>
+            {
+                return Err(format!("case {} has duplicate checkpoint ID {id:?}", case.id));
             }
             _ => {}
         }
@@ -5267,7 +5275,7 @@ fn validate_tag_validator_identity(
         &identity.source_snapshot.included_path_blob_map_sha256,
     )?;
     if identity.build.target_name != "holla"
-        || identity.build.features.len() != 0
+        || !identity.build.features.is_empty()
         || !identity.build.default_features
         || identity.build.profile != "release"
         || identity.build.toolchain != "1.98.1"
@@ -5705,9 +5713,10 @@ fn load_tag_builder_evidence(
                 sha,
             )
         }
-        (None, None, None, None) => Err(format!(
+        (None, None, None, None) => Err(
             "either the complete v1 builder receipt pair or the complete normalized-build origin pair is required"
-        )),
+                .to_string()
+        ),
         _ => Err(
             "tag capture evidence must select exactly one complete v1 or normalized-build origin pair"
                 .to_string(),
@@ -5956,9 +5965,10 @@ fn load_normalized_existing_build_evidence(
         &serde_json::to_vec(&raw_identity.source_snapshot)
             .map_err(|error| format!("serialize normalized source identity: {error}"))?,
     );
-    let normalized_environment = match &raw_identity {
-        TagNormalizedExistingBuildIdentityV2 { build_environment, .. } => build_environment,
-    };
+    let TagNormalizedExistingBuildIdentityV2 {
+        build_environment: normalized_environment,
+        ..
+    } = &raw_identity;
     let build_environment_bytes = serde_json::to_vec(normalized_environment)
         .map_err(|error| format!("serialize normalized R6 build environment: {error}"))?;
     let build_environment_sha256 = sha256_bytes(&build_environment_bytes);
@@ -8181,7 +8191,7 @@ fn drive_case_subject<S: CaptureSubject>(
         post_run_failure: None,
     };
     let args = make_argv(&executable.path, &case.args);
-    let launch_result = launch(&args, case, &profile, &write_policy.subject_cwd);
+    let launch_result = launch(args.as_slice(), case, profile, &write_policy.subject_cwd);
     let mut session = match launch_result {
         Ok(session) => {
             for checkpoint in checkpoints(case) {
@@ -8467,7 +8477,7 @@ fn drive_case_subject<S: CaptureSubject>(
                             &frame_artifact,
                             &png_artifact,
                             &effective_geometry,
-                            &renderer,
+                            renderer,
                         );
                         let visual_outcome = compare_visual_capture(
                             actual,
@@ -8650,6 +8660,7 @@ fn dispatch_mouse_input(
     }
 }
 
+#[allow(clippy::too_many_arguments)] // Receipt fields are grouped by check dimension.
 fn replace_checkpoint_check(
     checks: &mut [CheckReceipt],
     role: &str,
@@ -8736,7 +8747,7 @@ fn compare_visual_capture(
         generation,
         checkpoint,
         actual,
-        &context.renderer,
+        context.renderer,
         context.trust_record_sha256,
         &admission.admission_receipt_sha256,
     )
@@ -8933,6 +8944,7 @@ fn validate_visual_receipt_contract(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)] // Visual receipt fields are grouped by comparison concern.
 fn validate_visual_comparison_evidence(
     receipt: &RunReceipt,
     case: &Case,
@@ -9468,16 +9480,16 @@ fn evaluate_assertion(
     screen_text: &str,
     passed: &BTreeSet<String>,
 ) -> (&'static str, String, Vec<String>) {
-    if let Some(required) = &assertion.requires {
-        if !passed.contains(required) {
-            return (
-                "BLOCKED",
-                format!(
-                    "negative assertion requires positive precondition {required}, which did not pass"
-                ),
-                Vec::new(),
-            );
-        }
+    if let Some(required) = &assertion.requires
+        && !passed.contains(required)
+    {
+        return (
+            "BLOCKED",
+            format!(
+                "negative assertion requires positive precondition {required}, which did not pass"
+            ),
+            Vec::new(),
+        );
     }
     let matched = match assertion.kind.as_str() {
         "contains" => assertion
@@ -9527,6 +9539,7 @@ fn evaluate_assertion(
     }
 }
 
+#[allow(clippy::too_many_arguments)] // Receipt fields are grouped by check dimension.
 fn append_not_run_checkpoint(
     checks: &mut Vec<CheckReceipt>,
     role: &str,
@@ -9635,6 +9648,7 @@ fn append_readiness_failure(
     append_non_execution_dimensions(checks, role, case_id, checkpoint);
 }
 
+#[allow(clippy::too_many_arguments)] // Receipt fields are grouped by check dimension.
 fn push_check(
     checks: &mut Vec<CheckReceipt>,
     role: &str,
@@ -10123,7 +10137,7 @@ fn create_capture_stage(parent: &Path, canonical_path: &str) -> Result<PathBuf, 
         let stage = parent.join(format!(
             ".capture-stage-{}-{suffix}-{}",
             std::process::id(),
-            sha256_bytes(canonical_path.as_bytes())[..12].to_string()
+            &sha256_bytes(canonical_path.as_bytes())[..12]
         ));
         match fs::create_dir(&stage) {
             Ok(()) => return Ok(stage),
@@ -10152,7 +10166,7 @@ fn quarantine_capture_stage(
         let quarantine = parent.join(format!(
             ".capture-quarantine-{}-{suffix}-{}",
             std::process::id(),
-            sha256_bytes(canonical_path.as_bytes())[..12].to_string()
+            &sha256_bytes(canonical_path.as_bytes())[..12]
         ));
         match fs::rename(stage_dir, &quarantine) {
             Ok(()) => return Ok(quarantine),
@@ -10282,6 +10296,20 @@ fn stage_receipt_bytes(parent: &Path, bytes: &[u8]) -> Result<PathBuf, String> {
         "could not allocate unique staged receipt under {}",
         parent.display()
     ))
+}
+
+pub fn status_is_blocking(status: &str) -> bool {
+    matches!(
+        status,
+        "FAIL" | "ERROR" | "BLOCKED" | "NOT_RUN" | "STALE"
+    )
+}
+
+pub fn receipt_has_blocking_result(receipt: &RunReceipt) -> bool {
+    receipt
+        .checks
+        .iter()
+        .any(|check| status_is_blocking(&check.status))
 }
 
 #[cfg(test)]
@@ -10484,7 +10512,7 @@ mod tests {
             "-c".to_string(),
             "pwd; /usr/bin/env".to_string(),
         ];
-        let mut session =
+        let session =
             launch(&argv, &case, &profile, &cwd).expect("spawn environment probe PTY");
         let observation = session
             .wait_predicate_timeout(
@@ -11690,7 +11718,7 @@ mod tests {
             .contains("do not bind the manifest sidecars")
         );
 
-        drop(validate);
+        let _ = validate;
         fs::remove_dir_all(fixture.run_root).expect("remove build evidence fixture");
     }
 
@@ -12810,7 +12838,7 @@ mod tests {
 
         let fixture = test_write_policy_fixture("policy-preflight-no-write");
         let redirect = fixture.base.join("redirect");
-        symlink(&fixture.base.join("oracle"), &redirect).expect("create protected redirect");
+        symlink(fixture.base.join("oracle"), &redirect).expect("create protected redirect");
         let mut invalid = fixture.input.clone();
         invalid.write_root = redirect;
         invalid.receipt_path = invalid.write_root.join("run.json");
@@ -13704,7 +13732,7 @@ mod tests {
         let artifact_root = run_root.join("targets/oracle");
         let target = "aarch64-apple-darwin";
         let repeated =
-            |ch: char, count: usize| std::iter::repeat(ch).take(count).collect::<String>();
+            |ch: char, count: usize| std::iter::repeat_n(ch, count).collect::<String>();
         serde_json::from_value(serde_json::json!({
             "schema": TAG_VALIDATED_IDENTITY_SCHEMA,
             "receipt": {
@@ -14534,18 +14562,4 @@ mod tests {
         visit(root, root, &mut entries);
         entries
     }
-}
-
-pub fn status_is_blocking(status: &str) -> bool {
-    matches!(
-        status,
-        "FAIL" | "ERROR" | "BLOCKED" | "NOT_RUN" | "STALE"
-    )
-}
-
-pub fn receipt_has_blocking_result(receipt: &RunReceipt) -> bool {
-    receipt
-        .checks
-        .iter()
-        .any(|check| status_is_blocking(&check.status))
 }

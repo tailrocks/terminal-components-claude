@@ -6,7 +6,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
-use std::fs::{self, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
@@ -424,7 +424,7 @@ fn parse_selection(bytes: &[u8]) -> Result<Selection, ReaderError> {
         }
         ProtocolVersion::V2 => {
             let expected = parse_expected_test_count(object, "selection")?;
-            if usize::try_from(expected).ok() != Some(test_values.len()) {
+            if expected != test_values.len() {
                 return Err(ReaderError(format!(
                     "selection expected_test_count {expected} does not match {} test identities",
                     test_values.len()
@@ -1010,13 +1010,13 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
                     expected.identity.event_name()
                 ))
             })?;
-            if let Some(case_kind) = testcase.get("kind") {
-                if case_kind.as_str() != Some("test") {
-                    return Err(ReaderError(format!(
-                        "list testcase kind mismatch for {}",
-                        expected.identity.event_name()
-                    )));
-                }
+            if let Some(case_kind) = testcase.get("kind")
+                && case_kind.as_str() != Some("test")
+            {
+                return Err(ReaderError(format!(
+                    "list testcase kind mismatch for {}",
+                    expected.identity.event_name()
+                )));
             }
             let ignored = bool_field(testcase, "ignored", "list testcase")?
                 .ok_or_else(|| ReaderError("list testcase ignored must be boolean".into()))?;
@@ -1044,10 +1044,10 @@ fn validate_list_value(value: &Value, selection: &Selection) -> Result<ListResul
                 let testcase = testcase
                     .as_object()
                     .ok_or_else(|| ReaderError(format!("{context} must be an object")))?;
-                if let Some(case_kind) = testcase.get("kind") {
-                    if case_kind.as_str() != Some("test") {
-                        return Err(ReaderError(format!("{context} kind must be test")));
-                    }
+                if let Some(case_kind) = testcase.get("kind")
+                    && case_kind.as_str() != Some("test")
+                {
+                    return Err(ReaderError(format!("{context} kind must be test")));
                 }
                 let ignored = bool_field(testcase, "ignored", &context)?
                     .ok_or_else(|| ReaderError(format!("{context}.ignored must be boolean")))?;
@@ -1953,33 +1953,33 @@ fn compare_human_summaries(result: &mut RunResult) {
         .iter()
         .filter(|summary| !summary.child_harness)
     {
-        if let (Some(observed), Some(expected)) = (summary.run_count, expected_run_count) {
-            if observed != expected {
-                result.contradictions.push(format!(
-                    "Nextest human run count {observed} contradicts structured test count {expected}"
-                ));
-            }
+        if let (Some(observed), Some(expected)) = (summary.run_count, expected_run_count)
+            && observed != expected
+        {
+            result.contradictions.push(format!(
+                "Nextest human run count {observed} contradicts structured test count {expected}"
+            ));
         }
-        if let (Some(observed), Some(expected)) = (summary.passed, expected_passed) {
-            if observed != expected {
-                result.contradictions.push(format!(
-                    "Nextest human passed count {observed} contradicts structured passed count {expected}"
-                ));
-            }
+        if let (Some(observed), Some(expected)) = (summary.passed, expected_passed)
+            && observed != expected
+        {
+            result.contradictions.push(format!(
+                "Nextest human passed count {observed} contradicts structured passed count {expected}"
+            ));
         }
-        if let (Some(observed), Some(expected)) = (summary.failed, expected_failed) {
-            if observed != expected {
-                result.contradictions.push(format!(
-                    "Nextest human failed count {observed} contradicts structured failed count {expected}"
-                ));
-            }
+        if let (Some(observed), Some(expected)) = (summary.failed, expected_failed)
+            && observed != expected
+        {
+            result.contradictions.push(format!(
+                "Nextest human failed count {observed} contradicts structured failed count {expected}"
+            ));
         }
-        if let (Some(observed), Some(expected)) = (summary.skipped, expected_skipped) {
-            if observed != expected {
-                result.contradictions.push(format!(
-                    "Nextest human skipped count {observed} contradicts structured filtered_out count {expected}"
-                ));
-            }
+        if let (Some(observed), Some(expected)) = (summary.skipped, expected_skipped)
+            && observed != expected
+        {
+            result.contradictions.push(format!(
+                "Nextest human skipped count {observed} contradicts structured filtered_out count {expected}"
+            ));
         }
     }
 
@@ -2371,6 +2371,7 @@ fn validate_sha256(value: &str, context: &str) -> Result<(), ReaderError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     fn fixture_selection_json() -> Value {
         let tests = (0..EXPECTED_SELECTED_TESTS)

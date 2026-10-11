@@ -1012,15 +1012,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
             body.x = body.x.saturating_add(3);
             body.width = body.width.saturating_sub(3);
         }
-        // The trailing word is the caller's meta, else the lifecycle word
-        // only for the resting states; a running, done or failed row without
-        // an explicit meta shows none. It renders only when the label keeps
-        // twelve cells past it, right-aligned with a two-cell gap and one
-        // trailing blank.
-        let state_text = self.meta.and_then(|f| f(item)).or_else(|| match step {
-            StepState::Queued | StepState::Skipped | StepState::Blocked => Some(step.label()),
-            StepState::Running | StepState::Done | StepState::Failed => None,
-        });
+        // The trailing word is the caller's meta, else this row's lifecycle
+        // word. It renders only when the label keeps twelve cells past it,
+        // right-aligned with a two-cell gap and one trailing blank.
+        let state_text = self.meta.and_then(|f| f(item)).or(Some(step.label()));
         let right = body.right();
         let avail = right.saturating_sub(body.x.saturating_add(1));
         let meta_width = state_text.map_or(0, crate::text::width);
@@ -1266,8 +1261,8 @@ mod tests {
     /// symbol-carrying affordances are the `Part::ICON` glyph and the
     /// `Part::META` state word; `Queued` and `Skipped` share a blank glyph,
     /// so the word is the only thing separating them and it must be painted.
-    /// The in-flight and finished states (`Running`, `Done`, `Failed`) carry
-    /// distinct icon glyphs instead and show no word without a caller meta.
+    /// Every state carries its word as well, so no state depends on colour
+    /// or a caller-supplied meta for identification.
     #[test]
     fn every_lifecycle_state_paints_a_symbol_that_separates_it() {
         let items = [
@@ -1282,21 +1277,11 @@ mod tests {
         let (rows, _) = render(&rail, &items, 6);
         assert_eq!(rows.len(), 6);
         for (i, (step, row)) in items.iter().zip(rows.iter()).enumerate() {
-            match step.1 {
-                StepState::Queued | StepState::Skipped | StepState::Blocked => {
-                    let want = step.1.label();
-                    assert!(
-                        row.contains(want),
-                        "row {i} does not carry its state word {want:?}: {row:?}"
-                    );
-                }
-                StepState::Running | StepState::Done | StepState::Failed => {
-                    assert!(
-                        !row.contains(step.1.label()),
-                        "row {i} must not carry a state word without a caller meta: {row:?}"
-                    );
-                }
-            }
+            let want = step.1.label();
+            assert!(
+                row.contains(want),
+                "row {i} does not carry its state word {want:?}: {row:?}"
+            );
         }
         // pairwise: no two rows are the same run of symbols
         for (i, a) in rows.iter().enumerate() {

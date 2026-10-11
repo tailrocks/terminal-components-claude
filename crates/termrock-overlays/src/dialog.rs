@@ -747,6 +747,17 @@ impl<'a> Dialog<'a> {
         }
         let is_ack = self.ack.is_some();
         st.set_secret_mode(is_ack && self.ack_secret);
+        // An idle acknowledgement Enter changes edit phase; it is not an
+        // action activation and must not trigger the runtime's keyboard
+        // press-flash on the newly focused field.
+        let idle_enter = is_ack
+            && self.idle_ack
+            && !st.input.is_editing()
+            && cx.intents(self.input_id()).any(|intent| match intent {
+                Intent::Key(key) => key.code == KeyCode::Enter,
+                Intent::Binding(action) => action == ActionKey::custom("Commit"),
+                _ => false,
+            });
         if self.has_input() {
             // The idle gate's bare-char pre-begin: the plain drive drops
             // typing while idle, so a focused idle field begins first and
@@ -777,7 +788,11 @@ impl<'a> Dialog<'a> {
             };
             let committed = matches!(r.action_ref(), Some(TextAction::Committed));
             let input_acted = r.action_ref().is_some();
-            acc.fold(&r.erase());
+            if idle_enter && r.action_ref().is_none() {
+                acc.fold(&Response::<()>::ignored().repaint());
+            } else {
+                acc.fold(&r.erase());
+            }
             if committed && self.prompt.is_some() {
                 // Enter in a prompt submits; in an acknowledgement it only arms
                 if let Some(i) = self.primary_index(st)
@@ -1406,6 +1421,98 @@ mod tests {
             code: KeyCode::Esc,
             mods: KeyModifiers::NONE,
         })
+    }
+
+    struct FeedbackApp {
+        st: DialogState,
+        opened: bool,
+        make: fn() -> Dialog<'static>,
+        chosen: Option<ActionKey>,
+    }
+
+    impl App for FeedbackApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if !self.opened {
+                self.opened = true;
+                cx.open_layer(DLG, (self.make)().layer(cx));
+            }
+            let r = (self.make)().update(cx, &mut self.st);
+            if let Some(DialogAction::Action(key)) = r.action_ref() {
+                self.chosen = Some(*key);
+            }
+            r.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.layer(DLG, |ui, area| {
+                (self.make)().draw(ui, area, &self.st, |_, _| {});
+            });
+        }
+    }
+
+    fn presented_feedback_runtime(make: fn() -> Dialog<'static>) -> Runtime<FeedbackApp> {
+        let mut rt = Runtime::new(
+            FeedbackApp {
+                st: DialogState::default(),
+                opened: false,
+                make,
+                chosen: None,
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        rt
+    }
+
+    fn key(code: KeyCode) -> Input {
+        Input::Key(Key {
+            code,
+            mods: KeyModifiers::NONE,
+        })
+    }
+
+    /// Idle acknowledgement Enter starts the edit; it is an edit-phase
+    /// command, not a control activation, so the focused field must not
+    /// receive the runtime's generic keyboard press-flash.
+    #[test]
+    fn idle_acknowledgement_enter_does_not_request_activation_feedback() {
+        let dialog = || acknowledge().idle_ack(true);
+        let input_id = dialog().input_id();
+        let mut rt = presented_feedback_runtime(dialog);
+        assert!(rt.activation_feedback().is_none());
+
+        let _ = crate::runtime::stub::deliver(&mut rt, key(KeyCode::Enter));
+        assert_eq!(rt.app().chosen, None);
+        let feedback = rt.activation_feedback();
+        assert!(
+            feedback.is_none(),
+            "idle acknowledgement Enter invented keyboard activation feedback: {feedback:?}"
+        );
+
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert!(
+            rt.state_of(input_id).contains(StateFlags::EDITING),
+            "idle Enter did not begin the acknowledgement edit"
+        );
+    }
+
+    #[test]
+    fn ordinary_dialog_activation_still_has_feedback() {
+        let dialog = || confirm();
+        let mut rt = presented_feedback_runtime(dialog);
+        let action_id = dialog().action_id(1);
+        assert!(rt.activation_feedback().is_none());
+
+        let _ = crate::runtime::stub::deliver(&mut rt, key(KeyCode::Enter));
+        assert_eq!(rt.app().chosen, Some(ActionKey::CONFIRM));
+        let feedback = rt.activation_feedback().expect("activation feedback");
+        assert_eq!(feedback.owner, action_id);
+        assert_eq!(feedback.part, PartRef::of(Part::CONTAINER));
     }
 
     /// A headless runtime whose `App` draws nothing, for `draw_scene`.

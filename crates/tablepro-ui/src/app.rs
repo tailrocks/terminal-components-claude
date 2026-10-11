@@ -3157,12 +3157,14 @@ impl TableProApp {
                     }
 
                     if history.search_state.is_editing()
-                        && cx.intents(search_id).any(|it| match it {
-                            Intent::Key(termrock::Key {
-                                code: KeyCode::Down,
-                                ..
-                            }) => true,
-                            _ => false,
+                        && cx.intents(search_id).any(|it| {
+                            matches!(
+                                it,
+                                Intent::Key(termrock::Key {
+                                    code: KeyCode::Down,
+                                    ..
+                                })
+                            )
                         })
                     {
                         let _ = history
@@ -3174,8 +3176,8 @@ impl TableProApp {
                     }
 
                     for it in cx.intents(list_id) {
-                        match it {
-                            Intent::Key(k) => match k.code {
+                        if let Intent::Key(k) = it {
+                            match k.code {
                                 KeyCode::Char('/') => {
                                     history.search_state.begin(&history.search);
                                     self.workbench_focus = search_id;
@@ -3250,33 +3252,30 @@ impl TableProApp {
                                         response |= Response::changed();
                                     }
                                 }
-                                KeyCode::PageUp => {
-                                    if !history.entries.is_empty() {
-                                        history.selected = history.selected.saturating_sub(10);
-                                        history.scroll_state.ensure_visible(history.selected);
-                                        history.sync_detail();
-                                        response |= Response::changed();
-                                    }
+                                KeyCode::PageUp if !history.entries.is_empty() => {
+                                    history.selected = history.selected.saturating_sub(10);
+                                    history.scroll_state.ensure_visible(history.selected);
+                                    history.sync_detail();
+                                    response |= Response::changed();
                                 }
                                 _ => {}
-                            },
-                            _ => {}
+                            }
                         }
                     }
 
                     let open_resp = Button::new(open_id, "Open in new tab").update(cx);
-                    if open_resp.activated() {
-                        if let Some(e) = history.current_entry() {
-                            open_query = Some((e.sql.clone(), false));
-                            response |= Response::changed();
-                        }
+                    if open_resp.activated()
+                        && let Some(e) = history.current_entry()
+                    {
+                        open_query = Some((e.sql.clone(), false));
+                        response |= Response::changed();
                     }
                     let rerun_resp = Button::new(rerun_id, "Run in new tab").update(cx);
-                    if rerun_resp.activated() {
-                        if let Some(e) = history.current_entry() {
-                            open_query = Some((e.sql.clone(), true));
-                            response |= Response::changed();
-                        }
+                    if rerun_resp.activated()
+                        && let Some(e) = history.current_entry()
+                    {
+                        open_query = Some((e.sql.clone(), true));
+                        response |= Response::changed();
                     }
                     let copy_resp = Button::new(copy_id, "Copy").update(cx);
                     if copy_resp.activated() {
@@ -6356,7 +6355,7 @@ impl TableProApp {
                             let widths = [17, 16, 6];
                             let btn_area = termrock::Rect::new(inner.x, ay, inner.width, 1);
                             let rects = Self::row_layout(btn_area, &widths, 2);
-                            if let Some(&rect) = rects.get(0) {
+                            if let Some(&rect) = rects.first() {
                                 Button::new(open_id, "Open in new tab")
                                     .variant(Variant::PRIMARY)
                                     .draw(ui, rect);

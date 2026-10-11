@@ -1479,16 +1479,7 @@ impl AccountsScreen {
                 area.width,
                 area.height.saturating_sub(summary_h + 1),
             );
-            Self::draw_tree(
-                ui,
-                tree_area,
-                state,
-                world,
-                focused && !drawer,
-                &rows,
-                &palette,
-                dim,
-            );
+            Self::draw_tree(ui, tree_area, state, world, focused && !drawer, &rows, dim);
             if drawer {
                 Self::draw_inspector(ui, area, state, world, focused, true, &palette);
                 // The drawer covers the tree after its scroll edge has
@@ -1554,7 +1545,6 @@ impl AccountsScreen {
                 world,
                 focused && !state.drawer_open,
                 &rows,
-                &palette,
                 dim,
             );
             Self::draw_inspector(
@@ -1732,7 +1722,6 @@ impl AccountsScreen {
         world: &World,
         focused: bool,
         rows: &[AccountRow],
-        _palette: &AccountsPalette,
         dim: bool,
     ) {
         let summary = OverallSummary::compute(&world.accounts.accounts);

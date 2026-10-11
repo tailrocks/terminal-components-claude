@@ -366,6 +366,7 @@ pub(crate) fn load_expected_generation(
     })
 }
 
+#[allow(clippy::too_many_arguments)] // Manifest constraints are individually sourced and verified.
 fn validate_generation_manifest(
     manifest: &ExpectedGenerationManifest,
     expected: &ExpectedGenerationInput,
@@ -520,9 +521,12 @@ fn validate_generation_manifest(
     Ok(())
 }
 
+type GenerationTreeFiles = BTreeMap<String, Vec<u8>>;
+type GenerationTreeDirectories = BTreeSet<String>;
+
 fn read_exact_generation_tree(
     root: &Path,
-) -> Result<(BTreeMap<String, Vec<u8>>, BTreeSet<String>), String> {
+) -> Result<(GenerationTreeFiles, GenerationTreeDirectories), String> {
     let mut files = BTreeMap::new();
     let mut directories = BTreeSet::new();
     walk_generation_tree(root, root, &mut files, &mut directories)?;
@@ -1301,7 +1305,9 @@ mod tests {
 
     fn bytes_from_hex(hex: &str) -> Vec<u8> {
         hex.as_bytes()
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|pair| {
                 let digit = |byte| match byte {
                     b'0'..=b'9' => byte - b'0',

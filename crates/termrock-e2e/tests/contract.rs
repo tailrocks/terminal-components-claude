@@ -87,13 +87,12 @@ fn registry_contains_four_seed_cases_and_holla_checkpointed_preconditions() {
 
     let mut non_positive_prerequisite = case.clone();
     for step in &mut non_positive_prerequisite.steps {
-        if let termrock_e2e::Step::Checkpoint { assertions, .. } = step {
-            if let Some(assertion) = assertions
+        if let termrock_e2e::Step::Checkpoint { assertions, .. } = step
+            && let Some(assertion) = assertions
                 .iter_mut()
                 .find(|assertion| assertion.id == "finder.quit_row_absent")
-            {
-                assertion.requires = Some("help.finder_footer_absent".to_string());
-            }
+        {
+            assertion.requires = Some("help.finder_footer_absent".to_string());
         }
     }
     assert!(termrock_e2e::validate_case_contract(&non_positive_prerequisite).is_err());
@@ -565,13 +564,12 @@ fn jackin_save_preview_registry_preserves_reopen_and_second_cancel() {
 
     let mut missing_positive_precondition = (*case).clone();
     for step in &mut missing_positive_precondition.steps {
-        if let termrock_e2e::Step::Checkpoint { assertions, .. } = step {
-            if let Some(assertion) = assertions
+        if let termrock_e2e::Step::Checkpoint { assertions, .. } = step
+            && let Some(assertion) = assertions
                 .iter_mut()
                 .find(|assertion| assertion.id == "cancel_again.diff_absent")
-            {
-                assertion.requires = Some("missing.positive".to_string());
-            }
+        {
+            assertion.requires = Some("missing.positive".to_string());
         }
     }
     assert!(termrock_e2e::validate_case_contract(&missing_positive_precondition).is_err());
@@ -1747,7 +1745,7 @@ fn immutable_tag_capture_receipt_schema_is_separate_and_closed() {
         assert!(required.iter().any(|value| value.as_str() == Some(field)));
         assert!(validator_execution["properties"].get(field).is_some());
     }
-    assert!(validator.is_valid(&serde_json::json!({})) == false);
+    assert!(!validator.is_valid(&serde_json::json!({})));
 }
 
 #[test]

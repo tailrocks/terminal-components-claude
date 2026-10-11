@@ -344,7 +344,11 @@ fn manager_tree_key(row: &ManagerRow) -> ItemKey {
 }
 
 fn manager_tree_icon(row: &ManagerRow) -> Option<(&'static str, StylePatch)> {
-    if row.glyph == " " {
+    // A primary blank stays the row fill. A toned blank, including the
+    // secondary space of a workspace with no children, is still the glyph
+    // cell: the tag paints it in `glyph_tone`, and the row fill would dim
+    // one step brighter.
+    if row.glyph == " " && matches!(row.glyph_tone, Role::Fg(FgStep::Primary)) {
         return None;
     }
     let mut patch = StylePatch::new().set_fg(row.glyph_tone);

@@ -91,9 +91,13 @@ fn tls_material(server_names: &[&str]) -> TlsMaterial {
         .expect("test CA can be self-signed");
     let issuer = Issuer::new(root_params, root_key);
 
-    let mut leaf_params =
-        CertificateParams::new(server_names.iter().map(|name| (*name).to_owned()).collect::<Vec<_>>())
-            .expect("static server names are valid");
+    let mut leaf_params = CertificateParams::new(
+        server_names
+            .iter()
+            .map(|name| (*name).to_owned())
+            .collect::<Vec<_>>(),
+    )
+    .expect("static server names are valid");
     leaf_params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
     leaf_params.extended_key_usages = vec![ExtendedKeyUsagePurpose::ServerAuth];
     let leaf_key = KeyPair::generate().expect("Ring generates a test server key");
@@ -1136,4 +1140,3 @@ fn set_nested(value: &mut Value, dotted: &str, replacement: Value) {
         current = &mut current[part];
     }
 }
-

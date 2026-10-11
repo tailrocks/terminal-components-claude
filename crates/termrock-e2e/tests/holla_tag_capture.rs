@@ -322,12 +322,12 @@ fn validates_r6_normalized_preflight_and_rejects_mutated_origin_inputs_without_l
     );
 
     assert_eq!(
-        format!("{:x}", Sha256::digest(&fs::read(&addendum_path).expect("re-read original addendum"))),
+        format!("{:x}", Sha256::digest(fs::read(&addendum_path).expect("re-read original addendum"))),
         EXPECTED_ADDENDUM_SHA,
         "preflight tests never mutate the original R6 addendum"
     );
     assert_eq!(
-        format!("{:x}", Sha256::digest(&fs::read(&original_result_path).expect("re-read original result"))),
+        format!("{:x}", Sha256::digest(fs::read(&original_result_path).expect("re-read original result"))),
         "3cce15319b9abea255d34a8984d7a4f900e6a9a029b9f2bc61055e7429852b82",
         "preflight tests never mutate the original R6 result"
     );

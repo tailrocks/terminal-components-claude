@@ -900,7 +900,7 @@ fn path_blob_map_sha256(mut paths: Vec<(Vec<u8>, Vec<u8>)>) -> String {
         digest.update(path);
         digest.update([0]);
         digest.update(object_id);
-        digest.update([b'\n']);
+        digest.update(*b"\n");
     }
     digest
         .finalize()
@@ -909,7 +909,9 @@ fn path_blob_map_sha256(mut paths: Vec<(Vec<u8>, Vec<u8>)>) -> String {
         .collect()
 }
 
-fn split_tree_blob_maps(tree_listing: &[u8]) -> (Vec<(Vec<u8>, Vec<u8>)>, Vec<(Vec<u8>, Vec<u8>)>) {
+type BlobPairs = Vec<(Vec<u8>, Vec<u8>)>;
+
+fn split_tree_blob_maps(tree_listing: &[u8]) -> (BlobPairs, BlobPairs) {
     let mut included = Vec::new();
     let mut excluded = Vec::new();
     for record in tree_listing
@@ -5290,14 +5292,11 @@ fn supervises_real_frozen_tag_holla_build() {
     );
     assert_eq!(receipt["build_result"], "PASS");
     assert_eq!(receipt["qualification"]["status"], "blocked");
-    assert!(
-        receipt["qualification"]["reason"]
-            .as_str()
-            .unwrap()
-            .trim()
-            .len()
-            > 0
-    );
+    assert!(!receipt["qualification"]["reason"]
+        .as_str()
+        .unwrap()
+        .trim()
+        .is_empty());
     assert_eq!(receipt["capture_status"], "NOT_RUN");
     assert_eq!(receipt["admission_status"], "NOT_RUN");
     assert_eq!(

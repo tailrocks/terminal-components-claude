@@ -1034,45 +1034,45 @@ fn validate_source_inventory(
                 format!("file/directory type differs for {relative}"),
             ));
         }
-        if let Some(bytes) = expected_node.bytes {
-            if actual_node.bytes != bytes {
-                return Err(AuditFailure::new(
-                    "source_inventory",
-                    format!("size differs for {relative}"),
-                ));
-            }
+        if let Some(bytes) = expected_node.bytes
+            && actual_node.bytes != bytes
+        {
+            return Err(AuditFailure::new(
+                "source_inventory",
+                format!("size differs for {relative}"),
+            ));
         }
-        if let Some(sha256) = &expected_node.sha256 {
-            if actual_node.sha256.as_ref() != Some(sha256) {
-                return Err(AuditFailure::new(
-                    "source_inventory",
-                    format!("R11 warm-file digest differs for {relative}"),
-                ));
-            }
+        if let Some(sha256) = &expected_node.sha256
+            && actual_node.sha256.as_ref() != Some(sha256)
+        {
+            return Err(AuditFailure::new(
+                "source_inventory",
+                format!("R11 warm-file digest differs for {relative}"),
+            ));
         }
-        if let Some(mode) = expected_node.mode {
-            if actual_node.mode != mode {
-                return Err(AuditFailure::new(
-                    "source_inventory",
-                    format!("mode differs for {relative}"),
-                ));
-            }
+        if let Some(mode) = expected_node.mode
+            && actual_node.mode != mode
+        {
+            return Err(AuditFailure::new(
+                "source_inventory",
+                format!("mode differs for {relative}"),
+            ));
         }
-        if let Some(dev) = &expected_node.dev {
-            if &actual_node.dev != dev {
-                return Err(AuditFailure::new(
-                    "source_inventory",
-                    format!("device differs for {relative}"),
-                ));
-            }
+        if let Some(dev) = &expected_node.dev
+            && &actual_node.dev != dev
+        {
+            return Err(AuditFailure::new(
+                "source_inventory",
+                format!("device differs for {relative}"),
+            ));
         }
-        if let Some(ino) = &expected_node.ino {
-            if &actual_node.ino != ino {
-                return Err(AuditFailure::new(
-                    "source_inventory",
-                    format!("inode differs for {relative}"),
-                ));
-            }
+        if let Some(ino) = &expected_node.ino
+            && &actual_node.ino != ino
+        {
+            return Err(AuditFailure::new(
+                "source_inventory",
+                format!("inode differs for {relative}"),
+            ));
         }
     }
     if actual.keys().any(|path| !expected.contains_key(path)) {

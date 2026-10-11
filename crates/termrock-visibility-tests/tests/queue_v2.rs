@@ -1898,7 +1898,7 @@ impl RegistryCheckV2Fixture {
             compare_path(&label, "gitdir", &format!("{role} membership record"));
         }
 
-        fn ref_entries<'a>(snapshot: &'a [SnapshotEntry]) -> Vec<&'a SnapshotEntry> {
+        fn ref_entries(snapshot: &[SnapshotEntry]) -> Vec<&SnapshotEntry> {
             snapshot
                 .iter()
                 .filter(|entry| {
@@ -4404,7 +4404,7 @@ impl BranchScopeFixture {
                     .expect("claim token")
                     .to_owned(),
                 "--record".to_owned(),
-                path_text(&record_path),
+                path_text(record_path),
             ],
             environment,
         )

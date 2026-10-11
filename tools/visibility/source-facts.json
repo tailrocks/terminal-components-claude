@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "repository": "tailrocks/terminal-components-claude",
-  "observed_at": "2026-10-10T22:54:12Z",
+  "observed_at": "2026-10-11T03:58:22Z",
   "latest_source_observation": {
-    "observed_at": "2026-10-10T22:26:30Z",
+    "observed_at": "2026-10-11T03:58:22Z",
     "method": "read-only GitHub branch API observation",
     "candidate_remote": {
       "branch": "termrock-implementation",
-      "head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
-      "commit_committer_at": "2026-10-10T22:15:34Z"
+      "head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
+      "commit_committer_at": "2026-10-11T03:28:12Z"
     },
     "reference_remote": {
       "branch": "visual-baseline",
@@ -26,38 +26,39 @@
       "candidate_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/termrock-implementation",
       "reference_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/visual-baseline",
       "raw_response_files_preserved": false,
-      "ephemeral_branch_api_sha256": "ed0f9778423f48e7f2b6294d61a87f1b7a208e42a582a877b2149fdb5d4351e3",
+      "ephemeral_candidate_response_sha256": "6da479c0c72426d3711e57144dda62e4c17c21ed9fe6522b10242aafe3dda95c",
+      "ephemeral_reference_response_sha256": "63deb45e5004289705522b2bbeffa46ed21430b749bab710b8e91b57747bb862",
       "observation_scope": "These branch heads were observed at the timestamp above; this record makes no claim about later remote updates."
     }
   },
   "latest_local_checkout_observation": {
-    "observed_at": "2026-10-10T22:26:30Z",
+    "observed_at": "2026-10-11T03:58:22Z",
     "branch": "termrock-implementation",
-    "head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
-    "tree_sha": "ddfdc4140ef636ceddfddf5fffa4aa972e1ebec3",
+    "head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
+    "tree_sha": "4ddcdf65731815cc69b652019c4a90c8b1ad23f5",
     "signature_status": "N",
     "signature_command": "git show -s --format='%G?' HEAD",
     "publication_status": "published",
     "qualification": "Local HEAD and tree were read from the existing checkout; the working tree is dirty, so this is a commit identity observation and does not qualify dirty product files."
   },
   "latest_local_dco_trailer_observation": {
-    "observed_at": "2026-10-10T22:26:30Z",
-    "commit_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+    "observed_at": "2026-10-11T03:58:22Z",
+    "commit_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
     "expected_trailer": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
     "trailer_present": true,
     "parsed_trailers": [
       "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>"
     ],
-    "message_subject": "docs(visibility): authorize current reference suite tip",
+    "message_subject": "docs(visibility): authorize uncovered CI repair paths",
     "inspection_command": "git show -s --format=%B HEAD | git interpret-trailers --parse",
-    "qualification": "The exact required DCO trailer is present in the observed local commit message. Git signature status N and dirty files are separate observations."
+    "qualification": "The exact DCO trailer is present in the observed local commit message. Git signature status N records no cryptographic signature and is separate from DCO."
   },
   "candidate": {
     "branch": "termrock-implementation",
-    "head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
-    "local_head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
-    "remote_head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
-    "remote_commit_committer_at": "2026-10-10T22:15:34Z",
+    "head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
+    "local_head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
+    "remote_head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
+    "remote_commit_committer_at": "2026-10-11T03:28:12Z",
     "remote_updated_at": null
   },
   "reference": {
@@ -83,51 +84,51 @@
     "scope": "Release metadata only; tag ref and peeled commit are recorded above. The repository contract forbids changing either."
   },
   "ci_observation": {
-    "run_id": "38090751977",
+    "run_id": "38108486387",
     "workflow": ".github/workflows/ci.yml",
-    "created_at": "2026-10-10T22:15:42Z",
-    "head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+    "created_at": "2026-10-11T03:28:22Z",
+    "head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
     "status": "completed",
     "conclusion": "failure",
-    "run_number": 917,
+    "run_number": 919,
     "run_attempt": 1,
     "job_count": 51,
     "artifact_count": 49,
-    "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977",
+    "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387",
     "failure_reason": null
   },
   "dco_observation": {
-    "check_run_id": "114326526502",
+    "check_run_id": "114378959885",
     "name": "DCO",
     "status": "completed",
     "conclusion": "success",
-    "head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+    "head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
     "affected_commit_count": 0,
     "annotations_count": 0,
-    "details_url": "https://github.com/tailrocks/terminal-components-claude/runs/114326526502"
+    "details_url": "https://github.com/tailrocks/terminal-components-claude/runs/114378959885"
   },
   "current_ci_observation": {
     "api_capture": {
-      "captured_at": "2026-10-10T22:54:12Z",
-      "manifest_path": "NOT_ARCHIVED/termrock-vis01-q78-provider-final-20261010T225412Z/provider-manifest.json",
-      "manifest_sha256": "cf5e6ae37a17bdbc81e25e04bc52e942d200eea1c309e89e628c150902a8cadb",
+      "captured_at": "2026-10-11T04:02:19Z",
+      "manifest_path": "NOT_ARCHIVED/termrock-vis01-q78-current-run-38108486387/provider-manifest.json",
+      "manifest_sha256": "d3f2c89f46623a385c1c418de4257ecf4e3712fa762555b36e541fd3abd6cacd",
       "source_pair": {
-        "candidate_head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+        "candidate_head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
         "reference_head_sha": "2ae351dd27f0ee7d7d52ff6093208b0a57f62698"
       },
       "candidate_run": {
-        "run_id": "38090751977",
+        "run_id": "38108486387",
         "workflow_path": ".github/workflows/ci.yml",
-        "head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+        "head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
         "status": "completed",
         "conclusion": "failure",
-        "created_at": "2026-10-10T22:15:42Z",
-        "run_number": 917,
+        "created_at": "2026-10-11T03:28:22Z",
+        "run_number": 919,
         "run_attempt": 1,
         "head_sha_query_total_count": 1,
         "job_count": 51,
         "artifact_count": 49,
-        "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977"
+        "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387"
       },
       "reference_query": {
         "query_status": "success",
@@ -139,15 +140,15 @@
       },
       "workflow_source": {
         "path": ".github/workflows/ci.yml",
-        "commit_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+        "commit_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
         "github_blob_sha": "885ac623343df4b1d4c47387147527a8e529d1ca",
         "size_bytes": 115446,
         "raw_sha256": "664fe57510323c3d148cdad3f9a416bf383fa54276fa40efb4af95bd3b57804f"
       },
       "job_execution_observation": {
         "schema": "termrock-status-workflow-job-execution/v1",
-        "observed_at": "2026-10-10T22:54:12Z",
-        "run_id": "38090751977",
+        "observed_at": "2026-10-11T04:02:19Z",
+        "run_id": "38108486387",
         "run_status": "completed",
         "job_count": 51,
         "completed": 51,
@@ -158,76 +159,76 @@
         "skipped_count": 1,
         "failed_jobs": [
           {
-            "id": "114327636875",
-            "name": "Rust / jackin-preview-app",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327636875"
-          },
-          {
-            "id": "114327636971",
+            "id": "114379769031",
             "name": "Rust / jackin-preview",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327636971"
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769031"
           },
           {
-            "id": "114327637296",
+            "id": "114379769232",
             "name": "Rust / termrock-conformance",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637296"
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769232"
           },
           {
-            "id": "114327637331",
-            "name": "Rust / termrock-e2e",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637331"
-          },
-          {
-            "id": "114327637337",
+            "id": "114379769241",
             "name": "Rust / termrock",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637337"
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769241"
           },
           {
-            "id": "114327637341",
-            "name": "Rust / tablepro",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637341"
-          },
-          {
-            "id": "114327637345",
-            "name": "Rust / termrock-visibility-publisher",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637345"
-          },
-          {
-            "id": "114327637350",
-            "name": "Rust / tablepro-ui",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637350"
-          },
-          {
-            "id": "114327637389",
+            "id": "114379769289",
             "name": "Rust / jackin-preview-host-ui",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637389"
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769289"
           },
           {
-            "id": "114327637393",
-            "name": "Rust / termrock-xtask",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637393"
+            "id": "114379769293",
+            "name": "Rust / jackin-preview-app",
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769293"
           },
           {
-            "id": "114327637423",
-            "name": "Rust / termrock-visibility-tests",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637423"
+            "id": "114379769301",
+            "name": "Rust / termrock-e2e",
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769301"
           },
           {
-            "id": "114327637504",
+            "id": "114379769377",
             "name": "Rust / termrock-viewport",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637504"
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769377"
           },
           {
-            "id": "114329714696",
+            "id": "114379769392",
+            "name": "Rust / termrock-visibility-tests",
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769392"
+          },
+          {
+            "id": "114379769393",
+            "name": "Rust / tablepro-ui",
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769393"
+          },
+          {
+            "id": "114379769449",
+            "name": "Rust / termrock-visibility-publisher",
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769449"
+          },
+          {
+            "id": "114379769464",
+            "name": "Rust / termrock-xtask",
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769464"
+          },
+          {
+            "id": "114379769749",
+            "name": "Rust / tablepro",
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769749"
+          },
+          {
+            "id": "114381924806",
             "name": "Required",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114329714696"
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114381924806"
           }
         ],
         "skipped_jobs": [
           {
-            "id": "114329813325",
+            "id": "114382060969",
             "name": "Publish baseline",
-            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114329813325"
+            "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114382060969"
           }
         ],
         "raw_api_responses_preserved": false,
@@ -235,8 +236,8 @@
       },
       "artifact_observation": {
         "schema": "termrock-status-workflow-artifact-count/v1",
-        "observed_at": "2026-10-10T22:54:12Z",
-        "run_id": "38090751977",
+        "observed_at": "2026-10-11T04:02:19Z",
+        "run_id": "38108486387",
         "artifact_count": 49,
         "expired_count": 0,
         "query_status": "success",
@@ -244,14 +245,14 @@
         "raw_api_responses_preserved": false
       },
       "candidate_dco": {
-        "check_run_id": "114326526502",
+        "check_run_id": "114378959885",
         "name": "DCO",
-        "head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+        "head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
         "status": "completed",
         "conclusion": "success",
         "affected_commit_count": 0,
         "annotations_count": 0,
-        "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/114326526502"
+        "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/114378959885"
       },
       "reference_dco": {
         "check_run_id": "114328215608",
@@ -275,21 +276,23 @@
     "host": "aarch64-apple-darwin"
   },
   "observation_sources": {
-    "observed_at": "2026-10-10T22:54:12Z",
+    "observed_at": "2026-10-11T04:02:19Z",
     "candidate_branch_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/termrock-implementation",
     "reference_branch_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/visual-baseline",
     "visual_tag_ref_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/git/ref/tags/visual-baseline",
     "visual_release_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/releases/tags/visual-baseline",
-    "ci_run_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38090751977",
-    "ci_jobs_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38090751977/jobs?per_page=100",
-    "ci_artifacts_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38090751977/artifacts?per_page=100",
-    "ci_run_page": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977",
-    "dco_check_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/check-runs/114326526502",
-    "reference_dco_check_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/check-runs/114328215608",
+    "current_ci_run_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38108486387",
+    "current_ci_jobs_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38108486387/jobs?per_page=100",
+    "current_ci_artifacts_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38108486387/artifacts?per_page=100",
+    "current_ci_run_page": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387",
+    "historical_completed_run_38090751977": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977",
+    "candidate_check_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/commits/9b11039bace9333a40f578c71e2e997e1182e415/check-runs?per_page=100",
+    "reference_check_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/commits/2ae351dd27f0ee7d7d52ff6093208b0a57f62698/check-runs?per_page=100",
+    "reference_dco_check_api": "https://github.com/tailrocks/terminal-components-claude/runs/114328215608",
     "pull_request_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/pulls/17",
-    "workflow_content_source": "git show d7c03139d0131157f1bd40eaf379d46c2e3814f8:.github/workflows/ci.yml | wc -c | shasum -a 256",
+    "workflow_content_source": "git show 9b11039bace9333a40f578c71e2e997e1182e415:.github/workflows/ci.yml | wc -c | shasum -a 256",
     "e2e_subtree_commands": [
-      "git rev-parse d7c03139d0131157f1bd40eaf379d46c2e3814f8:crates/termrock-e2e",
+      "git rev-parse 9b11039bace9333a40f578c71e2e997e1182e415:crates/termrock-e2e",
       "git rev-parse 2ae351dd27f0ee7d7d52ff6093208b0a57f62698:crates/termrock-e2e"
     ],
     "local_identity_commands": [
@@ -300,21 +303,15 @@
     "read_only_gh_api_and_page_commands": [
       "gh api repos/tailrocks/terminal-components-claude/branches/termrock-implementation",
       "gh api repos/tailrocks/terminal-components-claude/branches/visual-baseline",
-      "gh api repos/tailrocks/terminal-components-claude/actions/runs/38090751977",
-      "gh api repos/tailrocks/terminal-components-claude/actions/runs/38090751977/jobs?per_page=100",
-      "gh api repos/tailrocks/terminal-components-claude/actions/runs/38090751977/artifacts?per_page=100",
-      "gh api repos/tailrocks/terminal-components-claude/commits/d7c03139d0131157f1bd40eaf379d46c2e3814f8/check-runs?per_page=100",
+      "gh api repos/tailrocks/terminal-components-claude/actions/runs?head_sha=9b11039bace9333a40f578c71e2e997e1182e415&per_page=100",
+      "gh api repos/tailrocks/terminal-components-claude/actions/runs/38108486387",
+      "gh api repos/tailrocks/terminal-components-claude/actions/runs/38108486387/jobs?per_page=100",
+      "gh api repos/tailrocks/terminal-components-claude/actions/runs/38108486387/artifacts?per_page=100",
+      "gh api repos/tailrocks/terminal-components-claude/commits/9b11039bace9333a40f578c71e2e997e1182e415/check-runs?per_page=100",
       "gh api repos/tailrocks/terminal-components-claude/commits/2ae351dd27f0ee7d7d52ff6093208b0a57f62698/check-runs?per_page=100",
-      "gh api repos/tailrocks/terminal-components-claude/actions/runs?head_sha=2ae351dd27f0ee7d7d52ff6093208b0a57f62698&per_page=100",
-      "gh api repos/tailrocks/terminal-components-claude/pulls/17"
+      "gh api repos/tailrocks/terminal-components-claude/actions/runs?head_sha=2ae351dd27f0ee7d7d52ff6093208b0a57f62698&per_page=100"
     ],
-    "ci_final_run_capture": {
-      "observed_at": "2026-10-10T22:54:12Z",
-      "run_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38090751977",
-      "jobs_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38090751977/jobs?per_page=100",
-      "artifacts_api": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/38090751977/artifacts?per_page=100",
-      "raw_api_responses_preserved": false
-    }
+    "raw_api_responses_preserved": false
   },
   "pull_request_observation": {
     "number": 17,
@@ -387,19 +384,18 @@
     "local_worktree_note": "The shared checkout was dirty at observation time. Commit identities are exact; dirty product files were not read or qualified."
   },
   "reference_lineage_observation": {
-    "previous_head_sha": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "previous_head_sha": "8a22797318bcb53ed744e64b23414f27449a221b",
     "current_head_sha": "2ae351dd27f0ee7d7d52ff6093208b0a57f62698",
     "current_parent_sha": "8a22797318bcb53ed744e64b23414f27449a221b",
-    "relationship": "descendant_no_rewrite_observed",
-    "evidence_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/commits/2ae351dd27f0ee7d7d52ff6093208b0a57f62698",
-    "rewrite_observed": false
+    "relationship": "current_parent_observed",
+    "evidence_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/commits/2ae351dd27f0ee7d7d52ff6093208b0a57f62698"
   },
   "candidate_lineage_observation": {
-    "previous_head_sha": "14d0e0e5aa569868f519fc9ca91e55a02589d72a",
-    "current_head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
-    "current_parent_sha": "0db014bfc4fe5c7cf25f2bd696bc8872c80ccb06",
+    "previous_head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+    "current_head_sha": "9b11039bace9333a40f578c71e2e997e1182e415",
+    "current_parent_sha": "c89d60e1fc324225db7921868d0ac7b5f5ab2ad0",
     "relationship": "descendant_no_rewrite_observed",
-    "evidence_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/commits/d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+    "evidence_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/commits/9b11039bace9333a40f578c71e2e997e1182e415",
     "rewrite_observed": false
   },
   "local_checkout_observation": {
@@ -936,6 +932,202 @@
         "sha256": "fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d"
       },
       "superseded_at": "2026-10-10T22:26:30Z"
+    },
+    {
+      "source_observation": {
+        "observed_at": "2026-10-10T22:26:30Z",
+        "method": "read-only GitHub branch API observation",
+        "candidate_remote": {
+          "branch": "termrock-implementation",
+          "head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+          "commit_committer_at": "2026-10-10T22:15:34Z"
+        },
+        "reference_remote": {
+          "branch": "visual-baseline",
+          "head_sha": "2ae351dd27f0ee7d7d52ff6093208b0a57f62698",
+          "commit_committer_at": "2026-10-10T22:24:41Z"
+        },
+        "branch_last_update_at": null,
+        "timestamp_provenance": {
+          "candidate_committer_date_source": "Direct GitHub branches API response for termrock-implementation; commit.commit.committer.date",
+          "reference_committer_date_source": "Direct GitHub branches API response for visual-baseline; commit.commit.committer.date",
+          "branch_last_update_at_source": "No separate branch-update timestamp was recorded; commit dates are not branch-update times.",
+          "committer_dates_are_branch_update_times": false
+        },
+        "api_observation": {
+          "candidate_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/termrock-implementation",
+          "reference_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/branches/visual-baseline",
+          "raw_response_files_preserved": false,
+          "ephemeral_branch_api_sha256": "ed0f9778423f48e7f2b6294d61a87f1b7a208e42a582a877b2149fdb5d4351e3",
+          "observation_scope": "These branch heads were observed at the timestamp above; this record makes no claim about later remote updates."
+        }
+      },
+      "source_evidence": {
+        "path": "NOT_ARCHIVED/termrock-vis01-q78-source-observation-d7-20261010T222630Z.json",
+        "sha256": "baf266d5b1a4ab69a31fbc645d9ef5da9d21641088d9f84cc4a5e0d9257a5e1c"
+      },
+      "current_ci_observation": {
+        "api_capture": {
+          "captured_at": "2026-10-10T22:54:12Z",
+          "manifest_path": "NOT_ARCHIVED/termrock-vis01-q78-provider-final-20261010T225412Z/provider-manifest.json",
+          "manifest_sha256": "cf5e6ae37a17bdbc81e25e04bc52e942d200eea1c309e89e628c150902a8cadb",
+          "source_pair": {
+            "candidate_head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+            "reference_head_sha": "2ae351dd27f0ee7d7d52ff6093208b0a57f62698"
+          },
+          "candidate_run": {
+            "run_id": "38090751977",
+            "workflow_path": ".github/workflows/ci.yml",
+            "head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+            "status": "completed",
+            "conclusion": "failure",
+            "created_at": "2026-10-10T22:15:42Z",
+            "run_number": 917,
+            "run_attempt": 1,
+            "head_sha_query_total_count": 1,
+            "job_count": 51,
+            "artifact_count": 49,
+            "run_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977"
+          },
+          "reference_query": {
+            "query_status": "success",
+            "head_sha": "2ae351dd27f0ee7d7d52ff6093208b0a57f62698",
+            "workflow_path": ".github/workflows/ci.yml",
+            "query_total_count": 0,
+            "matching_run_ids": [],
+            "request_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs?head_sha=2ae351dd27f0ee7d7d52ff6093208b0a57f62698&per_page=100"
+          },
+          "workflow_source": {
+            "path": ".github/workflows/ci.yml",
+            "commit_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+            "github_blob_sha": "885ac623343df4b1d4c47387147527a8e529d1ca",
+            "size_bytes": 115446,
+            "raw_sha256": "664fe57510323c3d148cdad3f9a416bf383fa54276fa40efb4af95bd3b57804f"
+          },
+          "job_execution_observation": {
+            "schema": "termrock-status-workflow-job-execution/v1",
+            "observed_at": "2026-10-10T22:54:12Z",
+            "run_id": "38090751977",
+            "run_status": "completed",
+            "job_count": 51,
+            "completed": 51,
+            "in_progress": 0,
+            "queued": 0,
+            "success_count": 37,
+            "failure_count": 13,
+            "skipped_count": 1,
+            "failed_jobs": [
+              {
+                "id": "114327636875",
+                "name": "Rust / jackin-preview-app",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327636875"
+              },
+              {
+                "id": "114327636971",
+                "name": "Rust / jackin-preview",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327636971"
+              },
+              {
+                "id": "114327637296",
+                "name": "Rust / termrock-conformance",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637296"
+              },
+              {
+                "id": "114327637331",
+                "name": "Rust / termrock-e2e",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637331"
+              },
+              {
+                "id": "114327637337",
+                "name": "Rust / termrock",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637337"
+              },
+              {
+                "id": "114327637341",
+                "name": "Rust / tablepro",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637341"
+              },
+              {
+                "id": "114327637345",
+                "name": "Rust / termrock-visibility-publisher",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637345"
+              },
+              {
+                "id": "114327637350",
+                "name": "Rust / tablepro-ui",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637350"
+              },
+              {
+                "id": "114327637389",
+                "name": "Rust / jackin-preview-host-ui",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637389"
+              },
+              {
+                "id": "114327637393",
+                "name": "Rust / termrock-xtask",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637393"
+              },
+              {
+                "id": "114327637423",
+                "name": "Rust / termrock-visibility-tests",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637423"
+              },
+              {
+                "id": "114327637504",
+                "name": "Rust / termrock-viewport",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637504"
+              },
+              {
+                "id": "114329714696",
+                "name": "Required",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114329714696"
+              }
+            ],
+            "skipped_jobs": [
+              {
+                "id": "114329813325",
+                "name": "Publish baseline",
+                "html_url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114329813325"
+              }
+            ],
+            "raw_api_responses_preserved": false,
+            "product_execution": "NOT_RUN"
+          },
+          "artifact_observation": {
+            "schema": "termrock-status-workflow-artifact-count/v1",
+            "observed_at": "2026-10-10T22:54:12Z",
+            "run_id": "38090751977",
+            "artifact_count": 49,
+            "expired_count": 0,
+            "query_status": "success",
+            "partial_snapshot": false,
+            "raw_api_responses_preserved": false
+          },
+          "candidate_dco": {
+            "check_run_id": "114326526502",
+            "name": "DCO",
+            "head_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+            "status": "completed",
+            "conclusion": "success",
+            "affected_commit_count": 0,
+            "annotations_count": 0,
+            "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/114326526502"
+          },
+          "reference_dco": {
+            "check_run_id": "114328215608",
+            "name": "DCO",
+            "head_sha": "2ae351dd27f0ee7d7d52ff6093208b0a57f62698",
+            "status": "completed",
+            "conclusion": "action_required",
+            "affected_commit_count": 14,
+            "annotations_count": 0,
+            "result_url": "https://github.com/tailrocks/terminal-components-claude/runs/114328215608"
+          }
+        },
+        "provider_annotation_capture": null,
+        "failure_reason": null
+      },
+      "superseded_at": "2026-10-11T03:58:22Z"
     }
   ],
   "local_e2e_suite_observation": {
@@ -1164,6 +1356,15 @@
         "normalized_ci_observation": "NOT_RECORDED",
         "raw_source_evidence": "NOT_ARCHIVED",
         "raw_ci_capture": "NOT_RECORDED"
+      },
+      {
+        "history_index": 6,
+        "candidate_sha": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+        "reference_sha": "2ae351dd27f0ee7d7d52ff6093208b0a57f62698",
+        "normalized_source_observation": "RETAINED",
+        "normalized_ci_observation": "RETAINED",
+        "raw_source_evidence": "NOT_ARCHIVED",
+        "raw_ci_capture": "NOT_ARCHIVED"
       }
     ],
     "report_readiness_effect": "NONE; all existing report-level readiness values remain NOT_RUN"
@@ -1446,7 +1647,7 @@
               "test_name": "w13_filter_wide_trail_cells_clear",
               "component_id": "W13",
               "component_owner": "termrock-navigation",
-              "failure_summary": "W13-05: wide-character trail cells were not cleared; the reviewer observed an unexpected y in the rendered 旧日本 cells.",
+              "failure_summary": "W13-05: wide-character trail cells were not cleared; the reviewer observed an unexpected y in the rendered \u65e7\u65e5\u672c cells.",
               "registry_status": "NOT_RUN"
             },
             "source_manifest_sha256": "aeea57da7e576c174e768e12876fe6303c4880c49ce826dacf2e448407a327cb",
@@ -1542,8 +1743,8 @@
   },
   "current_local_e2e_suite_observation": {
     "scope": "crates/termrock-e2e package files only",
-    "source_commit": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
-    "source_tree_sha": "ddfdc4140ef636ceddfddf5fffa4aa972e1ebec3",
+    "source_commit": "9b11039bace9333a40f578c71e2e997e1182e415",
+    "source_tree_sha": "4ddcdf65731815cc69b652019c4a90c8b1ad23f5",
     "file_count": 29,
     "package_sha256": "9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6",
     "files": [
@@ -1694,7 +1895,7 @@
       }
     ],
     "inventory_sha256": "3912c8cb872429f718047008f488606d73755d67ae1f4269da6077d297ab0d1c",
-    "observed_at": "2026-10-10T22:26:30Z",
+    "observed_at": "2026-10-11T03:58:22Z",
     "nextest": {
       "command": "mise exec -- cargo nextest run --manifest-path crates/termrock-e2e/Cargo.toml --locked --lib -E 'test(suite_digest_is_sensitive_and_matches_its_compiled_value)'",
       "run_id": "0266dbb7-5fbc-4c83-8021-f5c9af2b65ca",
@@ -1709,7 +1910,7 @@
       "source_suite_sha256": "9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6"
     },
     "revision": "termrock-e2e-2026-10-09.2",
-    "qualification": "Package source identity and one local Rust control passed. This is not a paired run and the repository remains globally dirty; product behavior and readiness are NOT_RUN."
+    "qualification": "The identical 29-file package inventory and digest observed at source commit d7c03139d0131157f1bd40eaf379d46c2e3814f8 was re-bound by exact hashes to source commit 9b11039bace9333a40f578c71e2e997e1182e415. The prior cargo nextest control is package-scoped evidence, not a new run and not a paired run."
   },
   "historical_current_publication_observations": {
     "schema": "termrock-status-current-publication-history/v1",
@@ -2258,8 +2459,8 @@
   },
   "current_e2e_subtree_parity_observation": {
     "schema": "termrock-status-e2e-subtree-parity/v1",
-    "observed_at": "2026-10-10T22:26:30Z",
-    "candidate_commit": "d7c03139d0131157f1bd40eaf379d46c2e3814f8",
+    "observed_at": "2026-10-11T03:58:22Z",
+    "candidate_commit": "9b11039bace9333a40f578c71e2e997e1182e415",
     "reference_commit": "2ae351dd27f0ee7d7d52ff6093208b0a57f62698",
     "path": "crates/termrock-e2e",
     "candidate_tree_sha": "140d74e6552b7cec6db30dd4c32c3e5cbc675aef",

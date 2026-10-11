@@ -630,7 +630,18 @@ fn draw_detail_body(ui: &mut Ui<'_>, area: Rect, lines: &[Line]) {
                 if y >= area.bottom() {
                     break;
                 }
-                draw_meter(ui, area, y, index, label, rest, *pct, *tone);
+                draw_meter(
+                    ui,
+                    MeterLayout {
+                        area,
+                        y,
+                        index,
+                        label,
+                        rest,
+                        pct: *pct,
+                        tone: *tone,
+                    },
+                );
                 y = y.saturating_add(1);
             }
         }
@@ -658,16 +669,26 @@ fn draw_props(ui: &mut Ui<'_>, area: Rect, rows: &[(String, Role)]) {
     Props::rich(&props).draw(ui, origin);
 }
 
-fn draw_meter(
-    ui: &mut Ui<'_>,
+struct MeterLayout<'a> {
     area: Rect,
     y: u16,
     index: usize,
-    label: &str,
-    rest: &str,
+    label: &'a str,
+    rest: &'a str,
     pct: u8,
     tone: MeterTone,
-) {
+}
+
+fn draw_meter(ui: &mut Ui<'_>, spec: MeterLayout<'_>) {
+    let MeterLayout {
+        area,
+        y,
+        index,
+        label,
+        rest,
+        pct,
+        tone,
+    } = spec;
     // 16 columns: two of indent, 13 of name, one gap before the block meter.
     const LABEL_W: u16 = 16;
     let name = label.strip_prefix("  ").unwrap_or(label);

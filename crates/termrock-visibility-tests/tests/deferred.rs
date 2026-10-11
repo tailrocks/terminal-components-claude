@@ -411,7 +411,7 @@ impl DeferredFixture {
                     }).any(|event| {
                         event["program"] == "rustup"
                             && event["argv"].as_array().is_some_and(|argv| {
-                                argv.get(0).and_then(Value::as_str) == Some("run")
+                    argv.first().and_then(Value::as_str) == Some("run")
                                     && argv.get(2).and_then(Value::as_str) == Some("cargo")
                                     && argv.get(3).and_then(Value::as_str) == Some("nextest")
                                     && argv.get(4).and_then(Value::as_str) == Some(action.as_str())

@@ -38,7 +38,8 @@ use crate::ui::{Cx, FrameRead, Ui};
 /// slice.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum NodeKind {
-    /// No children; the disclosure cell stays blank.
+    /// No children; the reserved fold cell is blank unless the caller supplies
+    /// a leaf icon.
     #[default]
     Leaf,
     /// Children follow in the slice at a greater depth.
@@ -167,9 +168,10 @@ pub enum TreeAction {
     Expanded(ItemKey),
     /// A node was closed.
     Collapsed(ItemKey),
-    /// A leaf was chosen (Space, or a click on a leaf row).
+    /// A leaf was chosen (Space, or a click on its blank fold cell). A
+    /// caller-painted leaf icon remains row body.
     Chose(ItemKey),
-    /// A leaf was activated (Enter, or a double-click).
+    /// A leaf was activated (Enter, a leaf row click, or a double-click).
     Activated(ItemKey),
 }
 
@@ -640,11 +642,12 @@ impl Reconcile for TreeState {
 ///
 /// ## Mouse
 /// `PartRef::item(Part::ROW, k)`: press moves the cursor, click toggles a
-/// branch or chooses a leaf, double-click activates a leaf. `branch_click`
+/// branch or activates a leaf, double-click also activates a leaf. `branch_click`
 /// can choose branches instead; `branch_activation` also applies to double-click.
-/// `PartRef::item(Part::ICON, k)` is the disclosure cell: press moves the
-/// cursor and click toggles that node without choosing it. `TRACK`/`THUMB` and the wheel go
-/// to the embedded [`ScrollRegion`].
+/// `PartRef::item(Part::ICON, k)` is a branch disclosure: press moves the
+/// cursor and click toggles that branch without choosing it. A leaf's blank
+/// fold cell chooses that leaf, while a caller-painted leaf icon remains row
+/// body. `TRACK`/`THUMB` and the wheel go to the embedded [`ScrollRegion`].
 ///
 /// ## Layout
 /// One row per visible node: gutter, `depth × design.space.tree_indent`
@@ -655,7 +658,8 @@ impl Reconcile for TreeState {
 ///
 /// ## Parts
 /// `CONTAINER` (the tree surface and each row's fill), `GUTTER` (the focus
-/// column), `ICON` (the disclosure cell and its hit zone), `MARKER` (the
+/// column), `ICON` (a branch disclosure or a leaf's blank fold cell and its
+/// hit zone), `MARKER` (the
 /// reserved cell after disclosure), `LABEL` (resolved through [`RowUi`] by
 /// the row renderer), `TRACK` / `THUMB` (the embedded [`ScrollRegion`]),
 /// `EMPTY` (the no-nodes state). `Part::ROW` is a hit region only and is
@@ -820,11 +824,11 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-    /// Replace the disclosure cell, or keep the stock disclosure.
+    /// Replace the fold cell, or keep the stock disclosure.
     ///
     /// `None` keeps the branch disclosure or the blank leaf and does not
     /// paint a second icon. `Some` paints that one-cell string with the
-    /// patch.
+    /// patch; a custom leaf icon keeps row-body activation.
     #[must_use]
     pub const fn icon(mut self, f: TreeIconFn<'a, T>) -> Self {
         self.icon = Some(f);
@@ -1561,8 +1565,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let key = row.key;
         st.chosen = Some(key);
-        // A default click activates a leaf at once (baseline
-        // `on_click_row`); branches under the Choose policy still choose.
         let leaf_click =
             matches!(engagement, Engagement::Click) && !self.node_of(it).has_children();
         acc.action(
@@ -1886,7 +1888,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        if part.part == Part::ICON {
+        let fold_is_disclosure = part.part != Part::ROW
+            && index
+                .row(d)
+                .and_then(|row| items.get(row.source))
+                .is_some_and(|item| self.node_of(item).has_children());
+        if part.part == Part::ICON && fold_is_disclosure {
             match phase {
                 Phase::Press => {
                     st.core.set_cursor(d, key);
@@ -1897,6 +1904,20 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     if !self.toggle_at(st, index, items, d, acc) {
                         acc.changed();
                     }
+                }
+                _ => acc.consumed(),
+            }
+            return;
+        }
+        if part.part == Part::ICON {
+            match phase {
+                Phase::Press => {
+                    st.core.set_cursor(d, key);
+                    acc.changed();
+                }
+                Phase::Click => {
+                    st.core.set_cursor(d, key);
+                    self.engage(st, index, items, d, Engagement::Choose, acc);
                 }
                 _ => acc.consumed(),
             }
@@ -2146,7 +2167,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     renderer(ui, row.rect, row.flags, row.key, item);
                 });
             }
-            self.register_row(ui, row, indent);
+            self.register_row(ui, row, indent, false);
             return false;
         }
         self.paint_default_row(ui, row, indent, item, suppress_meta)
@@ -2211,6 +2232,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         let fold_x = self.fold_x(row, indent);
         let fold = cell_at(row.rect, fold_x);
         let custom_icon = self.icon.and_then(|paint| paint(item));
+        let has_custom_icon = custom_icon.is_some();
         if let Some((text, patch)) = custom_icon {
             let style = ui
                 .style_patched(
@@ -2338,7 +2360,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         if ui.is_inert() {
             return vetoed;
         }
-        self.register_row(ui, row, indent);
+        self.register_row(ui, row, indent, has_custom_icon);
         vetoed
     }
 
@@ -2350,10 +2372,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             .saturating_add(row.depth.saturating_mul(indent))
     }
 
-    fn register_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16) {
+    fn register_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, has_custom_icon: bool) {
         ui.register_part(self.id, PartRef::item(Part::ROW, row.key), row.rect);
-        // Disclosure wins hit-testing over the row, including custom painters.
-        if row.disclosure.is_some() {
+        // A branch disclosure and a leaf's blank fold cell win hit-testing
+        // over the row. A caller-painted leaf icon remains row body.
+        if self.disclosure_hit_width > 0 && (row.disclosure.is_some() || !has_custom_icon) {
             let fold = Rect {
                 x: self.fold_x(row, indent),
                 width: self.disclosure_hit_width,
@@ -2503,6 +2526,156 @@ mod tests {
             );
         }
         assert_eq!(acc.finish(TREE).action_ref(), Some(&TreeAction::Chose(key)));
+    }
+
+    #[test]
+    fn branch_disclosure_click_never_chooses_or_activates() {
+        let t = tree();
+        let items = [N("branch", 0, true), N("leaf", 1, false)];
+        let mut st = TreeState::new();
+        let mut index = TreeIndex::default();
+        index.sync(&t, &st, &items);
+        let key = ItemKey::text("branch");
+
+        for phase in [Phase::Press, Phase::Release, Phase::Click] {
+            let mut acc = Acc::<TreeAction>::new();
+            t.pointer(
+                &mut st,
+                &mut index,
+                &items,
+                PointerIntent {
+                    phase,
+                    prior_cursor: None,
+                    part: PartRef::item(Part::ICON, key),
+                    hint: Some(0),
+                },
+                &mut acc,
+            );
+            let response = acc.finish(TREE);
+            assert_ne!(response.action_ref(), Some(&TreeAction::Chose(key)));
+            assert_ne!(response.action_ref(), Some(&TreeAction::Activated(key)));
+        }
+
+        assert!(st.is_expanded(key));
+    }
+
+    #[test]
+    fn leaf_fold_cell_click_sets_cursor_and_chooses() {
+        let t = tree();
+        let items = [N("leaf", 0, false)];
+        let mut st = TreeState::new();
+        let mut index = TreeIndex::default();
+        index.sync(&t, &st, &items);
+        let key = ItemKey::text("leaf");
+
+        for phase in [Phase::Press, Phase::Release, Phase::Click] {
+            let mut acc = Acc::<TreeAction>::new();
+            t.pointer(
+                &mut st,
+                &mut index,
+                &items,
+                PointerIntent {
+                    phase,
+                    prior_cursor: None,
+                    part: PartRef::item(Part::ICON, key),
+                    hint: Some(0),
+                },
+                &mut acc,
+            );
+            if phase == Phase::Click {
+                assert_eq!(acc.finish(TREE).action_ref(), Some(&TreeAction::Chose(key)));
+            }
+        }
+
+        assert_eq!(st.cursor(), Some(key));
+        assert_eq!(st.chosen(), Some(key));
+    }
+
+    #[test]
+    fn default_leaf_row_click_activates() {
+        let t = tree();
+        let items = [N("leaf", 0, false)];
+        let mut st = TreeState::new();
+        let mut index = TreeIndex::default();
+        index.sync(&t, &st, &items);
+        let key = ItemKey::text("leaf");
+
+        for phase in [Phase::Press, Phase::Release, Phase::Click] {
+            let mut acc = Acc::<TreeAction>::new();
+            t.pointer(
+                &mut st,
+                &mut index,
+                &items,
+                PointerIntent {
+                    phase,
+                    prior_cursor: None,
+                    part: PartRef::item(Part::ROW, key),
+                    hint: Some(0),
+                },
+                &mut acc,
+            );
+            if phase == Phase::Click {
+                assert_eq!(
+                    acc.finish(TREE).action_ref(),
+                    Some(&TreeAction::Activated(key))
+                );
+            }
+        }
+
+        assert_eq!(st.cursor(), Some(key));
+        assert_eq!(st.chosen(), Some(key));
+    }
+
+    #[test]
+    fn leaf_fold_cell_registers_over_the_row() {
+        let t = tree();
+        let items = [N("leaf", 0, false)];
+        let st = TreeState::new();
+        let key = ItemKey::text("leaf");
+        let area = Rect::new(0, 0, 12, 1);
+        let theme = Theme::junie();
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(area);
+
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                t.draw(ui, area, &st, &items);
+            })
+            .commit_presented();
+
+        let registry = runtime.registry();
+        let fold = registry.hit(Position::new(1, 0)).expect("fold hit");
+        assert_eq!(fold.owner, TREE);
+        assert_eq!(fold.part, PartRef::item(Part::ICON, key));
+
+        let body = registry.hit(Position::new(2, 0)).expect("body hit");
+        assert_eq!(body.owner, TREE);
+        assert_eq!(body.part, PartRef::item(Part::ROW, key));
+    }
+
+    #[test]
+    fn custom_leaf_icon_registers_as_row_body() {
+        let icon = |_: &N| Some(("★", StylePatch::new()));
+        let t = Tree::new(TREE).node(&node).icon(&icon);
+        let items = [N("leaf", 0, false)];
+        let st = TreeState::new();
+        let key = ItemKey::text("leaf");
+        let area = Rect::new(0, 0, 12, 1);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                t.draw(ui, area, &st, &items);
+            })
+            .commit_presented();
+
+        let hit = runtime
+            .registry()
+            .hit(Position::new(1, 0))
+            .expect("body hit");
+        assert_eq!(hit.owner, TREE);
+        assert_eq!(hit.part, PartRef::item(Part::ROW, key));
     }
 
     /// A forest with two roots, each with two children, the second of which

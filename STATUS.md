@@ -32,7 +32,7 @@ This is the earlier source pair captured at the timestamp below. The branch tips
 | Identity | Value |
 | --- | --- |
 | Local role | Candidate (termrock-implementation) |
-| Candidate observed commit (recorded pair) | [d7c03139d0131157f1bd40eaf379d46c2e3814f8](https://github.com/tailrocks/terminal-components-claude/commit/d7c03139d0131157f1bd40eaf379d46c2e3814f8) |
+| Candidate observed commit (recorded pair) | [9b11039bace9333a40f578c71e2e997e1182e415](https://github.com/tailrocks/terminal-components-claude/commit/9b11039bace9333a40f578c71e2e997e1182e415) |
 | Reference observed commit (recorded pair) | [2ae351dd27f0ee7d7d52ff6093208b0a57f62698](https://github.com/tailrocks/terminal-components-claude/commit/2ae351dd27f0ee7d7d52ff6093208b0a57f62698) |
 | Immutable visual tag object | 1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5 |
 | Immutable visual tag commit | [4a79c0a2d40fca46fc406b77157ce3b3f12ec16b](https://github.com/tailrocks/terminal-components-claude/commit/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b) |
@@ -44,18 +44,18 @@ This is the earlier source pair captured at the timestamp below. The branch tips
 
 | Observation | Value |
 | --- | --- |
-| Candidate remote branch tip | [d7c03139d0131157f1bd40eaf379d46c2e3814f8](https://github.com/tailrocks/terminal-components-claude/commit/d7c03139d0131157f1bd40eaf379d46c2e3814f8) |
+| Candidate remote branch tip | [9b11039bace9333a40f578c71e2e997e1182e415](https://github.com/tailrocks/terminal-components-claude/commit/9b11039bace9333a40f578c71e2e997e1182e415) |
 | Reference remote branch tip | [2ae351dd27f0ee7d7d52ff6093208b0a57f62698](https://github.com/tailrocks/terminal-components-claude/commit/2ae351dd27f0ee7d7d52ff6093208b0a57f62698) |
 | Source observation method | read-only GitHub branch API observation |
-| Remote branch tips observed at | 2026-10-10T22:26:30Z |
-| Source timestamp meaning | 2026-10-10T22:26:30Z; branch last-update time unknown; remote commit committer dates are metadata only (candidate 2026-10-10T22:15:34Z, reference 2026-10-10T22:24:41Z). |
+| Remote branch tips observed at | 2026-10-11T03:58:22Z |
+| Source timestamp meaning | 2026-10-11T03:58:22Z; branch last-update time unknown; remote commit committer dates are metadata only (candidate 2026-10-11T03:28:12Z, reference 2026-10-10T22:24:41Z). |
 | Earlier source observations | No earlier candidate tip recorded; its retrieval time was not retained, and this tip is superseded by the observation above. |
-| Captured local checkout (source facts) | termrock-implementation at `d7c03139d0131157f1bd40eaf379d46c2e3814f8`; compare this recorded identity with the selected source commit above. |
+| Captured local checkout (source facts) | termrock-implementation at `9b11039bace9333a40f578c71e2e997e1182e415`; compare this recorded identity with the selected source commit above. |
 | Captured local cryptographic commit signature | `N` from `git show -s --format='%G?' HEAD` (Git reported no cryptographic signature). |
-| Captured local Developer Certificate of Origin (DCO) trailer | Expected line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is present in commit `d7c03139d0131157f1bd40eaf379d46c2e3814f8`. |
+| Captured local Developer Certificate of Origin (DCO) trailer | Expected line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is present in commit `9b11039bace9333a40f578c71e2e997e1182e415`. |
 | Parsed local DCO trailers | Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com> |
-| Captured local commit subject | docs(visibility): authorize current reference suite tip |
-| Captured local commit observation time | 2026-10-10T22:26:30Z |
+| Captured local commit subject | docs(visibility): authorize uncovered CI repair paths |
+| Captured local commit observation time | 2026-10-11T03:58:22Z |
 | Local publication | Published. Local HEAD and tree were read from the existing checkout; the working tree is dirty, so this is a commit identity observation and does not qualify dirty product files. |
 
 The DCO observations above describe the captured local commit message. They do not report a remote DCO check.
@@ -74,28 +74,29 @@ These source snapshots remain historical. Their CI and Developer Certificate of 
 | `cee7e2e307514e49a70d8b8fcb028923ccdc7322` / `68d98ac99238c8580464f238a65b0f862ecc3dbd` | 2026-10-08T10:19:24Z | explicit HTTPS refs/heads fetch | run 37762481719 failure (0 jobs, 0 artifacts); reference query returned 0 runs; candidate/reference DCO 113262062732 / 113195062894; product execution NOT_RUN (evidence SHA-256 `6645a0d40d4777d8fc8af0f74e64bf2c701986ed9bf2d5d30aa1d73a82e1db3c`) | API 2026-10-08T10:22:44Z; provider page 2026-10-08T10:22:44Z | 2026-10-08T15:11:33Z |
 | `1ea1c17707f0a8f1639af506be179013d5e2d52a` / `b682cb26d68b353aeeccf9e51653eddf097b39f5` | 2026-10-08T15:11:33Z | explicit HTTPS refs/heads fetch | run 37793991551 failure (0 jobs, 0 artifacts); reference query returned 0 runs; candidate/reference DCO 113368579050 / 113326850483; product execution NOT_RUN (evidence SHA-256 `367121e3eb643453d46d33b598388752c41b1c5fa23e9c099e751c280e0568aa`) | API 2026-10-08T15:22:16Z; provider page 2026-10-08T15:22:16Z | 2026-10-08T23:25:02Z |
 | `1d797d41c8141fcbdc3f69d7f11eb8875ab54712` / `b274dd57f4dd078ade6e424d546d83efbd2e8526` | 2026-10-08T23:25:02Z | read-only GitHub branch API observation; local fetched refs verified afterward | No CI/DCO capture recorded; source-only observation. (evidence SHA-256 `fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d`) | No CI capture | 2026-10-10T22:26:30Z |
+| `d7c03139d0131157f1bd40eaf379d46c2e3814f8` / `2ae351dd27f0ee7d7d52ff6093208b0a57f62698` | 2026-10-10T22:26:30Z | read-only GitHub branch API observation | run 38090751977 failure (51 jobs, 49 artifacts); reference query returned 0 runs; candidate/reference DCO 114326526502 / 114328215608; product execution NOT_RUN (evidence SHA-256 `baf266d5b1a4ab69a31fbc645d9ef5da9d21641088d9f84cc4a5e0d9257a5e1c`) | API 2026-10-10T22:54:12Z | 2026-10-11T03:58:22Z |
 
-Historical raw-evidence coverage gap: normalized source/CI summaries for 6 retained records remain, but their original raw source and CI capture files are not in the repository archive. The gap does not change the fixed source pair or the current readiness assessment; current candidate measurements and paired-result gaps determine readiness separately.
+Historical raw-evidence coverage gap: normalized source/CI summaries for 7 retained records remain, but their original raw source and CI capture files are not in the repository archive. The gap does not change the fixed source pair or the current readiness assessment; current candidate measurements and paired-result gaps determine readiness separately.
 
 
 ## Recorded CI and repository checks
 
 | Check | Observation | Scope |
 | --- | --- | --- |
-| [CI run 38090751977](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977) | failure at d7c03139d0131157f1bd40eaf379d46c2e3814f8; 51 jobs; 49 artifacts. Failure reason is not recorded. | The run head matches the latest observed candidate branch tip. This recorded workflow result is historical and is not a product test result. |
-| [DCO check 114326526502](https://github.com/tailrocks/terminal-components-claude/commit/d7c03139d0131157f1bd40eaf379d46c2e3814f8/checks) | success; No commits are reported with sign-off problems. | The check head matches the latest observed candidate branch tip. This is a repository gate, separate from product results; no remote history change is inferred. |
+| [CI run 38108486387](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387) | failure at 9b11039bace9333a40f578c71e2e997e1182e415; 51 jobs; 49 artifacts. Failure reason is not recorded. | The run head matches the latest observed candidate branch tip. This recorded workflow result is historical and is not a product test result. |
+| [DCO check 114378959885](https://github.com/tailrocks/terminal-components-claude/commit/9b11039bace9333a40f578c71e2e997e1182e415/checks) | success; No commits are reported with sign-off problems. | The check head matches the latest observed candidate branch tip. This is a repository gate, separate from product results; no remote history change is inferred. |
 
 ## Current CI and Developer Certificate of Origin (DCO) observations
 
 | Check | Observation | Scope |
 | --- | --- | --- |
-| Candidate Actions run [38090751977](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977) | failure at `d7c03139d0131157f1bd40eaf379d46c2e3814f8`; 51 jobs; 49 artifacts. No correlated provider annotation is recorded, so the failure cause is not stated. | Workflow-level result; product execution remains NOT_RUN. |
-| Candidate job execution snapshot | At `2026-10-10T22:54:12Z`: 51 jobs; 51 completed, 0 in progress, 0 queued; 37 successful, 13 failed, and 1 skipped. Failed jobs: [Rust / jackin-preview-app](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327636875); [Rust / jackin-preview](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327636971); [Rust / termrock-conformance](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637296); [Rust / termrock-e2e](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637331); [Rust / termrock](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637337); [Rust / tablepro](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637341); [Rust / termrock-visibility-publisher](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637345); [Rust / tablepro-ui](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637350); [Rust / jackin-preview-host-ui](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637389); [Rust / termrock-xtask](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637393); [Rust / termrock-visibility-tests](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637423); [Rust / termrock-viewport](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114327637504); [Required](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114329714696). Skipped jobs: [Publish baseline](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977/job/114329813325). | Final repository workflow job snapshot; these job results do not qualify product checks and product readiness remains NOT_RUN. |
+| Candidate Actions run [38108486387](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387) | failure at `9b11039bace9333a40f578c71e2e997e1182e415`; 51 jobs; 49 artifacts. No correlated provider annotation is recorded, so the failure cause is not stated. | Workflow-level result; product execution remains NOT_RUN. |
+| Candidate job execution snapshot | At `2026-10-11T04:02:19Z`: 51 jobs; 51 completed, 0 in progress, 0 queued; 37 successful, 13 failed, and 1 skipped. Failed jobs: [Rust / jackin-preview](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769031); [Rust / termrock-conformance](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769232); [Rust / termrock](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769241); [Rust / jackin-preview-host-ui](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769289); [Rust / jackin-preview-app](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769293); [Rust / termrock-e2e](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769301); [Rust / termrock-viewport](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769377); [Rust / termrock-visibility-tests](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769392); [Rust / tablepro-ui](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769393); [Rust / termrock-visibility-publisher](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769449); [Rust / termrock-xtask](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769464); [Rust / tablepro](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114379769749); [Required](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114381924806). Skipped jobs: [Publish baseline](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387/job/114382060969). | Final repository workflow job snapshot; these job results do not qualify product checks and product readiness remains NOT_RUN. |
 | Reference Actions query | The reference Actions API query completed successfully and returned 0 matching Actions runs for this source tip. | Query source SHA `2ae351dd27f0ee7d7d52ff6093208b0a57f62698`; this is not a paired execution. |
-| Candidate DCO status | [success](https://github.com/tailrocks/terminal-components-claude/runs/114326526502); No commits are reported with sign-off problems. | Repository gate at `d7c03139d0131157f1bd40eaf379d46c2e3814f8`; separate from product results. |
+| Candidate DCO status | [success](https://github.com/tailrocks/terminal-components-claude/runs/114378959885); No commits are reported with sign-off problems. | Repository gate at `9b11039bace9333a40f578c71e2e997e1182e415`; separate from product results. |
 | Reference DCO status | [action_required](https://github.com/tailrocks/terminal-components-claude/runs/114328215608); 14 commits are reported with sign-off problems. | Repository gate at `2ae351dd27f0ee7d7d52ff6093208b0a57f62698`; separate from product results. |
 
-GitHub API capture at 2026-10-10T22:54:12Z: manifest SHA-256 `cf5e6ae37a17bdbc81e25e04bc52e942d200eea1c309e89e628c150902a8cadb`. Its source pair is candidate `d7c03139d0131157f1bd40eaf379d46c2e3814f8` and reference `2ae351dd27f0ee7d7d52ff6093208b0a57f62698`. The candidate workflow source is `.github/workflows/ci.yml` at `d7c03139d0131157f1bd40eaf379d46c2e3814f8`, 115446 bytes, SHA-256 `664fe57510323c3d148cdad3f9a416bf383fa54276fa40efb4af95bd3b57804f`.
+GitHub API capture at 2026-10-11T04:02:19Z: manifest SHA-256 `d3f2c89f46623a385c1c418de4257ecf4e3712fa762555b36e541fd3abd6cacd`. Its source pair is candidate `9b11039bace9333a40f578c71e2e997e1182e415` and reference `2ae351dd27f0ee7d7d52ff6093208b0a57f62698`. The candidate workflow source is `.github/workflows/ci.yml` at `9b11039bace9333a40f578c71e2e997e1182e415`, 115446 bytes, SHA-256 `664fe57510323c3d148cdad3f9a416bf383fa54276fa40efb4af95bd3b57804f`.
 
 Workflow execution is repository-level evidence and supplies no additional product results. Paired, visual, interaction, API, ownership, Ready, and Visibility Complete results remain NOT_RUN.
 
@@ -104,7 +105,7 @@ Workflow execution is repository-level evidence and supplies no additional produ
 
 | Observation | Value | Scope |
 | --- | --- | --- |
-| `crates/termrock-e2e` subtree identity | Candidate `140d74e6552b7cec6db30dd4c32c3e5cbc675aef`; reference `140d74e6552b7cec6db30dd4c32c3e5cbc675aef`; **equal** | Structural `git rev-parse` comparison of candidate `d7c03139d0131157f1bd40eaf379d46c2e3814f8` and reference `2ae351dd27f0ee7d7d52ff6093208b0a57f62698` at `2026-10-10T22:26:30Z`. It is not a paired execution and does not establish visual, interaction, API, ownership, or product readiness. |
+| `crates/termrock-e2e` subtree identity | Candidate `140d74e6552b7cec6db30dd4c32c3e5cbc675aef`; reference `140d74e6552b7cec6db30dd4c32c3e5cbc675aef`; **equal** | Structural `git rev-parse` comparison of candidate `9b11039bace9333a40f578c71e2e997e1182e415` and reference `2ae351dd27f0ee7d7d52ff6093208b0a57f62698` at `2026-10-11T03:58:22Z`. It is not a paired execution and does not establish visual, interaction, API, ownership, or product readiness. |
 
 
 
@@ -125,7 +126,7 @@ Publication record `docs/implementation/visibility/evidence/reports/status-sourc
 These workflow runs belong to their exact report publication commits. Neither run provides product checks on the selected 1d/b274 source pair; no failure cause or artifact count is inferred.
 
 
-Tool versions recorded at 2026-10-10T22:54:12Z: Python 3.14.8, Rust 1.98.1, and cargo-nextest 0.9.143 through mise on aarch64-apple-darwin. This records installed tools only; it does not show that a product check ran.
+Tool versions recorded at 2026-10-11T04:02:19Z: Python 3.14.8, Rust 1.98.1, and cargo-nextest 0.9.143 through mise on aarch64-apple-darwin. This records installed tools only; it does not show that a product check ran.
 
 ## Applications
 
@@ -186,10 +187,10 @@ This partial case does not cover the 293-case, 421-checkpoint, or 7,550-snapshot
 
 | Observation | Result | Scope |
 | --- | --- | --- |
-| Package `termrock-e2e-2026-10-09.2`; 29 files | SHA-256 `9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6` | Current source commit `d7c03139d0131157f1bd40eaf379d46c2e3814f8`; revision `termrock-e2e-2026-10-09.2`; package files only. |
+| Package `termrock-e2e-2026-10-09.2`; 29 files | SHA-256 `9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6` | Current source commit `9b11039bace9333a40f578c71e2e997e1182e415`; revision `termrock-e2e-2026-10-09.2`; package files only. |
 | `cargo nextest` digest control | PASS (1/1 selected; 1 passed, 0 failed, 0 skipped) | Run `0266dbb7-5fbc-4c83-8021-f5c9af2b65ca`; compiled/current digest sensitivity only; NOT product execution and NOT a paired run. |
 
-Package source identity and one local Rust control passed. This is not a paired run and the repository remains globally dirty; product behavior and readiness are NOT_RUN.
+The identical 29-file package inventory and digest observed at source commit d7c03139d0131157f1bd40eaf379d46c2e3814f8 was re-bound by exact hashes to source commit 9b11039bace9333a40f578c71e2e997e1182e415. The prior cargo nextest control is package-scoped evidence, not a new run and not a paired run.
 
 
 ## Local package and reporter controls
@@ -212,7 +213,7 @@ No compatible previous complete required-set run is recorded, so trend changes a
 
 ## Next work
 
-Highest open priority: **P0**, from accepted queue revision 77.
+Highest open priority: **P0**, from accepted queue revision 78.
 
 | Work | State | Owner | Reviewer | Priority reason |
 | --- | --- | --- | --- | --- |
@@ -233,6 +234,7 @@ Highest open priority: **P0**, from accepted queue revision 77.
 | VIS-17 | claimed | /root/reference_claim_luna | /root/ci_parity_review_luna | Implement a bounded Rust status publication command with trusted-run validation and optimistic ref update controls. This claim covers code and fake-transport tests only. |
 | VIS-18 | claimed | /root/rust_test_infrastructure | /root/subjects_runner_review_luna | Provide the bounded read-only audit needed to assess the 153 unmanifested Cargo registry source package roots observed after the actual VIS-06 R11 Holla build. This audit is a prerequisite input to the VIS-06 cache-provenance decision; it cannot change or qualify the original R11 result. |
 | VIS-19 | claimed | /root/tag_capture_boundary_luna | /root/current_branch_comparison_luna | Document and review the shared Tuiscotti observation and cursor correction needed for VIS-02 to use truthful live and replay capture state. This claim grants only the Termrock evidence path below. |
+| VIS-20 | claimed | /root/ci_product_repair_luna | /root/current_branch_comparison_luna | P0 repair for the 17 uncovered staged paths. |
 
 See [WORK_QUEUE.md](WORK_QUEUE.md) for dependencies and claim details.
 
@@ -240,7 +242,7 @@ See [WORK_QUEUE.md](WORK_QUEUE.md) for dependencies and claim details.
 
 - [Work queue](WORK_QUEUE.md)
 - [Implementation PR #17](https://github.com/tailrocks/terminal-components-claude/pull/17)
-- [Recorded CI run](https://github.com/tailrocks/terminal-components-claude/actions/runs/38090751977)
+- [Recorded CI run](https://github.com/tailrocks/terminal-components-claude/actions/runs/38108486387)
 - Product requirements: [CHECKLIST.md](CHECKLIST.md) and [checklist.json](checklist.json)
 - [Source facts and observation commands](tools/visibility/README.md)
 

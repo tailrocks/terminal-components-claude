@@ -16,8 +16,8 @@ use termrock::layout::Track;
 use termrock::navigation::{List, ListState, Tabs, TabsState};
 use termrock::{
     Action, ActionKey, Anchor, Backdrop, Dialog, DialogState, FrameRead, Hint, HintKey, HintLayer,
-    Id, ItemKey, LayerSize, Props, PropsRow, ScreenAlign, backdrop_area, resolve_anchor,
-    truncate, width,
+    Id, ItemKey, LayerSize, Props, PropsRow, ScreenAlign, backdrop_area, resolve_anchor, truncate,
+    width,
 };
 
 /// Settings root.
@@ -1116,10 +1116,8 @@ impl SettingsScreen {
                 &state,
                 &rows,
             );
-        if wide {
-            if let Some(row) = rows.iter().find(|row| row.cursor) {
-                Self::draw_env_card(ui, world, row);
-            }
+        if wide && let Some(row) = rows.iter().find(|row| row.cursor) {
+            Self::draw_env_card(ui, world, row);
         }
         Self::draw_actions(ui, false);
     }
@@ -1154,7 +1152,7 @@ impl SettingsScreen {
             .iter()
             .enumerate()
             .map(|(index, (key, value, tone))| {
-                PropsRow::new(ItemKey::index(index), *key, value).tone(*tone)
+                PropsRow::new(ItemKey::index(index), key, value).tone(*tone)
             })
             .collect();
         Panel::new(ENV_CARD)

@@ -2,7 +2,7 @@
 
 Source-facts schema version 2 preserves the original source pair and its
 CI/DCO observations, then records later source observations and the local
-checkout separately. `source_observation_history` retains the six
+checkout separately. `source_observation_history` retains the seven
 previous source snapshots in order, including their exact CI captures or an
 explicit `null` when no capture exists. CI and DCO checks apply only to their
 recorded head SHAs. Source observations, repository gates, and product results
@@ -306,13 +306,13 @@ the reference tree.
 
 ## Current source-facts refresh
 
-At `2026-10-10T22:54:12Z`, the measured candidate/reference pair is
-`d7c03139d0131157f1bd40eaf379d46c2e3814f8` /
+At `2026-10-11T03:58:22Z`, the measured candidate/reference pair is
+`9b11039bace9333a40f578c71e2e997e1182e415` /
 `2ae351dd27f0ee7d7d52ff6093208b0a57f62698`. The local checkout records the same
 candidate commit and tree, while its globally dirty working tree remains outside
 that identity. The frozen tag object/commit remain unchanged.
 
-CI run `38090751977` completed as a failure. Its workflow source was
+CI run `38108486387` completed as a failure. Its workflow source was
 115,446 bytes (SHA-256
 `664fe57510323c3d148cdad3f9a416bf383fa54276fa40efb4af95bd3b57804f`), so the
 earlier workflow-size failure no longer applies. No correlated provider run-page
@@ -325,7 +325,7 @@ jobs: 37 successful, 13 failed, and 1 skipped. The failures include
 `Publish baseline` was skipped. The run produced 49 non-expired artifacts.
 These are repository workflow observations, not product results.
 
-Candidate DCO check `114326526502` passed with no sign-off findings. Reference
+Candidate DCO check `114378959885` passed with no sign-off findings. Reference
 DCO check `114328215608` was `action_required` with 14 sign-off findings. The
 reference Actions query returned no matching runs. PR #17 remained an open draft
 with `mergeable=false`, merge state `dirty`, and no provider merge-state value.
@@ -344,9 +344,10 @@ first preserves source pair
 zero jobs and artifacts, the 537,470-byte workflow-size condition), both DCO
 results, PR state, and the bound local E2E package observation. The second
 preserves this same pair's partial queued run capture (49 jobs, 2 known
-failures, 7 queued, and 21 artifacts) before the terminal refresh. The six
-ordered source-history rows and other historical evidence records remain
-unchanged.
+failures, 7 queued, and 21 artifacts) before the terminal refresh. The former
+current `d7c03139d0131157f1bd40eaf379d46c2e3814f8` observation and completed
+run `38090751977` are now retained as the seventh ordered source-history row.
+The other normalized historical evidence records remain unchanged.
 
 ## Generate and check
 
@@ -362,7 +363,8 @@ Run the black-box CLI contract tests with Rust nextest:
 The `--role reference` option changes the local-role presentation and uses
 immutable candidate links for files that are absent from the reference tree.
 Each branch reads its checked-in task record. The archived revision-59 and
-revision-56 records remain historical snapshots.
+revision-56 records remain historical snapshots; the active accepted queue is
+revision 78.
 The default role is `candidate`; `--write` writes the role selected for the
 current checkout.
 

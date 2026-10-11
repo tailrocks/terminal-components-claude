@@ -252,7 +252,7 @@ fn validate_output_paths(request: &Request, request_path: &Path) -> Result<(), S
     Ok(())
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, test))]
 fn execute_request(
     request: Request,
     request_sha256: String,
@@ -473,7 +473,7 @@ fn hex_sha256(bytes: &[u8]) -> String {
 #[cfg(unix)]
 fn install_parent_signal_handlers() -> io::Result<()> {
     let mut action: libc::sigaction = unsafe { std::mem::zeroed() };
-    action.sa_sigaction = record_parent_signal as usize;
+    action.sa_sigaction = record_parent_signal as *const () as usize;
     action.sa_flags = 0;
     // SAFETY: the signal set is writable storage initialized by libc.
     if unsafe { libc::sigemptyset(&mut action.sa_mask) } != 0 {

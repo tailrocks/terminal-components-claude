@@ -25,13 +25,10 @@ pub mod transport {
     use std::time::Instant;
 
     use reqwest::blocking::{Client, ClientBuilder};
-    use reqwest::header::{
-        ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue,
-    };
+    use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue};
 
     use crate::api::{
-        HttpRequest, HttpResponse, MAX_ARTIFACT_DOWNLOAD_BYTES, ReadOnlyTransport,
-        TransportError,
+        HttpRequest, HttpResponse, MAX_ARTIFACT_DOWNLOAD_BYTES, ReadOnlyTransport, TransportError,
     };
 
     const USER_AGENT_VALUE: &str = "termrock-visibility-publisher";
@@ -120,8 +117,12 @@ pub mod transport {
         }
         if let Some(error) = error.downcast_ref::<rustls::Error>() {
             return match error {
-                rustls::Error::InvalidCertificate(rustls::CertificateError::UnknownIssuer) => "rustls:unknown-issuer",
-                rustls::Error::InvalidCertificate(rustls::CertificateError::NotValidForName) => "rustls:name-mismatch",
+                rustls::Error::InvalidCertificate(rustls::CertificateError::UnknownIssuer) => {
+                    "rustls:unknown-issuer"
+                }
+                rustls::Error::InvalidCertificate(rustls::CertificateError::NotValidForName) => {
+                    "rustls:name-mismatch"
+                }
                 rustls::Error::NoCertificatesPresented => "rustls:no-certificate",
                 rustls::Error::AlertReceived(_) => "rustls:alert",
                 rustls::Error::InvalidMessage(_) => "rustls:invalid-message",
@@ -241,27 +242,31 @@ pub mod transport {
                     .header("X-GitHub-Api-Version", "2022-11-28");
             }
 
-            let mut response = request
-                .timeout(remaining)
-                .send()
-                .map_err(|error| {
-                    #[cfg(test)]
-                    self.record_test_reqwest_error(&error);
-                    map_reqwest_error(&error, deadline)
-                })?;
+            let mut response = request.timeout(remaining).send().map_err(|error| {
+                #[cfg(test)]
+                self.record_test_reqwest_error(&error);
+                map_reqwest_error(&error, deadline)
+            })?;
             if Instant::now() >= deadline {
                 return Err(TransportError::Deadline);
             }
 
             let cap_as_u64 = u64::try_from(max_bytes).unwrap_or(u64::MAX);
-            if response.content_length().is_some_and(|length| length > cap_as_u64) {
+            if response
+                .content_length()
+                .is_some_and(|length| length > cap_as_u64)
+            {
                 return Err(TransportError::BodyLimit);
             }
 
             let status = response.status().as_u16();
             let headers = selected_headers(response.headers());
             let body = read_bounded(&mut response, deadline, max_bytes)?;
-            Ok(HttpResponse { status, headers, body })
+            Ok(HttpResponse {
+                status,
+                headers,
+                body,
+            })
         }
 
         #[cfg(test)]
@@ -274,7 +279,8 @@ pub mod transport {
                     || host.eq_ignore_ascii_case("objects.githubusercontent.com")
             });
             if is_test_host && url.port_or_known_default() == Some(443) {
-                url.set_port(Some(port)).map_err(|_| TransportError::Unavailable)?;
+                url.set_port(Some(port))
+                    .map_err(|_| TransportError::Unavailable)?;
             }
             Ok(url)
         }
@@ -333,7 +339,9 @@ pub mod transport {
 
     fn is_api_origin(url: &reqwest::Url) -> bool {
         url.scheme() == "https"
-            && url.host_str().is_some_and(|host| host.eq_ignore_ascii_case("api.github.com"))
+            && url
+                .host_str()
+                .is_some_and(|host| host.eq_ignore_ascii_case("api.github.com"))
             && url.port_or_known_default() == Some(443)
     }
 
@@ -369,9 +377,7 @@ pub mod transport {
         deadline: Instant,
         max_bytes: usize,
     ) -> Result<Vec<u8>, TransportError> {
-        let allocation_limit = max_bytes
-            .checked_add(1)
-            .ok_or(TransportError::BodyLimit)?;
+        let allocation_limit = max_bytes.checked_add(1).ok_or(TransportError::BodyLimit)?;
         let mut body = Vec::with_capacity(allocation_limit);
         let mut buffer = [0_u8; 8192];
 
@@ -386,9 +392,7 @@ pub mod transport {
             let read_size = remaining.min(buffer.len());
             let count = match response.read(&mut buffer[..read_size]) {
                 Ok(count) => count,
-                Err(error)
-                    if error.kind() == std::io::ErrorKind::Interrupted =>
-                {
+                Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {
                     continue;
                 }
                 Err(error)
@@ -426,13 +430,13 @@ pub mod transport {
         use std::time::{Duration, Instant};
 
         use rcgen::{
-            BasicConstraints, CertificateParams, ExtendedKeyUsagePurpose, IsCa, Issuer,
-            KeyPair, KeyUsagePurpose,
+            BasicConstraints, CertificateParams, ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair,
+            KeyUsagePurpose,
         };
         use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
         use rustls::{ServerConfig, ServerConnection, StreamOwned};
 
-        use crate::api::{ApiClient, ApiError, Repository, ReadOnlyTransport, TransportError};
+        use crate::api::{ApiClient, ApiError, ReadOnlyTransport, Repository, TransportError};
 
         use super::{ReqwestTransport, build_client, ensure_default_provider, sensitive_bearer};
 
@@ -450,8 +454,9 @@ pub mod transport {
         fn tls_material(server_names: &[&str]) -> TlsMaterial {
             ensure_default_provider().expect("Rustls provider should be available");
 
-            let mut root_params = CertificateParams::new(vec!["termrock-test-ca.invalid".to_owned()])
-                .expect("static CA name is valid");
+            let mut root_params =
+                CertificateParams::new(vec!["termrock-test-ca.invalid".to_owned()])
+                    .expect("static CA name is valid");
             root_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
             root_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
             let root_key = KeyPair::generate().expect("Ring can generate a test CA key");
@@ -485,7 +490,10 @@ pub mod transport {
         enum BodyWire {
             Fixed,
             Chunked,
-            Stall { prefix_bytes: usize, duration: Duration },
+            Stall {
+                prefix_bytes: usize,
+                duration: Duration,
+            },
         }
 
         struct ResponsePlan {
@@ -497,7 +505,12 @@ pub mod transport {
 
         impl ResponsePlan {
             fn fixed(status: u16, body: impl Into<Vec<u8>>) -> Self {
-                Self { status, headers: Vec::new(), body: body.into(), wire: BodyWire::Fixed }
+                Self {
+                    status,
+                    headers: Vec::new(),
+                    body: body.into(),
+                    wire: BodyWire::Fixed,
+                }
             }
 
             fn header(mut self, name: &str, value: &str) -> Self {
@@ -511,7 +524,10 @@ pub mod transport {
             }
 
             fn stall(mut self, prefix_bytes: usize, duration: Duration) -> Self {
-                self.wire = BodyWire::Stall { prefix_bytes, duration };
+                self.wire = BodyWire::Stall {
+                    prefix_bytes,
+                    duration,
+                };
                 self
             }
         }
@@ -523,7 +539,9 @@ pub mod transport {
 
         impl CapturedRequest {
             fn header(&self, name: &str) -> Option<&str> {
-                self.headers.get(&name.to_ascii_lowercase()).map(String::as_str)
+                self.headers
+                    .get(&name.to_ascii_lowercase())
+                    .map(String::as_str)
             }
 
             fn path(&self) -> Option<&str> {
@@ -544,8 +562,12 @@ pub mod transport {
         impl TestServer {
             fn start(responses: Vec<ResponsePlan>, server_names: &[&str]) -> Self {
                 let listener = TcpListener::bind(("127.0.0.1", 0)).expect("loopback bind succeeds");
-                listener.set_nonblocking(true).expect("loopback listener can be nonblocking");
-                let address = listener.local_addr().expect("loopback listener has an address");
+                listener
+                    .set_nonblocking(true)
+                    .expect("loopback listener can be nonblocking");
+                let address = listener
+                    .local_addr()
+                    .expect("loopback listener has an address");
                 let material = tls_material(server_names);
                 let config = Arc::new(
                     ServerConfig::builder()
@@ -613,7 +635,10 @@ pub mod transport {
             fn finish(&mut self) {
                 self.stopped.store(true, Ordering::Release);
                 if let Some(worker) = self.worker.take() {
-                    assert!(worker.join().is_ok(), "loopback server worker completed cleanly");
+                    assert!(
+                        worker.join().is_ok(),
+                        "loopback server worker completed cleanly"
+                    );
                 }
             }
         }
@@ -702,7 +727,10 @@ pub mod transport {
                 }
                 let count = stream.read(&mut buffer)?;
                 if count == 0 {
-                    return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "request closed"));
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "request closed",
+                    ));
                 }
                 bytes.extend_from_slice(&buffer[..count]);
                 if bytes.len() > MAX_TEST_HEADER_BYTES {
@@ -718,7 +746,9 @@ pub mod transport {
             let line = lines.next().unwrap_or_default().to_owned();
             let mut headers = BTreeMap::new();
             for line in lines {
-                if line.is_empty() { break; }
+                if line.is_empty() {
+                    break;
+                }
                 if let Some((name, value)) = line.split_once(':') {
                     headers.insert(name.trim().to_ascii_lowercase(), value.trim().to_owned());
                 }
@@ -751,7 +781,10 @@ pub mod transport {
                     stream.write_all(&response.body)?;
                     write!(stream, "\r\n0\r\n\r\n")?;
                 }
-                BodyWire::Stall { prefix_bytes, duration } => {
+                BodyWire::Stall {
+                    prefix_bytes,
+                    duration,
+                } => {
                     let prefix_bytes = prefix_bytes.min(response.body.len());
                     stream.write_all(&response.body[..prefix_bytes])?;
                     stream.flush()?;
@@ -808,15 +841,24 @@ pub mod transport {
 
         impl RecordingTransport {
             fn new(inner: ReqwestTransport) -> Self {
-                Self { inner, calls: Arc::new(Mutex::new(Vec::new())) }
+                Self {
+                    inner,
+                    calls: Arc::new(Mutex::new(Vec::new())),
+                }
             }
 
             fn count(&self) -> usize {
-                self.calls.lock().expect("recording mutex is available").len()
+                self.calls
+                    .lock()
+                    .expect("recording mutex is available")
+                    .len()
             }
 
             fn calls(&self) -> Vec<(bool, bool)> {
-                self.calls.lock().expect("recording mutex is available").clone()
+                self.calls
+                    .lock()
+                    .expect("recording mutex is available")
+                    .clone()
             }
         }
 
@@ -827,8 +869,8 @@ pub mod transport {
                 deadline: Instant,
                 max_bytes: usize,
             ) -> Result<crate::api::HttpResponse, TransportError> {
-                let parsed = reqwest::Url::parse(request.url())
-                    .map_err(|_| TransportError::Unavailable)?;
+                let parsed =
+                    reqwest::Url::parse(request.url()).map_err(|_| TransportError::Unavailable)?;
                 let is_api = super::is_api_origin(&parsed);
                 let has_auth = request.authorization().is_some();
                 self.calls
@@ -846,7 +888,10 @@ pub mod transport {
                 vec![
                     ResponsePlan::fixed(200, body.clone())
                         .header("Content-Encoding", "gzip")
-                        .header("Location", "https://objects.githubusercontent.com/a.zip?sig=hidden")
+                        .header(
+                            "Location",
+                            "https://objects.githubusercontent.com/a.zip?sig=hidden",
+                        )
                         .header("Retry-After", "7")
                         .header("X-RateLimit-Remaining", "9")
                         .header("X-Not-Forwarded", "ignored"),
@@ -864,18 +909,47 @@ pub mod transport {
             .expect("trusted loopback TLS request succeeds");
             assert!(response.status == 200, "response status was preserved");
             assert!(response.body == body, "raw body bytes were preserved");
-            assert!(response.headers.len() == 3, "only consumed response headers were returned");
-            assert!(response.headers.get("location").is_some(), "Location was preserved");
-            assert!(response.headers.get("retry-after").is_some(), "Retry-After was preserved");
-            assert!(response.headers.get("x-ratelimit-remaining").is_some(), "rate limit header was preserved");
+            assert!(
+                response.headers.len() == 3,
+                "only consumed response headers were returned"
+            );
+            assert!(
+                response.headers.get("location").is_some(),
+                "Location was preserved"
+            );
+            assert!(
+                response.headers.get("retry-after").is_some(),
+                "Retry-After was preserved"
+            );
+            assert!(
+                response.headers.get("x-ratelimit-remaining").is_some(),
+                "rate limit header was preserved"
+            );
 
-            let request = server.next_request().expect("TLS request reached the loopback server");
-            assert!(request.path() == Some("/repos/owner/repo/actions/runs/41"), "GET path was preserved");
+            let request = server
+                .next_request()
+                .expect("TLS request reached the loopback server");
+            assert!(
+                request.path() == Some("/repos/owner/repo/actions/runs/41"),
+                "GET path was preserved"
+            );
             assert!(request.line.starts_with("GET "), "only GET was issued");
-            assert!(request.header("user-agent") == Some(super::USER_AGENT_VALUE), "fixed User-Agent was set");
-            assert!(request.header("authorization") == Some("Bearer test-token-never-a-real-secret"), "API bearer header was set");
-            assert!(request.header("accept") == Some("application/vnd.github+json"), "API Accept header was set");
-            assert!(request.header("x-github-api-version") == Some("2022-11-28"), "API version header was set");
+            assert!(
+                request.header("user-agent") == Some(super::USER_AGENT_VALUE),
+                "fixed User-Agent was set"
+            );
+            assert!(
+                request.header("authorization") == Some("Bearer test-token-never-a-real-secret"),
+                "API bearer header was set"
+            );
+            assert!(
+                request.header("accept") == Some("application/vnd.github+json"),
+                "API Accept header was set"
+            );
+            assert!(
+                request.header("x-github-api-version") == Some("2022-11-28"),
+                "API version header was set"
+            );
             server.finish();
         }
 
@@ -887,13 +961,7 @@ pub mod transport {
             );
             let transport = server.client();
             let url = api_url("/diagnostic?query-must-not-be-logged");
-            let result = direct_get(
-                &transport,
-                &url,
-                None,
-                64,
-                Duration::from_secs(2),
-            );
+            let result = direct_get(&transport, &url, None, 64, Duration::from_secs(2));
             let (accepted_connections, _) = server.diagnostic();
             let request_observed = if accepted_connections > 0 {
                 server.next_request().is_some()
@@ -908,7 +976,9 @@ pub mod transport {
                 explicit_port: Some(server.address.port()),
                 effective_port: Some(server.address.port()),
             };
-            let transport_result = result.as_ref().map(|response| (response.status, response.body.len()));
+            let transport_result = result
+                .as_ref()
+                .map(|response| (response.status, response.body.len()));
             assert!(
                 result.is_ok()
                     && transport_diagnostic.wire.as_ref() == Some(&expected_wire)
@@ -925,11 +995,17 @@ pub mod transport {
         fn bearer_header_is_sensitive_and_its_debug_form_is_redacted() {
             let header = sensitive_bearer(TOKEN).expect("test token is a valid header value");
             assert!(header.is_sensitive(), "bearer value is marked sensitive");
-            assert!(!format!("{header:?}").contains(TOKEN), "header debug output hides the token");
+            assert!(
+                !format!("{header:?}").contains(TOKEN),
+                "header debug output hides the token"
+            );
             let malformed = "test-token-must-not-appear\ninvalid";
             let error = sensitive_bearer(malformed);
             assert!(error.is_err(), "invalid header characters are rejected");
-            assert!(!format!("{error:?}").contains(malformed), "header error output hides input text");
+            assert!(
+                !format!("{error:?}").contains(malformed),
+                "header error output hides input text"
+            );
         }
 
         #[test]
@@ -954,11 +1030,20 @@ pub mod transport {
                 .into_iter()
                 .map(|worker| worker.join().is_ok_and(|succeeded| succeeded))
                 .fold(true, |all_ok, succeeded| all_ok && succeeded);
-            assert!(all_succeeded, "concurrent provider initialization succeeded");
+            assert!(
+                all_succeeded,
+                "concurrent provider initialization succeeded"
+            );
             let after = rustls::crypto::CryptoProvider::get_default().cloned();
-            assert!(after.is_some(), "a process provider is available after initialization");
+            assert!(
+                after.is_some(),
+                "a process provider is available after initialization"
+            );
             if let (Some(before), Some(after)) = (before, after) {
-                assert!(Arc::ptr_eq(&before, &after), "an existing process provider was preserved");
+                assert!(
+                    Arc::ptr_eq(&before, &after),
+                    "an existing process provider was preserved"
+                );
             }
         }
 
@@ -976,18 +1061,37 @@ pub mod transport {
             let recorder = RecordingTransport::new(same_origin.client());
             let api = ApiClient::new(recorder.clone(), TOKEN).expect("test token is accepted");
             let repository = Repository::new("owner", "repo").expect("test repository is valid");
-            let run = api.get_run(&repository, 41).expect("API client follows same-origin redirect");
+            let run = api
+                .get_run(&repository, 41)
+                .expect("API client follows same-origin redirect");
             assert!(run.id == 41, "final same-origin response was parsed");
-            assert!(recorder.count() == 2, "both redirect hops went through the API transport");
-            assert!(recorder.calls() == vec![(true, true), (true, true)], "auth remained limited to API-origin GETs");
-            let first = same_origin.next_request().expect("first same-origin request was observed");
-            let second = same_origin.next_request().expect("second same-origin request was observed");
-            assert!(first.header("authorization") == Some("Bearer test-token-never-a-real-secret"), "first API request was authenticated");
-            assert!(second.header("authorization") == Some("Bearer test-token-never-a-real-secret"), "same-origin redirect retained auth");
+            assert!(
+                recorder.count() == 2,
+                "both redirect hops went through the API transport"
+            );
+            assert!(
+                recorder.calls() == vec![(true, true), (true, true)],
+                "auth remained limited to API-origin GETs"
+            );
+            let first = same_origin
+                .next_request()
+                .expect("first same-origin request was observed");
+            let second = same_origin
+                .next_request()
+                .expect("second same-origin request was observed");
+            assert!(
+                first.header("authorization") == Some("Bearer test-token-never-a-real-secret"),
+                "first API request was authenticated"
+            );
+            assert!(
+                second.header("authorization") == Some("Bearer test-token-never-a-real-secret"),
+                "same-origin redirect retained auth"
+            );
             same_origin.finish();
 
             let artifact_bytes = b"opaque-zip-payload".to_vec();
-            let location = "https://objects.githubusercontent.com/artifacts/77.zip?sig=private-query";
+            let location =
+                "https://objects.githubusercontent.com/artifacts/77.zip?sig=private-query";
             let mut cross_origin = TestServer::start(
                 vec![
                     ResponsePlan::fixed(302, Vec::<u8>::new()).header("Location", location),
@@ -1001,25 +1105,58 @@ pub mod transport {
             let downloaded = api
                 .download_artifact(&repository, 77, 1024)
                 .expect("API client follows the safe artifact redirect");
-            assert!(downloaded == artifact_bytes, "artifact bytes remained unchanged");
-            assert!(recorder.count() == 2, "both redirect hops went through the API transport");
-            assert!(recorder.calls() == vec![(true, true), (false, false)], "auth was removed before the cross-origin GET");
-            let api_request = cross_origin.next_request().expect("API redirect request was observed");
-            let cdn_request = cross_origin.next_request().expect("CDN artifact request was observed");
-            assert!(api_request.header("authorization").is_some(), "API origin was authenticated");
-            assert!(cdn_request.header("authorization").is_none(), "cross-origin request omitted auth");
-            assert!(cdn_request.header("x-github-api-version").is_none(), "CDN request omitted API version header");
-            assert!(cdn_request.header("accept") != Some("application/vnd.github+json"), "CDN request omitted API Accept header");
-            assert!(cdn_request.header("referer").is_none(), "redirect did not add Referer");
-            assert!(cdn_request.line.starts_with("GET "), "redirect remained GET-only");
+            assert!(
+                downloaded == artifact_bytes,
+                "artifact bytes remained unchanged"
+            );
+            assert!(
+                recorder.count() == 2,
+                "both redirect hops went through the API transport"
+            );
+            assert!(
+                recorder.calls() == vec![(true, true), (false, false)],
+                "auth was removed before the cross-origin GET"
+            );
+            let api_request = cross_origin
+                .next_request()
+                .expect("API redirect request was observed");
+            let cdn_request = cross_origin
+                .next_request()
+                .expect("CDN artifact request was observed");
+            assert!(
+                api_request.header("authorization").is_some(),
+                "API origin was authenticated"
+            );
+            assert!(
+                cdn_request.header("authorization").is_none(),
+                "cross-origin request omitted auth"
+            );
+            assert!(
+                cdn_request.header("x-github-api-version").is_none(),
+                "CDN request omitted API version header"
+            );
+            assert!(
+                cdn_request.header("accept") != Some("application/vnd.github+json"),
+                "CDN request omitted API Accept header"
+            );
+            assert!(
+                cdn_request.header("referer").is_none(),
+                "redirect did not add Referer"
+            );
+            assert!(
+                cdn_request.line.starts_with("GET "),
+                "redirect remained GET-only"
+            );
             cross_origin.finish();
         }
 
         #[test]
         fn transport_returns_redirect_without_following_it() {
             let mut server = TestServer::start(
-                vec![ResponsePlan::fixed(302, Vec::<u8>::new())
-                    .header("Location", "https://objects.githubusercontent.com/a.zip?sig=opaque")],
+                vec![ResponsePlan::fixed(302, Vec::<u8>::new()).header(
+                    "Location",
+                    "https://objects.githubusercontent.com/a.zip?sig=opaque",
+                )],
                 &[API_HOST, CDN_HOST],
             );
             let transport = server.client();
@@ -1031,9 +1168,18 @@ pub mod transport {
                 Duration::from_secs(2),
             )
             .expect("redirect response is returned to ApiClient");
-            assert!(response.status == 302, "transport returned the redirect status");
-            assert!(response.headers.contains_key("location"), "transport returned Location");
-            assert!(server.next_request().is_some(), "exactly one transport request reached the server");
+            assert!(
+                response.status == 302,
+                "transport returned the redirect status"
+            );
+            assert!(
+                response.headers.contains_key("location"),
+                "transport returned Location"
+            );
+            assert!(
+                server.next_request().is_some(),
+                "exactly one transport request reached the server"
+            );
             server.finish();
         }
 
@@ -1053,7 +1199,10 @@ pub mod transport {
             )
             .expect("body exactly at the byte cap succeeds");
             assert!(response.body == b"123456", "exact-cap body is complete");
-            assert!(exact.next_request().is_some(), "exact-cap request reached server");
+            assert!(
+                exact.next_request().is_some(),
+                "exact-cap request reached server"
+            );
             exact.finish();
 
             let mut declared = TestServer::start(
@@ -1067,8 +1216,14 @@ pub mod transport {
                 cap,
                 Duration::from_secs(2),
             );
-            assert!(declared_result == Err(TransportError::BodyLimit), "declared over-cap body is rejected");
-            assert!(declared.next_request().is_some(), "declared over-cap request reached server");
+            assert!(
+                declared_result == Err(TransportError::BodyLimit),
+                "declared over-cap body is rejected"
+            );
+            assert!(
+                declared.next_request().is_some(),
+                "declared over-cap request reached server"
+            );
             declared.finish();
 
             let mut chunked = TestServer::start(
@@ -1082,23 +1237,29 @@ pub mod transport {
                 cap,
                 Duration::from_secs(2),
             );
-            assert!(chunked_result == Err(TransportError::BodyLimit), "chunked over-cap body is rejected");
-            assert!(chunked.next_request().is_some(), "chunked over-cap request reached server");
+            assert!(
+                chunked_result == Err(TransportError::BodyLimit),
+                "chunked over-cap body is rejected"
+            );
+            assert!(
+                chunked.next_request().is_some(),
+                "chunked over-cap request reached server"
+            );
             chunked.finish();
         }
 
         #[test]
         fn expired_deadline_makes_no_connection_and_stalled_body_times_out() {
             let listener = TcpListener::bind(("127.0.0.1", 0)).expect("loopback bind succeeds");
-            listener.set_nonblocking(true).expect("listener can check for a connection");
+            listener
+                .set_nonblocking(true)
+                .expect("listener can check for a connection");
             let address = listener.local_addr().expect("listener has local address");
             let root = tls_material(&[API_HOST]);
-            let cert = reqwest::Certificate::from_der(&root.root_der).expect("generated CA is valid");
-            let client = build_client(
-                Some(vec![cert]),
-                &[(API_HOST.to_owned(), address)],
-            )
-            .expect("test client builds");
+            let cert =
+                reqwest::Certificate::from_der(&root.root_der).expect("generated CA is valid");
+            let client = build_client(Some(vec![cert]), &[(API_HOST.to_owned(), address)])
+                .expect("test client builds");
             let transport = ReqwestTransport::with_client(client);
             let expired = transport.execute_get(
                 &api_url("/expired"),
@@ -1106,8 +1267,14 @@ pub mod transport {
                 Instant::now() - Duration::from_millis(1),
                 8,
             );
-            assert!(expired == Err(TransportError::Deadline), "expired deadline is rejected");
-            assert!(listener_has_no_connection(&listener), "expired deadline opened no TCP connection");
+            assert!(
+                expired == Err(TransportError::Deadline),
+                "expired deadline is rejected"
+            );
+            assert!(
+                listener_has_no_connection(&listener),
+                "expired deadline opened no TCP connection"
+            );
 
             let mut stalled = TestServer::start(
                 vec![ResponsePlan::fixed(200, b"ab".to_vec()).stall(1, Duration::from_millis(350))],
@@ -1122,18 +1289,25 @@ pub mod transport {
                 8,
                 Duration::from_millis(120),
             );
-            assert!(result == Err(TransportError::Deadline), "stalled body is bounded by the absolute deadline");
-            assert!(start.elapsed() < Duration::from_secs(2), "body timeout returned promptly");
-            assert!(stalled.next_request().is_some(), "stalled request reached the loopback server");
+            assert!(
+                result == Err(TransportError::Deadline),
+                "stalled body is bounded by the absolute deadline"
+            );
+            assert!(
+                start.elapsed() < Duration::from_secs(2),
+                "body timeout returned promptly"
+            );
+            assert!(
+                stalled.next_request().is_some(),
+                "stalled request reached the loopback server"
+            );
             stalled.finish();
         }
 
         #[test]
         fn test_client_trusts_only_ca_and_rejects_hostname_mismatch() {
-            let mut trusted = TestServer::start(
-                vec![ResponsePlan::fixed(200, b"ok".to_vec())],
-                &[API_HOST],
-            );
+            let mut trusted =
+                TestServer::start(vec![ResponsePlan::fixed(200, b"ok".to_vec())], &[API_HOST]);
             let response = direct_get(
                 &trusted.client(),
                 &api_url("/trusted"),
@@ -1143,7 +1317,10 @@ pub mod transport {
             )
             .expect("test-only CA permits trusted SAN");
             assert!(response.body == b"ok", "trusted SAN response was read");
-            assert!(trusted.next_request().is_some(), "trusted request reached server");
+            assert!(
+                trusted.next_request().is_some(),
+                "trusted request reached server"
+            );
             trusted.finish();
 
             let mut untrusted = TestServer::start(
@@ -1168,8 +1345,14 @@ pub mod transport {
                 64,
                 Duration::from_secs(2),
             );
-            assert!(result == Err(TransportError::Unavailable), "untrusted test CA is rejected");
-            assert!(untrusted.next_request().is_none(), "untrusted CA reached no HTTP request");
+            assert!(
+                result == Err(TransportError::Unavailable),
+                "untrusted test CA is rejected"
+            );
+            assert!(
+                untrusted.next_request().is_none(),
+                "untrusted CA reached no HTTP request"
+            );
             untrusted.finish();
 
             let mut wrong_name = TestServer::start(
@@ -1183,45 +1366,72 @@ pub mod transport {
                 64,
                 Duration::from_secs(2),
             );
-            assert!(result == Err(TransportError::Unavailable), "trusted CA does not bypass hostname validation");
-            assert!(wrong_name.next_request().is_none(), "hostname mismatch reached no HTTP request");
+            assert!(
+                result == Err(TransportError::Unavailable),
+                "trusted CA does not bypass hostname validation"
+            );
+            assert!(
+                wrong_name.next_request().is_none(),
+                "hostname mismatch reached no HTTP request"
+            );
             wrong_name.finish();
         }
 
         #[test]
         fn https_only_builder_rejects_plain_http_before_connecting() {
             let listener = TcpListener::bind(("127.0.0.1", 0)).expect("loopback bind succeeds");
-            listener.set_nonblocking(true).expect("listener can check for a connection");
+            listener
+                .set_nonblocking(true)
+                .expect("listener can check for a connection");
             let address = listener.local_addr().expect("listener has local address");
             let transport = ReqwestTransport::new().expect("production client builds");
             let url = format!("http://127.0.0.1:{}/blocked", address.port());
-            let result = direct_get(
-                &transport,
-                &url,
-                None,
-                8,
-                Duration::from_secs(2),
+            let result = direct_get(&transport, &url, None, 8, Duration::from_secs(2));
+            assert!(
+                result == Err(TransportError::Unavailable),
+                "plain HTTP is rejected by shared builder"
             );
-            assert!(result == Err(TransportError::Unavailable), "plain HTTP is rejected by shared builder");
-            assert!(listener_has_no_connection(&listener), "plain HTTP opened no connection");
+            assert!(
+                listener_has_no_connection(&listener),
+                "plain HTTP opened no connection"
+            );
         }
 
         #[test]
         fn api_error_classification_receives_rate_limit_headers() {
             let mut server = TestServer::start(
-                vec![ResponsePlan::fixed(429, b"{}".to_vec())
-                    .header("Retry-After", "11")
-                    .header("X-RateLimit-Remaining", "0")],
+                vec![
+                    ResponsePlan::fixed(429, b"{}".to_vec())
+                        .header("Retry-After", "11")
+                        .header("X-RateLimit-Remaining", "0"),
+                ],
                 &[API_HOST],
             );
             let transport = RecordingTransport::new(server.client());
             let client = ApiClient::new(transport.clone(), TOKEN).expect("test token is accepted");
             let repository = Repository::new("owner", "repo").expect("test repository is valid");
-            let error = client.get_run(&repository, 41).expect_err("429 is not a successful run response");
-            assert!(error == ApiError::RateLimited { retry_after_seconds: Some(11) }, "rate limit headers were preserved for API classification");
-            assert!(transport.count() == 1, "429 did not trigger an automatic retry");
-            assert!(transport.calls() == vec![(true, true)], "429 was one authenticated API GET");
-            assert!(server.next_request().is_some(), "rate-limited request reached server");
+            let error = client
+                .get_run(&repository, 41)
+                .expect_err("429 is not a successful run response");
+            assert!(
+                error
+                    == ApiError::RateLimited {
+                        retry_after_seconds: Some(11)
+                    },
+                "rate limit headers were preserved for API classification"
+            );
+            assert!(
+                transport.count() == 1,
+                "429 did not trigger an automatic retry"
+            );
+            assert!(
+                transport.calls() == vec![(true, true)],
+                "429 was one authenticated API GET"
+            );
+            assert!(
+                server.next_request().is_some(),
+                "rate-limited request reached server"
+            );
             server.finish();
         }
     }
@@ -1325,20 +1535,33 @@ impl std::fmt::Display for IngestError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidInput(message) => write!(f, "invalid ingestion input: {message}"),
-            Self::DuplicateRunIds => f.write_str("caller, target, and observer run IDs must be distinct"),
+            Self::DuplicateRunIds => {
+                f.write_str("caller, target, and observer run IDs must be distinct")
+            }
             Self::Api(error) => write!(f, "GitHub API read failed: {error}"),
             Self::CallerMismatch(field) => write!(f, "caller run does not match expected {field}"),
             Self::TargetMissing => f.write_str("no matching target workflow run was found"),
             Self::TargetAmbiguous => f.write_str("multiple newest target workflow runs match"),
             Self::TargetInProgress { run_id, status } => {
-                write!(f, "newest target run {run_id} is not complete (status {status})")
+                write!(
+                    f,
+                    "newest target run {run_id} is not complete (status {status})"
+                )
             }
-            Self::ObserverMismatch(field) => write!(f, "observer run does not match expected {field}"),
+            Self::ObserverMismatch(field) => {
+                write!(f, "observer run does not match expected {field}")
+            }
             Self::ArtifactMissing => f.write_str("observer artifact is missing"),
             Self::ArtifactAmbiguous => f.write_str("multiple observer artifacts match"),
-            Self::ArtifactMismatch(field) => write!(f, "observer artifact does not match expected {field}"),
-            Self::ArtifactDigestMismatch => f.write_str("observer artifact digest does not match downloaded bytes"),
-            Self::ObserverMismatchData(field) => write!(f, "observer JSON does not match resolved {field}"),
+            Self::ArtifactMismatch(field) => {
+                write!(f, "observer artifact does not match expected {field}")
+            }
+            Self::ArtifactDigestMismatch => {
+                f.write_str("observer artifact digest does not match downloaded bytes")
+            }
+            Self::ObserverMismatchData(field) => {
+                write!(f, "observer JSON does not match resolved {field}")
+            }
             Self::Observer(error) => write!(f, "invalid observer artifact: {error}"),
         }
     }
@@ -1393,7 +1616,8 @@ pub fn ingest<T: api::ReadOnlyTransport>(
     validate_run_identity(&observer, &request.observer, false)
         .map_err(|_| IngestError::ObserverMismatch("run identity"))?;
 
-    let target_jobs = client.list_jobs(&request.target.repository, target.id, target.run_attempt)?;
+    let target_jobs =
+        client.list_jobs(&request.target.repository, target.id, target.run_attempt)?;
     let artifacts = client.list_artifacts(&request.observer.repository, observer.id)?;
     let matching: Vec<_> = artifacts
         .into_iter()
@@ -1404,7 +1628,11 @@ pub fn ingest<T: api::ReadOnlyTransport>(
         [artifact] => artifact.clone(),
         _ => return Err(IngestError::ArtifactAmbiguous),
     };
-    validate_artifact(&artifact, &request.observer, &request.observer_artifact_name)?;
+    validate_artifact(
+        &artifact,
+        &request.observer,
+        &request.observer_artifact_name,
+    )?;
 
     let archive = client.download_artifact(
         &request.observer.repository,
@@ -1424,8 +1652,8 @@ pub fn ingest<T: api::ReadOnlyTransport>(
         return Err(IngestError::ArtifactDigestMismatch);
     }
     let json = decode_observer_zip(&archive, MAX_OBSERVER_ZIP_BYTES, MAX_OBSERVER_JSON_BYTES)?;
-    let observer_report: ObserverReportV2 = serde_json::from_slice(&json)
-        .map_err(|_| ObserverError::InvalidJson)?;
+    let observer_report: ObserverReportV2 =
+        serde_json::from_slice(&json).map_err(|_| ObserverError::InvalidJson)?;
     validate_observer_report(&observer_report, request, &target, &target_jobs)?;
 
     Ok(IngestedObservation {
@@ -1446,7 +1674,9 @@ fn validate_request(request: &IngestRequest) -> Result<(), IngestError> {
     let observer = &request.observer;
     let target = &request.target;
     if caller.run_id == 0 || caller.attempt == 0 || observer.run_id == 0 || observer.attempt == 0 {
-        return Err(IngestError::InvalidInput("run IDs and attempts must be positive"));
+        return Err(IngestError::InvalidInput(
+            "run IDs and attempts must be positive",
+        ));
     }
     if caller.workflow_id == 0 || observer.workflow_id == 0 || target.workflow_id == 0 {
         return Err(IngestError::InvalidInput("workflow IDs must be positive"));
@@ -1455,40 +1685,68 @@ fn validate_request(request: &IngestRequest) -> Result<(), IngestError> {
         return Err(IngestError::DuplicateRunIds);
     }
     if caller.repository != observer.repository || caller.repository != target.repository {
-        return Err(IngestError::InvalidInput("all identities must use the accepted repository"));
+        return Err(IngestError::InvalidInput(
+            "all identities must use the accepted repository",
+        ));
     }
-    if !is_sha1(&caller.head_sha) || !is_sha1(&observer.head_sha)
-        || !is_sha1(&target.head_sha) || !is_sha1(&request.caller.workflow_sha)
+    if !is_sha1(&caller.head_sha)
+        || !is_sha1(&observer.head_sha)
+        || !is_sha1(&target.head_sha)
+        || !is_sha1(&request.caller.workflow_sha)
     {
-        return Err(IngestError::InvalidInput("commit SHAs must be 40 lowercase hexadecimal characters"));
+        return Err(IngestError::InvalidInput(
+            "commit SHAs must be 40 lowercase hexadecimal characters",
+        ));
     }
-    if !safe_workflow_path(&caller.workflow_path) || !safe_workflow_path(&observer.workflow_path)
+    if !safe_workflow_path(&caller.workflow_path)
+        || !safe_workflow_path(&observer.workflow_path)
         || !safe_workflow_path(&target.workflow_path)
     {
-        return Err(IngestError::InvalidInput("workflow paths must be safe repository-relative paths"));
+        return Err(IngestError::InvalidInput(
+            "workflow paths must be safe repository-relative paths",
+        ));
     }
-    if !valid_ref_name(&caller.branch) || !valid_ref_name(&observer.branch)
-        || !valid_ref_name(&target.branch) || caller.event.is_empty()
-        || observer.event.is_empty() || target.event.is_empty()
+    if !valid_ref_name(&caller.branch)
+        || !valid_ref_name(&observer.branch)
+        || !valid_ref_name(&target.branch)
+        || caller.event.is_empty()
+        || observer.event.is_empty()
+        || target.event.is_empty()
     {
-        return Err(IngestError::InvalidInput("branches and events must be non-empty and safe"));
+        return Err(IngestError::InvalidInput(
+            "branches and events must be non-empty and safe",
+        ));
     }
-    if caller.branch != observer.branch || caller.branch != target.branch
-        || caller.head_sha != observer.head_sha || caller.head_sha != target.head_sha
+    if caller.branch != observer.branch
+        || caller.branch != target.branch
+        || caller.head_sha != observer.head_sha
+        || caller.head_sha != target.head_sha
     {
-        return Err(IngestError::InvalidInput("caller, target, and observer must refer to the same branch and commit"));
+        return Err(IngestError::InvalidInput(
+            "caller, target, and observer must refer to the same branch and commit",
+        ));
     }
     let expected_ref = format!(
         "{}/{}@refs/heads/{}",
-        caller.repository.full_name(), caller.workflow_path, caller.branch
+        caller.repository.full_name(),
+        caller.workflow_path,
+        caller.branch
     );
     if request.caller.workflow_ref != expected_ref {
-        return Err(IngestError::InvalidInput("caller workflow_ref does not match repository/path/branch"));
+        return Err(IngestError::InvalidInput(
+            "caller workflow_ref does not match repository/path/branch",
+        ));
     }
     if request.observer_artifact_name.is_empty()
-        || !artifact_name_binds_run(&request.observer_artifact_name, observer.run_id, observer.attempt)
+        || !artifact_name_binds_run(
+            &request.observer_artifact_name,
+            observer.run_id,
+            observer.attempt,
+        )
     {
-        return Err(IngestError::InvalidInput("artifact name must contain the observer run ID and attempt tokens"));
+        return Err(IngestError::InvalidInput(
+            "artifact name must contain the observer run ID and attempt tokens",
+        ));
     }
     Ok(())
 }
@@ -1499,16 +1757,36 @@ fn validate_run_identity(
     caller: bool,
 ) -> Result<(), IngestError> {
     let mismatch = |field| {
-        if caller { IngestError::CallerMismatch(field) } else { IngestError::ObserverMismatch(field) }
+        if caller {
+            IngestError::CallerMismatch(field)
+        } else {
+            IngestError::ObserverMismatch(field)
+        }
     };
-    if run.id != expected.run_id { return Err(mismatch("run ID")); }
-    if run.run_attempt != expected.attempt { return Err(mismatch("attempt")); }
-    if run.workflow_id != expected.workflow_id { return Err(mismatch("workflow ID")); }
-    if run.repository != expected.repository.full_name() { return Err(mismatch("repository")); }
-    if run.workflow_path != expected.workflow_path { return Err(mismatch("workflow path")); }
-    if run.event != expected.event { return Err(mismatch("event")); }
-    if run.head_branch != expected.branch { return Err(mismatch("branch")); }
-    if run.head_sha != expected.head_sha { return Err(mismatch("head SHA")); }
+    if run.id != expected.run_id {
+        return Err(mismatch("run ID"));
+    }
+    if run.run_attempt != expected.attempt {
+        return Err(mismatch("attempt"));
+    }
+    if run.workflow_id != expected.workflow_id {
+        return Err(mismatch("workflow ID"));
+    }
+    if run.repository != expected.repository.full_name() {
+        return Err(mismatch("repository"));
+    }
+    if run.workflow_path != expected.workflow_path {
+        return Err(mismatch("workflow path"));
+    }
+    if run.event != expected.event {
+        return Err(mismatch("event"));
+    }
+    if run.head_branch != expected.branch {
+        return Err(mismatch("branch"));
+    }
+    if run.head_sha != expected.head_sha {
+        return Err(mismatch("head SHA"));
+    }
     Ok(())
 }
 
@@ -1517,15 +1795,24 @@ fn validate_artifact(
     observer: &RunIdentity,
     expected_name: &str,
 ) -> Result<(), IngestError> {
-    if artifact.name != expected_name || !artifact_name_binds_run(&artifact.name, observer.run_id, observer.attempt) {
+    if artifact.name != expected_name
+        || !artifact_name_binds_run(&artifact.name, observer.run_id, observer.attempt)
+    {
         return Err(IngestError::ArtifactMismatch("name/run/attempt binding"));
     }
-    if artifact.expired { return Err(IngestError::ArtifactMismatch("expired")); }
+    if artifact.expired {
+        return Err(IngestError::ArtifactMismatch("expired"));
+    }
     if artifact.size_in_bytes == 0 || artifact.size_in_bytes > MAX_OBSERVER_ZIP_BYTES as u64 {
         return Err(IngestError::ArtifactMismatch("archive size bound"));
     }
-    let association = artifact.workflow_run.as_ref().ok_or(IngestError::ArtifactMismatch("run association"))?;
-    if association.id != observer.run_id { return Err(IngestError::ArtifactMismatch("run association")); }
+    let association = artifact
+        .workflow_run
+        .as_ref()
+        .ok_or(IngestError::ArtifactMismatch("run association"))?;
+    if association.id != observer.run_id {
+        return Err(IngestError::ArtifactMismatch("run association"));
+    }
     if association.head_sha != observer.head_sha || association.head_branch != observer.branch {
         return Err(IngestError::ArtifactMismatch("source association"));
     }
@@ -1546,29 +1833,44 @@ fn validate_observer_report(
     {
         return Err(IngestError::ObserverMismatchData("observer run/attempt"));
     }
-    if report.event != request.observer.event || report.branch != request.observer.branch
+    if report.event != request.observer.event
+        || report.branch != request.observer.branch
         || report.event_sha != request.observer.head_sha
     {
         return Err(IngestError::ObserverMismatchData("observer event identity"));
     }
     if report.product_execution != "NOT_RUN" {
-        return Err(IngestError::ObserverMismatchData("product execution status"));
+        return Err(IngestError::ObserverMismatchData(
+            "product execution status",
+        ));
     }
     if report.jobs_scope != "run_attempt" || report.artifacts_scope != "whole_run" {
         return Err(IngestError::ObserverMismatchData("observation scope"));
     }
-    if !matches!(report.observer_state.as_str(),
-        "measured" | "pending_timeout" | "confirmed_missing_within_window" | "ambiguous" | "api_error")
-    {
+    if !matches!(
+        report.observer_state.as_str(),
+        "measured"
+            | "pending_timeout"
+            | "confirmed_missing_within_window"
+            | "ambiguous"
+            | "api_error"
+    ) {
         return Err(IngestError::ObserverMismatchData("observer state"));
     }
-    if !matches!(report.source_state.as_str(), "not_attempted" | "fetching" | "fetched" | "api_error") {
+    if !matches!(
+        report.source_state.as_str(),
+        "not_attempted" | "fetching" | "fetched" | "api_error"
+    ) {
         return Err(IngestError::ObserverMismatchData("workflow source state"));
     }
     let target_identity = match (report.run_id, report.run_attempt) {
         (Some(run_id), Some(attempt)) => Some((run_id, attempt)),
         (None, None) => None,
-        _ => return Err(IngestError::ObserverMismatchData("partial target run identity")),
+        _ => {
+            return Err(IngestError::ObserverMismatchData(
+                "partial target run identity",
+            ));
+        }
     };
     if target_identity != Some((target.id, target.run_attempt))
         || report.target_run_state != target.status
@@ -1578,15 +1880,25 @@ fn validate_observer_report(
         return Err(IngestError::ObserverMismatchData("target run facts"));
     }
     if report.observer_state != "measured" {
-        return Err(IngestError::ObserverMismatchData("resolved target must be measured"));
+        return Err(IngestError::ObserverMismatchData(
+            "resolved target must be measured",
+        ));
     }
     if report.jobs_count != Some(target_jobs.len()) {
         return Err(IngestError::ObserverMismatchData("job count"));
     }
     if report.source_state != "fetched"
-        || report.workflow_source_blob_sha.as_deref().map_or(true, |value| !is_sha1(value))
-        || report.workflow_source_bytes.map_or(true, |bytes| bytes == 0 || bytes > api::MAX_WORKFLOW_FILE_BYTES)
-        || report.workflow_source_sha256.as_deref().map_or(true, |value| !is_sha256(value))
+        || report
+            .workflow_source_blob_sha
+            .as_deref()
+            .map_or(true, |value| !is_sha1(value))
+        || report.workflow_source_bytes.map_or(true, |bytes| {
+            bytes == 0 || bytes > api::MAX_WORKFLOW_FILE_BYTES
+        })
+        || report
+            .workflow_source_sha256
+            .as_deref()
+            .map_or(true, |value| !is_sha256(value))
         || report.artifacts_count.is_none()
         || report.error.is_some()
     {
@@ -1596,36 +1908,64 @@ fn validate_observer_report(
 }
 
 fn artifact_name_binds_run(name: &str, run_id: u64, attempt: u32) -> bool {
-    let numeric_tokens: Vec<&str> = name.split(|character: char| !character.is_ascii_digit())
-        .filter(|token| !token.is_empty()).collect();
+    let numeric_tokens: Vec<&str> = name
+        .split(|character: char| !character.is_ascii_digit())
+        .filter(|token| !token.is_empty())
+        .collect();
     let run = run_id.to_string();
     let attempt = attempt.to_string();
-    let run_count = numeric_tokens.iter().filter(|token| **token == run.as_str()).count();
-    let attempt_count = numeric_tokens.iter().filter(|token| **token == attempt.as_str()).count();
-    if run == attempt { run_count >= 2 } else { run_count >= 1 && attempt_count >= 1 }
+    let run_count = numeric_tokens
+        .iter()
+        .filter(|token| **token == run.as_str())
+        .count();
+    let attempt_count = numeric_tokens
+        .iter()
+        .filter(|token| **token == attempt.as_str())
+        .count();
+    if run == attempt {
+        run_count >= 2
+    } else {
+        run_count >= 1 && attempt_count >= 1
+    }
 }
 
 fn safe_workflow_path(path: &str) -> bool {
-    if path.is_empty() || path.starts_with('/') || path.contains('\\') { return false; }
+    if path.is_empty() || path.starts_with('/') || path.contains('\\') {
+        return false;
+    }
     path.split('/').all(|segment| {
-        !segment.is_empty() && segment != "." && segment != ".."
-            && segment.chars().all(|character| character.is_ascii_alphanumeric() || "._-".contains(character))
+        !segment.is_empty()
+            && segment != "."
+            && segment != ".."
+            && segment
+                .chars()
+                .all(|character| character.is_ascii_alphanumeric() || "._-".contains(character))
     })
 }
 
 fn is_sha1(value: &str) -> bool {
-    value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    value.len() == 40
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
 fn is_sha256(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
 fn valid_ref_name(value: &str) -> bool {
-    !value.is_empty() && !value.starts_with('/') && !value.ends_with('/')
-        && !value.contains("..") && !value.contains("@{")
+    !value.is_empty()
+        && !value.starts_with('/')
+        && !value.ends_with('/')
+        && !value.contains("..")
+        && !value.contains("@{")
         && value.bytes().all(|byte| {
-            !byte.is_ascii_control() && !matches!(byte, b' ' | b'~' | b'^' | b':' | b'?' | b'*' | b'[' | b'\\')
+            !byte.is_ascii_control()
+                && !matches!(byte, b' ' | b'~' | b'^' | b':' | b'?' | b'*' | b'[' | b'\\')
         })
 }
 

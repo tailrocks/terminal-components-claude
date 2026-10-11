@@ -694,13 +694,6 @@
       "rule": "OWN-03"
     },
     {
-      "max": 12,
-      "path": "crates/jackin-preview-app/src/app.rs",
-      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-04"
-    },
-    {
       "max": 13,
       "path": "crates/jackin-preview-app/src/app.rs",
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
@@ -715,39 +708,53 @@
       "rule": "OWN-11"
     },
     {
-      "max": 4437,
-      "path": "crates/jackin-preview-app/src/app/historical_accounts_settings_usage.rs",
-      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 27,
+      "max": 12,
       "path": "crates/jackin-preview-host-ui/src/accounts.rs",
       "reason": "Accounts screen component composition (FIX-002): tree/inspector rows painted inside stock Panel/SplitPane/Meter/Button draw closures, manager.rs pattern; ratcheted Q67-J1d.",
       "review": "Q67-J1d accounts live tree; independent review pending at land time",
       "rule": "OWN-02"
     },
     {
-      "max": 5,
+      "max": 3,
       "path": "crates/jackin-preview-host-ui/src/accounts.rs",
       "reason": "Accounts screen component composition (FIX-002): row/inspector text helpers inside stock component draw closures, manager.rs pattern; ratcheted Q67-J1d.",
       "review": "Q67-J1d accounts live tree; independent review pending at land time",
       "rule": "OWN-04"
     },
     {
-      "max": 3,
+      "max": 4,
       "path": "crates/jackin-preview-host-ui/src/accounts.rs",
-      "reason": "Accounts screen component composition (FIX-002): narrow/wide responsive layout switches, manager.rs pattern; ratcheted Q67-J1d.",
-      "review": "Q67-J1d accounts live tree; independent review pending at land time",
+      "reason": "VIS-20 uncovered staged CI repair: preview composition updates admitted at the observed ratchet count.",
+      "review": "VIS-20 independent review pending at land time: /root/current_branch_comparison_luna.",
       "rule": "OWN-11"
     },
     {
-      "max": 4,
-      "path": "crates/jackin-preview-host-ui/src/settings.rs",
-      "reason": "Settings trust-tab component composition (FIX-002): title/counts/notes text painted around the stock Tabs/List/Button composition, manager.rs pattern; ratcheted Q67-J1d.",
-      "review": "Q67-J1d settings live trust; independent review pending at land time",
+      "max": 2,
+      "path": "crates/jackin-preview-host-ui/src/editor.rs",
+      "reason": "VIS-20 uncovered staged CI repair: preview composition updates admitted at the observed ratchet count.",
+      "review": "VIS-20 independent review pending at land time: /root/current_branch_comparison_luna.",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 24,
+      "path": "crates/jackin-preview-host-ui/src/manager.rs",
+      "reason": "Manager screen component composition (FIX-002) + roster health rows (Q67-F6 visual parity); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-02"
+    },
+    {
+      "max": 5,
+      "path": "crates/jackin-preview-host-ui/src/manager.rs",
+      "reason": "Manager screen component composition (FIX-002); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 9,
+      "path": "crates/jackin-preview-host-ui/src/manager.rs",
+      "reason": "VIS-20 uncovered staged CI repair: preview composition updates admitted at the observed ratchet count.",
+      "review": "VIS-20 independent review pending at land time: /root/current_branch_comparison_luna.",
+      "rule": "OWN-11"
     },
     {
       "max": 25,
@@ -771,24 +778,45 @@
       "rule": "OWN-11"
     },
     {
-      "max": 49,
-      "path": "crates/jackin-preview-host-ui/src/manager.rs",
-      "reason": "Manager screen component composition (FIX-002) + roster health rows (Q67-F6 visual parity); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "max": 16,
+      "path": "crates/jackin-preview-host-ui/src/settings.rs",
+      "reason": "VIS-20 uncovered staged CI repair: preview composition updates admitted at the observed ratchet count.",
+      "review": "VIS-20 independent review pending at land time: /root/current_branch_comparison_luna.",
       "rule": "OWN-02"
     },
     {
-      "max": 7,
-      "path": "crates/jackin-preview-host-ui/src/manager.rs",
-      "reason": "Manager screen component composition (FIX-002); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "max": 5,
+      "path": "crates/jackin-preview-host-ui/src/settings.rs",
+      "reason": "VIS-20 uncovered staged CI repair: preview composition updates admitted at the observed ratchet count.",
+      "review": "VIS-20 independent review pending at land time: /root/current_branch_comparison_luna.",
       "rule": "OWN-04"
     },
     {
-      "max": 8,
-      "path": "crates/jackin-preview-host-ui/src/manager.rs",
-      "reason": "Manager screen component composition (FIX-002) + roster health rows (Q67-F6 visual parity); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "max": 5,
+      "path": "crates/jackin-preview-host-ui/src/settings.rs",
+      "reason": "VIS-20 uncovered staged CI repair: preview composition updates admitted at the observed ratchet count.",
+      "review": "VIS-20 independent review pending at land time: /root/current_branch_comparison_luna.",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/jackin-preview-host-ui/src/usage.rs",
+      "reason": "VIS-20 uncovered staged CI repair: preview composition updates admitted at the observed ratchet count.",
+      "review": "VIS-20 independent review pending at land time: /root/current_branch_comparison_luna.",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/jackin-preview-host-ui/src/usage.rs",
+      "reason": "VIS-20 uncovered staged CI repair: preview composition updates admitted at the observed ratchet count.",
+      "review": "VIS-20 independent review pending at land time: /root/current_branch_comparison_luna.",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 3,
+      "path": "crates/jackin-preview-host-ui/src/usage.rs",
+      "reason": "VIS-20 uncovered staged CI repair: preview composition updates admitted at the observed ratchet count.",
+      "review": "VIS-20 independent review pending at land time: /root/current_branch_comparison_luna.",
       "rule": "OWN-11"
     },
     {
@@ -1043,7 +1071,6 @@
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-11"
     },
-
     {
       "max": 23,
       "path": "crates/showcase-demos/src/pages/progress.rs",

@@ -435,10 +435,10 @@ impl Workbench {
 
     /// Refresh a history tab against the active history and connection name.
     pub fn refresh_history_tab(&mut self, key: TabKey, connection_name: &str) {
-        if let Some(record) = self.tabs.iter_mut().find(|r| r.key() == key) {
-            if let Tab::History(h) = record.lifecycle_payload_mut() {
-                h.refresh(&self.history, connection_name);
-            }
+        if let Some(record) = self.tabs.iter_mut().find(|r| r.key() == key)
+            && let Tab::History(h) = record.lifecycle_payload_mut()
+        {
+            h.refresh(&self.history, connection_name);
         }
     }
 }

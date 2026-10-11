@@ -57,7 +57,7 @@ Preserve the baseline indentation at two cells per depth, disclosure glyph/spinn
 ## Behavior
 
 - Up/Down, `j`/`k`, PageUp/PageDown, Home/`g` and End/`G` move the visible cursor by stable node key. Right/`l` expands a collapsed branch or enters its first child; Left/`h` collapses an expanded branch or moves to its parent. `*` and `-` preserve the baseline expand-all/collapse-all behavior.
-- Enter/Space on a branch toggles expansion; on an enabled leaf it emits `Activate` for the node key. Note rows are nonselectable and consume the action. Disclosure click toggles without body activation; row click follows the baseline branch/leaf policy.
+- Enter on a branch toggles expansion; Space on a branch also toggles it. Enter and a default row click on an enabled leaf emit `Activate`. Note rows are nonselectable and consume the action. A branch disclosure click toggles without body activation; a leaf's blank fold cell chooses, while a caller-painted leaf icon remains row body. A branch body click follows the configured policy, and an explicitly selected leaf click emits `Activate`.
 - Lazy expansion emits a keyed load request. While busy, the node presents its loading status and does not accept a second unqualified completion. Error/retry is caller-provided readiness.
 - Pointer row activation requires a completed inside release. A removed, disabled or stale node cancels the gesture. Hover may lift the row but keyboard input suppresses stale hover until pointer movement.
 - Where branch/leaf activation has baseline feedback, verify the 140 ms sample and expiry explicitly; redraw count never advances motion.

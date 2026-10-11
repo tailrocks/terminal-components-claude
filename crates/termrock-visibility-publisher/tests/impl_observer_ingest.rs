@@ -5,18 +5,18 @@ use std::time::Instant;
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
-use flate2::write::DeflateEncoder;
 use flate2::Compression;
+use flate2::write::DeflateEncoder;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use termrock_visibility_publisher::api::{
-    API_ORIGIN, ApiClient, ApiError, HttpRequest, HttpResponse, ReadOnlyTransport,
-    Repository, RunSelector, TargetResolution, TransportError,
+    API_ORIGIN, ApiClient, ApiError, HttpRequest, HttpResponse, ReadOnlyTransport, Repository,
+    RunSelector, TargetResolution, TransportError,
 };
 use termrock_visibility_publisher::observer::{ObserverError, decode_observer_zip};
 use termrock_visibility_publisher::{
-    CallerIdentity, IngestError, IngestRequest, MAX_OBSERVER_JSON_BYTES,
-    MAX_OBSERVER_ZIP_BYTES, RunIdentity, ingest,
+    CallerIdentity, IngestError, IngestRequest, MAX_OBSERVER_JSON_BYTES, MAX_OBSERVER_ZIP_BYTES,
+    RunIdentity, ingest,
 };
 
 const OWNER: &str = "tailrocks";
@@ -63,7 +63,10 @@ impl FakeTransport {
     }
 
     fn assert_drained(&self) {
-        assert!(self.expected.lock().unwrap().is_empty(), "fake response queue was not drained");
+        assert!(
+            self.expected.lock().unwrap().is_empty(),
+            "fake response queue was not drained"
+        );
     }
 
     fn seen(&self) -> Vec<SeenRequest> {
@@ -78,16 +81,27 @@ impl ReadOnlyTransport for FakeTransport {
         deadline: Instant,
         max_bytes: usize,
     ) -> Result<HttpResponse, TransportError> {
-        assert!(Instant::now() < deadline, "client supplied an expired deadline");
+        assert!(
+            Instant::now() < deadline,
+            "client supplied an expired deadline"
+        );
         assert!(max_bytes > 0, "client must supply a positive response cap");
         let actual = SeenRequest {
             url: request.url().to_owned(),
             authorization: request.authorization().map(str::to_owned),
             max_bytes,
         };
-        let expected = self.expected.lock().unwrap().pop_front().expect("unexpected GET");
+        let expected = self
+            .expected
+            .lock()
+            .unwrap()
+            .pop_front()
+            .expect("unexpected GET");
         assert_eq!(actual.url, expected.url, "unexpected request URL");
-        assert_eq!(actual.authorization, expected.authorization, "unexpected credential scope");
+        assert_eq!(
+            actual.authorization, expected.authorization,
+            "unexpected credential scope"
+        );
         self.seen.lock().unwrap().push(actual);
         expected.result
     }
@@ -181,16 +195,46 @@ fn run_json(
 }
 
 fn caller_run_json() -> Value {
-    run_json(100, 12, 1, 50, CALLER_PATH, CALLER_SHA, "completed", Some("success"))
+    run_json(
+        100,
+        12,
+        1,
+        50,
+        CALLER_PATH,
+        CALLER_SHA,
+        "completed",
+        Some("success"),
+    )
 }
 
 fn target_run_json(id: u64, run_number: u64, attempt: u32, status: &str) -> Value {
-    run_json(id, run_number, attempt, 7, TARGET_PATH, TARGET_SHA, status,
-        if status == "completed" { Some("success") } else { None })
+    run_json(
+        id,
+        run_number,
+        attempt,
+        7,
+        TARGET_PATH,
+        TARGET_SHA,
+        status,
+        if status == "completed" {
+            Some("success")
+        } else {
+            None
+        },
+    )
 }
 
 fn observer_run_json() -> Value {
-    run_json(300, 18, 2, 90, OBSERVER_PATH, OBSERVER_SHA, "completed", Some("success"))
+    run_json(
+        300,
+        18,
+        2,
+        90,
+        OBSERVER_PATH,
+        OBSERVER_SHA,
+        "completed",
+        Some("success"),
+    )
 }
 
 fn workflow_contents_json(bytes: &[u8]) -> Value {
@@ -254,13 +298,24 @@ fn artifacts_json(archive: &[u8], override_fields: Value) -> Value {
         }
     });
     if let (Some(target), Some(source)) = (artifact.as_object_mut(), override_fields.as_object()) {
-        for (key, value) in source { target.insert(key.clone(), value.clone()); }
+        for (key, value) in source {
+            target.insert(key.clone(), value.clone());
+        }
     }
     json!({ "total_count": 1, "artifacts": [artifact] })
 }
 
-fn success_requests(target_runs: Vec<Value>, archive: &[u8], artifact_listing: Value) -> Vec<ExpectedRequest> {
-    success_requests_with_jobs(target_runs, archive, artifact_listing, vec![target_job_json()])
+fn success_requests(
+    target_runs: Vec<Value>,
+    archive: &[u8],
+    artifact_listing: Value,
+) -> Vec<ExpectedRequest> {
+    success_requests_with_jobs(
+        target_runs,
+        archive,
+        artifact_listing,
+        vec![target_job_json()],
+    )
 }
 
 fn success_requests_with_jobs(
@@ -274,16 +329,27 @@ fn success_requests_with_jobs(
         "{API_ORIGIN}/repos/{FULL_REPO}/actions/workflows/7/runs?head_sha={TARGET_SHA}&branch={BRANCH}&event=push&per_page=100&page=1"
     );
     let mut requests = vec![
-        json_request(format!("{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/100"), caller_run_json()),
+        json_request(
+            format!("{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/100"),
+            caller_run_json(),
+        ),
         json_request(
             format!("{API_ORIGIN}/repos/{FULL_REPO}/contents/{CALLER_PATH}?ref={WORKFLOW_SHA}"),
             workflow_contents_json(workflow_bytes),
         ),
-        json_request(target_runs_url, json!({ "total_count": target_runs.len(), "workflow_runs": target_runs })),
+        json_request(
+            target_runs_url,
+            json!({ "total_count": target_runs.len(), "workflow_runs": target_runs }),
+        ),
     ];
-    requests.push(json_request(format!("{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/300"), observer_run_json()));
     requests.push(json_request(
-        format!("{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/200/attempts/1/jobs?per_page=100&page=1"),
+        format!("{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/300"),
+        observer_run_json(),
+    ));
+    requests.push(json_request(
+        format!(
+            "{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/200/attempts/1/jobs?per_page=100&page=1"
+        ),
         {
             let count = target_jobs.len();
             json!({ "total_count": count, "jobs": target_jobs })
@@ -320,11 +386,18 @@ fn deflated_zip(json_bytes: &[u8]) -> Vec<u8> {
     let mut encoder = DeflateEncoder::new(Vec::new(), Compression::fast());
     encoder.write_all(json_bytes).unwrap();
     let compressed = encoder.finish().unwrap();
-    zip_members(&[("ci-observer-report.json", json_bytes, &compressed, 8)], 0, 0)
+    zip_members(
+        &[("ci-observer-report.json", json_bytes, &compressed, 8)],
+        0,
+        0,
+    )
 }
 
 fn stored_zip_members(members: &[(&str, &[u8])], flags: u16, unix_mode: u32) -> Vec<u8> {
-    let entries: Vec<_> = members.iter().map(|(name, data)| (*name, *data, *data, 0)).collect();
+    let entries: Vec<_> = members
+        .iter()
+        .map(|(name, data)| (*name, *data, *data, 0))
+        .collect();
     zip_members(&entries, flags, unix_mode)
 }
 
@@ -371,7 +444,9 @@ fn zip_members(members: &[(&str, &[u8], &[u8], u16)], flags: u16, unix_mode: u32
         central_entries.push(central);
     }
     let central_offset = archive.len() as u32;
-    for entry in &central_entries { archive.extend_from_slice(entry); }
+    for entry in &central_entries {
+        archive.extend_from_slice(entry);
+    }
     let central_size = archive.len() as u32 - central_offset;
     put_u32(&mut archive, 0x0605_4b50);
     put_u16(&mut archive, 0);
@@ -384,11 +459,18 @@ fn zip_members(members: &[(&str, &[u8], &[u8], u16)], flags: u16, unix_mode: u32
     archive
 }
 
-fn put_u16(bytes: &mut Vec<u8>, value: u16) { bytes.extend_from_slice(&value.to_le_bytes()); }
-fn put_u32(bytes: &mut Vec<u8>, value: u32) { bytes.extend_from_slice(&value.to_le_bytes()); }
+fn put_u16(bytes: &mut Vec<u8>, value: u16) {
+    bytes.extend_from_slice(&value.to_le_bytes());
+}
+fn put_u32(bytes: &mut Vec<u8>, value: u32) {
+    bytes.extend_from_slice(&value.to_le_bytes());
+}
 
 fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|byte| format!("{byte:02x}")).collect()
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 #[test]
@@ -396,7 +478,11 @@ fn ingest_keeps_caller_target_and_observer_identities_separate_and_reads_inert_z
     let observation = observer_json();
     let archive = stored_zip(&serde_json::to_vec(&observation).unwrap());
     let listing = artifacts_json(&archive, Value::Null);
-    let transport = FakeTransport::with_requests(success_requests(vec![target_run_json(200, 20, 1, "completed")], &archive, listing));
+    let transport = FakeTransport::with_requests(success_requests(
+        vec![target_run_json(200, 20, 1, "completed")],
+        &archive,
+        listing,
+    ));
     let ingested = ingest(&client(transport.clone()), &request()).unwrap();
     transport.assert_drained();
 
@@ -408,8 +494,14 @@ fn ingest_keeps_caller_target_and_observer_identities_separate_and_reads_inert_z
     assert_eq!(ingested.artifact.id, 900);
     assert_eq!(ingested.observer_report.observer_run_id, 300);
     assert_eq!(ingested.observer_report.observer_run_attempt, 2);
-    assert_eq!(ingested.caller_workflow_bytes, b"name: read-only publisher\n");
-    assert_eq!(ingested.caller_workflow_sha256, sha256_hex(&ingested.caller_workflow_bytes));
+    assert_eq!(
+        ingested.caller_workflow_bytes,
+        b"name: read-only publisher\n"
+    );
+    assert_eq!(
+        ingested.caller_workflow_sha256,
+        sha256_hex(&ingested.caller_workflow_bytes)
+    );
     assert_eq!(ingested.archive_sha256, sha256_hex(&archive));
     assert_eq!(ingested.target_jobs.len(), 1);
 
@@ -418,7 +510,10 @@ fn ingest_keeps_caller_target_and_observer_identities_separate_and_reads_inert_z
     assert_eq!(calls[0].authorization.as_deref(), Some(TOKEN));
     assert_eq!(calls[6].authorization.as_deref(), Some(TOKEN));
     assert_eq!(calls[7].url, CDN_URL);
-    assert_eq!(calls[7].authorization, None, "bearer token must not follow the artifact redirect");
+    assert_eq!(
+        calls[7].authorization, None,
+        "bearer token must not follow the artifact redirect"
+    );
     assert!(calls.iter().all(|call| call.max_bytes > 0));
 
     assert_failed_and_zero_job_observations();
@@ -434,11 +529,17 @@ fn assert_failed_and_zero_job_observations() {
     let failed_archive = stored_zip(&serde_json::to_vec(&failed_report).unwrap());
     let failed_listing = artifacts_json(&failed_archive, Value::Null);
     let failed_transport = FakeTransport::with_requests(success_requests_with_jobs(
-        vec![failed_run], &failed_archive, failed_listing, vec![failed_job],
+        vec![failed_run],
+        &failed_archive,
+        failed_listing,
+        vec![failed_job],
     ));
     let failed = ingest(&client(failed_transport.clone()), &request()).unwrap();
     failed_transport.assert_drained();
-    assert_eq!(failed.observer_report.conclusion.as_deref(), Some("failure"));
+    assert_eq!(
+        failed.observer_report.conclusion.as_deref(),
+        Some("failure")
+    );
     assert_eq!(failed.observer_report.jobs_count, Some(1));
     assert_eq!(failed.observer_report.product_execution, "NOT_RUN");
 
@@ -447,7 +548,10 @@ fn assert_failed_and_zero_job_observations() {
     let empty_archive = stored_zip(&serde_json::to_vec(&empty_report).unwrap());
     let empty_listing = artifacts_json(&empty_archive, Value::Null);
     let empty_transport = FakeTransport::with_requests(success_requests_with_jobs(
-        vec![target_run_json(200, 20, 1, "completed")], &empty_archive, empty_listing, Vec::new(),
+        vec![target_run_json(200, 20, 1, "completed")],
+        &empty_archive,
+        empty_listing,
+        Vec::new(),
     ));
     let empty = ingest(&client(empty_transport.clone()), &request()).unwrap();
     empty_transport.assert_drained();
@@ -460,13 +564,19 @@ fn invalid_caller_observer_identity_rejected_before_any_request() {
     let mut input = request();
     input.observer.run_id = input.caller.run.run_id;
     let transport = FakeTransport::default();
-    assert!(matches!(ingest(&client(transport.clone()), &input), Err(IngestError::DuplicateRunIds)));
+    assert!(matches!(
+        ingest(&client(transport.clone()), &input),
+        Err(IngestError::DuplicateRunIds)
+    ));
     assert!(transport.seen().is_empty());
 
     let mut mixed_source = request();
     mixed_source.observer.head_sha = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee".to_owned();
     let transport = FakeTransport::default();
-    assert!(matches!(ingest(&client(transport.clone()), &mixed_source), Err(IngestError::InvalidInput(_))));
+    assert!(matches!(
+        ingest(&client(transport.clone()), &mixed_source),
+        Err(IngestError::InvalidInput(_))
+    ));
     assert!(transport.seen().is_empty());
 }
 
@@ -476,14 +586,24 @@ fn newest_in_progress_target_blocks_older_completed_run() {
     let newer = target_run_json(201, 21, 1, "in_progress");
     let transport = FakeTransport::with_requests(api_only_success_requests(vec![older, newer]));
     let result = ingest(&client(transport.clone()), &request());
-    assert!(matches!(result, Err(IngestError::TargetInProgress { run_id: 201, .. })));
-    assert_eq!(transport.seen().len(), 3, "do not read observer data for an incomplete newest target");
+    assert!(matches!(
+        result,
+        Err(IngestError::TargetInProgress { run_id: 201, .. })
+    ));
+    assert_eq!(
+        transport.seen().len(),
+        3,
+        "do not read observer data for an incomplete newest target"
+    );
 }
 
 #[test]
 fn absent_target_is_a_measurement_gap_not_an_api_error() {
     let transport = FakeTransport::with_requests(api_only_success_requests(Vec::new()));
-    assert!(matches!(ingest(&client(transport.clone()), &request()), Err(IngestError::TargetMissing)));
+    assert!(matches!(
+        ingest(&client(transport.clone()), &request()),
+        Err(IngestError::TargetMissing)
+    ));
     assert_eq!(transport.seen().len(), 3);
 }
 
@@ -491,26 +611,46 @@ fn absent_target_is_a_measurement_gap_not_an_api_error() {
 fn api_classifies_not_found_rate_limit_transport_and_deadline_separately() {
     let url = format!("{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/100");
     let missing = FakeTransport::with_requests(vec![ExpectedRequest {
-        url: url.clone(), authorization: Some(TOKEN.to_owned()),
+        url: url.clone(),
+        authorization: Some(TOKEN.to_owned()),
         result: Ok(HttpResponse::new(404, b"{}".to_vec())),
     }]);
-    assert_eq!(client(missing).get_run(&repository(), 100), Err(ApiError::NotFound));
+    assert_eq!(
+        client(missing).get_run(&repository(), 100),
+        Err(ApiError::NotFound)
+    );
 
     let limited = FakeTransport::with_requests(vec![ExpectedRequest {
-        url: url.clone(), authorization: Some(TOKEN.to_owned()),
+        url: url.clone(),
+        authorization: Some(TOKEN.to_owned()),
         result: Ok(HttpResponse::new(429, b"{}".to_vec()).with_header("Retry-After", "2")),
     }]);
-    assert_eq!(client(limited).get_run(&repository(), 100), Err(ApiError::RateLimited { retry_after_seconds: Some(2) }));
+    assert_eq!(
+        client(limited).get_run(&repository(), 100),
+        Err(ApiError::RateLimited {
+            retry_after_seconds: Some(2)
+        })
+    );
 
     let unavailable = FakeTransport::with_requests(vec![ExpectedRequest {
-        url: url.clone(), authorization: Some(TOKEN.to_owned()), result: Err(TransportError::Unavailable),
+        url: url.clone(),
+        authorization: Some(TOKEN.to_owned()),
+        result: Err(TransportError::Unavailable),
     }]);
-    assert_eq!(client(unavailable).get_run(&repository(), 100), Err(ApiError::Transport(TransportError::Unavailable)));
+    assert_eq!(
+        client(unavailable).get_run(&repository(), 100),
+        Err(ApiError::Transport(TransportError::Unavailable))
+    );
 
     let deadline = FakeTransport::with_requests(vec![ExpectedRequest {
-        url, authorization: Some(TOKEN.to_owned()), result: Err(TransportError::Deadline),
+        url,
+        authorization: Some(TOKEN.to_owned()),
+        result: Err(TransportError::Deadline),
     }]);
-    assert_eq!(client(deadline).get_run(&repository(), 100), Err(ApiError::Deadline));
+    assert_eq!(
+        client(deadline).get_run(&repository(), 100),
+        Err(ApiError::Deadline)
+    );
 }
 
 #[test]
@@ -519,12 +659,22 @@ fn jobs_pagination_requires_all_pages_and_rejects_duplicate_items() {
     let first_jobs: Vec<Value> = (1..=100).map(|id| json!({
         "id": id, "name": format!("job-{id}"), "status": "completed", "conclusion": "success"
     })).collect();
-    let second_jobs = vec![json!({ "id": 101, "name": "job-101", "status": "completed", "conclusion": "success" })];
+    let second_jobs = vec![
+        json!({ "id": 101, "name": "job-101", "status": "completed", "conclusion": "success" }),
+    ];
     let transport = FakeTransport::with_requests(vec![
-        json_request(format!("{url}?per_page=100&page=1"), json!({ "total_count": 101, "jobs": first_jobs })),
-        json_request(format!("{url}?per_page=100&page=2"), json!({ "total_count": 101, "jobs": second_jobs })),
+        json_request(
+            format!("{url}?per_page=100&page=1"),
+            json!({ "total_count": 101, "jobs": first_jobs }),
+        ),
+        json_request(
+            format!("{url}?per_page=100&page=2"),
+            json!({ "total_count": 101, "jobs": second_jobs }),
+        ),
     ]);
-    let jobs = client(transport.clone()).list_jobs(&repository(), 200, 1).unwrap();
+    let jobs = client(transport.clone())
+        .list_jobs(&repository(), 200, 1)
+        .unwrap();
     assert_eq!(jobs.len(), 101);
     assert_eq!(transport.seen().len(), 2);
 
@@ -535,7 +685,10 @@ fn jobs_pagination_requires_all_pages_and_rejects_duplicate_items() {
             { "id": 1, "name": "b", "status": "completed", "conclusion": "failure" }
         ] }),
     )]);
-    assert_eq!(client(duplicate).list_jobs(&repository(), 200, 1), Err(ApiError::DuplicatePageItem));
+    assert_eq!(
+        client(duplicate).list_jobs(&repository(), 200, 1),
+        Err(ApiError::DuplicatePageItem)
+    );
 }
 
 #[test]
@@ -543,47 +696,98 @@ fn workflow_runs_and_artifacts_pagination_collects_every_page() {
     let runs_url = format!(
         "{API_ORIGIN}/repos/{FULL_REPO}/actions/workflows/7/runs?head_sha={TARGET_SHA}&branch={BRANCH}&event=push&per_page=100&page=1"
     );
-    let first_runs: Vec<Value> = (1..=100).map(|id| {
-        run_json(id, id, 1, 8, TARGET_PATH, TARGET_SHA, "completed", Some("success"))
-    }).collect();
+    let first_runs: Vec<Value> = (1..=100)
+        .map(|id| {
+            run_json(
+                id,
+                id,
+                1,
+                8,
+                TARGET_PATH,
+                TARGET_SHA,
+                "completed",
+                Some("success"),
+            )
+        })
+        .collect();
     let second_runs = vec![target_run_json(200, 200, 1, "completed")];
     let runs_transport = FakeTransport::with_requests(vec![
-        json_request(runs_url.clone(), json!({ "total_count": 101, "workflow_runs": first_runs })),
-        json_request(runs_url.replace("&page=1", "&page=2"), json!({ "total_count": 101, "workflow_runs": second_runs })),
+        json_request(
+            runs_url.clone(),
+            json!({ "total_count": 101, "workflow_runs": first_runs }),
+        ),
+        json_request(
+            runs_url.replace("&page=1", "&page=2"),
+            json!({ "total_count": 101, "workflow_runs": second_runs }),
+        ),
     ]);
-    let resolution = client(runs_transport.clone()).resolve_target(&request().target).unwrap();
+    let resolution = client(runs_transport.clone())
+        .resolve_target(&request().target)
+        .unwrap();
     assert!(matches!(resolution, TargetResolution::Found(run) if run.id == 200));
     assert_eq!(runs_transport.seen().len(), 2);
 
-    let artifacts_url = format!("{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/300/artifacts?per_page=100&page=1");
-    let artifact = |id| json!({
-        "id": id, "name": format!("artifact-{id}"), "size_in_bytes": 10,
-        "expired": false, "digest": null, "workflow_run": null
-    });
+    let artifacts_url =
+        format!("{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/300/artifacts?per_page=100&page=1");
+    let artifact = |id| {
+        json!({
+            "id": id, "name": format!("artifact-{id}"), "size_in_bytes": 10,
+            "expired": false, "digest": null, "workflow_run": null
+        })
+    };
     let first_artifacts: Vec<Value> = (1..=100).map(artifact).collect();
     let second_artifacts = vec![artifact(101)];
     let artifact_transport = FakeTransport::with_requests(vec![
-        json_request(artifacts_url.clone(), json!({ "total_count": 101, "artifacts": first_artifacts })),
-        json_request(artifacts_url.replace("&page=1", "&page=2"), json!({ "total_count": 101, "artifacts": second_artifacts })),
+        json_request(
+            artifacts_url.clone(),
+            json!({ "total_count": 101, "artifacts": first_artifacts }),
+        ),
+        json_request(
+            artifacts_url.replace("&page=1", "&page=2"),
+            json!({ "total_count": 101, "artifacts": second_artifacts }),
+        ),
     ]);
-    assert_eq!(client(artifact_transport.clone()).list_artifacts(&repository(), 300).unwrap().len(), 101);
+    assert_eq!(
+        client(artifact_transport.clone())
+            .list_artifacts(&repository(), 300)
+            .unwrap()
+            .len(),
+        101
+    );
     assert_eq!(artifact_transport.seen().len(), 2);
 }
 
 #[test]
 fn pagination_cap_and_changed_total_fail_closed() {
-    let url = format!("{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/200/attempts/1/jobs?per_page=100&page=1");
-    let capped = FakeTransport::with_requests(vec![json_request(url.clone(), json!({ "total_count": 2001, "jobs": [] }))]);
-    assert_eq!(client(capped).list_jobs(&repository(), 200, 1), Err(ApiError::PaginationLimit));
+    let url = format!(
+        "{API_ORIGIN}/repos/{FULL_REPO}/actions/runs/200/attempts/1/jobs?per_page=100&page=1"
+    );
+    let capped = FakeTransport::with_requests(vec![json_request(
+        url.clone(),
+        json!({ "total_count": 2001, "jobs": [] }),
+    )]);
+    assert_eq!(
+        client(capped).list_jobs(&repository(), 200, 1),
+        Err(ApiError::PaginationLimit)
+    );
 
     let first_jobs: Vec<Value> = (1..=100).map(|id| json!({
         "id": id, "name": format!("job-{id}"), "status": "completed", "conclusion": "success"
     })).collect();
     let changed = FakeTransport::with_requests(vec![
-        json_request(url.clone(), json!({ "total_count": 101, "jobs": first_jobs })),
-        json_request(url.replace("&page=1", "&page=2"), json!({ "total_count": 102, "jobs": [] })),
+        json_request(
+            url.clone(),
+            json!({ "total_count": 101, "jobs": first_jobs }),
+        ),
+        json_request(
+            url.replace("&page=1", "&page=2"),
+            json!({ "total_count": 102, "jobs": [] }),
+        ),
     ]);
-    assert_eq!(client(changed).list_jobs(&repository(), 200, 1), Err(ApiError::IncompletePagination));
+    assert_eq!(
+        client(changed).list_jobs(&repository(), 200, 1),
+        Err(ApiError::IncompletePagination)
+    );
 }
 
 #[test]
@@ -592,24 +796,45 @@ fn artifact_digest_and_workflow_source_are_bound_to_downloaded_bytes_and_exact_s
     let mut listing = artifacts_json(&archive, Value::Null);
     listing["artifacts"][0]["digest"] = json!(format!("sha256:{}", "0".repeat(64)));
     let transport = FakeTransport::with_requests(success_requests(
-        vec![target_run_json(200, 20, 1, "completed")], &archive, listing,
+        vec![target_run_json(200, 20, 1, "completed")],
+        &archive,
+        listing,
     ));
-    assert!(matches!(ingest(&client(transport.clone()), &request()), Err(IngestError::ArtifactDigestMismatch)));
+    assert!(matches!(
+        ingest(&client(transport.clone()), &request()),
+        Err(IngestError::ArtifactDigestMismatch)
+    ));
     let calls = transport.seen();
-    assert!(calls.iter().any(|call| call.url.ends_with(&format!("?ref={WORKFLOW_SHA}"))));
+    assert!(
+        calls
+            .iter()
+            .any(|call| call.url.ends_with(&format!("?ref={WORKFLOW_SHA}")))
+    );
 }
 
 #[test]
 fn artifact_run_association_is_checked_before_download() {
     let archive = stored_zip(&serde_json::to_vec(&observer_json()).unwrap());
-    let listing = artifacts_json(&archive, json!({ "workflow_run": {
-        "id": 301, "head_branch": BRANCH, "head_sha": OBSERVER_SHA
-    }}));
+    let listing = artifacts_json(
+        &archive,
+        json!({ "workflow_run": {
+            "id": 301, "head_branch": BRANCH, "head_sha": OBSERVER_SHA
+        }}),
+    );
     let transport = FakeTransport::with_requests(success_requests(
-        vec![target_run_json(200, 20, 1, "completed")], &archive, listing,
+        vec![target_run_json(200, 20, 1, "completed")],
+        &archive,
+        listing,
     ));
-    assert!(matches!(ingest(&client(transport.clone()), &request()), Err(IngestError::ArtifactMismatch("run association"))));
-    assert_eq!(transport.seen().len(), 6, "mismatched artifact association must stop before download");
+    assert!(matches!(
+        ingest(&client(transport.clone()), &request()),
+        Err(IngestError::ArtifactMismatch("run association"))
+    ));
+    assert_eq!(
+        transport.seen().len(),
+        6,
+        "mismatched artifact association must stop before download"
+    );
 }
 
 #[test]
@@ -618,26 +843,40 @@ fn artifact_missing_ambiguous_expired_and_oversize_states_are_distinct() {
     let target_runs = vec![target_run_json(200, 20, 1, "completed")];
 
     let missing = FakeTransport::with_requests(success_requests(
-        target_runs.clone(), &archive, json!({ "total_count": 0, "artifacts": [] }),
+        target_runs.clone(),
+        &archive,
+        json!({ "total_count": 0, "artifacts": [] }),
     ));
-    assert!(matches!(ingest(&client(missing.clone()), &request()), Err(IngestError::ArtifactMissing)));
+    assert!(matches!(
+        ingest(&client(missing.clone()), &request()),
+        Err(IngestError::ArtifactMissing)
+    ));
     assert_eq!(missing.seen().len(), 6);
 
     let one = artifacts_json(&archive, Value::Null)["artifacts"][0].clone();
     let mut duplicate = one.clone();
     duplicate["id"] = json!(901);
     let ambiguous = FakeTransport::with_requests(success_requests(
-        target_runs.clone(), &archive, json!({ "total_count": 2, "artifacts": [one.clone(), duplicate] }),
+        target_runs.clone(),
+        &archive,
+        json!({ "total_count": 2, "artifacts": [one.clone(), duplicate] }),
     ));
-    assert!(matches!(ingest(&client(ambiguous.clone()), &request()), Err(IngestError::ArtifactAmbiguous)));
+    assert!(matches!(
+        ingest(&client(ambiguous.clone()), &request()),
+        Err(IngestError::ArtifactAmbiguous)
+    ));
     assert_eq!(ambiguous.seen().len(), 6);
 
     for (override_fields, expected) in [
         (json!({ "expired": true }), "expired"),
-        (json!({ "size_in_bytes": (MAX_OBSERVER_ZIP_BYTES as u64) + 1 }), "archive size bound"),
+        (
+            json!({ "size_in_bytes": (MAX_OBSERVER_ZIP_BYTES as u64) + 1 }),
+            "archive size bound",
+        ),
     ] {
         let listing = artifacts_json(&archive, override_fields);
-        let transport = FakeTransport::with_requests(success_requests(target_runs.clone(), &archive, listing));
+        let transport =
+            FakeTransport::with_requests(success_requests(target_runs.clone(), &archive, listing));
         assert!(matches!(
             ingest(&client(transport.clone()), &request()),
             Err(IngestError::ArtifactMismatch(field)) if field == expected
@@ -650,11 +889,19 @@ fn artifact_missing_ambiguous_expired_and_oversize_states_are_distinct() {
 fn unsafe_redirect_never_receives_credentials_or_archive_processing() {
     let archive = stored_zip(&serde_json::to_vec(&observer_json()).unwrap());
     let listing = artifacts_json(&archive, Value::Null);
-    let mut requests = success_requests(vec![target_run_json(200, 20, 1, "completed")], &archive, listing);
-    requests[6].result = Ok(HttpResponse::new(302, Vec::<u8>::new()).with_header("Location", "http://objects.example/archive.zip"));
+    let mut requests = success_requests(
+        vec![target_run_json(200, 20, 1, "completed")],
+        &archive,
+        listing,
+    );
+    requests[6].result = Ok(HttpResponse::new(302, Vec::<u8>::new())
+        .with_header("Location", "http://objects.example/archive.zip"));
     requests.pop();
     let transport = FakeTransport::with_requests(requests);
-    assert!(matches!(ingest(&client(transport.clone()), &request()), Err(IngestError::Api(ApiError::UnsafeRedirect))));
+    assert!(matches!(
+        ingest(&client(transport.clone()), &request()),
+        Err(IngestError::Api(ApiError::UnsafeRedirect))
+    ));
     assert_eq!(transport.seen().len(), 7);
 
     let download_url = format!("{API_ORIGIN}/repos/{FULL_REPO}/actions/artifacts/900/zip");
@@ -663,36 +910,77 @@ fn unsafe_redirect_never_receives_credentials_or_archive_processing() {
         authorization: Some(TOKEN.to_owned()),
         result: Ok(HttpResponse::new(302, b"oversized".to_vec()).with_header("Location", CDN_URL)),
     }]);
-    assert_eq!(client(oversized_redirect.clone()).download_artifact(&repository(), 900, 4), Err(ApiError::BodyLimit));
-    assert_eq!(oversized_redirect.seen().len(), 1, "oversized redirect body must stop before following Location");
+    assert_eq!(
+        client(oversized_redirect.clone()).download_artifact(&repository(), 900, 4),
+        Err(ApiError::BodyLimit)
+    );
+    assert_eq!(
+        oversized_redirect.seen().len(),
+        1,
+        "oversized redirect body must stop before following Location"
+    );
 }
 
 #[test]
 fn observer_zip_rejects_oversize_traversal_extra_member_encryption_symlink_and_crc_corruption() {
     let valid_json = br#"{"schema_version":2}"#;
     let valid = stored_zip(valid_json);
-    assert_eq!(decode_observer_zip(&valid, valid.len(), MAX_OBSERVER_JSON_BYTES).unwrap(), valid_json);
+    assert_eq!(
+        decode_observer_zip(&valid, valid.len(), MAX_OBSERVER_JSON_BYTES).unwrap(),
+        valid_json
+    );
     let compressed = deflated_zip(valid_json);
-    assert_eq!(decode_observer_zip(&compressed, compressed.len(), MAX_OBSERVER_JSON_BYTES).unwrap(), valid_json);
-    assert_eq!(decode_observer_zip(&valid, valid.len() - 1, MAX_OBSERVER_JSON_BYTES), Err(ObserverError::ArchiveTooLarge));
-    assert_eq!(decode_observer_zip(&valid, valid.len(), 1), Err(ObserverError::MemberTooLarge));
+    assert_eq!(
+        decode_observer_zip(&compressed, compressed.len(), MAX_OBSERVER_JSON_BYTES).unwrap(),
+        valid_json
+    );
+    assert_eq!(
+        decode_observer_zip(&valid, valid.len() - 1, MAX_OBSERVER_JSON_BYTES),
+        Err(ObserverError::ArchiveTooLarge)
+    );
+    assert_eq!(
+        decode_observer_zip(&valid, valid.len(), 1),
+        Err(ObserverError::MemberTooLarge)
+    );
 
     let traversal = stored_zip_members(&[("../ci-observer-report.json", valid_json)], 0, 0);
-    assert_eq!(decode_observer_zip(&traversal, traversal.len(), MAX_OBSERVER_JSON_BYTES), Err(ObserverError::UnsafeMemberPath));
+    assert_eq!(
+        decode_observer_zip(&traversal, traversal.len(), MAX_OBSERVER_JSON_BYTES),
+        Err(ObserverError::UnsafeMemberPath)
+    );
 
-    let extra = stored_zip_members(&[("ci-observer-report.json", valid_json), ("ci-observer-report.json", b"x")], 0, 0);
-    assert_eq!(decode_observer_zip(&extra, extra.len(), MAX_OBSERVER_JSON_BYTES), Err(ObserverError::MultipleMembers));
+    let extra = stored_zip_members(
+        &[
+            ("ci-observer-report.json", valid_json),
+            ("ci-observer-report.json", b"x"),
+        ],
+        0,
+        0,
+    );
+    assert_eq!(
+        decode_observer_zip(&extra, extra.len(), MAX_OBSERVER_JSON_BYTES),
+        Err(ObserverError::MultipleMembers)
+    );
 
     let encrypted = stored_zip_members(&[("ci-observer-report.json", valid_json)], 1, 0);
-    assert_eq!(decode_observer_zip(&encrypted, encrypted.len(), MAX_OBSERVER_JSON_BYTES), Err(ObserverError::EncryptedMember));
+    assert_eq!(
+        decode_observer_zip(&encrypted, encrypted.len(), MAX_OBSERVER_JSON_BYTES),
+        Err(ObserverError::EncryptedMember)
+    );
 
     let symlink = stored_zip_members(&[("ci-observer-report.json", valid_json)], 0, 0o120777);
-    assert_eq!(decode_observer_zip(&symlink, symlink.len(), MAX_OBSERVER_JSON_BYTES), Err(ObserverError::SymlinkMember));
+    assert_eq!(
+        decode_observer_zip(&symlink, symlink.len(), MAX_OBSERVER_JSON_BYTES),
+        Err(ObserverError::SymlinkMember)
+    );
 
     let mut corrupt = valid.clone();
     let data_offset = 30 + b"ci-observer-report.json".len();
     corrupt[data_offset] ^= 1;
-    assert_eq!(decode_observer_zip(&corrupt, corrupt.len(), MAX_OBSERVER_JSON_BYTES), Err(ObserverError::CrcMismatch));
+    assert_eq!(
+        decode_observer_zip(&corrupt, corrupt.len(), MAX_OBSERVER_JSON_BYTES),
+        Err(ObserverError::CrcMismatch)
+    );
 }
 
 #[test]
@@ -702,9 +990,14 @@ fn observer_schema_rejects_unknown_fields_and_wrong_target_attempt() {
     let archive = stored_zip(&serde_json::to_vec(&observation).unwrap());
     let listing = artifacts_json(&archive, Value::Null);
     let transport = FakeTransport::with_requests(success_requests(
-        vec![target_run_json(200, 20, 1, "completed")], &archive, listing,
+        vec![target_run_json(200, 20, 1, "completed")],
+        &archive,
+        listing,
     ));
-    assert!(matches!(ingest(&client(transport), &request()), Err(IngestError::Observer(ObserverError::InvalidJson))));
+    assert!(matches!(
+        ingest(&client(transport), &request()),
+        Err(IngestError::Observer(ObserverError::InvalidJson))
+    ));
 
     let v1_report = json!({
         "observer_state": "measured", "target_run_state": "completed", "run_id": 200,
@@ -719,27 +1012,42 @@ fn observer_schema_rejects_unknown_fields_and_wrong_target_attempt() {
     let archive = stored_zip(&serde_json::to_vec(&v1_report).unwrap());
     let listing = artifacts_json(&archive, Value::Null);
     let transport = FakeTransport::with_requests(success_requests(
-        vec![target_run_json(200, 20, 1, "completed")], &archive, listing,
+        vec![target_run_json(200, 20, 1, "completed")],
+        &archive,
+        listing,
     ));
-    assert!(matches!(ingest(&client(transport), &request()), Err(IngestError::Observer(ObserverError::InvalidJson))));
+    assert!(matches!(
+        ingest(&client(transport), &request()),
+        Err(IngestError::Observer(ObserverError::InvalidJson))
+    ));
 
     let mut wrong_version = observer_json();
     wrong_version["schema_version"] = json!(1);
     let archive = stored_zip(&serde_json::to_vec(&wrong_version).unwrap());
     let listing = artifacts_json(&archive, Value::Null);
     let transport = FakeTransport::with_requests(success_requests(
-        vec![target_run_json(200, 20, 1, "completed")], &archive, listing,
+        vec![target_run_json(200, 20, 1, "completed")],
+        &archive,
+        listing,
     ));
-    assert!(matches!(ingest(&client(transport), &request()), Err(IngestError::ObserverMismatchData("schema version"))));
+    assert!(matches!(
+        ingest(&client(transport), &request()),
+        Err(IngestError::ObserverMismatchData("schema version"))
+    ));
 
     let mut observation = observer_json();
     observation["run_attempt"] = json!(2);
     let archive = stored_zip(&serde_json::to_vec(&observation).unwrap());
     let listing = artifacts_json(&archive, Value::Null);
     let transport = FakeTransport::with_requests(success_requests(
-        vec![target_run_json(200, 20, 1, "completed")], &archive, listing,
+        vec![target_run_json(200, 20, 1, "completed")],
+        &archive,
+        listing,
     ));
-    assert!(matches!(ingest(&client(transport), &request()), Err(IngestError::ObserverMismatchData("target run facts"))));
+    assert!(matches!(
+        ingest(&client(transport), &request()),
+        Err(IngestError::ObserverMismatchData("target run facts"))
+    ));
 }
 
 #[test]
@@ -747,12 +1055,18 @@ fn invalid_artifact_name_run_attempt_binding_is_rejected_before_network() {
     let mut input = request();
     input.observer_artifact_name = "ci-observer-report".to_owned();
     let transport = FakeTransport::default();
-    assert!(matches!(ingest(&client(transport.clone()), &input), Err(IngestError::InvalidInput(_))));
+    assert!(matches!(
+        ingest(&client(transport.clone()), &input),
+        Err(IngestError::InvalidInput(_))
+    ));
     assert!(transport.seen().is_empty());
 
     input.observer_artifact_name = "observer-300-attempt-300".to_owned();
     let transport = FakeTransport::default();
-    assert!(matches!(ingest(&client(transport.clone()), &input), Err(IngestError::InvalidInput(_))));
+    assert!(matches!(
+        ingest(&client(transport.clone()), &input),
+        Err(IngestError::InvalidInput(_))
+    ));
     assert!(transport.seen().is_empty());
 }
 
@@ -764,11 +1078,16 @@ fn target_resolution_selects_highest_attempt_and_rejects_tied_newest_attempts() 
     let url = format!(
         "{API_ORIGIN}/repos/{FULL_REPO}/actions/workflows/7/runs?head_sha={TARGET_SHA}&branch={BRANCH}&event=push&per_page=100&page=1"
     );
-    let transport = FakeTransport::with_requests(vec![json_request(url, json!({
-        "total_count": 2, "workflow_runs": [first_attempt, second_attempt]
-    }))]);
+    let transport = FakeTransport::with_requests(vec![json_request(
+        url,
+        json!({
+            "total_count": 2, "workflow_runs": [first_attempt, second_attempt]
+        }),
+    )]);
     let result = client(transport).resolve_target(&selector).unwrap();
-    assert!(matches!(result, TargetResolution::Found(run) if run.id == 201 && run.run_attempt == 2));
+    assert!(
+        matches!(result, TargetResolution::Found(run) if run.id == 201 && run.run_attempt == 2)
+    );
 
     let tied = FakeTransport::with_requests(vec![json_request(
         format!(
@@ -779,5 +1098,8 @@ fn target_resolution_selects_highest_attempt_and_rejects_tied_newest_attempts() 
             target_run_json(203, 21, 2, "completed")
         ] }),
     )]);
-    assert_eq!(client(tied).resolve_target(&selector), Ok(TargetResolution::Ambiguous));
+    assert_eq!(
+        client(tied).resolve_target(&selector),
+        Ok(TargetResolution::Ambiguous)
+    );
 }
