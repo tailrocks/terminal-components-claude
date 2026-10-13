@@ -4517,9 +4517,9 @@ impl App {
             1 => vec![
                 "Create workspace · step 1 of 5 · Source".to_owned(),
                 format!("Source · {source}"),
-                "customer-portal/".to_owned(),
-                "data-pipeline/".to_owned(),
-                "payments-platform/".to_owned(),
+                self.prelude.marked_source("customer-portal/", 1),
+                self.prelude.marked_source("data-pipeline/", 2),
+                self.prelude.marked_source("payments-platform/", 0),
                 format!("Selected source · {}", self.prelude.selection()),
             ],
             2 => vec![
@@ -5885,6 +5885,22 @@ impl App {
         }
     }
 
+    fn paint_form_hints(&self, ui: &mut Ui<'_>, area: Rect, above_save: bool) {
+        let y = if above_save {
+            area.bottom().saturating_sub(2)
+        } else {
+            area.bottom().saturating_sub(1)
+        };
+        if y < area.y || area.width == 0 {
+            return;
+        }
+        ui.paint_str(
+            Rect::new(area.x, y, area.width, 1),
+            self.accounts.form_hints(),
+            ui.surface_style(),
+        );
+    }
+
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
         if self.accounts.form_open {
             if !self.accounts.started {
@@ -5898,6 +5914,7 @@ impl App {
                 );
                 Self::account_start_button()
                     .draw(ui, Rect::new(area.x, area.y.saturating_add(3), 18, 1));
+                self.paint_form_hints(ui, area, false);
                 return;
             }
             paint_lines(
@@ -6001,6 +6018,7 @@ impl App {
                 ui,
                 Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
             );
+            self.paint_form_hints(ui, area, true);
             return;
         }
         let rows = self.account_rows();

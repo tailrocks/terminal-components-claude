@@ -192,6 +192,11 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
     assert!(h.text().contains("Overview"));
     h.key(KeyCode::Char('a'));
     assert!(h.text().contains("New account"));
+    assert!(
+        h.text().contains("Tab Next field") && h.text().contains("Edit / Save"),
+        "{}",
+        h.text()
+    );
     h.key(KeyCode::Enter);
     h.type_str("Team");
     for _ in 0..4 {
@@ -406,9 +411,12 @@ fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
     assert!(h.text().contains("~/src/payments-platform"));
     // up to ~/src, choose data-pipeline (second folder)
     h.key(KeyCode::Backspace);
+    assert!(h.text().contains("▸ payments-platform/"), "{}", h.text());
     assert!(h.text().contains("customer-portal/"), "{}", h.text());
     h.key(KeyCode::Down);
+    assert!(h.text().contains("▸ customer-portal/"), "{}", h.text());
     h.key(KeyCode::Down);
+    assert!(h.text().contains("▸ data-pipeline/"), "{}", h.text());
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("step 2 of 5"), "{}", h.text());
     assert!(
