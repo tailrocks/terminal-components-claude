@@ -8,7 +8,7 @@
 //!   instance. A second Escape still quits.
 //!
 //! Rejected:
-//! - Cockpit debug-info stays closed. LaunchRunning frame 0 has no
+//! - Cockpit debug-info stays closed. `LaunchRunning` frame 0 has no
 //!   `otlp://collector.internal` telemetry, and cockpit Escape already
 //!   acknowledges a failed launch.
 //! - Dirty-editor Cancel/Discard/Save stays the status question. A modal
@@ -19,7 +19,7 @@
 //!   and opens the agent picker or the capsule.
 //! - Mount isolation is set to readonly Clone once. A cycle would move the
 //!   assertion in `editor_edits_count_once_preview_then_saves_and_returns`.
-//! - Holla keeps `Route::Home` for every paused scenario. DiskCleanup's
+//! - Holla keeps `Route::Home` for every paused scenario. `DiskCleanup`'s
 //!   source boot page and the grouped Finder default would replace `home.draw`.
 //!   The other source pages are a second stack, not an overlay on Home,
 //!   Plan, or Activity. Copy stays a simulated clipboard status and does
@@ -28,7 +28,7 @@
 //!   replacement, prelude source-list replacement, accounts provider tree,
 //!   capsule meters and extra menu rows, live keep-awake and git-pull
 //!   checkboxes, settings co-author and DCO checkboxes, Showcase diff page,
-//!   and TablePro safe-mode note wrapping. Visual suites cover those frames.
+//!   and `TablePro` safe-mode note wrapping. Visual suites cover those frames.
 
 #![allow(
     dead_code,
