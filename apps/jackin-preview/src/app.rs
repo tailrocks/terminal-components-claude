@@ -126,6 +126,7 @@ const ABOUT_DIALOG: Id = APP.sub("about");
 const QUIT_DIALOG: Id = APP.sub("quit-dialog");
 const CANCEL_LAUNCH_DIALOG: Id = APP.sub("cancel-dialog");
 const COCKPIT_INFO_DIALOG: Id = APP.sub("cockpit-info");
+const EDITOR_EXIT_DIALOG: Id = APP.sub("editor-exit");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::quiet(ActionKey::CANCEL, "Cancel"),
@@ -184,6 +185,14 @@ const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help"
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
 const CMD_COCKPIT_INFO: ActionKey = ActionKey::application("jackin.cockpit.info");
 const CMD_COCKPIT_DEBUG: ActionKey = ActionKey::application("jackin.cockpit.debug");
+const EXIT_CANCEL: ActionKey = ActionKey::application("jackin.editor.exit-cancel");
+const EXIT_DISCARD: ActionKey = ActionKey::application("jackin.editor.exit-discard");
+const EXIT_SAVE: ActionKey = ActionKey::application("jackin.editor.exit-save");
+const EDITOR_EXIT_ACTIONS: [Action<'static>; 3] = [
+    Action::quiet(EXIT_CANCEL, "Cancel"),
+    Action::danger(EXIT_DISCARD, "Discard"),
+    Action::new(EXIT_SAVE, "Save"),
+];
 const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-rename");
 const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
 const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
@@ -550,6 +559,12 @@ pub struct App {
     cockpit_info_state: DialogState,
     /// Telemetry row inside the debug-info dialog. Never painted on frame 0.
     cockpit_debug_open: bool,
+    /// Dirty-editor leave dialog. Closed until Escape on the editor tabs.
+    editor_exit_open: bool,
+    editor_exit_state: DialogState,
+    /// Escape on a mount, role, account, or env control returns to the tabs
+    /// before a second Escape can open the leave dialog.
+    editor_leaf_focused: bool,
     settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
@@ -732,6 +747,9 @@ impl App {
             cockpit_info_open: false,
             cockpit_info_state: DialogState::default(),
             cockpit_debug_open: false,
+            editor_exit_open: false,
+            editor_exit_state: DialogState::default(),
+            editor_leaf_focused: false,
             settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
@@ -1384,6 +1402,55 @@ impl App {
         }
         self.cockpit_info_open = false;
         self.status = None;
+    }
+
+    fn editor_exit_dialog() -> Dialog<'static> {
+        Dialog::confirm(
+            EDITOR_EXIT_DIALOG,
+            "Leave the editor?",
+            "Save changes before leaving?",
+        )
+        .actions(&EDITOR_EXIT_ACTIONS)
+    }
+
+    fn open_editor_exit(&mut self, cx: &mut Cx<'_>) {
+        self.editor_exit_state = DialogState::default();
+        self.editor_exit_open = true;
+        self.editor_leaf_focused = false;
+        let dialog = Self::editor_exit_dialog();
+        let focus = dialog.action_id(0);
+        cx.open_layer(EDITOR_EXIT_DIALOG, dialog.layer(cx).initial_focus(focus));
+        self.status = Some("Save changes before leaving?".into());
+    }
+
+    fn close_editor_exit(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(EDITOR_EXIT_DIALOG) {
+            cx.close_layer(EDITOR_EXIT_DIALOG, Some(EXIT_CANCEL));
+        }
+        self.editor_exit_open = false;
+        if self.status.as_deref() == Some("Save changes before leaving?") {
+            self.status = None;
+        }
+    }
+
+    /// Focus the control for the active editor tab. Leaf controls consume the
+    /// next Escape so it does not open the leave dialog.
+    fn focus_editor_tab(&mut self, cx: &mut Cx<'_>) {
+        self.editor_leaf_focused = match self.editor.tab {
+            EditorTab::Mounts => {
+                cx.focus(EDITOR_MOUNT_EDIT);
+                true
+            }
+            EditorTab::Roles => {
+                cx.focus(EDITOR_ROLE_EDIT);
+                true
+            }
+            EditorTab::Accounts => {
+                cx.focus(EDITOR_ACCOUNTS_LIST);
+                true
+            }
+            EditorTab::Environments | EditorTab::General => false,
+        };
     }
 
     fn open_cancel_launch(&mut self, cx: &mut Cx<'_>) {
@@ -2840,6 +2907,49 @@ impl App {
                     result |= Response::changed();
                 }
                 None => {}
+            }
+        }
+
+        if self.editor_exit_open {
+            let dialog = Self::editor_exit_dialog();
+            let response = dialog.update(cx, &mut self.editor_exit_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Action(EXIT_SAVE)) => {
+                    if cx.is_open(EDITOR_EXIT_DIALOG) {
+                        cx.close_layer(EDITOR_EXIT_DIALOG, Some(EXIT_SAVE));
+                    }
+                    self.editor_exit_open = false;
+                    self.editor.mark_dirty();
+                    self.editor.open_preview();
+                    cx.focus(crate::screens::editor::SAVE);
+                    self.status = Some("Save workspace · preview changes before commit".into());
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(EXIT_DISCARD)) => {
+                    if cx.is_open(EDITOR_EXIT_DIALOG) {
+                        cx.close_layer(EDITOR_EXIT_DIALOG, Some(EXIT_DISCARD));
+                    }
+                    self.editor_exit_open = false;
+                    self.editor.discard_draft();
+                    self.route = Route::Manager;
+                    cx.focus(MANAGER_LIST);
+                    self.status = Some("Discarded 1 change".into());
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(EXIT_CANCEL) | DialogAction::Dismissed(_)) => {
+                    self.close_editor_exit(cx);
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(EDITOR_EXIT_DIALOG) => {
+                    self.editor_exit_open = false;
+                    if self.status.as_deref() == Some("Save changes before leaving?") {
+                        self.status = None;
+                    }
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
             }
         }
 
@@ -4449,6 +4559,7 @@ impl App {
                 self.editor_accounts = ListState::default();
                 self.editor_role_picker = false;
                 self.editor_env_role = None;
+                self.editor_leaf_focused = false;
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
@@ -4724,18 +4835,14 @@ impl App {
                     self.editor.next_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
-                match self.editor.tab {
-                    EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
-                    EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
-                    EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
-                    EditorTab::Environments | EditorTab::General => {}
-                }
+                self.focus_editor_tab(cx);
                 Some(Response::changed())
             }
             CMD_EDITOR_ENV if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(4);
                 }
+                self.editor_leaf_focused = true;
                 cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
             }
@@ -4744,18 +4851,14 @@ impl App {
                     self.editor.previous_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
-                match self.editor.tab {
-                    EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
-                    EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
-                    EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
-                    EditorTab::Environments | EditorTab::General => {}
-                }
+                self.focus_editor_tab(cx);
                 Some(Response::changed())
             }
             CMD_EDITOR_ROLES if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(3);
                 }
+                self.editor_leaf_focused = true;
                 cx.focus(EDITOR_ROLE_EDIT);
                 Some(Response::changed())
             }
@@ -4774,6 +4877,7 @@ impl App {
                     self.editor.select_alias(5);
                     self.editor_accounts_transition = true;
                 }
+                self.editor_leaf_focused = true;
                 cx.focus(EDITOR_ACCOUNTS_LIST);
                 Some(Response::changed())
             }
@@ -7159,6 +7263,10 @@ impl App {
                 paint_lines(ui, body, &lines)
             })
         });
+        let editor_exit = Self::editor_exit_dialog();
+        let _ = ui.layer(EDITOR_EXIT_DIALOG, |ui, area| {
+            editor_exit.draw(ui, area, &self.editor_exit_state, |_, _| {})
+        });
         let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
             dialog.draw(ui, area, &self.launch_dialog, |ui, body| {
@@ -7244,7 +7352,7 @@ impl App {
             result |= navigation;
         }
         self.ensure_manager_header();
-        if self.quit_open || self.cancel_open {
+        if self.quit_open || self.cancel_open || self.editor_exit_open {
             result |= self.update_overlays(cx);
             if self.route == Route::Manager {
                 self.ensure_manager_rows();
@@ -7274,6 +7382,7 @@ impl App {
             || cx.is_open(QUIT_DIALOG)
             || cx.is_open(CANCEL_LAUNCH_DIALOG)
             || cx.is_open(COCKPIT_INFO_DIALOG)
+            || cx.is_open(EDITOR_EXIT_DIALOG)
         {
             self.sync_workspace_keymap();
             return result;
@@ -7435,6 +7544,7 @@ impl TuiApp for App {
             && !self.help_open
             && !self.quit_open
             && !self.cancel_open
+            && !self.editor_exit_open
         {
             self.draw_historical_editor(ui, full);
         }
@@ -7468,6 +7578,10 @@ impl TuiApp for App {
         }
         if self.cockpit_info_open {
             self.close_cockpit_info(cx);
+            return self.route_changed();
+        }
+        if self.editor_exit_open {
+            self.close_editor_exit(cx);
             return self.route_changed();
         }
         if self
@@ -7613,8 +7727,13 @@ impl TuiApp for App {
                 self.editor.clear_env_form();
                 return self.route_changed();
             }
+            if self.editor_leaf_focused {
+                self.editor_leaf_focused = false;
+                cx.focus(crate::screens::editor::TABS);
+                return self.route_changed();
+            }
             if self.editor.dirty {
-                self.status = Some("Save changes before leaving?".into());
+                self.open_editor_exit(cx);
             } else {
                 self.route = Route::Manager;
             }
