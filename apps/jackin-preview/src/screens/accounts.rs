@@ -125,4 +125,41 @@ impl AccountsState {
     pub const fn close(&mut self) {
         self.form_open = false;
     }
+
+    /// True while a name, folder, or secret draft is in flight.
+    pub fn form_editing(&self) -> bool {
+        self.name_input.is_editing()
+            || self.folder_input.is_editing()
+            || self.secret_input.is_editing()
+    }
+
+    /// Footer for the open account form. The closed list does not use this.
+    pub fn form_hints(&self) -> &'static str {
+        if self.form_editing() {
+            "EDIT  Enter Commit  Tab Next field  Esc Revert"
+        } else {
+            "Tab Next field  Enter Edit / Save  Esc Cancel"
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn form_hints_switch_when_a_field_is_editing() {
+        let mut state = AccountsState::default();
+        assert!(!state.form_editing());
+        assert_eq!(
+            state.form_hints(),
+            "Tab Next field  Enter Edit / Save  Esc Cancel"
+        );
+        state.name_input.begin("Team");
+        assert!(state.form_editing());
+        assert_eq!(
+            state.form_hints(),
+            "EDIT  Enter Commit  Tab Next field  Esc Revert"
+        );
+    }
 }
