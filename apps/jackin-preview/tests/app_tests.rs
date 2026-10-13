@@ -192,6 +192,11 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
     assert!(h.text().contains("Overview"));
     h.key(KeyCode::Char('a'));
     assert!(h.text().contains("New account"));
+    assert!(
+        h.text().contains("Tab Next field") && h.text().contains("Edit / Save"),
+        "{}",
+        h.text()
+    );
     h.key(KeyCode::Enter);
     h.type_str("Team");
     for _ in 0..4 {
@@ -385,6 +390,7 @@ fn usage_overlay_is_read_only_and_hands_off_to_accounts() {
     h.key(KeyCode::Char('u'));
     assert_eq!(h.app().route(), Route::Usage);
     assert!(h.text().contains("Usage · read-only"));
+    assert!(h.text().contains("Usage › Overview"));
     assert!(h.text().contains("Overview"));
     h.key(KeyCode::Down);
     assert!(h.text().contains("Limits"), "{}", h.text());
@@ -405,9 +411,12 @@ fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
     assert!(h.text().contains("~/src/payments-platform"));
     // up to ~/src, choose data-pipeline (second folder)
     h.key(KeyCode::Backspace);
+    assert!(h.text().contains("▸ payments-platform/"), "{}", h.text());
     assert!(h.text().contains("customer-portal/"), "{}", h.text());
     h.key(KeyCode::Down);
+    assert!(h.text().contains("▸ customer-portal/"), "{}", h.text());
     h.key(KeyCode::Down);
+    assert!(h.text().contains("▸ data-pipeline/"), "{}", h.text());
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("step 2 of 5"), "{}", h.text());
     assert!(

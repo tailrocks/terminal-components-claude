@@ -18,7 +18,7 @@ use crate::keymap::HintLayer;
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use crate::theme::{ColorLevel, Family, GlyphRole, Slot, StateRule, StylePatch, Theme, Variant};
 use crate::ui::{FrameRead, Ui};
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -146,10 +146,21 @@ pub struct HintBar<'a> {
     centered_override: Option<bool>,
     variant: Variant,
     status: Status,
+    // `Status` has no warning variant. Unit tests OR `WARNING` in so `draw`
+    // paints that path; production leaves the set empty.
+    #[cfg(test)]
+    flags: StateFlags,
     frame: usize,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
+}
+
+fn marker_states(part: Option<&crate::theme::PartRecipe>) -> &[StateRule] {
+    match part {
+        Some(part) => part.states.as_slice(),
+        None => &[],
+    }
 }
 
 impl fmt::Debug for HintBar<'_> {
@@ -189,6 +200,8 @@ impl<'a> HintBar<'a> {
             centered_override: None,
             variant: Variant::DEFAULT,
             status: Status::Ready,
+            #[cfg(test)]
+            flags: StateFlags::empty(),
             frame: 0,
             patch: None,
             parts: &[],
@@ -281,6 +294,18 @@ impl<'a> HintBar<'a> {
         matches!(self.status, Status::Busy | Status::Loading)
     }
 
+    /// Readiness flags `draw` and `measure` share.
+    fn derived_flags(&self) -> StateFlags {
+        #[cfg(test)]
+        {
+            self.status.flags().union(self.flags)
+        }
+        #[cfg(not(test))]
+        {
+            self.status.flags()
+        }
+    }
+
     /// One hint, wearing this bar's overrides.
     ///
     /// `KEY` and `ACTION` are painted by the nested [`KeyHint`] and by
@@ -363,13 +388,87 @@ impl<'a> HintBar<'a> {
             };
         }
         if live.contains(StateFlags::WARNING) {
-            return match self.marker_glyph(ui, live) {
-                Slot::Set(g) => Some(ui.glyph_str(g)),
-                Slot::Inherit => Some(ui.glyph_str(GlyphRole::WarningMark)),
-                Slot::Clear => None,
-            };
+            return self.warning_glyph(ui, live);
         }
         None
+    }
+
+    /// The warning marker.
+    ///
+    /// The generic mono fallback rewrites every warning marker to the dirty
+    /// bullet. A status warning keeps `▲` unless the theme or this instance
+    /// sets or clears `Part::MARKER`. Busy still wins: callers have already
+    /// returned the spinner.
+    fn warning_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Option<&'static str> {
+        if let Some(patch) = self.ov.part_patch(Part::MARKER) {
+            match patch.glyph {
+                Slot::Set(g) => return Some(ui.glyph_str(g)),
+                Slot::Clear => return None,
+                Slot::Inherit => {}
+            }
+        }
+        let authored = self.theme_marker_slot(ui.theme_ref(), live);
+        if authored.speaks() {
+            return match authored {
+                Slot::Set(g) => Some(ui.glyph_str(g)),
+                Slot::Clear => None,
+                Slot::Inherit => Some(ui.glyph_str(GlyphRole::WarningMark)),
+            };
+        }
+        // No explicit glyph. `marker_glyph` still sees overlays, but a mono
+        // `Dirty` here is the generic fallback, not an author Set.
+        match self.marker_glyph(ui, live) {
+            Slot::Set(GlyphRole::Dirty) if ui.theme_ref().capability.color == ColorLevel::Mono => {
+                Some(ui.glyph_str(GlyphRole::WarningMark))
+            }
+            Slot::Set(g) => Some(ui.glyph_str(g)),
+            Slot::Inherit => Some(ui.glyph_str(GlyphRole::WarningMark)),
+            Slot::Clear => None,
+        }
+    }
+
+    /// `Part::MARKER`'s glyph before the generic mono fallback.
+    ///
+    /// Family base, variant delta, state rules, then theme overrides. Mono
+    /// rules are omitted on purpose: they are what rewrite `▲` to `•`.
+    fn theme_marker_slot(&self, theme: &Theme, live: StateFlags) -> Slot<GlyphRole> {
+        let recipes = &theme.recipes;
+        let recipe = recipes.get_or_neutral(Family::HINTBAR);
+        let variant = if self.variant == Variant::DEFAULT {
+            recipe.default_variant
+        } else {
+            self.variant
+        };
+        let family = recipe.parts.get(Part::MARKER);
+        let delta = recipe
+            .variant(variant)
+            .and_then(|parts| parts.get(Part::MARKER));
+        let mut acc = StylePatch::new();
+        if let Some(part) = family {
+            acc = part.apply_base(acc);
+        }
+        if let Some(part) = delta {
+            acc = part.apply_base(acc);
+        }
+        acc = crate::theme::recipe::merge_states(
+            acc,
+            marker_states(family),
+            marker_states(delta),
+            live,
+        );
+        for over in recipes.overrides() {
+            if over.family != Family::HINTBAR {
+                continue;
+            }
+            let applies = match over.variant {
+                None => true,
+                Some(candidate) => candidate == variant,
+            };
+            if applies && let Some(part) = over.parts.get(Part::MARKER) {
+                acc = part.apply(acc, live);
+            }
+        }
+        acc.glyph
     }
 
     /// How many hints fit in `budget` columns from `x`, and whether any were
@@ -410,7 +509,7 @@ impl<'a> HintBar<'a> {
         }
         // runtime: none — the bar is chrome and registers no control of
         // its own; derived: the readiness the caller's `.status` declares
-        let live = PartStyle::flags(StateFlags::empty(), self.status.flags());
+        let live = PartStyle::flags(StateFlags::empty(), self.derived_flags());
         let ov = self.ov;
         let id = self.id;
         let container = ov.style(ui, id, Family::HINTBAR, self.variant, Part::CONTAINER, live);
@@ -445,7 +544,8 @@ impl<'a> HintBar<'a> {
                     let s = ov.style(ui, id, Family::HINTBAR, self.variant, part, live);
                     ui.paint_str(cell, g, s.style)
                 };
-                x = x.saturating_add(used).saturating_add(1);
+                let gap_x = x.saturating_add(used);
+                x = gap_x.saturating_add(1);
             }
             if let Some(text) = self.message() {
                 let cell = Rect {
@@ -460,6 +560,11 @@ impl<'a> HintBar<'a> {
                     ui.paint_str(cell, text, s.style);
                 }
             }
+        } else if status_w > 0 {
+            // A status wider than the row still wins: tag `keyhint.rs`
+            // truncates it to the content lane and right-aligns the cut,
+            // which fills a narrow footer and leaves no room for hints.
+            right_limit = self.paint_truncated_status(ui, area, live);
         }
 
         // the badge leads
@@ -532,9 +637,68 @@ impl<'a> HintBar<'a> {
         area
     }
 
+    /// Paint a status that does not fit in `area.width - 2`.
+    ///
+    /// The cut is right-aligned in the content lane. Nothing is written
+    /// outside `area`. The returned limit is the right edge hints may use,
+    /// so they drop instead of drawing under the status.
+    fn paint_truncated_status(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) -> u16 {
+        let glyph = self.status_glyph(ui, live);
+        let run = match (glyph, self.message()) {
+            (Some(g), Some(text)) => format!("{g} {text}"),
+            (Some(g), None) => g.to_owned(),
+            (None, Some(text)) => text.to_owned(),
+            (None, None) => String::new(),
+        };
+        let text = crate::text::truncate(&run, area.width.saturating_sub(2));
+        let w = width(&text);
+        if w == 0 {
+            return area.right();
+        }
+        let x = area.right().saturating_sub(w).saturating_sub(1);
+        if x < area.x {
+            return area.right();
+        }
+        let right_limit = x.saturating_sub(Self::HINT_GAP);
+        let cell = Rect {
+            x,
+            width: area.right().saturating_sub(x),
+            ..area
+        };
+        if cell.is_empty() {
+            return area.right();
+        }
+        let ov = self.ov;
+        let id = self.id;
+        let label = ov.style(ui, id, Family::HINTBAR, self.variant, Part::LABEL, live);
+        ui.paint_str(cell, &text, label.style);
+        if let Some(g) = glyph.filter(|g| text.starts_with(g)) {
+            let part = if self.busy() {
+                Part::ICON
+            } else {
+                Part::MARKER
+            };
+            let mark = Rect {
+                x,
+                width: width(g).min(cell.width),
+                ..area
+            };
+            if mark.is_empty() {
+                return right_limit;
+            }
+            if let Some(f) = ov.slot_for(part) {
+                f(ui, mark);
+            } else {
+                let marker = ov.style(ui, id, Family::HINTBAR, self.variant, part, live);
+                ui.paint_str(mark, g, marker.style);
+            }
+        }
+        right_limit
+    }
+
     /// The natural size: one row wide enough for every hint.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let live = PartStyle::flags(StateFlags::empty(), self.status.flags());
+        let live = PartStyle::flags(StateFlags::empty(), self.derived_flags());
         let hints: u16 = (0..self.layer.hints.len())
             .filter_map(|i| self.hint(i))
             .fold(0u16, |acc, h| {
@@ -781,5 +945,327 @@ mod tests {
                 .as_deref(),
             Some("▲")
         );
+    }
+
+    fn with_warning(mut bar: HintBar<'_>) -> HintBar<'_> {
+        bar.flags |= StateFlags::WARNING;
+        bar
+    }
+
+    fn draw_page(theme: &Theme, screen: Rect, area: Rect, bar: &HintBar<'_>) -> Buffer {
+        let mut frame = FrameState::default();
+        frame.reset(1, screen);
+        let mut page = Buffer::empty(screen);
+        let untouched = page.clone();
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
+            bar.draw(&mut ui, area);
+        }
+        assert_painted_inside(&untouched, &page, screen, area);
+        page
+    }
+
+    fn assert_painted_inside(before: &Buffer, after: &Buffer, screen: Rect, area: Rect) {
+        for y in 0..screen.height {
+            for x in 0..screen.width {
+                let inside = area.height > 0
+                    && area.width > 0
+                    && y == area.y
+                    && x >= area.x
+                    && x < area.right();
+                if inside {
+                    continue;
+                }
+                let left = &before[(x, y)];
+                let right = &after[(x, y)];
+                assert_eq!(
+                    (left.symbol(), left.fg, left.bg, left.modifier),
+                    (right.symbol(), right.fg, right.bg, right.modifier),
+                    "painted outside the area at ({x}, {y})"
+                );
+            }
+        }
+    }
+
+    fn row_text(page: &Buffer, area: Rect) -> String {
+        let mut out = String::new();
+        if area.height == 0 || area.width == 0 {
+            return out;
+        }
+        for x in area.x..area.right() {
+            out.push_str(page[(x, area.y)].symbol());
+        }
+        out
+    }
+
+    fn theme_with_marker(glyph: Slot<GlyphRole>) -> Theme {
+        Theme::junie().define_family(Family::HINTBAR, |edit| {
+            edit.part(Part::MARKER).base(StylePatch {
+                glyph,
+                ..StylePatch::new()
+            });
+        })
+    }
+
+    fn choose_layer(status: &'static str) -> HintLayer {
+        HintLayer {
+            hints: vec![Hint {
+                key: crate::keymap::HintKey::Chord(Chord::key(KeyCode::Enter)),
+                label: "Choose",
+                priority: 50,
+            }],
+            status: Some(status.into()),
+            centered: true,
+            ..HintLayer::empty()
+        }
+    }
+
+    #[test]
+    fn mono_warning_status_keeps_the_warning_mark() {
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        let area = Rect::new(0, 0, 24, 1);
+        let screen = Rect::new(0, 0, 24, 3);
+        let layer = HintLayer {
+            status: Some("Attention".into()),
+            ..HintLayer::empty()
+        };
+        let mut frame = FrameState::default();
+        frame.reset(1, screen);
+        let mut page = Buffer::empty(screen);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            assert_eq!(
+                ui.resolve(
+                    Family::HINTBAR,
+                    Variant::DEFAULT,
+                    Part::MARKER,
+                    StateFlags::WARNING
+                )
+                .glyph,
+                Slot::Set(GlyphRole::Dirty),
+                "mono fallback still rewrites the resolved marker"
+            );
+        }
+        let painted = draw_page(
+            &theme,
+            screen,
+            area,
+            &with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
+        );
+        let row = row_text(&painted, area);
+        assert!(row.contains('▲'), "{row}");
+        assert!(!row.contains('•'), "{row}");
+    }
+
+    #[test]
+    fn a_status_wider_than_the_row_truncates_and_drops_hints() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 72, 1);
+        let screen = Rect::new(0, 0, 72, 2);
+        let layer = choose_layer(
+            "Could not confirm running instances: instance index unreadable · entered without the ritual",
+        );
+        let page = draw_page(
+            &theme,
+            screen,
+            area,
+            &with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
+        );
+        assert_eq!(page[(1, 0)].symbol(), "▲");
+        assert_eq!(page[(2, 0)].symbol(), " ");
+        assert_eq!(page[(2, 0)].fg, theme.color.warning);
+        assert_eq!(page[(70, 0)].symbol(), "…");
+        assert_eq!(page[(27, 0)].fg, theme.color.warning);
+        let row = row_text(&page, area);
+        assert!(!row.contains("Choose"), "{row}");
+    }
+
+    #[test]
+    fn narrow_widths_do_not_paint_outside_the_area() {
+        let theme = Theme::junie();
+        let layer = choose_layer(
+            "Could not confirm running instances: instance index unreadable · entered without the ritual",
+        );
+        let screen = Rect::new(0, 0, 20, 6);
+        for width in 0..=5 {
+            let area = Rect::new(3, 2, width, 2);
+            let page = draw_page(
+                &theme,
+                screen,
+                area,
+                &with_warning(HintBar::new(Id::root("hintbar.narrow"), &layer)),
+            );
+            let row = row_text(&page, area);
+            assert!(!row.contains("Choose"), "width {width}: {row}");
+        }
+    }
+
+    #[test]
+    fn a_unicode_wide_status_truncates_inside_a_shifted_row() {
+        let theme = Theme::junie();
+        let status = "警告：无法确认运行实例";
+        let area = Rect::new(4, 2, 11, 3);
+        let screen = Rect::new(0, 0, 24, 7);
+        let layer = choose_layer(status);
+        let page = draw_page(
+            &theme,
+            screen,
+            area,
+            &with_warning(HintBar::new(Id::root("hintbar.wide"), &layer)),
+        );
+        let expected = crate::text::truncate(&format!("▲ {status}"), area.width.saturating_sub(2));
+        let w = width(&expected);
+        assert!(w > 0, "{expected}");
+        assert!(expected.contains('…'), "{expected}");
+        let x0 = area.right().saturating_sub(w).saturating_sub(1);
+        assert!(x0 >= area.x && x0 < area.right(), "{x0}");
+        let mut col = x0;
+        for (_, grapheme) in crate::text::measure::graphemes(&expected) {
+            assert!(col < area.right(), "wide status spilled");
+            assert_eq!(page[(col, area.y)].symbol(), grapheme, "at {col}");
+            let columns = crate::text::measure::grapheme_width(grapheme);
+            let mut step = 1u16;
+            while step < columns {
+                let next = col.saturating_add(step);
+                assert!(next < area.right(), "wide glyph spilled at {next}");
+                step = step.saturating_add(1);
+            }
+            col = col.saturating_add(columns);
+        }
+        assert!(col <= area.right());
+        let row = row_text(&page, area);
+        assert!(!row.contains("Choose"), "{row}");
+        assert!(!row.contains('•'), "{row}");
+    }
+
+    #[test]
+    fn truncated_status_respects_a_shifted_origin() {
+        let theme = Theme::junie();
+        let area = Rect::new(5, 3, 72, 2);
+        let screen = Rect::new(0, 0, 90, 8);
+        let layer = choose_layer(
+            "Could not confirm running instances: instance index unreadable · entered without the ritual",
+        );
+        let page = draw_page(
+            &theme,
+            screen,
+            area,
+            &with_warning(HintBar::new(Id::root("hintbar.shift"), &layer)),
+        );
+        assert_eq!(page[(6, 3)].symbol(), "▲");
+        assert_eq!(page[(7, 3)].fg, theme.color.warning);
+        assert_eq!(page[(75, 3)].symbol(), "…");
+        let row = row_text(&page, area);
+        assert!(!row.contains("Choose"), "{row}");
+    }
+
+    #[test]
+    fn custom_theme_marker_set_clear_and_inherit() {
+        let screen = Rect::new(0, 0, 32, 4);
+        let area = Rect::new(2, 1, 24, 1);
+        let layer = HintLayer {
+            status: Some("Attention".into()),
+            ..HintLayer::empty()
+        };
+        let paint = |theme: &Theme, bar: HintBar<'_>| -> String {
+            row_text(&draw_page(theme, screen, area, &bar), area)
+        };
+        let set = theme_with_marker(Slot::Set(GlyphRole::Error)).downgrade(ColorLevel::Mono);
+        let clear = theme_with_marker(Slot::Clear).downgrade(ColorLevel::Mono);
+        let inherit = theme_with_marker(Slot::Inherit).downgrade(ColorLevel::Mono);
+        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        let chosen = [(Part::MARKER, StylePatch::new().set_glyph(GlyphRole::Chosen))];
+        let cleared = [(
+            Part::MARKER,
+            StylePatch {
+                glyph: Slot::Clear,
+                ..StylePatch::new()
+            },
+        )];
+        let inherited = [(Part::MARKER, StylePatch::new())];
+
+        let row = paint(
+            &set,
+            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
+        );
+        assert!(row.contains('!'), "theme Set: {row}");
+        assert!(!row.contains('▲'), "theme Set: {row}");
+        assert!(!row.contains('•'), "theme Set: {row}");
+
+        let row = paint(
+            &clear,
+            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
+        );
+        assert!(row.contains("Attention"), "theme Clear: {row}");
+        assert!(!row.contains('▲'), "theme Clear: {row}");
+        assert!(!row.contains('•'), "theme Clear: {row}");
+        assert!(!row.contains('!'), "theme Clear: {row}");
+
+        let row = paint(
+            &inherit,
+            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
+        );
+        assert!(row.contains('▲'), "theme Inherit: {row}");
+        assert!(!row.contains('•'), "theme Inherit: {row}");
+
+        let row = paint(
+            &mono,
+            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer).patch_part(&chosen)),
+        );
+        assert!(row.contains('›'), "instance Set: {row}");
+        assert!(!row.contains('▲'), "instance Set: {row}");
+        assert!(!row.contains('•'), "instance Set: {row}");
+
+        let row = paint(
+            &mono,
+            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer).patch_part(&cleared)),
+        );
+        assert!(row.contains("Attention"), "instance Clear: {row}");
+        assert!(!row.contains('▲'), "instance Clear: {row}");
+        assert!(!row.contains('•'), "instance Clear: {row}");
+        assert!(!row.contains('›'), "instance Clear: {row}");
+
+        let row = paint(
+            &mono,
+            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer).patch_part(&inherited)),
+        );
+        assert!(row.contains('▲'), "instance Inherit: {row}");
+        assert!(!row.contains('•'), "instance Inherit: {row}");
+
+        let row = paint(
+            &set,
+            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer).patch_part(&chosen)),
+        );
+        assert!(row.contains('›'), "instance Set beats theme Set: {row}");
+        assert!(!row.contains('!'), "instance Set beats theme Set: {row}");
+    }
+
+    #[test]
+    fn busy_status_keeps_the_spinner_ahead_of_a_warning() {
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        let spinner = theme
+            .design
+            .motion
+            .spinner_frames
+            .first()
+            .copied()
+            .unwrap_or("");
+        let area = Rect::new(1, 1, 24, 1);
+        let screen = Rect::new(0, 0, 28, 4);
+        let layer = HintLayer {
+            status: Some("Attention".into()),
+            ..HintLayer::empty()
+        };
+        let mut bar = HintBar::new(Id::root("hintbar.warning"), &layer).status(Status::Busy);
+        bar.flags |= StateFlags::WARNING;
+        let page = draw_page(&theme, screen, area, &bar);
+        let row = row_text(&page, area);
+        assert!(row.contains(spinner), "{row}");
+        assert!(!row.contains('▲'), "{row}");
+        assert!(!row.contains('•'), "{row}");
     }
 }
