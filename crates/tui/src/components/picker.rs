@@ -550,6 +550,15 @@ impl<'a, T, R> Picker<'a, T, R> {
     }
 }
 
+fn clamp_fixed_width(size: LayerSize, viewport_width: u16) -> LayerSize {
+    match size {
+        LayerSize::Fixed(width, height) if viewport_width > 4 => {
+            LayerSize::Fixed(width.min(viewport_width.saturating_sub(4)), height)
+        }
+        other => other,
+    }
+}
+
 impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     fn list(&self) -> FilterList<'_, T, BorrowedRow<'_, R>> {
         let mut list = FilterList::new(self.id)
@@ -570,7 +579,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     /// Requested modal size, pure in props, semantic labels, and design tokens.
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         if let Some(size) = self.requested_size {
-            return size;
+            return clamp_fixed_width(size, cx.viewport().width);
         }
         let d = cx.design();
         let width = self.width.unwrap_or_else(|| {
@@ -794,6 +803,10 @@ pub type CommandPalette<'a, T, R = ItemRow> = Picker<'a, T, R>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::intent::IntentQueue;
+    use crate::theme::Theme;
+    use crate::ui::UiCore;
+    use crate::ui::cx::{FrameServices, LastFrame};
 
     struct Domain {
         id: u64,
@@ -833,5 +846,30 @@ mod tests {
         let action = state.push_query_char('a');
         assert_eq!(action, FilterListAction::QueryChanged);
         assert_eq!(state.query(), "a");
+    }
+
+    fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
+        let picker = Picker::<Domain>::new(Id::root("picker.fixed-width")).size(size);
+        let intents = IntentQueue::new();
+        let mut services = FrameServices {
+            viewport: Rect::new(0, 0, viewport_width, 1),
+            ..FrameServices::default()
+        };
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+        let cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+        picker.measured_size(&cx, &[])
+    }
+
+    #[test]
+    fn fixed_width_keeps_a_four_column_screen_margin() {
+        let requested = LayerSize::Fixed(84, 9);
+        assert_eq!(measured_at(requested, 72), LayerSize::Fixed(68, 9));
+        assert_eq!(measured_at(requested, 80), LayerSize::Fixed(76, 9));
+        assert_eq!(measured_at(requested, 100), LayerSize::Fixed(84, 9));
+        assert_eq!(measured_at(requested, 0), LayerSize::Fixed(84, 9));
+        assert_eq!(measured_at(requested, 4), LayerSize::Fixed(84, 9));
+        assert_eq!(measured_at(LayerSize::Fill, 72), LayerSize::Fill);
     }
 }
