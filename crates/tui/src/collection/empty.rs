@@ -181,11 +181,20 @@ impl EmptyState<'_> {
             EmptyState::Empty { .. } => None,
         };
         let icon_width = glyph.map_or(0, width);
+        // `truncate` always owns a `String`, including when the title already
+        // fits. The inherited paint path is measured as allocation-free, so
+        // borrow the original until a cut is actually required.
+        let title_owned = if width(self.title()) > area.width {
+            Some(crate::text::truncate(self.title(), area.width))
+        } else {
+            None
+        };
+        let title_text = title_owned.as_deref().unwrap_or_else(|| self.title());
         draw_centered(
             ui,
             area,
             CenteredText {
-                title: self.title(),
+                title: title_text,
                 detail: self.detail(),
                 icon_width,
             },
@@ -195,7 +204,7 @@ impl EmptyState<'_> {
                 }
             },
             |ui, title_area| {
-                ui.paint_str(title_area, self.title(), title);
+                ui.paint_str(title_area, title_text, title);
             },
             |ui, detail_area| {
                 if let Some(detail) = self.detail() {
@@ -288,6 +297,7 @@ mod tests {
     use ratatui_core::buffer::Buffer;
 
     use super::*;
+    use crate::text::width;
     use crate::theme::Theme;
     use crate::ui::cx::LastFrame;
     use crate::ui::{FrameState, UiCore};
@@ -369,5 +379,26 @@ mod tests {
 
         // a rect too small to draw into writes nothing and reports 0 rows
         assert_eq!(render(&empty, 0).1, 3);
+    }
+
+    #[test]
+    fn empty_state_truncates_a_long_title_to_the_area() {
+        let title = "12345678901234567890123456789012345678901234567890";
+        assert_eq!(title.len(), 50);
+        let long = EmptyState::Empty { title, hint: None };
+        let (t, _) = render(&long, 0);
+        assert!(t.contains('…'), "{t}");
+        assert!(!t.contains(title), "{t}");
+        let first = t.lines().next().unwrap_or("");
+        assert!(width(first) <= 40, "{first:?}");
+
+        let short = EmptyState::Empty {
+            title: "No rows",
+            hint: Some("Adjust the filter"),
+        };
+        let (t, _) = render(&short, 0);
+        assert!(t.contains("No rows"), "{t}");
+        assert!(t.contains("Adjust the filter"), "{t}");
+        assert!(!t.contains('…'), "{t}");
     }
 }

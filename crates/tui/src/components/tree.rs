@@ -626,9 +626,10 @@ impl Reconcile for TreeState {
 /// `PartRef::item(Part::ROW, k)`: press moves the cursor, click toggles a
 /// branch or chooses a leaf, double-click activates a leaf. `branch_click`
 /// can choose branches instead; `branch_activation` also applies to double-click.
-/// `PartRef::item(Part::ICON, k)` is the disclosure cell: press moves the
-/// cursor and click toggles that node without choosing it. `TRACK`/`THUMB` and the wheel go
-/// to the embedded [`ScrollRegion`].
+/// `PartRef::item(Part::ICON, k)` is a branch disclosure: press moves the
+/// cursor and click toggles that branch without choosing it. A leaf's blank
+/// fold cell chooses that leaf, while a caller-painted leaf icon remains row
+/// body. `TRACK`/`THUMB` and the wheel go to the embedded [`ScrollRegion`].
 ///
 /// ## Layout
 /// One row per visible node: gutter, `depth × design.space.tree_indent`
@@ -639,7 +640,8 @@ impl Reconcile for TreeState {
 ///
 /// ## Parts
 /// `CONTAINER` (the tree surface and each row's fill), `GUTTER` (the focus
-/// column), `ICON` (the disclosure cell and its hit zone), `MARKER` (the
+/// column), `ICON` (a branch disclosure or a leaf's blank fold cell and its
+/// hit zone), `MARKER` (the
 /// reserved cell after disclosure), `LABEL` (resolved through [`RowUi`] by
 /// the row renderer), `TRACK` / `THUMB` (the embedded [`ScrollRegion`]),
 /// `EMPTY` (the no-nodes state). `Part::ROW` is a hit region only and is
@@ -684,6 +686,9 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     row: R,
     render_row: Option<TreeRowRenderer<'a, T>>,
     node: Option<&'a dyn Fn(&T) -> TreeNode>,
+    icon: Option<TreeIconFn<'a, T>>,
+    trailing_mark: Option<TreeTrailingMarkFn<'a, T>>,
+    focused_patch: Option<&'a StylePatch>,
     branch_activation: TreeBranchActivation,
     branch_click: TreeBranchClick,
     activate_selected_on_click: bool,
@@ -704,6 +709,20 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     fwd_slot: Option<(Part, SlotFn<'a>)>,
     _t: PhantomData<fn(&T)>,
 }
+
+/// Borrowed tree icon callback.
+#[expect(
+    unreachable_pub,
+    reason = "named in Tree's public builders; the crate re-export is a later task"
+)]
+pub type TreeIconFn<'a, T> = &'a dyn Fn(&T) -> Option<(&'static str, StylePatch)>;
+
+/// Borrowed tree trailing-mark callback.
+#[expect(
+    unreachable_pub,
+    reason = "named in Tree's public builders; the crate re-export is a later task"
+)]
+pub type TreeTrailingMarkFn<'a, T> = &'a dyn Fn(&T) -> Option<(GlyphRole, StylePatch)>;
 
 type TreeRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
 
@@ -734,6 +753,9 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             row: DefaultRow,
             render_row: None,
             node: None,
+            icon: None,
+            trailing_mark: None,
+            focused_patch: None,
             branch_activation: TreeBranchActivation::Toggle,
             branch_click: TreeBranchClick::Toggle,
             activate_selected_on_click: false,
@@ -779,6 +801,37 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
     #[must_use]
     pub const fn node(mut self, f: &'a dyn Fn(&T) -> TreeNode) -> Self {
         self.node = Some(f);
+        self
+    }
+
+    /// Replace the fold cell, or keep the stock disclosure.
+    ///
+    /// `None` keeps the branch disclosure or the blank leaf and does not
+    /// paint a second icon. `Some` paints that one-cell string with the
+    /// patch; a custom leaf icon stays on the row-body hit.
+    #[must_use]
+    pub const fn icon(mut self, f: TreeIconFn<'a, T>) -> Self {
+        self.icon = Some(f);
+        self
+    }
+
+    /// Reserve a trailing glyph cell without handing the row a painter.
+    ///
+    /// `None` leaves the row width unchanged. `Some` shrinks that row's
+    /// [`RowUi`] by two cells and paints the glyph at the row's right-2.
+    #[must_use]
+    pub const fn trailing_mark(mut self, f: TreeTrailingMarkFn<'a, T>) -> Self {
+        self.trailing_mark = Some(f);
+        self
+    }
+
+    /// Extra patch for the focused cursor row only.
+    ///
+    /// Merged into that row's fill and label. Other rows keep the shared
+    /// container recipe, so a tint here does not recolor the rest of the tree.
+    #[must_use]
+    pub const fn focused_patch(mut self, patch: &'a StylePatch) -> Self {
+        self.focused_patch = Some(patch);
         self
     }
 
@@ -840,6 +893,9 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             row: self.row,
             render_row: self.render_row,
             node: self.node,
+            icon: self.icon,
+            trailing_mark: self.trailing_mark,
+            focused_patch: self.focused_patch,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
             activate_selected_on_click: self.activate_selected_on_click,
@@ -883,6 +939,9 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             row: r,
             render_row: self.render_row,
             node: self.node,
+            icon: self.icon,
+            trailing_mark: self.trailing_mark,
+            focused_patch: self.focused_patch,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
             activate_selected_on_click: self.activate_selected_on_click,
@@ -1724,7 +1783,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        if part.part == Part::ICON {
+        let fold_is_disclosure = part.part == Part::ICON
+            && index
+                .row(d)
+                .and_then(|row| items.get(row.source))
+                .is_some_and(|item| self.node_of(item).has_children());
+        if fold_is_disclosure {
             match phase {
                 Phase::Press => {
                     st.core.set_cursor(d, key);
@@ -1735,6 +1799,20 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     if !self.toggle_at(st, index, items, d, acc) {
                         acc.changed();
                     }
+                }
+                _ => acc.consumed(),
+            }
+            return;
+        }
+        if part.part == Part::ICON {
+            match phase {
+                Phase::Press => {
+                    st.core.set_cursor(d, key);
+                    acc.changed();
+                }
+                Phase::Click => {
+                    st.core.set_cursor(d, key);
+                    self.engage(st, index, items, d, Engagement::Choose, acc);
                 }
                 _ => acc.consumed(),
             }
@@ -1951,22 +2029,147 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     renderer(ui, row.rect, row.flags, row.key, item);
                 });
             }
-            self.register_row(ui, row, indent);
+            self.register_row(ui, row, indent, false);
             return;
         }
         self.paint_default_row(ui, row, indent, item);
     }
 
+    fn row_fill(
+        &self,
+        ui: &mut Ui<'_>,
+        flags: StateFlags,
+        focus: Option<StylePatch>,
+    ) -> crate::theme::PaintStyle {
+        if let Some(focus_patch) = focus {
+            let patch = self
+                .ov
+                .part_patch(Part::CONTAINER)
+                .map_or(focus_patch, |part| part.merge(focus_patch));
+            ui.style_patched(
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                flags,
+                &patch,
+            )
+            .style
+        } else {
+            self.ov
+                .style(
+                    ui,
+                    self.id,
+                    Family::TREE,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    flags,
+                )
+                .style
+        }
+    }
+
+    /// Paint the fold cell. A custom icon replaces the disclosure glyph and,
+    /// on a leaf, opts that cell out of the disclosure hit.
+    fn paint_fold(
+        &self,
+        ui: &mut Ui<'_>,
+        row: Row,
+        item: &T,
+        fold: Rect,
+        row_style: crate::theme::PaintStyle,
+    ) -> bool {
+        let custom_icon = self.icon.and_then(|paint| paint(item));
+        let has_custom_icon = custom_icon.is_some();
+        if let Some((text, patch)) = custom_icon {
+            let style = ui
+                .style_patched(
+                    Family::TREE,
+                    Variant::DEFAULT,
+                    Part::ICON,
+                    row.flags,
+                    &patch,
+                )
+                .style;
+            // No explicit background keeps the row fill, including a focused tint.
+            let style = if matches!(patch.bg, Slot::Inherit) {
+                style.with_bg_from(row_style)
+            } else {
+                style
+            };
+            ui.paint_str(fold, text, style);
+        } else if let Some(f) = self.ov.slot_for(Part::ICON) {
+            f(ui, fold);
+        } else {
+            let has_icon_patch = self.ov.part_patch(Part::ICON).is_some();
+            let icon = self.ov.style(
+                ui,
+                self.id,
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::ICON,
+                row.flags,
+            );
+            match icon.glyph {
+                Slot::Set(g) => {
+                    ui.glyph(fold, g, icon.style);
+                }
+                // A leaf has no disclosure glyph. Its reserved blank cell
+                // inherits the row, while an explicit ICON patch keeps the
+                // part independently styleable.
+                Slot::Inherit if row.disclosure.is_none() && !has_icon_patch => {
+                    ui.fill(fold, row_style);
+                }
+                // A branch keeps painting its disclosure glyph with the ICON
+                // recipe.
+                Slot::Inherit => {
+                    if let Some(glyph) = row.disclosure {
+                        ui.glyph(fold, glyph, icon.style);
+                    } else {
+                        ui.fill(fold, icon.style);
+                    }
+                }
+                Slot::Clear => ui.fill(fold, icon.style),
+            }
+        }
+        has_custom_icon
+    }
+
+    fn paint_trailing(
+        ui: &mut Ui<'_>,
+        row: Row,
+        role: GlyphRole,
+        patch: StylePatch,
+        reserve: u16,
+        row_style: crate::theme::PaintStyle,
+    ) {
+        let mark = cell_at(row.rect, row.rect.right().saturating_sub(reserve));
+        let style = ui
+            .style_patched(
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                row.flags,
+                &patch,
+            )
+            .style;
+        // No explicit background keeps the row fill, so a focused tint
+        // stays behind the mark.
+        let style = if matches!(patch.bg, Slot::Inherit) {
+            style.with_bg_from(row_style)
+        } else {
+            style
+        };
+        ui.glyph(mark, role, style);
+    }
+
     fn paint_default_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, item: &T) {
-        let rs = self.ov.style(
-            ui,
-            self.id,
-            Family::TREE,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            row.flags,
-        );
-        ui.fill(row.rect, rs.style);
+        let focus = row
+            .flags
+            .contains(StateFlags::FOCUSED)
+            .then(|| self.focused_patch.copied())
+            .flatten();
+        let row_style = self.row_fill(ui, row.flags, focus);
+        ui.fill(row.rect, row_style);
         let gutter = cell_at(row.rect, row.rect.x);
         if let Some(f) = self.ov.slot_for(Part::GUTTER) {
             f(ui, gutter);
@@ -1988,43 +2191,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let fold_x = self.fold_x(row, indent);
         let fold = cell_at(row.rect, fold_x);
-        if let Some(f) = self.ov.slot_for(Part::ICON) {
-            f(ui, fold);
-        } else {
-            let has_icon_patch = self.ov.part_patch(Part::ICON).is_some();
-            let icon = self.ov.style(
-                ui,
-                self.id,
-                Family::TREE,
-                Variant::DEFAULT,
-                Part::ICON,
-                row.flags,
-            );
-            match icon.glyph {
-                Slot::Set(g) => {
-                    ui.glyph(fold, g, icon.style);
-                }
-                // A leaf has no disclosure glyph. Its reserved blank cell
-                // inherits the row, while an explicit ICON patch keeps the
-                // part independently styleable.
-                Slot::Inherit if row.disclosure.is_none() && !has_icon_patch => {
-                    ui.fill(fold, rs.style);
-                }
-                // A branch keeps painting its disclosure glyph with the ICON
-                // recipe.
-                Slot::Inherit => {
-                    if let Some(glyph) = row.disclosure {
-                        ui.glyph(fold, glyph, icon.style);
-                    } else {
-                        ui.fill(fold, icon.style);
-                    }
-                }
-                Slot::Clear => ui.fill(fold, icon.style),
-            }
-        }
+        let has_custom_icon = self.paint_fold(ui, row, item, fold, row_style);
         let marker = cell_at(row.rect, fold_x.saturating_add(1));
         self.paint_marker(ui, row, marker);
-        let rest = Rect {
+        let trailing = self.trailing_mark.and_then(|paint| paint(item));
+        // The content edge is already the row end. A trailing mark reserves
+        // two cells on this row only and does not add another pad.
+        let mut rest = Rect {
             x: fold_x.saturating_add(2),
             width: row
                 .rect
@@ -2033,6 +2206,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 .min(row.rect.width),
             ..row.rect
         };
+        let reserve = if trailing.is_some() { 2 } else { 0 };
+        if reserve > 0 {
+            rest.width = rest.width.saturating_sub(reserve);
+        }
         if rest.width > 0 && rest.x < row.rect.right() {
             let mut r = RowUi::new_with_patches(
                 ui,
@@ -2042,15 +2219,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 row.flags,
                 row.key,
                 rest,
-                self.ov.part_patch(Part::CONTAINER),
-                self.ov.part_patch(Part::LABEL),
+                merge_focus(self.ov.part_patch(Part::CONTAINER), focus),
+                merge_focus(self.ov.part_patch(Part::LABEL), focus),
             );
             self.row.row(item, &mut r);
+        }
+        if let Some((role, patch)) = trailing {
+            Self::paint_trailing(ui, row, role, patch, reserve, row_style);
         }
         if ui.is_inert() {
             return;
         }
-        self.register_row(ui, row, indent);
+        self.register_row(ui, row, indent, has_custom_icon);
     }
 
     fn fold_x(&self, row: Row, indent: u16) -> u16 {
@@ -2061,10 +2241,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             .saturating_add(row.depth.saturating_mul(indent))
     }
 
-    fn register_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16) {
+    fn register_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, has_custom_icon: bool) {
         ui.register_part(self.id, PartRef::item(Part::ROW, row.key), row.rect);
-        // Disclosure wins hit-testing over the row, including custom painters.
-        if row.disclosure.is_some() {
+        // A branch disclosure and a leaf's blank fold cell win hit-testing
+        // over the row. A caller-painted leaf icon remains row body.
+        if self.disclosure_hit_width > 0 && (row.disclosure.is_some() || !has_custom_icon) {
             let fold = Rect {
                 x: self.fold_x(row, indent),
                 width: self.disclosure_hit_width,
@@ -2109,6 +2290,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
     }
 }
 
+fn merge_focus(base: Option<StylePatch>, focus: Option<StylePatch>) -> Option<StylePatch> {
+    match (base, focus) {
+        (Some(base), Some(focus)) => Some(base.merge(focus)),
+        (Some(base), None) => Some(base),
+        (None, Some(focus)) => Some(focus),
+        (None, None) => None,
+    }
+}
+
 impl<T, K, R> Bindings for Tree<'_, T, K, R> {
     type Cmd = TreeCmd;
 
@@ -2131,8 +2321,8 @@ mod tests {
     use ratatui_core::layout::{Position, Rect};
 
     use super::{
-        Acc, PointerIntent, TABLE, Tree, TreeAction, TreeBranchClick, TreeIndex, TreeNode,
-        TreeState,
+        Acc, PointerIntent, TABLE, Tree, TreeAction, TreeBranchClick, TreeIconFn, TreeIndex,
+        TreeNode, TreeState, TreeTrailingMarkFn,
     };
     use crate::Phase;
     use crate::collection::RowUi;
@@ -2205,6 +2395,256 @@ mod tests {
             );
         }
         assert_eq!(acc.finish(TREE).action_ref(), Some(&TreeAction::Chose(key)));
+    }
+
+    fn phases(tree: &Tree<'_, N>, st: &mut TreeState, items: &[N], part: PartRef) -> TreeAction {
+        let mut index = TreeIndex::default();
+        index.sync(tree, st, items);
+        let mut acc = Acc::new();
+        for phase in [Phase::Press, Phase::Release, Phase::Click] {
+            tree.pointer(
+                st,
+                &mut index,
+                items,
+                PointerIntent {
+                    phase,
+                    prior_cursor: None,
+                    part,
+                    hint: Some(0),
+                },
+                &mut acc,
+            );
+        }
+        acc.finish(TREE)
+            .action_ref()
+            .copied()
+            .expect("pointer click emits an action")
+    }
+
+    #[test]
+    fn branch_disclosure_click_never_chooses_or_activates() {
+        let t = tree();
+        let items = [N("branch", 0, true), N("leaf", 1, false)];
+        let mut st = TreeState::new();
+        let key = ItemKey::text("branch");
+        let area = Rect::new(0, 0, 12, 1);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                t.draw(ui, area, &st, &items);
+            })
+            .commit_presented();
+        let fold = runtime
+            .registry()
+            .hit(Position::new(1, 0))
+            .expect("fold hit");
+        assert_eq!(fold.part, PartRef::item(Part::ICON, key));
+
+        let action = phases(&t, &mut st, &items, fold.part);
+        assert_eq!(action, TreeAction::Expanded(key));
+        assert_ne!(action, TreeAction::Chose(key));
+        assert_ne!(action, TreeAction::Activated(key));
+        assert!(st.is_expanded(key));
+        assert_eq!(st.chosen(), None);
+    }
+
+    #[test]
+    fn leaf_fold_cell_click_sets_cursor_and_chooses() {
+        let t = tree();
+        let items = [N("leaf", 0, false)];
+        let mut st = TreeState::new();
+        let key = ItemKey::text("leaf");
+        let area = Rect::new(0, 0, 12, 1);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                t.draw(ui, area, &st, &items);
+            })
+            .commit_presented();
+        let fold = runtime
+            .registry()
+            .hit(Position::new(1, 0))
+            .expect("fold hit");
+        assert_eq!(fold.part, PartRef::item(Part::ICON, key));
+
+        assert_eq!(st.cursor(), None);
+        let action = phases(&t, &mut st, &items, fold.part);
+        assert_eq!(action, TreeAction::Chose(key));
+        assert_ne!(action, TreeAction::Activated(key));
+        assert_eq!(st.cursor(), Some(key));
+        assert_eq!(st.chosen(), Some(key));
+    }
+
+    #[test]
+    fn leaf_fold_cell_registers_over_the_row() {
+        let t = tree();
+        let items = [N("leaf", 0, false)];
+        let st = TreeState::new();
+        let key = ItemKey::text("leaf");
+        let area = Rect::new(0, 0, 12, 1);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                t.draw(ui, area, &st, &items);
+            })
+            .commit_presented();
+
+        let fold = runtime
+            .registry()
+            .hit(Position::new(1, 0))
+            .expect("fold hit");
+        assert_eq!(fold.owner, TREE);
+        assert_eq!(fold.part, PartRef::item(Part::ICON, key));
+        let body = runtime
+            .registry()
+            .hit(Position::new(2, 0))
+            .expect("body hit");
+        assert_eq!(body.owner, TREE);
+        assert_eq!(body.part, PartRef::item(Part::ROW, key));
+    }
+
+    #[test]
+    fn custom_leaf_icon_click_is_row_body() {
+        let icon = |_: &N| Some(("*", StylePatch::new()));
+        let t = Tree::new(TREE).node(&node).icon(&icon);
+        let items = [N("leaf", 0, false)];
+        let mut st = TreeState::new();
+        let key = ItemKey::text("leaf");
+        let area = Rect::new(0, 0, 12, 1);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                t.draw(ui, area, &st, &items);
+            })
+            .commit_presented();
+
+        let hit = runtime
+            .registry()
+            .hit(Position::new(1, 0))
+            .expect("body hit");
+        assert_eq!(hit.owner, TREE);
+        assert_eq!(hit.part, PartRef::item(Part::ROW, key));
+        assert_ne!(hit.part.part, Part::ICON);
+
+        let action = phases(&t, &mut st, &items, hit.part);
+        assert_eq!(action, TreeAction::Chose(key));
+        assert_ne!(action, TreeAction::Activated(key));
+        assert!(!st.is_expanded(key));
+        assert_eq!(st.cursor(), Some(key));
+        assert_eq!(st.chosen(), Some(key));
+    }
+
+    #[test]
+    fn icon_trailing_mark_and_focused_patch_affect_paint() {
+        fn paint_icon(item: &N) -> Option<(&'static str, StylePatch)> {
+            (item.0 == "leaf").then_some(("◉", StylePatch::new().set_fg(Role::Accent)))
+        }
+        fn paint_mark(item: &N) -> Option<(GlyphRole, StylePatch)> {
+            (item.0 == "leaf")
+                .then_some((GlyphRole::Dirty, StylePatch::new().set_fg(Role::Warning)))
+        }
+        let icon: TreeIconFn<'_, N> = &paint_icon;
+        let trailing: TreeTrailingMarkFn<'_, N> = &paint_mark;
+        let focus = StylePatch::new().set_bg(Role::Danger);
+        let themed = Tree::new(TREE)
+            .node(&node)
+            .icon(icon)
+            .trailing_mark(trailing)
+            .focused_patch(&focus);
+        let plain = Tree::new(TREE).node(&node);
+        let items = [N("parent", 0, true), N("leaf", 1, false)];
+        let mut state = TreeState::new();
+        let parent = ItemKey::text("parent");
+        state.expand(parent);
+        state.set_cursor(0, parent);
+        let theme = Theme::junie();
+        let expanded = theme.design.glyphs.get(GlyphRole::Expanded);
+        let dirty = theme.design.glyphs.get(GlyphRole::Dirty);
+        let area = Rect::new(0, 0, 24, 2);
+        let painted = draw_focused(theme.clone(), &themed, &state, &items, area);
+        let unpatched = draw_focused(theme.clone(), &plain, &state, &items, area);
+
+        assert_eq!(
+            painted.cell(Position::new(1, 0)).map(BufferCell::symbol),
+            Some(expanded),
+            "parent icon None keeps the disclosure"
+        );
+        assert_eq!(
+            painted.cell(Position::new(3, 1)).map(BufferCell::symbol),
+            Some("◉"),
+            "a leaf icon paints the provided glyph"
+        );
+        assert_eq!(
+            painted.cell(Position::new(3, 1)).map(|cell| cell.fg),
+            Some(theme.color.accent),
+            "the leaf icon uses its patch"
+        );
+        let right_2 = 24u16.saturating_sub(2);
+        assert_eq!(
+            painted
+                .cell(Position::new(right_2, 1))
+                .map(BufferCell::symbol),
+            Some(dirty),
+            "trailing Dirty sits at right-2"
+        );
+        assert_eq!(
+            painted.cell(Position::new(right_2, 1)).map(|cell| cell.fg),
+            Some(theme.color.warning)
+        );
+        assert_ne!(
+            painted
+                .cell(Position::new(right_2, 0))
+                .map(BufferCell::symbol),
+            Some(dirty),
+            "trailing None does not paint a mark on the sibling row"
+        );
+        assert_eq!(
+            painted.cell(Position::new(20, 0)).map(|cell| cell.bg),
+            Some(theme.color.danger),
+            "focused_patch tints only the focused cursor row"
+        );
+        assert_ne!(
+            painted.cell(Position::new(20, 1)).map(|cell| cell.bg),
+            Some(theme.color.danger)
+        );
+        assert_ne!(
+            unpatched.cell(Position::new(20, 0)).map(|cell| cell.bg),
+            Some(theme.color.danger),
+            "without focused_patch the cursor row keeps the shared fill"
+        );
+    }
+
+    fn draw_focused<K, R>(
+        theme: Theme,
+        tree: &Tree<'_, N, K, R>,
+        state: &TreeState,
+        items: &[N],
+        area: Rect,
+    ) -> Buffer
+    where
+        K: crate::collection::KeyFn<N>,
+        R: crate::collection::RowFn<N>,
+    {
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        TREE,
+                        crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| {
+                        tree.draw(ui, area, state, items);
+                    },
+                );
+            })
+            .commit_presented();
+        buffer
     }
 
     /// A forest with two roots, each with two children, the second of which

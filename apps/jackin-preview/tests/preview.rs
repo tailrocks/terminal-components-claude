@@ -74,7 +74,7 @@ fn product_routes_and_account_picker_render_through_the_facade() {
 
     let _ = harness.key(KeyCode::Char('u'));
     assert_eq!(harness.app().route(), Route::Usage);
-    assert!(harness.text().contains("Usage overview"));
+    assert!(harness.text().contains("Usage › Overview"));
     let _ = harness.key(KeyCode::Char('s'));
     assert_eq!(harness.app().route(), Route::Settings);
     assert!(harness.text().contains("Settings"));
