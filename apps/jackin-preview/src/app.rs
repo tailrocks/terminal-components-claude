@@ -2555,11 +2555,27 @@ impl App {
         if self.about_open {
             let about = Self::about_dialog();
             let response = about.update(cx, &mut self.about_state);
-            if response.action_ref().is_some() || !cx.is_open(ABOUT_DIALOG) {
-                self.about_open = false;
-                self.status = None;
-            }
+            let action = response.action_ref().copied();
             result |= response.erase();
+            match action {
+                Some(DialogAction::Dismissed(_)) => {
+                    self.about_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(key)) => {
+                    if cx.is_open(ABOUT_DIALOG) {
+                        cx.close_layer(ABOUT_DIALOG, Some(key));
+                    }
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(ABOUT_DIALOG) => {
+                    self.about_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                None => {}
+            }
         }
 
         // Drain the dialog and its body control while a child picker is

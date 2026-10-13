@@ -269,9 +269,18 @@ fn about_dialog_opens_from_help_and_paints_nothing_when_closed() {
     assert!(open.contains("nothing here touches"), "{open}");
     assert!(open.contains("capsule-multi"), "{open}");
     assert_eq!(h.app().route(), Route::Capsule);
-    h.key(KeyCode::Esc);
+    h.key(KeyCode::Enter);
     let after = h.text();
-    assert!(!after.contains("Design system"), "{after}");
+    assert!(
+        !after.contains("Design system"),
+        "Close left the about body up: {after}"
+    );
     assert_eq!(h.app().route(), Route::Capsule);
+    h.key(KeyCode::F(10));
+    assert!(
+        h.text().contains("New tab"),
+        "a closed about layer still ate the file menu: {}",
+        h.text()
+    );
     assert!(h.app().world.clipboard.is_none());
 }
