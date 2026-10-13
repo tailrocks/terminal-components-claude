@@ -255,7 +255,7 @@ fn about_dialog_opens_from_help_and_paints_nothing_when_closed() {
         !closed.contains("Design system"),
         "about body painted while closed: {closed}"
     );
-    assert!(!h.app().world.clipboard.is_some());
+    assert!(h.app().world.clipboard.is_none());
     h.key(KeyCode::F(10));
     h.key(KeyCode::Right);
     h.key(KeyCode::Right);
