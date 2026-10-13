@@ -9,10 +9,11 @@
 //! - Cockpit `i` opens a debug-info dialog that starts closed. `d` adds the
 //!   `otlp://collector.internal` row only inside that dialog. A failed launch
 //!   does not bind either key, so Escape still returns to the Manager.
+//! - Dirty-editor Cancel/Discard/Save opens only after Escape from the tabs.
+//!   The first Escape on a mount control returns to the tabs. Cancel stays.
+//!   Discard drops the draft. Save opens the existing preview.
 //!
 //! Rejected:
-//! - Dirty-editor Cancel/Discard/Save stays the status question. A modal
-//!   would take the Right/Enter path `editor_edits_count_once_preview_then_saves_and_returns` uses.
 //! - Manager help stays the hint layer. `?` must leave `Current directory`
 //!   visible and the last row on Esc/Close.
 //! - Choosing a workspace does not fold it. Enter keeps the expanded tree
@@ -181,9 +182,53 @@ fn dirty_editor_keeps_the_status_question_and_mount_isolation_stays_clone() {
     assert_eq!(h.app().route(), Route::Editor);
     assert!(
         !h.text().contains("Discarded"),
-        "the three-button exit dialog is not the locked editor path: {}",
+        "opening the dialog does not discard: {}",
         h.text()
     );
+    assert!(h.text().contains("Discard"), "{}", h.text());
+}
+
+#[test]
+fn dirty_editor_discard_returns_to_the_manager_without_saving() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    // `e` loads the first workspace, ignoring the manager cursor.
+    let id = h.app().world.workspaces[0].id;
+    let before = h
+        .app()
+        .world
+        .workspace(id)
+        .expect("workspace")
+        .mounts
+        .clone();
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Enter);
+    assert!(h.app().editor.dirty, "the draft must change before discard");
+    assert_ne!(
+        h.app().editor.pending.mounts,
+        before,
+        "discard is only meaningful when the draft mount differs"
+    );
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Esc);
+    assert!(
+        h.text().contains("Save changes before leaving?"),
+        "{}",
+        h.text()
+    );
+    let (x, y) = h.find("Discard").expect("discard");
+    h.click(x, y);
+    assert_eq!(h.app().route(), Route::Manager);
+    assert!(h.text().contains("Discarded 1 change"), "{}", h.text());
+    assert!(!h.app().editor.dirty, "discard clears the draft");
+    assert_eq!(
+        h.app().editor.pending.mounts,
+        before,
+        "discard restores the persisted mounts"
+    );
+    let saved = h.app().world.workspace(id).expect("workspace");
+    assert_eq!(saved.mounts, before, "discard must not write the workspace");
 }
 
 #[test]
