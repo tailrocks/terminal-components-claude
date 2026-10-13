@@ -170,6 +170,8 @@ const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-ren
 const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
 const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
 const CMD_COPY_SELECTION: ActionKey = ActionKey::application("jackin.capsule.copy-selection");
+const CMD_CAPSULE_EXPORT_FILE: ActionKey = ActionKey::application("jackin.capsule.export-file");
+const CMD_CAPSULE_EXPORT_REVEAL: ActionKey = ActionKey::application("jackin.capsule.export-reveal");
 const CMD_KEYBOARD_SHORTCUTS: ActionKey = ActionKey::application("jackin.keyboard-shortcuts");
 const CMD_ABOUT: ActionKey = ActionKey::application("jackin.about");
 const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
@@ -181,6 +183,11 @@ const CAPSULE_FILE_ITEMS: &[MenuItem<'static>] = &[
     MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
     MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right"),
     MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below"),
+    MenuItem::new(CMD_CAPSULE_EXPORT_FILE, "Export selected file…"),
+    MenuItem::new(
+        CMD_CAPSULE_EXPORT_REVEAL,
+        "Export selected file and reveal…",
+    ),
     MenuItem::new(CMD_COPY_SELECTION, "Copy selection"),
     MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
 ];
