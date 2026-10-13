@@ -25,11 +25,9 @@ fn open_new_form(w: u16, h: u16) -> Harness<TableProApp> {
     t
 }
 
-fn drafts(t: &Harness<TableProApp>) -> (usize, usize) {
-    let Some(draft) = t.app().connection_draft() else {
-        panic!("form must be open");
-    };
-    (draft.environment, draft.safe_mode)
+fn drafts(t: &Harness<TableProApp>) -> Result<(usize, usize), &'static str> {
+    let draft = t.app().connection_draft().ok_or("form must be open")?;
+    Ok((draft.environment, draft.safe_mode))
 }
 
 fn production_index(app: &TableProApp) -> Option<usize> {
@@ -42,21 +40,22 @@ fn production_index(app: &TableProApp) -> Option<usize> {
 /// Fresh ctrl-n form: arrows move the radio cursor without a draft write,
 /// and Space commits that cursor for environment then safe mode.
 #[test]
-fn form_radio_commit_changes_draft() {
+fn form_radio_commit_changes_draft() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
-    assert_eq!(drafts(&t), (0, 0), "fresh draft must start at index 0");
+    assert_eq!(drafts(&t)?, (0, 0), "fresh draft must start at index 0");
     assert!(t.tab_to(ENVIRONMENT), "ENVIRONMENT must be Tab-reachable");
     let _ = t.key(KeyCode::Down);
     let _ = t.key(KeyCode::Down);
-    assert_eq!(drafts(&t).0, 0, "arrows must not write the draft");
+    assert_eq!(drafts(&t)?.0, 0, "arrows must not write the draft");
     let _ = t.key(KeyCode::Char(' '));
-    assert_eq!(drafts(&t).0, 2, "Space must commit the cursor");
+    assert_eq!(drafts(&t)?.0, 2, "Space must commit the cursor");
 
     assert!(t.tab_to(SAFE_MODE), "SAFE_MODE must be Tab-reachable");
     let _ = t.key(KeyCode::Down);
-    assert_eq!(drafts(&t).1, 0, "arrows must not write the draft");
+    assert_eq!(drafts(&t)?.1, 0, "arrows must not write the draft");
     let _ = t.key(KeyCode::Char(' '));
-    assert_eq!(drafts(&t).1, 1, "Space must commit the cursor");
+    assert_eq!(drafts(&t)?.1, 1, "Space must commit the cursor");
+    Ok(())
 }
 
 /// `draw_form_radio` is not part of the app shell.
@@ -79,11 +78,9 @@ fn form_radio_no_legacy_painter() {
 /// The shell has no `e` edit binding. Connecting to Production and pressing
 /// ctrl-n opens that row through the public form command.
 #[test]
-fn form_radio_enter_submits() {
+fn form_radio_enter_submits() -> Result<(), &'static str> {
     let mut app = TableProApp::default();
-    let Some(index) = production_index(&app) else {
-        panic!("Production connection missing from the demo list");
-    };
+    let index = production_index(&app).ok_or("Production connection missing from the demo list")?;
     assert!(app.connect(index), "Production must connect");
     let mut t = Harness::new(app, Theme::junie(), 120, 40);
     let _ = t.ctrl('n');
@@ -102,7 +99,7 @@ fn form_radio_enter_submits() {
     assert!(group.is_some(), "GROUP must be registered");
     assert!(safe.is_some(), "SAFE_MODE must be registered");
     let (Some(env), Some(group), Some(safe)) = (env, group, safe) else {
-        return;
+        return Err("radio stops must be registered");
     };
     assert!(
         entries.get(env).is_some_and(|entry| !entry.disabled),
@@ -116,7 +113,11 @@ fn form_radio_enter_submits() {
         env < group && group < safe,
         "stops must register in draw order ENVIRONMENT < GROUP < SAFE_MODE"
     );
-    assert_eq!(drafts(&t), (3, 3), "the corpus pick starts Production/Safe");
+    assert_eq!(
+        drafts(&t)?,
+        (3, 3),
+        "the corpus pick starts Production/Safe"
+    );
     assert!(t.tab_to(ENVIRONMENT), "ENVIRONMENT must be Tab-reachable");
     assert_eq!(
         t.focus(),
@@ -125,13 +126,13 @@ fn form_radio_enter_submits() {
     );
 
     let _ = t.key(KeyCode::Up);
-    assert_eq!(drafts(&t).0, 3, "Up must not write the draft");
+    assert_eq!(drafts(&t)?.0, 3, "Up must not write the draft");
     let _ = t.key(KeyCode::Up);
-    assert_eq!(drafts(&t).0, 3, "Up must not write the draft");
+    assert_eq!(drafts(&t)?.0, 3, "Up must not write the draft");
     let _ = t.key(KeyCode::Char(' '));
-    assert_eq!(drafts(&t).0, 1, "Space must commit development");
+    assert_eq!(drafts(&t)?.0, 1, "Space must commit development");
     let _ = t.key(KeyCode::Down);
-    assert_eq!(drafts(&t).0, 1, "Down must not write the draft");
+    assert_eq!(drafts(&t)?.0, 1, "Down must not write the draft");
 
     let before = t.app().connections_screen.connections.len();
     let _ = t.key(KeyCode::Enter);
@@ -143,9 +144,12 @@ fn form_radio_enter_submits() {
         t.app().connections_screen.connections.len() > before,
         "submit must push a connection"
     );
-    let Some(pushed) = t.app().connections_screen.connections.last() else {
-        panic!("submit must push a connection");
-    };
+    let pushed = t
+        .app()
+        .connections_screen
+        .connections
+        .last()
+        .ok_or("submit must push a connection")?;
     let pushed = format!("{pushed:?}");
     assert!(
         pushed.contains("name: \"Production\""),
@@ -155,11 +159,12 @@ fn form_radio_enter_submits() {
         pushed.contains("environment: Development"),
         "the pushed connection keeps the last Space-committed value, got {pushed}"
     );
+    Ok(())
 }
 
 /// A fresh form can Tab to the declared DATABASE field and commit into it.
 #[test]
-fn fresh_form_reaches_database_field() {
+fn fresh_form_reaches_database_field() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
     assert!(
         form_fields().iter().any(|field| field.id == DATABASE),
@@ -177,13 +182,11 @@ fn fresh_form_reaches_database_field() {
             .any(|entry| entry.id == DATABASE && !entry.disabled),
         "DATABASE stop must be enabled"
     );
-    let Some(before) = t
+    let before = t
         .app()
         .connection_draft()
         .map(|draft| draft.database.clone())
-    else {
-        panic!("form must be open");
-    };
+        .ok_or("form must be open")?;
     assert!(
         !before.contains('Z'),
         "fixture database must not already contain the probe"
@@ -194,15 +197,14 @@ fn fresh_form_reaches_database_field() {
         t.app().connection_form_open(),
         "committing DATABASE must not submit the form"
     );
-    let Some(after) = t
+    let after = t
         .app()
         .connection_draft()
         .map(|draft| draft.database.clone())
-    else {
-        panic!("form must stay open");
-    };
+        .ok_or("form must stay open")?;
     assert!(
         after.contains('Z'),
         "DATABASE must accept input, before {before:?} after {after:?}"
     );
+    Ok(())
 }
