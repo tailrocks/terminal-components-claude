@@ -10,4 +10,4 @@ compile_driver = "cargo"
 test_runner = "cargo_nextest"
 
 [discovery]
-exclude = ["xtask/fixtures/**"]
+exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**"]
