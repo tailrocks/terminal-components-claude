@@ -420,7 +420,7 @@ impl App {
                 self.destination(destination, cx);
             }
             Choice::Preview => self.open_dialog(dialogs::Intent::Preview(action), cx),
-            Choice::Copy => self.set_status("Copied · simulated clipboard".into()),
+            Choice::Copy => self.copy_osc52(&action.command),
             Choice::Alias => self.open_dialog(dialogs::Intent::Alias(action), cx),
             Choice::Pin => {
                 if self.world.memory.pin_at(&self.world.cwd, &action.command) {
@@ -796,6 +796,30 @@ impl App {
     fn set_status(&mut self, message: String) {
         self.status = Some(message);
         self.status_until_ms = Some(self.world.now_ms().saturating_add(5_000));
+    }
+
+    /// Report an OSC 52 copy. The status names the real outcome. This preview
+    /// never writes the OSC sequence into the terminal.
+    fn copy_osc52(&mut self, value: &str) {
+        let report = Self::osc52_report(value, self.world.host.osc52, self.world.host.osc52_limit);
+        debug_assert!(!report.contains('\u{1b}'));
+        self.set_status(report);
+    }
+
+    fn osc52_report(value: &str, osc52: bool, limit: usize) -> String {
+        if !osc52 {
+            return "Not copied · this terminal does not accept OSC 52 · no system clipboard is wired"
+                .into();
+        }
+        let encoded = value.len().div_ceil(3).saturating_mul(4);
+        if encoded > limit {
+            return format!(
+                "Not copied · {encoded} encoded bytes exceed the terminal's {limit} byte OSC 52 limit"
+            );
+        }
+        let flat = value.replace('\n', " · ");
+        let shown: String = flat.chars().take(40).collect();
+        format!("Copied to the terminal clipboard (OSC 52, flushed) · {shown}")
     }
     fn plan_event(&mut self, event: plan::Event, cx: &mut Cx<'_>) {
         match event {
@@ -1572,6 +1596,42 @@ mod tests {
             "{:?}",
             harness.diagnostics()
         );
+    }
+    #[test]
+    fn copy_reports_osc52_status_without_emitting_a_sequence() {
+        let mut harness = app(Scenario::RustDirty);
+        let _ = harness.type_str("cargo build");
+        let _ = harness.ctrl('o');
+        let _ = harness.key(KeyCode::Down);
+        let _ = harness.key(KeyCode::Down);
+        let _ = harness.key(KeyCode::Enter);
+        let refused = harness.text();
+        assert!(refused.contains("does not accept OSC 52"), "{refused}");
+        assert!(!refused.contains('\u{1b}'), "{refused}");
+        assert!(harness.app().route == Route::Home);
+
+        harness.app_mut().world.host.osc52 = true;
+        harness.app_mut().world.host.osc52_limit = 4;
+        harness.app_mut().copy_osc52("cargo build");
+        harness.draw();
+        let limited = harness.text();
+        assert!(
+            limited.contains("exceed the terminal's 4 byte OSC 52 limit"),
+            "{limited}"
+        );
+        assert!(!limited.contains('\u{1b}'));
+
+        harness.app_mut().world.host.osc52_limit = 100_000;
+        harness.app_mut().copy_osc52("cargo build");
+        harness.draw();
+        let flushed = harness.text();
+        assert!(
+            flushed.contains("Copied to the terminal clipboard (OSC 52, flushed) · cargo build"),
+            "{flushed}"
+        );
+        assert!(!flushed.contains('\u{1b}'));
+        assert!(harness.app().route == Route::Home);
+        assert!(harness.app().overlay.is_none() || harness.text().contains("Copy command"));
     }
     #[test]
     fn paused_scenarios_stay_on_home_without_a_finder_stack_or_osc52() {
