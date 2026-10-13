@@ -65,10 +65,14 @@ fn capsule_export_closes_the_file_menu_and_writes_nothing() {
     }
     assert!(h.text().contains("Export selected file…"), "{}", h.text());
     h.key(KeyCode::Enter);
+    let closed = h.text();
     assert!(
-        !h.text().contains("Export selected file"),
-        "export row stayed open: {}",
-        h.text()
+        !closed.contains("Export selected file"),
+        "export row stayed open: {closed}"
+    );
+    assert!(
+        !closed.contains("Account for Claude Code"),
+        "Down did not leave the New tab row: {closed}"
     );
     assert_eq!(h.app().route(), Route::Capsule);
     assert_eq!(h.app().world.clipboard, clipboard);
@@ -82,7 +86,12 @@ fn capsule_export_closes_the_file_menu_and_writes_nothing() {
         h.text()
     );
     h.key(KeyCode::Enter);
-    assert!(!h.text().contains("Export selected file"), "{}", h.text());
+    let revealed = h.text();
+    assert!(!revealed.contains("Export selected file"), "{revealed}");
+    assert!(
+        !revealed.contains("Account for Claude Code"),
+        "reveal row was not chosen: {revealed}"
+    );
     assert_eq!(h.app().route(), Route::Capsule);
     assert_eq!(h.app().world.clipboard, clipboard);
 }

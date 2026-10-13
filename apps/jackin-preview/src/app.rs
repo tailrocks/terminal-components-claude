@@ -3591,6 +3591,7 @@ impl App {
             && !self.capsule_viewport_focused
             && !self.capsule_tab_menu_open
             && !cx.is_open(CAPSULE_TAB_MENU)
+            && !self.capsule_menu_state.is_open()
         {
             cx.focus(CAPSULE_INPUT);
         }
