@@ -393,13 +393,6 @@ impl EditorState {
         wipe_string(&mut self.env_value);
     }
 
-    /// Drop the transient value while retaining the rest of the form.
-    pub(crate) fn discard_env_value(&mut self) {
-        self.env_value_input.cancel();
-        self.env_value_input.zeroize();
-        wipe_string(&mut self.env_value);
-    }
-
     /// Move the committed transient value into its durable draft owner.
     pub(crate) fn take_env_value(&mut self) -> String {
         self.env_value_input.zeroize();

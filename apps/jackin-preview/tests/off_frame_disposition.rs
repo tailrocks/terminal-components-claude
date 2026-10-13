@@ -232,6 +232,53 @@ fn dirty_editor_discard_returns_to_the_manager_without_saving() {
 }
 
 #[test]
+fn escape_from_the_mount_control_focuses_save_before_the_leave_dialog() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Esc);
+    assert_eq!(h.focus(), Some(jackin_app::screens::editor::SAVE));
+    assert!(
+        !h.text().contains("Save changes before leaving?"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Esc);
+    assert!(
+        h.text().contains("Save changes before leaving?"),
+        "{}",
+        h.text()
+    );
+    assert_eq!(h.app().route(), Route::Editor);
+}
+
+#[test]
+fn escape_from_a_new_environment_field_reaches_accounts() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Char('a'));
+    assert!(
+        h.app().editor.env_form_open,
+        "a opens the variable form: {}",
+        h.text()
+    );
+    h.key(KeyCode::Esc);
+    assert!(!h.app().editor.env_form_open);
+    assert_eq!(h.focus(), Some(jackin_app::screens::editor::SAVE));
+    h.key(KeyCode::Char(']'));
+    assert!(
+        h.text().contains("Active accounts"),
+        "the bracket must change tabs: {}",
+        h.text()
+    );
+}
+
+#[test]
 fn paused_frames_do_not_open_quit_or_cancel() {
     for scenario in [
         Scenario::FirstUse,
