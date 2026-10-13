@@ -1433,6 +1433,16 @@ impl App {
         }
     }
 
+    /// Close the environment form and return to the registered save control.
+    ///
+    /// The editor tab name is painted text. `editor::TABS` is not a widget, so
+    /// focus uses the save footer, which every live editor tab registers.
+    fn dismiss_editor_env_form(&mut self, cx: &mut Cx<'_>) {
+        self.editor.clear_env_form();
+        self.editor_leaf_focused = false;
+        cx.focus(crate::screens::editor::SAVE);
+    }
+
     /// Focus the control for the active editor tab. Leaf controls consume the
     /// next Escape so it does not open the leave dialog.
     fn focus_editor_tab(&mut self, cx: &mut Cx<'_>) {
@@ -3671,6 +3681,10 @@ impl App {
                 .action_ref()
                 .is_some_and(|action| *action == TextAction::Cancelled);
             let mut result = key.erase();
+            if key_cancelled {
+                self.dismiss_editor_env_form(cx);
+                return result;
+            }
             if Self::rearm_text_input(
                 key_rearm,
                 &mut self.editor.env_key_input,
@@ -3696,8 +3710,9 @@ impl App {
                 .action_ref()
                 .is_some_and(|action| *action == TextAction::Cancelled);
             result |= value.erase();
-            if key_cancelled || value_cancelled {
-                self.editor.discard_env_value();
+            if value_cancelled {
+                self.dismiss_editor_env_form(cx);
+                return result;
             }
             if Self::rearm_text_input(
                 value_rearm,
@@ -7726,12 +7741,12 @@ impl TuiApp for App {
         }
         if self.route == Route::Editor {
             if self.editor.env_form_open {
-                self.editor.clear_env_form();
+                self.dismiss_editor_env_form(cx);
                 return self.route_changed();
             }
             if self.editor_leaf_focused {
                 self.editor_leaf_focused = false;
-                cx.focus(crate::screens::editor::TABS);
+                cx.focus(crate::screens::editor::SAVE);
                 return self.route_changed();
             }
             if self.editor.dirty {
