@@ -1099,6 +1099,12 @@ impl App {
         TextInput::new(crate::screens::accounts::NAME).placeholder("Display name")
     }
 
+    fn account_filter_input() -> TextInput<'static> {
+        TextInput::new(crate::screens::accounts::FILTER)
+            .placeholder("Filter accounts")
+            .placeholder_while_editing(true)
+    }
+
     fn account_folder_input() -> TextInput<'static> {
         TextInput::new(crate::screens::accounts::FOLDER).placeholder("Local agent folder")
     }
@@ -2793,10 +2799,7 @@ impl App {
 
     fn update_accounts(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.accounts.filtering && !self.accounts.form_open {
-            let filter = TextInput::new(crate::screens::accounts::FILTER)
-                .placeholder("Filter accounts")
-                .placeholder_while_editing(true)
-                .update(
+            let filter = Self::account_filter_input().update(
                     cx,
                     &mut self.accounts.filter_input,
                     &mut self.accounts.filter_query,
@@ -6210,9 +6213,7 @@ impl App {
             ..area
         };
         if self.accounts.filtering {
-            TextInput::new(crate::screens::accounts::FILTER)
-                .placeholder("Filter accounts")
-                .placeholder_while_editing(true)
+            Self::account_filter_input()
                 .value(&self.accounts.filter_query)
                 .draw(
                     ui,
