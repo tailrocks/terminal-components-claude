@@ -1036,19 +1036,20 @@ mod tests {
         let mut page = Buffer::empty(screen);
         let mut core = UiCore::default();
         let last = LastFrame::default();
-        let ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-        assert_eq!(
-            ui.resolve(
-                Family::HINTBAR,
-                Variant::DEFAULT,
-                Part::MARKER,
-                StateFlags::WARNING
-            )
-            .glyph,
-            Slot::Set(GlyphRole::Dirty),
-            "mono fallback still rewrites the resolved marker"
-        );
-        drop(ui);
+        {
+            let ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            assert_eq!(
+                ui.resolve(
+                    Family::HINTBAR,
+                    Variant::DEFAULT,
+                    Part::MARKER,
+                    StateFlags::WARNING
+                )
+                .glyph,
+                Slot::Set(GlyphRole::Dirty),
+                "mono fallback still rewrites the resolved marker"
+            );
+        }
         let painted = draw_page(
             &theme,
             screen,
