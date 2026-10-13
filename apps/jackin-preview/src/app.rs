@@ -3012,6 +3012,7 @@ impl App {
                 self.editor_role_picker = false;
                 self.editor_env_role = Some(role.clone());
                 self.editor.open_env_form();
+                self.editor_leaf_focused = true;
                 cx.focus(crate::screens::editor::ENV_KEY);
                 self.status = Some(format!("Add role override · {}", self.role_label(&role)));
             } else {
@@ -4301,6 +4302,7 @@ impl App {
             {
                 self.editor_env_role = None;
                 self.editor.open_env_form();
+                self.editor_leaf_focused = true;
                 cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
             }
