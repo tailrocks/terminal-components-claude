@@ -1382,11 +1382,12 @@ fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Char('s'));
     assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 0);
     assert!(h.text().contains("▸ General"), "{}", h.text());
-    h.key(KeyCode::Left);
+    h.key(KeyCode::Char('5'));
     assert_eq!(h.app().settings.tab, 4);
     assert!(h.text().contains("▸ Trust"), "{}", h.text());
-    h.key(KeyCode::Char('5'));
+    assert!(!h.text().contains("▸ General"), "{}", h.text());
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char(' '));
     h.ctrl('s');
@@ -1405,11 +1406,27 @@ fn accounts_filter_and_inspector_open_without_writing_a_credential() {
     assert!(!h.app().accounts.filtering);
     assert!(!h.app().accounts.drawer_open);
     let before = h.app().world.accounts.accounts.len();
+    let visible_name = h
+        .app()
+        .world
+        .accounts
+        .sorted()
+        .iter()
+        .map(|account| account.display_name.clone())
+        .find(|name| h.text().contains(name))
+        .expect("closed accounts list paints an account name");
     h.key(KeyCode::Char('/'));
     assert!(h.app().accounts.filtering);
     assert!(h.text().contains("Filter accounts"), "{}", h.text());
-    h.key(KeyCode::Char('.'));
-    assert_eq!(h.app().accounts.filter_query, ".");
+    for ch in ['z', 'z', 'z'] {
+        h.key(KeyCode::Char(ch));
+    }
+    assert_eq!(h.app().accounts.filter_query, "zzz");
+    assert!(
+        !h.text().contains(&visible_name),
+        "filter left {visible_name} visible: {}",
+        h.text()
+    );
     h.key(KeyCode::Esc);
     assert!(!h.app().accounts.filtering);
     assert!(!h.text().contains("Filter accounts"), "{}", h.text());
