@@ -385,6 +385,7 @@ fn usage_overlay_is_read_only_and_hands_off_to_accounts() {
     h.key(KeyCode::Char('u'));
     assert_eq!(h.app().route(), Route::Usage);
     assert!(h.text().contains("Usage · read-only"));
+    assert!(h.text().contains("Usage › Overview"));
     assert!(h.text().contains("Overview"));
     h.key(KeyCode::Down);
     assert!(h.text().contains("Limits"), "{}", h.text());
