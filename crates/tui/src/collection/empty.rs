@@ -181,12 +181,20 @@ impl EmptyState<'_> {
             EmptyState::Empty { .. } => None,
         };
         let icon_width = glyph.map_or(0, width);
-        let title_text = crate::text::truncate(self.title(), area.width);
+        // `truncate` always owns a `String`, including when the title already
+        // fits. The inherited paint path is measured as allocation-free, so
+        // borrow the original until a cut is actually required.
+        let title_owned = if width(self.title()) > area.width {
+            Some(crate::text::truncate(self.title(), area.width))
+        } else {
+            None
+        };
+        let title_text = title_owned.as_deref().unwrap_or_else(|| self.title());
         draw_centered(
             ui,
             area,
             CenteredText {
-                title: &title_text,
+                title: title_text,
                 detail: self.detail(),
                 icon_width,
             },
@@ -196,7 +204,7 @@ impl EmptyState<'_> {
                 }
             },
             |ui, title_area| {
-                ui.paint_str(title_area, &title_text, title);
+                ui.paint_str(title_area, title_text, title);
             },
             |ui, detail_area| {
                 if let Some(detail) = self.detail() {
