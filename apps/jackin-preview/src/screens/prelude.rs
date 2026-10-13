@@ -114,4 +114,13 @@ impl PreludeState {
     pub const fn selection(&self) -> u8 {
         self.selection
     }
+
+    /// Paint one fixture row, marking the row the cursor is on.
+    pub fn marked_source(&self, label: &str, index: u8) -> String {
+        if self.selection == index {
+            format!("▸ {label}")
+        } else {
+            label.to_owned()
+        }
+    }
 }

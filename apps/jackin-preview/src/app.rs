@@ -170,6 +170,8 @@ const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-ren
 const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
 const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
 const CMD_COPY_SELECTION: ActionKey = ActionKey::application("jackin.capsule.copy-selection");
+const CMD_CAPSULE_EXPORT_FILE: ActionKey = ActionKey::application("jackin.capsule.export-file");
+const CMD_CAPSULE_EXPORT_REVEAL: ActionKey = ActionKey::application("jackin.capsule.export-reveal");
 const CMD_KEYBOARD_SHORTCUTS: ActionKey = ActionKey::application("jackin.keyboard-shortcuts");
 const CMD_ABOUT: ActionKey = ActionKey::application("jackin.about");
 const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
@@ -181,6 +183,11 @@ const CAPSULE_FILE_ITEMS: &[MenuItem<'static>] = &[
     MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
     MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right"),
     MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below"),
+    MenuItem::new(CMD_CAPSULE_EXPORT_FILE, "Export selected file…"),
+    MenuItem::new(
+        CMD_CAPSULE_EXPORT_REVEAL,
+        "Export selected file and reveal…",
+    ),
     MenuItem::new(CMD_COPY_SELECTION, "Copy selection"),
     MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
 ];
@@ -3584,6 +3591,7 @@ impl App {
             && !self.capsule_viewport_focused
             && !self.capsule_tab_menu_open
             && !cx.is_open(CAPSULE_TAB_MENU)
+            && !self.capsule_menu_state.is_open()
         {
             cx.focus(CAPSULE_INPUT);
         }
@@ -4417,7 +4425,24 @@ impl App {
             ..area
         };
         let style = ui.surface_style();
-        ui.paint_str(heading, self.route.title(), style);
+        let usage_heading;
+        let label = if self.route == Route::Usage {
+            let detail = self.usage.selected().and_then(|id| {
+                self.world
+                    .accounts
+                    .get(id)
+                    .map(|account| (account.surface.surface_name(), account.display_name.clone()))
+            });
+            usage_heading = self.usage.crumb(
+                detail
+                    .as_ref()
+                    .map(|(surface, name)| (*surface, name.as_str())),
+            );
+            usage_heading.as_str()
+        } else {
+            self.route.title()
+        };
+        ui.paint_str(heading, label, style);
         if area.height < 2 {
             return;
         }
@@ -4500,9 +4525,9 @@ impl App {
             1 => vec![
                 "Create workspace · step 1 of 5 · Source".to_owned(),
                 format!("Source · {source}"),
-                "customer-portal/".to_owned(),
-                "data-pipeline/".to_owned(),
-                "payments-platform/".to_owned(),
+                self.prelude.marked_source("customer-portal/", 1),
+                self.prelude.marked_source("data-pipeline/", 2),
+                self.prelude.marked_source("payments-platform/", 0),
                 format!("Selected source · {}", self.prelude.selection()),
             ],
             2 => vec![
@@ -5868,6 +5893,22 @@ impl App {
         }
     }
 
+    fn paint_form_hints(&self, ui: &mut Ui<'_>, area: Rect, above_save: bool) {
+        let y = if above_save {
+            area.bottom().saturating_sub(2)
+        } else {
+            area.bottom().saturating_sub(1)
+        };
+        if y < area.y || area.width == 0 {
+            return;
+        }
+        ui.paint_str(
+            Rect::new(area.x, y, area.width, 1),
+            self.accounts.form_hints(),
+            ui.surface_style(),
+        );
+    }
+
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
         if self.accounts.form_open {
             if !self.accounts.started {
@@ -5881,6 +5922,7 @@ impl App {
                 );
                 Self::account_start_button()
                     .draw(ui, Rect::new(area.x, area.y.saturating_add(3), 18, 1));
+                self.paint_form_hints(ui, area, false);
                 return;
             }
             paint_lines(
@@ -5984,6 +6026,7 @@ impl App {
                 ui,
                 Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
             );
+            self.paint_form_hints(ui, area, true);
             return;
         }
         let rows = self.account_rows();
