@@ -598,7 +598,6 @@ impl<'a> StatusBar<'a> {
             .saturating_add(present.saturating_sub(1).saturating_mul(gap))
             .saturating_add(edge.saturating_mul(2))
             .saturating_add(lead)
-            .saturating_add(if present > 0 { gap } else { 0 })
     }
 
     /// Which items survive at `total` columns.
@@ -1014,45 +1013,6 @@ mod tests {
             .left(&LEFT)
             .center(&CENTER)
             .right(&RIGHT)
-    }
-
-    fn old_total(bar: &StatusBar<'_>, keep: Keep, gap: u16, edge: u16, lead: u16) -> (u16, u16) {
-        let ws = Group::ALL.map(|g| bar.group_columns(g, keep, TEST_METRICS, gap));
-        let present = ws.iter().filter(|w| **w > 0).count().min(3) as u16;
-        let total = ws
-            .iter()
-            .fold(0u16, |a, w| a.saturating_add(*w))
-            .saturating_add(present.saturating_sub(1).saturating_mul(gap))
-            .saturating_add(edge.saturating_mul(2))
-            .saturating_add(lead);
-        (present, total)
-    }
-
-    #[test]
-    fn needed_adds_one_gap_past_the_old_total_when_groups_are_present() {
-        const GAP: u16 = 2;
-        const EDGE: u16 = 1;
-        const LEAD: u16 = 4;
-
-        let strip = bar();
-        let keep = strip.all_alive_keep();
-        let (present, old) = old_total(&strip, keep, GAP, EDGE, LEAD);
-        assert!(present > 1, "fixture must keep more than one live group");
-        assert_eq!(
-            strip.needed(keep, TEST_METRICS, GAP, EDGE, LEAD),
-            old.saturating_add(GAP),
-            "a live strip is one separator past the old total"
-        );
-
-        let empty = StatusBar::new(Id::root("empty"));
-        let keep = empty.all_alive_keep();
-        let (present, old) = old_total(&empty, keep, GAP, EDGE, LEAD);
-        assert_eq!(present, 0);
-        assert_eq!(
-            empty.needed(keep, TEST_METRICS, GAP, EDGE, LEAD),
-            old,
-            "an empty strip adds no separator"
-        );
     }
 
     #[test]
