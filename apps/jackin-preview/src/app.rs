@@ -13,14 +13,14 @@ use std::{
 };
 
 use junie_tui::{
-    ActionKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx, Dialog, DialogAction,
-    DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar,
-    HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
-    ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Modifier, Moment, Panel,
-    Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText, Reconcile,
-    Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
-    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
-    ViewportLine, ViewportState,
+    ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx, Dialog,
+    DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection,
+    Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase,
+    List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Modifier, Moment,
+    Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText,
+    Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState,
+    TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant,
+    ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -122,6 +122,7 @@ const CAPSULE_TAB_MENU: Id = APP.sub("capsule-tab-menu");
 const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
 /// Capsule container identity dialog.
 const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
+const ABOUT_DIALOG: Id = APP.sub("about");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
 const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
 const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
@@ -148,6 +149,10 @@ const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
 const CMD_NAV_DOWN: ActionKey = ActionKey::application("jackin.navigation.down");
+const CMD_NAV_UP: ActionKey = ActionKey::application("jackin.navigation.up");
+const CMD_ACCOUNT_FILTER: ActionKey = ActionKey::application("jackin.account.filter");
+const CMD_ACCOUNT_DRAWER: ActionKey = ActionKey::application("jackin.account.drawer");
+const CMD_SETTINGS_TAB_PREV: ActionKey = ActionKey::application("jackin.settings.previous-tab");
 const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::application("jackin.navigation.tab-five");
 const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::application("jackin.capsule.prefix");
 const CMD_CAPSULE_DETACH: ActionKey = ActionKey::application("jackin.capsule.detach");
@@ -520,6 +525,9 @@ pub struct App {
     keymap: KeyMap,
     capsule_menu_state: MenuState,
     container_info_state: DialogState,
+    about_state: DialogState,
+    about_open: bool,
+    settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
@@ -691,6 +699,9 @@ impl App {
             keymap: app_keymap(),
             capsule_menu_state: MenuState::default(),
             container_info_state: DialogState::default(),
+            about_state: DialogState::default(),
+            about_open: false,
+            settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
@@ -816,6 +827,42 @@ impl App {
                 && !self.editor.env_form_open)
         {
             self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
+        }
+        let enter = Chord::key(KeyCode::Enter);
+        self.keymap.remove(KeyPhase::Capture, enter);
+        if self.route == Route::Usage && !self.usage.detail_open() {
+            self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
+        }
+        let up = Chord::key(KeyCode::Up);
+        self.keymap.remove(KeyPhase::Bubble, up);
+        if self.route == Route::Prelude && self.prelude.step() == 1 {
+            self.keymap.add(KeyPhase::Bubble, up, CMD_NAV_UP);
+        }
+        let filter = Chord::key(KeyCode::Char('/'));
+        self.keymap.remove(KeyPhase::Bubble, filter);
+        if self.route == Route::Accounts && !self.accounts.form_open && !self.accounts.filtering {
+            self.keymap
+                .add(KeyPhase::Bubble, filter, CMD_ACCOUNT_FILTER);
+        }
+        let drawer = Chord::key(KeyCode::Char('i'));
+        self.keymap.remove(KeyPhase::Bubble, drawer);
+        if self.route == Route::Accounts
+            && !self.accounts.form_open
+            && !self.accounts.filtering
+            && !self.accounts.drawer_open
+        {
+            self.keymap
+                .add(KeyPhase::Bubble, drawer, CMD_ACCOUNT_DRAWER);
+        }
+        let left = Chord::key(KeyCode::Left);
+        self.keymap.remove(KeyPhase::Bubble, left);
+        let save_confirm = self
+            .status
+            .as_deref()
+            .is_some_and(|status| status.starts_with("Save settings"));
+        if self.route == Route::Settings && !self.settings_save_preview && !save_confirm {
+            self.keymap
+                .add(KeyPhase::Bubble, left, CMD_SETTINGS_TAB_PREV);
         }
     }
 
@@ -1169,6 +1216,40 @@ impl App {
             Self::container_info_dialog().layer(cx),
         );
         self.status = Some("Container info".into());
+    }
+
+    fn about_dialog() -> Dialog<'static> {
+        Dialog::info(ABOUT_DIALOG, "About").body_rows(4)
+    }
+
+    fn about_lines(&self) -> Vec<String> {
+        vec![
+            "Product       jackin-preview · deterministic redesign preview".into(),
+            format!("Scenario      {}", self.world.scenario.name()),
+            "Construct     simulated · nothing here touches a real container".into(),
+            "Design system Junie-inspired Ratatui components (junie_tui)".into(),
+        ]
+    }
+
+    fn open_usage_detail(&mut self) {
+        if self.usage.selected().is_none() {
+            let id = self
+                .world
+                .accounts
+                .sorted()
+                .into_iter()
+                .next()
+                .map(|account| account.id.clone());
+            self.usage.select(id);
+        }
+        let _ = self.usage.open_detail();
+    }
+
+    fn open_about(&mut self, cx: &mut Cx<'_>) {
+        self.about_state = DialogState::default();
+        self.about_open = true;
+        cx.open_layer(ABOUT_DIALOG, Self::about_dialog().layer(cx));
+        self.status = None;
     }
 
     fn manager_instances(
@@ -2423,6 +2504,16 @@ impl App {
         }
         result |= response.erase();
 
+        if self.about_open {
+            let about = Self::about_dialog();
+            let response = about.update(cx, &mut self.about_state);
+            if response.action_ref().is_some() || !cx.is_open(ABOUT_DIALOG) {
+                self.about_open = false;
+                self.status = None;
+            }
+            result |= response.erase();
+        }
+
         // Drain the dialog and its body control while a child picker is
         // open too.  Layer dismissal intents are addressed to the underlying
         // owners during the same update pass; returning early for the top
@@ -2701,6 +2792,35 @@ impl App {
     }
 
     fn update_accounts(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.accounts.filtering && !self.accounts.form_open {
+            let filter = TextInput::new(crate::screens::accounts::FILTER)
+                .placeholder("Filter accounts")
+                .placeholder_while_editing(true)
+                .update(
+                    cx,
+                    &mut self.accounts.filter_input,
+                    &mut self.accounts.filter_query,
+                );
+            let cancelled = filter
+                .action_ref()
+                .is_some_and(|action| *action == TextAction::Cancelled);
+            let mut result = filter.erase();
+            // Controlled text writes the caller string only on commit. A live
+            // filter has to follow the draft on each key.
+            if let Some(draft) = self.accounts.filter_input.draft_text()
+                && self.accounts.filter_query != draft
+            {
+                self.accounts.filter_query = draft.to_owned();
+                result |= Response::changed();
+            }
+            if cancelled {
+                self.accounts.filtering = false;
+                self.accounts.filter_query.clear();
+                self.accounts.filter_input = TextInputState::default();
+                result |= Response::changed();
+            }
+            return result;
+        }
         if self.accounts.form_open {
             if !self.accounts.started {
                 let start = Self::account_start_button().update(cx);
@@ -3051,6 +3171,7 @@ impl App {
             }
         }
         if confirm_chosen && self.settings.dirty {
+            self.settings_save_preview = false;
             let keep = self.settings.attempt_save(self.world.refresh_fails);
             if keep {
                 self.status = self.settings.save_error.clone();
@@ -3673,7 +3794,14 @@ impl App {
             Route::Prelude => self.update_prelude(cx),
             Route::Editor => self.update_editor(cx),
             Route::Accounts => self.update_accounts(cx),
-            Route::Usage => Response::ignored(),
+            Route::Usage => {
+                if cx.activation_key() == Some(ActivationKey::Enter) && !self.usage.detail_open() {
+                    self.open_usage_detail();
+                    Response::changed()
+                } else {
+                    Response::ignored()
+                }
+            }
             Route::Settings => self.update_settings(cx),
             Route::Launch | Route::Cockpit => self.update_launch(cx, product_tick),
             Route::Handoff | Route::Outro => Response::ignored(),
@@ -3915,7 +4043,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ABOUT if self.route == Route::Capsule => {
-                self.status = Some("Capsule · terminal workspace control plane".into());
+                self.open_about(cx);
                 Some(Response::changed())
             }
             CMD_TAB_RENAME if self.route == Route::Capsule => {
@@ -4156,7 +4284,53 @@ impl App {
                 Some(Response::changed())
             }
             CMD_NAV_DOWN if self.route == Route::Prelude => {
-                self.prelude.move_selection(true);
+                if self.prelude.step() == 1 {
+                    let from = self.prelude.selection();
+                    let _ = self
+                        .prelude
+                        .follow_source_cursor(from, from.saturating_add(1));
+                } else {
+                    self.prelude.move_selection(true);
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_UP if self.route == Route::Prelude => {
+                let from = self.prelude.selection();
+                let _ = self
+                    .prelude
+                    .follow_source_cursor(from, from.saturating_sub(1));
+                Some(Response::changed())
+            }
+            CMD_ACCOUNT_FILTER if self.route == Route::Accounts && !self.accounts.form_open => {
+                self.accounts.filtering = true;
+                self.accounts.drawer_open = false;
+                self.accounts.filter_query.clear();
+                self.accounts.filter_input.begin("");
+                cx.focus(crate::screens::accounts::FILTER);
+                Some(Response::changed())
+            }
+            CMD_ACCOUNT_DRAWER if self.route == Route::Accounts && !self.accounts.form_open => {
+                if self.accounts.selected_id.is_none() {
+                    self.accounts.selected_id = self
+                        .world
+                        .accounts
+                        .sorted()
+                        .into_iter()
+                        .next()
+                        .map(|account| account.id.clone());
+                }
+                self.accounts.drawer_open = true;
+                self.status = Some("Account inspector".into());
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_TAB_PREV
+                if self.route == Route::Settings && !self.settings_save_preview =>
+            {
+                self.settings.cycle_tab(false);
+                Some(Response::changed())
+            }
+            CMD_EXIT_CONFIRM if self.route == Route::Usage => {
+                self.open_usage_detail();
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE if self.route == Route::Prelude => {
@@ -4289,6 +4463,7 @@ impl App {
                 if !self.settings.dirty {
                     self.settings.begin_draft();
                 }
+                self.settings_save_preview = true;
                 cx.focus(SETTINGS_SAVE_CONFIRM);
                 self.status = Some("Save settings · choose a confirmation action".into());
                 Some(Response::changed())
@@ -6030,11 +6205,38 @@ impl App {
             return;
         }
         let rows = self.account_rows();
-        let list_area = Rect {
+        let mut list_area = Rect {
             height: area.height.saturating_sub(3),
             ..area
         };
+        if self.accounts.filtering {
+            TextInput::new(crate::screens::accounts::FILTER)
+                .placeholder("Filter accounts")
+                .placeholder_while_editing(true)
+                .value(&self.accounts.filter_query)
+                .draw(
+                    ui,
+                    Rect::new(area.x, area.y, area.width, 1),
+                    &self.accounts.filter_input,
+                );
+            list_area.y = list_area.y.saturating_add(1);
+            list_area.height = list_area.height.saturating_sub(1);
+        }
         List::new(ACCOUNTS_LIST).draw(ui, list_area, &self.accounts.list, &rows);
+        if self.accounts.drawer_open {
+            let title = self
+                .accounts
+                .selected_id
+                .as_deref()
+                .and_then(|id| self.world.accounts.get(id))
+                .map(Account::title)
+                .unwrap_or_else(|| "no account".to_owned());
+            ui.paint_str(
+                Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1),
+                &format!("Inspector · {title}"),
+                ui.surface_style(),
+            );
+        }
         Self::account_add_button().draw(
             ui,
             Rect {
@@ -6047,6 +6249,21 @@ impl App {
     }
 
     fn draw_usage(&self, ui: &mut Ui<'_>, area: Rect) {
+        if self.usage.detail_open() {
+            let account = self
+                .usage
+                .selected()
+                .and_then(|id| self.world.accounts.get(id));
+            let mut lines = vec!["Usage detail · read-only".to_owned()];
+            if let Some(account) = account {
+                lines.push(account.title());
+                lines.push(account.status_word().to_owned());
+                lines.push(format!("Surface · {}", account.surface.surface_name()));
+            }
+            lines.push("Limits".to_owned());
+            paint_lines(ui, area, &lines);
+            return;
+        }
         let summary = crate::domain::usage::OverallSummary::compute(&self.world.accounts.accounts);
         let tab = match self.usage.tab {
             UsageTab::Overview => "Overview",
@@ -6075,16 +6292,21 @@ impl App {
     }
 
     fn draw_settings(&self, ui: &mut Ui<'_>, area: Rect) {
-        let lines = [
+        let mut lines = vec![
+            self.settings.tab_line(),
             if self.settings.dirty {
-                "• 1 change · Runtime mode · Sync host credentials"
+                "• 1 change · Runtime mode · Sync host credentials".to_owned()
             } else {
-                "Runtime mode · Sync host credentials"
+                "Runtime mode · Sync host credentials".to_owned()
             },
-            "Workspace · payments-platform",
-            "DCO signoff · enabled",
-            "Secret policy · references only; resolved bytes are transient",
+            "Workspace · payments-platform".to_owned(),
+            "DCO signoff · enabled".to_owned(),
+            "Secret policy · references only; resolved bytes are transient".to_owned(),
         ];
+        if self.settings_save_preview {
+            lines.push("Scope · global config".to_owned());
+            lines.push("Changes · trust draft".to_owned());
+        }
         paint_lines(ui, area, &lines);
         Self::settings_trust_button(self.trusted).draw(
             ui,
@@ -6247,6 +6469,7 @@ impl App {
             && self.capsule_tab_title.is_empty()
             && !self.capsule_viewport_focused
             && self.inspect.instance.is_none()
+            && !self.about_open
     }
 
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6564,6 +6787,13 @@ impl App {
                 paint_lines(ui, body, &info_lines)
             })
         });
+        let about = Self::about_dialog();
+        let _ = ui.layer(ABOUT_DIALOG, |ui, area| {
+            let about_lines = self.about_lines();
+            about.draw(ui, area, &self.about_state, |ui, body| {
+                paint_lines(ui, body, &about_lines)
+            })
+        });
         let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
             dialog.draw(ui, area, &self.launch_dialog, |ui, body| {
@@ -6666,6 +6896,7 @@ impl App {
             || cx.is_open(LAUNCH_DIALOG)
             || cx.is_open(CAPSULE_CONTAINER_INFO)
             || cx.is_open(CAPSULE_HELP)
+            || cx.is_open(ABOUT_DIALOG)
         {
             self.sync_workspace_keymap();
             return result;
@@ -6844,6 +7075,12 @@ impl TuiApp for App {
     }
 
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.about_open {
+            self.about_open = false;
+            self.status = None;
+            cx.close_layer(ABOUT_DIALOG, Some(ActionKey::CLOSE));
+            return self.route_changed();
+        }
         if self.route == Route::Outro {
             self.quit = true;
             return self.route_changed();
@@ -6912,7 +7149,24 @@ impl TuiApp for App {
             self.status = None;
             return self.route_changed();
         }
+        if self.route == Route::Usage && self.usage.detail_open() {
+            self.usage.close_detail();
+            self.status = None;
+            return self.route_changed();
+        }
         if self.route == Route::Accounts {
+            if self.accounts.filtering {
+                self.accounts.filtering = false;
+                self.accounts.filter_query.clear();
+                self.accounts.filter_input = TextInputState::default();
+                self.status = None;
+                return self.route_changed();
+            }
+            if self.accounts.drawer_open {
+                self.accounts.drawer_open = false;
+                self.status = None;
+                return self.route_changed();
+            }
             if self
                 .status
                 .as_deref()
@@ -6962,6 +7216,11 @@ impl TuiApp for App {
             return self.route_changed();
         }
         if self.route == Route::Settings {
+            if self.settings_save_preview {
+                self.settings_save_preview = false;
+                self.status = None;
+                return self.route_changed();
+            }
             if self.settings.save_error.is_some() {
                 self.settings.clear_error();
                 self.status = None;

@@ -11,6 +11,9 @@ pub const SAVE: Id = FORM.sub("save");
 /// Host-trust toggle.
 pub const TRUST: Id = FORM.sub("trust");
 
+/// Settings tabs. Trust is the only editable one on this host.
+pub const TAB_NAMES: [&str; 5] = ["General", "Mounts", "Environments", "Agents", "Trust"];
+
 /// Settings draft and save lifecycle.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SettingsState {
@@ -20,6 +23,8 @@ pub struct SettingsState {
     pub save_attempts: u8,
     /// Latest save error, if one occurred.
     pub save_error: Option<String>,
+    /// Active settings tab. General is 0.
+    pub tab: u8,
 }
 
 impl SettingsState {
@@ -44,6 +49,34 @@ impl SettingsState {
     /// Clear a displayed save error while retaining the draft.
     pub fn clear_error(&mut self) {
         self.save_error = None;
+    }
+
+    /// Move to the next or previous tab, wrapping inside the strip.
+    pub const fn cycle_tab(&mut self, next: bool) {
+        self.tab = if next {
+            self.tab.saturating_add(1) % 5
+        } else if self.tab == 0 {
+            4
+        } else {
+            self.tab.saturating_sub(1)
+        };
+    }
+
+    /// One painted strip. The active tab carries the cursor mark.
+    pub fn tab_line(&self) -> String {
+        let active = usize::from(self.tab.min(4));
+        TAB_NAMES
+            .iter()
+            .enumerate()
+            .map(|(index, name)| {
+                if index == active {
+                    format!("▸ {name}")
+                } else {
+                    (*name).to_owned()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("  ")
     }
 
     /// Record one save attempt and return whether the draft should remain.
@@ -87,5 +120,15 @@ mod tests {
         assert_eq!(state.save_attempts, 0);
         assert!(state.save_error.is_none());
         assert!(!state.is_clean());
+    }
+
+    #[test]
+    fn tabs_wrap_and_mark_only_the_active_name() {
+        let mut state = SettingsState::default();
+        assert!(state.tab_line().starts_with("▸ General"));
+        state.cycle_tab(false);
+        assert_eq!(state.tab, 4);
+        assert!(state.tab_line().contains("▸ Trust"));
+        assert!(!state.tab_line().contains("▸ General"));
     }
 }

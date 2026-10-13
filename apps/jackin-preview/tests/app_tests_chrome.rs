@@ -246,3 +246,32 @@ fn command_palette_scrolls_with_the_wheel_and_keeps_the_selection() {
         h.text()
     );
 }
+
+#[test]
+fn about_dialog_opens_from_help_and_paints_nothing_when_closed() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let closed = h.text();
+    assert!(
+        !closed.contains("Design system"),
+        "about body painted while closed: {closed}"
+    );
+    assert!(!h.app().world.clipboard.is_some());
+    h.key(KeyCode::F(10));
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    let open = h.text();
+    assert!(open.contains("jackin-preview · deterministic"), "{open}");
+    assert!(open.contains("Design system"), "{open}");
+    assert!(open.contains("nothing here touches"), "{open}");
+    assert!(open.contains("capsule-multi"), "{open}");
+    assert_eq!(h.app().route(), Route::Capsule);
+    h.key(KeyCode::Esc);
+    let after = h.text();
+    assert!(!after.contains("Design system"), "{after}");
+    assert_eq!(h.app().route(), Route::Capsule);
+    assert!(h.app().world.clipboard.is_none());
+}

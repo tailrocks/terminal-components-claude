@@ -123,4 +123,45 @@ impl PreludeState {
             label.to_owned()
         }
     }
+
+    /// Follow a source-list cursor the way `PreludeScreen::update` does.
+    ///
+    /// Only step 1 listens. A move of exactly one row changes the domain
+    /// selection. Any other jump is ignored and the painted mark stays put.
+    pub fn follow_source_cursor(&mut self, from: u8, to: u8) -> bool {
+        if self.step != 1 {
+            return false;
+        }
+        match i16::from(to) - i16::from(from) {
+            1 => {
+                self.move_selection(true);
+                true
+            }
+            -1 => {
+                self.move_selection(false);
+                true
+            }
+            _ => false,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn source_cursor_follows_only_a_one_row_move_on_step_one() {
+        let mut state = PreludeState::default();
+        assert!(!state.follow_source_cursor(0, 2));
+        assert_eq!(state.selection(), 0);
+        assert!(state.follow_source_cursor(0, 1));
+        assert_eq!(state.selection(), 1);
+        assert!(state.follow_source_cursor(1, 0));
+        assert_eq!(state.selection(), 0);
+        state.advance_flow();
+        assert_eq!(state.step(), 2);
+        assert!(!state.follow_source_cursor(0, 1));
+        assert_eq!(state.selection(), 0);
+    }
 }
