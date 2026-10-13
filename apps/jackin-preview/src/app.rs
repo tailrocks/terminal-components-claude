@@ -125,6 +125,7 @@ const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
 const ABOUT_DIALOG: Id = APP.sub("about");
 const QUIT_DIALOG: Id = APP.sub("quit-dialog");
 const CANCEL_LAUNCH_DIALOG: Id = APP.sub("cancel-dialog");
+const COCKPIT_INFO_DIALOG: Id = APP.sub("cockpit-info");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::quiet(ActionKey::CANCEL, "Cancel"),
@@ -181,6 +182,8 @@ const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.rem
 const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
 const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
+const CMD_COCKPIT_INFO: ActionKey = ActionKey::application("jackin.cockpit.info");
+const CMD_COCKPIT_DEBUG: ActionKey = ActionKey::application("jackin.cockpit.debug");
 const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-rename");
 const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
 const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
@@ -542,6 +545,11 @@ pub struct App {
     quit_body: String,
     cancel_open: bool,
     cancel_state: DialogState,
+    /// Cockpit debug-info dialog. Closed on every scenario frame.
+    cockpit_info_open: bool,
+    cockpit_info_state: DialogState,
+    /// Telemetry row inside the debug-info dialog. Never painted on frame 0.
+    cockpit_debug_open: bool,
     settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
@@ -721,6 +729,9 @@ impl App {
             quit_body: String::new(),
             cancel_open: false,
             cancel_state: DialogState::default(),
+            cockpit_info_open: false,
+            cockpit_info_state: DialogState::default(),
+            cockpit_debug_open: false,
             settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
@@ -883,6 +894,16 @@ impl App {
         if self.route == Route::Settings && !self.settings_save_preview && !save_confirm {
             self.keymap
                 .add(KeyPhase::Bubble, left, CMD_SETTINGS_TAB_PREV);
+        }
+        let info = Chord::key(KeyCode::Char('i'));
+        let debug = Chord::key(KeyCode::Char('d'));
+        self.keymap.remove(KeyPhase::Capture, info);
+        self.keymap.remove(KeyPhase::Capture, debug);
+        let cockpit_keys = matches!(self.route, Route::Cockpit | Route::Launch)
+            && self.launch.as_ref().is_none_or(|run| run.failure.is_none());
+        if cockpit_keys {
+            self.keymap.add(KeyPhase::Capture, info, CMD_COCKPIT_INFO);
+            self.keymap.add(KeyPhase::Capture, debug, CMD_COCKPIT_DEBUG);
         }
     }
 
@@ -1312,6 +1333,57 @@ impl App {
             "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
         )
         .actions(&CANCEL_LAUNCH_ACTIONS)
+    }
+
+    fn cockpit_info_dialog() -> Dialog<'static> {
+        Dialog::info(COCKPIT_INFO_DIALOG, "Debug info").body_rows(8)
+    }
+
+    fn cockpit_info_lines(&self) -> Vec<String> {
+        let role_full = self.selected_role();
+        let role = role_full.rsplit('/').next().unwrap_or(role_full);
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let mut lines = Vec::new();
+        if let Some(launch) = &self.launch
+            && launch.container_ready()
+        {
+            lines.push(format!("Container     {}", launch.container));
+        }
+        lines.push(format!("Target        {role} into workspace {workspace}"));
+        lines.push(format!("Role          {role}"));
+        lines.push("Agent         Claude Code · account Claude · Work".into());
+        let run_id = self
+            .launch
+            .as_ref()
+            .map(|launch| launch.run_id.short())
+            .unwrap_or_else(|| "none".to_owned());
+        lines.push(format!("Run id        {run_id}"));
+        lines.push("jackin        0.6.4 · preview".into());
+        if self.cockpit_debug_open {
+            // The run id already has its own row. Keeping the endpoint on
+            // this row lets the dialog show it without clipping the host.
+            lines.push("Telemetry     otlp://collector.internal:4317".into());
+        }
+        lines
+    }
+
+    fn open_cockpit_info(&mut self, cx: &mut Cx<'_>) {
+        self.cockpit_info_state = DialogState::default();
+        self.cockpit_info_open = true;
+        cx.open_layer(COCKPIT_INFO_DIALOG, Self::cockpit_info_dialog().layer(cx));
+        self.status = Some("Debug info".into());
+    }
+
+    fn close_cockpit_info(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(COCKPIT_INFO_DIALOG) {
+            cx.close_layer(COCKPIT_INFO_DIALOG, Some(ActionKey::CLOSE));
+        }
+        self.cockpit_info_open = false;
+        self.status = None;
     }
 
     fn open_cancel_launch(&mut self, cx: &mut Cx<'_>) {
@@ -2742,6 +2814,32 @@ impl App {
                     result |= Response::changed();
                 }
                 Some(DialogAction::Action(_)) | None => {}
+            }
+        }
+
+        if self.cockpit_info_open {
+            let info = Self::cockpit_info_dialog();
+            let response = info.update(cx, &mut self.cockpit_info_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Dismissed(_)) => {
+                    self.cockpit_info_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(key)) => {
+                    if cx.is_open(COCKPIT_INFO_DIALOG) {
+                        cx.close_layer(COCKPIT_INFO_DIALOG, Some(key));
+                    }
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(COCKPIT_INFO_DIALOG) => {
+                    self.cockpit_info_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                None => {}
             }
         }
 
@@ -4289,6 +4387,27 @@ impl App {
                 self.cockpit.log_open = true;
                 self.cockpit.log_scroll = 0;
                 self.status = Some("Docker build · scroll to inspect output".into());
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_INFO
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && self.launch.as_ref().is_none_or(|run| run.failure.is_none()) =>
+            {
+                if self.cockpit_info_open {
+                    self.close_cockpit_info(cx);
+                } else {
+                    self.open_cockpit_info(cx);
+                }
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_DEBUG
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && self.launch.as_ref().is_none_or(|run| run.failure.is_none()) =>
+            {
+                self.cockpit_debug_open = !self.cockpit_debug_open;
+                // The telemetry row lives in the dialog. A status string would
+                // shift the hint row on the cockpit underneath.
+                self.status = None;
                 Some(Response::changed())
             }
             CMD_MANAGER_EXPAND if self.route == Route::Manager => {
@@ -7033,6 +7152,13 @@ impl App {
         let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
             cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
         });
+        let cockpit_info = Self::cockpit_info_dialog();
+        let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
+            let lines = self.cockpit_info_lines();
+            cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
+                paint_lines(ui, body, &lines)
+            })
+        });
         let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
             dialog.draw(ui, area, &self.launch_dialog, |ui, body| {
@@ -7147,6 +7273,7 @@ impl App {
             || cx.is_open(ABOUT_DIALOG)
             || cx.is_open(QUIT_DIALOG)
             || cx.is_open(CANCEL_LAUNCH_DIALOG)
+            || cx.is_open(COCKPIT_INFO_DIALOG)
         {
             self.sync_workspace_keymap();
             return result;
@@ -7337,6 +7464,10 @@ impl TuiApp for App {
         if self.cancel_open {
             self.cancel_open = false;
             cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
+            return self.route_changed();
+        }
+        if self.cockpit_info_open {
+            self.close_cockpit_info(cx);
             return self.route_changed();
         }
         if self

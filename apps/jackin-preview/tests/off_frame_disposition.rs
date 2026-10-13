@@ -6,11 +6,11 @@
 //! - Cockpit Cancel asks, then leaves without attaching an instance.
 //! - Escape on a failed launch returns to the Manager and does not invent an
 //!   instance. A second Escape still quits.
+//! - Cockpit `i` opens a debug-info dialog that starts closed. `d` adds the
+//!   `otlp://collector.internal` row only inside that dialog. A failed launch
+//!   does not bind either key, so Escape still returns to the Manager.
 //!
 //! Rejected:
-//! - Cockpit debug-info stays closed. `LaunchRunning` frame 0 has no
-//!   `otlp://collector.internal` telemetry, and cockpit Escape already
-//!   acknowledges a failed launch.
 //! - Dirty-editor Cancel/Discard/Save stays the status question. A modal
 //!   would take the Right/Enter path `editor_edits_count_once_preview_then_saves_and_returns` uses.
 //! - Manager help stays the hint layer. `?` must leave `Current directory`
@@ -22,8 +22,8 @@
 //! - Holla keeps `Route::Home` for every paused scenario. `DiskCleanup`'s
 //!   source boot page and the grouped Finder default would replace `home.draw`.
 //!   The other source pages are a second stack, not an overlay on Home,
-//!   Plan, or Activity. Copy stays a simulated clipboard status and does
-//!   not emit OSC 52.
+//!   Plan, or Activity. Holla copy reports the OSC 52 outcome in status and
+//!   does not emit the sequence.
 //! - Locked-paint rejects stay out: manager meta tone, host-menu header
 //!   replacement, prelude source-list replacement, accounts provider tree,
 //!   capsule meters and extra menu rows, live keep-awake and git-pull
@@ -202,5 +202,63 @@ fn paused_frames_do_not_open_quit_or_cancel() {
         assert!(!h.app().should_quit(), "{scenario:?}");
         assert!(!h.text().contains("Exit jackin?"), "{scenario:?}");
         assert!(!h.text().contains("Cancel the launch?"), "{scenario:?}");
+        assert!(!h.text().contains("Debug info"), "{scenario:?}");
+        assert!(
+            !h.text().contains("otlp://collector.internal"),
+            "{scenario:?}"
+        );
     }
+}
+
+#[test]
+fn cockpit_debug_info_opens_only_on_i_and_hides_telemetry_until_d() {
+    let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 0, 120, 40);
+    assert_eq!(h.app().route(), Route::Cockpit);
+    assert!(!h.text().contains("Debug info"));
+    assert!(!h.text().contains("otlp://collector.internal"));
+    h.key(KeyCode::Char('i'));
+    assert_eq!(h.app().route(), Route::Cockpit);
+    assert!(h.app().launch().is_some());
+    assert!(!h.app().should_quit());
+    assert!(h.text().contains("Debug info"), "{}", h.text());
+    assert!(h.text().contains("Target"), "{}", h.text());
+    assert!(
+        !h.text().contains("otlp://collector.internal"),
+        "telemetry stays hidden until d: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('d'));
+    assert!(
+        h.text().contains("otlp://collector.internal:4317"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app().route(), Route::Cockpit);
+    assert!(h.app().launch().is_some());
+    assert!(!h.app().should_quit());
+    assert!(!h.text().contains("Debug info"), "{}", h.text());
+    assert!(
+        !h.text().contains("otlp://collector.internal"),
+        "{}",
+        h.text()
+    );
+
+    let mut failed = H::new(Scenario::LaunchFailure, Motion::Full, 0, 120, 40);
+    for _ in 0..60 {
+        failed.ticks(10);
+        if failed.text().contains("Launch failed") {
+            break;
+        }
+    }
+    assert!(failed.text().contains("Launch failed"), "{}", failed.text());
+    failed.key(KeyCode::Char('i'));
+    assert!(
+        !failed.text().contains("Debug info"),
+        "a failed launch must not open debug info: {}",
+        failed.text()
+    );
+    failed.key(KeyCode::Esc);
+    assert_eq!(failed.app().route(), Route::Manager);
+    assert!(!failed.app().should_quit());
 }

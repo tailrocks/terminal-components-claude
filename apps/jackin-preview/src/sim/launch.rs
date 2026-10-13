@@ -231,6 +231,23 @@ pub const BUILD_LOG: [&str; 44] = [
 ];
 
 impl LaunchRun {
+    /// Whether the Construct stage has published the container name.
+    ///
+    /// The name is chosen when the run is created. The debug-info dialog
+    /// shows it only after six ticks of Construct, matching the source
+    /// `ContainerReady` event.
+    pub fn container_ready(&self) -> bool {
+        let construct = Stage::Construct.index();
+        if self
+            .states
+            .get(construct)
+            .is_some_and(|state| matches!(state, StepState::Done | StepState::Skipped))
+        {
+            return true;
+        }
+        self.current == Some(construct) && self.tick.saturating_sub(self.stage_start) >= 6
+    }
+
     /// Construct a run at virtual tick zero.
     pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: RunId) -> Self {
         // durations in ticks (33 ms)
