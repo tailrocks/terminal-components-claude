@@ -1345,10 +1345,52 @@ impl App {
         }
     }
 
+    fn account_matches_filter(&self, account: &Account) -> bool {
+        let query = self.accounts.filter_query.trim();
+        if !self.accounts.filtering || query.is_empty() {
+            return true;
+        }
+        let needle = query.to_lowercase();
+        let haystack = format!(
+            "{} {} {} {}",
+            account.provider.label(),
+            account.title(),
+            account.status_word(),
+            account.source.safe_detail()
+        )
+        .to_lowercase();
+        haystack.contains(&needle)
+    }
+
+    fn reconcile_filtered_account(&mut self) {
+        if !self.accounts.filtering {
+            return;
+        }
+        let visible: Vec<String> = self
+            .world
+            .accounts
+            .sorted()
+            .into_iter()
+            .filter(|account| self.account_matches_filter(account))
+            .map(|account| account.id.clone())
+            .collect();
+        let selected_visible = self
+            .accounts
+            .selected_id
+            .as_ref()
+            .is_some_and(|id| visible.iter().any(|visible_id| visible_id == id));
+        if !selected_visible {
+            self.accounts.selected_id = visible.into_iter().next();
+        }
+    }
+
     fn account_rows(&self) -> Vec<String> {
         let mut rows = vec!["Overview · Health · Registration · Quota".to_owned()];
         let mut provider = None;
         for account in self.world.accounts.sorted() {
+            if !self.account_matches_filter(account) {
+                continue;
+            }
             if provider != Some(account.provider) {
                 rows.push(account.provider.label().to_owned());
                 provider = Some(account.provider);
@@ -2800,10 +2842,10 @@ impl App {
     fn update_accounts(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.accounts.filtering && !self.accounts.form_open {
             let filter = Self::account_filter_input().update(
-                    cx,
-                    &mut self.accounts.filter_input,
-                    &mut self.accounts.filter_query,
-                );
+                cx,
+                &mut self.accounts.filter_input,
+                &mut self.accounts.filter_query,
+            );
             let cancelled = filter
                 .action_ref()
                 .is_some_and(|action| *action == TextAction::Cancelled);
@@ -2814,6 +2856,7 @@ impl App {
                 && self.accounts.filter_query != draft
             {
                 self.accounts.filter_query = draft.to_owned();
+                self.reconcile_filtered_account();
                 result |= Response::changed();
             }
             if cancelled {
@@ -4415,10 +4458,12 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
+                self.settings.tab = (crate::screens::settings::TAB_NAMES.len() - 1) as u8;
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
             CMD_NAV_TAB_FIVE if self.route == Route::Settings => {
+                self.settings.tab = (crate::screens::settings::TAB_NAMES.len() - 1) as u8;
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
