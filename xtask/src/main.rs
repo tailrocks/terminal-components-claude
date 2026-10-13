@@ -8898,9 +8898,17 @@ fn ensure_unshallow() {
     if git(&["rev-parse", "--is-shallow-repository"]).is_ok_and(|out| {
         out.status.success() && String::from_utf8_lossy(&out.stdout).trim() == "true"
     }) {
-        let _ = git(&["fetch", "--unshallow", "origin"]);
+        let _ = git(&["fetch", "--no-prune", "--unshallow", "origin"]);
     }
-    let _ = git(&["fetch", "origin", "main:refs/remotes/origin/main"]);
+    // `fetch.prune=true` treats the shorthand `main:` refspec as absent and
+    // deletes refs/remotes/origin/main (exit 0). Name the remote head and do
+    // not prune: this helper exists to make that ref resolvable.
+    let _ = git(&[
+        "fetch",
+        "--no-prune",
+        "origin",
+        "refs/heads/main:refs/remotes/origin/main",
+    ]);
 }
 
 fn resolve_rev(rev: &str, source: &str) -> Result<String, String> {
