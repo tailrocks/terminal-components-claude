@@ -13,14 +13,14 @@ use std::{
 };
 
 use junie_tui::{
-    ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx, Dialog,
-    DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection,
-    Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase,
-    List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Modifier, Moment,
-    Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText,
-    Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState,
-    TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant,
-    ViewportAction, ViewportLine, ViewportState,
+    Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
+    Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
+    HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
+    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
+    MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
+    Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
+    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -123,7 +123,17 @@ const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
 /// Capsule container identity dialog.
 const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
 const ABOUT_DIALOG: Id = APP.sub("about");
+const QUIT_DIALOG: Id = APP.sub("quit-dialog");
+const CANCEL_LAUNCH_DIALOG: Id = APP.sub("cancel-dialog");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
+const QUIT_ACTIONS: [Action<'static>; 2] = [
+    Action::quiet(ActionKey::CANCEL, "Cancel"),
+    Action::new(ActionKey::CONFIRM, "Quit"),
+];
+const CANCEL_LAUNCH_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Cancel launch"),
+];
 const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
 const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
 const EDITOR_ROLE_LOAD: Id = crate::screens::editor::ROOT.sub("role-load");
@@ -527,6 +537,11 @@ pub struct App {
     container_info_state: DialogState,
     about_state: DialogState,
     about_open: bool,
+    quit_open: bool,
+    quit_state: DialogState,
+    quit_body: String,
+    cancel_open: bool,
+    cancel_state: DialogState,
     settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
@@ -701,6 +716,11 @@ impl App {
             container_info_state: DialogState::default(),
             about_state: DialogState::default(),
             about_open: false,
+            quit_open: false,
+            quit_state: DialogState::default(),
+            quit_body: String::new(),
+            cancel_open: false,
+            cancel_state: DialogState::default(),
             settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
@@ -1256,6 +1276,90 @@ impl App {
         self.about_open = true;
         cx.open_layer(ABOUT_DIALOG, Self::about_dialog().layer(cx));
         self.status = None;
+    }
+
+    /// Owned body for every running-count. Counts other than 0, 1, and 2 use
+    /// this `String` so the confirm copy never calls `Box::leak`.
+    fn prepare_quit_body(&mut self) {
+        let running = self.world.running_count();
+        self.quit_body = match running {
+            0 => "No instances are running. The pending Construct entry is released.".into(),
+            1 => "1 instance keeps running in the Construct. The host console closes; reconnect from a new terminal.".into(),
+            2 => "2 instances keep running in the Construct. The host console closes; reconnect from a new terminal.".into(),
+            count => format!(
+                "{count} instances keep running in the Construct. The host console closes; reconnect from a new terminal."
+            ),
+        };
+    }
+
+    fn quit_dialog(body: &str) -> Dialog<'_> {
+        Dialog::confirm(QUIT_DIALOG, "Exit jackin?", body).actions(&QUIT_ACTIONS)
+    }
+
+    fn open_quit(&mut self, cx: &mut Cx<'_>) {
+        self.prepare_quit_body();
+        self.quit_state = DialogState::default();
+        self.quit_open = true;
+        let body = self.quit_body.clone();
+        let spec = Self::quit_dialog(&body).layer(cx);
+        cx.open_layer(QUIT_DIALOG, spec);
+    }
+
+    fn cockpit_cancel_dialog() -> Dialog<'static> {
+        Dialog::destructive(
+            CANCEL_LAUNCH_DIALOG,
+            "Cancel the launch?",
+            "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
+        )
+        .actions(&CANCEL_LAUNCH_ACTIONS)
+    }
+
+    fn open_cancel_launch(&mut self, cx: &mut Cx<'_>) {
+        self.cancel_state = DialogState::default();
+        self.cancel_open = true;
+        cx.open_layer(
+            CANCEL_LAUNCH_DIALOG,
+            Self::cockpit_cancel_dialog().layer(cx),
+        );
+    }
+
+    /// Leave a failed cockpit on the Manager. An existing failed instance is
+    /// selected; this path does not invent an instance the scenario did not
+    /// already record.
+    fn acknowledge_launch_failure(&mut self) {
+        let run_id = self.launch.as_ref().map(|run| run.run_id);
+        self.launch = None;
+        self.route = Route::Manager;
+        self.ensure_manager_rows();
+        if let Some(run_id) = run_id {
+            let failed_id = self
+                .world
+                .instances
+                .iter()
+                .find(|instance| instance.run_id == run_id)
+                .map(|instance| instance.id.clone());
+            if let Some(id) = failed_id
+                && let Some((index, row)) = self.manager_rows_cache.iter().enumerate().find(|(_, row)| {
+                    matches!(&row.domain, ManagerRowKey::Instance(existing) if existing == &id)
+                })
+            {
+                let key = row.key;
+                let domain = row.domain.clone();
+                self.manager.list.set_cursor(index, key);
+                self.manager.select_row(domain);
+            }
+        }
+        let running = self.world.running_count();
+        self.status = Some(if running == 0 {
+            "Launch failed · the Construct is empty".into()
+        } else {
+            let noun = if running == 1 {
+                "instance"
+            } else {
+                "instances"
+            };
+            format!("Launch failed · {running} {noun} still running in the Construct")
+        });
     }
 
     fn manager_instances(
@@ -2578,6 +2682,69 @@ impl App {
             }
         }
 
+        if self.quit_open {
+            let body = self.quit_body.clone();
+            let quit = Self::quit_dialog(&body);
+            let response = quit.update(cx, &mut self.quit_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                    if cx.is_open(QUIT_DIALOG) {
+                        cx.close_layer(QUIT_DIALOG, Some(ActionKey::CONFIRM));
+                    }
+                    self.quit_open = false;
+                    self.quit = true;
+                    cx.quit();
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_)) => {
+                    if cx.is_open(QUIT_DIALOG) {
+                        cx.close_layer(QUIT_DIALOG, Some(ActionKey::CANCEL));
+                    }
+                    self.quit_open = false;
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(QUIT_DIALOG) => {
+                    self.quit_open = false;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
+
+        if self.cancel_open {
+            let dialog = Self::cockpit_cancel_dialog();
+            let response = dialog.update(cx, &mut self.cancel_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                    if cx.is_open(CANCEL_LAUNCH_DIALOG) {
+                        cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CONFIRM));
+                    }
+                    self.cancel_open = false;
+                    self.launch = None;
+                    self.route = Route::Manager;
+                    self.status = Some("Launch cancelled · nothing was attached".into());
+                    cx.focus(MANAGER_LIST);
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_)) => {
+                    if cx.is_open(CANCEL_LAUNCH_DIALOG) {
+                        cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
+                    }
+                    self.cancel_open = false;
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(CANCEL_LAUNCH_DIALOG) => {
+                    self.cancel_open = false;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
+
         // Drain the dialog and its body control while a child picker is
         // open too.  Layer dismissal intents are addressed to the underlying
         // owners during the same update pass; returning early for the top
@@ -3466,9 +3633,8 @@ impl App {
         let cancel_chosen = cancel.activated();
         result |= cancel.erase();
         if cancel_chosen {
-            self.launch = None;
-            self.route = Route::Manager;
-            return result;
+            self.open_cancel_launch(cx);
+            return result | Response::changed();
         }
         if failed {
             let retry = Self::launch_retry_button().update(cx);
@@ -3893,8 +4059,9 @@ impl App {
         }
         match command {
             CMD_QUIT => {
-                self.quit = true;
-                cx.quit();
+                if !self.quit_open {
+                    self.open_quit(cx);
+                }
                 Some(Response::changed())
             }
             CMD_MANAGER
@@ -6532,6 +6699,8 @@ impl App {
             && !self.capsule_viewport_focused
             && self.inspect.instance.is_none()
             && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
     }
 
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6856,6 +7025,14 @@ impl App {
                 paint_lines(ui, body, &about_lines)
             })
         });
+        let _ = ui.layer(QUIT_DIALOG, |ui, area| {
+            let quit = Self::quit_dialog(&self.quit_body);
+            quit.draw(ui, area, &self.quit_state, |_, _| {})
+        });
+        let cancel_launch = Self::cockpit_cancel_dialog();
+        let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
+            cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
+        });
         let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
             dialog.draw(ui, area, &self.launch_dialog, |ui, body| {
@@ -6941,6 +7118,15 @@ impl App {
             result |= navigation;
         }
         self.ensure_manager_header();
+        if self.quit_open || self.cancel_open {
+            result |= self.update_overlays(cx);
+            if self.route == Route::Manager {
+                self.ensure_manager_rows();
+            }
+            self.ensure_manager_header();
+            self.sync_workspace_keymap();
+            return result;
+        }
         if let Some(command) = cx.command()
             && let Some(command_result) = self.update_command(cx, command)
         {
@@ -6959,6 +7145,8 @@ impl App {
             || cx.is_open(CAPSULE_CONTAINER_INFO)
             || cx.is_open(CAPSULE_HELP)
             || cx.is_open(ABOUT_DIALOG)
+            || cx.is_open(QUIT_DIALOG)
+            || cx.is_open(CANCEL_LAUNCH_DIALOG)
         {
             self.sync_workspace_keymap();
             return result;
@@ -7092,6 +7280,8 @@ impl TuiApp for App {
             && self.motion == Motion::Paused
             && self.status.is_none()
             && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
             && self.launch.is_none()
             && self.picker_mode.is_none()
             && self.agent_options.is_empty()
@@ -7116,6 +7306,8 @@ impl TuiApp for App {
             && !self.editor.env_form_open
             && !self.editor_role_picker
             && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
         {
             self.draw_historical_editor(ui, full);
         }
@@ -7137,6 +7329,26 @@ impl TuiApp for App {
     }
 
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.quit_open {
+            self.quit_open = false;
+            cx.close_layer(QUIT_DIALOG, Some(ActionKey::CANCEL));
+            return self.route_changed();
+        }
+        if self.cancel_open {
+            self.cancel_open = false;
+            cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
+            return self.route_changed();
+        }
+        if self
+            .launch
+            .as_ref()
+            .is_some_and(|run| run.failure.is_some())
+            && matches!(self.route, Route::Manager | Route::Cockpit | Route::Launch)
+        {
+            self.acknowledge_launch_failure();
+            cx.focus(MANAGER_LIST);
+            return self.route_changed();
+        }
         if self.about_open {
             self.about_open = false;
             self.status = None;

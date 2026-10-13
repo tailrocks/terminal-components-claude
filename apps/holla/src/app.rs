@@ -1574,6 +1574,20 @@ mod tests {
         );
     }
     #[test]
+    fn paused_scenarios_stay_on_home_without_a_finder_stack_or_osc52() {
+        for scenario in Scenario::ALL {
+            let harness = app(scenario);
+            assert!(harness.app().route == Route::Home, "{}", scenario.name());
+            assert!(harness.app().overlay.is_none(), "{}", scenario.name());
+            assert!(
+                !harness.text().contains('\u{1b}'),
+                "frame 0 must not emit an OSC 52 clipboard sequence: {}",
+                scenario.name()
+            );
+        }
+        assert_eq!(Scenario::ALL.len(), 11);
+    }
+    #[test]
     fn every_real_app_scenario_renders_purely_with_persistent_identity() {
         for scenario in Scenario::ALL {
             let mut harness = app(scenario);
