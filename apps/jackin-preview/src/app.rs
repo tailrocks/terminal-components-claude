@@ -4417,7 +4417,24 @@ impl App {
             ..area
         };
         let style = ui.surface_style();
-        ui.paint_str(heading, self.route.title(), style);
+        let usage_heading;
+        let label = if self.route == Route::Usage {
+            let detail = self.usage.selected().and_then(|id| {
+                self.world
+                    .accounts
+                    .get(id)
+                    .map(|account| (account.surface.surface_name(), account.display_name.clone()))
+            });
+            usage_heading = self.usage.crumb(
+                detail
+                    .as_ref()
+                    .map(|(surface, name)| (*surface, name.as_str())),
+            );
+            usage_heading.as_str()
+        } else {
+            self.route.title()
+        };
+        ui.paint_str(heading, label, style);
         if area.height < 2 {
             return;
         }
