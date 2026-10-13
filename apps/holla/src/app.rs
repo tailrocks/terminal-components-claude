@@ -36,6 +36,13 @@ const NEXT_ACTIVITY: ActionKey = ActionKey::application("holla.next-activity");
 const SCOPE: ActionKey = ActionKey::application("holla.scope");
 const PREVIEW: ActionKey = ActionKey::application("holla.preview");
 const ACTIONS: ActionKey = ActionKey::application("holla.actions");
+const TOP_FILES: ActionKey = ActionKey::application("holla.top-files");
+const CLEANUP_REVIEW: ActionKey = ActionKey::application("holla.cleanup-review");
+const FOLDER_BROWSER: ActionKey = ActionKey::application("holla.folder-browser");
+const HOME_FIND: ActionKey = ActionKey::application("holla.home-find");
+const CUSTOM_ACTION: ActionKey = ActionKey::application("holla.custom-action");
+const SNAPSHOT_PAGE: ActionKey = ActionKey::application("holla.snapshot-page");
+const DEFINITION_TRUST: ActionKey = ActionKey::application("holla.definition-trust");
 const TOGGLE: ActionKey = ActionKey::application("holla.plan-toggle");
 const CONTINUE: ActionKey = ActionKey::application("holla.plan-continue");
 const OPEN_MENU: ActionKey = ActionKey::application("holla.open-menu");
@@ -231,6 +238,17 @@ impl App {
                 KeyPhase::Capture,
                 Chord::with(KeyCode::Char('c'), junie_tui::KeyModifiers::CONTROL),
                 INTERRUPT,
+            )
+            .bind(KeyPhase::Capture, Chord::key(KeyCode::F(2)), TOP_FILES)
+            .bind(KeyPhase::Capture, Chord::key(KeyCode::F(3)), CLEANUP_REVIEW)
+            .bind(KeyPhase::Capture, Chord::key(KeyCode::F(4)), FOLDER_BROWSER)
+            .bind(KeyPhase::Capture, Chord::key(KeyCode::F(5)), HOME_FIND)
+            .bind(KeyPhase::Capture, Chord::key(KeyCode::F(6)), CUSTOM_ACTION)
+            .bind(KeyPhase::Capture, Chord::key(KeyCode::F(7)), SNAPSHOT_PAGE)
+            .bind(
+                KeyPhase::Capture,
+                Chord::key(KeyCode::F(8)),
+                DEFINITION_TRUST,
             );
         Self {
             world,
@@ -316,6 +334,13 @@ impl App {
     fn command(&mut self, command: ActionKey, cx: &mut Cx<'_>) {
         match command {
             HELP => self.open_dialog(dialogs::Intent::Help, cx),
+            TOP_FILES => self.open_dialog(dialogs::Intent::TopFiles, cx),
+            CLEANUP_REVIEW => self.open_dialog(dialogs::Intent::CleanupReview, cx),
+            FOLDER_BROWSER => self.open_dialog(dialogs::Intent::FolderBrowser, cx),
+            HOME_FIND => self.open_dialog(dialogs::Intent::HomeFind, cx),
+            CUSTOM_ACTION => self.open_dialog(dialogs::Intent::CustomAction, cx),
+            SNAPSHOT_PAGE => self.open_dialog(dialogs::Intent::SnapshotPage, cx),
+            DEFINITION_TRUST => self.open_dialog(dialogs::Intent::DefinitionTrust, cx),
             ABOUT => self.open_dialog(dialogs::Intent::About, cx),
             QUIT => self.open_dialog(dialogs::Intent::Quit, cx),
             INTERRUPT => self.quit = true,
@@ -819,7 +844,9 @@ impl App {
         }
         let flat = value.replace('\n', " · ");
         let shown: String = flat.chars().take(40).collect();
-        format!("Copied to the terminal clipboard (OSC 52, flushed) · {shown}")
+        // The preview does not write OSC 52, so this branch must not say the
+        // sequence was flushed.
+        format!("Copied · simulated clipboard · OSC 52 sequence was not written · {shown}")
     }
     fn plan_event(&mut self, event: plan::Event, cx: &mut Cx<'_>) {
         match event {
@@ -1626,12 +1653,61 @@ mod tests {
         harness.draw();
         let flushed = harness.text();
         assert!(
-            flushed.contains("Copied to the terminal clipboard (OSC 52, flushed) · cargo build"),
+            flushed.contains(
+                "Copied · simulated clipboard · OSC 52 sequence was not written · cargo build"
+            ),
             "{flushed}"
         );
+        assert!(!flushed.contains("flushed"), "{flushed}");
         assert!(!flushed.contains('\u{1b}'));
         assert!(harness.app().route == Route::Home);
-        assert!(harness.app().overlay.is_none() || harness.text().contains("Copy command"));
+    }
+    #[test]
+    fn closed_pages_open_from_commands_and_leave_the_home_frame_unchanged() {
+        let closed = app(Scenario::DiskCleanup);
+        assert!(closed.app().route == Route::Home);
+        assert!(closed.app().overlay.is_none());
+        let before = closed.text();
+        assert!(!before.contains("Largest files"), "{before}");
+        assert!(!before.contains("Review cleanup"), "{before}");
+        assert!(!before.contains('\u{1b}'));
+        let candidates = closed
+            .app()
+            .world
+            .disk
+            .as_ref()
+            .map(|disk| disk.candidates.clone());
+        let pages = [
+            (KeyCode::F(2), "Largest files"),
+            (KeyCode::F(3), "Review cleanup"),
+            (KeyCode::F(4), "Folder browser"),
+            (KeyCode::F(5), "Find in home"),
+            (KeyCode::F(6), "Custom action"),
+            (KeyCode::F(7), "Snapshot page"),
+            (KeyCode::F(8), "Trust this definition"),
+        ];
+        for (key, title) in pages {
+            let mut harness = app(Scenario::DiskCleanup);
+            let _ = harness.key(key);
+            let text = harness.text();
+            assert!(text.contains(title), "{title} missing from {text}");
+            assert!(harness.app().route == Route::Home, "{title}");
+            assert!(matches!(harness.app().overlay, Some(Overlay::Dialog(_))));
+            assert!(!text.contains('\u{1b}'), "{title}");
+            let _ = harness.key(KeyCode::Esc);
+            assert!(harness.app().overlay.is_none(), "{title}");
+            assert!(harness.app().route == Route::Home, "{title}");
+            assert_eq!(
+                harness
+                    .app()
+                    .world
+                    .disk
+                    .as_ref()
+                    .map(|disk| disk.candidates.clone()),
+                candidates,
+                "{title} changed disk candidates"
+            );
+        }
     }
     #[test]
     fn paused_scenarios_stay_on_home_without_a_finder_stack_or_osc52() {
