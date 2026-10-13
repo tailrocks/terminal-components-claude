@@ -28,6 +28,8 @@ pub const AGENT: Id = FORM.sub("agent");
 pub const FOLDER: Id = FORM.sub("folder");
 /// Plain API-key field.
 pub const SECRET: Id = FORM.sub("secret");
+/// Closed-list filter field. It is absent until filtering is on.
+pub const FILTER: Id = Id::root("jackin.accounts.filter");
 
 /// Durable accounts route state.
 #[derive(Clone, Default, PartialEq, Eq)]
@@ -70,6 +72,14 @@ pub struct AccountsState {
     pub op_stage: u8,
     /// Stable selected account id for semantic commands.
     pub selected_id: Option<String>,
+    /// Whether the closed list is showing the filter field.
+    pub filtering: bool,
+    /// Draft filter text. Empty until the field is open.
+    pub filter_query: String,
+    /// Filter field edit state.
+    pub filter_input: TextInputState,
+    /// Whether the account inspector drawer is open.
+    pub drawer_open: bool,
 }
 
 impl fmt::Debug for AccountsState {
@@ -94,6 +104,10 @@ impl fmt::Debug for AccountsState {
             .field("op_item", &self.op_item)
             .field("op_stage", &self.op_stage)
             .field("selected_id", &self.selected_id)
+            .field("filtering", &self.filtering)
+            .field("filter_query", &self.filter_query)
+            .field("filter_input", &self.filter_input)
+            .field("drawer_open", &self.drawer_open)
             .finish()
     }
 }
@@ -119,6 +133,10 @@ impl AccountsState {
         self.selected_id = None;
         self.pending_refresh = None;
         self.remove_confirmation = None;
+        self.filtering = false;
+        self.filter_query.clear();
+        self.filter_input = TextInputState::default();
+        self.drawer_open = false;
     }
 
     /// Close the form without writing a credential.
