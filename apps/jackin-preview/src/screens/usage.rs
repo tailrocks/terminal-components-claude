@@ -112,6 +112,20 @@ impl UsageState {
     pub fn reset(&mut self) {
         *self = Self::default();
     }
+
+    /// Header breadcrumb. Detail wins when it is open and an account is known.
+    pub fn crumb(&self, account: Option<(&str, &str)>) -> String {
+        if self.detail_open()
+            && let Some((surface, name)) = account
+        {
+            return format!("Usage › {surface} › {name}");
+        }
+        match self.tab {
+            Tab::Overview => "Usage › Overview".to_owned(),
+            Tab::Registration => "Usage › Registration".to_owned(),
+            Tab::Quota => "Usage › Quota".to_owned(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -139,5 +153,23 @@ mod tests {
         state.next_tab();
         assert_eq!(state.tab, Tab::Overview);
         assert_eq!(state.selected(), Some("acct"));
+    }
+
+    #[test]
+    fn usage_crumb_follows_the_tab_until_detail_is_open() {
+        let mut state = UsageState::default();
+        assert_eq!(state.crumb(None), "Usage › Overview");
+        state.next_tab();
+        assert_eq!(state.crumb(None), "Usage › Registration");
+        state.next_tab();
+        assert_eq!(state.crumb(Some(("Codex", "Experiments"))), "Usage › Quota");
+        state.select(Some("acct"));
+        state.open_detail();
+        assert_eq!(
+            state.crumb(Some(("Codex", "Experiments"))),
+            "Usage › Codex › Experiments"
+        );
+        state.close_detail();
+        assert_eq!(state.crumb(Some(("Codex", "Experiments"))), "Usage › Quota");
     }
 }
