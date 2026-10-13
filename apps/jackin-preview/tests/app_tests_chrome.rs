@@ -56,6 +56,38 @@ fn capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line() {
 }
 
 #[test]
+fn capsule_export_closes_the_file_menu_and_writes_nothing() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let clipboard = h.app().world.clipboard.clone();
+    h.key(KeyCode::F(10));
+    for _ in 0..3 {
+        h.key(KeyCode::Down);
+    }
+    assert!(h.text().contains("Export selected file…"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert!(
+        !h.text().contains("Export selected file"),
+        "export row stayed open: {}",
+        h.text()
+    );
+    assert_eq!(h.app().route(), Route::Capsule);
+    assert_eq!(h.app().world.clipboard, clipboard);
+    h.key(KeyCode::F(10));
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert!(
+        h.text().contains("Export selected file and reveal…"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    assert!(!h.text().contains("Export selected file"), "{}", h.text());
+    assert_eq!(h.app().route(), Route::Capsule);
+    assert_eq!(h.app().world.clipboard, clipboard);
+}
+
+#[test]
 fn menu_bar_opens_switches_and_runs_an_action() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::F(10));
