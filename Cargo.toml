@@ -4,6 +4,7 @@ members = [
     "crates/tui",
     "crates/tui-testing",
     "xtask",
+    "tools/refactor-proof",
     "apps/showcase",
     "apps/tablepro",
     "apps/jackin-preview",
