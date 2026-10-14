@@ -546,6 +546,23 @@ impl<'a> HintBar<'a> {
                 };
                 let gap_x = x.saturating_add(used);
                 x = gap_x.saturating_add(1);
+                // B08 paints this cell with `Part::LABEL` for every glyph.
+                // Only a warning does that here: error, busy, and loading
+                // gaps are `hint_bar::{disabled,pressed,editing}` in
+                // `render_components`, and those digests stay put.
+                if live.contains(StateFlags::WARNING)
+                    && self.message().is_some()
+                    && gap_x >= area.x
+                    && gap_x < area.right()
+                {
+                    let gap = Rect {
+                        x: gap_x,
+                        width: 1,
+                        ..area
+                    };
+                    let s = ov.style(ui, id, Family::HINTBAR, self.variant, Part::LABEL, live);
+                    ui.paint_str(gap, " ", s.style);
+                }
             }
             if let Some(text) = self.message() {
                 let cell = Rect {
@@ -1267,5 +1284,58 @@ mod tests {
         assert!(row.contains(spinner), "{row}");
         assert!(!row.contains('▲'), "{row}");
         assert!(!row.contains('•'), "{row}");
+    }
+
+    #[test]
+    fn warning_status_gap_uses_the_label_tone() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 24, 1);
+        let screen = Rect::new(0, 0, 24, 1);
+        let layer = HintLayer {
+            status: Some("Attention".into()),
+            ..HintLayer::empty()
+        };
+        let page = draw_page(
+            &theme,
+            screen,
+            area,
+            &with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
+        );
+        let glyph_x = (area.x..area.right())
+            .find(|x| page[(*x, area.y)].symbol() == "▲")
+            .expect("warning mark");
+        let gap = &page[(glyph_x.saturating_add(1), area.y)];
+        let margin = &page[(area.x, area.y)];
+        assert_eq!(gap.symbol(), " ");
+        assert_eq!(gap.fg, theme.color.warning);
+        assert_ne!(gap.fg, margin.fg, "the gap must leave the container tone");
+        assert_eq!(page[(glyph_x.saturating_add(2), area.y)].symbol(), "A");
+    }
+
+    #[test]
+    fn fitted_error_status_gap_keeps_the_container_fill() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 40, 1);
+        let screen = Rect::new(0, 0, 40, 1);
+        let layer = HintLayer {
+            status: Some("Ready".into()),
+            ..HintLayer::empty()
+        };
+        let page = draw_page(
+            &theme,
+            screen,
+            area,
+            &HintBar::new(Id::root("hintbar.error"), &layer).status(Status::Error),
+        );
+        let glyph_x = (area.x..area.right())
+            .find(|x| page[(*x, area.y)].symbol() == "!")
+            .expect("error mark");
+        let gap = &page[(glyph_x.saturating_add(1), area.y)];
+        let margin = &page[(area.x, area.y)];
+        assert_eq!(gap.symbol(), " ");
+        assert_eq!(page[(glyph_x.saturating_add(2), area.y)].symbol(), "R");
+        assert_eq!(gap.fg, margin.fg);
+        assert_eq!(gap.bg, margin.bg);
+        assert_eq!(gap.modifier, margin.modifier);
     }
 }
