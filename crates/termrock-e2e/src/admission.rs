@@ -289,10 +289,6 @@ pub(crate) fn validate_binding(binding: &AdmissionBinding) -> Result<(), String>
             binding.generation.manifest_sha256.as_str(),
         ),
         (
-            "tag source snapshot tree",
-            binding.oracle.source_snapshot_tree.as_str(),
-        ),
-        (
             "tag source-input SHA-256",
             binding.oracle.source_inputs_sha256.as_str(),
         ),
@@ -485,6 +481,19 @@ mod tests {
             binding,
             reason: "all identity bindings reviewed".to_string(),
         }
+    }
+
+    #[test]
+    fn canonical_binding_accepts_a_git_tree_oid() {
+        assert_eq!(validate_binding(&binding()), Ok(()));
+    }
+
+    #[test]
+    fn source_snapshot_tree_rejects_a_sha256_digest() {
+        let mut sample = binding();
+        sample.oracle.source_snapshot_tree = "a".repeat(64);
+        let error = validate_binding(&sample).expect_err("sha256 is not a git oid");
+        assert!(error.contains("40-character Git object ID"), "{error}");
     }
 
     #[test]
