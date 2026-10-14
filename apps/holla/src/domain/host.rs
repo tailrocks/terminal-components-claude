@@ -94,6 +94,11 @@ pub(crate) struct Host {
     pub(crate) kind: HostKind,
     pub(crate) env: Environment,
     pub(crate) metrics: HostMetrics,
+    /// Whether this terminal accepts OSC 52. The preview never writes the
+    /// sequence; copy only reports the outcome.
+    pub(crate) osc52: bool,
+    /// Encoded-byte ceiling for an OSC 52 payload.
+    pub(crate) osc52_limit: usize,
 }
 
 impl Host {
@@ -103,6 +108,8 @@ impl Host {
             kind: HostKind::Local,
             env: Environment::Local,
             metrics: HostMetrics::dev(),
+            osc52: false,
+            osc52_limit: 100_000,
         }
     }
 
@@ -116,6 +123,8 @@ impl Host {
             kind: HostKind::Remote,
             env,
             metrics,
+            osc52: false,
+            osc52_limit: 100_000,
         }
     }
 

@@ -281,6 +281,17 @@ impl EditorState {
         self.reviewed = None;
     }
 
+    /// Drop the draft and restore the persisted workspace.
+    pub fn discard_draft(&mut self) {
+        if let Some(original) = &self.original {
+            self.pending = PendingWorkspace::from_workspace(original);
+        }
+        self.dirty = false;
+        self.preview_open = false;
+        self.reviewed = None;
+        self.clear_env_form();
+    }
+
     /// Bind a new configuration explicitly, clearing any previous editor ticket.
     pub fn load_new(&mut self, pending: PendingWorkspace) {
         self.tab = Tab::General;
@@ -379,13 +390,6 @@ impl EditorState {
         self.env_key_input = junie_tui::TextInputState::default();
         self.env_value_input.zeroize();
         self.env_value_input = junie_tui::TextInputState::default();
-        wipe_string(&mut self.env_value);
-    }
-
-    /// Drop the transient value while retaining the rest of the form.
-    pub(crate) fn discard_env_value(&mut self) {
-        self.env_value_input.cancel();
-        self.env_value_input.zeroize();
         wipe_string(&mut self.env_value);
     }
 
