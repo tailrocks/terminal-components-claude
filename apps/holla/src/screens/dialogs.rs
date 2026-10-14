@@ -35,6 +35,20 @@ pub(crate) enum Intent {
         login: String,
     },
     Alias(Action),
+    /// Largest-file list. Closed until the command opens it.
+    TopFiles,
+    /// Cleanup review. Confirming it does not delete anything.
+    CleanupReview,
+    /// Folder browser for the launch directory.
+    FolderBrowser,
+    /// Home find page. Closed until the command opens it.
+    HomeFind,
+    /// Custom-action file. Closed until the command opens it.
+    CustomAction,
+    /// Snapshot page, distinct from the home system-snapshot dialog.
+    SnapshotPage,
+    /// Trust review for a definition that is not open on the home frame.
+    DefinitionTrust,
 }
 pub(crate) enum Event {
     Close,
@@ -308,6 +322,60 @@ impl ProductDialog {
                 view.title = format!("Alias for “{}”", action.command);
                 view.actions.push(confirm_action("Save alias"));
             }
+            Intent::TopFiles => {
+                view.title = "Largest files".into();
+                view.facts = match world.disk.as_ref() {
+                    Some(disk) => {
+                        let top = disk
+                            .candidates
+                            .iter()
+                            .max_by_key(|candidate| candidate.size_bytes);
+                        vec![facts_row(
+                            "Largest",
+                            top.map_or_else(
+                                || "none scanned".to_owned(),
+                                |candidate| candidate.path.clone(),
+                            ),
+                        )]
+                    }
+                    None => vec![facts_row("Largest", "No disk scan is open".into())],
+                };
+            }
+            Intent::CleanupReview => {
+                view.title = "Review cleanup".into();
+                let candidate = world.disk.as_ref().and_then(|disk| disk.candidates.first());
+                view.facts = vec![
+                    facts_row(
+                        "Candidate",
+                        candidate
+                            .map_or_else(|| "none".to_owned(), |candidate| candidate.path.clone()),
+                    ),
+                    facts_row("Delete", "nothing is deleted from this review".into()),
+                ];
+            }
+            Intent::FolderBrowser => {
+                view.title = "Folder browser".into();
+                view.facts = vec![facts_row("Directory", world.cwd.clone())];
+            }
+            Intent::HomeFind => {
+                view.title = "Find in home".into();
+                view.facts = vec![facts_row("Query", "empty until this page is open".into())];
+            }
+            Intent::CustomAction => {
+                view.title = "Custom action".into();
+                view.facts = vec![facts_row("File", "no action file is loaded".into())];
+            }
+            Intent::SnapshotPage => {
+                view.title = "Snapshot page".into();
+                view.facts = vec![facts_row("Frame", "closed on the home frame".into())];
+            }
+            Intent::DefinitionTrust => {
+                view.title = "Trust this definition".into();
+                view.facts = vec![facts_row(
+                    "Waiting",
+                    "no untrusted definition is open".into(),
+                )];
+            }
         }
         if let Intent::Preview(action) = &view.intent
             && let Some(host) = world
@@ -519,7 +587,15 @@ impl ProductDialog {
                     Err(error) => notice(error.to_string()),
                 }
             }
-            Intent::About | Intent::Help => Event::Close,
+            Intent::About
+            | Intent::Help
+            | Intent::TopFiles
+            | Intent::CleanupReview
+            | Intent::FolderBrowser
+            | Intent::HomeFind
+            | Intent::CustomAction
+            | Intent::SnapshotPage
+            | Intent::DefinitionTrust => Event::Close,
         }
     }
     pub(crate) fn draw(&self, ui: &mut Ui<'_>) {
@@ -557,6 +633,9 @@ impl ProductDialog {
             });
         });
     }
+}
+fn facts_row(label: &str, value: String) -> (String, String) {
+    (label.to_owned(), value)
 }
 fn facts(rows: &[(&str, String)]) -> Vec<(String, String)> {
     rows.iter()

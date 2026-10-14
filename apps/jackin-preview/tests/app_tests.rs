@@ -1334,3 +1334,108 @@ fn cockpit_resolves_every_effective_account_for_the_container() {
     let i = h.app().world.instance(&inst).unwrap();
     assert!(i.accounts.len() >= 2, "{:?}", i.accounts);
 }
+
+#[test]
+fn prelude_up_follows_one_source_row_and_ignores_a_jump() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::End);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().route(), Route::Prelude);
+    assert!(h.text().contains("▸ payments-platform/"), "{}", h.text());
+    h.key(KeyCode::Down);
+    assert!(h.text().contains("▸ customer-portal/"), "{}", h.text());
+    h.key(KeyCode::Up);
+    assert!(h.text().contains("▸ payments-platform/"), "{}", h.text());
+    assert!(
+        !h.text().contains("▸ customer-portal/"),
+        "up moved more than one row: {}",
+        h.text()
+    );
+    assert_eq!(h.app().prelude.selection(), 0);
+}
+
+#[test]
+fn usage_enter_opens_the_read_only_detail_and_escape_closes_it() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    assert!(h.text().contains("Usage · read-only"));
+    assert!(!h.app().usage.detail_open());
+    h.key(KeyCode::Enter);
+    assert!(h.app().usage.detail_open());
+    assert!(
+        h.text().contains("Usage detail · read-only"),
+        "{}",
+        h.text()
+    );
+    assert!(h.text().contains("Surface ·"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(!h.app().usage.detail_open());
+    assert!(h.text().contains("Usage · read-only"), "{}", h.text());
+    h.key(KeyCode::Down);
+    assert!(h.text().contains("Limits"), "{}", h.text());
+    assert_eq!(h.app().route(), Route::Usage);
+}
+
+#[test]
+fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 0);
+    assert!(h.text().contains("▸ General"), "{}", h.text());
+    h.key(KeyCode::Char('5'));
+    assert_eq!(h.app().settings.tab, 4);
+    assert!(h.text().contains("▸ Trust"), "{}", h.text());
+    assert!(!h.text().contains("▸ General"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char(' '));
+    h.ctrl('s');
+    let preview = h.text();
+    assert!(preview.contains("Save settings"), "{preview}");
+    assert!(preview.contains("Scope · global config"), "{preview}");
+    assert!(preview.contains("Changes · trust draft"), "{preview}");
+    assert_eq!(h.app().route(), Route::Settings);
+}
+
+#[test]
+fn accounts_filter_and_inspector_open_without_writing_a_credential() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Char('a'));
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(!h.app().accounts.filtering);
+    assert!(!h.app().accounts.drawer_open);
+    let before = h.app().world.accounts.accounts.len();
+    let visible_name = h
+        .app()
+        .world
+        .accounts
+        .sorted()
+        .iter()
+        .map(|account| account.display_name.clone())
+        .find(|name| h.text().contains(name))
+        .expect("closed accounts list paints an account name");
+    h.key(KeyCode::Char('/'));
+    assert!(h.app().accounts.filtering);
+    assert!(h.text().contains("Filter accounts"), "{}", h.text());
+    for ch in ['z', 'z', 'z'] {
+        h.key(KeyCode::Char(ch));
+    }
+    assert_eq!(h.app().accounts.filter_query, "zzz");
+    assert!(
+        !h.text().contains(&visible_name),
+        "filter left {visible_name} visible: {}",
+        h.text()
+    );
+    h.key(KeyCode::Esc);
+    assert!(!h.app().accounts.filtering);
+    assert!(!h.text().contains("Filter accounts"), "{}", h.text());
+    h.key(KeyCode::Char('i'));
+    assert!(h.app().accounts.drawer_open);
+    assert!(h.text().contains("Inspector ·"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert_eq!(h.app().world.accounts.accounts.len(), before);
+    assert!(h.app().world.clipboard.is_none());
+}
