@@ -120,8 +120,8 @@ pub use components::{
 // appended as its own line so the shared list above is never rewritten
 pub use components::{
     Checkbox, ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, ChoiceCmd, LabelChips, LabelRadio,
-    LabelSelect, RadioGroup, RadioGroupAction, RadioGroupState, Select, SelectAction, SelectCmd,
-    SelectState, TextArea, TextAreaState, Toggle,
+    LabelSelect, RadioField, RadioGroup, RadioGroupAction, RadioGroupState, Select, SelectAction,
+    SelectCmd, SelectField, SelectState, TextArea, TextAreaState, Toggle,
 };
 // components — work package 4G (status, hints, progress and chrome)
 pub use components::{
