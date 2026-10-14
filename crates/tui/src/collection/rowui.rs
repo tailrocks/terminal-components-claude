@@ -966,6 +966,11 @@ mod tests {
 
     /// `DESIGN.md:478`: meta is right-aligned and dropped **all or none**
     /// when it does not fit after a two-cell gap.
+    ///
+    /// B45 ends the meta one cell before the row edge (`rowui.rs`,
+    /// `right - need - 1`, cursor `need + 2`). That inset moves the
+    /// checked-in collection frames, including `chip_bar::default` and
+    /// `steps::editing`. The shipped meta stays flush with the row edge.
     #[test]
     fn row_ui_meta_is_dropped_all_or_none() {
         // room for the label, the gap and the meta
@@ -974,6 +979,10 @@ mod tests {
             r.label("name");
         });
         assert_eq!(row_text(&page, 0, 0, 12), "name      42");
+        assert_eq!(
+            page.cell((11, 0)).map(ratatui_core::buffer::Cell::symbol),
+            Some("2")
+        );
         // one column short: nothing of the meta is painted, not a truncation
         let page = paint(Rect::new(0, 0, 3, 1), |r| {
             r.meta("42");
@@ -983,6 +992,10 @@ mod tests {
         // exactly at the boundary (need + 2 == width) it still fits
         let page = paint(Rect::new(0, 0, 4, 1), |r| r.meta("42"));
         assert_eq!(row_text(&page, 0, 0, 4), "  42");
+        assert_eq!(
+            page.cell((3, 0)).map(ratatui_core::buffer::Cell::symbol),
+            Some("2")
+        );
     }
 
     #[test]
