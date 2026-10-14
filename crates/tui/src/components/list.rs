@@ -383,10 +383,6 @@ impl Reconcile for ListState {
 /// ## Invariants
 /// `reconcile` runs before any action is emitted; only visible rows invoke
 /// the renderer; a frame allocates nothing per row.
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "whole rows, boundary exit, click activation and bare row chrome are independent opt-ins"
-)]
 pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -401,7 +397,7 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     empty: Option<EmptyState<'a>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     pointer_item: Option<&'a dyn Fn(&T) -> bool>,
-    bare: bool,
+    chrome: RowChrome,
     bare_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
     /// Kept beside `ov` so the nested [`ScrollRegion`] can be built with the
@@ -414,6 +410,14 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
+}
+
+/// Gutter chrome for a whole list. A bool would be the fourth on [`List`],
+/// which the workspace lint rejects.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RowChrome {
+    Gutter,
+    Bare,
 }
 
 fn row_scroll_extent(len: usize, stride: usize, gap: u16, viewport: usize) -> usize {
@@ -461,7 +465,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             empty: None,
             disabled_item: None,
             pointer_item: None,
-            bare: false,
+            chrome: RowChrome::Gutter,
             bare_item: None,
             status: Status::Ready,
             patch: None,
@@ -619,7 +623,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             empty: self.empty,
             disabled_item: self.disabled_item,
             pointer_item: self.pointer_item,
-            bare: self.bare,
+            chrome: self.chrome,
             bare_item: self.bare_item,
             status: self.status,
             patch: self.patch,
@@ -645,7 +649,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             empty: self.empty,
             disabled_item: self.disabled_item,
             pointer_item: self.pointer_item,
-            bare: self.bare,
+            chrome: self.chrome,
             bare_item: self.bare_item,
             status: self.status,
             patch: self.patch,
@@ -718,7 +722,11 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     /// chrome cells and the trailing pad reservation go away.
     #[must_use]
     pub fn bare(mut self, yes: bool) -> Self {
-        self.bare = yes;
+        self.chrome = if yes {
+            RowChrome::Bare
+        } else {
+            RowChrome::Gutter
+        };
         self
     }
 
@@ -1299,7 +1307,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     flags,
                 );
                 ui.fill(row, rs.style);
-                let bare = self.bare || self.bare_item.is_some_and(|f| f(item));
+                let bare =
+                    self.chrome == RowChrome::Bare || self.bare_item.is_some_and(|f| f(item));
                 let rest = if bare {
                     row
                 } else {
@@ -1591,5 +1600,61 @@ mod tests {
                 .map(ratatui_core::buffer::Cell::symbol),
             Some("o")
         );
+    }
+
+    /// B45 refills the empty body with the container style and paints the
+    /// title without inherited channels (`termrock-navigation` `list.rs`).
+    /// That drops an owner `Part::EMPTY` patch and moves `list::empty`.
+    #[test]
+    fn empty_body_keeps_the_owner_empty_style() {
+        use ratatui_core::style::Color;
+
+        let area = Rect::new(0, 0, 24, 4);
+        let patch = [(
+            Part::EMPTY,
+            StylePatch::new()
+                .set_bg(crate::theme::Role::Custom(Color::Blue))
+                .add(Modifier::ITALIC),
+        )];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        let state = ListState::default();
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                List::<&str>::new(ID)
+                    .empty(EmptyState::Empty {
+                        title: "Empty title",
+                        hint: None,
+                    })
+                    .patch_part(&patch)
+                    .draw(ui, area, &state, &[]);
+            })
+            .commit_presented();
+
+        let above = buffer.cell(Position::new(0, 0)).expect("container row");
+        assert_ne!(
+            above.bg,
+            Color::Blue,
+            "the container row must not take the empty patch"
+        );
+        let mut blanks = 0u16;
+        let mut title = false;
+        for y in 2..area.height {
+            for x in 0..area.width {
+                let cell = buffer.cell(Position::new(x, y)).expect("empty body");
+                assert_eq!(cell.bg, Color::Blue, "body bg at {x},{y}");
+                assert!(
+                    cell.modifier.contains(Modifier::ITALIC),
+                    "body modifier at {x},{y}"
+                );
+                if cell.symbol() == " " {
+                    blanks = blanks.saturating_add(1);
+                } else {
+                    title = true;
+                }
+            }
+        }
+        assert!(title, "empty title was not painted");
+        assert!(blanks > 0, "empty body had no blank cell");
     }
 }
