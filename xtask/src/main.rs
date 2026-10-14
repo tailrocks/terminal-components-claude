@@ -15,6 +15,7 @@
 //! Exit status is non-zero on any failure; `crates/tui/tests/architecture.rs`
 //! runs the named checks through this binary.
 
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::fs::{self, File, OpenOptions};
@@ -1935,6 +1936,16 @@ fn main() -> ExitCode {
                 .iter()
                 .position(|a| a == "--check")
                 .and_then(|i| args.get(i + 1).cloned());
+            let explicit = std::env::var("BLESS_GUARD_BASE").ok();
+            let github_base_ref = std::env::var("GITHUB_BASE_REF").ok();
+            // `bless-guard` is a different command and must not take this default.
+            if boundary_command_uses_local_review_base(
+                only.as_deref(),
+                explicit.as_deref(),
+                github_base_ref.as_deref(),
+            ) {
+                set_boundary_local_review_base(true);
+            }
             boundary(only.as_deref())
         }
         // §16.3 / §20.10 / §36.5. A named `boundary` check, so it inherits the
@@ -8940,6 +8951,33 @@ fn resolve_rev(rev: &str, source: &str) -> Result<String, String> {
     ))
 }
 
+thread_local! {
+    static BOUNDARY_LOCAL_REVIEW_BASE: Cell<bool> = const { Cell::new(false) };
+}
+
+fn set_boundary_local_review_base(enabled: bool) {
+    BOUNDARY_LOCAL_REVIEW_BASE.with(|flag| flag.set(enabled));
+}
+
+fn boundary_local_review_base() -> bool {
+    BOUNDARY_LOCAL_REVIEW_BASE.with(|flag| flag.get())
+}
+
+/// The `boundary` command classifies baseline moves against `origin/main` when
+/// the caller did not name a base. `bless-guard` does not use this default: a
+/// missing base stays an error so the guard cannot diff `HEAD` against itself.
+fn boundary_command_uses_local_review_base(
+    only: Option<&str>,
+    explicit: Option<&str>,
+    github_base_ref: Option<&str>,
+) -> bool {
+    let named = |value: Option<&str>| value.is_some_and(|text| !text.trim().is_empty());
+    if named(explicit) || named(github_base_ref) {
+        return false;
+    }
+    only.is_none() || only == Some("baseline_moves_are_classified")
+}
+
 /// Resolve the guard base from the explicit CI variable, or from the pull
 /// request base ref. Missing both is an error: falling back to `HEAD` would
 /// compare the tree with itself and pass vacuously.
@@ -8963,6 +9001,11 @@ fn bless_guard_base() -> Result<String, String> {
     ensure_unshallow();
     let explicit = std::env::var("BLESS_GUARD_BASE").ok();
     let github_base_ref = std::env::var("GITHUB_BASE_REF").ok();
+    let named =
+        |value: &Option<String>| value.as_deref().is_some_and(|text| !text.trim().is_empty());
+    if !named(&explicit) && !named(&github_base_ref) && boundary_local_review_base() {
+        return resolve_rev("origin/main", "the local boundary review base");
+    }
     bless_guard_base_from(explicit.as_deref(), github_base_ref.as_deref())
 }
 
@@ -10513,6 +10556,36 @@ captures / classification: `(pending — filled when the change lands)`
             .expect_err("a guard without an explicit or pull-request base must stop");
         assert!(err.contains("no base revision"), "{err}");
         assert!(err.contains("BLESS_GUARD_BASE"), "{err}");
+    }
+
+    #[test]
+    fn boundary_command_defaults_its_review_base_only_without_an_explicit_base() {
+        assert!(boundary_command_uses_local_review_base(None, None, None));
+        assert!(boundary_command_uses_local_review_base(
+            Some("baseline_moves_are_classified"),
+            None,
+            None
+        ));
+        assert!(!boundary_command_uses_local_review_base(
+            Some("no_unsafe"),
+            None,
+            None
+        ));
+        assert!(!boundary_command_uses_local_review_base(
+            None,
+            Some("d5e7075f436f0e437c7d12cf3d1e638e763b26f6"),
+            None
+        ));
+        assert!(!boundary_command_uses_local_review_base(
+            None,
+            None,
+            Some("main")
+        ));
+        assert!(boundary_command_uses_local_review_base(
+            None,
+            Some("   "),
+            Some("  ")
+        ));
     }
 
     #[test]
