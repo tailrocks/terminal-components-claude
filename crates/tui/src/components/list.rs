@@ -397,6 +397,8 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     empty: Option<EmptyState<'a>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     pointer_item: Option<&'a dyn Fn(&T) -> bool>,
+    bare: bool,
+    bare_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
     /// Kept beside `ov` so the nested [`ScrollRegion`] can be built with the
     /// caller's own overrides. `PartStyle` reads back only the slot, and a
@@ -455,6 +457,8 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             empty: None,
             disabled_item: None,
             pointer_item: None,
+            bare: false,
+            bare_item: None,
             status: Status::Ready,
             patch: None,
             parts: &[],
@@ -611,6 +615,8 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             empty: self.empty,
             disabled_item: self.disabled_item,
             pointer_item: self.pointer_item,
+            bare: self.bare,
+            bare_item: self.bare_item,
             status: self.status,
             patch: self.patch,
             parts: self.parts,
@@ -635,6 +641,8 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             empty: self.empty,
             disabled_item: self.disabled_item,
             pointer_item: self.pointer_item,
+            bare: self.bare,
+            bare_item: self.bare_item,
             status: self.status,
             patch: self.patch,
             parts: self.parts,
@@ -697,6 +705,25 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     #[must_use]
     pub fn pointer_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.pointer_item = Some(f);
+        self
+    }
+
+    /// Drop the gutter and marker chrome so the row painter starts at `area.x`.
+    ///
+    /// Cursor, selection, scroll, and hit registration stay. Only the two
+    /// chrome cells and the trailing pad reservation go away.
+    #[must_use]
+    pub fn bare(mut self, yes: bool) -> Self {
+        self.bare = yes;
+        self
+    }
+
+    /// Skip gutter and marker chrome on the rows `f` accepts.
+    ///
+    /// Sibling rows keep the chrome. Defaults to no rows.
+    #[must_use]
+    pub fn bare_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
+        self.bare_item = Some(f);
         self
     }
 
@@ -1268,36 +1295,41 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     flags,
                 );
                 ui.fill(row, rs.style);
-                // gutter
-                let gutter_cell = cell_at(row, row.x);
-                if let Some(f) = ov.slot_for(Part::GUTTER) {
-                    f(ui, gutter_cell);
+                let bare = self.bare || self.bare_item.is_some_and(|f| f(item));
+                let rest = if bare {
+                    row
                 } else {
-                    let g = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::GUTTER, flags);
-                    match g.glyph {
-                        Slot::Set(glyph) => {
-                            ui.glyph(gutter_cell, glyph, g.style);
+                    let gutter_cell = cell_at(row, row.x);
+                    if let Some(f) = ov.slot_for(Part::GUTTER) {
+                        f(ui, gutter_cell);
+                    } else {
+                        let g =
+                            ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::GUTTER, flags);
+                        match g.glyph {
+                            Slot::Set(glyph) => {
+                                ui.glyph(gutter_cell, glyph, g.style);
+                            }
+                            Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                         }
-                        Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                     }
-                }
-                // marker
-                let marker_cell = cell_at(row, row.x.saturating_add(1));
-                if let Some(f) = ov.slot_for(Part::MARKER) {
-                    f(ui, marker_cell);
-                } else {
-                    let m = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::MARKER, flags);
-                    match m.glyph {
-                        Slot::Set(glyph) => {
-                            ui.glyph(marker_cell, glyph, m.style);
+                    let marker_cell = cell_at(row, row.x.saturating_add(1));
+                    if let Some(f) = ov.slot_for(Part::MARKER) {
+                        f(ui, marker_cell);
+                    } else {
+                        let m =
+                            ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::MARKER, flags);
+                        match m.glyph {
+                            Slot::Set(glyph) => {
+                                ui.glyph(marker_cell, glyph, m.style);
+                            }
+                            Slot::Inherit | Slot::Clear => ui.fill(marker_cell, m.style),
                         }
-                        Slot::Inherit | Slot::Clear => ui.fill(marker_cell, m.style),
                     }
-                }
-                let rest = Rect {
-                    x: row.x.saturating_add(3),
-                    width: row.width.saturating_sub(3),
-                    ..row
+                    Rect {
+                        x: row.x.saturating_add(3),
+                        width: row.width.saturating_sub(3),
+                        ..row
+                    }
                 };
                 if !rest.is_empty() {
                     let mut r =
@@ -1536,6 +1568,24 @@ mod tests {
                 .cell(Position::new(1, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
             Some(Theme::junie().design.glyphs.get(GlyphRole::Chosen))
+        );
+    }
+
+    #[test]
+    fn bare_row_paints_the_label_at_the_row_origin() {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID).bare(true).draw(ui, area, &state, &["one"]);
+            })
+            .commit_presented();
+        assert_eq!(
+            buffer
+                .cell(Position::new(0, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("o")
         );
     }
 }

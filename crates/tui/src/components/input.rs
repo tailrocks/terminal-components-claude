@@ -648,6 +648,22 @@ impl TextInputState {
         }
     }
 
+    /// Replace `replace_len` bytes before the draft cursor with `insertion`.
+    ///
+    /// Idle states refuse so a stale accept cannot rewrite a committed value.
+    pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
+        if !self.is_editing() {
+            return false;
+        }
+        let editor = match &mut self.draft {
+            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => editor,
+        };
+        let end = editor.cursor_offset();
+        let start = end.saturating_sub(replace_len);
+        editor.select_range(start, end);
+        editor.apply(EditAction::Paste(insertion)).changed()
+    }
+
     /// Compare the text the editor currently displays without exposing its draft.
     /// Redacted snapshots cannot authorize an action on the original secret.
     pub(crate) fn visible_text_equals(&self, committed: &str, expected: &str) -> bool {
@@ -1779,6 +1795,15 @@ mod tests {
         // a second begin while editing keeps the draft
         st.begin("other");
         assert_eq!(st.draft.text(), "hello!");
+    }
+
+    #[test]
+    fn splice_completion_replaces_the_bytes_before_the_cursor() {
+        let mut st = TextInputState::default();
+        assert!(!st.splice_completion(5, "world"));
+        st.begin("hello");
+        assert!(st.splice_completion(5, "world"));
+        assert_eq!(st.draft_text(), Some("world"));
     }
 
     /// §16.1: commit is the only writer of the controlled value.
