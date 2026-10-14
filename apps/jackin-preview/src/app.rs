@@ -13,14 +13,14 @@ use std::{
 };
 
 use junie_tui::{
-    ActionKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx, Dialog, DialogAction,
-    DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar,
-    HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
-    ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Modifier, Moment, Panel,
-    Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText, Reconcile,
-    Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
-    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
-    ViewportLine, ViewportState,
+    Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
+    Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
+    HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
+    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
+    MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
+    Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
+    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -122,7 +122,20 @@ const CAPSULE_TAB_MENU: Id = APP.sub("capsule-tab-menu");
 const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
 /// Capsule container identity dialog.
 const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
+const ABOUT_DIALOG: Id = APP.sub("about");
+const QUIT_DIALOG: Id = APP.sub("quit-dialog");
+const CANCEL_LAUNCH_DIALOG: Id = APP.sub("cancel-dialog");
+const COCKPIT_INFO_DIALOG: Id = APP.sub("cockpit-info");
+const EDITOR_EXIT_DIALOG: Id = APP.sub("editor-exit");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
+const QUIT_ACTIONS: [Action<'static>; 2] = [
+    Action::quiet(ActionKey::CANCEL, "Cancel"),
+    Action::new(ActionKey::CONFIRM, "Quit"),
+];
+const CANCEL_LAUNCH_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Cancel launch"),
+];
 const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
 const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
 const EDITOR_ROLE_LOAD: Id = crate::screens::editor::ROOT.sub("role-load");
@@ -148,6 +161,10 @@ const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
 const CMD_NAV_DOWN: ActionKey = ActionKey::application("jackin.navigation.down");
+const CMD_NAV_UP: ActionKey = ActionKey::application("jackin.navigation.up");
+const CMD_ACCOUNT_FILTER: ActionKey = ActionKey::application("jackin.account.filter");
+const CMD_ACCOUNT_DRAWER: ActionKey = ActionKey::application("jackin.account.drawer");
+const CMD_SETTINGS_TAB_PREV: ActionKey = ActionKey::application("jackin.settings.previous-tab");
 const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::application("jackin.navigation.tab-five");
 const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::application("jackin.capsule.prefix");
 const CMD_CAPSULE_DETACH: ActionKey = ActionKey::application("jackin.capsule.detach");
@@ -166,6 +183,16 @@ const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.rem
 const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
 const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
+const CMD_COCKPIT_INFO: ActionKey = ActionKey::application("jackin.cockpit.info");
+const CMD_COCKPIT_DEBUG: ActionKey = ActionKey::application("jackin.cockpit.debug");
+const EXIT_CANCEL: ActionKey = ActionKey::application("jackin.editor.exit-cancel");
+const EXIT_DISCARD: ActionKey = ActionKey::application("jackin.editor.exit-discard");
+const EXIT_SAVE: ActionKey = ActionKey::application("jackin.editor.exit-save");
+const EDITOR_EXIT_ACTIONS: [Action<'static>; 3] = [
+    Action::quiet(EXIT_CANCEL, "Cancel"),
+    Action::danger(EXIT_DISCARD, "Discard"),
+    Action::new(EXIT_SAVE, "Save"),
+];
 const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-rename");
 const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
 const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
@@ -520,6 +547,25 @@ pub struct App {
     keymap: KeyMap,
     capsule_menu_state: MenuState,
     container_info_state: DialogState,
+    about_state: DialogState,
+    about_open: bool,
+    quit_open: bool,
+    quit_state: DialogState,
+    quit_body: String,
+    cancel_open: bool,
+    cancel_state: DialogState,
+    /// Cockpit debug-info dialog. Closed on every scenario frame.
+    cockpit_info_open: bool,
+    cockpit_info_state: DialogState,
+    /// Telemetry row inside the debug-info dialog. Never painted on frame 0.
+    cockpit_debug_open: bool,
+    /// Dirty-editor leave dialog. Closed until Escape on the editor tabs.
+    editor_exit_open: bool,
+    editor_exit_state: DialogState,
+    /// Escape on a mount, role, account, or env control returns to the tabs
+    /// before a second Escape can open the leave dialog.
+    editor_leaf_focused: bool,
+    settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
@@ -691,6 +737,20 @@ impl App {
             keymap: app_keymap(),
             capsule_menu_state: MenuState::default(),
             container_info_state: DialogState::default(),
+            about_state: DialogState::default(),
+            about_open: false,
+            quit_open: false,
+            quit_state: DialogState::default(),
+            quit_body: String::new(),
+            cancel_open: false,
+            cancel_state: DialogState::default(),
+            cockpit_info_open: false,
+            cockpit_info_state: DialogState::default(),
+            cockpit_debug_open: false,
+            editor_exit_open: false,
+            editor_exit_state: DialogState::default(),
+            editor_leaf_focused: false,
+            settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
@@ -816,6 +876,52 @@ impl App {
                 && !self.editor.env_form_open)
         {
             self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
+        }
+        let enter = Chord::key(KeyCode::Enter);
+        self.keymap.remove(KeyPhase::Capture, enter);
+        if self.route == Route::Usage && !self.usage.detail_open() {
+            self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
+        }
+        let up = Chord::key(KeyCode::Up);
+        self.keymap.remove(KeyPhase::Bubble, up);
+        if self.route == Route::Prelude && self.prelude.step() == 1 {
+            self.keymap.add(KeyPhase::Bubble, up, CMD_NAV_UP);
+        }
+        let filter = Chord::key(KeyCode::Char('/'));
+        self.keymap.remove(KeyPhase::Bubble, filter);
+        if self.route == Route::Accounts && !self.accounts.form_open && !self.accounts.filtering {
+            self.keymap
+                .add(KeyPhase::Bubble, filter, CMD_ACCOUNT_FILTER);
+        }
+        let drawer = Chord::key(KeyCode::Char('i'));
+        self.keymap.remove(KeyPhase::Bubble, drawer);
+        if self.route == Route::Accounts
+            && !self.accounts.form_open
+            && !self.accounts.filtering
+            && !self.accounts.drawer_open
+        {
+            self.keymap
+                .add(KeyPhase::Bubble, drawer, CMD_ACCOUNT_DRAWER);
+        }
+        let left = Chord::key(KeyCode::Left);
+        self.keymap.remove(KeyPhase::Bubble, left);
+        let save_confirm = self
+            .status
+            .as_deref()
+            .is_some_and(|status| status.starts_with("Save settings"));
+        if self.route == Route::Settings && !self.settings_save_preview && !save_confirm {
+            self.keymap
+                .add(KeyPhase::Bubble, left, CMD_SETTINGS_TAB_PREV);
+        }
+        let info = Chord::key(KeyCode::Char('i'));
+        let debug = Chord::key(KeyCode::Char('d'));
+        self.keymap.remove(KeyPhase::Capture, info);
+        self.keymap.remove(KeyPhase::Capture, debug);
+        let cockpit_keys = matches!(self.route, Route::Cockpit | Route::Launch)
+            && self.launch.as_ref().is_none_or(|run| run.failure.is_none());
+        if cockpit_keys {
+            self.keymap.add(KeyPhase::Capture, info, CMD_COCKPIT_INFO);
+            self.keymap.add(KeyPhase::Capture, debug, CMD_COCKPIT_DEBUG);
         }
     }
 
@@ -1052,6 +1158,12 @@ impl App {
         TextInput::new(crate::screens::accounts::NAME).placeholder("Display name")
     }
 
+    fn account_filter_input() -> TextInput<'static> {
+        TextInput::new(crate::screens::accounts::FILTER)
+            .placeholder("Filter accounts")
+            .placeholder_while_editing(true)
+    }
+
     fn account_folder_input() -> TextInput<'static> {
         TextInput::new(crate::screens::accounts::FOLDER).placeholder("Local agent folder")
     }
@@ -1171,6 +1283,234 @@ impl App {
         self.status = Some("Container info".into());
     }
 
+    fn about_dialog() -> Dialog<'static> {
+        Dialog::info(ABOUT_DIALOG, "About").body_rows(4)
+    }
+
+    fn about_lines(&self) -> Vec<String> {
+        vec![
+            "Product       jackin-preview · deterministic redesign preview".into(),
+            format!("Scenario      {}", self.world.scenario.name()),
+            "Construct     simulated · nothing here touches a real container".into(),
+            "Design system Junie-inspired Ratatui components (junie_tui)".into(),
+        ]
+    }
+
+    fn open_usage_detail(&mut self) {
+        if self.usage.selected().is_none() {
+            let id = self
+                .world
+                .accounts
+                .sorted()
+                .into_iter()
+                .next()
+                .map(|account| account.id.clone());
+            self.usage.select(id);
+        }
+        let _ = self.usage.open_detail();
+    }
+
+    fn open_about(&mut self, cx: &mut Cx<'_>) {
+        self.about_state = DialogState::default();
+        self.about_open = true;
+        cx.open_layer(ABOUT_DIALOG, Self::about_dialog().layer(cx));
+        self.status = None;
+    }
+
+    /// Owned body for every running-count. Counts other than 0, 1, and 2 use
+    /// this `String` so the confirm copy never calls `Box::leak`.
+    fn prepare_quit_body(&mut self) {
+        let running = self.world.running_count();
+        self.quit_body = match running {
+            0 => "No instances are running. The pending Construct entry is released.".into(),
+            1 => "1 instance keeps running in the Construct. The host console closes; reconnect from a new terminal.".into(),
+            2 => "2 instances keep running in the Construct. The host console closes; reconnect from a new terminal.".into(),
+            count => format!(
+                "{count} instances keep running in the Construct. The host console closes; reconnect from a new terminal."
+            ),
+        };
+    }
+
+    fn quit_dialog(body: &str) -> Dialog<'_> {
+        Dialog::confirm(QUIT_DIALOG, "Exit jackin?", body).actions(&QUIT_ACTIONS)
+    }
+
+    fn open_quit(&mut self, cx: &mut Cx<'_>) {
+        self.prepare_quit_body();
+        self.quit_state = DialogState::default();
+        self.quit_open = true;
+        let body = self.quit_body.clone();
+        let spec = Self::quit_dialog(&body).layer(cx);
+        cx.open_layer(QUIT_DIALOG, spec);
+    }
+
+    fn cockpit_cancel_dialog() -> Dialog<'static> {
+        Dialog::destructive(
+            CANCEL_LAUNCH_DIALOG,
+            "Cancel the launch?",
+            "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
+        )
+        .actions(&CANCEL_LAUNCH_ACTIONS)
+    }
+
+    fn cockpit_info_dialog() -> Dialog<'static> {
+        Dialog::info(COCKPIT_INFO_DIALOG, "Debug info").body_rows(8)
+    }
+
+    fn cockpit_info_lines(&self) -> Vec<String> {
+        let role_full = self.selected_role();
+        let role = role_full.rsplit('/').next().unwrap_or(role_full);
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let mut lines = Vec::new();
+        if let Some(launch) = &self.launch
+            && launch.container_ready()
+        {
+            lines.push(format!("Container     {}", launch.container));
+        }
+        lines.push(format!("Target        {role} into workspace {workspace}"));
+        lines.push(format!("Role          {role}"));
+        lines.push("Agent         Claude Code · account Claude · Work".into());
+        let run_id = self
+            .launch
+            .as_ref()
+            .map(|launch| launch.run_id.short())
+            .unwrap_or_else(|| "none".to_owned());
+        lines.push(format!("Run id        {run_id}"));
+        lines.push("jackin        0.6.4 · preview".into());
+        if self.cockpit_debug_open {
+            // The run id already has its own row. Keeping the endpoint on
+            // this row lets the dialog show it without clipping the host.
+            lines.push("Telemetry     otlp://collector.internal:4317".into());
+        }
+        lines
+    }
+
+    fn open_cockpit_info(&mut self, cx: &mut Cx<'_>) {
+        self.cockpit_info_state = DialogState::default();
+        self.cockpit_info_open = true;
+        cx.open_layer(COCKPIT_INFO_DIALOG, Self::cockpit_info_dialog().layer(cx));
+        self.status = Some("Debug info".into());
+    }
+
+    fn close_cockpit_info(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(COCKPIT_INFO_DIALOG) {
+            cx.close_layer(COCKPIT_INFO_DIALOG, Some(ActionKey::CLOSE));
+        }
+        self.cockpit_info_open = false;
+        self.status = None;
+    }
+
+    fn editor_exit_dialog() -> Dialog<'static> {
+        Dialog::confirm(
+            EDITOR_EXIT_DIALOG,
+            "Leave the editor?",
+            "Save changes before leaving?",
+        )
+        .actions(&EDITOR_EXIT_ACTIONS)
+    }
+
+    fn open_editor_exit(&mut self, cx: &mut Cx<'_>) {
+        self.editor_exit_state = DialogState::default();
+        self.editor_exit_open = true;
+        self.editor_leaf_focused = false;
+        let dialog = Self::editor_exit_dialog();
+        let focus = dialog.action_id(0);
+        cx.open_layer(EDITOR_EXIT_DIALOG, dialog.layer(cx).initial_focus(focus));
+        self.status = Some("Save changes before leaving?".into());
+    }
+
+    fn close_editor_exit(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(EDITOR_EXIT_DIALOG) {
+            cx.close_layer(EDITOR_EXIT_DIALOG, Some(EXIT_CANCEL));
+        }
+        self.editor_exit_open = false;
+        if self.status.as_deref() == Some("Save changes before leaving?") {
+            self.status = None;
+        }
+    }
+
+    /// Close the environment form and return to the registered save control.
+    ///
+    /// The editor tab name is painted text. `editor::TABS` is not a widget, so
+    /// focus uses the save footer, which every live editor tab registers.
+    fn dismiss_editor_env_form(&mut self, cx: &mut Cx<'_>) {
+        self.editor.clear_env_form();
+        self.editor_leaf_focused = false;
+        cx.focus(crate::screens::editor::SAVE);
+    }
+
+    /// Focus the control for the active editor tab. Leaf controls consume the
+    /// next Escape so it does not open the leave dialog.
+    fn focus_editor_tab(&mut self, cx: &mut Cx<'_>) {
+        self.editor_leaf_focused = match self.editor.tab {
+            EditorTab::Mounts => {
+                cx.focus(EDITOR_MOUNT_EDIT);
+                true
+            }
+            EditorTab::Roles => {
+                cx.focus(EDITOR_ROLE_EDIT);
+                true
+            }
+            EditorTab::Accounts => {
+                cx.focus(EDITOR_ACCOUNTS_LIST);
+                true
+            }
+            EditorTab::Environments | EditorTab::General => false,
+        };
+    }
+
+    fn open_cancel_launch(&mut self, cx: &mut Cx<'_>) {
+        self.cancel_state = DialogState::default();
+        self.cancel_open = true;
+        cx.open_layer(
+            CANCEL_LAUNCH_DIALOG,
+            Self::cockpit_cancel_dialog().layer(cx),
+        );
+    }
+
+    /// Leave a failed cockpit on the Manager. An existing failed instance is
+    /// selected; this path does not invent an instance the scenario did not
+    /// already record.
+    fn acknowledge_launch_failure(&mut self) {
+        let run_id = self.launch.as_ref().map(|run| run.run_id);
+        self.launch = None;
+        self.route = Route::Manager;
+        self.ensure_manager_rows();
+        if let Some(run_id) = run_id {
+            let failed_id = self
+                .world
+                .instances
+                .iter()
+                .find(|instance| instance.run_id == run_id)
+                .map(|instance| instance.id.clone());
+            if let Some(id) = failed_id
+                && let Some((index, row)) = self.manager_rows_cache.iter().enumerate().find(|(_, row)| {
+                    matches!(&row.domain, ManagerRowKey::Instance(existing) if existing == &id)
+                })
+            {
+                let key = row.key;
+                let domain = row.domain.clone();
+                self.manager.list.set_cursor(index, key);
+                self.manager.select_row(domain);
+            }
+        }
+        let running = self.world.running_count();
+        self.status = Some(if running == 0 {
+            "Launch failed · the Construct is empty".into()
+        } else {
+            let noun = if running == 1 {
+                "instance"
+            } else {
+                "instances"
+            };
+            format!("Launch failed · {running} {noun} still running in the Construct")
+        });
+    }
+
     fn manager_instances(
         &self,
         workspace: Option<crate::domain::workspace::WorkspaceId>,
@@ -1258,10 +1598,52 @@ impl App {
         }
     }
 
+    fn account_matches_filter(&self, account: &Account) -> bool {
+        let query = self.accounts.filter_query.trim();
+        if !self.accounts.filtering || query.is_empty() {
+            return true;
+        }
+        let needle = query.to_lowercase();
+        let haystack = format!(
+            "{} {} {} {}",
+            account.provider.label(),
+            account.title(),
+            account.status_word(),
+            account.source.safe_detail()
+        )
+        .to_lowercase();
+        haystack.contains(&needle)
+    }
+
+    fn reconcile_filtered_account(&mut self) {
+        if !self.accounts.filtering {
+            return;
+        }
+        let visible: Vec<String> = self
+            .world
+            .accounts
+            .sorted()
+            .into_iter()
+            .filter(|account| self.account_matches_filter(account))
+            .map(|account| account.id.clone())
+            .collect();
+        let selected_visible = self
+            .accounts
+            .selected_id
+            .as_ref()
+            .is_some_and(|id| visible.iter().any(|visible_id| visible_id == id));
+        if !selected_visible {
+            self.accounts.selected_id = visible.into_iter().next();
+        }
+    }
+
     fn account_rows(&self) -> Vec<String> {
         let mut rows = vec!["Overview · Health · Registration · Quota".to_owned()];
         let mut provider = None;
         for account in self.world.accounts.sorted() {
+            if !self.account_matches_filter(account) {
+                continue;
+            }
             if provider != Some(account.provider) {
                 rows.push(account.provider.label().to_owned());
                 provider = Some(account.provider);
@@ -2423,6 +2805,164 @@ impl App {
         }
         result |= response.erase();
 
+        if self.about_open {
+            let about = Self::about_dialog();
+            let response = about.update(cx, &mut self.about_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Dismissed(_)) => {
+                    self.about_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(key)) => {
+                    if cx.is_open(ABOUT_DIALOG) {
+                        cx.close_layer(ABOUT_DIALOG, Some(key));
+                    }
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(ABOUT_DIALOG) => {
+                    self.about_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                None => {}
+            }
+        }
+
+        if self.quit_open {
+            let body = self.quit_body.clone();
+            let quit = Self::quit_dialog(&body);
+            let response = quit.update(cx, &mut self.quit_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                    if cx.is_open(QUIT_DIALOG) {
+                        cx.close_layer(QUIT_DIALOG, Some(ActionKey::CONFIRM));
+                    }
+                    self.quit_open = false;
+                    self.quit = true;
+                    cx.quit();
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_)) => {
+                    if cx.is_open(QUIT_DIALOG) {
+                        cx.close_layer(QUIT_DIALOG, Some(ActionKey::CANCEL));
+                    }
+                    self.quit_open = false;
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(QUIT_DIALOG) => {
+                    self.quit_open = false;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
+
+        if self.cancel_open {
+            let dialog = Self::cockpit_cancel_dialog();
+            let response = dialog.update(cx, &mut self.cancel_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                    if cx.is_open(CANCEL_LAUNCH_DIALOG) {
+                        cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CONFIRM));
+                    }
+                    self.cancel_open = false;
+                    self.launch = None;
+                    self.route = Route::Manager;
+                    self.status = Some("Launch cancelled · nothing was attached".into());
+                    cx.focus(MANAGER_LIST);
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_)) => {
+                    if cx.is_open(CANCEL_LAUNCH_DIALOG) {
+                        cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
+                    }
+                    self.cancel_open = false;
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(CANCEL_LAUNCH_DIALOG) => {
+                    self.cancel_open = false;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
+
+        if self.cockpit_info_open {
+            let info = Self::cockpit_info_dialog();
+            let response = info.update(cx, &mut self.cockpit_info_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Dismissed(_)) => {
+                    self.cockpit_info_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(key)) => {
+                    if cx.is_open(COCKPIT_INFO_DIALOG) {
+                        cx.close_layer(COCKPIT_INFO_DIALOG, Some(key));
+                    }
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(COCKPIT_INFO_DIALOG) => {
+                    self.cockpit_info_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                None => {}
+            }
+        }
+
+        if self.editor_exit_open {
+            let dialog = Self::editor_exit_dialog();
+            let response = dialog.update(cx, &mut self.editor_exit_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Action(EXIT_SAVE)) => {
+                    if cx.is_open(EDITOR_EXIT_DIALOG) {
+                        cx.close_layer(EDITOR_EXIT_DIALOG, Some(EXIT_SAVE));
+                    }
+                    self.editor_exit_open = false;
+                    self.editor.mark_dirty();
+                    self.editor.open_preview();
+                    cx.focus(crate::screens::editor::SAVE);
+                    self.status = Some("Save workspace · preview changes before commit".into());
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(EXIT_DISCARD)) => {
+                    if cx.is_open(EDITOR_EXIT_DIALOG) {
+                        cx.close_layer(EDITOR_EXIT_DIALOG, Some(EXIT_DISCARD));
+                    }
+                    self.editor_exit_open = false;
+                    self.editor.discard_draft();
+                    self.route = Route::Manager;
+                    cx.focus(MANAGER_LIST);
+                    self.status = Some("Discarded 1 change".into());
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(EXIT_CANCEL) | DialogAction::Dismissed(_)) => {
+                    self.close_editor_exit(cx);
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(EDITOR_EXIT_DIALOG) => {
+                    self.editor_exit_open = false;
+                    if self.status.as_deref() == Some("Save changes before leaving?") {
+                        self.status = None;
+                    }
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
+
         // Drain the dialog and its body control while a child picker is
         // open too.  Layer dismissal intents are addressed to the underlying
         // owners during the same update pass; returning early for the top
@@ -2482,6 +3022,7 @@ impl App {
                 self.editor_role_picker = false;
                 self.editor_env_role = Some(role.clone());
                 self.editor.open_env_form();
+                self.editor_leaf_focused = true;
                 cx.focus(crate::screens::editor::ENV_KEY);
                 self.status = Some(format!("Add role override · {}", self.role_label(&role)));
             } else {
@@ -2701,6 +3242,33 @@ impl App {
     }
 
     fn update_accounts(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.accounts.filtering && !self.accounts.form_open {
+            let filter = Self::account_filter_input().update(
+                cx,
+                &mut self.accounts.filter_input,
+                &mut self.accounts.filter_query,
+            );
+            let cancelled = filter
+                .action_ref()
+                .is_some_and(|action| *action == TextAction::Cancelled);
+            let mut result = filter.erase();
+            // Controlled text writes the caller string only on commit. A live
+            // filter has to follow the draft on each key.
+            if let Some(draft) = self.accounts.filter_input.draft_text()
+                && self.accounts.filter_query != draft
+            {
+                self.accounts.filter_query = draft.to_owned();
+                self.reconcile_filtered_account();
+                result |= Response::changed();
+            }
+            if cancelled {
+                self.accounts.filtering = false;
+                self.accounts.filter_query.clear();
+                self.accounts.filter_input = TextInputState::default();
+                result |= Response::changed();
+            }
+            return result;
+        }
         if self.accounts.form_open {
             if !self.accounts.started {
                 let start = Self::account_start_button().update(cx);
@@ -3051,6 +3619,7 @@ impl App {
             }
         }
         if confirm_chosen && self.settings.dirty {
+            self.settings_save_preview = false;
             let keep = self.settings.attempt_save(self.world.refresh_fails);
             if keep {
                 self.status = self.settings.save_error.clone();
@@ -3112,6 +3681,10 @@ impl App {
                 .action_ref()
                 .is_some_and(|action| *action == TextAction::Cancelled);
             let mut result = key.erase();
+            if key_cancelled {
+                self.dismiss_editor_env_form(cx);
+                return result;
+            }
             if Self::rearm_text_input(
                 key_rearm,
                 &mut self.editor.env_key_input,
@@ -3137,8 +3710,9 @@ impl App {
                 .action_ref()
                 .is_some_and(|action| *action == TextAction::Cancelled);
             result |= value.erase();
-            if key_cancelled || value_cancelled {
-                self.editor.discard_env_value();
+            if value_cancelled {
+                self.dismiss_editor_env_form(cx);
+                return result;
             }
             if Self::rearm_text_input(
                 value_rearm,
@@ -3283,9 +3857,8 @@ impl App {
         let cancel_chosen = cancel.activated();
         result |= cancel.erase();
         if cancel_chosen {
-            self.launch = None;
-            self.route = Route::Manager;
-            return result;
+            self.open_cancel_launch(cx);
+            return result | Response::changed();
         }
         if failed {
             let retry = Self::launch_retry_button().update(cx);
@@ -3673,7 +4246,14 @@ impl App {
             Route::Prelude => self.update_prelude(cx),
             Route::Editor => self.update_editor(cx),
             Route::Accounts => self.update_accounts(cx),
-            Route::Usage => Response::ignored(),
+            Route::Usage => {
+                if cx.activation_key() == Some(ActivationKey::Enter) && !self.usage.detail_open() {
+                    self.open_usage_detail();
+                    Response::changed()
+                } else {
+                    Response::ignored()
+                }
+            }
             Route::Settings => self.update_settings(cx),
             Route::Launch | Route::Cockpit => self.update_launch(cx, product_tick),
             Route::Handoff | Route::Outro => Response::ignored(),
@@ -3703,8 +4283,9 @@ impl App {
         }
         match command {
             CMD_QUIT => {
-                self.quit = true;
-                cx.quit();
+                if !self.quit_open {
+                    self.open_quit(cx);
+                }
                 Some(Response::changed())
             }
             CMD_MANAGER
@@ -3736,6 +4317,7 @@ impl App {
             {
                 self.editor_env_role = None;
                 self.editor.open_env_form();
+                self.editor_leaf_focused = true;
                 cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
             }
@@ -3915,7 +4497,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ABOUT if self.route == Route::Capsule => {
-                self.status = Some("Capsule · terminal workspace control plane".into());
+                self.open_about(cx);
                 Some(Response::changed())
             }
             CMD_TAB_RENAME if self.route == Route::Capsule => {
@@ -3932,6 +4514,27 @@ impl App {
                 self.cockpit.log_open = true;
                 self.cockpit.log_scroll = 0;
                 self.status = Some("Docker build · scroll to inspect output".into());
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_INFO
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && self.launch.as_ref().is_none_or(|run| run.failure.is_none()) =>
+            {
+                if self.cockpit_info_open {
+                    self.close_cockpit_info(cx);
+                } else {
+                    self.open_cockpit_info(cx);
+                }
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_DEBUG
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && self.launch.as_ref().is_none_or(|run| run.failure.is_none()) =>
+            {
+                self.cockpit_debug_open = !self.cockpit_debug_open;
+                // The telemetry row lives in the dialog. A status string would
+                // shift the hint row on the cockpit underneath.
+                self.status = None;
                 Some(Response::changed())
             }
             CMD_MANAGER_EXPAND if self.route == Route::Manager => {
@@ -3973,6 +4576,7 @@ impl App {
                 self.editor_accounts = ListState::default();
                 self.editor_role_picker = false;
                 self.editor_env_role = None;
+                self.editor_leaf_focused = false;
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
@@ -4156,7 +4760,53 @@ impl App {
                 Some(Response::changed())
             }
             CMD_NAV_DOWN if self.route == Route::Prelude => {
-                self.prelude.move_selection(true);
+                if self.prelude.step() == 1 {
+                    let from = self.prelude.selection();
+                    let _ = self
+                        .prelude
+                        .follow_source_cursor(from, from.saturating_add(1));
+                } else {
+                    self.prelude.move_selection(true);
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_UP if self.route == Route::Prelude => {
+                let from = self.prelude.selection();
+                let _ = self
+                    .prelude
+                    .follow_source_cursor(from, from.saturating_sub(1));
+                Some(Response::changed())
+            }
+            CMD_ACCOUNT_FILTER if self.route == Route::Accounts && !self.accounts.form_open => {
+                self.accounts.filtering = true;
+                self.accounts.drawer_open = false;
+                self.accounts.filter_query.clear();
+                self.accounts.filter_input.begin("");
+                cx.focus(crate::screens::accounts::FILTER);
+                Some(Response::changed())
+            }
+            CMD_ACCOUNT_DRAWER if self.route == Route::Accounts && !self.accounts.form_open => {
+                if self.accounts.selected_id.is_none() {
+                    self.accounts.selected_id = self
+                        .world
+                        .accounts
+                        .sorted()
+                        .into_iter()
+                        .next()
+                        .map(|account| account.id.clone());
+                }
+                self.accounts.drawer_open = true;
+                self.status = Some("Account inspector".into());
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_TAB_PREV
+                if self.route == Route::Settings && !self.settings_save_preview =>
+            {
+                self.settings.cycle_tab(false);
+                Some(Response::changed())
+            }
+            CMD_EXIT_CONFIRM if self.route == Route::Usage => {
+                self.open_usage_detail();
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE if self.route == Route::Prelude => {
@@ -4202,18 +4852,14 @@ impl App {
                     self.editor.next_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
-                match self.editor.tab {
-                    EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
-                    EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
-                    EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
-                    EditorTab::Environments | EditorTab::General => {}
-                }
+                self.focus_editor_tab(cx);
                 Some(Response::changed())
             }
             CMD_EDITOR_ENV if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(4);
                 }
+                self.editor_leaf_focused = true;
                 cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
             }
@@ -4222,26 +4868,24 @@ impl App {
                     self.editor.previous_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
-                match self.editor.tab {
-                    EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
-                    EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
-                    EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
-                    EditorTab::Environments | EditorTab::General => {}
-                }
+                self.focus_editor_tab(cx);
                 Some(Response::changed())
             }
             CMD_EDITOR_ROLES if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(3);
                 }
+                self.editor_leaf_focused = true;
                 cx.focus(EDITOR_ROLE_EDIT);
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
+                self.settings.tab = (crate::screens::settings::TAB_NAMES.len() - 1) as u8;
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
             CMD_NAV_TAB_FIVE if self.route == Route::Settings => {
+                self.settings.tab = (crate::screens::settings::TAB_NAMES.len() - 1) as u8;
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
@@ -4250,6 +4894,7 @@ impl App {
                     self.editor.select_alias(5);
                     self.editor_accounts_transition = true;
                 }
+                self.editor_leaf_focused = true;
                 cx.focus(EDITOR_ACCOUNTS_LIST);
                 Some(Response::changed())
             }
@@ -4289,6 +4934,7 @@ impl App {
                 if !self.settings.dirty {
                     self.settings.begin_draft();
                 }
+                self.settings_save_preview = true;
                 cx.focus(SETTINGS_SAVE_CONFIRM);
                 self.status = Some("Save settings · choose a confirmation action".into());
                 Some(Response::changed())
@@ -6030,11 +6676,36 @@ impl App {
             return;
         }
         let rows = self.account_rows();
-        let list_area = Rect {
+        let mut list_area = Rect {
             height: area.height.saturating_sub(3),
             ..area
         };
+        if self.accounts.filtering {
+            Self::account_filter_input()
+                .value(&self.accounts.filter_query)
+                .draw(
+                    ui,
+                    Rect::new(area.x, area.y, area.width, 1),
+                    &self.accounts.filter_input,
+                );
+            list_area.y = list_area.y.saturating_add(1);
+            list_area.height = list_area.height.saturating_sub(1);
+        }
         List::new(ACCOUNTS_LIST).draw(ui, list_area, &self.accounts.list, &rows);
+        if self.accounts.drawer_open {
+            let title = self
+                .accounts
+                .selected_id
+                .as_deref()
+                .and_then(|id| self.world.accounts.get(id))
+                .map(Account::title)
+                .unwrap_or_else(|| "no account".to_owned());
+            ui.paint_str(
+                Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1),
+                &format!("Inspector · {title}"),
+                ui.surface_style(),
+            );
+        }
         Self::account_add_button().draw(
             ui,
             Rect {
@@ -6047,6 +6718,21 @@ impl App {
     }
 
     fn draw_usage(&self, ui: &mut Ui<'_>, area: Rect) {
+        if self.usage.detail_open() {
+            let account = self
+                .usage
+                .selected()
+                .and_then(|id| self.world.accounts.get(id));
+            let mut lines = vec!["Usage detail · read-only".to_owned()];
+            if let Some(account) = account {
+                lines.push(account.title());
+                lines.push(account.status_word().to_owned());
+                lines.push(format!("Surface · {}", account.surface.surface_name()));
+            }
+            lines.push("Limits".to_owned());
+            paint_lines(ui, area, &lines);
+            return;
+        }
         let summary = crate::domain::usage::OverallSummary::compute(&self.world.accounts.accounts);
         let tab = match self.usage.tab {
             UsageTab::Overview => "Overview",
@@ -6075,16 +6761,21 @@ impl App {
     }
 
     fn draw_settings(&self, ui: &mut Ui<'_>, area: Rect) {
-        let lines = [
+        let mut lines = vec![
+            self.settings.tab_line(),
             if self.settings.dirty {
-                "• 1 change · Runtime mode · Sync host credentials"
+                "• 1 change · Runtime mode · Sync host credentials".to_owned()
             } else {
-                "Runtime mode · Sync host credentials"
+                "Runtime mode · Sync host credentials".to_owned()
             },
-            "Workspace · payments-platform",
-            "DCO signoff · enabled",
-            "Secret policy · references only; resolved bytes are transient",
+            "Workspace · payments-platform".to_owned(),
+            "DCO signoff · enabled".to_owned(),
+            "Secret policy · references only; resolved bytes are transient".to_owned(),
         ];
+        if self.settings_save_preview {
+            lines.push("Scope · global config".to_owned());
+            lines.push("Changes · trust draft".to_owned());
+        }
         paint_lines(ui, area, &lines);
         Self::settings_trust_button(self.trusted).draw(
             ui,
@@ -6247,6 +6938,9 @@ impl App {
             && self.capsule_tab_title.is_empty()
             && !self.capsule_viewport_focused
             && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
     }
 
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6564,6 +7258,32 @@ impl App {
                 paint_lines(ui, body, &info_lines)
             })
         });
+        let about = Self::about_dialog();
+        let _ = ui.layer(ABOUT_DIALOG, |ui, area| {
+            let about_lines = self.about_lines();
+            about.draw(ui, area, &self.about_state, |ui, body| {
+                paint_lines(ui, body, &about_lines)
+            })
+        });
+        let _ = ui.layer(QUIT_DIALOG, |ui, area| {
+            let quit = Self::quit_dialog(&self.quit_body);
+            quit.draw(ui, area, &self.quit_state, |_, _| {})
+        });
+        let cancel_launch = Self::cockpit_cancel_dialog();
+        let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
+            cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
+        });
+        let cockpit_info = Self::cockpit_info_dialog();
+        let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
+            let lines = self.cockpit_info_lines();
+            cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
+                paint_lines(ui, body, &lines)
+            })
+        });
+        let editor_exit = Self::editor_exit_dialog();
+        let _ = ui.layer(EDITOR_EXIT_DIALOG, |ui, area| {
+            editor_exit.draw(ui, area, &self.editor_exit_state, |_, _| {})
+        });
         let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
             dialog.draw(ui, area, &self.launch_dialog, |ui, body| {
@@ -6649,6 +7369,15 @@ impl App {
             result |= navigation;
         }
         self.ensure_manager_header();
+        if self.quit_open || self.cancel_open || self.editor_exit_open {
+            result |= self.update_overlays(cx);
+            if self.route == Route::Manager {
+                self.ensure_manager_rows();
+            }
+            self.ensure_manager_header();
+            self.sync_workspace_keymap();
+            return result;
+        }
         if let Some(command) = cx.command()
             && let Some(command_result) = self.update_command(cx, command)
         {
@@ -6666,6 +7395,11 @@ impl App {
             || cx.is_open(LAUNCH_DIALOG)
             || cx.is_open(CAPSULE_CONTAINER_INFO)
             || cx.is_open(CAPSULE_HELP)
+            || cx.is_open(ABOUT_DIALOG)
+            || cx.is_open(QUIT_DIALOG)
+            || cx.is_open(CANCEL_LAUNCH_DIALOG)
+            || cx.is_open(COCKPIT_INFO_DIALOG)
+            || cx.is_open(EDITOR_EXIT_DIALOG)
         {
             self.sync_workspace_keymap();
             return result;
@@ -6799,6 +7533,8 @@ impl TuiApp for App {
             && self.motion == Motion::Paused
             && self.status.is_none()
             && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
             && self.launch.is_none()
             && self.picker_mode.is_none()
             && self.agent_options.is_empty()
@@ -6823,6 +7559,9 @@ impl TuiApp for App {
             && !self.editor.env_form_open
             && !self.editor_role_picker
             && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.editor_exit_open
         {
             self.draw_historical_editor(ui, full);
         }
@@ -6844,6 +7583,40 @@ impl TuiApp for App {
     }
 
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.quit_open {
+            self.quit_open = false;
+            cx.close_layer(QUIT_DIALOG, Some(ActionKey::CANCEL));
+            return self.route_changed();
+        }
+        if self.cancel_open {
+            self.cancel_open = false;
+            cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
+            return self.route_changed();
+        }
+        if self.cockpit_info_open {
+            self.close_cockpit_info(cx);
+            return self.route_changed();
+        }
+        if self.editor_exit_open {
+            self.close_editor_exit(cx);
+            return self.route_changed();
+        }
+        if self
+            .launch
+            .as_ref()
+            .is_some_and(|run| run.failure.is_some())
+            && matches!(self.route, Route::Manager | Route::Cockpit | Route::Launch)
+        {
+            self.acknowledge_launch_failure();
+            cx.focus(MANAGER_LIST);
+            return self.route_changed();
+        }
+        if self.about_open {
+            self.about_open = false;
+            self.status = None;
+            cx.close_layer(ABOUT_DIALOG, Some(ActionKey::CLOSE));
+            return self.route_changed();
+        }
         if self.route == Route::Outro {
             self.quit = true;
             return self.route_changed();
@@ -6912,7 +7685,24 @@ impl TuiApp for App {
             self.status = None;
             return self.route_changed();
         }
+        if self.route == Route::Usage && self.usage.detail_open() {
+            self.usage.close_detail();
+            self.status = None;
+            return self.route_changed();
+        }
         if self.route == Route::Accounts {
+            if self.accounts.filtering {
+                self.accounts.filtering = false;
+                self.accounts.filter_query.clear();
+                self.accounts.filter_input = TextInputState::default();
+                self.status = None;
+                return self.route_changed();
+            }
+            if self.accounts.drawer_open {
+                self.accounts.drawer_open = false;
+                self.status = None;
+                return self.route_changed();
+            }
             if self
                 .status
                 .as_deref()
@@ -6951,17 +7741,27 @@ impl TuiApp for App {
         }
         if self.route == Route::Editor {
             if self.editor.env_form_open {
-                self.editor.clear_env_form();
+                self.dismiss_editor_env_form(cx);
+                return self.route_changed();
+            }
+            if self.editor_leaf_focused {
+                self.editor_leaf_focused = false;
+                cx.focus(crate::screens::editor::SAVE);
                 return self.route_changed();
             }
             if self.editor.dirty {
-                self.status = Some("Save changes before leaving?".into());
+                self.open_editor_exit(cx);
             } else {
                 self.route = Route::Manager;
             }
             return self.route_changed();
         }
         if self.route == Route::Settings {
+            if self.settings_save_preview {
+                self.settings_save_preview = false;
+                self.status = None;
+                return self.route_changed();
+            }
             if self.settings.save_error.is_some() {
                 self.settings.clear_error();
                 self.status = None;
