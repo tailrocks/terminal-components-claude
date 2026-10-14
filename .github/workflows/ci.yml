@@ -243,6 +243,7 @@ jobs:
       - rust-jackin-preview
       - rust-junie-tui
       - rust-junie-tui-testing
+      - rust-refactor-proof
       - rust-showcase
       - rust-tablepro
       - rust-xtask
@@ -302,14 +303,14 @@ jobs:
         env:
           VELNOR_INTERNAL_OP: write-request-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-jackin-preview\",\"rust-junie-tui\",\"rust-junie-tui-testing\",\"rust-showcase\",\"rust-tablepro\",\"rust-xtask\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-jackin-preview\",\"rust-junie-tui\",\"rust-junie-tui-testing\",\"rust-refactor-proof\",\"rust-showcase\",\"rust-tablepro\",\"rust-xtask\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: "\"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\""
       - name: Merge reports
         env:
           VELNOR_INTERNAL_OP: merge-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-jackin-preview\",\"rust-junie-tui\",\"rust-junie-tui-testing\",\"rust-showcase\",\"rust-tablepro\",\"rust-xtask\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-jackin-preview\",\"rust-junie-tui\",\"rust-junie-tui-testing\",\"rust-refactor-proof\",\"rust-showcase\",\"rust-tablepro\",\"rust-xtask\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: "\"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\""
       - name: Save Mise tools
@@ -1280,6 +1281,245 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ github.run_attempt }}-rust-junie-tui-testing
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}
+          retention-days: "30"
+  rust-refactor-proof:
+    name: Rust / refactor-proof
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs:
+      - plan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+      - name: Setup Mise
+        uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5
+        with:
+          cache: "true"
+          cache_key: mise-v1-x86_64-unknown-linux-gnu-2026.9.18-ccc5d847fd871b3b
+          cache_save: "false"
+          env: "false"
+          install: "false"
+          sha256: d24fe0bf7e613824ad99f7b8dac3f2b381a37b9f75f84dd250855217095a8de4
+          version: 2026.9.18
+      - name: Acquire Velnor
+        env:
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
+          ACTIONS_ID_TOKEN_REQUEST_URL: ""
+          ACTIONS_RUNTIME_TOKEN: ""
+          CARGO_REGISTRY_TOKEN: ""
+          GH_CONFIG_DIR: ""
+          GH_HOST: ""
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+          MISE_GITHUB_TOKEN: ""
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+          VELNOR_ASSET_SHA256: aa7e44d6579e9c586106d120ed3658fcf1c9b041027ad9f03473e8efacd3b5d5
+          VELNOR_ASSET_URL: https://github.com/tailrocks/velnor-new/releases/download/v0.1.0/velnor-actions-0.1.0-x86_64-unknown-linux-gnu
+          VELNOR_RELEASE_COMMIT: c57c700459bbe1549fe7eedcb7d8689585c38986
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; mkdir -p \"$RUNNER_TEMP/velnor/bin\" && curl -fsSL --proto '\\''=https'\\'' --tlsv1.2 \"$VELNOR_ASSET_URL\" -o \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\" && echo \"$VELNOR_ASSET_SHA256  $RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\" | sha256sum -c - && chmod +x \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"'"
+      - name: Download plan
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: velnor-plan-r${{ github.run_id }}-a${{ github.run_attempt }}
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}
+      - name: Prepare pinned tools
+        env:
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_LOCKFILE: "0"
+          MISE_NO_CONFIG: "1"
+          MISE_NO_ENV: "1"
+          MISE_NO_HOOKS: "1"
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+          RUSTUP_TOOLCHAIN: 1.98.1
+        run: mise --no-config --no-env --no-hooks install rust@1.98.1 actionlint@1.7.12 shellcheck@0.11.0 zizmor@1.30.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146
+      - name: Prepare Rust components
+        env:
+          MISE_AUTO_INSTALL: "false"
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_EXEC_AUTO_INSTALL: "false"
+          MISE_LOCKFILE: "0"
+          MISE_NO_CONFIG: "1"
+          MISE_NO_ENV: "1"
+          MISE_NO_HOOKS: "1"
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+          RUSTUP_TOOLCHAIN: 1.98.1
+        run: mise --no-config --no-env --no-hooks exec rust@1.98.1 -- rustup component add --toolchain 1.98.1-x86_64-unknown-linux-gnu clippy rustfmt
+      - name: Restore Cargo registry
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+        with:
+          add-job-id-key: "false"
+          cache-on-failure: "false"
+          cache-targets: "false"
+          prefix-key: velnor-v1-cargo
+          save-if: "false"
+          shared-key: velnor-cargo-x86_64-unknown-linux-gnu-1.98.1
+      - name: Fetch Cargo sources
+        env:
+          MISE_AUTO_INSTALL: "false"
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_EXEC_AUTO_INSTALL: "false"
+          MISE_LOCKFILE: "0"
+          MISE_NO_CONFIG: "1"
+          MISE_NO_ENV: "1"
+          MISE_NO_HOOKS: "1"
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+          RUSTUP_TOOLCHAIN: 1.98.1
+        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
+      - name: Clippy
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/tools/refactor-proof/clippy/default,')"
+        env:
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
+          ACTIONS_ID_TOKEN_REQUEST_URL: ""
+          ACTIONS_RUNTIME_TOKEN: ""
+          CARGO_REGISTRY_TOKEN: ""
+          GH_CONFIG_DIR: ""
+          GH_HOST: ""
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+          MISE_AUTO_INSTALL: "false"
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_EXEC_AUTO_INSTALL: "false"
+          MISE_GITHUB_TOKEN: ""
+          MISE_LOCKFILE: "0"
+          MISE_NO_CONFIG: "1"
+          MISE_NO_ENV: "1"
+          MISE_NO_HOOKS: "1"
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+          RUSTUP_TOOLCHAIN: 1.98.1
+          VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/tools/refactor-proof/build/default,stack/rust/tools/refactor-proof/nextest/default,stack/rust/tools/refactor-proof/doctest/default,stack/rust/tools/refactor-proof/doc/default
+          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/tools/refactor-proof/clippy/default
+          VELNOR_MATRIX_KEY: m-09170c3e3af2b2e6
+          VELNOR_TASK_DIGEST: b3-21a5b7233db382c757326810d6d1620d1e6a3cab042df16459c4c7e1f723d4be
+          VELNOR_TASK_ID: stack/rust/tools/refactor-proof/clippy/default
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-09170c3e3af2b2e6\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo clippy --locked --offline --manifest-path tools/refactor-proof/Cargo.toml --package refactor-proof --all-targets -- -D warnings; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-09170c3e3af2b2e6\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+      - name: Build test executables
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/tools/refactor-proof/build/default,')"
+        env:
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
+          ACTIONS_ID_TOKEN_REQUEST_URL: ""
+          ACTIONS_RUNTIME_TOKEN: ""
+          CARGO_REGISTRY_TOKEN: ""
+          GH_CONFIG_DIR: ""
+          GH_HOST: ""
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+          MISE_AUTO_INSTALL: "false"
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_EXEC_AUTO_INSTALL: "false"
+          MISE_GITHUB_TOKEN: ""
+          MISE_LOCKFILE: "0"
+          MISE_NO_CONFIG: "1"
+          MISE_NO_ENV: "1"
+          MISE_NO_HOOKS: "1"
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+          RUSTUP_TOOLCHAIN: 1.98.1
+          VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/tools/refactor-proof/nextest/default,stack/rust/tools/refactor-proof/doctest/default,stack/rust/tools/refactor-proof/doc/default
+          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/tools/refactor-proof/build/default
+          VELNOR_MATRIX_KEY: m-563c47ddbac52d36
+          VELNOR_TASK_DIGEST: b3-68f8a25b8158eade378974d17c37df2bda7178bb80df15cfd5cad5b0128c13b5
+          VELNOR_TASK_ID: stack/rust/tools/refactor-proof/build/default
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-563c47ddbac52d36\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path tools/refactor-proof/Cargo.toml --package refactor-proof; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-563c47ddbac52d36\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+      - name: Unit and integration tests
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/tools/refactor-proof/nextest/default,')"
+        env:
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
+          ACTIONS_ID_TOKEN_REQUEST_URL: ""
+          ACTIONS_RUNTIME_TOKEN: ""
+          CARGO_REGISTRY_TOKEN: ""
+          GH_CONFIG_DIR: ""
+          GH_HOST: ""
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+          MISE_AUTO_INSTALL: "false"
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_EXEC_AUTO_INSTALL: "false"
+          MISE_GITHUB_TOKEN: ""
+          MISE_LOCKFILE: "0"
+          MISE_NO_CONFIG: "1"
+          MISE_NO_ENV: "1"
+          MISE_NO_HOOKS: "1"
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+          RUSTUP_TOOLCHAIN: 1.98.1
+          VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/tools/refactor-proof/doctest/default,stack/rust/tools/refactor-proof/doc/default
+          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/tools/refactor-proof/nextest/default
+          VELNOR_MATRIX_KEY: m-844cc500815e59ef
+          VELNOR_TASK_DIGEST: b3-cdaa0f5121c88072e0004196869a9f97281d3de7321cc5d9dbd686e210623be6
+          VELNOR_TASK_ID: stack/rust/tools/refactor-proof/nextest/default
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-844cc500815e59ef\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest run --profile default --locked --offline --manifest-path tools/refactor-proof/Cargo.toml --package refactor-proof --no-tests fail; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-844cc500815e59ef\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+      - name: Doctests
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/tools/refactor-proof/doctest/default,')"
+        env:
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
+          ACTIONS_ID_TOKEN_REQUEST_URL: ""
+          ACTIONS_RUNTIME_TOKEN: ""
+          CARGO_REGISTRY_TOKEN: ""
+          GH_CONFIG_DIR: ""
+          GH_HOST: ""
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+          MISE_AUTO_INSTALL: "false"
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_EXEC_AUTO_INSTALL: "false"
+          MISE_GITHUB_TOKEN: ""
+          MISE_LOCKFILE: "0"
+          MISE_NO_CONFIG: "1"
+          MISE_NO_ENV: "1"
+          MISE_NO_HOOKS: "1"
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+          RUSTUP_TOOLCHAIN: 1.98.1
+          VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/tools/refactor-proof/doc/default
+          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/tools/refactor-proof/doctest/default
+          VELNOR_MATRIX_KEY: m-9af33a39df1a5f15
+          VELNOR_TASK_DIGEST: b3-fbd4236587537e1ca91432074e630cdfe4d7307e6ac24462a04a2d8b382de2fe
+          VELNOR_TASK_ID: stack/rust/tools/refactor-proof/doctest/default
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-9af33a39df1a5f15\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo test --locked --offline --manifest-path tools/refactor-proof/Cargo.toml --package refactor-proof --doc; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-9af33a39df1a5f15\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+      - name: Documentation
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/tools/refactor-proof/doc/default,')"
+        env:
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
+          ACTIONS_ID_TOKEN_REQUEST_URL: ""
+          ACTIONS_RUNTIME_TOKEN: ""
+          CARGO_REGISTRY_TOKEN: ""
+          GH_CONFIG_DIR: ""
+          GH_HOST: ""
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+          MISE_AUTO_INSTALL: "false"
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_EXEC_AUTO_INSTALL: "false"
+          MISE_GITHUB_TOKEN: ""
+          MISE_LOCKFILE: "0"
+          MISE_NO_CONFIG: "1"
+          MISE_NO_ENV: "1"
+          MISE_NO_HOOKS: "1"
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+          RUSTDOCFLAGS: "-D warnings"
+          RUSTUP_TOOLCHAIN: 1.98.1
+          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/tools/refactor-proof/doc/default
+          VELNOR_MATRIX_KEY: m-959a202549e0163d
+          VELNOR_TASK_DIGEST: b3-01283a979ad0e31ab086ea2449daceee5515bb421f006d6840bd5d29f42d874c
+          VELNOR_TASK_ID: stack/rust/tools/refactor-proof/doc/default
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-959a202549e0163d\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo doc --locked --offline --manifest-path tools/refactor-proof/Cargo.toml --package refactor-proof --no-deps; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-959a202549e0163d\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ github.run_attempt }}-rust-refactor-proof
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}
           retention-days: "30"
   rust-showcase:

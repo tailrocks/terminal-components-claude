@@ -1,0 +1,32 @@
+[package]
+name = "refactor-proof"
+description = "TASK-001 qualified-harness comparator and host core"
+publish = false
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "tc-proof"
+path = "src/bin/tc_proof.rs"
+
+[[bin]]
+name = "tc-proof-host"
+path = "src/bin/tc_proof_host.rs"
+
+[dependencies]
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tempfile = "3"
+tuisnap = { git = "https://github.com/donbeave/tui-snap.git", rev = "0a2e490802b7b048cd96349c6af860f8a3a05c3d", default-features = false }
+
+[dev-dependencies]
+libc = "0.2"
+tempfile = "3"
+
+[lints]
+workspace = true
