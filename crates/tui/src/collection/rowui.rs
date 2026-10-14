@@ -979,7 +979,10 @@ mod tests {
             r.label("name");
         });
         assert_eq!(row_text(&page, 0, 0, 12), "name      42");
-        assert_eq!(page.cell((11, 0)).map(|cell| cell.symbol()), Some("2"));
+        assert_eq!(
+            page.cell((11, 0)).map(ratatui_core::buffer::Cell::symbol),
+            Some("2")
+        );
         // one column short: nothing of the meta is painted, not a truncation
         let page = paint(Rect::new(0, 0, 3, 1), |r| {
             r.meta("42");
@@ -989,7 +992,10 @@ mod tests {
         // exactly at the boundary (need + 2 == width) it still fits
         let page = paint(Rect::new(0, 0, 4, 1), |r| r.meta("42"));
         assert_eq!(row_text(&page, 0, 0, 4), "  42");
-        assert_eq!(page.cell((3, 0)).map(|cell| cell.symbol()), Some("2"));
+        assert_eq!(
+            page.cell((3, 0)).map(ratatui_core::buffer::Cell::symbol),
+            Some("2")
+        );
     }
 
     #[test]
