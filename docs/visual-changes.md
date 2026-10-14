@@ -464,6 +464,37 @@ of these key names, if any, is classified by the integration-era entries.
 ```
 
 
+### 7e — Form radio slots keep one row per option (2026-10-14)
+
+The form field slot was `field_height` (3), so a radio group painted only its first option. The slot now leaves one control row per option. Only the 160×50 Forms cells are tall enough to show the extra rows.
+
+```
+- surface:   showcase/Forms @ 160x50 / {junie, paper} / {truecolor, 256, 16, mono}
+- captures:  none under shots/ — the digest harness draws headlessly through
+             Harness into a TestBackend, and tools/capture.sh cannot address that
+             buffer. The reviewable artefact is the frame text
+             showcase_visual_baseline printed for `Forms 160 50 junie truecolor`:
+             the deploy form paints `(●) us-east`, `(○) eu-west`, and `(○) ap-south`
+             on separate rows. The old three-row slot painted only the first option.
+- tests:     apps/showcase/tests/baselines/showcase.txt,
+             apps/showcase/tests/visual.rs::showcase_visual_baseline
+- moved:     8 keys:
+  Forms 160 50 junie 16 d8a82c9d046bb5f7 → 05d9464084600882
+  Forms 160 50 junie 256 7a086815d3a61d9a → 76468ede9a6b76a3
+  Forms 160 50 junie mono f52a9a3f5bdb7f55 → e668e0c2969c8cee
+  Forms 160 50 junie truecolor 700478572b21b73f → 10a53e4e1dac2c06
+  Forms 160 50 paper 16 12a8775ecd1a85e8 → c6b26ef4b484f3b3
+  Forms 160 50 paper 256 eae28710fa1786a3 → 68fe7e6851bc1752
+  Forms 160 50 paper mono 264662e48c466815 → 7c27b8af58287e38
+  Forms 160 50 paper truecolor 2a932de169d8bb58 → 8d4b039c8a83311d
+- added:     none
+- class:     fix
+- reason:    §20.10 item 7. A radio group is one row per option; the form slot
+             clipped every option after the first, which is a container geometry
+             defect. These eight 160×50 Forms cells are the sizes that show the
+             corrected rows.
+```
+
 ## Item 8 — The backdrop excludes the footer row uniformly
 
 captures / classification: `(pending — filled when the change lands)`
