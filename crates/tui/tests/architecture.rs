@@ -24,23 +24,51 @@ fn workspace_root() -> PathBuf {
         .expect("workspace root")
 }
 
+fn xtask_clean(args: &[&str]) -> (bool, String) {
+    xtask_env(args, None)
+}
+
+fn xtask_with_base(args: &[&str], base: &str) -> (bool, String) {
+    xtask_env(args, Some(base))
+}
+
+fn xtask_env(args: &[&str], base: Option<&str>) -> (bool, String) {
+    let mut command = Command::new("cargo");
+    command
+        .args(["run", "-q", "-p", "xtask", "--"])
+        .args(args)
+        .current_dir(workspace_root())
+        .env_remove("GITHUB_BASE_REF");
+    match base {
+        Some(base) => {
+            command.env("BLESS_GUARD_BASE", base);
+        }
+        None => {
+            command.env_remove("BLESS_GUARD_BASE");
+        }
+    }
+    let out = command.output().expect("run xtask");
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    (out.status.success(), text)
+}
+
 fn xtask(args: &[&str]) -> (bool, String) {
     let mut command = Command::new("cargo");
     command
         .args(["run", "-q", "-p", "xtask", "--"])
         .args(args)
         .current_dir(workspace_root());
-    // The production guard correctly refuses a missing base. Give its test
-    // wrapper a real local range when no CI/PR base was inherited: the review
-    // base of every branch in this repository is `main`, so the local default
-    // is the fetched `origin/main` rather than the immediate parent — a merge
-    // commit's parent is not the base its ledger classifies against.
-    let has_env = |name| std::env::var(name).is_ok_and(|value| !value.trim().is_empty());
-    if args == ["boundary", "--check", "baseline_moves_are_classified"]
-        && !has_env("BLESS_GUARD_BASE")
-        && !has_env("GITHUB_BASE_REF")
-    {
-        command.env("BLESS_GUARD_BASE", "origin/main");
+    // `boundary --check baseline_moves_are_classified` selects `origin/main`
+    // inside xtask when no base was named. Strip an inherited base so this
+    // test exercises that command path. `bless-guard` still refuses a missing
+    // base; do not inject one here.
+    if args == ["boundary", "--check", "baseline_moves_are_classified"] {
+        command.env_remove("BLESS_GUARD_BASE");
+        command.env_remove("GITHUB_BASE_REF");
     }
     let out = command.output().expect("run xtask");
     let text = format!(
@@ -305,10 +333,43 @@ mod architecture {
 
     /// §16.3 as amended by §36, and §36.5: every moved or added baseline key is
     /// accounted for by a `docs/visual-changes.md` entry citing a numbered
-    /// §20.10 item. `cargo run -p xtask -- bless-guard` is the same check.
+    /// §20.10 item. The `boundary` command classifies that diff against
+    /// `origin/main` when no base is set. `bless-guard` is the same check with
+    /// an explicit base and still refuses to run without one.
     #[test]
     fn baseline_moves_are_classified() {
-        check("baseline_moves_are_classified");
+        let (ok, text) = xtask(&["boundary", "--check", "baseline_moves_are_classified"]);
+        assert!(ok, "baseline_moves_are_classified failed:\n{text}");
+        assert!(
+            text.contains("baseline_moves_are_classified: base origin/main"),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn bless_guard_without_a_base_still_refuses() {
+        let (ok, text) = xtask_clean(&["bless-guard"]);
+        assert!(!ok, "bless-guard without a base must fail:\n{text}");
+        assert!(text.contains("no base revision"), "{text}");
+        assert!(
+            !text.contains("base origin/main"),
+            "bless-guard must not adopt the boundary review base:\n{text}"
+        );
+    }
+
+    #[test]
+    fn boundary_keeps_an_explicit_base() {
+        let (ok, text) = xtask_with_base(
+            &["boundary", "--check", "baseline_moves_are_classified"],
+            "not-a-real-revision",
+        );
+        assert!(!ok, "an invalid explicit base must fail:\n{text}");
+        assert!(text.contains("not-a-real-revision"), "{text}");
+        assert!(text.contains("does not resolve"), "{text}");
+        assert!(
+            !text.contains("base origin/main"),
+            "an explicit base must not fall back to origin/main:\n{text}"
+        );
     }
 
     /// `cargo build --examples` is the mechanism (run by
