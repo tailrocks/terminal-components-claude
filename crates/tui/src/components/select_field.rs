@@ -76,8 +76,7 @@ mod tests {
 
     fn cell_symbol(buf: &Buffer, x: u16, y: u16) -> &str {
         buf.cell(Position::new(x, y))
-            .map(|cell| cell.symbol())
-            .unwrap_or("<none>")
+            .map_or("<none>", ratatui_core::buffer::Cell::symbol)
     }
 
     fn row_text(buf: &Buffer, y: u16, x0: u16, len: u16) -> String {

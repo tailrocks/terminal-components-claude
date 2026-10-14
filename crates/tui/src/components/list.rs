@@ -383,6 +383,10 @@ impl Reconcile for ListState {
 /// ## Invariants
 /// `reconcile` runs before any action is emitted; only visible rows invoke
 /// the renderer; a frame allocates nothing per row.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "whole rows, boundary exit, click activation and bare row chrome are independent opt-ins"
+)]
 pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
