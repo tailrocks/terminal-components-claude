@@ -17,6 +17,7 @@ use super::{Acc, PartStyle};
 use crate::action::{Action, ActionKey};
 use crate::collection::KeySet;
 use crate::event::{Chord, KeyCode};
+use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef, fnv1a};
 use crate::intent::Intent;
 use crate::measure::{Constraints, Size};
@@ -885,6 +886,10 @@ impl Placements<'_, '_> {
                 FieldKind::Area(area) => {
                     self.field_height.max(area.rows_in_form().saturating_add(2))
                 }
+                FieldKind::Radio(_) => {
+                    let rows = u16::try_from(data.options(field.id).len()).unwrap_or(u16::MAX);
+                    self.field_height.max(rows.saturating_add(2))
+                }
                 _ => self.field_height,
             };
             let is_half = self.columns == 2 && field.span == FieldSpan::Half;
@@ -998,6 +1003,33 @@ impl<'a> Form<'a> {
 
     fn shown<D: FormData + ?Sized>(&self, data: &D, field: &FieldSpec<'_>) -> bool {
         (field.group == GroupKey::ALL || field.group == self.group) && data.visible(field.id)
+    }
+
+    fn reveal_index(placement: Placement, viewport: usize) -> usize {
+        let bottom = placement
+            .top
+            .saturating_add(usize::from(placement.height).saturating_sub(1));
+        if viewport > 0 && usize::from(placement.height) <= viewport {
+            bottom
+        } else {
+            placement.top
+        }
+    }
+
+    fn register_clipped_field<D: FormData + ?Sized>(
+        ui: &mut Ui<'_>,
+        field: &FieldSpec<'_>,
+        data: &D,
+    ) {
+        if ui.is_inert() {
+            return;
+        }
+        let focus = if data.disabled(field.id) {
+            Focusability::Disabled
+        } else {
+            Focusability::Focusable
+        };
+        ui.register_focus_only(field.id, focus);
     }
 
     fn field_height(field: &FieldSpec<'_>, design: &DesignTokens) -> u16 {
@@ -1250,7 +1282,9 @@ impl<'a> Form<'a> {
                 found
             }
         {
-            st.scroll.ensure_visible_on_next_layout(placement.top);
+            let viewport = st.scroll.viewport_len();
+            st.scroll
+                .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport));
         }
 
         let enter_requested = self.enter == EnterPolicy::SubmitsWhenIdle
@@ -1273,7 +1307,9 @@ impl<'a> Form<'a> {
                 continue;
             };
             if cx.state(field.id).contains(StateFlags::FOCUSED) {
-                st.scroll.ensure_visible_on_next_layout(placement.top);
+                let viewport = st.scroll.viewport_len();
+                st.scroll
+                    .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport));
             }
             let disabled = data.disabled(field.id);
             let (value, options) = data.value_and_options(field.id);
@@ -1398,6 +1434,7 @@ impl<'a> Form<'a> {
             };
             let bottom = placement.top.saturating_add(usize::from(placement.height));
             if bottom <= base || placement.top >= base.saturating_add(usize::from(content.height)) {
+                Self::register_clipped_field(ui, field, data);
                 continue;
             }
             let y_offset = placement.top.saturating_sub(base);
@@ -2222,6 +2259,32 @@ mod tests {
             Form::field_height(&field, &design),
             design.size.field_height
         );
+    }
+
+    fn row_text(buffer: &Buffer, y: u16) -> String {
+        (0..buffer.area.width)
+            .map(|x| buffer.cell((x, y)).expect("row cell").symbol())
+            .collect()
+    }
+
+    #[test]
+    fn radio_field_paints_one_row_per_option() {
+        let (_runtime, buffer) = matrix_runtime(MatrixKind::Radio);
+        let rows: Vec<u16> = ["one", "two", "three"]
+            .into_iter()
+            .map(|label| {
+                (0..buffer.area.height)
+                    .find(|y| row_text(&buffer, *y).contains(label))
+                    .expect(label)
+            })
+            .collect();
+        assert!(rows[0] < rows[1] && rows[1] < rows[2]);
+        assert!(
+            row_text(&buffer, rows[0]).contains('●'),
+            "the value row wears the on glyph"
+        );
+        assert!(row_text(&buffer, rows[1]).contains('○'));
+        assert!(row_text(&buffer, rows[2]).contains('○'));
     }
 
     #[test]
