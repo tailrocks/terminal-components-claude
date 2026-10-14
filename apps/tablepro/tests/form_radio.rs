@@ -219,6 +219,10 @@ fn option_row(t: &Harness<TableProApp>) -> Result<u16, &'static str> {
         .ok_or("Environment caption missing")
 }
 
+fn find_from(t: &Harness<TableProApp>, needle: &str, min_y: u16) -> Option<u16> {
+    (min_y..t.buffer().area().height).find(|y| t.row(*y).contains(needle))
+}
+
 fn marker_x(t: &Harness<TableProApp>, y: u16) -> Result<u16, &'static str> {
     let width = t.buffer().area().width;
     (0..width)
@@ -231,10 +235,10 @@ fn blob_beneath(symbol: &str, fg: &str, bg: &str) -> bool {
 }
 
 /// T1/T2/T12 coordinates are the right card. The stock form paints the
-/// caption in the left column and only the selected option row.
+/// caption in the left column and one row per option.
 #[test]
 fn form_radio_right_card_pins_miss_the_stock_form() -> Result<(), &'static str> {
-    let t = open_new_form(120, 40);
+    let mut t = open_new_form(120, 40);
     let (x, y) = t.find("Environment").ok_or("Environment caption missing")?;
     assert_ne!((x, y), (90, 7), "120x40 caption is not the card pin");
     assert_ne!(row_span(&t, 7, 90, 100), "Environment");
@@ -244,19 +248,22 @@ fn form_radio_right_card_pins_miss_the_stock_form() -> Result<(), &'static str> 
     assert_eq!(
         row_span(&t, row, marker.saturating_add(4), marker.saturating_add(8)),
         "Local",
-        "the visible label is title case"
+        "the first option is title case"
     );
+    let staging_y = find_from(&t, "Staging", row).ok_or("Staging option missing")?;
+    assert!(staging_y > row, "Staging is a later option row");
+    assert_ne!((marker, staging_y), (90, 16), "Staging is not the card pin");
     assert!(
         t.find("development").is_none(),
         "lowercase card labels are absent"
     );
     assert!(
-        t.find("Staging").is_none(),
-        "clipped options are not painted"
-    );
-    assert!(
         t.find("Writes run").is_none(),
         "the card description is absent"
+    );
+    assert!(
+        t.tab_to(SAFE_MODE),
+        "SAFE_MODE must be reachable below the environment options"
     );
     let safe = t.find("Safe Mode").ok_or("Safe Mode caption missing")?;
     assert_ne!(safe, (90, 16), "safe caption is not the card pin");
@@ -324,8 +331,8 @@ fn form_radio_narrow_frames_clip_the_environment_field() {
     );
 }
 
-/// T8 asks for an off marker of `( )`. The theme glyph is `(○)`, and the
-/// one-row control shows it on Local after the cursor commits Staging.
+/// T8 asks for an off marker of `( )`. The theme glyph is `(○)`. After
+/// Space commits Staging, that row wears `(●)` and Local keeps `(○)`.
 #[test]
 fn form_radio_off_marker_uses_the_hollow_circle() -> Result<(), &'static str> {
     let theme = Theme::junie();
@@ -337,16 +344,34 @@ fn form_radio_off_marker_uses_the_hollow_circle() -> Result<(), &'static str> {
     let _ = t.key(KeyCode::Down);
     let _ = t.key(KeyCode::Char(' '));
     assert_eq!(drafts(&t)?.0, 2, "Space commits Staging");
-    let row = option_row(&t)?;
-    let marker = marker_x(&t, row)?;
-    assert_eq!(row_span(&t, row, marker, marker + 2), "(○)");
-    assert_eq!(t.cell(marker.saturating_add(1), row).symbol(), "○");
+    let caption = t
+        .find("Environment")
+        .ok_or("Environment caption missing")?
+        .1;
+    let local_y = find_from(&t, "Local", caption).ok_or("Local option missing")?;
+    let staging_y =
+        find_from(&t, "Staging", local_y.saturating_add(1)).ok_or("Staging option missing")?;
+    assert!(local_y < staging_y, "Staging is painted below Local");
+    let local_marker = marker_x(&t, local_y)?;
+    assert_eq!(row_span(&t, local_y, local_marker, local_marker + 2), "(○)");
     assert_eq!(
-        row_span(&t, row, marker.saturating_add(4), marker.saturating_add(8)),
-        "Local",
-        "the painted row stays the first option"
+        t.cell(local_marker.saturating_add(1), local_y).symbol(),
+        "○"
     );
-    assert!(t.find("Staging").is_none());
+    let staging_marker = marker_x(&t, staging_y)?;
+    assert_eq!(
+        row_span(&t, staging_y, staging_marker, staging_marker + 2),
+        "(●)"
+    );
+    assert_eq!(
+        row_span(
+            &t,
+            staging_y,
+            staging_marker.saturating_add(4),
+            staging_marker.saturating_add(10)
+        ),
+        "Staging"
+    );
     assert_ne!(row_span(&t, 9, 89, 91), "( )");
     Ok(())
 }
@@ -407,7 +432,11 @@ fn form_radio_blob_click_does_not_choose_staging() -> Result<(), &'static str> {
     assert_eq!(drafts(&t)?, (0, 0));
     let _ = t.click(95, 10);
     assert_eq!(drafts(&t)?.0, 0, "the card click must not commit Staging");
-    assert!(t.find("Staging").is_none());
+    let caption = t.find("Environment").map_or(0, |(_, y)| y);
+    assert!(
+        find_from(&t, "Staging", caption).is_some(),
+        "Staging stays a painted option"
+    );
     Ok(())
 }
 
