@@ -1601,4 +1601,60 @@ mod tests {
             Some("o")
         );
     }
+
+    /// B45 refills the empty body with the container style and paints the
+    /// title without inherited channels (`termrock-navigation` `list.rs`).
+    /// That drops an owner `Part::EMPTY` patch and moves `list::empty`.
+    #[test]
+    fn empty_body_keeps_the_owner_empty_style() {
+        use ratatui_core::style::Color;
+
+        let area = Rect::new(0, 0, 24, 4);
+        let patch = [(
+            Part::EMPTY,
+            StylePatch::new()
+                .set_bg(crate::theme::Role::Custom(Color::Blue))
+                .add(Modifier::ITALIC),
+        )];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        let state = ListState::default();
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                List::<&str>::new(ID)
+                    .empty(EmptyState::Empty {
+                        title: "Empty title",
+                        hint: None,
+                    })
+                    .patch_part(&patch)
+                    .draw(ui, area, &state, &[]);
+            })
+            .commit_presented();
+
+        let above = buffer.cell(Position::new(0, 0)).expect("container row");
+        assert_ne!(
+            above.bg,
+            Color::Blue,
+            "the container row must not take the empty patch"
+        );
+        let mut blanks = 0u16;
+        let mut title = false;
+        for y in 2..area.height {
+            for x in 0..area.width {
+                let cell = buffer.cell(Position::new(x, y)).expect("empty body");
+                assert_eq!(cell.bg, Color::Blue, "body bg at {x},{y}");
+                assert!(
+                    cell.modifier.contains(Modifier::ITALIC),
+                    "body modifier at {x},{y}"
+                );
+                if cell.symbol() == " " {
+                    blanks = blanks.saturating_add(1);
+                } else {
+                    title = true;
+                }
+            }
+        }
+        assert!(title, "empty title was not painted");
+        assert!(blanks > 0, "empty body had no blank cell");
+    }
 }
